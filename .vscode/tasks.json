@@ -1,0 +1,53 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run",
+			"dependsOn": "Compile",
+			"type": "shell",
+			"command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+			"presentation": {
+				"echo": false,
+				"reveal": "silent",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": false,
+				"clear": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Compile",
+			"dependsOn": "Remove",
+			"type": "shell",
+			"command": "${config:qb64.installPath}/qb64.exe",
+			"args": [
+				"-x",
+				"${fileDirname}\\${fileBasename}",
+				"-o",
+				"${fileDirname}\\${fileBasenameNoExtension}.exe"
+			],
+			"presentation": {
+				"reveal": "silent",
+				"panel": "shared",
+				"focus": false
+			}
+		},
+		{
+			"label": "Remove",
+			"type": "shell",
+			"command": "del",
+			"args": [
+				"${fileDirname}\\${fileBasenameNoExtension}.exe"
+			],
+			"presentation": {
+				"reveal": "never",
+				"panel": "shared",
+				"focus": false
+			}
+		}
+	]
+}
