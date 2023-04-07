@@ -1,14 +1,15 @@
 '$Include:'../ANSIPrint/include/ANSIPrint.bi'
 '$Include:'../ANSIPrint/include/Base64.bi'
 
-
-DIM AS LONG TEMP_SCREEN, MAIN_SCREEN, BOARD_SCREEN, INTRO_SCREEN
+DIM AS LONG CANVAS, TEMP_SCREEN, MAIN_SCREEN, BOARD_SCREEN, INTRO_SCREEN
 DIM AS STRING MAIN_ANSI, BOARD_ANSI, INTRO_ANSI
 
 BOARD_ANSI$ = LoadFileFromDisk$("ansi/board.ans")
 
-SCREEN 0
-WIDTH 80, 43
+CANVAS& = _NEWIMAGE(80 * 8, 43 * 16, 32)
+_FONT 16
+SCREEN CANVAS&
+
 PrintANSI(BOARD_ANSI$)
 
 ' Loads a whole file from disk into memory
