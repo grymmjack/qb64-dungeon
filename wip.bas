@@ -1,10 +1,9 @@
-'$Include:'../ANSIPrint/include/ANSIPrint.bi'
-'$Include:'../ANSIPrint/include/Base64.bi'
+'$Include:'./include/ANSIPrint/include/ANSIPrint.bi'
 
 DIM AS LONG CANVAS, TEMP_SCREEN, MAIN_SCREEN, BOARD_SCREEN, INTRO_SCREEN
 DIM AS STRING MAIN_ANSI, BOARD_ANSI, INTRO_ANSI
 
-BOARD_ANSI$ = LoadFileFromDisk$("ansi/board.ans")
+BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board.ans")
 
 CANVAS& = _NEWIMAGE(80 * 8, 43 * 16, 32)
 _FONT 16
@@ -25,5 +24,4 @@ Function LoadFileFromDisk$ (path As String)
     End If
 End Function
 
-'$Include:'../ANSIPrint/include/ANSIPrint.bas'
-'$Include:'../ANSIPrint/include/Base64.bas'
+'$Include:'./include/ANSIPrint/include/ANSIPrint.bas'
