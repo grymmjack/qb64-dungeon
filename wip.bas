@@ -1,4 +1,4 @@
-'$Include:'./include/ANSIPrint/include/ANSIPrint.bi'
+'$Include:'./include/Toolbox64/ANSIPrint.bi'
 
 DIM AS LONG CANVAS, TEMP_SCREEN, MAIN_SCREEN, BOARD_SCREEN, INTRO_SCREEN
 DIM AS STRING MAIN_ANSI, BOARD_ANSI, INTRO_ANSI
@@ -9,7 +9,13 @@ CANVAS& = _NEWIMAGE(80 * 8, 43 * 16, 32)
 _FONT 16
 SCREEN CANVAS&
 
+BOARD_SCREEN& = _NEWIMAGE(80 * 8, 43 * 16, 32)
+_DEST(BOARD_SCREEN&)
 PrintANSI(BOARD_ANSI$)
+
+SLEEP
+
+SCREEN BOARD_SCREEN&
 
 ' Loads a whole file from disk into memory
 Function LoadFileFromDisk$ (path As String)
@@ -24,4 +30,4 @@ Function LoadFileFromDisk$ (path As String)
     End If
 End Function
 
-'$Include:'./include/ANSIPrint/include/ANSIPrint.bas'
+'$Include:'./include/Toolbox64/ANSIPrint.bas'

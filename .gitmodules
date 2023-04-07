@@ -1,4 +1,3 @@
-[submodule "ANSIPrint"]
-	path = include/ANSIPrint
-	url = https://github.com/a740g/ANSIPrint
-
+[submodule "include/Toolbox64"]
+	path = include/Toolbox64
+	url = https://github.com/a740g/Toolbox64

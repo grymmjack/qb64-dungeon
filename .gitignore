@@ -8,6 +8,11 @@
 # Unignore all dirs
 !*/
 
+# Unignore include
+!include/*
+
+# Ignore VS Code stuff
+.vscode
 .DS_Store
 *.exe
 *.run
