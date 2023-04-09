@@ -151,10 +151,10 @@ DIM PLAYER_4 AS PLAYER
 DIM PLAYER_4_INVENTORY(1 TO 32) AS INVENTORY_SLOT
 
 DIM CARD_TYPES(1 TO 3) AS ENUM
-CARD_TYPES(1).index = 0 : CARD_TYPES(1).label = "Treasure"
-CARD_TYPES(2).index = 1 : CARD_TYPES(2).label = "Monster"
-CARD_TYPES(3).index = 2 : CARD_TYPES(3).label = "Spell"
+CARD_TYPES(1).index = 1 : CARD_TYPES(1).label = "Treasure"
+CARD_TYPES(2).index = 2 : CARD_TYPES(2).label = "Monster"
+CARD_TYPES(3).index = 3 : CARD_TYPES(3).label = "Spell"
 
 DIM MARKERS(1 TO 2) AS ENUM
-MARKERS(1).index = 0 : MARKERS(1).label = "Skull"
-MARKERS(2).index = 0 : MARKERS(2).label = "Trap"
+MARKERS(1).index = 1 : MARKERS(1).label = "Skull"
+MARKERS(2).index = 2 : MARKERS(2).label = "Trap"
