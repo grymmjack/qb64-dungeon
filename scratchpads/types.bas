@@ -74,19 +74,23 @@ TYPE TREASURE_CARD
 END TYPE
 
 TYPE MONSTER_CARD
-    index       AS INTEGER
+    index            AS INTEGER
     name             AS STRING
     description      AS STRING
     gold_value       AS INTEGER
     img_face         AS LONG
+    img_portrait     AS LONG
+    img_battle       AS LONG
+    img_battle_win   AS LONG
+    img_battle_lose  AS LONG
     attack_modifier  AS INTEGER
     defense_modifier AS INTEGER
 END TYPE
 
 TYPE SPELL_CARD
-    index       AS INTEGER
+    index           AS INTEGER
     name            AS STRING
-    description      AS STRING
+    description     AS STRING
     gold_value      AS INTEGER
     img_face        AS LONG
     attack_modifier AS INTEGER
@@ -95,26 +99,38 @@ END TYPE
 TYPE PLAYER_CLASS
     name             AS STRING
     description      AS STRING
+    img_portrait     AS LONG
+    img_battle       AS LONG
+    img_battle_win   AS LONG
+    img_battle_lose  AS LONG
     has_spells       AS INTEGER
     attack_modifier  AS INTEGER
     defense_modifier AS INTEGER
 END TYPE
 
 TYPE PLAYER
-    piece              AS TOKEN
-    class              AS PLAYER_CLASS
-    name               AS STRING
-    gold               AS INTEGER
-    gold_won           AS INTEGER
-    gold_lost          AS INTEGER
-    treasures_found    AS INTEGER
-    treasures_lost     AS INTEGER
-    kills              AS INTEGER
-    deaths             AS INTEGER
-    skipping_next_turn AS INTEGER
-    move_roll          AS INTEGER
-    attack_roll        AS INTEGER
-    chance_roll        AS INTEGER
+    piece               AS TOKEN
+    class               AS PLAYER_CLASS
+    name                AS STRING
+    gold                AS INTEGER
+    gold_won            AS INTEGER
+    gold_lost           AS INTEGER
+    treasures_found     AS INTEGER
+    treasures_lost      AS INTEGER
+    kills               AS INTEGER
+    deaths              AS INTEGER
+    moves               AS INTEGER
+    battles_won         AS INTEGER
+    battles_lost        AS INTEGER
+    secret_doors_opened AS INTEGER
+    secret_doors_failed AS INTEGER
+    doors_opened        AS INTEGER
+    rooms_cleared       AS INTEGER
+    highest_level       AS INTEGER
+    skipping_next_turn  AS INTEGER
+    move_roll           AS INTEGER
+    attack_roll         AS INTEGER
+    chance_roll         AS INTEGER
 END TYPE
 
 TYPE INVENTORY_SLOT
