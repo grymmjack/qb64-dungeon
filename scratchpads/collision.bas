@@ -1,5 +1,5 @@
-'$INCLUDE:'const.bas'
-'$INCLUDE:'types.bas'
+'$INCLUDE:'./const.bas'
+'$INCLUDE:'./types.bas'
 '$INCLUDE:'../include/Toolbox64/ANSIPrint.bi'
 
 DIM CANVAS AS LONG

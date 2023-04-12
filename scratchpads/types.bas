@@ -1,4 +1,4 @@
-'$INCLUDE:'const.bas'
+'$INCLUDE:'./const.bas'
 
 TYPE ENUM
     index AS INTEGER
