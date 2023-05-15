@@ -10,7 +10,7 @@ INTRO_ANSI$ = LoadFileFromDisk$("assets/ansi/vermin-radioactive-logo.ans")
 BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x60.ans")
 
 CONST SW = 132  ' SCREEN WIDTH IN CHARACTERS
-CONST SH = 60   ' SCREEN HEIGHT IN CHARACTERS
+CONST SH = 61   ' SCREEN HEIGHT IN CHARACTERS
 CONST CW = 8    ' WIDTH OF 1 CHARACTER
 CONST CH = 16   ' HEIGHT OF 1 CHARACTER
 
