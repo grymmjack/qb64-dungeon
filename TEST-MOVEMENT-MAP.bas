@@ -1,3 +1,4 @@
+'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BI'
 '$INCLUDE:'./include/Toolbox64/ANSIPrint.bi'
 
 CONST TRUE = -1, FALSE = NOT TRUE
@@ -89,19 +90,21 @@ SUB CURSOR.move (k AS STRING)
     IF k$ = "W" THEN c.y% = c.y% - CH
     IF k$ = "S" THEN c.y% = c.y% + CH
     IF CURSOR.can_move = TRUE THEN
-        ' CURSOR.keep_in_bounds
+        CURSOR.keep_in_bounds
         CURSOR.erase
         CURSOR.draw
+        SOUND 200, 0.1
     ELSE
         c.x% = c.prev_x%
         c.y% = c.prev_y%
+        SOUND 19500, 0.1
     END IF
 END SUB
 
 
 SUB CURSOR.keep_in_bounds
-    IF c.x% + CW > SW THEN c.x% = SW-CW
-    IF c.y% + CH > SH THEN c.y% = SH-CH
+    IF c.x% + CW > SW * CW THEN c.x% = SW-CW
+    IF c.y% + CH > SH * CH THEN c.y% = SH-CH
     IF c.x% < 0 THEN c.x% = 0
     IF c.y% < 0 THEN c.y% = 0
 END SUB
@@ -163,4 +166,5 @@ Function LoadFileFromDisk$ (path As String)
     End If
 End Function
 
+'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BM'
 '$INCLUDE:'./include/Toolbox64/ANSIPrint.bas'
