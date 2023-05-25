@@ -1,3 +1,6 @@
 [submodule "include/Toolbox64"]
 	path = include/Toolbox64
 	url = https://github.com/a740g/Toolbox64
+[submodule "include/QB64_GJ_LIB"]
+	path = include/QB64_GJ_LIB
+	url = https://github.com/grymmjack/QB64_GJ_LIB
