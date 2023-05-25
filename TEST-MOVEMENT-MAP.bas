@@ -58,7 +58,7 @@ DIM SHARED c AS CURSOR
 ' c.x% = 472+320+112+32 'kings area
 c.x% = 472
 c.y% = 384
-c.cursor_color~& = _RGB32(&HFF, &H00, &H00)
+c.cursor_color~& = _RGB32(&HFF, &H00, &H00, &HAA)
 c.prev_x% = c.x%
 c.prev_y% = c.y%
 
@@ -93,11 +93,11 @@ SUB CURSOR.move (k AS STRING)
         CURSOR.keep_in_bounds
         CURSOR.erase
         CURSOR.draw
-        SOUND 200, 0.1
+        SOUND 350, 0.1
     ELSE
         c.x% = c.prev_x%
         c.y% = c.prev_y%
-        SOUND 19500, 0.1
+        SOUND 200, 0.1
     END IF
 END SUB
 
