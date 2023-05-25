@@ -1,0 +1,54 @@
+Fixes:
+    ✔ Fix map so it can be traversed by cursors @done(23-05-25 10:59)
+
+Game:
+    ☐ Setup basic rules:
+        ☐ Movement
+        ☐ Doors
+        ☐ Rooms
+
+Turns:
+    ☐ Add turn logic
+    ☐ Limit movement to number of steps per turn
+    ☐ Number of steps based on dice roll
+
+Board:
+    ☐ Render room label text separately
+
+Dice:
+    ☐ Add dice rolling
+        1d20, 3d6+3DL (3d6 + 3 drop lowest), etc.
+
+Cursor:
+    ☐ Make pulse or animated so can see it better
+    ☐ Add states:
+        ☐ On path
+        ☐ In Room
+        ☐ In Room Level
+        ☐ Near Door
+        ☐ Near Regular Door
+        ☐ Near Strong Door
+        ☐ Near Secret Door
+        ☐ Fighting Monster
+        ☐ Fighting Player
+
+Sounds:
+    ☐ Add sound effect of dice rolling
+    ☐ Add sound effect of dice rolling critical success
+    ☐ Add sound effect of dice rolling critical failure
+    ☐ Add sound effect when moving
+    ☐ Add sound effect when time passing without moving
+    ☐ Add sound effect when bumping into wall
+    ☐ Add sound effect when bumping into door
+    ☐ Add sound effect when bumping into strong door
+    ☐ Add sound effect when finding secret door
+    ☐ Add sound effect when going through secret door
+    ☐ Add sound effect when opening regular door
+    ☐ Add sound effect when opening strong door
+    ☐ Add sound effect when breaking door
+    ☐ Add sound effect for picking up treasure
+
+Collision:
+    ☐ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&)
+        Returns true if the image is composed of only 2 colors
+    ☐ Modify function CURSOR.can_move depending on states
