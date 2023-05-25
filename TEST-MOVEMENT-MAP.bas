@@ -2,14 +2,15 @@
 
 CONST TRUE = -1, FALSE = NOT TRUE
 
-DIM AS STRING BOARD_ANSI
-BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x60.ans")
+DIM AS STRING BOARD_ANSI, BOARD_ANSI_NO_LABELS
+BOARD_ANSI$           = LoadFileFromDisk$("assets/ansi/board-132x60.ans")
+BOARD_ANSI_NO_LABELS$ = LoadFileFromDisk$("assets/ansi/board-132x60-no-labels.ans")
 
 DIM SHARED AS _UNSIGNED LONG yellow2, black2
 yellow2~& = _RGB32(&HFF, &HFF, &H55)
 black2~&  = _RGB32(&H00, &H00, &H00)
 
-DIM SHARED AS LONG CANVAS, CANVAS_COPY
+DIM SHARED AS LONG CANVAS, CANVAS_COPY, CANVAS_NO_LABELS
 
 CONST SW = 132  ' SCREEN WIDTH IN CHARACTERS
 CONST SH = 61   ' SCREEN HEIGHT IN CHARACTERS
@@ -20,6 +21,7 @@ $RESIZE:ON
 $RESIZE:STRETCH
 CANVAS& = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY& = _NEWIMAGE(SW * CW, SH * CH, 32)
+CANVAS_NO_LABELS& = _NEWIMAGE(SW * CW, SH * CH, 32)
 _FONT CH
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
@@ -28,20 +30,18 @@ SCREEN CANVAS&
 _DEST CANVAS&
 _SOURCE CANVAS&
 CLS , black2~&
-
-' draw a yellow box
-' LINE (0,0)-(10 * CW, 10 * CH), yellow2~&, BF
-' ' draw another longer thinner yellow box
-' LINE (9 * CW, 0)-(20 * CW, 3 * CH), yellow2~&, BF
-' ' draw another yellow box
-' LINE (13 * CW, 2 * CH)-(30 * CW, 9 * CH), yellow2~&, BF
 PrintANSI(BOARD_ANSI$)
-
-
 
 ' copy canvas to the copy
 _DEST CANVAS_COPY&
-_PUTIMAGE
+CLS , black2~&
+PrintANSI(BOARD_ANSI$)
+_DEST CANVAS&
+
+' load canvas_no_labels
+_DEST CANVAS_NO_LABELS&
+CLS , black2~&
+PrintANSI(BOARD_ANSI_NO_LABELS$)
 _DEST CANVAS&
 
 ' setup CURSOR
@@ -54,8 +54,9 @@ TYPE CURSOR
 END TYPE
 
 DIM SHARED c AS CURSOR
-c.x% = 432
-c.y% = 400
+' c.x% = 472+320+112+32 'kings area
+c.x% = 472
+c.y% = 384
 c.cursor_color~& = _RGB32(&HFF, &H00, &H00)
 c.prev_x% = c.x%
 c.prev_y% = c.y%
@@ -109,7 +110,7 @@ END SUB
 FUNCTION CURSOR.can_move%
     DIM AS LONG img_box
     img_box& = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
+    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_NO_LABELS&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
     CURSOR.can_move = image_is_monochromatic(img_box&, yellow2~&)
 END FUNCTION
 
