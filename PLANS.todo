@@ -13,7 +13,7 @@ Turns:
     ☐ Number of steps based on dice roll
 
 Board:
-    ☐ Render room label text separately
+    ✔ Render room label text separately @done(23-05-25 23:09)
 
 Dice:
     ☐ Add dice rolling

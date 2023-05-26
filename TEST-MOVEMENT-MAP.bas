@@ -4,14 +4,13 @@
 CONST TRUE = -1, FALSE = NOT TRUE
 
 DIM AS STRING BOARD_ANSI, BOARD_ANSI_NO_LABELS
-BOARD_ANSI$           = LoadFileFromDisk$("assets/ansi/board-132x60.ans")
-BOARD_ANSI_NO_LABELS$ = LoadFileFromDisk$("assets/ansi/board-132x60-no-labels.ans")
+BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x60-no-labels.ans")
 
 DIM SHARED AS _UNSIGNED LONG yellow2, black2
 yellow2~& = _RGB32(&HFF, &HFF, &H55)
 black2~&  = _RGB32(&H00, &H00, &H00)
 
-DIM SHARED AS LONG CANVAS, CANVAS_COPY, CANVAS_NO_LABELS
+DIM SHARED AS LONG CANVAS, CANVAS_COPY
 
 CONST SW = 132  ' SCREEN WIDTH IN CHARACTERS
 CONST SH = 61   ' SCREEN HEIGHT IN CHARACTERS
@@ -22,7 +21,6 @@ $RESIZE:ON
 $RESIZE:STRETCH
 CANVAS& = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY& = _NEWIMAGE(SW * CW, SH * CH, 32)
-CANVAS_NO_LABELS& = _NEWIMAGE(SW * CW, SH * CH, 32)
 _FONT CH
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
@@ -39,15 +37,6 @@ CLS , black2~&
 PrintANSI(BOARD_ANSI$)
 _DEST CANVAS&
 
-' load canvas_no_labels
-_DEST CANVAS_NO_LABELS&
-CLS , black2~&
-PrintANSI(BOARD_ANSI_NO_LABELS$)
-_DEST CANVAS&
-
-' print labels
-render_room_labels
-
 ' setup CURSOR
 TYPE CURSOR
     x AS INTEGER
@@ -58,12 +47,14 @@ TYPE CURSOR
 END TYPE
 
 DIM SHARED c AS CURSOR
-' c.x% = 472+320+112+32 'kings area
-c.x% = 472
-c.y% = 384
+c.x% = 59*CW
+c.y% = 23*CH
 c.cursor_color~& = _RGB32(&HFF, &H00, &H00, &HAA)
 c.prev_x% = c.x%
 c.prev_y% = c.y%
+
+' render initial labels for board
+render_room_labels
 
 ' draw CURSOR one time to start
 CURSOR.draw
@@ -116,7 +107,7 @@ END SUB
 FUNCTION CURSOR.can_move%
     DIM AS LONG img_box
     img_box& = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_NO_LABELS&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
+    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
     CURSOR.can_move = image_is_monochromatic(img_box&, yellow2~&)
 END FUNCTION
 
@@ -126,6 +117,7 @@ SUB CURSOR.erase
     _DEST CANVAS&
     _PUTIMAGE
     _SOURCE CANVAS&
+    render_room_labels
 END SUB
 
 
@@ -156,10 +148,18 @@ END FUNCTION
 
 
 SUB render_room_labels
-    DIM fg_kolor AS UNSIGNED LONG
-    fg_kolor~& = _RGB32(&H00, &H00, &HAA)
-    COLOR fg_kolor~&, yellow2~&
-    
+    DIM AS _UNSIGNED LONG fg_color_blue, fg_color_red
+    fg_color_blue~& = _RGB32(&H00, &H00, &HAA)
+    fg_color_red~&  = _RGB32(&HFF, &H55, &H55)
+
+    COLOR fg_color_red~&, yellow2~&
+    _PRINTSTRING(57*CW,22*CH), "START"
+
+    COLOR fg_color_blue~&, yellow2~&
+
+    _PRINTSTRING(57*CW,24*CH), "MAIN"
+    _PRINTSTRING(56*CW,25*CH), "GALLERY"
+
     _PRINTSTRING(14*CW,9*CH), "ARMORY"
 
     _PRINTSTRING(47*CW,7*CH), "THE"
@@ -168,10 +168,31 @@ SUB render_room_labels
     _PRINTSTRING(83*CW,9*CH), "WIZ'S"
     _PRINTSTRING(84*CW,10*CH), "LAB"
 
-    _SOURCE CANVAS&
-    _DEST CANVAS_COPY&
-    _PUTIMAGE
-    _DEST CANVAS&
+    _PRINTSTRING(93*CW,7*CH), "WIZ'S"
+    _PRINTSTRING(93*CW,8*CH), "TREASURE"
+
+    _PRINTSTRING(2*CW,26*CH), "KITCHEN"
+
+    _PRINTSTRING(18*CW,23*CH), "GUARD"
+    _PRINTSTRING(18*CW,24*CH), "ROOM"
+
+    _PRINTSTRING(17*CW,41*CH), "STORE"
+    _PRINTSTRING(18*CW,42*CH), "ROOM"
+
+    _PRINTSTRING(48*CW,39*CH), "TORTURE"
+    _PRINTSTRING(48*CW,40*CH), "CHAMBER"
+
+    _PRINTSTRING(88*CW,42*CH), "QUEEN'S"
+    _PRINTSTRING(88*CW,43*CH), "ANNEX"
+
+    _PRINTSTRING(88*CW,34*CH), "QUEEN'S"
+    _PRINTSTRING(88*CW,35*CH), "TREASURE"
+
+    _PRINTSTRING(90*CW,27*CH), "KING'S"
+    _PRINTSTRING(88*CW,28*CH), "LIBRARY"
+
+    _PRINTSTRING(105*CW,21*CH), "KING'S"
+    _PRINTSTRING(105*CW,22*CH), "TREASURE"
 END SUB
 
 
