@@ -1,5 +1,48 @@
+Board:
+    ✔ Render room label text separately @done(23-05-25 23:09)
+    ☐ Improve inaccessible blocks with decorations / props
+
+Debugging:
+    ☐ `~` toggles @high
+    ☐ Add debug window: @high
+        ☐ Cursor position x, y in pixels
+        ☐ Cursor position x, y in cells
+        ☐ Cursor states:
+            ☐ On path
+            ☐ In Room
+            ☐ In Room Level
+            ☐ Near Door
+            ☐ Near Regular Door
+            ☐ Near Strong Door
+            ☐ Near Secret Door
+            ☐ Fighting Monster
+            ☐ Fighting Player
+        ☐ Number of moves made
+        ☐ Game start time / Current time
+    ☐ Add crosshair inspector mode for mouse:
+        ☐ Mouse position x, y in pixels
+        ☐ Mouse position x, y in cells
+
+    Collision:
+    ☐ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&)
+        Returns true if the image is composed of only 2 colors
+    ☐ Modify function CURSOR.can_move depending on states
+
 Fixes:
     ✔ Fix map so it can be traversed by cursors @done(23-05-25 10:59)
+
+Control:
+    ☐ Improve control parsing
+        ☐ Add support for arrow keys
+        ☐ Add support for numeric keypad
+        ☐ Add support for other keys
+        ☐ Build key bindings mapping object
+    ☐ Implement diagonal movement with num pad
+            7 8 9
+             \|/
+            4-5-6
+             /|\
+            1 2 3
 
 Game:
     ☐ Setup basic rules:
@@ -8,19 +51,18 @@ Game:
         ☐ Rooms
 
 Turns:
+    ☐ Add turn timer
     ☐ Add turn logic
     ☐ Limit movement to number of steps per turn
     ☐ Number of steps based on dice roll
-
-Board:
-    ✔ Render room label text separately @done(23-05-25 23:09)
 
 Dice:
     ☐ Add dice rolling
         1d20, 3d6+3DL (3d6 + 3 drop lowest), etc.
 
 Cursor:
-    ☐ Make pulse or animated so can see it better
+    ✘ Make pulse or animated so can see it better @cancelled(23-05-25 23:27)
+    ✔ Make cursor transparent @done(23-05-25 23:27)
     ☐ Add states:
         ☐ On path
         ☐ In Room
@@ -47,8 +89,3 @@ Sounds:
     ☐ Add sound effect when opening strong door
     ☐ Add sound effect when breaking door
     ☐ Add sound effect for picking up treasure
-
-Collision:
-    ☐ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&)
-        Returns true if the image is composed of only 2 colors
-    ☐ Modify function CURSOR.can_move depending on states
