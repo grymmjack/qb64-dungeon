@@ -45,6 +45,9 @@ CLS , black2~&
 PrintANSI(BOARD_ANSI_NO_LABELS$)
 _DEST CANVAS&
 
+' print labels
+render_room_labels
+
 ' setup CURSOR
 TYPE CURSOR
     x AS INTEGER
@@ -151,6 +154,25 @@ FUNCTION image_is_monochromatic% (img AS LONG, kolor AS _UNSIGNED LONG)
     image_is_monochromatic = TRUE
 END FUNCTION
 
+
+SUB render_room_labels
+    DIM fg_kolor AS UNSIGNED LONG
+    fg_kolor~& = _RGB32(&H00, &H00, &HAA)
+    COLOR fg_kolor~&, yellow2~&
+    
+    _PRINTSTRING(14*CW,9*CH), "ARMORY"
+
+    _PRINTSTRING(47*CW,7*CH), "THE"
+    _PRINTSTRING(47*CW,8*CH), "CRYPT"
+
+    _PRINTSTRING(83*CW,9*CH), "WIZ'S"
+    _PRINTSTRING(84*CW,10*CH), "LAB"
+
+    _SOURCE CANVAS&
+    _DEST CANVAS_COPY&
+    _PUTIMAGE
+    _DEST CANVAS&
+END SUB
 
 
 ' Loads a whole file from disk into memory
