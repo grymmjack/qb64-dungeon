@@ -1,6 +1,8 @@
 Board:
     ✔ Render room label text separately @done(23-05-25 23:09)
-    ☐ Improve inaccessible blocks with decorations / props
+    ✘ Improve inaccessible blocks with decorations / props @cancelled(23-05-28 00:16)
+    ✔ Refine the board so that diagonals are removed to ease collision @done(23-05-28 00:16)
+    ✔ Make sure sectors of levels do not overlap @done(23-05-28 00:16)
 
 Debugging:
     ☐ `~` toggles @high
@@ -75,6 +77,8 @@ Cursor:
         ☐ Fighting Player
 
 Sounds:
+    ✔ Add preliminary sound for movement @done(23-05-28 00:17)
+    ✔ Add preliminary sound for collision @done(23-05-28 00:17)
     ☐ Add sound effect of dice rolling
     ☐ Add sound effect of dice rolling critical success
     ☐ Add sound effect of dice rolling critical failure
