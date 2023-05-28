@@ -118,7 +118,7 @@ SECTORS(4).h%       = SECTORS(4).end_y% - SECTORS(4).start_y%
 ' LEVEL 5
 SECTORS(5).kolor~& = _RGB32(&HFF, &H55, &HFF) ' BRIGHT PURPLE
 SECTORS(5).label$   = "LEVEL 5 - TORTURE CHAMBER"
-SECTORS(5).start_x% = 43
+SECTORS(5).start_x% = 41
 SECTORS(5).start_y% = 33
 SECTORS(5).end_x%   = 80
 SECTORS(5).end_y%   = 48
