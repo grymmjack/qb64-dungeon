@@ -1,3 +1,5 @@
+'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BI'
+'$INCLUDE:'./include/Toolbox64/FileOps.bi'
 '$INCLUDE:'./include/Toolbox64/ANSIPrint.bi'
 
 DIM AS LONG CANVAS, TEMP_SCREEN, MAIN_SCREEN, BOARD_SCREEN, INTRO_SCREEN
@@ -6,11 +8,11 @@ DIM AS STRING MAIN_ANSI, BOARD_ANSI, INTRO_ANSI
 DIM AS LONG MUSIC_INTRO, MUSIC_MAIN, MUSIC_FIGHT, MUSIC_TREASURE
 DIM AS LONG SFX_DICE, SFX_MOVE, SFX_DOOR, SFX_SWORD, SFX_SPELL, SFX_HURT, SFX_DIE, SFX_TREASURE
 
-INTRO_ANSI$ = LoadFileFromDisk$("assets/ansi/vermin-radioactive-logo.ans")
-BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x60.ans")
+INTRO_ANSI$ = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
+BOARD_ANSI$ = LoadFile$("assets/ansi/board-132x50-no-secrets.ans")
 
 CONST SW = 132  ' SCREEN WIDTH IN CHARACTERS
-CONST SH = 61   ' SCREEN HEIGHT IN CHARACTERS
+CONST SH = 51   ' SCREEN HEIGHT IN CHARACTERS
 CONST CW = 8    ' WIDTH OF 1 CHARACTER
 CONST CH = 16   ' HEIGHT OF 1 CHARACTER
 
@@ -47,18 +49,6 @@ LOOP UNTIL _KEYHIT = 27
 _SNDSTOP MUSIC_MAIN&
 _SNDCLOSE MUSIC_MAIN&
 
-
-' Loads a whole file from disk into memory
-Function LoadFileFromDisk$ (path As String)
-    If FileExists(path) Then
-        Dim As Long fh: fh = FreeFile
-
-        Open path For Binary Access Read As fh
-
-        LoadFileFromDisk = Input$(LOF(fh), fh)
-
-        Close fh
-    End If
-End Function
-
+'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BM'
+'$INCLUDE:'./include/Toolbox64/FileOps.bas'
 '$INCLUDE:'./include/Toolbox64/ANSIPrint.bas'

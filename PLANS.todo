@@ -1,3 +1,55 @@
+Refactor:
+    ☐ Move code into include modules:
+        ☐ BOARD
+        ☐ CURSOR
+        ☐ SECTOR
+        ☐ MENU
+
+Dialogs:
+    ☐ Create scrolling text window
+    ☐ Create character sheet
+    ☐ Create menu option lightbar (simple)
+    ☐ Create combat
+    ☐ Create defeat
+    ☐ Create success
+    ☐ Create treasure
+    ☐ Create end game
+    ☐ Create dice box
+
+Game Menu Actions:
+    ☐ Create LEGENDARY LORDS
+    ☐ Create CREATE A CHARACTER
+    ☐ Create LOAD A CHARACTER
+    ☐ Create SETTINGS:
+        ☐ Music: ON
+        ☐ Music volume
+        ☐ SoundFX: ON
+        ☐ SoundFX volume
+        ☐ Voice: ON
+        ☐ Voice volume
+        ☐ Show Dice
+        ☐ Full screen
+    
+Doors:
+    ☐ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it.
+    ☐ Add level door (white)
+    
+Rooms:
+    ☐ Add room type and define properties:
+        x, y, w, h, was_looted, monster_fought, player_died, monster_died, has_level_key, is_boss_room
+        ☐ was_looted: player found treasure
+        ☐ monster_fought: player fought monster
+        ☐ player_died: player died in this room
+        ☐ monster_died: monster died in this room
+    ☐ Add room randomizer for each game:
+        ☐ has_level_key: room contains the level key (only 1 room per level should have this)
+        ☐ is_boss_room: room contains a boss monster (only 1 room per level should have this)
+
+Menu:
+    ✔ Create menu with options using lighbar and ansi fancy-pants @done(23-05-29 17:13)
+    ✔ Add animation to menu @done(23-05-29 17:13)
+    ☐ Create menu music
+
 Board:
     ✔ Render room label text separately @done(23-05-25 23:09)
     ✘ Improve inaccessible blocks with decorations / props @cancelled(23-05-28 00:16)
@@ -16,7 +68,7 @@ Debugging:
             ☐ In Room Level
             ☐ Near Door
             ☐ Near Regular Door
-            ☐ Near Strong Door
+            ✘ Near Strong Door @cancelled(23-05-29 17:14)
             ☐ Near Secret Door
             ☐ Fighting Monster
             ☐ Fighting Player
@@ -26,11 +78,19 @@ Debugging:
         ☐ Mouse position x, y in pixels
         ☐ Mouse position x, y in cells
 
-    Collision:
-    ☐ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&)
+Collision:
+    ✔ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&) @done(23-05-29 17:12)
         Returns true if the image is composed of only 2 colors
-    ☐ Modify function CURSOR.can_move depending on states
+    ✔ Modify function CURSOR.can_move depending on states @done(23-05-29 17:12)
+    ☐ Add neighboring_cells function to determine if:
+        ☐ Near Door
+        ☐ Near Regular Door
+        ☐ Near Secret Door
 
+Secret Doors:
+    ☐ Add "detect secret door" action:
+        ☐ Use the ability and pick a direction:
+            ☐ If found expose secret door and connected room or path
 Fixes:
     ✔ Fix map so it can be traversed by cursors @done(23-05-25 10:59)
 
@@ -66,10 +126,10 @@ Dice:
 Cursor:
     ✘ Make pulse or animated so can see it better @cancelled(23-05-25 23:27)
     ✔ Make cursor transparent @done(23-05-25 23:27)
-    ☐ Add states:
-        ☐ On path
-        ☐ In Room
-        ☐ In Room Level
+    ✔ Add states: @done(23-05-29 17:12)
+        ✔ On path @done(23-05-29 17:12)
+        ✔ In Room @done(23-05-29 17:12)
+        ✔ In Room Level @done(23-05-29 17:12)
         ☐ Near Door
         ☐ Near Regular Door
         ☐ Near Strong Door
