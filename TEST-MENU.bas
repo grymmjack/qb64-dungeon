@@ -94,7 +94,7 @@ DO:
         MENU.move k$
     END IF
     t& = t& + 1
-    IF t& MOD 15 = 0 THEN MENU.flicker
+    IF t& MOD 10 = 0 THEN MENU.flicker
     _DISPLAY
 LOOP UNTIL k$=CHR$(27)
 SYSTEM
@@ -103,7 +103,7 @@ SYSTEM
 SUB MENU.flicker
     DIM rand_num AS INTEGER
     rand_num% = rand_in_range(1, 5)
-    IF rand_num% > 4 THEN EXIT SUB
+    IF rand_num% > 3 THEN EXIT SUB
     _DEST IMG_MENU_LEFT&  : PrintANSI(MENU_LEFT$(rand_num%))
     _DEST IMG_MENU_RIGHT& : PrintANSI(MENU_RIGHT$(rand_num%))
     _DEST CANVAS&
