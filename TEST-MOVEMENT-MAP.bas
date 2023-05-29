@@ -17,7 +17,7 @@ bright_blue2~& = _RGB32(&H55, &H55, &HFF)
 DIM SHARED AS LONG CANVAS, CANVAS_COPY, LEVEL_SECTORS
 
 CONST SW = 132  ' SCREEN WIDTH IN CHARACTERS
-CONST SH = 51   ' SCREEN HEIGHT IN CHARACTERS
+CONST SH = 51   ' SCREEN HEIGHT IN CHARACTERS + 1 MORE TO PREVENT SCOLLING OFF
 CONST CW = 8    ' WIDTH OF 1 CHARACTER
 CONST CH = 16   ' HEIGHT OF 1 CHARACTER
 
@@ -118,7 +118,7 @@ SECTORS(4).label$   = "LEVEL 4 - STORE ROOM"
 SECTORS(4).start_x% = 1
 SECTORS(4).start_y% = 34
 SECTORS(4).end_x%   = 40
-SECTORS(4).end_y%   = 48
+SECTORS(4).end_y%   = 50
 SECTORS(4).w%       = SECTORS(4).end_x% - SECTORS(4).start_x%
 SECTORS(4).h%       = SECTORS(4).end_y% - SECTORS(4).start_y%
 
@@ -128,7 +128,7 @@ SECTORS(5).label$   = "LEVEL 5 - TORTURE CHAMBER"
 SECTORS(5).start_x% = 41
 SECTORS(5).start_y% = 33
 SECTORS(5).end_x%   = 80
-SECTORS(5).end_y%   = 48
+SECTORS(5).end_y%   = 50
 SECTORS(5).w%       = SECTORS(5).end_x% - SECTORS(5).start_x%
 SECTORS(5).h%       = SECTORS(5).end_y% - SECTORS(5).start_y%
 
@@ -158,7 +158,7 @@ SECTORS(8).label$   = "LEVEL 8 - QUEEN'S QUARTERS"
 SECTORS(8).start_x% = 81
 SECTORS(8).start_y% = 33
 SECTORS(8).end_x%   = 117
-SECTORS(8).end_y%   = 48
+SECTORS(8).end_y%   = 50
 SECTORS(8).w%       = SECTORS(8).end_x% - SECTORS(8).start_x%
 SECTORS(8).h%       = SECTORS(8).end_y% - SECTORS(8).start_y%
 
@@ -204,8 +204,8 @@ SUB CURSOR.move (k AS STRING)
     IF k$ = "D" THEN c.x% = c.x% + CW
     IF k$ = "W" THEN c.y% = c.y% - CH
     IF k$ = "S" THEN c.y% = c.y% + CH
+    CURSOR.keep_in_bounds
     IF CURSOR.can_move = TRUE THEN
-        CURSOR.keep_in_bounds
         CURSOR.erase
         CURSOR.draw
         SOUND 350, 0.1
@@ -220,6 +220,10 @@ END SUB
 SUB CURSOR.keep_in_bounds
     IF c.x% + CW > SW * CW THEN c.x% = SW-CW
     IF c.y% + CH > SH * CH THEN c.y% = SH-CH
+    IF c.x% - CW < 0 THEN c.x% = 0
+    IF c.y% - CH < 0 THEN c.y% = 0
+    IF c.x% > SW * CW THEN c.x% = SW-CW
+    IF c.y% > SH * CH THEN c.y% = SH-CH
     IF c.x% < 0 THEN c.x% = 0
     IF c.y% < 0 THEN c.y% = 0
 END SUB
