@@ -81,24 +81,20 @@ NEXT i%
 DIM SHARED menu_selected AS INTEGER
 menu_selected% = 1
 
-' setup timers
-DIM SHARED AS INTEGER myTimer
-myTimer% = _FREETIMER
-ON TIMER(myTimer%, 0.1) MENU.flicker
-TIMER(myTimer%) ON
-
 ' loop waiting for input to move CURSOR
 DIM k AS STRING
 DIM p AS INTEGER
-
+DIM t AS LONG
 DO:
-    _LIMIT 30
+    _LIMIT 60
     k$ = UCASE$(INKEY$)
     IF k$ = "" THEN k$ = CHR$(0)
     p% = INSTR("WASD", k$)
     IF p% <> 0 THEN
         MENU.move k$
     END IF
+    t& = t& + 1
+    IF t& MOD 15 = 0 THEN MENU.flicker
     _DISPLAY
 LOOP UNTIL k$=CHR$(27)
 SYSTEM
@@ -106,7 +102,7 @@ SYSTEM
 
 SUB MENU.flicker
     DIM rand_num AS INTEGER
-    rand_num% = rand_in_range(1, 6)
+    rand_num% = rand_in_range(1, 5)
     IF rand_num% > 4 THEN EXIT SUB
     _DEST IMG_MENU_LEFT&  : PrintANSI(MENU_LEFT$(rand_num%))
     _DEST IMG_MENU_RIGHT& : PrintANSI(MENU_RIGHT$(rand_num%))
@@ -115,8 +111,6 @@ SUB MENU.flicker
     _PUTIMAGE (0, 0)
     _SOURCE IMG_MENU_RIGHT&
     _PUTIMAGE (116 * CW, 0)
-    _DISPLAY
-    _DELAY 0.001
 END SUB
 
 SUB MENU.move (k AS STRING)
@@ -134,7 +128,6 @@ SUB MENU.update
     _DEST CANVAS&
     _SOURCE IMG_MENU_BLOCK&
     _PUTIMAGE (19 * CW, 15 * CH)
-    _DISPLAY
 END SUB
 
 SUB MENU.next
