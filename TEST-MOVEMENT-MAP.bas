@@ -296,7 +296,7 @@ END FUNCTION
 
 
 FUNCTION image_is_diachromatic% (img AS LONG, kolor1 AS _UNSIGNED LONG, kolor2 AS _UNSIGNED LONG)
-    DIM AS INTEGER x, y
+    DIM AS INTEGER x, y, has_kolor1, has_kolor2
     DIM AS _UNSIGNED LONG check_color
     DIM AS LONG old_source
     old_source& = _SOURCE
@@ -308,16 +308,19 @@ FUNCTION image_is_diachromatic% (img AS LONG, kolor1 AS _UNSIGNED LONG, kolor2 A
                 _SOURCE old_source&
                 image_is_diachromatic = FALSE
                 EXIT FUNCTION
+            ELSE
+                IF check_color~& = kolor1~& THEN has_kolor1% = TRUE
+                IF check_color~& = kolor2~& THEN has_kolor2% = TRUE
             END IF
         NEXT x%
     NEXT y%
     _SOURCE old_source&
-    image_is_diachromatic = TRUE
+    image_is_diachromatic = has_kolor1% AND has_kolor2%
 END FUNCTION
 
 FUNCTION is_path% (img AS LONG)
     c.on_path% = image_is_monochromatic(img&, yellow2~&)
-    is_path= c.on_path%
+    is_path = c.on_path%
 END FUNCTION
 
 FUNCTION in_room% (img AS LONG)
