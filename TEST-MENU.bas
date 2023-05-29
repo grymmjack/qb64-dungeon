@@ -27,27 +27,27 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 SCREEN CANVAS&
 
 ' load all the ansis
-MENU_LOGO$     = LoadFileFromDisk$("assets/ansi/dungeon-menu-logo.ans")
-MENU_LEFT$(1)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-1.ans")
-MENU_LEFT$(2)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-2.ans")
-MENU_LEFT$(3)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-3.ans")
-MENU_LEFT$(4)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-4.ans")
-MENU_RIGHT$(1) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-1.ans")
-MENU_RIGHT$(2) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-2.ans")
-MENU_RIGHT$(3) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-3.ans")
-MENU_RIGHT$(4) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-4.ans")
-MENU_BLOCK$(1) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-1.ans")
-MENU_BLOCK$(2) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-2.ans")
-MENU_BLOCK$(3) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-3.ans")
-MENU_BLOCK$(4) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-4.ans")
-MENU_BLOCK$(5) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-5.ans")
-MENU_BLOCK$(6) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-6.ans")
+MENU_LOGO$     = LoadFile$("assets/ansi/dungeon-menu-logo.ans")
+MENU_LEFT$(1)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-1.ans")
+MENU_LEFT$(2)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-2.ans")
+MENU_LEFT$(3)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-3.ans")
+MENU_LEFT$(4)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-4.ans")
+MENU_RIGHT$(1) = LoadFile$("assets/ansi/dungeon-menu-right-wall-1.ans")
+MENU_RIGHT$(2) = LoadFile$("assets/ansi/dungeon-menu-right-wall-2.ans")
+MENU_RIGHT$(3) = LoadFile$("assets/ansi/dungeon-menu-right-wall-3.ans")
+MENU_RIGHT$(4) = LoadFile$("assets/ansi/dungeon-menu-right-wall-4.ans")
+MENU_BLOCK$(1) = LoadFile$("assets/ansi/dungeon-menu-block-1.ans")
+MENU_BLOCK$(2) = LoadFile$("assets/ansi/dungeon-menu-block-2.ans")
+MENU_BLOCK$(3) = LoadFile$("assets/ansi/dungeon-menu-block-3.ans")
+MENU_BLOCK$(4) = LoadFile$("assets/ansi/dungeon-menu-block-4.ans")
+MENU_BLOCK$(5) = LoadFile$("assets/ansi/dungeon-menu-block-5.ans")
+MENU_BLOCK$(6) = LoadFile$("assets/ansi/dungeon-menu-block-6.ans")
 
 ' setup the images
-IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 14 * CH, 32)
-IMG_MENU_LEFT&  = _NEWIMAGE(15  * CW, 50 * CH, 32)
-IMG_MENU_RIGHT& = _NEWIMAGE(16  * CW, 50 * CH, 32)
-IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 31 * CH, 32)
+IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 15 * CH, 32)
+IMG_MENU_LEFT&  = _NEWIMAGE(15  * CW, 51 * CH, 32)
+IMG_MENU_RIGHT& = _NEWIMAGE(16  * CW, 51 * CH, 32)
+IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 32 * CH, 32)
 _CLEARCOLOR _RGB32(0,0,0), IMG_MENU_LOGO&
 _CLEARCOLOR _RGB32(0,0,0), IMG_MENU_LEFT&
 _CLEARCOLOR _RGB32(0,0,0), IMG_MENU_RIGHT&
@@ -70,9 +70,9 @@ _DEST CANVAS&
 _SOURCE IMG_MENU_LEFT&
 _PUTIMAGE (0, 0)
 _SOURCE IMG_MENU_RIGHT&
-_PUTIMAGE (117 * CW, 0)
+_PUTIMAGE (116 * CW, 0)
 _SOURCE IMG_MENU_LOGO&
-_PUTIMAGE (15 * CW, 0)
+_PUTIMAGE (14 * CW, 0)
 _SOURCE IMG_MENU_BLOCK&
 _PUTIMAGE (19 * CW, 15 * CH)
 
