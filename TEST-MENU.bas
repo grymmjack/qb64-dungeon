@@ -28,11 +28,11 @@ SCREEN CANVAS&
 
 ' load all the ansis
 MENU_LOGO$     = LoadFile$("assets/ansi/dungeon-menu-logo.ans")
-MENU_LEFT$(1)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-1.ans")
+MENU_LEFT$(1)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-1-pablo.ans")
 MENU_LEFT$(2)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-2.ans")
 MENU_LEFT$(3)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-3.ans")
 MENU_LEFT$(4)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-4.ans")
-MENU_RIGHT$(1) = LoadFile$("assets/ansi/dungeon-menu-right-wall-1.ans")
+MENU_RIGHT$(1) = LoadFile$("assets/ansi/dungeon-menu-right-wall-1-pablo.ans")
 MENU_RIGHT$(2) = LoadFile$("assets/ansi/dungeon-menu-right-wall-2.ans")
 MENU_RIGHT$(3) = LoadFile$("assets/ansi/dungeon-menu-right-wall-3.ans")
 MENU_RIGHT$(4) = LoadFile$("assets/ansi/dungeon-menu-right-wall-4.ans")
@@ -47,23 +47,13 @@ MENU_BLOCK$(6) = LoadFile$("assets/ansi/dungeon-menu-block-6.ans")
 IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 15 * CH, 32)
 IMG_MENU_LEFT&  = _NEWIMAGE(15  * CW, 51 * CH, 32)
 IMG_MENU_RIGHT& = _NEWIMAGE(16  * CW, 51 * CH, 32)
-IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 32 * CH, 32)
-_CLEARCOLOR _RGB32(0,0,0), IMG_MENU_LOGO&
-_CLEARCOLOR _RGB32(0,0,0), IMG_MENU_LEFT&
-_CLEARCOLOR _RGB32(0,0,0), IMG_MENU_RIGHT&
-_CLEARCOLOR _RGB32(0,0,0), IMG_MENU_BLOCK&
+IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 31 * CH, 32)
 
 ' print the ansi to all the images
 _DEST IMG_MENU_LOGO&  : PrintANSI(MENU_LOGO$)
 _DEST IMG_MENU_LEFT&  : PrintANSI(MENU_LEFT$(1))
 _DEST IMG_MENU_RIGHT& : PrintANSI(MENU_RIGHT$(1))
 _DEST IMG_MENU_BLOCK& : PrintANSI(MENU_BLOCK$(1))
-
-' make black transparent
-_SETALPHA 0, _RGB32(0,0,0), IMG_MENU_LOGO&
-_SETALPHA 0, _RGB32(0,0,0), IMG_MENU_LEFT&
-_SETALPHA 0, _RGB32(0,0,0), IMG_MENU_RIGHT&
-_SETALPHA 0, _RGB32(0,0,0), IMG_MENU_BLOCK&
 
 ' layout the images
 _DEST CANVAS&
