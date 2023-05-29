@@ -29,13 +29,13 @@ SCREEN CANVAS&
 ' load all the ansis
 MENU_LOGO$     = LoadFileFromDisk$("assets/ansi/dungeon-menu-logo.ans")
 MENU_LEFT$(1)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-1.ans")
-MENU_LEFT$(2)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-1.ans")
-MENU_LEFT$(3)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-1.ans")
-MENU_LEFT$(4)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-1.ans")
+MENU_LEFT$(2)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-2.ans")
+MENU_LEFT$(3)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-3.ans")
+MENU_LEFT$(4)  = LoadFileFromDisk$("assets/ansi/dungeon-menu-left-wall-4.ans")
 MENU_RIGHT$(1) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-1.ans")
-MENU_RIGHT$(2) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-1.ans")
-MENU_RIGHT$(3) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-1.ans")
-MENU_RIGHT$(4) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-1.ans")
+MENU_RIGHT$(2) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-2.ans")
+MENU_RIGHT$(3) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-3.ans")
+MENU_RIGHT$(4) = LoadFileFromDisk$("assets/ansi/dungeon-menu-right-wall-4.ans")
 MENU_BLOCK$(1) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-1.ans")
 MENU_BLOCK$(2) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-2.ans")
 MENU_BLOCK$(3) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-3.ans")
@@ -44,10 +44,10 @@ MENU_BLOCK$(5) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-5.ans")
 MENU_BLOCK$(6) = LoadFileFromDisk$("assets/ansi/dungeon-menu-block-6.ans")
 
 ' setup the images
-IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 15 * CH, 32)
-IMG_MENU_LEFT&  = _NEWIMAGE(15 * CW, 51 * CH, 32)
-IMG_MENU_RIGHT& = _NEWIMAGE(16 * CW, 51 * CH, 32)
-IMG_MENU_BLOCK& = _NEWIMAGE(95 * CW, 31 * CH, 32)
+IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 14 * CH, 32)
+IMG_MENU_LEFT&  = _NEWIMAGE(15  * CW, 50 * CH, 32)
+IMG_MENU_RIGHT& = _NEWIMAGE(16  * CW, 50 * CH, 32)
+IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 31 * CH, 32)
 _CLEARCOLOR _RGB32(0,0,0), IMG_MENU_LOGO&
 _CLEARCOLOR _RGB32(0,0,0), IMG_MENU_LEFT&
 _CLEARCOLOR _RGB32(0,0,0), IMG_MENU_RIGHT&
