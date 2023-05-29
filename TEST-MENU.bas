@@ -47,7 +47,7 @@ MENU_BLOCK$(6) = LoadFile$("assets/ansi/dungeon-menu-block-6.ans")
 IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 15 * CH, 32)
 IMG_MENU_LEFT&  = _NEWIMAGE(15  * CW, 51 * CH, 32)
 IMG_MENU_RIGHT& = _NEWIMAGE(16  * CW, 51 * CH, 32)
-IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 30 * CH, 32)
+IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 31 * CH, 32)
 
 ' print the ansi to all the images
 _DEST IMG_MENU_LOGO&  : PrintANSI(MENU_LOGO$)
@@ -65,6 +65,7 @@ _SOURCE IMG_MENU_LOGO&
 _PUTIMAGE (14 * CW, 0)
 _SOURCE IMG_MENU_BLOCK&
 _PUTIMAGE (19 * CW, 15 * CH)
+_DISPLAY
 
 ' setup menu
 TYPE MENU
@@ -114,6 +115,8 @@ SUB MENU.flicker
     _PUTIMAGE (0, 0)
     _SOURCE IMG_MENU_RIGHT&
     _PUTIMAGE (116 * CW, 0)
+    _DISPLAY
+    _DELAY 0.001
 END SUB
 
 SUB MENU.move (k AS STRING)
@@ -131,6 +134,7 @@ SUB MENU.update
     _DEST CANVAS&
     _SOURCE IMG_MENU_BLOCK&
     _PUTIMAGE (19 * CW, 15 * CH)
+    _DISPLAY
 END SUB
 
 SUB MENU.next
