@@ -1,18 +1,19 @@
 $Debug
 '$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BI'
+'$INCLUDE:'./include/Toolbox64/FileOps.bi'
 '$INCLUDE:'./include/Toolbox64/ANSIPrint.bi'
 
 CONST TRUE = -1, FALSE = NOT TRUE
 
 DIM AS STRING BOARD_ANSI, BOARD_ANSI_NO_LABELS, BOARD_ANSI_LEVEL_SECTORS
-BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-labels.ans")
-BOARD_ANSI_LEVEL_SECTORS$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-labels.ans")
+BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-secrets.ans")
+BOARD_ANSI_LEVEL_SECTORS$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-secrets.ans")
 
-DIM SHARED AS _UNSIGNED LONG yellow2, black2, brown2, bright_blue2
-yellow2~&      = _RGB32(&HFF, &HFF, &H55)
-black2~&       = _RGB32(&H00, &H00, &H00)
-brown2~&       = _RGB32(&HAA, &H55, &H00)
-bright_blue2~& = _RGB32(&H55, &H55, &HFF)
+DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
+YELLOW~&      = _RGB32(&HFF, &HFF, &H55)
+BLACK~&       = _RGB32(&H00, &H00, &H00)
+BROWN~&       = _RGB32(&HAA, &H55, &H00)
+BRIGHT_BLUE~& = _RGB32(&H55, &H55, &HFF)
 
 DIM SHARED AS LONG CANVAS, CANVAS_COPY, LEVEL_SECTORS
 
@@ -33,18 +34,18 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 SCREEN CANVAS&
 _DEST CANVAS&
 _SOURCE CANVAS&
-CLS , black2~&
+CLS , BLACK~&
 PrintANSI(BOARD_ANSI$)
 
 ' copy canvas to the copy
 _DEST CANVAS_COPY&
-CLS , black2~&
+CLS , BLACK~&
 PrintANSI(BOARD_ANSI$)
 _DEST CANVAS&
 
 ' load level sectors
 _DEST LEVEL_SECTORS&
-CLS , black2~&
+CLS , BLACK~&
 PrintANSI(BOARD_ANSI_LEVEL_SECTORS$)
 _DEST CANVAS&
 
@@ -330,7 +331,7 @@ END FUNCTION
 
 
 FUNCTION is_path% (img AS LONG)
-    c.on_path% = image_is_monochromatic(img&, yellow2~&)
+    c.on_path% = image_is_monochromatic(img&, YELLOW~&)
     is_path = c.on_path%
 END FUNCTION
 
@@ -340,8 +341,8 @@ FUNCTION in_room% (img AS LONG)
     sector% = SECTOR.get_by_xy(c.x%, c.y%)
     sector_color~& = SECTORS(sector%).kolor~&
     c.in_room% = ( _
-           image_is_diachromatic(img&, sector_color~&, brown2~&) _
-        OR image_is_diachromatic(img&, sector_color~&, bright_blue2~&) _
+           image_is_diachromatic(img&, sector_color~&, BROWN~&) _
+        OR image_is_diachromatic(img&, sector_color~&, BRIGHT_BLUE~&) _
         OR image_is_monochromatic(img&, sector_color~&) _
     )
     in_room = c.in_room%
@@ -352,9 +353,9 @@ FUNCTION is_door% (img AS LONG)
     DIM sector_color AS _UNSIGNED LONG
     sector%            = SECTOR.get_by_xy(c.x%, c.y%)
     sector_color~&     = SECTORS(sector%).kolor~&
-    is_door_on_path%   = image_is_diachromatic(img&, yellow2~&, brown2~&)
-    is_door_in_room%   = image_is_diachromatic(img&, sector_color~&, brown2~&)
-    is_door_fullblock% = image_is_monochromatic(img&, brown2~&)
+    is_door_on_path%   = image_is_diachromatic(img&, YELLOW~&, BROWN~&)
+    is_door_in_room%   = image_is_diachromatic(img&, sector_color~&, BROWN~&)
+    is_door_fullblock% = image_is_monochromatic(img&, BROWN~&)
     c.on_door%         = is_door_on_path% OR is_door_in_room% OR is_door_fullblock%
     is_door = c.on_door%
 END FUNCTION
@@ -365,9 +366,9 @@ FUNCTION is_secret_door% (img AS LONG)
     DIM sector_color AS _UNSIGNED LONG
     sector%                   = SECTOR.get_by_xy(c.x%, c.y%)
     sector_color~&            = SECTORS(sector%).kolor~&
-    is_secret_door_on_path%   = image_is_diachromatic(img&, yellow2~&, bright_blue2~&)
-    is_secret_door_in_room%   = image_is_diachromatic(img&, sector_color~&, bright_blue2~&)
-    is_secret_door_fullblock% = image_is_monochromatic(img&, bright_blue2~&)
+    is_secret_door_on_path%   = image_is_diachromatic(img&, YELLOW~&, BRIGHT_BLUE~&)
+    is_secret_door_in_room%   = image_is_diachromatic(img&, sector_color~&, BRIGHT_BLUE~&)
+    is_secret_door_fullblock% = image_is_monochromatic(img&, BRIGHT_BLUE~&)
     c.on_secret_door%         = is_secret_door_on_path% OR is_secret_door_in_room% OR is_secret_door_fullblock%
     is_secret_door = c.on_secret_door%
 END FUNCTION
@@ -379,10 +380,10 @@ SUB render_room_labels
     fg_color_blue~& = _RGB32(&H00, &H00, &HAA)
     fg_color_red~&  = _RGB32(&HFF, &H55, &H55)
 
-    COLOR fg_color_red~&, yellow2~&
+    COLOR fg_color_red~&, YELLOW~&
     _PRINTSTRING(57*CW,23*CH), "START"
 
-    COLOR fg_color_blue~&, yellow2~&
+    COLOR fg_color_blue~&, YELLOW~&
 
     _PRINTSTRING(57*CW,25*CH), "MAIN"
     _PRINTSTRING(56*CW,26*CH), "GALLERY"
@@ -443,15 +444,6 @@ FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
 END FUNCTION
 
 
-' Loads a whole file from disk into memory
-FUNCTION LoadFileFromDisk$ (path AS STRING)
-    IF FILEEXISTS(path) THEN
-        DIM AS LONG fh: fh& = FREEFILE
-        OPEN path$ FOR BINARY ACCESS READ AS fh
-        LoadFileFromDisk = INPUT$(LOF(fh), fh)
-        CLOSE fh
-    END IF
-END FUNCTION
-
 '$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BM'
+'$INCLUDE:'./include/Toolbox64/FileOps.bas'
 '$INCLUDE:'./include/Toolbox64/ANSIPrint.bas'
