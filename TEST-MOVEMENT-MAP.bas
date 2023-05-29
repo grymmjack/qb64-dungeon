@@ -279,7 +279,7 @@ END SUB
 
 
 FUNCTION image_is_monochromatic% (img AS LONG, kolor AS _UNSIGNED LONG)
-    DIM AS INTEGER x, y
+    DIM AS INTEGER x, y, has_kolor
     DIM AS _UNSIGNED LONG check_color
     DIM AS LONG old_source
     old_source& = _SOURCE
@@ -291,11 +291,13 @@ FUNCTION image_is_monochromatic% (img AS LONG, kolor AS _UNSIGNED LONG)
                 _SOURCE old_source&
                 image_is_monochromatic = FALSE
                 EXIT FUNCTION
+            ELSE
+                IF check_color~& = kolor~& THEN has_kolor% = TRUE
             END IF
         NEXT x%
     NEXT y%
     _SOURCE old_source&
-    image_is_monochromatic = TRUE
+    image_is_monochromatic = has_kolor%
 END FUNCTION
 
 
