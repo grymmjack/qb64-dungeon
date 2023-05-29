@@ -8,9 +8,11 @@ DIM AS STRING BOARD_ANSI, BOARD_ANSI_NO_LABELS, BOARD_ANSI_LEVEL_SECTORS
 BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-labels.ans")
 BOARD_ANSI_LEVEL_SECTORS$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-labels.ans")
 
-DIM SHARED AS _UNSIGNED LONG yellow2, black2
-yellow2~& = _RGB32(&HFF, &HFF, &H55)
-black2~&  = _RGB32(&H00, &H00, &H00)
+DIM SHARED AS _UNSIGNED LONG yellow2, black2, brown2, bright_blue2
+yellow2~&      = _RGB32(&HFF, &HFF, &H55)
+black2~&       = _RGB32(&H00, &H00, &H00)
+brown2~&       = _RGB32(&HAA, &H55, &H00)
+bright_blue2~& = _RGB32(&H55, &H55, &HFF)
 
 DIM SHARED AS LONG CANVAS, CANVAS_COPY, LEVEL_SECTORS
 
@@ -46,23 +48,6 @@ CLS , black2~&
 PrintANSI(BOARD_ANSI_LEVEL_SECTORS$)
 _DEST CANVAS&
 
-' setup CURSOR
-TYPE CURSOR
-    x            AS INTEGER
-    y            AS INTEGER
-    prev_x       AS INTEGER
-    prev_y       AS INTEGER
-    cursor_color AS _UNSIGNED LONG
-END TYPE
-
-DIM SHARED c AS CURSOR
-c.x% = 59*CW
-c.y% = 24*CH
-c.cursor_color~& = _RGB32(&HFF, &H00, &H00, &HAA)
-c.prev_x% = c.x%
-c.prev_y% = c.y%
-
-' setup SECTORS
 TYPE SECTOR
     start_x AS INTEGER
     start_y AS INTEGER
@@ -75,6 +60,28 @@ TYPE SECTOR
 END TYPE
 DIM SHARED SECTORS(1 TO 9) AS SECTOR
 
+TYPE CURSOR
+    x              AS INTEGER
+    y              AS INTEGER
+    prev_x         AS INTEGER
+    prev_y         AS INTEGER
+    cursor_color   AS _UNSIGNED LONG
+    in_sector      AS INTEGER
+    in_room        AS INTEGER
+    on_path        AS INTEGER
+    on_door        AS INTEGER
+    on_secret_door AS INTEGER
+END TYPE
+DIM SHARED c AS CURSOR
+
+' setup CURSOR
+c.x% = 59*CW
+c.y% = 24*CH
+c.cursor_color~& = _RGB32(&HFF, &H00, &H00, &HAA)
+c.prev_x% = c.x%
+c.prev_y% = c.y%
+
+' setup SECTORS
 ' LEVEL 1
 SECTORS(1).kolor~&  = _RGB32(&H55, &HFF, &H55) ' BRIGHT GREEN
 SECTORS(1).label$   = "LEVEL 1 - MAIN GALLERY"
@@ -169,6 +176,8 @@ SECTORS(9).h%       = SECTORS(9).end_y% - SECTORS(9).start_y%
 render_room_labels
 
 ' draw CURSOR one time to start
+DIM can_move AS INTEGER
+can_move% = CURSOR.can_move
 CURSOR.draw
 
 ' loop waiting for input to move CURSOR
@@ -206,6 +215,7 @@ SUB CURSOR.move (k AS STRING)
         c.y% = c.prev_y%
         SOUND 200, 0.1
     END IF
+    CURSOR.update_state
 END SUB
 
 
@@ -216,12 +226,37 @@ SUB CURSOR.keep_in_bounds
     IF c.y% < 0 THEN c.y% = 0
 END SUB
 
+SUB CURSOR.update_state
+    DIM AS LONG img_box
+    DIM cur_sector AS INTEGER
+    DIM in_sector AS SECTOR
+    DIM state AS STRING
+    state$ = ""
+    img_box& = _NEWIMAGE(CW, CH, 32)
+    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
+    c.on_path%        = is_path%(img_box&)
+    c.in_room%        = in_room%(img_box&)
+    c.on_door%        = is_door%(img_box&)
+    c.on_secret_door% = is_secret_door(img_box&)
+    COLOR _RGB32(&HFF, &HFF, &HFF), _RGB32(&H00, &H00, &H00)
+    cur_sector%  = SECTOR.get_by_xy(c.x%, c.y%)
+    in_sector    = SECTORS(cur_sector%)
+    _PRINTSTRING(0, 50 * CH), "SECTOR(" + _TRIM$(STR$(cur_sector%)) + "): " + in_sector.label$
+    ' show state
+    IF c.on_path% = TRUE THEN state$ = state$ + " ON PATH"
+    IF c.in_room% = TRUE THEN state$ = state$ + " IN ROOM"
+    IF c.on_door% = TRUE THEN state$ = state$ + " ON DOOR"
+    IF c.on_secret_door% = TRUE THEN state$ = state$ + " ON SECRET DOOR"
+    _PRINTSTRING(80 * CW, 50 * CH), "                                             "
+    _PRINTSTRING(80 * CW, 50 * CH), state$
+END SUB
 
 FUNCTION CURSOR.can_move%
     DIM AS LONG img_box
     img_box& = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
-    CURSOR.can_move = image_is_monochromatic(img_box&, yellow2~&)
+    CURSOR.update_state
+    CURSOR.can_move = c.on_path% OR c.in_room% OR c.on_door% or c.on_secret_door%
 END FUNCTION
 
 
@@ -235,13 +270,7 @@ END SUB
 
 
 SUB CURSOR.draw
-    LINE (c.x%, c.y%)-(c.x%+CW, c.y%+CH), c.cursor_color~&, BF
-    COLOR _RGB32(&HFF, &HFF, &HFF), _RGB32(&H00, &H00, &H00)
-    DIM cur_sector AS INTEGER
-    DIM in_sector AS SECTOR
-    cur_sector% = SECTOR.get_by_xy(c.x%, c.y%)
-    in_sector = SECTORS(cur_sector%)
-    _PRINTSTRING(0, 50 * CH), "SECTOR(" + _TRIM$(STR$(cur_sector%)) + "): " + in_sector.label$
+    LINE (c.x%, c.y%)-(c.x%+CW-1, c.y%+CH-1), c.cursor_color~&, BF
 END SUB
 
 
@@ -264,6 +293,69 @@ FUNCTION image_is_monochromatic% (img AS LONG, kolor AS _UNSIGNED LONG)
     _SOURCE old_source&
     image_is_monochromatic = TRUE
 END FUNCTION
+
+
+FUNCTION image_is_diachromatic% (img AS LONG, kolor1 AS _UNSIGNED LONG, kolor2 AS _UNSIGNED LONG)
+    DIM AS INTEGER x, y
+    DIM AS _UNSIGNED LONG check_color
+    DIM AS LONG old_source
+    old_source& = _SOURCE
+    _SOURCE img&
+    FOR y% = 0 TO _HEIGHT(img&) - 1
+        FOR x% = 0 TO _WIDTH(img&) - 1 
+            check_color~& = POINT(x%, y%)
+            IF (check_color~& <> kolor1~&) AND (check_color~& <> kolor2~&) THEN
+                _SOURCE old_source&
+                image_is_diachromatic = FALSE
+                EXIT FUNCTION
+            END IF
+        NEXT x%
+    NEXT y%
+    _SOURCE old_source&
+    image_is_diachromatic = TRUE
+END FUNCTION
+
+FUNCTION is_path% (img AS LONG)
+    c.on_path% = image_is_monochromatic(img&, yellow2~&)
+    is_path= c.on_path%
+END FUNCTION
+
+FUNCTION in_room% (img AS LONG)
+    DIM sector_color AS _UNSIGNED LONG
+    DIM sector AS INTEGER
+    sector% = SECTOR.get_by_xy(c.x%, c.y%)
+    sector_color~& = SECTORS(sector%).kolor~&
+    c.in_room% = ( _
+           image_is_diachromatic(img&, sector_color~&, brown2~&) _
+        OR image_is_diachromatic(img&, sector_color~&, bright_blue2~&) _
+        OR image_is_monochromatic(img&, sector_color~&) _
+    )
+    in_room = c.in_room%
+END FUNCTION
+
+FUNCTION is_door% (img AS LONG)
+    DIM AS INTEGER is_door_on_path, is_door_in_room, sector
+    DIM sector_color AS _UNSIGNED LONG
+    sector% = SECTOR.get_by_xy(c.x%, c.y%)
+    sector_color~& = SECTORS(sector%).kolor~&
+    is_door_on_path% = image_is_diachromatic(img&, yellow2~&, brown2~&)
+    is_door_in_room% = image_is_diachromatic(img&, sector_color~&, brown2~&)
+    c.on_door% = is_door_on_path% OR is_door_in_room%
+    is_door = c.on_door%
+END FUNCTION
+
+
+FUNCTION is_secret_door% (img AS LONG)
+    DIM AS INTEGER is_secret_door_on_path, is_secret_door_in_room, sector
+    DIM sector_color AS _UNSIGNED LONG
+    sector% = SECTOR.get_by_xy(c.x%, c.y%)
+    sector_color~& = SECTORS(sector%).kolor~&
+    is_secret_door_on_path% = image_is_diachromatic(img&, yellow2~&, bright_blue2~&)
+    is_secret_door_in_room% = image_is_diachromatic(img&, sector_color~&, bright_blue2~&)
+    c.on_secret_door% = is_secret_door_on_path% OR is_secret_door_in_room%
+    is_secret_door = c.on_secret_door%
+END FUNCTION
+
 
 
 SUB render_room_labels
@@ -316,7 +408,7 @@ END SUB
 
 
 ' gets sector
-FUNCTION SECTOR.get_by_xy% (x%, y%)
+FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
     DIM i AS INTEGER
     DIM s AS SECTOR
     DIM AS INTEGER sx, ex, sy, ey
