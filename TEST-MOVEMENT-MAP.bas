@@ -176,8 +176,6 @@ SECTORS(9).h%       = SECTORS(9).end_y% - SECTORS(9).start_y%
 render_room_labels
 
 ' draw CURSOR one time to start
-DIM can_move AS INTEGER
-can_move% = CURSOR.can_move
 CURSOR.draw
 
 ' loop waiting for input to move CURSOR
@@ -192,6 +190,7 @@ DO:
     IF p% <> 0 THEN
         CURSOR.move k$
     END IF
+    CURSOR.update_state
     _DISPLAY
 LOOP UNTIL k$=CHR$(27)
 SYSTEM
@@ -215,7 +214,6 @@ SUB CURSOR.move (k AS STRING)
         c.y% = c.prev_y%
         SOUND 200, 0.1
     END IF
-    CURSOR.update_state
 END SUB
 
 
@@ -226,6 +224,7 @@ SUB CURSOR.keep_in_bounds
     IF c.y% < 0 THEN c.y% = 0
 END SUB
 
+
 SUB CURSOR.update_state
     DIM AS LONG img_box
     DIM cur_sector AS INTEGER
@@ -234,9 +233,9 @@ SUB CURSOR.update_state
     state$ = ""
     img_box& = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
-    c.on_path%        = is_path%(img_box&)
-    c.in_room%        = in_room%(img_box&)
-    c.on_door%        = is_door%(img_box&)
+    c.on_path%        = is_path(img_box&)
+    c.in_room%        = in_room(img_box&)
+    c.on_door%        = is_door(img_box&)
     c.on_secret_door% = is_secret_door(img_box&)
     COLOR _RGB32(&HFF, &HFF, &HFF), _RGB32(&H00, &H00, &H00)
     cur_sector%  = SECTOR.get_by_xy(c.x%, c.y%)
@@ -251,12 +250,17 @@ SUB CURSOR.update_state
     _PRINTSTRING(80 * CW, 50 * CH), state$
 END SUB
 
+
 FUNCTION CURSOR.can_move%
     DIM AS LONG img_box
+    DIM AS INTEGER __on_path, __in_room, __on_door, __on_secret_door
     img_box& = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY&, img_box&, (c.x%, c.y%)-(c.x%+CW, c.y%+CH)
-    CURSOR.update_state
-    CURSOR.can_move = c.on_path% OR c.in_room% OR c.on_door% or c.on_secret_door%
+    __on_path%        = is_path(img_box&)
+    __in_room%        = in_room(img_box&)
+    __on_door%        = is_door(img_box&)
+    __on_secret_door% = is_secret_door(img_box&)
+    CURSOR.can_move = __on_path% OR __in_room% OR __on_door% OR __on_secret_door%
 END FUNCTION
 
 
@@ -318,6 +322,7 @@ FUNCTION image_is_diachromatic% (img AS LONG, kolor1 AS _UNSIGNED LONG, kolor2 A
     image_is_diachromatic = has_kolor1% AND has_kolor2%
 END FUNCTION
 
+
 FUNCTION is_path% (img AS LONG)
     c.on_path% = image_is_monochromatic(img&, yellow2~&)
     is_path = c.on_path%
@@ -337,25 +342,27 @@ FUNCTION in_room% (img AS LONG)
 END FUNCTION
 
 FUNCTION is_door% (img AS LONG)
-    DIM AS INTEGER is_door_on_path, is_door_in_room, sector
+    DIM AS INTEGER is_door_on_path, is_door_in_room, is_door_fullblock, sector
     DIM sector_color AS _UNSIGNED LONG
-    sector% = SECTOR.get_by_xy(c.x%, c.y%)
-    sector_color~& = SECTORS(sector%).kolor~&
-    is_door_on_path% = image_is_diachromatic(img&, yellow2~&, brown2~&)
-    is_door_in_room% = image_is_diachromatic(img&, sector_color~&, brown2~&)
-    c.on_door% = is_door_on_path% OR is_door_in_room%
+    sector%            = SECTOR.get_by_xy(c.x%, c.y%)
+    sector_color~&     = SECTORS(sector%).kolor~&
+    is_door_on_path%   = image_is_diachromatic(img&, yellow2~&, brown2~&)
+    is_door_in_room%   = image_is_diachromatic(img&, sector_color~&, brown2~&)
+    is_door_fullblock% = image_is_monochromatic(img&, brown2~&)
+    c.on_door%         = is_door_on_path% OR is_door_in_room% OR is_door_fullblock%
     is_door = c.on_door%
 END FUNCTION
 
 
 FUNCTION is_secret_door% (img AS LONG)
-    DIM AS INTEGER is_secret_door_on_path, is_secret_door_in_room, sector
+    DIM AS INTEGER is_secret_door_on_path, is_secret_door_in_room, is_secret_door_fullblock, sector
     DIM sector_color AS _UNSIGNED LONG
-    sector% = SECTOR.get_by_xy(c.x%, c.y%)
-    sector_color~& = SECTORS(sector%).kolor~&
-    is_secret_door_on_path% = image_is_diachromatic(img&, yellow2~&, bright_blue2~&)
-    is_secret_door_in_room% = image_is_diachromatic(img&, sector_color~&, bright_blue2~&)
-    c.on_secret_door% = is_secret_door_on_path% OR is_secret_door_in_room%
+    sector%                   = SECTOR.get_by_xy(c.x%, c.y%)
+    sector_color~&            = SECTORS(sector%).kolor~&
+    is_secret_door_on_path%   = image_is_diachromatic(img&, yellow2~&, bright_blue2~&)
+    is_secret_door_in_room%   = image_is_diachromatic(img&, sector_color~&, bright_blue2~&)
+    is_secret_door_fullblock% = image_is_monochromatic(img&, bright_blue2~&)
+    c.on_secret_door%         = is_secret_door_on_path% OR is_secret_door_in_room% OR is_secret_door_fullblock%
     is_secret_door = c.on_secret_door%
 END FUNCTION
 
