@@ -1,7 +1,7 @@
 $Debug
-'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BI'
-'$INCLUDE:'./include/Toolbox64/FileOps.bi'
-'$INCLUDE:'./include/Toolbox64/ANSIPrint.bi'
+'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB.BI'
+'$INCLUDE:'../include/Toolbox64/FileOps.bi'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bi'
 
 CONST TRUE = -1, FALSE = NOT TRUE
 
@@ -27,21 +27,21 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 SCREEN CANVAS&
 
 ' load all the ansis
-MENU_LOGO$     = LoadFile$("assets/ansi/dungeon-menu-logo.ans")
-MENU_LEFT$(1)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-1-pablo.ans")
-MENU_LEFT$(2)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-2-pablo.ans")
-MENU_LEFT$(3)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-3-pablo.ans")
-MENU_LEFT$(4)  = LoadFile$("assets/ansi/dungeon-menu-left-wall-4-pablo.ans")
-MENU_RIGHT$(1) = LoadFile$("assets/ansi/dungeon-menu-right-wall-1-pablo.ans")
-MENU_RIGHT$(2) = LoadFile$("assets/ansi/dungeon-menu-right-wall-2-pablo.ans")
-MENU_RIGHT$(3) = LoadFile$("assets/ansi/dungeon-menu-right-wall-3-pablo.ans")
-MENU_RIGHT$(4) = LoadFile$("assets/ansi/dungeon-menu-right-wall-4-pablo.ans")
-MENU_BLOCK$(1) = LoadFile$("assets/ansi/dungeon-menu-block-1.ans")
-MENU_BLOCK$(2) = LoadFile$("assets/ansi/dungeon-menu-block-2.ans")
-MENU_BLOCK$(3) = LoadFile$("assets/ansi/dungeon-menu-block-3.ans")
-MENU_BLOCK$(4) = LoadFile$("assets/ansi/dungeon-menu-block-4.ans")
-MENU_BLOCK$(5) = LoadFile$("assets/ansi/dungeon-menu-block-5.ans")
-MENU_BLOCK$(6) = LoadFile$("assets/ansi/dungeon-menu-block-6.ans")
+MENU_LOGO$     = LoadFile$("../assets/ansi/dungeon-menu-logo.ans")
+MENU_LEFT$(1)  = LoadFile$("../assets/ansi/dungeon-menu-left-wall-1-pablo.ans")
+MENU_LEFT$(2)  = LoadFile$("../assets/ansi/dungeon-menu-left-wall-2-pablo.ans")
+MENU_LEFT$(3)  = LoadFile$("../assets/ansi/dungeon-menu-left-wall-3-pablo.ans")
+MENU_LEFT$(4)  = LoadFile$("../assets/ansi/dungeon-menu-left-wall-4-pablo.ans")
+MENU_RIGHT$(1) = LoadFile$("../assets/ansi/dungeon-menu-right-wall-1-pablo.ans")
+MENU_RIGHT$(2) = LoadFile$("../assets/ansi/dungeon-menu-right-wall-2-pablo.ans")
+MENU_RIGHT$(3) = LoadFile$("../assets/ansi/dungeon-menu-right-wall-3-pablo.ans")
+MENU_RIGHT$(4) = LoadFile$("../assets/ansi/dungeon-menu-right-wall-4-pablo.ans")
+MENU_BLOCK$(1) = LoadFile$("../assets/ansi/dungeon-menu-block-1.ans")
+MENU_BLOCK$(2) = LoadFile$("../assets/ansi/dungeon-menu-block-2.ans")
+MENU_BLOCK$(3) = LoadFile$("../assets/ansi/dungeon-menu-block-3.ans")
+MENU_BLOCK$(4) = LoadFile$("../assets/ansi/dungeon-menu-block-4.ans")
+MENU_BLOCK$(5) = LoadFile$("../assets/ansi/dungeon-menu-block-5.ans")
+MENU_BLOCK$(6) = LoadFile$("../assets/ansi/dungeon-menu-block-6.ans")
 
 ' setup the images
 IMG_MENU_LOGO&  = _NEWIMAGE(102 * CW, 15 * CH, 32)
@@ -93,10 +93,22 @@ DO:
     IF p% <> 0 THEN
         MENU.move k$
     END IF
+    IF k$ = CHR$(13) THEN
+        SOUND 50, 1
+    END IF
     t& = t& + 1
     IF t& MOD 10 = 0 THEN MENU.flicker
     _DISPLAY
 LOOP UNTIL k$=CHR$(27)
+
+_FULLSCREEN _OFF
+SCREEN 0 : _DEST 0
+_DELAY 1
+_FREEIMAGE CANVAS&
+_FREEIMAGE IMG_MENU_BLOCK&
+_FREEIMAGE IMG_MENU_LEFT&
+_FREEIMAGE IMG_MENU_RIGHT&
+_FREEIMAGE IMG_MENU_LOGO&
 SYSTEM
 
 
@@ -156,6 +168,6 @@ FUNCTION rand_in_range% (minimum%, maximum%)
 END FUNCTION
 
 
-'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BM'
-'$INCLUDE:'./include/Toolbox64/FileOps.bas'
-'$INCLUDE:'./include/Toolbox64/ANSIPrint.bas'
+'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB.BM'
+'$INCLUDE:'../include/Toolbox64/FileOps.bas'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bas'

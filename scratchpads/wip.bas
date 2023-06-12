@@ -1,6 +1,6 @@
-'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BI'
-'$INCLUDE:'./include/Toolbox64/FileOps.bi'
-'$INCLUDE:'./include/Toolbox64/ANSIPrint.bi'
+'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB.BI'
+'$INCLUDE:'../include/Toolbox64/FileOps.bi'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bi'
 
 DIM AS LONG CANVAS, TEMP_SCREEN, MAIN_SCREEN, BOARD_SCREEN, INTRO_SCREEN
 DIM AS STRING MAIN_ANSI, BOARD_ANSI, INTRO_ANSI
@@ -8,8 +8,8 @@ DIM AS STRING MAIN_ANSI, BOARD_ANSI, INTRO_ANSI
 DIM AS LONG MUSIC_INTRO, MUSIC_MAIN, MUSIC_FIGHT, MUSIC_TREASURE
 DIM AS LONG SFX_DICE, SFX_MOVE, SFX_DOOR, SFX_SWORD, SFX_SPELL, SFX_HURT, SFX_DIE, SFX_TREASURE
 
-INTRO_ANSI$ = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
-BOARD_ANSI$ = LoadFile$("assets/ansi/board-132x50-no-secrets.ans")
+INTRO_ANSI$ = LoadFile$("../assets/ansi/vermin-radioactive-logo.ans")
+BOARD_ANSI$ = LoadFile$("../assets/ansi/board-132x50-no-secrets.ans")
 
 CONST SW = 132  ' SCREEN WIDTH IN CHARACTERS
 CONST SH = 51   ' SCREEN HEIGHT IN CHARACTERS
@@ -23,7 +23,7 @@ _FONT CH
 SCREEN CANVAS&
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
-MUSIC_INTRO& = _SNDOPEN("assets/music/vermin-radioactive-theme.rad")
+MUSIC_INTRO& = _SNDOPEN("../assets/music/vermin-radioactive-theme.rad")
 IF MUSIC_INTRO& <= 0 THEN BEEP ELSE _SNDPLAY MUSIC_INTRO&
 
 INTRO_SCREEN& = _NEWIMAGE(SW * CW, SH * CH, 32)
@@ -39,7 +39,7 @@ BOARD_SCREEN& = _NEWIMAGE(SW * CW, SH * CH, 32)
 _DEST(BOARD_SCREEN&)
 PrintANSI(BOARD_ANSI$)
 SCREEN BOARD_SCREEN&
-MUSIC_MAIN& = _SNDOPEN("assets/music/everdark.rad")
+MUSIC_MAIN& = _SNDOPEN("../assets/music/everdark.rad")
 IF MUSIC_MAIN& <= 0 THEN BEEP ELSE _SNDLOOP MUSIC_MAIN&
 
 DO:
@@ -49,6 +49,14 @@ LOOP UNTIL _KEYHIT = 27
 _SNDSTOP MUSIC_MAIN&
 _SNDCLOSE MUSIC_MAIN&
 
-'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BM'
-'$INCLUDE:'./include/Toolbox64/FileOps.bas'
-'$INCLUDE:'./include/Toolbox64/ANSIPrint.bas'
+_FULLSCREEN _OFF
+SCREEN 0 : _DEST 0
+_DELAY 1
+_FREEIMAGE CANVAS&
+_FREEIMAGE INTRO_SCREEN&
+_FREEIMAGE BOARD_SCREEN&
+SYSTEM
+
+'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB.BM'
+'$INCLUDE:'../include/Toolbox64/FileOps.bas'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bas'

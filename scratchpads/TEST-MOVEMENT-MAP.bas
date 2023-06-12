@@ -1,13 +1,12 @@
 $Debug
-'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BI'
-'$INCLUDE:'./include/Toolbox64/FileOps.bi'
-'$INCLUDE:'./include/Toolbox64/ANSIPrint.bi'
+'$INCLUDE:'../include/Toolbox64/FileOps.bi'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bi'
 
 CONST TRUE = -1, FALSE = NOT TRUE
 
 DIM AS STRING BOARD_ANSI, BOARD_ANSI_NO_LABELS, BOARD_ANSI_LEVEL_SECTORS
-BOARD_ANSI$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-secrets.ans")
-BOARD_ANSI_LEVEL_SECTORS$ = LoadFileFromDisk$("assets/ansi/board-132x50-no-secrets.ans")
+BOARD_ANSI$ = LoadFileFromDisk$("../assets/ansi/board-132x50-no-secrets.ans")
+BOARD_ANSI_LEVEL_SECTORS$ = LoadFileFromDisk$("../assets/ansi/board-132x50-no-secrets.ans")
 
 DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
 YELLOW~&      = _RGB32(&HFF, &HFF, &H55)
@@ -194,8 +193,14 @@ DO:
     CURSOR.update_state
     _DISPLAY
 LOOP UNTIL k$=CHR$(27)
-SYSTEM
 
+_FULLSCREEN _OFF
+SCREEN 0 : _DEST 0
+_DELAY 1
+_FREEIMAGE CANVAS&
+_FREEIMAGE CANVAS_COPY&
+_FREEIMAGE LEVEL_SECTORS&
+SYSTEM
 
 
 SUB CURSOR.move (k AS STRING)
@@ -253,6 +258,7 @@ SUB CURSOR.update_state
     IF c.on_secret_door% = TRUE THEN state$ = state$ + " ON SECRET DOOR"
     _PRINTSTRING(80 * CW, 50 * CH), "                                             "
     _PRINTSTRING(80 * CW, 50 * CH), state$
+    _FREEIMAGE img_box&
 END SUB
 
 
@@ -265,6 +271,7 @@ FUNCTION CURSOR.can_move%
     __in_room%        = in_room(img_box&)
     __on_door%        = is_door(img_box&)
     __on_secret_door% = is_secret_door(img_box&)
+    _FREEIMAGE img_box&
     CURSOR.can_move = __on_path% OR __in_room% OR __on_door% OR __on_secret_door%
 END FUNCTION
 
@@ -444,6 +451,5 @@ FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
 END FUNCTION
 
 
-'$INCLUDE:'./include/QB64_GJ_LIB/_GJ_LIB.BM'
-'$INCLUDE:'./include/Toolbox64/FileOps.bas'
-'$INCLUDE:'./include/Toolbox64/ANSIPrint.bas'
+'$INCLUDE:'../include/Toolbox64/FileOps.bas'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bas'
