@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "brandonfowler.exe-runner",
-        "adammaras.overtype",
         "bladnman.auto-align",
         "file-icons.file-icons",
         "github.vscode-pull-request-github",
@@ -9,6 +8,7 @@
         "ionicabizau.ms-dos-editor-theme",
         "ziyasal.vscode-open-in-github",
         "qb64-official.qb64",
-        "benrogerswpg.websearchengine"
+        "benrogerswpg.websearchengine",
+        "drmerfy.overtype"
     ]
 }
