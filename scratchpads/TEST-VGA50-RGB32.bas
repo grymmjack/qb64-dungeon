@@ -1,0 +1,48 @@
+$Debug
+'$INCLUDE:'../include/Toolbox64/FileOps.bi'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bi'
+
+CONST TRUE = -1, FALSE = NOT TRUE
+
+DIM AS LONG CANVAS, GNOLL
+DIM TEST_ANSI AS STRING
+
+' detect screen res
+DIM AS LONG SX, SY
+DO: _LIMIT 30 : LOOP UNTIL _SCREENEXISTS
+SX& = _DESKTOPWIDTH : SY& = _DESKTOPHEIGHT
+
+DIM SHARED AS INTEGER CW, CH, SW, SH
+CW% = 8        ' WIDTH OF 1 CHARACTER
+CH% = 8        ' HEIGHT OF 1 CHARACTER
+SW% = SX&\CW   ' SCREEN WIDTH IN CHARACTERS
+SH% = SY&\CH   ' SCREEN HEIGHT IN CHARACTERS + 1 MORE TO PREVENT SCOLLING OFF
+IF SW% < 132 THEN SW% = 132
+IF SH% < 100 THEN SH% = 100
+
+' setup the screen
+$RESIZE:ON
+$RESIZE:STRETCH
+_FONT CH
+_FULLSCREEN _SQUAREPIXELS, _SMOOTH
+CANVAS& = _NEWIMAGE(SW% * CW%, SH% * CH%, 32)
+
+
+' setup canvas
+SCREEN CANVAS&
+LINE (0, 0)-(SW% * CW%, SH% * SH%), _RGB32(0, 0, 80), BF
+GNOLL& = _NEWIMAGE(33 * CW, 25 * CH, 32)
+TEST_ANSI$ = LoadFile$("../assets/ansi/monsters/gnoll.ans")
+
+' print the ansi to all the images
+_DEST GNOLL&
+_FONT CH
+ANSI_Print(TEST_ANSI$)
+_DEST CANVAS&
+_SOURCE GNOLL&
+_PUTIMAGE (0, 0)
+
+SLEEP
+
+'$INCLUDE:'../include/Toolbox64/FileOps.bas'
+'$INCLUDE:'../include/Toolbox64/ANSIPrint.bas'

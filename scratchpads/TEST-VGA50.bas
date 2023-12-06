@@ -1,5 +1,4 @@
 $Debug
-'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB.BI'
 '$INCLUDE:'../include/Toolbox64/FileOps.bi'
 '$INCLUDE:'../include/Toolbox64/ANSIPrint.bi'
 
@@ -15,13 +14,13 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 ' setup canvas
 SCREEN 0 'CANVAS&
+WIDTH 33,25
 
 ' load the ansi
-TEST_ANSI$ = LoadFile$("../assets/ansi/Gnoll.ans")
+TEST_ANSI$ = LoadFile$("../assets/ansi/monsters/gnoll.ans")
 
 ' print the ansi to all the images
-PrintANSI(TEST_ANSI$)
+ANSI_Print(TEST_ANSI$)
 
-'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB.BM'
 '$INCLUDE:'../include/Toolbox64/FileOps.bas'
 '$INCLUDE:'../include/Toolbox64/ANSIPrint.bas'
