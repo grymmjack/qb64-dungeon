@@ -193,18 +193,18 @@ SCREEN CANVAS&
 _DEST CANVAS&
 _SOURCE CANVAS&
 CLS , BLACK~&
-PrintANSI(BOARD_ANSI$)
+ANSI_Print(BOARD_ANSI$)
 
 ' copy canvas to the copy
 _DEST CANVAS_COPY&
 CLS , BLACK~&
-PrintANSI(BOARD_ANSI$)
+ANSI_Print(BOARD_ANSI$)
 _DEST CANVAS&
 
 ' load level sectors
 _DEST LEVEL_SECTORS&
 CLS , BLACK~&
-PrintANSI(BOARD_ANSI_LEVEL_SECTORS$)
+ANSI_Print(BOARD_ANSI_LEVEL_SECTORS$)
 _DEST CANVAS&
 
 TYPE SECTOR
@@ -811,7 +811,7 @@ END FUNCTION
             '    Color DarkGray, Black
             '    Cls
             '    ResetANSIEmulator
-            '    PrintANSI Input$(LOF(fh), fh)
+            '    ANSI_Print Input$(LOF(fh), fh)
             '    Close fh
             '    Title "Press any key to open another file...": Sleep 3600
             'Loop
@@ -920,11 +920,11 @@ END FUNCTION
         
         
             ' Processes a single byte and decides what to do with it based on the current emulation state
-            Function PrintANSICharacter& (ch As _Unsigned _Byte)
+            Function ANSI_PrintCharacter& (ch As _Unsigned _Byte)
                 Shared __ANSIEmu As ANSIEmulatorType
                 Shared __ANSIArg() As Long
         
-                PrintANSICharacter& = TRUE ' by default we will return true to tell the caller to keep going
+                ANSI_PrintCharacter& = TRUE ' by default we will return true to tell the caller to keep going
         
                 Dim As Long x, y, z ' temp variables used in many places (usually as counter / index)
         
@@ -1370,7 +1370,7 @@ END FUNCTION
                         End Select
         
                     Case ANSI_STATE_END ' end of the stream has been reached
-                        PrintANSICharacter& = FALSE ' tell the caller the we should stop processing the rest of the stream
+                        ANSI_PrintCharacter& = FALSE ' tell the caller the we should stop processing the rest of the stream
                         Exit Function ' and then leave
         
                     Case Else ' this should never happen
@@ -1380,16 +1380,16 @@ END FUNCTION
             End Function
         
         
-            ' Processes the whole string instead of a character like PrintANSICharacter()
-            ' This simply wraps PrintANSICharacter()
-            Function PrintANSIString& (s As String)
+            ' Processes the whole string instead of a character like ANSI_PrintCharacter()
+            ' This simply wraps ANSI_PrintCharacter()
+            Function ANSI_PrintString& (s As String)
                 Dim As Long i
         
-                PrintANSIString = TRUE
+                ANSI_PrintString = TRUE
         
                 For i = 1 To Len(s)
-                    If Not PrintANSICharacter(Asc(s, i)) Then
-                        PrintANSIString = FALSE ' signal end of stream
+                    If Not ANSI_PrintCharacter(Asc(s, i)) Then
+                        ANSI_PrintString = FALSE ' signal end of stream
                         Exit Function
                     End If
                 Next
@@ -1399,7 +1399,7 @@ END FUNCTION
             ' A simple routine that wraps pretty much the whole library
             ' It will reset the library, do the setup and then render the whole ANSI string in one go
             ' ControlChr is properly restored
-            Sub PrintANSI (sANSI As String)
+            Sub ANSI_Print (sANSI As String)
                 Dim As Long oldControlChr ' to save old ContolChr
         
                 ' Save the old ControlChr state
@@ -1407,7 +1407,7 @@ END FUNCTION
         
                 ResetANSIEmulator ' reset the emulator
         
-                Dim dummy As Long: dummy = PrintANSIString(sANSI) ' print the ANSI string and ignore the return value
+                Dim dummy As Long: dummy = ANSI_PrintString(sANSI) ' print the ANSI string and ignore the return value
         
                 ' Set ControlChr the way we found it
                 If oldControlChr Then

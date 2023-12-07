@@ -9,7 +9,7 @@ SCREEN CANVAS&
 
 DIM ansi AS STRING
 ansi$ = LoadFileFromDisk$("../assets/ansi/board-120x50.ans")
-PrintANSI(ansi$)
+ANSI_Print(ansi$)
 
 DO:
     _LIMIT 30

@@ -50,10 +50,10 @@ IMG_MENU_RIGHT& = _NEWIMAGE(16  * CW, 51 * CH, 32)
 IMG_MENU_BLOCK& = _NEWIMAGE(95  * CW, 31 * CH, 32)
 
 ' print the ansi to all the images
-_DEST IMG_MENU_LOGO&  : PrintANSI(MENU_LOGO$)
-_DEST IMG_MENU_LEFT&  : PrintANSI(MENU_LEFT$(1))
-_DEST IMG_MENU_RIGHT& : PrintANSI(MENU_RIGHT$(1))
-_DEST IMG_MENU_BLOCK& : PrintANSI(MENU_BLOCK$(1))
+_DEST IMG_MENU_LOGO&  : ANSI_Print(MENU_LOGO$)
+_DEST IMG_MENU_LEFT&  : ANSI_Print(MENU_LEFT$(1))
+_DEST IMG_MENU_RIGHT& : ANSI_Print(MENU_RIGHT$(1))
+_DEST IMG_MENU_BLOCK& : ANSI_Print(MENU_BLOCK$(1))
 
 ' layout the images
 _DEST CANVAS&
@@ -116,8 +116,8 @@ SUB MENU.flicker
     DIM rand_num AS INTEGER
     rand_num% = rand_in_range(1, 5)
     IF rand_num% > 3 THEN EXIT SUB
-    _DEST IMG_MENU_LEFT&  : PrintANSI(MENU_LEFT$(rand_num%))
-    _DEST IMG_MENU_RIGHT& : PrintANSI(MENU_RIGHT$(rand_num%))
+    _DEST IMG_MENU_LEFT&  : ANSI_Print(MENU_LEFT$(rand_num%))
+    _DEST IMG_MENU_RIGHT& : ANSI_Print(MENU_RIGHT$(rand_num%))
     _DEST CANVAS&
     _SOURCE IMG_MENU_LEFT&
     _PUTIMAGE (0, 0)
@@ -136,7 +136,7 @@ END SUB
 
 SUB MENU.update
     _DEST IMG_MENU_BLOCK&
-    PrintANSI(MENU_BLOCK$(menu_selected%))    
+    ANSI_Print(MENU_BLOCK$(menu_selected%))    
     _DEST CANVAS&
     _SOURCE IMG_MENU_BLOCK&
     _PUTIMAGE (19 * CW, 15 * CH)
