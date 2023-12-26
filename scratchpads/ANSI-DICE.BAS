@@ -1,8 +1,10 @@
 DEFINT i-k, x-z
 
 SCREEN 0
-WIDTH 80, 50
-_FULLSCREEN _SQUAREPIXELS, _SMOOTH
+_FONT 8
+WIDTH 132, 100
+' _FULLSCREEN _SQUAREPIXELS, _SMOOTH
+' $CONSOLE:ONLY
 
 REDIM SHARED FB(1 TO 10) AS _UNSIGNED _BYTE
 FB(&H1) = 176
@@ -27,9 +29,9 @@ CONST F8 = 222 '▐ 2590
 CONST F9 = 254 '■ 25A0
 CONST FA = 250 '∙ 2219
 
-FOR i% = LBOUND(FB) TO UBOUND(FB)
-    PRINT CHR$(FB(i%));
-NEXT i%
+' FOR i% = LBOUND(FB) TO UBOUND(FB)
+'     PRINT CHR$(FB(i%));
+' NEXT i%
 
 DIM D20(1 TO 6) AS STRING
 D20$(1) = " 6446 "
@@ -87,6 +89,7 @@ CALL roll_die(D10$(), 10, 15, 4, 8)
 CALL roll_die(D8$(), 8, 15, 4, 8)
 CALL roll_die(D6$(), 6, 15, 4, 8)
 CALL roll_die(D4$(), 4, 15, 4, 8)
+PRINT "PRESS ANY KEY" : SLEEP
 
 CALL roll_die(D20$(), 20, 0, 7, 8)
 CALL roll_die(D12$(), 12, 0, 7, 8)
@@ -94,6 +97,7 @@ CALL roll_die(D10$(), 10, 0, 7, 8)
 CALL roll_die(D8$(), 8, 0, 7, 8)
 CALL roll_die(D6$(), 6, 0, 7, 8)
 CALL roll_die(D4$(), 4, 0, 7, 8)
+PRINT "PRESS ANY KEY" : SLEEP
 
 CALL roll_die(D20$(), 20, 10, 6, 8)
 CALL roll_die(D12$(), 12, 10, 6, 8)
@@ -101,6 +105,7 @@ CALL roll_die(D10$(), 10, 10, 6, 8)
 CALL roll_die(D8$(), 8, 10, 6, 8)
 CALL roll_die(D6$(), 6, 10, 6, 8)
 CALL roll_die(D4$(), 4, 10, 6, 8)
+PRINT "PRESS ANY KEY" : SLEEP
 
 SUB roll_die(display$(), dice_sides~%%, dc_bright~%%, dc_dark~%%, dc_shadow~%%)
     DIM AS _UNSIGNED _BYTE bg, fg', dice_sides, dc_bright, dc_dark, dc_shadow
