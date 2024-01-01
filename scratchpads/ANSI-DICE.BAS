@@ -83,13 +83,16 @@ D4$(6) = "       "
 
 RANDOMIZE TIMER
 PRINT : PRINT
-CALL roll_die(D20$(), 20, 15, 4, 8)
-CALL roll_die(D12$(), 12, 15, 4, 8)
-CALL roll_die(D10$(), 10, 15, 4, 8)
-CALL roll_die(D8$(), 8, 15, 4, 8)
-CALL roll_die(D6$(), 6, 15, 4, 8)
-CALL roll_die(D4$(), 4, 15, 4, 8)
-PRINT "PRESS ANY KEY" : SLEEP
+DO
+    CLS
+    CALL roll_die(D20$(), 20, 15, 4, 8)
+    CALL roll_die(D12$(), 12, 15, 4, 8)
+    CALL roll_die(D10$(), 10, 15, 4, 8)
+    CALL roll_die(D8$(), 8, 15, 4, 8)
+    CALL roll_die(D6$(), 6, 15, 4, 8)
+    CALL roll_die(D4$(), 4, 15, 4, 8)
+    PRINT "PRESS ANY KEY" : SLEEP
+LOOP UNTIL INKEY$=CHR$(27)
 
 CALL roll_die(D20$(), 20, 0, 7, 8)
 CALL roll_die(D12$(), 12, 0, 7, 8)
