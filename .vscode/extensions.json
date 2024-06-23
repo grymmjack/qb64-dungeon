@@ -5,10 +5,10 @@
         "file-icons.file-icons",
         "github.vscode-pull-request-github",
         "ms-vscode.hexeditor",
-        "ionicabizau.ms-dos-editor-theme",
         "ziyasal.vscode-open-in-github",
         "grymmjack.qb64pe",
         "benrogerswpg.websearchengine",
-        "drmerfy.overtype"
+        "drmerfy.overtype",
+        "grymmjack.qb64pe-theme"
     ]
 }
