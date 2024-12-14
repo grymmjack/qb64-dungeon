@@ -8,7 +8,7 @@ _FONT 16
 SCREEN CANVAS&
 
 DIM ansi AS STRING
-ansi$ = LoadFileFromDisk$("../assets/ansi/board-120x50.ans")
+ansi$ = LoadFileFromDisk$("../assets/ansi/_/board-120x50.ans")
 ANSI_Print(ansi$)
 
 DO:
@@ -26,7 +26,7 @@ END FUNCTION
 
 ' Loads a whole file from disk into memory
 Function LoadFileFromDisk$ (path As String)
-    If FileExists(path) Then
+    If _FileExists(path) Then
         Dim As Long fh: fh = FreeFile
 
         Open path For Binary Access Read As fh

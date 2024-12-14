@@ -81,7 +81,7 @@
                 "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             },
             "osx": {
-                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+                "command": "QB64PE_LOG_LEVEL=TRACE ${fileDirname}/${fileBasenameNoExtension}.run",
             },
             "linux": {
                 "command": "${fileDirname}/${fileBasenameNoExtension}.run",
