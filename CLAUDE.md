@@ -70,10 +70,17 @@ Environment specifics that dictate this approach:
 
 ## Where the code lives
 
-- **`scratchpads/`** — the active workshop. Prototypes and the current playable
-  code live here (e.g. `TEST-MOVEMENT-MAP.bas` is the most complete movement/collision
-  prototype; `TEST-MENU.bas` the animated ANSI menu; `wip.bas` the intro→board flow).
-  `const.bas` / `types.bas` hold shared CONSTs and TYPEs pulled in via `'$INCLUDE`.
+- **`dungeon.bas`** (repo root) — the playable game: a vertical slice that assembles the
+  three prototypes into one program via an `INTRO → MENU → PLAY → WIN/LOSE` state machine
+  (`SELECT CASE game_state`), each state a self-contained SUB/FUNCTION (`ShowIntro`,
+  `RunMenu`, `PlayGame`, `ShowEnd`). Encounters ride the existing pixel-color collision:
+  each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
+  in a sector with a live monster triggers 2d6 combat (`DoCombat`). Build/run it from the
+  repo root (its asset paths are `assets/...`, not `../assets/...`).
+- **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
+  live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
+  menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
+  TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
 - **`include/`** — the *destination* for a refactor into shared modules (`BOARD`,
   `CURSOR`, `SECTOR`, `image`). Most are still empty stubs; `CURSOR.bas` and `SECTOR.bas`
   hold the extracted `TYPE`s. See the Refactor section of [PLANS.todo](PLANS.todo).
@@ -123,6 +130,11 @@ level am I in" is derived from position + art color.
 - `CONST TRUE = -1, FALSE = NOT TRUE` (BASIC true is -1).
 - Image handles from `_NEWIMAGE` must be `_FREEIMAGE`'d; sounds `_SNDCLOSE`'d.
 - `SUB`/`FUNCTION` names use dotted pseudo-namespaces (`CURSOR.move`, `SECTOR.get_by_xy`).
+  **Gotcha:** a *dotted* SUB name written as a statement immediately before a colon is
+  parsed as a **label**, not a call, and silently never runs — e.g. `CURSOR.erase: CURSOR.draw`
+  makes `CURSOR.erase` a no-op label (compiles clean, no error). Put each dotted call on its
+  own line, or avoid dots in SUB names (`dungeon.bas` uses `cursor_erase`/`cursor_draw`).
+  Dotted *functions* inside expressions (`x = SECTOR.get_by_xy(...)`) are unaffected.
 
 ## Line endings (enforced via .gitattributes)
 
