@@ -75,14 +75,16 @@ Environment specifics that dictate this approach:
   (`SELECT CASE game_state`), each state a self-contained SUB/FUNCTION (`ShowIntro`,
   `RunMenu`, `PlayGame`, `ShowEnd`). Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
-  in a sector with a live monster triggers 2d6 combat (`DoCombat`, with a Dungeon!-style
-  miss table in `DoConsequence`). Movement (1d6) and combat (2d6) rolls animate on-screen
-  pip dice (`RollDiceShow` / `DrawDie`). Four player classes (`CLASSES(1..4)`: Hero/Elf/Superhero/
-  Wizard) with distinct gold goals + combat bonuses are chosen via the menu's CREATE A
-  CHARACTER (`SelectClass`). Room flags on `SECTOR` add a boss room (`is_boss`) and looteable
-  treasure caches (`treasure`/`trapped`/`looted`, via `CollectTreasure`). All events route
-  through the `Sfx` sound dispatcher. Build/run it from the repo root (asset paths are
-  `assets/...`, not `../assets/...`).
+  in a sector with a live monster triggers 2d6 combat (`DoCombat`). Movement (1d6) and combat
+  (2d6) rolls animate on-screen pip dice (`RollDiceShow` / `DrawDie`). Four player classes
+  (`CLASSES(1..4)`: Hero/Elf/Superhero/Wizard) with the authentic DUNGEON! win totals
+  (10k/10k/20k/30k) and combat modifiers are chosen via CREATE A CHARACTER (`SelectClass`).
+  **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
+  authentic monster + treasure from that level's pool (`InitMonsterTables`, real card names
+  and Hero to-hit numbers), and one deep sector becomes the boss lair (`is_boss`). A missed
+  attack rolls the authentic **MONSTER ATTACK TABLE** (`MonsterAttack`: killed / serious
+  wound / light wound / stunned / missed). All events route through the `Sfx` dispatcher.
+  Build/run from the repo root (asset paths are `assets/...`, not `../assets/...`).
 - **Secret doors / fog-of-war** (`dungeon.bas`, `InitFog`). The board loads from
   `assets/ansi/_/board-132x60-no-labels.ans` (same map as the no-secrets board **plus**
   bright-blue secret-door tiles). At load, `DetectSecretDoors` scans a pristine `FULL_BOARD`

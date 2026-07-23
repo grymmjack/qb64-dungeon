@@ -30,11 +30,12 @@ TYPE SECTOR
     mgold   AS INTEGER       ' treasure guarded (sits under the monster)
     malive  AS INTEGER
     is_boss AS INTEGER       ' room flag: tougher guardian
-    treasure AS INTEGER      ' loose treasure cache in this room (gold)
-    trapped AS INTEGER       ' the cache is trapped
-    looted  AS INTEGER       ' cache already taken
-    secret_here AS INTEGER   ' a secret door (with the Level Key) hides here
-    secret_found AS INTEGER  ' the secret door has been revealed
+    treasure AS INTEGER      ' gold value of the treasure the monster guards
+    treasure_name AS STRING  ' name of that treasure (Dungeon!-style)
+    trapped AS INTEGER       ' the treasure is trapped
+    looted  AS INTEGER       ' treasure already taken
+    secret_here AS INTEGER   ' (unused) legacy flag
+    secret_found AS INTEGER  ' (unused) legacy flag
 END TYPE
 
 TYPE CURSOR
@@ -65,6 +66,10 @@ DIM SHARED AS INTEGER turn_num, steps_left, need_roll
 DIM SHARED class_name AS STRING
 DIM SHARED CLASSES(1 TO 4) AS PCLASS
 DIM SHARED player_class AS INTEGER
+' Dungeon!-style monster + treasure pools, 3 per level (levels 1-9), randomised per game.
+DIM SHARED MON_NAME(1 TO 9, 1 TO 3) AS STRING, MON_NUM(1 TO 9, 1 TO 3) AS INTEGER
+DIM SHARED TRE_NAME(1 TO 9, 1 TO 3) AS STRING, TRE_GOLD(1 TO 9, 1 TO 3) AS INTEGER
+DIM SHARED BOSS_NAME(1 TO 4) AS STRING
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
@@ -107,6 +112,7 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
+InitMonsterTables
 player_class = 1                 ' default HERO until the player creates a character
 
 ' ---------------------------------------------------------------- state machine
@@ -150,59 +156,124 @@ SYSTEM
 ' ============================================================================
 '  SETUP
 ' ============================================================================
+' Sector geometry + colours + labels only; monster/treasure contents are rolled
+' fresh each game by RandomizeRooms. Sector 1 (Main Gallery) is the safe hub.
 SUB InitSectors
-    ' LEVEL 1 - MAIN GALLERY (the safe entrance hub, no monster)
     SECTORS(1).kolor = _RGB32(&H55, &HFF, &H55): SECTORS(1).label = "LEVEL 1 - MAIN GALLERY"
     SECTORS(1).start_x = 41: SECTORS(1).start_y = 17: SECTORS(1).end_x = 79: SECTORS(1).end_y = 32
 
     SECTORS(2).kolor = _RGB32(&H00, &HAA, &H00): SECTORS(2).label = "LEVEL 2 - GUARD ROOM"
     SECTORS(2).start_x = 1: SECTORS(2).start_y = 17: SECTORS(2).end_x = 40: SECTORS(2).end_y = 33
-    SECTORS(2).monster = "GOBLIN": SECTORS(2).mnum = 7: SECTORS(2).mgold = 700
 
     SECTORS(3).kolor = _RGB32(&HAA, &H00, &H00): SECTORS(3).label = "LEVEL 3 - ARMORY"
     SECTORS(3).start_x = 1: SECTORS(3).start_y = 1: SECTORS(3).end_x = 34: SECTORS(3).end_y = 16
-    SECTORS(3).monster = "SKELETON": SECTORS(3).mnum = 8: SECTORS(3).mgold = 900
 
     SECTORS(4).kolor = _RGB32(&HFF, &H55, &H55): SECTORS(4).label = "LEVEL 4 - STORE ROOM"
     SECTORS(4).start_x = 1: SECTORS(4).start_y = 34: SECTORS(4).end_x = 40: SECTORS(4).end_y = 50
 
     SECTORS(5).kolor = _RGB32(&HFF, &H55, &HFF): SECTORS(5).label = "LEVEL 5 - TORTURE CHAMBER"
     SECTORS(5).start_x = 41: SECTORS(5).start_y = 33: SECTORS(5).end_x = 80: SECTORS(5).end_y = 50
-    SECTORS(5).monster = "WRAITH": SECTORS(5).mnum = 8: SECTORS(5).mgold = 1000
 
     SECTORS(6).kolor = _RGB32(&H00, &HAA, &HAA): SECTORS(6).label = "LEVEL 6 - KING'S QUARTERS"
     SECTORS(6).start_x = 80: SECTORS(6).start_y = 17: SECTORS(6).end_x = 117: SECTORS(6).end_y = 32
-    SECTORS(6).monster = "OGRE": SECTORS(6).mnum = 9: SECTORS(6).mgold = 1400: SECTORS(6).is_boss = TRUE
 
     SECTORS(7).kolor = _RGB32(&H55, &HFF, &HFF): SECTORS(7).label = "LEVEL 7 - WIZ'S QUARTERS"
     SECTORS(7).start_x = 79: SECTORS(7).start_y = 1: SECTORS(7).end_x = 117: SECTORS(7).end_y = 16
-    SECTORS(7).treasure = 600                      ' unguarded cache
 
     SECTORS(8).kolor = _RGB32(&H55, &H55, &H55): SECTORS(8).label = "LEVEL 8 - QUEEN'S QUARTERS"
     SECTORS(8).start_x = 81: SECTORS(8).start_y = 33: SECTORS(8).end_x = 117: SECTORS(8).end_y = 50
-    SECTORS(8).treasure = 800: SECTORS(8).trapped = TRUE   ' rich but trapped
 
     SECTORS(9).kolor = _RGB32(&HAA, &H00, &HAA): SECTORS(9).label = "LEVEL 9 - THE CRYPT"
     SECTORS(9).start_x = 35: SECTORS(9).start_y = 1: SECTORS(9).end_x = 78: SECTORS(9).end_y = 16
 END SUB
 
 
+' Authentic Dungeon! monster roster + treasures, scaled across the 9 levels.
+' Values approximate the board game (exact card numbers live on the cards).
+SUB InitMonsterTables
+    ' --- monsters: name + the 2d6 number a HERO needs (from the real cards);
+    '     the class combat bonus then adjusts it. Assigned to levels by difficulty. ---
+    SetMob 1, "GIANT RATS", 4, "GIANT LIZARD", 4, "GOBLINS", 4
+    SetMob 2, "SKELETON", 4, "HOBGOBLINS", 5, "GIANT SPIDER", 6
+    SetMob 3, "GHOULS", 6, "GARGOYLE", 6, "EVIL HERO", 7
+    SetMob 4, "EVIL HERO", 7, "GIANT SNAKE", 8, "GHOULS", 6
+    SetMob 5, "WEREWOLF", 9, "OGRE", 9, "GIANT SNAKE", 8
+    SetMob 6, "MUMMY", 10, "TROLL", 10, "VAMPIRE", 10
+    SetMob 7, "GIANT", 11, "WITCH", 11, "GREEN SLIME", 11
+    SetMob 8, "PURPLE WORM", 11, "BLACK PUDDING", 12, "MUMMY", 10
+    SetMob 9, "EVIL WIZARD", 12, "RED DRAGON", 12, "BLUE DRAGON", 12
+
+    ' --- treasures: real card names + gold-piece values, richer the deeper you go ---
+    SetTre 1, "SILVER CUP", 1000, "SACK OF GOLD", 1000, "SILVER RING", 2000
+    SetTre 2, "SILVER RING", 2000, "GOLD CUP", 2500, "GOLD RING", 3000
+    SetTre 3, "GOLD RING", 3000, "GOLD CUP", 2500, "SILVER COFFER", 4000
+    SetTre 4, "SILVER COFFER", 4000, "JADE IDOL", 5000, "HUGE EMERALD", 5000
+    SetTre 5, "HUGE EMERALD", 5000, "JADE IDOL", 5000, "HUGE SAPPHIRE", 6000
+    SetTre 6, "HUGE SAPPHIRE", 6000, "SILVER NECKLACE", 7000, "HUGE RUBY", 8000
+    SetTre 7, "SILVER NECKLACE", 7000, "HUGE RUBY", 8000, "GOLD NECKLACE", 9000
+    SetTre 8, "GOLD NECKLACE", 9000, "HUGE RUBY", 8000, "HUGE DIAMOND", 10000
+    SetTre 9, "HUGE DIAMOND", 10000, "GOLD NECKLACE", 9000, "HUGE SAPPHIRE", 6000
+
+    BOSS_NAME(1) = "RED DRAGON": BOSS_NAME(2) = "BLUE DRAGON"
+    BOSS_NAME(3) = "EVIL WIZARD": BOSS_NAME(4) = "BLACK PUDDING"
+END SUB
+
+
+SUB SetMob (lvl AS INTEGER, n1 AS STRING, v1 AS INTEGER, n2 AS STRING, v2 AS INTEGER, n3 AS STRING, v3 AS INTEGER)
+    MON_NAME(lvl, 1) = n1: MON_NUM(lvl, 1) = v1
+    MON_NAME(lvl, 2) = n2: MON_NUM(lvl, 2) = v2
+    MON_NAME(lvl, 3) = n3: MON_NUM(lvl, 3) = v3
+END SUB
+
+
+SUB SetTre (lvl AS INTEGER, n1 AS STRING, g1 AS INTEGER, n2 AS STRING, g2 AS INTEGER, n3 AS STRING, g3 AS INTEGER)
+    TRE_NAME(lvl, 1) = n1: TRE_GOLD(lvl, 1) = g1
+    TRE_NAME(lvl, 2) = n2: TRE_GOLD(lvl, 2) = g2
+    TRE_NAME(lvl, 3) = n3: TRE_GOLD(lvl, 3) = g3
+END SUB
+
+
+' Roll fresh room contents: each level's room (sector) gets a random monster +
+' treasure from that level's pool; one deep room becomes the boss lair.
+SUB RandomizeRooms
+    DIM i AS INTEGER, m AS INTEGER, t AS INTEGER, bossroom AS INTEGER
+    FOR i = 1 TO 9
+        SECTORS(i).monster = "": SECTORS(i).malive = FALSE: SECTORS(i).is_boss = FALSE
+        SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = ""
+    NEXT i
+    ' sectors 2..9 correspond to levels 2..9
+    FOR i = 2 TO 9
+        m = RollDie(3): t = RollDie(3)
+        SECTORS(i).monster = MON_NAME(i, m): SECTORS(i).mnum = MON_NUM(i, m)
+        SECTORS(i).malive = TRUE
+        SECTORS(i).treasure_name = TRE_NAME(i, t): SECTORS(i).treasure = TRE_GOLD(i, t)
+    NEXT i
+    ' one deep room (levels 6-9) holds the boss + a great hoard
+    bossroom = RollDie(4) + 5
+    SECTORS(bossroom).is_boss = TRUE
+    SECTORS(bossroom).monster = BOSS_NAME(RollDie(4)): SECTORS(bossroom).mnum = 11
+    SECTORS(bossroom).treasure_name = "DRAGON'S HOARD"
+    SECTORS(bossroom).treasure = SECTORS(bossroom).treasure + 6000
+END SUB
+
+
+' Authentic DUNGEON! win totals: Hero/Elf 10k, Superhero 20k, Wizard 30k.
 SUB InitClasses
-    CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 2000
+    CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 10000
     CLASSES(1).combat_bonus = 0: CLASSES(1).secret_bonus = 0
-    CLASSES(1).blurb = "Balanced. A fair fighter with no glaring weakness."
+    CLASSES(1).blurb = "Solid fighter. Finds secret doors on a 1-2. Needs 10,000 gold."
 
-    CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 2000
-    CLASSES(2).combat_bonus = 0: CLASSES(2).secret_bonus = 2
-    CLASSES(2).blurb = "Nimble. Twice as likely to slip through secret doors."
+    CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 10000
+    CLASSES(2).combat_bonus = -1: CLASSES(2).secret_bonus = 2
+    CLASSES(2).blurb = "Weakest fighter, but finds secret doors on a 1-4. Needs 10,000."
 
-    CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 2600
+    CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 20000
     CLASSES(3).combat_bonus = 1: CLASSES(3).secret_bonus = 0
-    CLASSES(3).blurb = "Mightiest in melee (+1 to attacks) -- but needs more gold."
+    CLASSES(3).blurb = "Mightiest in melee (+1 to attacks). Needs 20,000 gold."
 
-    CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 3000
+    CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 30000
     CLASSES(4).combat_bonus = 2: CLASSES(4).secret_bonus = 1
-    CLASSES(4).blurb = "Bends fate with magic (+2 to attacks). Greediest goal."
+    CLASSES(4).blurb = "Slays with spells (+2 to attacks). Needs 30,000 gold."
 END SUB
 
 
@@ -347,14 +418,10 @@ FUNCTION PlayGame%
     class_name = CLASSES(player_class).name
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
     has_key = FALSE
-    SECTORS(2).malive = TRUE: SECTORS(3).malive = TRUE
-    SECTORS(5).malive = TRUE: SECTORS(6).malive = TRUE
-    FOR i = 1 TO 9
-        SECTORS(i).looted = FALSE: SECTORS(i).secret_found = FALSE
-    NEXT i
+    RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
 
     StartBoard
-    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll   WASD move   [F] search rooms for secret doors   fight for gold   ESC flee"
+    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll   WASD move   [F] search for secret doors   fight monsters for treasure   ESC flee"
     WaitKey
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
@@ -381,14 +448,9 @@ FUNCTION PlayGame%
                     IF InRoomNow THEN
                         sec = SECTOR.get_by_xy(c.x, c.y)
                         IF sec >= 1 THEN
-                            ' living monster guards the room?
+                            ' a monster guards this room's treasure?
                             IF SECTORS(sec).malive AND LEN(SECTORS(sec).monster) > 0 THEN
                                 res = DoCombat(sec)
-                                IF res = 1 THEN PlayGame = OUT_LOSE: EXIT FUNCTION
-                            END IF
-                            ' loose treasure in a cleared / unguarded room?
-                            IF SECTORS(sec).treasure > 0 AND NOT SECTORS(sec).looted AND NOT SECTORS(sec).malive THEN
-                                CollectTreasure sec
                             END IF
                         END IF
                     END IF
@@ -411,16 +473,17 @@ END FUNCTION
 
 FUNCTION DoCombat% (sec AS INTEGER)
     DIM k AS STRING
-    DIM AS INTEGER d1, d2, sm, need, bonus
-    DIM bhint AS STRING, bstr AS STRING
+    DIM AS INTEGER d1, d2, sm, need, bonus, target
+    DIM lead AS STRING
     need = SECTORS(sec).mnum
     bonus = CLASSES(player_class).combat_bonus
+    target = need - bonus                     ' the raw 2d6 the player must roll
+    IF target < 2 THEN target = 2
     DoCombat = 0
 
-    IF bonus > 0 THEN bhint = "  (" + class_name + " +" + _TRIM$(STR$(bonus)) + ")" ELSE bhint = ""
-    DIM lead AS STRING
     IF SECTORS(sec).is_boss THEN lead = "The BOSS " + SECTORS(sec).monster ELSE lead = "A " + SECTORS(sec).monster
-    Banner lead + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(need)) + "+ on 2d6" + bhint + "     [SPACE] ATTACK     [ESC] FLEE"
+    ' the treasure is face-down under the monster -- unknown until it is slain
+    Banner lead + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(target)) + "+ on 2d6 to slay it   [SPACE] ATTACK   [ESC] FLEE"
 
     DO
         _LIMIT 60
@@ -430,23 +493,16 @@ FUNCTION DoCombat% (sec AS INTEGER)
             EXIT DO
         ELSEIF k = " " THEN
             sm = RollDiceShow(2)
-            d1 = die_a: d2 = die_b: sm = sm + bonus
-            IF bonus > 0 THEN bstr = " +" + _TRIM$(STR$(bonus)) ELSE bstr = ""
-            IF sm >= need THEN
-                SECTORS(sec).malive = FALSE
-                gold = gold + SECTORS(sec).mgold
-                Sfx "hit"
-                Banner "You slay the " + SECTORS(sec).monster + "!   (2d6 = " + _TRIM$(STR$(d1)) + " + " + _TRIM$(STR$(d2)) + bstr + " = " + _TRIM$(STR$(sm)) + ")", "+ " + _TRIM$(STR$(SECTORS(sec).mgold)) + " GOLD      [ press any key ]"
+            d1 = die_a: d2 = die_b
+            IF sm >= target THEN
+                SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
+                gold = gold + SECTORS(sec).treasure
+                Sfx "treasure"
+                Banner "You slay the " + SECTORS(sec).monster + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")", "You claim the " + SECTORS(sec).treasure_name + " -- " + _TRIM$(STR$(SECTORS(sec).treasure)) + " GOLD!   [ press any key ]"
                 WaitKey
-                EXIT DO
-            ELSEIF d1 = 1 AND d2 = 1 THEN
-                Sfx "lose"
-                Banner "SNAKE EYES!  The " + SECTORS(sec).monster + " strikes you down.", "[ press any key ]"
-                WaitKey
-                DoCombat = 1
                 EXIT DO
             ELSE
-                DoConsequence sec, sm
+                MonsterAttack sec               ' failed -- roll on the Monster Attack Table
                 EXIT DO
             END IF
         END IF
@@ -459,58 +515,46 @@ FUNCTION DoCombat% (sec AS INTEGER)
 END FUNCTION
 
 
-' Dungeon!-style outcome when an attack misses (but isn't a fatal snake-eyes).
-' The monster survives; the player suffers a randomised setback.
-SUB DoConsequence (sec AS INTEGER, sm AS INTEGER)
-    DIM roll AS INTEGER, mon AS STRING, lost AS LONG
+' Authentic DUNGEON! MONSTER ATTACK TABLE: when your attack fails, the monster
+' strikes back -- roll 2d6 and apply the result.
+SUB MonsterAttack (sec AS INTEGER)
+    DIM r AS INTEGER, mon AS STRING, lost AS LONG
     mon = SECTORS(sec).monster
-    roll = RollDie(6)
-    SELECT CASE roll
-        CASE 1, 2
-            Banner "The " + mon + " drives you back to the entrance!   (2d6 = " + _TRIM$(STR$(sm)) + ")", "[ press any key ]"
+    r = RollDiceShow(2)
+    SELECT CASE r
+        CASE 2                                  ' ADVENTURER KILLED!
+            lost = gold: gold = 0
+            Sfx "lose"
+            Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop all your treasure and crawl back to START.   [ press any key ]"
             WaitKey
-            c.x = START_CX * CW: c.y = START_CY * CH
-            c.prev_x = c.x: c.prev_y = c.y
-        CASE 3, 4
-            Banner "You trade blows with the " + mon + " -- a standoff.", "You hold your ground but the turn is spent.   [ press any key ]"
+            c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+        CASE 3                                   ' SERIOUS WOUND
+            lost = gold \ 2: gold = gold - lost
+            Sfx "trap"
+            Banner mon + " ATTACK (3): SERIOUS WOUND!", "You drop half your treasure (" + _TRIM$(STR$(lost)) + ") and retreat to START.   [ press any key ]"
+            WaitKey
+            c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+        CASE 4, 5, 6                             ' LIGHT WOUND
+            lost = 1000: IF lost > gold THEN lost = gold
+            gold = gold - lost
+            Sfx "miss"
+            Banner mon + " ATTACK (" + _TRIM$(STR$(r)) + "): LIGHT WOUND!", "You drop " + _TRIM$(STR$(lost)) + " gold, retreat, and lose the turn.   [ press any key ]"
             WaitKey
             c.x = c.prev_x: c.y = c.prev_y
             steps_left = 0: need_roll = TRUE
-        CASE 5
-            lost = 200: IF lost > gold THEN lost = gold
+        CASE 7, 8                                ' STUNNED
+            lost = 500: IF lost > gold THEN lost = gold
             gold = gold - lost
-            Banner "Wounded!  You flee and drop " + _TRIM$(STR$(lost)) + " gold.", "[ press any key ]"
+            Sfx "miss"
+            Banner mon + " ATTACK (" + _TRIM$(STR$(r)) + "): STUNNED!", "You drop " + _TRIM$(STR$(lost)) + " gold.   [ press any key ]"
             WaitKey
-            c.x = START_CX * CW: c.y = START_CY * CH
-            c.prev_x = c.x: c.prev_y = c.y
-        CASE ELSE
-            Banner "You parry the " + mon + " and scramble back a step.", "[ press any key ]"
+            c.x = c.prev_x: c.y = c.prev_y
+        CASE ELSE                                ' 9+ MISSED
+            Sfx "bump"
+            Banner "The " + mon + " MISSES!  (" + _TRIM$(STR$(r)) + ")", "No harm done -- stand and fight again, or flee.   [ press any key ]"
             WaitKey
             c.x = c.prev_x: c.y = c.prev_y
     END SELECT
-    Sfx "miss"
-END SUB
-
-
-' Grab (or spring the trap on) a room's loose treasure cache.
-SUB CollectTreasure (sec AS INTEGER)
-    DIM amt AS INTEGER, lost AS LONG
-    amt = SECTORS(sec).treasure
-    SECTORS(sec).looted = TRUE
-    IF SECTORS(sec).trapped THEN
-        lost = amt \ 2
-        gold = gold + amt - lost
-        Sfx "trap"
-        Banner "A TRAP springs in the " + SECTORS(sec).label + "!", "You grab " + _TRIM$(STR$(amt)) + " gold but lose " + _TRIM$(STR$(lost)) + " to the trap.   [ press any key ]"
-    ELSE
-        gold = gold + amt
-        Sfx "treasure"
-        Banner "Treasure!  You loot the " + SECTORS(sec).label + ".", "+ " + _TRIM$(STR$(amt)) + " GOLD      [ press any key ]"
-    END IF
-    WaitKey
-    cursor_erase
-    cursor_draw
-    _DISPLAY
 END SUB
 
 
