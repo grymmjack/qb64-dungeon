@@ -22,3 +22,9 @@
 *.bi-bak
 *.bm-bak
 *.cmp-out
+
+# Screenshot captures (regenerable via scratchpads/shots/capture.sh, which stays tracked)
+scratchpads/shots/*.png
+
+# Claude Code local files (activity log etc.)
+.claude/
