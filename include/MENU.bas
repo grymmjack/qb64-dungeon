@@ -355,6 +355,8 @@ SUB Sfx (kind AS STRING)
         CASE "trap": SOUND 240, 0.1: SOUND 150, 0.14: SOUND 90, 0.22
         CASE "hit": SOUND 620, 0.05: SOUND 320, 0.12
         CASE "miss": SOUND 200, 0.14
+        CASE "crit": SOUND 700, 0.05: SOUND 950, 0.05: SOUND 1200, 0.05: SOUND 1600, 0.14
+        CASE "fumble": SOUND 320, 0.08: SOUND 210, 0.1: SOUND 120, 0.18
         CASE "search": SOUND 300, 0.05: SOUND 260, 0.05
         CASE "win": SOUND 523, 0.12: SOUND 659, 0.12: SOUND 784, 0.12: SOUND 1046, 0.28
         CASE "lose": SOUND 300, 0.16: SOUND 220, 0.16: SOUND 130, 0.34
@@ -440,13 +442,18 @@ END FUNCTION
 ' own dice and types the result (and, per the Dice-Math setting, either adds the
 ' modifier themselves or lets the game add it). Otherwise the game rolls on screen.
 FUNCTION DoRoll% (n AS INTEGER, bonus AS INTEGER, what AS STRING)
-    DIM raw AS INTEGER
+    DIM raw AS INTEGER, t AS INTEGER
     IF opt_realdice THEN
         raw = PromptRoll(n, bonus, what)
         die_a = 0: die_b = 0
-        IF opt_dicemath THEN DoRoll = raw ELSE DoRoll = raw + bonus
+        IF opt_dicemath THEN
+            DoRoll = raw: last_raw = raw - bonus       ' player entered the total
+        ELSE
+            DoRoll = raw + bonus: last_raw = raw       ' player entered the dice
+        END IF
     ELSE
-        DoRoll = RollDiceShow(n) + bonus
+        t = RollDiceShow(n)
+        DoRoll = t + bonus: last_raw = t               ' natural dice sum
     END IF
 END FUNCTION
 

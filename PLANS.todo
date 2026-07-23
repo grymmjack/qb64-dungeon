@@ -145,8 +145,8 @@ Sounds:
     ✔ Add preliminary sound for movement @done(23-05-28 00:17)
     ✔ Add preliminary sound for collision @done(23-05-28 00:17)
     ✔ Add sound effect of dice rolling @done(26-07-23)
-    ☐ Add sound effect of dice rolling critical success
-    ☐ Add sound effect of dice rolling critical failure
+    ✔ Add sound effect of dice rolling critical success @done(26-07-23)
+    ✔ Add sound effect of dice rolling critical failure @done(26-07-23)
     ✔ Add sound effect when moving @done(26-07-23)
     ☐ Add sound effect when time passing without moving
     ✔ Add sound effect when bumping into wall @done(26-07-23)

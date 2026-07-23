@@ -183,7 +183,22 @@ FUNCTION DoCombat% (sec AS INTEGER)
             EXIT DO
         ELSEIF k = " " AND NOT unbeatable THEN
             sm = DoRoll(2, item_sword, "attacking the " + SECTORS(sec).monster)
-            IF sm >= need THEN
+            IF last_raw = 12 THEN
+                ' natural 12 -- CRITICAL HIT, always slays
+                SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
+                Sfx "crit"
+                Banner "** CRITICAL HIT! **  (natural 12)", "You cleave the " + SECTORS(sec).monster + " in a single blow!   [ press any key ]"
+                WaitKey
+                ClaimTreasure sec, sm
+                EXIT DO
+            ELSEIF last_raw = 2 THEN
+                ' natural 2 -- CRITICAL FUMBLE, the monster strikes hard
+                Sfx "fumble"
+                Banner "** CRITICAL FUMBLE! **  (snake eyes)", "Your blade slips -- the " + SECTORS(sec).monster + " gets a free strike!   [ press any key ]"
+                WaitKey
+                MonsterAttack sec
+                EXIT DO
+            ELSEIF sm >= need THEN
                 SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
                 Sfx "treasure"
                 ClaimTreasure sec, sm
