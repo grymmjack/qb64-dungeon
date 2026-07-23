@@ -75,8 +75,11 @@ Environment specifics that dictate this approach:
   (`SELECT CASE game_state`), each state a self-contained SUB/FUNCTION (`ShowIntro`,
   `RunMenu`, `PlayGame`, `ShowEnd`). Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
-  in a sector with a live monster triggers 2d6 combat (`DoCombat`). Build/run it from the
-  repo root (its asset paths are `assets/...`, not `../assets/...`).
+  in a sector with a live monster triggers 2d6 combat (`DoCombat`, with a Dungeon!-style
+  miss table in `DoConsequence`). Four player classes (`CLASSES(1..4)`: Hero/Elf/Superhero/
+  Wizard) with distinct gold goals + combat bonuses are chosen via the menu's CREATE A
+  CHARACTER (`SelectClass`). Build/run it from the repo root (asset paths are `assets/...`,
+  not `../assets/...`).
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and

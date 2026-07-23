@@ -39,6 +39,14 @@ TYPE CURSOR
     cursor_color AS _UNSIGNED LONG
 END TYPE
 
+TYPE PCLASS
+    name         AS STRING
+    gold_goal    AS LONG
+    combat_bonus AS INTEGER     ' added to the 2d6 attack roll
+    secret_bonus AS INTEGER     ' edge at finding secret doors (future use)
+    blurb        AS STRING
+END TYPE
+
 DIM SHARED AS INTEGER SW, SH, CW, CH
 DIM SHARED AS LONG CANVAS, CANVAS_COPY
 DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
@@ -49,6 +57,8 @@ DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll
 DIM SHARED class_name AS STRING
+DIM SHARED CLASSES(1 TO 4) AS PCLASS
+DIM SHARED player_class AS INTEGER
 
 SW = 132: SH = 51: CW = 8: CH = 16
 
@@ -79,6 +89,8 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 BOARD_ANSI = LoadFile$("assets/ansi/board-132x50-no-secrets.ans")
 InitSectors
+InitClasses
+player_class = 1                 ' default HERO until the player creates a character
 
 ' ---------------------------------------------------------------- state machine
 DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
@@ -155,6 +167,63 @@ SUB InitSectors
 END SUB
 
 
+SUB InitClasses
+    CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 2000
+    CLASSES(1).combat_bonus = 0: CLASSES(1).secret_bonus = 0
+    CLASSES(1).blurb = "Balanced. A fair fighter with no glaring weakness."
+
+    CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 2000
+    CLASSES(2).combat_bonus = 0: CLASSES(2).secret_bonus = 2
+    CLASSES(2).blurb = "Nimble. Twice as likely to slip through secret doors."
+
+    CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 2600
+    CLASSES(3).combat_bonus = 1: CLASSES(3).secret_bonus = 0
+    CLASSES(3).blurb = "Mightiest in melee (+1 to attacks) -- but needs more gold."
+
+    CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 3000
+    CLASSES(4).combat_bonus = 2: CLASSES(4).secret_bonus = 1
+    CLASSES(4).blurb = "Bends fate with magic (+2 to attacks). Greediest goal."
+END SUB
+
+
+' Class-select screen reached from the menu's CREATE A CHARACTER option.
+' Returns the chosen class index (1-4), or 0 if the player backs out.
+FUNCTION SelectClass%
+    DIM sel AS INTEGER, k AS STRING, i AS INTEGER, yrow AS INTEGER
+    sel = player_class: IF sel < 1 OR sel > 4 THEN sel = 1
+    DO
+        _LIMIT 60
+        k = UCASE$(INKEY$)
+        IF k = "W" OR k = "A" THEN
+            sel = sel - 1: IF sel < 1 THEN sel = 4
+            SOUND 200, 0.1
+        END IF
+        IF k = "S" OR k = "D" THEN
+            sel = sel + 1: IF sel > 4 THEN sel = 1
+            SOUND 200, 0.1
+        END IF
+        IF k = CHR$(13) THEN SelectClass = sel: EXIT FUNCTION
+        IF k = CHR$(27) THEN SelectClass = 0: EXIT FUNCTION
+
+        _DEST CANVAS: CLS , BLACK
+        COLOR YELLOWU, BLACK: PrintCentered 5, "C H O O S E   Y O U R   C H A M P I O N"
+        FOR i = 1 TO 4
+            yrow = 12 + (i - 1) * 7
+            IF i = sel THEN
+                LINE (28 * CW, (yrow - 1) * CH)-(104 * CW, (yrow + 3) * CH), BOXBG, BF
+                LINE (28 * CW, (yrow - 1) * CH)-(104 * CW, (yrow + 3) * CH), REDU, B
+                COLOR WHITE, BOXBG: PrintCentered yrow, CLASSES(i).name + "   (goal " + _TRIM$(STR$(CLASSES(i).gold_goal)) + " gold)"
+                COLOR YELLOWU, BOXBG: PrintCentered yrow + 2, CLASSES(i).blurb
+            ELSE
+                COLOR GREY, BLACK: PrintCentered yrow, CLASSES(i).name + "   (goal " + _TRIM$(STR$(CLASSES(i).gold_goal)) + " gold)"
+            END IF
+        NEXT i
+        COLOR CYANU, BLACK: PrintCentered 45, "[W/S] choose      [ENTER] confirm      [ESC] back"
+        _DISPLAY
+    LOOP
+END FUNCTION
+
+
 ' ============================================================================
 '  INTRO
 ' ============================================================================
@@ -178,7 +247,7 @@ FUNCTION RunMenu%
     DIM logo AS STRING
     DIM lw(1 TO 4) AS STRING, rw(1 TO 4) AS STRING, bl(1 TO 6) AS STRING
     DIM AS LONG iLogo, iLeft, iRight, iBlock, mus
-    DIM AS INTEGER sel, i, result
+    DIM AS INTEGER sel, i, result, chosen
     DIM AS LONG t
     DIM k AS STRING
 
@@ -207,9 +276,16 @@ FUNCTION RunMenu%
         IF k = "D" OR k = "S" THEN sel = sel + 1: IF sel > 6 THEN sel = 1
         IF k = "A" OR k = "W" OR k = "S" OR k = "D" THEN SOUND 200, 0.1
         IF k = CHR$(13) THEN
-            IF sel = 1 THEN result = MENU_ENTER: EXIT DO
-            IF sel = 6 THEN result = MENU_FLEE: EXIT DO
-            SOUND 110, 0.2               ' options not in this build
+            IF sel = 1 THEN
+                result = MENU_ENTER: EXIT DO
+            ELSEIF sel = 2 THEN
+                chosen = SelectClass
+                IF chosen > 0 THEN player_class = chosen
+            ELSEIF sel = 6 THEN
+                result = MENU_FLEE: EXIT DO
+            ELSE
+                SOUND 110, 0.2           ' LOAD / LORDS / SETTINGS not in this build
+            END IF
         END IF
         IF k = CHR$(27) THEN result = MENU_FLEE: EXIT DO
 
@@ -230,6 +306,7 @@ FUNCTION RunMenu%
         _PUTIMAGE (14 * CW, 0), iLogo
         _DEST iBlock: CLS , BLACK: ANSI_Print (bl(sel))
         _DEST CANVAS: _PUTIMAGE (19 * CW, 15 * CH), iBlock
+        COLOR CYANU, BLACK: PrintCentered 47, "CHAMPION: " + CLASSES(player_class).name
         _DISPLAY
     LOOP
 
@@ -246,8 +323,8 @@ FUNCTION PlayGame%
     DIM k AS STRING
     DIM AS INTEGER sec, res
 
-    class_name = "HERO"
-    gold = 0: target_gold = 2000: turn_num = 0: steps_left = 0: need_roll = TRUE
+    class_name = CLASSES(player_class).name
+    gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
     SECTORS(2).malive = TRUE: SECTORS(3).malive = TRUE
     SECTORS(5).malive = TRUE: SECTORS(6).malive = TRUE
 
@@ -302,11 +379,14 @@ END FUNCTION
 
 FUNCTION DoCombat% (sec AS INTEGER)
     DIM k AS STRING
-    DIM AS INTEGER d1, d2, sm, need
+    DIM AS INTEGER d1, d2, sm, need, bonus
+    DIM bhint AS STRING, bstr AS STRING
     need = SECTORS(sec).mnum
+    bonus = CLASSES(player_class).combat_bonus
     DoCombat = 0
 
-    Banner "A " + SECTORS(sec).monster + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(need)) + "+ on 2d6 to win     [SPACE] ATTACK     [ESC] FLEE"
+    IF bonus > 0 THEN bhint = "  (" + class_name + " +" + _TRIM$(STR$(bonus)) + ")" ELSE bhint = ""
+    Banner "A " + SECTORS(sec).monster + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(need)) + "+ on 2d6" + bhint + "     [SPACE] ATTACK     [ESC] FLEE"
 
     DO
         _LIMIT 60
@@ -315,31 +395,63 @@ FUNCTION DoCombat% (sec AS INTEGER)
             c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
             EXIT DO
         ELSEIF k = " " THEN
-            d1 = RollDie(6): d2 = RollDie(6): sm = d1 + d2
+            d1 = RollDie(6): d2 = RollDie(6): sm = d1 + d2 + bonus
+            IF bonus > 0 THEN bstr = " +" + _TRIM$(STR$(bonus)) ELSE bstr = ""
             IF sm >= need THEN
                 SECTORS(sec).malive = FALSE
                 gold = gold + SECTORS(sec).mgold
-                Banner "You slay the " + SECTORS(sec).monster + "!   (2d6 = " + _TRIM$(STR$(d1)) + " + " + _TRIM$(STR$(d2)) + " = " + _TRIM$(STR$(sm)) + ")", "+ " + _TRIM$(STR$(SECTORS(sec).mgold)) + " GOLD      [ press any key ]"
+                Banner "You slay the " + SECTORS(sec).monster + "!   (2d6 = " + _TRIM$(STR$(d1)) + " + " + _TRIM$(STR$(d2)) + bstr + " = " + _TRIM$(STR$(sm)) + ")", "+ " + _TRIM$(STR$(SECTORS(sec).mgold)) + " GOLD      [ press any key ]"
                 WaitKey
                 EXIT DO
-            ELSEIF sm = 2 THEN
+            ELSEIF d1 = 1 AND d2 = 1 THEN
                 Banner "SNAKE EYES!  The " + SECTORS(sec).monster + " strikes you down.", "[ press any key ]"
                 WaitKey
                 DoCombat = 1
                 EXIT DO
             ELSE
-                Banner "The " + SECTORS(sec).monster + " wounds you!   (2d6 = " + _TRIM$(STR$(sm)) + ")", "You retreat to the entrance.      [ press any key ]"
-                WaitKey
-                c.x = START_CX * CW: c.y = START_CY * CH
-                c.prev_x = c.x: c.prev_y = c.y
+                DoConsequence sec, sm
                 EXIT DO
             END IF
         END IF
         _DISPLAY
     LOOP
 
-    cursor_erase: cursor_draw: _DISPLAY
+    cursor_erase
+    cursor_draw
+    _DISPLAY
 END FUNCTION
+
+
+' Dungeon!-style outcome when an attack misses (but isn't a fatal snake-eyes).
+' The monster survives; the player suffers a randomised setback.
+SUB DoConsequence (sec AS INTEGER, sm AS INTEGER)
+    DIM roll AS INTEGER, mon AS STRING, lost AS LONG
+    mon = SECTORS(sec).monster
+    roll = RollDie(6)
+    SELECT CASE roll
+        CASE 1, 2
+            Banner "The " + mon + " drives you back to the entrance!   (2d6 = " + _TRIM$(STR$(sm)) + ")", "[ press any key ]"
+            WaitKey
+            c.x = START_CX * CW: c.y = START_CY * CH
+            c.prev_x = c.x: c.prev_y = c.y
+        CASE 3, 4
+            Banner "You trade blows with the " + mon + " -- a standoff.", "You hold your ground but the turn is spent.   [ press any key ]"
+            WaitKey
+            c.x = c.prev_x: c.y = c.prev_y
+            steps_left = 0: need_roll = TRUE
+        CASE 5
+            lost = 200: IF lost > gold THEN lost = gold
+            gold = gold - lost
+            Banner "Wounded!  You flee and drop " + _TRIM$(STR$(lost)) + " gold.", "[ press any key ]"
+            WaitKey
+            c.x = START_CX * CW: c.y = START_CY * CH
+            c.prev_x = c.x: c.prev_y = c.y
+        CASE ELSE
+            Banner "You parry the " + mon + " and scramble back a step.", "[ press any key ]"
+            WaitKey
+            c.x = c.prev_x: c.y = c.prev_y
+    END SELECT
+END SUB
 
 
 ' ============================================================================
