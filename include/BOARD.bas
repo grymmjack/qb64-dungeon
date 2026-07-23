@@ -26,6 +26,7 @@ SUB DoSearch
         Sfx "secret"
         IF NOT has_key THEN
             has_key = TRUE
+            Sfx "key"                             ' the Level Key fanfare
             Banner "A SECRET DOOR grinds open -- the LEVEL KEY lies beyond!", "A hidden passage is revealed.   [ press any key ]"
         ELSE
             Banner "You uncover another SECRET DOOR!", "A hidden passage is revealed.   [ press any key ]"
@@ -228,6 +229,18 @@ FUNCTION OnDoorNow%
     IF NOT r THEN r = image_is_diachromatic(img, YELLOW, BROWN)
     _FREEIMAGE img
     OnDoorNow = r
+END FUNCTION
+
+
+' TRUE if the cursor cell is a (revealed) secret door -- a bright-blue tile.
+FUNCTION OnSecretDoorNow%
+    DIM img AS LONG, r AS INTEGER
+    img = _NEWIMAGE(CW, CH, 32)
+    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    r = image_is_monochromatic(img, BRIGHT_BLUE)
+    IF NOT r THEN r = image_is_diachromatic(img, YELLOW, BRIGHT_BLUE)
+    _FREEIMAGE img
+    OnSecretDoorNow = r
 END FUNCTION
 
 

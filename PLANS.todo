@@ -100,14 +100,14 @@ Fixes:
     ✔ Fix map so it can be traversed by cursors @done(23-05-25 10:59)
 
 Control:
-    ☐ Improve control parsing
+    ✔ Improve control parsing @done(26-07-23)
         ✔ Add support for arrow keys @done(26-07-23)
         ✔ Add support for numeric keypad @done(26-07-23)
-        ☐ Add support for other keys
-        ☐ Build key bindings mapping object
-    ☐ Implement diagonal movement with num pad
-            7 8 9
-             \|/
+        ✔ Add support for other keys (? help, ~ debug, V scry, C sheet) @done(26-07-23)
+        ✔ Build key bindings mapping object ([?] Controls screen from a table) @done(26-07-23)
+    ✔ Implement diagonal movement with num pad @done(26-07-23)
+            7 8 9      numpad 7/9/1/3 (NumLock on) or Home/PgUp/End/PgDn
+             \|/       -> NW/NE/SW/SE tokens handled by TryMove
             4-5-6
              /|\
             1 2 3
@@ -128,7 +128,7 @@ Dice:
     ✔ Add dice rolling @done(26-07-23)
         ✔ 1d6 / 2d6 (movement, Oldschool combat, search) @done(26-07-23)
         ✔ Arbitrary NdX via GameRoll (d20 to-hit, dN damage in D&D mode) @done(26-07-23)
-        ☐ 3d6+3DL (drop-lowest) notation
+        ✔ 4d6-drop-lowest ability rolls (SETTINGS "Stat Roll" option) @done(26-07-23)
 
 Combat Modes:
     ✔ Oldschool Mode setting (default ON) @done(26-07-23)

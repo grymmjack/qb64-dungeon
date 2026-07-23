@@ -4,21 +4,42 @@
 
 FUNCTION TryMove% (k AS STRING)
     c.prev_x = c.x: c.prev_y = c.y
-    IF k = "A" THEN c.x = c.x - CW
-    IF k = "D" THEN c.x = c.x + CW
-    IF k = "W" THEN c.y = c.y - CH
-    IF k = "S" THEN c.y = c.y + CH
+    SELECT CASE k
+        CASE "A": c.x = c.x - CW
+        CASE "D": c.x = c.x + CW
+        CASE "W": c.y = c.y - CH
+        CASE "S": c.y = c.y + CH
+        CASE "NW": c.x = c.x - CW: c.y = c.y - CH
+        CASE "NE": c.x = c.x + CW: c.y = c.y - CH
+        CASE "SW": c.x = c.x - CW: c.y = c.y + CH
+        CASE "SE": c.x = c.x + CW: c.y = c.y + CH
+    END SELECT
     cursor_keep_in_bounds
     IF CanMove THEN
         cursor_erase
         cursor_draw
-        IF OnDoorNow THEN Sfx "door" ELSE Sfx "move"
+        IF OnSecretDoorNow THEN
+            Sfx "secretpass"
+        ELSEIF OnDoorNow THEN
+            Sfx "door"
+        ELSE
+            Sfx "move"
+        END IF
         TryMove = TRUE
     ELSE
         c.x = c.prev_x: c.y = c.prev_y
         Sfx "bump"
         TryMove = FALSE
     END IF
+END FUNCTION
+
+
+' TRUE if k is any of the eight movement directions (orthogonal + diagonal).
+FUNCTION IsMoveKey% (k AS STRING)
+    SELECT CASE k
+        CASE "W", "A", "S", "D", "NW", "NE", "SW", "SE": IsMoveKey = TRUE
+        CASE ELSE: IsMoveKey = FALSE
+    END SELECT
 END FUNCTION
 
 
@@ -57,6 +78,10 @@ FUNCTION NormKey$ (k AS STRING)
             CASE 80: r = "S"        ' down arrow
             CASE 75: r = "A"        ' left arrow
             CASE 77: r = "D"        ' right arrow
+            CASE 71: r = "NW"       ' Home  (numpad 7, NumLock off)
+            CASE 73: r = "NE"       ' PgUp  (numpad 9)
+            CASE 79: r = "SW"       ' End   (numpad 1)
+            CASE 81: r = "SE"       ' PgDn  (numpad 3)
         END SELECT
     ELSEIF k = "8" THEN
         r = "W"
@@ -66,6 +91,14 @@ FUNCTION NormKey$ (k AS STRING)
         r = "A"
     ELSEIF k = "6" THEN
         r = "D"
+    ELSEIF k = "7" THEN
+        r = "NW"                    ' numpad diagonals (NumLock on)
+    ELSEIF k = "9" THEN
+        r = "NE"
+    ELSEIF k = "1" THEN
+        r = "SW"
+    ELSEIF k = "3" THEN
+        r = "SE"
     END IF
     NormKey$ = r
 END FUNCTION

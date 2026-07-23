@@ -39,6 +39,7 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
+opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
@@ -89,7 +90,7 @@ SYSTEM
 
 FUNCTION PlayGame%
     DIM k AS STRING
-    DIM AS INTEGER sec, res
+    DIM AS INTEGER sec, res, idle_ticks
 
     DIM i AS INTEGER
     class_name = CLASSES(player_class).name
@@ -101,7 +102,7 @@ FUNCTION PlayGame%
     game_start = TIMER               ' start the run timer
 
     StartBoard
-    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  WASD/arrows move  [F] search  [C] character  fight  ESC flee"
+    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  move  [F] search  [C] sheet  [?] keys  fight  ESC flee"
     WaitKey
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
@@ -109,12 +110,21 @@ FUNCTION PlayGame%
     DO
         _LIMIT 60
         k = UCASE$(INKEY$)
-        k = NormKey$(k)              ' fold arrow keys + numpad into WASD
+        k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
+
+        ' ambient "idle" tick when the player sits still for a while
+        IF k <> "" THEN
+            idle_ticks = 0
+        ELSE
+            idle_ticks = idle_ticks + 1
+            IF idle_ticks >= 600 THEN Sfx "idle": idle_ticks = 0
+        END IF
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
         IF k = "F" THEN DoSearch
         IF k = "C" THEN ShowCharSheet
         IF k = "V" THEN ScryView
+        IF k = "?" OR k = "/" THEN ShowKeys
         IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
 
         IF need_roll THEN
@@ -126,7 +136,7 @@ FUNCTION PlayGame%
                 cursor_draw
             END IF
         ELSE
-            IF (k = "W" OR k = "A" OR k = "S" OR k = "D") AND steps_left > 0 THEN
+            IF IsMoveKey(k) AND steps_left > 0 THEN
                 IF TryMove(k) THEN
                     steps_left = steps_left - 1
                     moves_made = moves_made + 1

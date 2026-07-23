@@ -106,7 +106,7 @@ SUB RollCharacter (pc AS INTEGER)
     DO
         FOR i = 1 TO 6
             DrawCharGen pc, sc(), i - 1, 0             ' show sheet, then tumble this ability
-            sc(i) = GameRoll(3, 6, 0, "ability score")
+            sc(i) = RollAbility                        ' 3d6 or 4d6-drop-low per the Stat-Roll setting
         NEXT i
         player_str = sc(1): player_int = sc(2): player_wis = sc(3)
         player_dex = sc(4): player_con = sc(5): player_cha = sc(6)
@@ -248,8 +248,8 @@ SUB RunSettings
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 8
-        IF k = "S" THEN sel = sel + 1: IF sel > 8 THEN sel = 1
+        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 9
+        IF k = "S" THEN sel = sel + 1: IF sel > 9 THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
         IF k = CHR$(27) THEN EXIT SUB
         IF k = " " OR k = CHR$(13) THEN
@@ -260,18 +260,19 @@ SUB RunSettings
                 CASE 4: opt_realdice = NOT opt_realdice
                 CASE 5: opt_dicemath = NOT opt_dicemath
                 CASE 6: opt_oldschool = NOT opt_oldschool
-                CASE 7
+                CASE 7: opt_heroicstats = NOT opt_heroicstats
+                CASE 8
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 8: EXIT SUB
+                CASE 9: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
 
         _DEST CANVAS: CLS , BLACK
-        COLOR YELLOWU, BLACK: PrintCentered 5, "-=  S E T T I N G S  =-"
-        FOR i = 1 TO 8
-            y = 9 + (i - 1) * 4
+        COLOR YELLOWU, BLACK: PrintCentered 4, "-=  S E T T I N G S  =-"
+        FOR i = 1 TO 9
+            y = 8 + (i - 1) * 4
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
                 CASE 2: lbl = "Sound FX": vtxt = OnOff$(opt_sfx)
@@ -283,11 +284,14 @@ SUB RunSettings
                 CASE 6
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
-                CASE 7: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 7
+                    lbl = "Stat Roll"
+                    IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
+                CASE 8: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREY, BLACK
-            IF i = 8 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
+            IF i = 9 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
         COLOR CYANU, BLACK: PrintCentered 43, "[W/S] move    [ENTER] toggle    [ESC] back"
         _DISPLAY
@@ -347,6 +351,36 @@ SUB ScryView
         COLOR GREY, BOXBG: PrintCentered y + 1, mons + "   guarding   " + tre
     NEXT i
     COLOR YELLOWU, BOXBG: PrintCentered 43, "[ press any key ]"
+    _DISPLAY
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+
+' [?] Controls: the single source of truth for key bindings, rendered as a table.
+SUB ShowKeys
+    DIM ky(1 TO 12) AS STRING, ds(1 TO 12) AS STRING, n AS INTEGER, i AS INTEGER, y AS INTEGER
+    ky(1) = "WASD / Arrows": ds(1) = "Move up / left / down / right"
+    ky(2) = "Numpad 7 9 1 3": ds(2) = "Move diagonally (NW/NE/SW/SE)"
+    ky(3) = "SPACE": ds(3) = "Roll movement dice / Attack"
+    ky(4) = "F": ds(4) = "Search for secret doors"
+    ky(5) = "C": ds(5) = "Character sheet"
+    ky(6) = "V": ds(6) = "Scry the dungeon (Crystal Ball)"
+    ky(7) = "?": ds(7) = "This controls list"
+    ky(8) = "~  or  `": ds(8) = "Toggle the debug overlay"
+    ky(9) = "ESC": ds(9) = "Flee combat / quit to menu"
+    ky(10) = "R": ds(10) = "Re-roll (during character creation)"
+    n = 10
+    _DEST CANVAS
+    LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), BOXBG, BF
+    LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), CYANU, B
+    COLOR YELLOWU, BOXBG: PrintCentered 9, "-=  C O N T R O L S  =-"
+    FOR i = 1 TO n
+        y = 13 + (i - 1) * 2
+        COLOR GREENU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$(ky(i), 16)
+        COLOR WHITE, BOXBG: _PRINTSTRING (48 * CW, y * CH), ds(i)
+    NEXT i
+    COLOR YELLOWU, BOXBG: PrintCentered 42, "[ press any key ]"
     _DISPLAY
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
@@ -460,6 +494,9 @@ SUB Sfx (kind AS STRING)
         CASE "bump": SOUND 170, 0.12
         CASE "door": SOUND 300, 0.06: SOUND 520, 0.09
         CASE "secret": SOUND 700, 0.05: SOUND 950, 0.05: SOUND 1250, 0.12
+        CASE "secretpass": SOUND 1100, 0.04: SOUND 820, 0.04: SOUND 1300, 0.09
+        CASE "key": SOUND 660, 0.06: SOUND 880, 0.06: SOUND 1174, 0.06: SOUND 1568, 0.18
+        CASE "idle": SOUND 130, 0.1: SOUND 98, 0.16
         CASE "treasure": SOUND 820, 0.05: SOUND 1040, 0.05: SOUND 1320, 0.12
         CASE "trap": SOUND 240, 0.1: SOUND 150, 0.14: SOUND 90, 0.22
         CASE "hit": SOUND 620, 0.05: SOUND 320, 0.12
@@ -581,23 +618,26 @@ END FUNCTION
 ' A number-tumbler for polyhedral dice (d8/d10/d20...) that d6 pips can't show.
 ' Flickers random totals, settles on the real one, and returns it.
 FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
-    DIM AS INTEGER total, f, i, bx, by, bw, shown
+    DIM total AS INTEGER, i AS INTEGER
     total = 0
     FOR i = 1 TO n: total = total + RollDie(sides): NEXT i
+    ShowRollText = ShowRollValue(total, n * sides, "rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)))
+END FUNCTION
+
+
+' Animate a number tumbler that flickers random values (1..hi) then settles on a
+' KNOWN total -- lets callers (e.g. 4d6-drop-lowest) control what is summed.
+FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
+    DIM AS INTEGER f, bx, by, bw, shown
     IF opt_showdice THEN
         bw = 46
         bx = (SW - bw) \ 2: by = 32
         FOR f = 1 TO 16
-            IF f < 13 THEN
-                shown = 0
-                FOR i = 1 TO n: shown = shown + RollDie(sides): NEXT i
-            ELSE
-                shown = total
-            END IF
+            IF f < 13 THEN shown = INT(RND * hi) + 1 ELSE shown = total
             _DEST CANVAS
             LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), BOXBG, BF
             LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), REDU, B
-            COLOR CYANU, BOXBG: PrintCentered by + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+            COLOR CYANU, BOXBG: PrintCentered by + 1, "-= " + caption + " =-"
             COLOR YELLOWU, BOXBG: PrintCentered by + 3, "[  " + _TRIM$(STR$(shown)) + "  ]"
             IF opt_sfx THEN SOUND 380 + f * 28, 0.05
             _DISPLAY
@@ -605,7 +645,28 @@ FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
         NEXT f
         _DELAY 0.6
     END IF
-    ShowRollText = total
+    ShowRollValue = total
+END FUNCTION
+
+
+' Roll one ability score, honouring the Stat-Roll setting: straight 3d6, or
+' 4d6-drop-lowest (the heroic method).  Respects Real Dice + Show Dice.
+FUNCTION RollAbility% ()
+    DIM d(1 TO 4) AS INTEGER, i AS INTEGER, lo AS INTEGER, sum AS INTEGER
+    IF opt_heroicstats THEN
+        IF opt_realdice THEN
+            RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
+        ELSE
+            FOR i = 1 TO 4: d(i) = RollDie(6): NEXT i
+            lo = d(1)
+            FOR i = 2 TO 4: IF d(i) < lo THEN lo = d(i)
+            NEXT i
+            sum = d(1) + d(2) + d(3) + d(4) - lo
+            RollAbility = ShowRollValue(sum, 18, "4d6 drop lowest")
+        END IF
+    ELSE
+        RollAbility = GameRoll(3, 6, 0, "ability score")
+    END IF
 END FUNCTION
 
 

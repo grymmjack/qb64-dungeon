@@ -100,7 +100,14 @@ Environment specifics that dictate this approach:
   dice), natural 1 fumbles; being downed loses all gold and drags you back to START (revived),
   and returning to START heals to full. Both systems honour Real Dice. Four player classes
   (`CLASSES(1..4)`: Hero/Elf/Superhero/Wizard) with the authentic DUNGEON! win totals
-  (10k/10k/20k/30k) and combat modifiers are chosen via CREATE A CHARACTER (`SelectClass`).
+  (10k/10k/20k/30k) are chosen via CREATE A CHARACTER (`SelectClass`), which then rolls the
+  character **old-school** (`RollCharacter`): 3d6 for STR/INT/WIS/DEX/CON/CHA — or **4d6
+  drop-lowest** with the SETTINGS **Stat Roll** toggle — plus HP on the class hit die. The
+  scores derive the D&D combat stats (`player_tohit/ac/dmgdie/dmgbonus/maxhp` via `AbilMod` =
+  floor((score-10)/2), STR for fighters / INT for the Wizard); `InitDefaultChar` supplies
+  baseline stats for the default HERO and loaded champions. Movement is 8-way — WASD/arrows
+  plus numpad diagonals (`NormKey$` → `NW/NE/SW/SE`, `TryMove`/`IsMoveKey`) — and stepping onto
+  a door hops one cell further so you pass through it. `[?]` `ShowKeys` lists every binding.
   **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
   authentic monster + treasure from that level's pool (`InitMonsterTables`), and one deep
   sector becomes the boss lair (`is_boss`). Each monster carries its exact **per-class** 2d6
