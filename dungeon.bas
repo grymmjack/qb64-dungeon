@@ -36,6 +36,7 @@ _FONT CH
 SCREEN CANVAS
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
+opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
@@ -92,9 +93,10 @@ FUNCTION PlayGame%
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
     has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
     RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
+    game_start = TIMER               ' start the run timer
 
     StartBoard
-    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  WASD move  [F] search  [C] character  fight for treasure  ESC flee"
+    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  WASD/arrows move  [F] search  [C] character  fight  ESC flee"
     WaitKey
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
@@ -102,6 +104,7 @@ FUNCTION PlayGame%
     DO
         _LIMIT 60
         k = UCASE$(INKEY$)
+        k = NormKey$(k)              ' fold arrow keys + numpad into WASD
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
         IF k = "F" THEN DoSearch

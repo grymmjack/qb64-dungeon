@@ -24,15 +24,15 @@ Game Menu Actions:
     ☐ Create LEGENDARY LORDS
     ✔ Create CREATE A CHARACTER @done(26-07-23)
     ☐ Create LOAD A CHARACTER
-    ☐ Create SETTINGS:
-        ☐ Music: ON
+    ✔ Create SETTINGS: @done(26-07-23)
+        ✔ Music: ON @done(26-07-23)
         ☐ Music volume
-        ☐ SoundFX: ON
+        ✔ SoundFX: ON @done(26-07-23)
         ☐ SoundFX volume
         ☐ Voice: ON
         ☐ Voice volume
-        ☐ Show Dice
-        ☐ Full screen
+        ✔ Show Dice @done(26-07-23)
+        ✔ Full screen @done(26-07-23)
 
 Doors:
     ☐ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it.
@@ -100,8 +100,8 @@ Fixes:
 
 Control:
     ☐ Improve control parsing
-        ☐ Add support for arrow keys
-        ☐ Add support for numeric keypad
+        ✔ Add support for arrow keys @done(26-07-23)
+        ✔ Add support for numeric keypad @done(26-07-23)
         ☐ Add support for other keys
         ☐ Build key bindings mapping object
     ☐ Implement diagonal movement with num pad
@@ -118,7 +118,7 @@ Game:
         ✔ Rooms @done(26-07-23)
 
 Turns:
-    ☐ Add turn timer
+    ✔ Add turn timer @done(26-07-23)
     ✔ Add turn logic @done(26-07-23)
     ✔ Limit movement to number of steps per turn @done(26-07-23)
     ✔ Number of steps based on dice roll @done(26-07-23)

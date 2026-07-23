@@ -47,4 +47,25 @@ SUB cursor_draw
 END SUB
 
 
-' TRUE if the cell under the cursor is walkable: path, room floor, door, or secret door.
+' Fold arrow keys (2-char INKEY$) and the numeric keypad into WASD.
+FUNCTION NormKey$ (k AS STRING)
+    DIM r AS STRING
+    r = k
+    IF LEN(k) = 2 THEN
+        SELECT CASE ASC(RIGHT$(k, 1))
+            CASE 72: r = "W"        ' up arrow
+            CASE 80: r = "S"        ' down arrow
+            CASE 75: r = "A"        ' left arrow
+            CASE 77: r = "D"        ' right arrow
+        END SELECT
+    ELSEIF k = "8" THEN
+        r = "W"
+    ELSEIF k = "2" THEN
+        r = "S"
+    ELSEIF k = "4" THEN
+        r = "A"
+    ELSEIF k = "6" THEN
+        r = "D"
+    END IF
+    NormKey$ = r
+END FUNCTION

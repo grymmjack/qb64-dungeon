@@ -46,7 +46,7 @@ SUB ShowIntro
     DIM ansi AS STRING, mus AS LONG, k AS STRING
     ansi = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
     mus = _SNDOPEN("assets/music/vr-theme.rad")
-    IF mus > 0 THEN _SNDPLAY mus
+    IF mus > 0 AND opt_music THEN _SNDPLAY mus
     _DEST CANVAS: _FONT CH: CLS , BLACK
     ANSI_Print (ansi)
     _DISPLAY
@@ -82,25 +82,31 @@ FUNCTION RunMenu%
     _DEST iBlock: _FONT CH: ANSI_Print (bl(1))
 
     mus = _SNDOPEN("assets/music/everdark.rad")
-    IF mus > 0 THEN _SNDLOOP mus
+    IF mus > 0 AND opt_music THEN _SNDLOOP mus
 
     sel = 1: t = 0: result = 0
     DO
         _LIMIT 60
-        k = UCASE$(INKEY$)
+        k = NormKey$(UCASE$(INKEY$))          ' arrows/numpad -> WASD
         IF k = "A" OR k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 6
         IF k = "D" OR k = "S" THEN sel = sel + 1: IF sel > 6 THEN sel = 1
-        IF k = "A" OR k = "W" OR k = "S" OR k = "D" THEN SOUND 200, 0.1
+        IF k = "A" OR k = "W" OR k = "S" OR k = "D" THEN Sfx "select"
         IF k = CHR$(13) THEN
             IF sel = 1 THEN
                 result = MENU_ENTER: EXIT DO
             ELSEIF sel = 2 THEN
                 chosen = SelectClass
                 IF chosen > 0 THEN player_class = chosen
+            ELSEIF sel = 5 THEN
+                RunSettings
+                IF mus > 0 THEN
+                    IF opt_music AND _SNDPLAYING(mus) = 0 THEN _SNDLOOP mus
+                    IF NOT opt_music THEN _SNDSTOP mus
+                END IF
             ELSEIF sel = 6 THEN
                 result = MENU_FLEE: EXIT DO
             ELSE
-                SOUND 110, 0.2           ' LOAD / LORDS / SETTINGS not in this build
+                Sfx "bump"               ' LOAD / LORDS not in this build
             END IF
         END IF
         IF k = CHR$(27) THEN result = MENU_FLEE: EXIT DO
@@ -132,9 +138,54 @@ FUNCTION RunMenu%
 END FUNCTION
 
 
-' ============================================================================
-'  PLAY
-' ============================================================================
+FUNCTION OnOff$ (b AS INTEGER)
+    IF b THEN OnOff$ = "ON" ELSE OnOff$ = "OFF"
+END FUNCTION
+
+
+' SETTINGS screen (menu option 5): toggle music / sfx / dice / fullscreen.
+SUB RunSettings
+    DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
+    sel = 1
+    DO
+        _LIMIT 60
+        k = NormKey$(UCASE$(INKEY$))
+        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 5
+        IF k = "S" THEN sel = sel + 1: IF sel > 5 THEN sel = 1
+        IF k = "W" OR k = "S" THEN Sfx "select"
+        IF k = CHR$(27) THEN EXIT SUB
+        IF k = " " OR k = CHR$(13) THEN
+            SELECT CASE sel
+                CASE 1: opt_music = NOT opt_music
+                CASE 2: opt_sfx = NOT opt_sfx
+                CASE 3: opt_showdice = NOT opt_showdice
+                CASE 4
+                    opt_fullscreen = NOT opt_fullscreen
+                    IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
+                CASE 5: EXIT SUB
+            END SELECT
+            Sfx "select"
+        END IF
+
+        _DEST CANVAS: CLS , BLACK
+        COLOR YELLOWU, BLACK: PrintCentered 8, "-=  S E T T I N G S  =-"
+        FOR i = 1 TO 5
+            y = 14 + (i - 1) * 4
+            SELECT CASE i
+                CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
+                CASE 2: lbl = "Sound FX": vtxt = OnOff$(opt_sfx)
+                CASE 3: lbl = "Show Dice": vtxt = OnOff$(opt_showdice)
+                CASE 4: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE ELSE: lbl = "<< Back": vtxt = ""
+            END SELECT
+            IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREY, BLACK
+            IF i = 5 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
+        NEXT i
+        COLOR CYANU, BLACK: PrintCentered 40, "[W/S] move    [ENTER] toggle    [ESC] back"
+        _DISPLAY
+    LOOP
+END SUB
+
 
 SUB ShowCharSheet
     DIM y AS INTEGER, swordtxt AS STRING
@@ -224,9 +275,13 @@ SUB DrawHUD
     IF item_secret_card THEN inv = inv + "  SDC"
     IF item_esp THEN inv = inv + "  ESP"
     IF item_crystal THEN inv = inv + "  CRY"
+    DIM el AS LONG, tmr AS STRING
+    el = TIMER - game_start
+    IF el < 0 THEN el = el + 86400
+    tmr = _TRIM$(STR$(el \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(el MOD 60)), 2)
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + lbl
+    hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK
@@ -275,6 +330,7 @@ END FUNCTION
 ' Named sound effects (SOUND queues in the background, so short sequences play out).
 
 SUB Sfx (kind AS STRING)
+    IF NOT opt_sfx THEN EXIT SUB
     SELECT CASE kind
         CASE "move": SOUND 350, 0.08
         CASE "bump": SOUND 170, 0.12
@@ -340,24 +396,26 @@ FUNCTION RollDiceShow% (n AS INTEGER)
     die_a = RollDie(6): die_b = 0
     IF n = 2 THEN die_b = RollDie(6)
 
-    FOR f = 1 TO 16
-        _DEST CANVAS
-        LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), BOXBG, BF
-        LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), REDU, B
-        FOR j = 0 TO n - 1
-            IF f < 13 THEN
-                DrawDie bx + j * (sz + gap), by, sz, RollDie(6)
-            ELSEIF j = 0 THEN
-                DrawDie bx, by, sz, die_a
-            ELSE
-                DrawDie bx + sz + gap, by, sz, die_b
-            END IF
-        NEXT j
-        SOUND 380 + f * 28, 0.05
-        _DISPLAY
-        _LIMIT 22
-    NEXT f
-    _DELAY 0.7                       ' hold so the settled dice are readable
+    IF opt_showdice THEN
+        FOR f = 1 TO 16
+            _DEST CANVAS
+            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), BOXBG, BF
+            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), REDU, B
+            FOR j = 0 TO n - 1
+                IF f < 13 THEN
+                    DrawDie bx + j * (sz + gap), by, sz, RollDie(6)
+                ELSEIF j = 0 THEN
+                    DrawDie bx, by, sz, die_a
+                ELSE
+                    DrawDie bx + sz + gap, by, sz, die_b
+                END IF
+            NEXT j
+            IF opt_sfx THEN SOUND 380 + f * 28, 0.05
+            _DISPLAY
+            _LIMIT 22
+        NEXT f
+        _DELAY 0.7                   ' hold so the settled dice are readable
+    END IF
 
     IF n = 2 THEN RollDiceShow = die_a + die_b ELSE RollDiceShow = die_a
 END FUNCTION
