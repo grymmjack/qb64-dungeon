@@ -59,6 +59,7 @@ DIM SHARED AS INTEGER turn_num, steps_left, need_roll
 DIM SHARED class_name AS STRING
 DIM SHARED CLASSES(1 TO 4) AS PCLASS
 DIM SHARED player_class AS INTEGER
+DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 
 SW = 132: SH = 51: CW = 8: CH = 16
 
@@ -343,8 +344,10 @@ FUNCTION PlayGame%
         IF need_roll THEN
             IF k = " " THEN
                 turn_num = turn_num + 1
-                steps_left = RollDie(6)
+                steps_left = RollDiceShow(1)
                 need_roll = FALSE
+                cursor_erase             ' wipe the dice box, restore the board
+                cursor_draw
             END IF
         ELSE
             IF (k = "W" OR k = "A" OR k = "S" OR k = "D") AND steps_left > 0 THEN
@@ -395,7 +398,8 @@ FUNCTION DoCombat% (sec AS INTEGER)
             c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
             EXIT DO
         ELSEIF k = " " THEN
-            d1 = RollDie(6): d2 = RollDie(6): sm = d1 + d2 + bonus
+            sm = RollDiceShow(2)
+            d1 = die_a: d2 = die_b: sm = sm + bonus
             IF bonus > 0 THEN bstr = " +" + _TRIM$(STR$(bonus)) ELSE bstr = ""
             IF sm >= need THEN
                 SECTORS(sec).malive = FALSE
@@ -682,6 +686,74 @@ END SUB
 
 FUNCTION RollDie% (sides AS INTEGER)
     RollDie = INT(RND * sides) + 1
+END FUNCTION
+
+
+' A single square pip.
+SUB Pip (x AS INTEGER, y AS INTEGER, r AS INTEGER, col AS _UNSIGNED LONG)
+    LINE (x - r, y - r)-(x + r, y + r), col, BF
+END SUB
+
+
+' Draw one d6 face (value 1-6) as an sz x sz die at pixel (px,py).
+SUB DrawDie (px AS INTEGER, py AS INTEGER, sz AS INTEGER, pips AS INTEGER)
+    DIM AS INTEGER x2, y2, r, cxl, cxm, cxr, cyt, cym, cyb
+    DIM AS _UNSIGNED LONG face, edge, pipc
+    face = _RGB32(&HF0, &HF0, &HE6): edge = _RGB32(&H78, &H78, &H70): pipc = _RGB32(&H18, &H10, &H10)
+    x2 = px + sz: y2 = py + sz
+    LINE (px + 5, py + 5)-(x2 + 5, y2 + 5), _RGB32(&H00, &H00, &H00), BF   ' drop shadow
+    LINE (px, py)-(x2, y2), face, BF
+    LINE (px, py)-(x2, y2), edge, B
+    r = sz \ 11
+    cxl = px + sz \ 4: cxm = px + sz \ 2: cxr = x2 - sz \ 4
+    cyt = py + sz \ 4: cym = py + sz \ 2: cyb = y2 - sz \ 4
+    IF pips = 1 OR pips = 3 OR pips = 5 THEN Pip cxm, cym, r, pipc
+    IF pips >= 2 THEN
+        Pip cxl, cyt, r, pipc
+        Pip cxr, cyb, r, pipc
+    END IF
+    IF pips >= 4 THEN
+        Pip cxr, cyt, r, pipc
+        Pip cxl, cyb, r, pipc
+    END IF
+    IF pips = 6 THEN
+        Pip cxl, cym, r, pipc
+        Pip cxr, cym, r, pipc
+    END IF
+END SUB
+
+
+' Tumble n d6 on screen (with a rolling sound), settle on the result, and
+' return the total. The individual faces land in die_a / die_b.
+FUNCTION RollDiceShow% (n AS INTEGER)
+    DIM AS INTEGER sz, gap, bw, bx, by, f, j
+    sz = 52: gap = 18
+    bw = n * sz + (n - 1) * gap
+    bx = (SW * CW - bw) \ 2
+    by = 33 * CH
+    die_a = RollDie(6): die_b = 0
+    IF n = 2 THEN die_b = RollDie(6)
+
+    FOR f = 1 TO 16
+        _DEST CANVAS
+        LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), BOXBG, BF
+        LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), REDU, B
+        FOR j = 0 TO n - 1
+            IF f < 13 THEN
+                DrawDie bx + j * (sz + gap), by, sz, RollDie(6)
+            ELSEIF j = 0 THEN
+                DrawDie bx, by, sz, die_a
+            ELSE
+                DrawDie bx + sz + gap, by, sz, die_b
+            END IF
+        NEXT j
+        SOUND 380 + f * 28, 0.05
+        _DISPLAY
+        _LIMIT 22
+    NEXT f
+    _DELAY 0.7                       ' hold so the settled dice are readable
+
+    IF n = 2 THEN RollDiceShow = die_a + die_b ELSE RollDiceShow = die_a
 END FUNCTION
 
 
