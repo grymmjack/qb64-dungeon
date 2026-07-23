@@ -70,10 +70,17 @@ Environment specifics that dictate this approach:
 
 ## Where the code lives
 
-- **`dungeon.bas`** (repo root) — the playable game: a vertical slice that assembles the
-  three prototypes into one program via an `INTRO → MENU → PLAY → WIN/LOSE` state machine
-  (`SELECT CASE game_state`), each state a self-contained SUB/FUNCTION (`ShowIntro`,
-  `RunMenu`, `PlayGame`, `ShowEnd`). Encounters ride the existing pixel-color collision:
+- **`dungeon.bas`** (repo root) — the playable game. The main file is now thin (~290 lines):
+  top includes `include/DUNGEON.BI` (all `CONST`s, `TYPE`s, and `DIM SHARED` globals — must
+  load first), then the screen/init setup, the `INTRO → MENU → PLAY → WIN/LOSE` state machine
+  (`SELECT CASE game_state`), the **core game loop** (`PlayGame` / `DoCombat` / `MonsterAttack`
+  / `ClaimTreasure`), and finally the module bodies. The SUBs/FUNCTIONs are split into
+  bottom-`'$INCLUDE`'d modules: **`include/SECTOR.bas`** (sector geometry + monster/treasure/
+  class data + `RandomizeRooms`), **`include/BOARD.bas`** (board render, fog-of-war, secret
+  doors, pixel-colour collision), **`include/CURSOR.bas`** (movement + draw/erase), and
+  **`include/MENU.bas`** (intro, menu, class-select, dialogs, HUD, dice, sound). QB64 resolves
+  SUBs globally, so the main-file loop can call any module SUB regardless of include order;
+  the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
   in a sector with a live monster triggers 2d6 combat (`DoCombat`). Movement (1d6) and combat
   (2d6) rolls animate on-screen pip dice (`RollDiceShow` / `DrawDie`). Four player classes
@@ -106,9 +113,9 @@ Environment specifics that dictate this approach:
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
   TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
-- **`include/`** — the *destination* for a refactor into shared modules (`BOARD`,
-  `CURSOR`, `SECTOR`, `image`). Most are still empty stubs; `CURSOR.bas` and `SECTOR.bas`
-  hold the extracted `TYPE`s. See the Refactor section of [PLANS.todo](PLANS.todo).
+- **`include/`** — `DUNGEON.BI` (header) + `SECTOR.bas` / `BOARD.bas` / `CURSOR.bas` /
+  `MENU.bas` (the game's module bodies, `'$INCLUDE`'d by `dungeon.bas`), plus the `Toolbox64`
+  and `QB64_GJ_LIB` submodules.
 - **`assets/ansi/`** — the game's actual graphics: `.ans`/`.icy`/`.xb` text-mode art,
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.

@@ -3,11 +3,11 @@ Note:
     scratchpad prototypes). Items below are checked off against that build.
 
 Refactor:
-    ☐ Move code into include modules:
-        ☐ BOARD
-        ☐ CURSOR
-        ☐ SECTOR
-        ☐ MENU
+    ✔ Move code into include modules: @done(26-07-23)
+        ✔ BOARD @done(26-07-23)
+        ✔ CURSOR @done(26-07-23)
+        ✔ SECTOR @done(26-07-23)
+        ✔ MENU @done(26-07-23)
 
 Dialogs:
     ☐ Create scrolling text window
