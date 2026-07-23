@@ -80,14 +80,17 @@ Environment specifics that dictate this approach:
   (`CLASSES(1..4)`: Hero/Elf/Superhero/Wizard) with the authentic DUNGEON! win totals
   (10k/10k/20k/30k) and combat modifiers are chosen via CREATE A CHARACTER (`SelectClass`).
   **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
-  authentic monster + treasure from that level's pool (`InitMonsterTables`, real card names
-  and Hero to-hit numbers), and one deep sector becomes the boss lair (`is_boss`). A missed
-  attack rolls the authentic **MONSTER ATTACK TABLE** (`MonsterAttack`: killed / serious
-  wound / light wound / stunned / missed). Special treasure cards seeded into the pools grant
-  powers (`ClaimTreasure`): a **Magic Sword** (+1/+2 to attacks; a Wizard can't wield one) and
-  the **Secret Door Card** (searches never fail). A `[C]` character sheet (`ShowCharSheet`)
-  shows class, gold, key, and items. All events route through the `Sfx` dispatcher. Build/run
-  from the repo root (asset paths are `assets/...`, not `../assets/...`).
+  authentic monster + treasure from that level's pool (`InitMonsterTables`), and one deep
+  sector becomes the boss lair (`is_boss`). Each monster carries its exact **per-class** 2d6
+  kill numbers from the cards (`MON_N[level,slot,class]`; `13` = the "-" that needs a Magic
+  Sword), and combat targets the player-class number directly. A missed attack rolls the
+  authentic **MONSTER ATTACK TABLE** (`MonsterAttack`: killed / serious wound / light wound /
+  stunned / missed). Special treasure cards grant powers (`ClaimTreasure`): **Magic Sword**
+  (+1/+2; a Wizard can't wield one), **Secret Door Card** (searches never fail), **ESP
+  Medallion** (peek a monster's treasure), **Crystal Ball** (`[V]` `ScryView` reveals every
+  room's contents). A `[C]` character sheet (`ShowCharSheet`) lists class, gold, key, and
+  items. All events route through the `Sfx` dispatcher. Build/run from the repo root (asset
+  paths are `assets/...`, not `../assets/...`).
 - **Secret doors / fog-of-war** (`dungeon.bas`, `InitFog`). The board loads from
   `assets/ansi/_/board-132x60-no-labels.ans` (same map as the no-secrets board **plus**
   bright-blue secret-door tiles). At load, `DetectSecretDoors` scans a pristine `FULL_BOARD`

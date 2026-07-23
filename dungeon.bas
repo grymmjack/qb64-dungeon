@@ -68,13 +68,17 @@ DIM SHARED class_name AS STRING
 DIM SHARED CLASSES(1 TO 4) AS PCLASS
 DIM SHARED player_class AS INTEGER
 ' Dungeon!-style monster + treasure pools, 3 per level (levels 1-9), randomised per game.
-DIM SHARED MON_NAME(1 TO 9, 1 TO 3) AS STRING, MON_NUM(1 TO 9, 1 TO 3) AS INTEGER
+DIM SHARED MON_NAME(1 TO 9, 1 TO 3) AS STRING
+' per-class 2d6 kill numbers from the cards: [level, slot, class] 1=Hero 2=Elf 3=Superhero 4=Wizard (13 = can't kill barehanded)
+DIM SHARED MON_N(1 TO 9, 1 TO 3, 1 TO 4) AS INTEGER
 DIM SHARED TRE_NAME(1 TO 9, 1 TO 3) AS STRING, TRE_GOLD(1 TO 9, 1 TO 3) AS INTEGER
 DIM SHARED TRE_ITEM(1 TO 9, 1 TO 3) AS INTEGER   ' 0=gold, 1=MagicSword+1, 2=MagicSword+2, 3=SecretDoorCard
 DIM SHARED BOSS_NAME(1 TO 4) AS STRING
 ' player inventory (special treasure cards)
 DIM SHARED item_sword AS INTEGER      ' Magic Sword combat bonus held (0/1/2)
 DIM SHARED item_secret_card AS INTEGER ' holds the Secret Door Card
+DIM SHARED item_esp AS INTEGER        ' ESP Medallion: peek the treasure a monster guards
+DIM SHARED item_crystal AS INTEGER    ' Crystal Ball: [V] scry every room's contents
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
@@ -196,17 +200,35 @@ END SUB
 ' Authentic Dungeon! monster roster + treasures, scaled across the 9 levels.
 ' Values approximate the board game (exact card numbers live on the cards).
 SUB InitMonsterTables
-    ' --- monsters: name + the 2d6 number a HERO needs (from the real cards);
-    '     the class combat bonus then adjusts it. Assigned to levels by difficulty. ---
-    SetMob 1, "GIANT RATS", 4, "GIANT LIZARD", 4, "GOBLINS", 4
-    SetMob 2, "SKELETON", 4, "HOBGOBLINS", 5, "GIANT SPIDER", 6
-    SetMob 3, "GHOULS", 6, "GARGOYLE", 6, "EVIL HERO", 7
-    SetMob 4, "EVIL HERO", 7, "GIANT SNAKE", 8, "GHOULS", 6
-    SetMob 5, "WEREWOLF", 9, "OGRE", 9, "GIANT SNAKE", 8
-    SetMob 6, "MUMMY", 10, "TROLL", 10, "VAMPIRE", 10
-    SetMob 7, "GIANT", 11, "WITCH", 11, "GREEN SLIME", 11
-    SetMob 8, "PURPLE WORM", 11, "BLACK PUDDING", 12, "MUMMY", 10
-    SetMob 9, "EVIL WIZARD", 12, "RED DRAGON", 12, "BLUE DRAGON", 12
+    ' --- monsters: name + the exact per-class 2d6 kill numbers from the cards ---
+    '     Mob lvl, slot, name, Hero, Elf, Superhero, Wizard   (13 = "-" can't kill barehanded)
+    Mob 1, 1, "GIANT RATS", 4, 5, 3, 3
+    Mob 1, 2, "GIANT LIZARD", 4, 5, 2, 5
+    Mob 1, 3, "GOBLINS", 4, 3, 2, 5
+    Mob 2, 1, "SKELETON", 4, 5, 3, 6
+    Mob 2, 2, "HOBGOBLINS", 5, 4, 3, 6
+    Mob 2, 3, "GIANT SPIDER", 6, 6, 4, 5
+    Mob 3, 1, "GHOULS", 6, 5, 4, 6
+    Mob 3, 2, "GARGOYLE", 6, 7, 5, 6
+    Mob 3, 3, "EVIL HERO", 7, 8, 5, 6
+    Mob 4, 1, "EVIL HERO", 7, 8, 5, 6
+    Mob 4, 2, "GIANT SNAKE", 8, 10, 6, 9
+    Mob 4, 3, "GHOULS", 6, 5, 4, 6
+    Mob 5, 1, "WEREWOLF", 9, 9, 7, 7
+    Mob 5, 2, "OGRE", 9, 8, 6, 8
+    Mob 5, 3, "GIANT SNAKE", 8, 10, 6, 9
+    Mob 6, 1, "MUMMY", 10, 11, 8, 8
+    Mob 6, 2, "TROLL", 10, 9, 8, 8
+    Mob 6, 3, "VAMPIRE", 10, 12, 8, 9
+    Mob 7, 1, "GIANT", 11, 10, 9, 10
+    Mob 7, 2, "WITCH", 11, 11, 9, 5
+    Mob 7, 3, "GREEN SLIME", 11, 13, 10, 11
+    Mob 8, 1, "PURPLE WORM", 11, 12, 10, 12
+    Mob 8, 2, "BLACK PUDDING", 12, 13, 12, 12
+    Mob 8, 3, "MUMMY", 10, 11, 8, 8
+    Mob 9, 1, "EVIL WIZARD", 12, 13, 11, 7
+    Mob 9, 2, "RED DRAGON", 13, 13, 11, 12
+    Mob 9, 3, "BLUE DRAGON", 12, 13, 10, 12
 
     ' --- treasures: real card names + gold-piece values, richer the deeper you go ---
     SetTre 1, "SILVER CUP", 1000, "SACK OF GOLD", 1000, "SILVER RING", 2000
@@ -219,9 +241,12 @@ SUB InitMonsterTables
     SetTre 8, "GOLD NECKLACE", 9000, "HUGE RUBY", 8000, "HUGE DIAMOND", 10000
     SetTre 9, "HUGE DIAMOND", 10000, "GOLD NECKLACE", 9000, "HUGE SAPPHIRE", 6000
 
-    ' special treasure cards seeded into the pools (real cards from the deck)
+    ' special treasure cards seeded into the pools (real cards from the deck).
+    ' TRE_ITEM: 1=Sword+1 2=Sword+2 3=SecretDoorCard 4=ESP Medallion 5=Crystal Ball
     TRE_NAME(2, 3) = "MAGIC SWORD +1": TRE_GOLD(2, 3) = 500: TRE_ITEM(2, 3) = 1
+    TRE_NAME(3, 3) = "ESP MEDALLION": TRE_GOLD(3, 3) = 500: TRE_ITEM(3, 3) = 4
     TRE_NAME(4, 3) = "SECRET DOOR CARD": TRE_GOLD(4, 3) = 0: TRE_ITEM(4, 3) = 3
+    TRE_NAME(5, 3) = "CRYSTAL BALL": TRE_GOLD(5, 3) = 1000: TRE_ITEM(5, 3) = 5
     TRE_NAME(6, 3) = "MAGIC SWORD +2": TRE_GOLD(6, 3) = 500: TRE_ITEM(6, 3) = 2
 
     BOSS_NAME(1) = "RED DRAGON": BOSS_NAME(2) = "BLUE DRAGON"
@@ -229,10 +254,10 @@ SUB InitMonsterTables
 END SUB
 
 
-SUB SetMob (lvl AS INTEGER, n1 AS STRING, v1 AS INTEGER, n2 AS STRING, v2 AS INTEGER, n3 AS STRING, v3 AS INTEGER)
-    MON_NAME(lvl, 1) = n1: MON_NUM(lvl, 1) = v1
-    MON_NAME(lvl, 2) = n2: MON_NUM(lvl, 2) = v2
-    MON_NAME(lvl, 3) = n3: MON_NUM(lvl, 3) = v3
+SUB Mob (lvl AS INTEGER, slot AS INTEGER, nm AS STRING, hh AS INTEGER, ee AS INTEGER, ss AS INTEGER, ww AS INTEGER)
+    MON_NAME(lvl, slot) = nm
+    MON_N(lvl, slot, 1) = hh: MON_N(lvl, slot, 2) = ee
+    MON_N(lvl, slot, 3) = ss: MON_N(lvl, slot, 4) = ww
 END SUB
 
 
@@ -251,18 +276,24 @@ SUB RandomizeRooms
         SECTORS(i).monster = "": SECTORS(i).malive = FALSE: SECTORS(i).is_boss = FALSE
         SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = "": SECTORS(i).treasure_item = 0
     NEXT i
-    ' sectors 2..9 correspond to levels 2..9
+    ' sectors 2..9 correspond to levels 2..9; store the number for THIS player's class
     FOR i = 2 TO 9
         m = RollDie(3): t = RollDie(3)
-        SECTORS(i).monster = MON_NAME(i, m): SECTORS(i).mnum = MON_NUM(i, m)
+        SECTORS(i).monster = MON_NAME(i, m): SECTORS(i).mnum = MON_N(i, m, player_class)
         SECTORS(i).malive = TRUE
         SECTORS(i).treasure_name = TRE_NAME(i, t): SECTORS(i).treasure = TRE_GOLD(i, t)
         SECTORS(i).treasure_item = TRE_ITEM(i, t)
     NEXT i
-    ' one deep room (levels 6-9) holds the boss + a great hoard
+    ' one deep room (levels 6-9) holds the boss + a great hoard. Bosses are "-"
+    ' for Hero/Elf (need a Magic Sword) and merely brutal for Superhero/Wizard.
     bossroom = RollDie(4) + 5
     SECTORS(bossroom).is_boss = TRUE
-    SECTORS(bossroom).monster = BOSS_NAME(RollDie(4)): SECTORS(bossroom).mnum = 11
+    SECTORS(bossroom).monster = BOSS_NAME(RollDie(4))
+    SELECT CASE player_class
+        CASE 1, 2: SECTORS(bossroom).mnum = 13
+        CASE 3: SECTORS(bossroom).mnum = 11
+        CASE ELSE: SECTORS(bossroom).mnum = 12
+    END SELECT
     SECTORS(bossroom).treasure_name = "DRAGON'S HOARD"
     SECTORS(bossroom).treasure = SECTORS(bossroom).treasure + 6000
     SECTORS(bossroom).treasure_item = 0
@@ -280,12 +311,12 @@ SUB InitClasses
     CLASSES(2).blurb = "Weakest fighter, but finds secret doors on a 1-4. Needs 10,000."
 
     CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 20000
-    CLASSES(3).combat_bonus = 1: CLASSES(3).secret_bonus = 0
-    CLASSES(3).blurb = "Mightiest in melee (+1 to attacks). Needs 20,000 gold."
+    CLASSES(3).combat_bonus = 0: CLASSES(3).secret_bonus = 0
+    CLASSES(3).blurb = "The deadliest warrior -- slays monsters on low rolls. Needs 20,000 gold."
 
     CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 30000
-    CLASSES(4).combat_bonus = 2: CLASSES(4).secret_bonus = 1
-    CLASSES(4).blurb = "Slays with spells (+2 to attacks). Needs 30,000 gold."
+    CLASSES(4).combat_bonus = 0: CLASSES(4).secret_bonus = 1
+    CLASSES(4).blurb = "Slays with spells; can't use Magic Swords. Needs 30,000 gold."
 END SUB
 
 
@@ -429,7 +460,7 @@ FUNCTION PlayGame%
     DIM i AS INTEGER
     class_name = CLASSES(player_class).name
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
-    has_key = FALSE: item_sword = 0: item_secret_card = FALSE
+    has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
     RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
 
     StartBoard
@@ -445,6 +476,7 @@ FUNCTION PlayGame%
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
         IF k = "F" THEN DoSearch
         IF k = "C" THEN ShowCharSheet
+        IF k = "V" THEN ScryView
 
         IF need_roll THEN
             IF k = " " THEN
@@ -486,17 +518,24 @@ END FUNCTION
 
 FUNCTION DoCombat% (sec AS INTEGER)
     DIM k AS STRING
-    DIM AS INTEGER d1, d2, sm, need, bonus, target
-    DIM lead AS STRING
+    DIM AS INTEGER d1, d2, sm, need, target, unbeatable
+    DIM lead AS STRING, p2 AS STRING, whatguards AS STRING
     need = SECTORS(sec).mnum
-    bonus = CLASSES(player_class).combat_bonus + item_sword   ' class + Magic Sword
-    target = need - bonus                     ' the raw 2d6 the player must roll
+    target = need - item_sword                ' the raw 2d6 the player must roll (Magic Sword helps)
+    unbeatable = (target > 12)                ' "-" on the card: needs a stronger blade
     IF target < 2 THEN target = 2
     DoCombat = 0
 
     IF SECTORS(sec).is_boss THEN lead = "The BOSS " + SECTORS(sec).monster ELSE lead = "A " + SECTORS(sec).monster
-    ' the treasure is face-down under the monster -- unknown until it is slain
-    Banner lead + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(target)) + "+ on 2d6 to slay it   [SPACE] ATTACK   [ESC] FLEE"
+    ' the treasure is face-down under the monster -- unless the ESP Medallion peeks it
+    whatguards = " guards the " + SECTORS(sec).label + "!"
+    IF item_esp THEN whatguards = " guards a " + SECTORS(sec).treasure_name + "!"
+    IF unbeatable THEN
+        p2 = "Only a Magic Sword can harm it -- [ESC] FLEE"
+    ELSE
+        p2 = "Roll " + _TRIM$(STR$(target)) + "+ on 2d6 to slay it   [SPACE] ATTACK   [ESC] FLEE"
+    END IF
+    Banner lead + whatguards, p2
 
     DO
         _LIMIT 60
@@ -504,7 +543,7 @@ FUNCTION DoCombat% (sec AS INTEGER)
         IF k = CHR$(27) THEN
             c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
             EXIT DO
-        ELSEIF k = " " THEN
+        ELSEIF k = " " AND NOT unbeatable THEN
             sm = RollDiceShow(2)
             d1 = die_a: d2 = die_b
             IF sm >= target THEN
@@ -589,6 +628,12 @@ SUB ClaimTreasure (sec AS INTEGER, sm AS INTEGER)
         CASE 3                                    ' Secret Door Card
             item_secret_card = TRUE
             line2 = "You find the SECRET DOOR CARD -- you now sense secret doors automatically!"
+        CASE 4                                    ' ESP Medallion
+            item_esp = TRUE
+            line2 = "You don the ESP MEDALLION -- you can now sense each room's treasure!"
+        CASE 5                                    ' Crystal Ball
+            item_crystal = TRUE
+            line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
         CASE ELSE                                 ' plain gold treasure
             gold = gold + SECTORS(sec).treasure
             line2 = "You claim the " + SECTORS(sec).treasure_name + " -- " + _TRIM$(STR$(SECTORS(sec).treasure)) + " GOLD!"
@@ -610,10 +655,39 @@ SUB ShowCharSheet
     PrintCentered 21, "Gold:  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
     IF has_key THEN PrintCentered 23, "Level Key:  HELD" ELSE PrintCentered 23, "Level Key:  not yet found"
     IF item_sword > 0 THEN swordtxt = "Magic Sword +" + _TRIM$(STR$(item_sword)) ELSE swordtxt = "(none)"
-    PrintCentered 26, "Magic Sword:  " + swordtxt
-    IF item_secret_card THEN PrintCentered 28, "Secret Door Card:  HELD" ELSE PrintCentered 28, "Secret Door Card:  (none)"
-    COLOR CYANU, BOXBG: PrintCentered 31, CLASSES(player_class).blurb
-    COLOR YELLOWU, BOXBG: PrintCentered 35, "[ press any key ]"
+    PrintCentered 25, "Magic Sword:  " + swordtxt
+    IF item_secret_card THEN PrintCentered 27, "Secret Door Card:  HELD" ELSE PrintCentered 27, "Secret Door Card:  (none)"
+    IF item_esp THEN PrintCentered 29, "ESP Medallion:  HELD" ELSE PrintCentered 29, "ESP Medallion:  (none)"
+    IF item_crystal THEN PrintCentered 31, "Crystal Ball:  HELD  ([V] to scry)" ELSE PrintCentered 31, "Crystal Ball:  (none)"
+    COLOR CYANU, BOXBG: PrintCentered 34, CLASSES(player_class).blurb
+    COLOR YELLOWU, BOXBG: PrintCentered 37, "[ press any key ]"
+    _DISPLAY
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+
+' [V] Crystal Ball: scry every level's guardian and the treasure it hides.
+SUB ScryView
+    DIM i AS INTEGER, y AS INTEGER, mons AS STRING, tre AS STRING
+    IF NOT item_crystal THEN
+        Banner "You have no way to scry the dungeon.", "Find the CRYSTAL BALL first.   [ press any key ]"
+        WaitKey
+        cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        EXIT SUB
+    END IF
+    _DEST CANVAS
+    LINE (20 * CW, 8 * CH)-(112 * CW, 45 * CH), BOXBG, BF
+    LINE (20 * CW, 8 * CH)-(112 * CW, 45 * CH), CYANU, B
+    COLOR CYANU, BOXBG: PrintCentered 10, "-=  C R Y S T A L   B A L L  =-"
+    FOR i = 2 TO 9
+        y = 12 + (i - 2) * 4
+        IF SECTORS(i).malive THEN mons = SECTORS(i).monster ELSE mons = "(cleared)"
+        IF SECTORS(i).looted THEN tre = "looted" ELSE tre = SECTORS(i).treasure_name
+        COLOR WHITE, BOXBG: PrintCentered y, SECTORS(i).label
+        COLOR GREY, BOXBG: PrintCentered y + 1, mons + "   guarding   " + tre
+    NEXT i
+    COLOR YELLOWU, BOXBG: PrintCentered 43, "[ press any key ]"
     _DISPLAY
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
@@ -1023,6 +1097,8 @@ SUB DrawHUD
     DIM inv AS STRING
     IF item_sword > 0 THEN inv = inv + "  SWD+" + _TRIM$(STR$(item_sword))
     IF item_secret_card THEN inv = inv + "  SDC"
+    IF item_esp THEN inv = inv + "  ESP"
+    IF item_crystal THEN inv = inv + "  CRY"
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
     hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + lbl
