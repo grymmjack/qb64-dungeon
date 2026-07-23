@@ -83,5 +83,7 @@ DIM SHARED SECRET(0 TO 131, 0 TO 60) AS _BYTE     ' 1 = fogged (door-connected s
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 ' settings (toggled from the SETTINGS menu) + the run timer
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER
+DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and types the result
+DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)

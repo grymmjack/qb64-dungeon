@@ -152,8 +152,8 @@ SUB RunSettings
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 5
-        IF k = "S" THEN sel = sel + 1: IF sel > 5 THEN sel = 1
+        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 7
+        IF k = "S" THEN sel = sel + 1: IF sel > 7 THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
         IF k = CHR$(27) THEN EXIT SUB
         IF k = " " OR k = CHR$(13) THEN
@@ -161,29 +161,35 @@ SUB RunSettings
                 CASE 1: opt_music = NOT opt_music
                 CASE 2: opt_sfx = NOT opt_sfx
                 CASE 3: opt_showdice = NOT opt_showdice
-                CASE 4
+                CASE 4: opt_realdice = NOT opt_realdice
+                CASE 5: opt_dicemath = NOT opt_dicemath
+                CASE 6
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 5: EXIT SUB
+                CASE 7: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
 
         _DEST CANVAS: CLS , BLACK
-        COLOR YELLOWU, BLACK: PrintCentered 8, "-=  S E T T I N G S  =-"
-        FOR i = 1 TO 5
-            y = 14 + (i - 1) * 4
+        COLOR YELLOWU, BLACK: PrintCentered 6, "-=  S E T T I N G S  =-"
+        FOR i = 1 TO 7
+            y = 11 + (i - 1) * 4
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
                 CASE 2: lbl = "Sound FX": vtxt = OnOff$(opt_sfx)
                 CASE 3: lbl = "Show Dice": vtxt = OnOff$(opt_showdice)
-                CASE 4: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 4: lbl = "Real Dice": vtxt = OnOff$(opt_realdice)
+                CASE 5
+                    lbl = "Dice Math"
+                    IF opt_dicemath THEN vtxt = "YOU add mods" ELSE vtxt = "GAME adds mods"
+                CASE 6: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREY, BLACK
-            IF i = 5 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
+            IF i = 7 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        COLOR CYANU, BLACK: PrintCentered 40, "[W/S] move    [ENTER] toggle    [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 43, "[W/S] move    [ENTER] toggle    [ESC] back"
         _DISPLAY
     LOOP
 END SUB
@@ -427,6 +433,70 @@ FUNCTION RollDiceShow% (n AS INTEGER)
     END IF
 
     IF n = 2 THEN RollDiceShow = die_a + die_b ELSE RollDiceShow = die_a
+END FUNCTION
+
+
+' Unified roll: n d6 plus a modifier. In Real-Dice mode the player rolls their
+' own dice and types the result (and, per the Dice-Math setting, either adds the
+' modifier themselves or lets the game add it). Otherwise the game rolls on screen.
+FUNCTION DoRoll% (n AS INTEGER, bonus AS INTEGER, what AS STRING)
+    DIM raw AS INTEGER
+    IF opt_realdice THEN
+        raw = PromptRoll(n, bonus, what)
+        die_a = 0: die_b = 0
+        IF opt_dicemath THEN DoRoll = raw ELSE DoRoll = raw + bonus
+    ELSE
+        DoRoll = RollDiceShow(n) + bonus
+    END IF
+END FUNCTION
+
+
+' Ask the player what they physically rolled; validates against the possible range.
+FUNCTION PromptRoll% (n AS INTEGER, bonus AS INTEGER, what AS STRING)
+    DIM entry AS STRING, k AS STRING, ch AS INTEGER, v AS INTEGER
+    DIM spec AS STRING, l1 AS STRING, msg AS STRING, lo AS INTEGER, hi AS INTEGER
+    spec = _TRIM$(STR$(n)) + "d6"
+    IF bonus > 0 AND opt_dicemath THEN
+        l1 = "Roll " + spec + ", add +" + _TRIM$(STR$(bonus)) + ", and enter the TOTAL:"
+        lo = n + bonus: hi = n * 6 + bonus
+    ELSEIF bonus > 0 THEN
+        l1 = "Roll " + spec + " (the game adds +" + _TRIM$(STR$(bonus)) + ") -- enter your DICE:"
+        lo = n: hi = n * 6
+    ELSE
+        l1 = "Roll " + spec + " and enter the result:"
+        lo = n: hi = n * 6
+    END IF
+    entry = "": msg = ""
+    DO
+        _LIMIT 60
+        _DEST CANVAS
+        LINE (24 * CW, 19 * CH)-(108 * CW, 31 * CH), BOXBG, BF
+        LINE (24 * CW, 19 * CH)-(108 * CW, 31 * CH), CYANU, B
+        COLOR YELLOWU, BOXBG: PrintCentered 21, "-=  R E A L   D I C E  =-"
+        COLOR CYANU, BOXBG: PrintCentered 22, "(" + what + ")"
+        COLOR WHITE, BOXBG: PrintCentered 25, l1
+        COLOR GREENU, BOXBG: PrintCentered 28, "> " + entry + "_"
+        IF LEN(msg) > 0 THEN COLOR REDU, BOXBG: PrintCentered 30, msg
+        _DISPLAY
+        k = INKEY$
+        IF k <> "" THEN
+            IF k = CHR$(13) THEN
+                IF LEN(entry) > 0 THEN
+                    v = VAL(entry)
+                    IF v >= lo AND v <= hi THEN
+                        PromptRoll = v: EXIT FUNCTION
+                    ELSE
+                        msg = "That's not possible -- enter " + _TRIM$(STR$(lo)) + " to " + _TRIM$(STR$(hi)): entry = ""
+                    END IF
+                END IF
+            ELSEIF k = CHR$(8) THEN
+                IF LEN(entry) > 0 THEN entry = LEFT$(entry, LEN(entry) - 1)
+            ELSEIF LEN(k) = 1 THEN
+                ch = ASC(k)
+                IF ch >= 48 AND ch <= 57 AND LEN(entry) < 3 THEN entry = entry + k
+            END IF
+        END IF
+    LOOP
 END FUNCTION
 
 

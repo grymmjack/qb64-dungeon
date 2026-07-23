@@ -85,7 +85,10 @@ Environment specifics that dictate this approach:
   the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
   in a sector with a live monster triggers 2d6 combat (`DoCombat`). Movement (1d6) and combat
-  (2d6) rolls animate on-screen pip dice (`RollDiceShow` / `DrawDie`). Four player classes
+  (2d6) rolls animate on-screen pip dice (`RollDiceShow` / `DrawDie`). Every roll goes through
+  `DoRoll(n, bonus, label)`: with the SETTINGS **Real Dice** toggle on, the player rolls their
+  own physical dice and types the result (`PromptRoll`) — the **Dice Math** toggle decides
+  whether they add the modifier or the game does. Four player classes
   (`CLASSES(1..4)`: Hero/Elf/Superhero/Wizard) with the authentic DUNGEON! win totals
   (10k/10k/20k/30k) and combat modifiers are chosen via CREATE A CHARACTER (`SelectClass`).
   **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an

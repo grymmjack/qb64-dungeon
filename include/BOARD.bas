@@ -6,7 +6,7 @@ SUB DoSearch
     DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER
     DIM found_any AS INTEGER, near_hidden AS INTEGER
     ccx = c.x \ CW: ccy = c.y \ CH
-    roll = RollDie(6) + CLASSES(player_class).secret_bonus
+    roll = DoRoll(1, CLASSES(player_class).secret_bonus, "SEARCHING for secret doors")
     IF item_secret_card THEN roll = 99          ' the Secret Door Card never fails
     found_any = FALSE: near_hidden = FALSE
     FOR i = 1 TO SD_N

@@ -37,6 +37,7 @@ SCREEN CANVAS
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
+opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
@@ -114,7 +115,7 @@ FUNCTION PlayGame%
         IF need_roll THEN
             IF k = " " THEN
                 turn_num = turn_num + 1
-                steps_left = RollDiceShow(1)
+                steps_left = DoRoll(1, 0, "your MOVEMENT roll")
                 need_roll = FALSE
                 cursor_erase             ' wipe the dice box, restore the board
                 cursor_draw
@@ -177,9 +178,8 @@ FUNCTION DoCombat% (sec AS INTEGER)
             c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
             EXIT DO
         ELSEIF k = " " AND NOT unbeatable THEN
-            sm = RollDiceShow(2)
-            d1 = die_a: d2 = die_b
-            IF sm >= target THEN
+            sm = DoRoll(2, item_sword, "attacking the " + SECTORS(sec).monster)
+            IF sm >= need THEN
                 SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
                 Sfx "treasure"
                 ClaimTreasure sec, sm
@@ -203,7 +203,7 @@ END FUNCTION
 SUB MonsterAttack (sec AS INTEGER)
     DIM r AS INTEGER, mon AS STRING, lost AS LONG
     mon = SECTORS(sec).monster
-    r = RollDiceShow(2)
+    r = DoRoll(2, 0, "the " + mon + " strikes back")
     SELECT CASE r
         CASE 2                                  ' ADVENTURER KILLED!
             lost = gold: gold = 0
