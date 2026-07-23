@@ -96,7 +96,11 @@ FUNCTION RunMenu%
                 result = MENU_ENTER: EXIT DO
             ELSEIF sel = 2 THEN
                 chosen = SelectClass
-                IF chosen > 0 THEN player_class = chosen
+                IF chosen > 0 THEN player_class = chosen: player_name = ""
+            ELSEIF sel = 3 THEN
+                LoadCharacter
+            ELSEIF sel = 4 THEN
+                ShowLords
             ELSEIF sel = 5 THEN
                 RunSettings
                 IF mus > 0 THEN
@@ -105,8 +109,6 @@ FUNCTION RunMenu%
                 END IF
             ELSEIF sel = 6 THEN
                 result = MENU_FLEE: EXIT DO
-            ELSE
-                Sfx "bump"               ' LOAD / LORDS not in this build
             END IF
         END IF
         IF k = CHR$(27) THEN result = MENU_FLEE: EXIT DO
@@ -243,17 +245,24 @@ END SUB
 ' found also yields the Level Key.
 
 SUB ShowEnd (win AS INTEGER)
-    _DEST CANVAS: _FONT CH: CLS , BLACK
+    DIM nm AS STRING, el AS LONG
     IF win THEN
         Sfx "win"
+        nm = EnterName$                         ' victory + name entry
+        player_name = nm
+        el = TIMER - game_start: IF el < 0 THEN el = el + 86400
+        SaveLord nm, class_name, gold, el       ' enshrine in the Legendary Lords
+        _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR GREENU, BLACK: PrintCentered 20, "V I C T O R Y"
-        COLOR WHITE, BLACK: PrintCentered 23, "You escape the dungeon with " + _TRIM$(STR$(gold)) + " gold and the Level Key!"
+        COLOR WHITE, BLACK: PrintCentered 23, nm + " the " + class_name + " escapes with " + _TRIM$(STR$(gold)) + " gold!"
+        COLOR CYANU, BLACK: PrintCentered 25, "You are now a Legendary Lord."
     ELSE
         Sfx "lose"
+        _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR REDU, BLACK: PrintCentered 20, "Y O U   D I E D"
         COLOR GREY, BLACK: PrintCentered 23, "The dungeon claims another soul..."
     END IF
-    COLOR YELLOWU, BLACK: PrintCentered 27, "[ press any key to return to the menu ]"
+    COLOR YELLOWU, BLACK: PrintCentered 28, "[ press any key to return to the menu ]"
     _DISPLAY
     WaitKey
 END SUB

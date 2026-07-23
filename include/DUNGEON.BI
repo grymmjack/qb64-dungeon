@@ -84,3 +84,4 @@ DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill que
 ' settings (toggled from the SETTINGS menu) + the run timer
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
+DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)

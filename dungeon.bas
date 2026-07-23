@@ -285,6 +285,7 @@ END SUB
 '$INCLUDE:'include/BOARD.bas'
 '$INCLUDE:'include/CURSOR.bas'
 '$INCLUDE:'include/MENU.bas'
+'$INCLUDE:'include/LORDS.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'

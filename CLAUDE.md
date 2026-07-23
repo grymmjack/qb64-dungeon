@@ -78,7 +78,9 @@ Environment specifics that dictate this approach:
   bottom-`'$INCLUDE`'d modules: **`include/SECTOR.bas`** (sector geometry + monster/treasure/
   class data + `RandomizeRooms`), **`include/BOARD.bas`** (board render, fog-of-war, secret
   doors, pixel-colour collision), **`include/CURSOR.bas`** (movement + draw/erase), and
-  **`include/MENU.bas`** (intro, menu, class-select, dialogs, HUD, dice, sound). QB64 resolves
+  **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound), and
+  **`include/LORDS.bas`** (persistent hall of fame + LOAD A CHARACTER, saved to the git-ignored
+  `dungeon-lords.dat`). QB64 resolves
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
   the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
