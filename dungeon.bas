@@ -29,6 +29,12 @@ TYPE SECTOR
     mnum    AS INTEGER       ' 2d6 total needed to defeat
     mgold   AS INTEGER       ' treasure guarded (sits under the monster)
     malive  AS INTEGER
+    is_boss AS INTEGER       ' room flag: tougher guardian
+    treasure AS INTEGER      ' loose treasure cache in this room (gold)
+    trapped AS INTEGER       ' the cache is trapped
+    looted  AS INTEGER       ' cache already taken
+    secret_here AS INTEGER   ' a secret door (with the Level Key) hides here
+    secret_found AS INTEGER  ' the secret door has been revealed
 END TYPE
 
 TYPE CURSOR
@@ -60,6 +66,7 @@ DIM SHARED class_name AS STRING
 DIM SHARED CLASSES(1 TO 4) AS PCLASS
 DIM SHARED player_class AS INTEGER
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
+DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 
 SW = 132: SH = 51: CW = 8: CH = 16
 
@@ -155,16 +162,19 @@ SUB InitSectors
 
     SECTORS(6).kolor = _RGB32(&H00, &HAA, &HAA): SECTORS(6).label = "LEVEL 6 - KING'S QUARTERS"
     SECTORS(6).start_x = 80: SECTORS(6).start_y = 17: SECTORS(6).end_x = 117: SECTORS(6).end_y = 32
-    SECTORS(6).monster = "OGRE": SECTORS(6).mnum = 9: SECTORS(6).mgold = 1400
+    SECTORS(6).monster = "OGRE": SECTORS(6).mnum = 9: SECTORS(6).mgold = 1400: SECTORS(6).is_boss = TRUE
 
     SECTORS(7).kolor = _RGB32(&H55, &HFF, &HFF): SECTORS(7).label = "LEVEL 7 - WIZ'S QUARTERS"
     SECTORS(7).start_x = 79: SECTORS(7).start_y = 1: SECTORS(7).end_x = 117: SECTORS(7).end_y = 16
+    SECTORS(7).treasure = 600                      ' unguarded cache
 
     SECTORS(8).kolor = _RGB32(&H55, &H55, &H55): SECTORS(8).label = "LEVEL 8 - QUEEN'S QUARTERS"
     SECTORS(8).start_x = 81: SECTORS(8).start_y = 33: SECTORS(8).end_x = 117: SECTORS(8).end_y = 50
+    SECTORS(8).treasure = 800: SECTORS(8).trapped = TRUE   ' rich but trapped
 
     SECTORS(9).kolor = _RGB32(&HAA, &H00, &HAA): SECTORS(9).label = "LEVEL 9 - THE CRYPT"
     SECTORS(9).start_x = 35: SECTORS(9).start_y = 1: SECTORS(9).end_x = 78: SECTORS(9).end_y = 16
+    SECTORS(9).secret_here = TRUE                  ' SEARCH here to reveal the Level Key
 END SUB
 
 
@@ -324,13 +334,18 @@ FUNCTION PlayGame%
     DIM k AS STRING
     DIM AS INTEGER sec, res
 
+    DIM i AS INTEGER
     class_name = CLASSES(player_class).name
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
+    has_key = FALSE
     SECTORS(2).malive = TRUE: SECTORS(3).malive = TRUE
     SECTORS(5).malive = TRUE: SECTORS(6).malive = TRUE
+    FOR i = 1 TO 9
+        SECTORS(i).looted = FALSE: SECTORS(i).secret_found = FALSE
+    NEXT i
 
     StartBoard
-    Banner "DUNGEON  -  gather " + _TRIM$(STR$(target_gold)) + " gold, then return to START", "[SPACE] roll dice   WASD move   fight monsters for their gold   ESC flee"
+    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll   WASD move   [F] search rooms for secret doors   fight for gold   ESC flee"
     WaitKey
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
@@ -340,6 +355,7 @@ FUNCTION PlayGame%
         k = UCASE$(INKEY$)
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
+        IF k = "F" THEN DoSearch
 
         IF need_roll THEN
             IF k = " " THEN
@@ -353,18 +369,22 @@ FUNCTION PlayGame%
             IF (k = "W" OR k = "A" OR k = "S" OR k = "D") AND steps_left > 0 THEN
                 IF TryMove(k) THEN
                     steps_left = steps_left - 1
-                    ' encounter check: on a room floor with a living monster?
                     IF InRoomNow THEN
                         sec = SECTOR.get_by_xy(c.x, c.y)
                         IF sec >= 1 THEN
+                            ' living monster guards the room?
                             IF SECTORS(sec).malive AND LEN(SECTORS(sec).monster) > 0 THEN
                                 res = DoCombat(sec)
                                 IF res = 1 THEN PlayGame = OUT_LOSE: EXIT FUNCTION
                             END IF
+                            ' loose treasure in a cleared / unguarded room?
+                            IF SECTORS(sec).treasure > 0 AND NOT SECTORS(sec).looted AND NOT SECTORS(sec).malive THEN
+                                CollectTreasure sec
+                            END IF
                         END IF
                     END IF
-                    ' victory check: enough gold AND back at the entrance
-                    IF gold >= target_gold THEN
+                    ' victory: enough gold, hold the Level Key, and back at the entrance
+                    IF gold >= target_gold AND has_key THEN
                         IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN
                             PlayGame = OUT_WIN: EXIT FUNCTION
                         END IF
@@ -389,7 +409,9 @@ FUNCTION DoCombat% (sec AS INTEGER)
     DoCombat = 0
 
     IF bonus > 0 THEN bhint = "  (" + class_name + " +" + _TRIM$(STR$(bonus)) + ")" ELSE bhint = ""
-    Banner "A " + SECTORS(sec).monster + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(need)) + "+ on 2d6" + bhint + "     [SPACE] ATTACK     [ESC] FLEE"
+    DIM lead AS STRING
+    IF SECTORS(sec).is_boss THEN lead = "The BOSS " + SECTORS(sec).monster ELSE lead = "A " + SECTORS(sec).monster
+    Banner lead + " guards the " + SECTORS(sec).label + "!", "Roll " + _TRIM$(STR$(need)) + "+ on 2d6" + bhint + "     [SPACE] ATTACK     [ESC] FLEE"
 
     DO
         _LIMIT 60
@@ -404,10 +426,12 @@ FUNCTION DoCombat% (sec AS INTEGER)
             IF sm >= need THEN
                 SECTORS(sec).malive = FALSE
                 gold = gold + SECTORS(sec).mgold
+                Sfx "hit"
                 Banner "You slay the " + SECTORS(sec).monster + "!   (2d6 = " + _TRIM$(STR$(d1)) + " + " + _TRIM$(STR$(d2)) + bstr + " = " + _TRIM$(STR$(sm)) + ")", "+ " + _TRIM$(STR$(SECTORS(sec).mgold)) + " GOLD      [ press any key ]"
                 WaitKey
                 EXIT DO
             ELSEIF d1 = 1 AND d2 = 1 THEN
+                Sfx "lose"
                 Banner "SNAKE EYES!  The " + SECTORS(sec).monster + " strikes you down.", "[ press any key ]"
                 WaitKey
                 DoCombat = 1
@@ -455,6 +479,73 @@ SUB DoConsequence (sec AS INTEGER, sm AS INTEGER)
             WaitKey
             c.x = c.prev_x: c.y = c.prev_y
     END SELECT
+    Sfx "miss"
+END SUB
+
+
+' Grab (or spring the trap on) a room's loose treasure cache.
+SUB CollectTreasure (sec AS INTEGER)
+    DIM amt AS INTEGER, lost AS LONG
+    amt = SECTORS(sec).treasure
+    SECTORS(sec).looted = TRUE
+    IF SECTORS(sec).trapped THEN
+        lost = amt \ 2
+        gold = gold + amt - lost
+        Sfx "trap"
+        Banner "A TRAP springs in the " + SECTORS(sec).label + "!", "You grab " + _TRIM$(STR$(amt)) + " gold but lose " + _TRIM$(STR$(lost)) + " to the trap.   [ press any key ]"
+    ELSE
+        gold = gold + amt
+        Sfx "treasure"
+        Banner "Treasure!  You loot the " + SECTORS(sec).label + ".", "+ " + _TRIM$(STR$(amt)) + " GOLD      [ press any key ]"
+    END IF
+    WaitKey
+    cursor_erase
+    cursor_draw
+    _DISPLAY
+END SUB
+
+
+' [F] search the current room for a secret door. Only the Crypt hides one (the
+' Level Key); the Elf's secret_bonus makes the d6 check far more reliable.
+SUB DoSearch
+    DIM sec AS INTEGER, roll AS INTEGER
+    sec = SECTOR.get_by_xy(c.x, c.y)
+    IF sec < 1 OR NOT InRoomNow THEN
+        Sfx "search"
+        Banner "You search, but there are only bare walls here.", "(Search inside a room.)   [ press any key ]"
+        WaitKey
+        cursor_erase: cursor_draw: _DISPLAY
+        EXIT SUB
+    END IF
+    IF SECTORS(sec).secret_here AND NOT SECTORS(sec).secret_found THEN
+        roll = RollDie(6) + CLASSES(player_class).secret_bonus
+        IF roll >= 5 THEN
+            SECTORS(sec).secret_found = TRUE
+            has_key = TRUE
+            RevealSecretDoor sec
+            Sfx "secret"
+            Banner "A SECRET DOOR grinds open in the " + SECTORS(sec).label + "!", "You claim the LEVEL KEY.   [ press any key ]"
+        ELSE
+            Sfx "search"
+            Banner "You run your hands over the cold stone... nothing yet.", "(Keep searching -- an Elf has the keenest eye.)   [ press any key ]"
+        END IF
+    ELSE
+        Sfx "search"
+        Banner "You search the " + SECTORS(sec).label + " but find no secrets.", "[ press any key ]"
+    END IF
+    WaitKey
+    cursor_erase: cursor_draw: _DISPLAY
+END SUB
+
+
+' Paint a bright-blue secret-door tile into a room (on both canvases) so it
+' shows and reads as passable terrain afterwards.
+SUB RevealSecretDoor (sec AS INTEGER)
+    DIM AS INTEGER dx, dy
+    dx = ((SECTORS(sec).start_x + SECTORS(sec).end_x) \ 2) * CW
+    dy = ((SECTORS(sec).start_y + SECTORS(sec).end_y) \ 2) * CH
+    _DEST CANVAS_COPY: LINE (dx, dy)-(dx + CW - 1, dy + CH - 1), BRIGHT_BLUE, BF
+    _DEST CANVAS: LINE (dx, dy)-(dx + CW - 1, dy + CH - 1), BRIGHT_BLUE, BF
 END SUB
 
 
@@ -464,9 +555,11 @@ END SUB
 SUB ShowEnd (win AS INTEGER)
     _DEST CANVAS: _FONT CH: CLS , BLACK
     IF win THEN
+        Sfx "win"
         COLOR GREENU, BLACK: PrintCentered 20, "V I C T O R Y"
-        COLOR WHITE, BLACK: PrintCentered 23, "You escape the dungeon with " + _TRIM$(STR$(gold)) + " gold!"
+        COLOR WHITE, BLACK: PrintCentered 23, "You escape the dungeon with " + _TRIM$(STR$(gold)) + " gold and the Level Key!"
     ELSE
+        Sfx "lose"
         COLOR REDU, BLACK: PrintCentered 20, "Y O U   D I E D"
         COLOR GREY, BLACK: PrintCentered 23, "The dungeon claims another soul..."
     END IF
@@ -499,14 +592,27 @@ FUNCTION TryMove% (k AS STRING)
     IF k = "S" THEN c.y = c.y + CH
     cursor_keep_in_bounds
     IF CanMove THEN
-        cursor_erase: cursor_draw
-        SOUND 350, 0.1
+        cursor_erase
+        cursor_draw
+        IF OnDoorNow THEN Sfx "door" ELSE Sfx "move"
         TryMove = TRUE
     ELSE
         c.x = c.prev_x: c.y = c.prev_y
-        SOUND 200, 0.1
+        Sfx "bump"
         TryMove = FALSE
     END IF
+END FUNCTION
+
+
+' TRUE if the cursor cell contains a door (brown), i.e. we just stepped on one.
+FUNCTION OnDoorNow%
+    DIM img AS LONG, r AS INTEGER
+    img = _NEWIMAGE(CW, CH, 32)
+    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    r = image_is_monochromatic(img, BROWN)
+    IF NOT r THEN r = image_is_diachromatic(img, YELLOW, BROWN)
+    _FREEIMAGE img
+    OnDoorNow = r
 END FUNCTION
 
 
@@ -643,16 +749,18 @@ END FUNCTION
 SUB DrawHUD
     DIM sec AS INTEGER, lbl AS STRING, hud AS STRING
     _DEST CANVAS
+    DIM keytag AS STRING
     sec = SECTOR.get_by_xy(c.x, c.y)
     IF sec >= 1 THEN lbl = SECTORS(sec).label ELSE lbl = "THE HALLS"
+    IF has_key THEN keytag = "KEY" ELSE keytag = "no key"
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + class_name + "    GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "    TURN " + _TRIM$(STR$(turn_num)) + "    STEPS " + _TRIM$(STR$(steps_left)) + "    " + lbl
+    hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK
         _PRINTSTRING ((SW - 17) * CW, 50 * CH), "[SPACE] ROLL DICE"
-    ELSEIF gold >= target_gold THEN
+    ELSEIF gold >= target_gold AND has_key THEN
         COLOR GREENU, BLACK
         _PRINTSTRING ((SW - 23) * CW, 50 * CH), "RETURN TO START TO WIN!"
     END IF
@@ -687,6 +795,25 @@ END SUB
 FUNCTION RollDie% (sides AS INTEGER)
     RollDie = INT(RND * sides) + 1
 END FUNCTION
+
+
+' Named sound effects (SOUND queues in the background, so short sequences play out).
+SUB Sfx (kind AS STRING)
+    SELECT CASE kind
+        CASE "move": SOUND 350, 0.08
+        CASE "bump": SOUND 170, 0.12
+        CASE "door": SOUND 300, 0.06: SOUND 520, 0.09
+        CASE "secret": SOUND 700, 0.05: SOUND 950, 0.05: SOUND 1250, 0.12
+        CASE "treasure": SOUND 820, 0.05: SOUND 1040, 0.05: SOUND 1320, 0.12
+        CASE "trap": SOUND 240, 0.1: SOUND 150, 0.14: SOUND 90, 0.22
+        CASE "hit": SOUND 620, 0.05: SOUND 320, 0.12
+        CASE "miss": SOUND 200, 0.14
+        CASE "search": SOUND 300, 0.05: SOUND 260, 0.05
+        CASE "win": SOUND 523, 0.12: SOUND 659, 0.12: SOUND 784, 0.12: SOUND 1046, 0.28
+        CASE "lose": SOUND 300, 0.16: SOUND 220, 0.16: SOUND 130, 0.34
+        CASE "select": SOUND 220, 0.06
+    END SELECT
+END SUB
 
 
 ' A single square pip.

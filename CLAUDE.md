@@ -79,8 +79,12 @@ Environment specifics that dictate this approach:
   miss table in `DoConsequence`). Movement (1d6) and combat (2d6) rolls animate on-screen
   pip dice (`RollDiceShow` / `DrawDie`). Four player classes (`CLASSES(1..4)`: Hero/Elf/Superhero/
   Wizard) with distinct gold goals + combat bonuses are chosen via the menu's CREATE A
-  CHARACTER (`SelectClass`). Build/run it from the repo root (asset paths are `assets/...`,
-  not `../assets/...`).
+  CHARACTER (`SelectClass`). Room flags on `SECTOR` add a boss room (`is_boss`), looseable
+  treasure caches (`treasure`/`trapped`/`looted`, via `CollectTreasure`), and a secret door
+  holding the Level Key — revealed by the `[F]` SEARCH action (`DoSearch` / `RevealSecretDoor`),
+  where the Elf's `secret_bonus` matters and the win now requires gold **and** `has_key`.
+  All events route through the `Sfx` sound dispatcher. Build/run it from the repo root
+  (asset paths are `assets/...`, not `../assets/...`).
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
