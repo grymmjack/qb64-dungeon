@@ -82,6 +82,91 @@ SUB DetectSecretDoors
 END SUB
 
 
+' Scan FULL_BOARD for regular (brown) door tiles and record their cells.
+SUB DetectDoors
+    DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, brown AS INTEGER
+    DOOR_N = 0
+    _SOURCE FULL_BOARD
+    FOR cy = 1 TO SH - 4
+        FOR cx = 1 TO SW - 2
+            brown = 0
+            FOR py = 1 TO CH - 1 STEP 2
+                FOR px = 1 TO CW - 1 STEP 2
+                    IF POINT(cx * CW + px, cy * CH + py) = BROWN THEN brown = brown + 1
+                NEXT px
+            NEXT py
+            IF brown >= 2 AND DOOR_N < UBOUND(DOOR_X) THEN
+                DOOR_N = DOOR_N + 1
+                DOOR_X(DOOR_N) = cx: DOOR_Y(DOOR_N) = cy
+            END IF
+        NEXT cx
+    NEXT cy
+END SUB
+
+
+' Re-roll which doors are "strong" (must be broken) -- about 1 in 6 -- and clear
+' the broken flags.  Called each game so a fresh dungeon reinforces new doors.
+SUB MarkStrongDoors
+    DIM i AS INTEGER
+    FOR i = 1 TO DOOR_N
+        DOOR_BROKEN(i) = 0
+        IF RollDie(6) = 1 THEN DOOR_STRONG(i) = 1 ELSE DOOR_STRONG(i) = 0
+    NEXT i
+END SUB
+
+
+' Index of an un-broken STRONG door at cell (cx,cy), or 0 if none.
+FUNCTION StrongDoorHere% (cx AS INTEGER, cy AS INTEGER)
+    DIM i AS INTEGER
+    FOR i = 1 TO DOOR_N
+        IF DOOR_X(i) = cx AND DOOR_Y(i) = cy THEN
+            IF DOOR_STRONG(i) AND NOT DOOR_BROKEN(i) THEN StrongDoorHere = i
+            EXIT FUNCTION
+        END IF
+    NEXT i
+    StrongDoorHere = 0
+END FUNCTION
+
+
+' Is there a strong door one step in direction k from the cursor? Returns its index.
+FUNCTION StrongDoorAhead% (k AS STRING)
+    DIM dx AS INTEGER, dy AS INTEGER
+    SELECT CASE k
+        CASE "A": dx = -1
+        CASE "D": dx = 1
+        CASE "W": dy = -1
+        CASE "S": dy = 1
+        CASE "NW": dx = -1: dy = -1
+        CASE "NE": dx = 1: dy = -1
+        CASE "SW": dx = -1: dy = 1
+        CASE "SE": dx = 1: dy = 1
+    END SELECT
+    StrongDoorAhead = StrongDoorHere(c.x \ CW + dx, c.y \ CH + dy)
+END FUNCTION
+
+
+' Attempt to break a strong door with a STR check (d20 + STR mod vs DC 13).
+' Returns TRUE and clears the door if it bursts open.
+FUNCTION BreakDoorAttempt% (idx AS INTEGER)
+    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING
+    Sfx "strongdoor"
+    m = AbilMod(player_str)
+    roll = RollDie(20) + m
+    tag = "  (STR d20" + ModStr$(m) + " = " + _TRIM$(STR$(roll)) + " vs 13)"
+    IF roll >= 13 THEN
+        DOOR_BROKEN(idx) = 1
+        Sfx "breakdoor"
+        Banner "You SMASH through the reinforced door!" + tag, "It bursts off its hinges.   [ press any key ]"
+        BreakDoorAttempt = TRUE
+    ELSE
+        Banner "A REINFORCED DOOR resists your shoulder!" + tag, "It holds firm -- hurl yourself at it again.   [ press any key ]"
+        BreakDoorAttempt = FALSE
+    END IF
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END FUNCTION
+
+
 ' Build the played board from FULL_BOARD: flood-fill the area reachable from
 ' START without crossing a door (the "public" area), then black out every
 ' walkable cell that is only reachable through a door, plus the doors.
@@ -96,6 +181,8 @@ SUB InitFog
 
     DetectSecretDoors
     FOR i = 1 TO SD_N: DOORCELL(SD_X(i), SD_Y(i)) = 1: NEXT i
+    DetectDoors                          ' regular (brown) doors -> DOOR arrays
+    MarkStrongDoors                      ' re-roll which ones are reinforced this game
 
     ' 1) BFS the public area from START (doors are treated as walls)
     _SOURCE FULL_BOARD

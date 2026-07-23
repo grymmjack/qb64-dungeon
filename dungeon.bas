@@ -37,6 +37,8 @@ SCREEN CANVAS
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
+opt_voice = TRUE                              ' typewriter text speaks in blips
+opt_musicvol = 7: opt_sfxvol = 8: opt_voicevol = 6   ' 0..10 volume sliders
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
 opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
@@ -90,7 +92,7 @@ SYSTEM
 
 FUNCTION PlayGame%
     DIM k AS STRING
-    DIM AS INTEGER sec, res, idle_ticks
+    DIM AS INTEGER sec, res, idle_ticks, sd
 
     DIM i AS INTEGER
     class_name = CLASSES(player_class).name
@@ -102,6 +104,8 @@ FUNCTION PlayGame%
     game_start = TIMER               ' start the run timer
 
     StartBoard
+    ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies treasure enough to make your name a legend -- and a guardian set over every hoard. Find the Level Key, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. Few ever do."
+    cursor_erase: cursor_draw        ' clear the narration, reveal the board
     Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  move  [F] search  [C] sheet  [?] keys  fight  ESC flee"
     WaitKey
     cursor_erase: cursor_draw
@@ -137,7 +141,20 @@ FUNCTION PlayGame%
             END IF
         ELSE
             IF IsMoveKey(k) AND steps_left > 0 THEN
-                IF TryMove(k) THEN
+                sd = StrongDoorAhead(k)
+                IF sd > 0 THEN
+                    ' a reinforced door blocks the way -- spend the step trying to break it
+                    steps_left = steps_left - 1
+                    IF BreakDoorAttempt(sd) THEN
+                        IF TryMove(k) THEN
+                            moves_made = moves_made + 1
+                            IF OnDoorNow THEN
+                                IF TryMove(k) THEN moves_made = moves_made + 1
+                            END IF
+                        END IF
+                    END IF
+                    IF steps_left <= 0 THEN need_roll = TRUE
+                ELSEIF TryMove(k) THEN
                     steps_left = steps_left - 1
                     moves_made = moves_made + 1
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell

@@ -88,12 +88,17 @@ DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
 DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER
 DIM SHARED FULL_BOARD AS LONG                     ' pristine board (doors + secret rooms visible)
+' regular (brown) doors auto-detected from the art; some are flagged "strong" (must be broken)
+DIM SHARED DOOR_X(1 TO 800) AS INTEGER, DOOR_Y(1 TO 800) AS INTEGER
+DIM SHARED DOOR_STRONG(1 TO 800) AS _BYTE, DOOR_BROKEN(1 TO 800) AS _BYTE, DOOR_N AS INTEGER
 DIM SHARED VIS(0 TO 131, 0 TO 60) AS _BYTE        ' 1 = cell currently revealed
 DIM SHARED DOORCELL(0 TO 131, 0 TO 60) AS _BYTE   ' 1 = a secret-door cell
 DIM SHARED SECRET(0 TO 131, 0 TO 60) AS _BYTE     ' 1 = fogged (door-connected sealed cell)
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 ' settings (toggled from the SETTINGS menu) + the run timer
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER
+DIM SHARED opt_voice AS INTEGER                                    ' typewriter text "voice" blips on/off
+DIM SHARED opt_musicvol AS INTEGER, opt_sfxvol AS INTEGER, opt_voicevol AS INTEGER  ' 0..10 volume sliders
 DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and types the result
 DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
 DIM SHARED opt_oldschool AS INTEGER   ' TRUE: Dungeon! 2d6-vs-target combat; FALSE: D&D d20/HP combat
@@ -104,6 +109,7 @@ DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
 DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
 DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
 DIM SHARED player_dmgdie AS INTEGER, player_dmgbonus AS INTEGER  ' weapon die + STR/INT damage mod
+DIM SHARED music_handle AS LONG                  ' currently-looping menu music (for live volume)
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter

@@ -108,6 +108,11 @@ Environment specifics that dictate this approach:
   baseline stats for the default HERO and loaded champions. Movement is 8-way — WASD/arrows
   plus numpad diagonals (`NormKey$` → `NW/NE/SW/SE`, `TryMove`/`IsMoveKey`) — and stepping onto
   a door hops one cell further so you pass through it. `[?]` `ShowKeys` lists every binding.
+  About 1 in 6 brown doors are **reinforced** (`DetectDoors`/`MarkStrongDoors`/`DOOR_STRONG`):
+  bumping one (`StrongDoorAhead`) forces a STR check to `BreakDoorAttempt` it (thud + splinter
+  sounds). SETTINGS also carry **volume sliders** (Music/SFX/Voice, `opt_*vol` 0-10; all effects
+  route through `Tone`, music through `_SNDVOL music_handle`) and a **Voice** toggle that blips
+  per glyph in the typewriter **`ScrollText`** window (used for the game-open narration).
   **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
   authentic monster + treasure from that level's pool (`InitMonsterTables`), and one deep
   sector becomes the boss lair (`is_boss`). Each monster carries its exact **per-class** 2d6

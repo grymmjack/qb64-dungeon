@@ -10,11 +10,11 @@ FUNCTION SelectClass%
         k = UCASE$(INKEY$)
         IF k = "W" OR k = "A" THEN
             sel = sel - 1: IF sel < 1 THEN sel = 4
-            SOUND 200, 0.1
+            IF opt_sfx THEN Tone 200, 0.1
         END IF
         IF k = "S" OR k = "D" THEN
             sel = sel + 1: IF sel > 4 THEN sel = 1
-            SOUND 200, 0.1
+            IF opt_sfx THEN Tone 200, 0.1
         END IF
         IF k = CHR$(13) THEN SelectClass = sel: EXIT FUNCTION
         IF k = CHR$(27) THEN SelectClass = 0: EXIT FUNCTION
@@ -139,6 +139,7 @@ SUB ShowIntro
     DIM ansi AS STRING, mus AS LONG, k AS STRING
     ansi = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
     mus = _SNDOPEN("assets/music/vr-theme.rad")
+    IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDPLAY mus
     _DEST CANVAS: _FONT CH: CLS , BLACK
     ANSI_Print (ansi)
@@ -175,6 +176,8 @@ FUNCTION RunMenu%
     _DEST iBlock: _FONT CH: ANSI_Print (bl(1))
 
     mus = _SNDOPEN("assets/music/everdark.rad")
+    music_handle = mus
+    IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDLOOP mus
 
     sel = 1: t = 0: result = 0
@@ -200,6 +203,7 @@ FUNCTION RunMenu%
             ELSEIF sel = 5 THEN
                 RunSettings
                 IF mus > 0 THEN
+                    _SNDVOL mus, opt_musicvol / 10
                     IF opt_music AND _SNDPLAYING(mus) = 0 THEN _SNDLOOP mus
                     IF NOT opt_music THEN _SNDSTOP mus
                 END IF
@@ -231,6 +235,7 @@ FUNCTION RunMenu%
     LOOP
 
     IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
+    music_handle = 0
     _FREEIMAGE iLogo: _FREEIMAGE iLeft: _FREEIMAGE iRight: _FREEIMAGE iBlock
     RunMenu = result
 END FUNCTION
@@ -242,58 +247,95 @@ END FUNCTION
 
 
 ' SETTINGS screen (menu option 5): toggle music / sfx / dice / fullscreen.
+' A 0..10 volume bar, e.g. "[####------] 40%".
+FUNCTION VolBar$ (v AS INTEGER)
+    VolBar$ = "[" + STRING$(v, "#") + STRING$(10 - v, "-") + "] " + _TRIM$(STR$(v * 10)) + "%"
+END FUNCTION
+
+
+' Clamp a value to 0..10.
+FUNCTION Clamp10% (v AS INTEGER)
+    IF v < 0 THEN
+        Clamp10 = 0
+    ELSEIF v > 10 THEN
+        Clamp10 = 10
+    ELSE
+        Clamp10 = v
+    END IF
+END FUNCTION
+
+
 SUB RunSettings
+    CONST NSET = 13
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
+    DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 9
-        IF k = "S" THEN sel = sel + 1: IF sel > 9 THEN sel = 1
+        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = NSET
+        IF k = "S" THEN sel = sel + 1: IF sel > NSET THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
         IF k = CHR$(27) THEN EXIT SUB
+
+        ' A/D adjusts the volume sliders (items 2 / 4 / 6)
+        IF k = "A" OR k = "D" THEN
+            IF k = "A" THEN delta = -1 ELSE delta = 1
+            SELECT CASE sel
+                CASE 2: opt_musicvol = Clamp10(opt_musicvol + delta): IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10
+                CASE 4: opt_sfxvol = Clamp10(opt_sfxvol + delta): Sfx "select"
+                CASE 6: opt_voicevol = Clamp10(opt_voicevol + delta): VoiceBlip 700
+            END SELECT
+        END IF
+
         IF k = " " OR k = CHR$(13) THEN
             SELECT CASE sel
                 CASE 1: opt_music = NOT opt_music
-                CASE 2: opt_sfx = NOT opt_sfx
-                CASE 3: opt_showdice = NOT opt_showdice
-                CASE 4: opt_realdice = NOT opt_realdice
-                CASE 5: opt_dicemath = NOT opt_dicemath
-                CASE 6: opt_oldschool = NOT opt_oldschool
-                CASE 7: opt_heroicstats = NOT opt_heroicstats
-                CASE 8
+                CASE 3: opt_sfx = NOT opt_sfx
+                CASE 5: opt_voice = NOT opt_voice
+                CASE 7: opt_showdice = NOT opt_showdice
+                CASE 8: opt_realdice = NOT opt_realdice
+                CASE 9: opt_dicemath = NOT opt_dicemath
+                CASE 10: opt_oldschool = NOT opt_oldschool
+                CASE 11: opt_heroicstats = NOT opt_heroicstats
+                CASE 12
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 9: EXIT SUB
+                CASE 13: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
 
         _DEST CANVAS: CLS , BLACK
-        COLOR YELLOWU, BLACK: PrintCentered 4, "-=  S E T T I N G S  =-"
-        FOR i = 1 TO 9
-            y = 8 + (i - 1) * 4
+        COLOR YELLOWU, BLACK: PrintCentered 2, "-=  S E T T I N G S  =-"
+        FOR i = 1 TO NSET
+            y = 5 + (i - 1) * 3
+            slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
-                CASE 2: lbl = "Sound FX": vtxt = OnOff$(opt_sfx)
-                CASE 3: lbl = "Show Dice": vtxt = OnOff$(opt_showdice)
-                CASE 4: lbl = "Real Dice": vtxt = OnOff$(opt_realdice)
-                CASE 5
+                CASE 2: lbl = "  Music Vol": vtxt = VolBar$(opt_musicvol): slider = TRUE
+                CASE 3: lbl = "Sound FX": vtxt = OnOff$(opt_sfx)
+                CASE 4: lbl = "  SFX Vol": vtxt = VolBar$(opt_sfxvol): slider = TRUE
+                CASE 5: lbl = "Voice": vtxt = OnOff$(opt_voice)
+                CASE 6: lbl = "  Voice Vol": vtxt = VolBar$(opt_voicevol): slider = TRUE
+                CASE 7: lbl = "Show Dice": vtxt = OnOff$(opt_showdice)
+                CASE 8: lbl = "Real Dice": vtxt = OnOff$(opt_realdice)
+                CASE 9
                     lbl = "Dice Math"
                     IF opt_dicemath THEN vtxt = "YOU add mods" ELSE vtxt = "GAME adds mods"
-                CASE 6
+                CASE 10
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
-                CASE 7
+                CASE 11
                     lbl = "Stat Roll"
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
-                CASE 8: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 12: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
-            IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREY, BLACK
-            IF i = 9 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
+            IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
+            IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        COLOR CYANU, BLACK: PrintCentered 43, "[W/S] move    [ENTER] toggle    [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 45, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
 END SUB
@@ -485,29 +527,107 @@ FUNCTION RollDie% (sides AS INTEGER)
 END FUNCTION
 
 
+' One tone at the current SFX volume.  All effects route through here so the
+' SFX Vol slider (opt_sfxvol, 0..10) scales every sound at once.
+SUB Tone (freq AS INTEGER, dur AS SINGLE)
+    SOUND freq, dur, opt_sfxvol / 10
+END SUB
+
+
 ' Named sound effects (SOUND queues in the background, so short sequences play out).
 
 SUB Sfx (kind AS STRING)
     IF NOT opt_sfx THEN EXIT SUB
     SELECT CASE kind
-        CASE "move": SOUND 350, 0.08
-        CASE "bump": SOUND 170, 0.12
-        CASE "door": SOUND 300, 0.06: SOUND 520, 0.09
-        CASE "secret": SOUND 700, 0.05: SOUND 950, 0.05: SOUND 1250, 0.12
-        CASE "secretpass": SOUND 1100, 0.04: SOUND 820, 0.04: SOUND 1300, 0.09
-        CASE "key": SOUND 660, 0.06: SOUND 880, 0.06: SOUND 1174, 0.06: SOUND 1568, 0.18
-        CASE "idle": SOUND 130, 0.1: SOUND 98, 0.16
-        CASE "treasure": SOUND 820, 0.05: SOUND 1040, 0.05: SOUND 1320, 0.12
-        CASE "trap": SOUND 240, 0.1: SOUND 150, 0.14: SOUND 90, 0.22
-        CASE "hit": SOUND 620, 0.05: SOUND 320, 0.12
-        CASE "miss": SOUND 200, 0.14
-        CASE "crit": SOUND 700, 0.05: SOUND 950, 0.05: SOUND 1200, 0.05: SOUND 1600, 0.14
-        CASE "fumble": SOUND 320, 0.08: SOUND 210, 0.1: SOUND 120, 0.18
-        CASE "search": SOUND 300, 0.05: SOUND 260, 0.05
-        CASE "win": SOUND 523, 0.12: SOUND 659, 0.12: SOUND 784, 0.12: SOUND 1046, 0.28
-        CASE "lose": SOUND 300, 0.16: SOUND 220, 0.16: SOUND 130, 0.34
-        CASE "select": SOUND 220, 0.06
+        CASE "move": Tone 350, 0.08
+        CASE "bump": Tone 170, 0.12
+        CASE "door": Tone 300, 0.06: Tone 520, 0.09
+        CASE "strongdoor": Tone 120, 0.14: Tone 85, 0.12       ' heavy thud on a reinforced door
+        CASE "breakdoor": Tone 300, 0.04: Tone 180, 0.05: Tone 500, 0.04: Tone 70, 0.22  ' splintering crash
+        CASE "secret": Tone 700, 0.05: Tone 950, 0.05: Tone 1250, 0.12
+        CASE "secretpass": Tone 1100, 0.04: Tone 820, 0.04: Tone 1300, 0.09
+        CASE "key": Tone 660, 0.06: Tone 880, 0.06: Tone 1174, 0.06: Tone 1568, 0.18
+        CASE "idle": Tone 130, 0.1: Tone 98, 0.16
+        CASE "treasure": Tone 820, 0.05: Tone 1040, 0.05: Tone 1320, 0.12
+        CASE "trap": Tone 240, 0.1: Tone 150, 0.14: Tone 90, 0.22
+        CASE "hit": Tone 620, 0.05: Tone 320, 0.12
+        CASE "miss": Tone 200, 0.14
+        CASE "crit": Tone 700, 0.05: Tone 950, 0.05: Tone 1200, 0.05: Tone 1600, 0.14
+        CASE "fumble": Tone 320, 0.08: Tone 210, 0.1: Tone 120, 0.18
+        CASE "search": Tone 300, 0.05: Tone 260, 0.05
+        CASE "win": Tone 523, 0.12: Tone 659, 0.12: Tone 784, 0.12: Tone 1046, 0.28
+        CASE "lose": Tone 300, 0.16: Tone 220, 0.16: Tone 130, 0.34
+        CASE "select": Tone 220, 0.06
     END SELECT
+END SUB
+
+
+' A single "voice" blip for the typewriter text window, at the Voice volume.
+SUB VoiceBlip (freq AS INTEGER)
+    IF NOT opt_voice THEN EXIT SUB
+    SOUND freq, 0.03, opt_voicevol / 10
+END SUB
+
+
+' Scrolling text window: type `body` out one character at a time (word-wrapped)
+' inside a framed box, blipping the voice per glyph.  A keypress fast-forwards
+' the reveal; another dismisses it.  Great for lore / narration.
+SUB ScrollText (title AS STRING, body AS STRING)
+    DIM AS INTEGER bx, by, bw, bh, i, maxcols, skip, ln, p, nl
+    DIM word AS STRING, acc AS STRING, wrapped AS STRING, c1 AS STRING, k AS STRING
+    DIM shown AS STRING, piece AS STRING
+    bx = 20: by = 12: bw = 92: bh = 26
+    maxcols = bw - 8
+    ' greedy word-wrap into `wrapped` with CHR$(10) line breaks
+    acc = "": wrapped = "": word = ""
+    DIM src AS STRING: src = body + " "
+    FOR i = 1 TO LEN(src)
+        c1 = MID$(src, i, 1)
+        IF c1 = " " THEN
+            IF LEN(acc) + LEN(word) + 1 > maxcols THEN
+                wrapped = wrapped + acc + CHR$(10): acc = word
+            ELSEIF LEN(acc) = 0 THEN
+                acc = word
+            ELSE
+                acc = acc + " " + word
+            END IF
+            word = ""
+        ELSE
+            word = word + c1
+        END IF
+    NEXT i
+    IF LEN(acc) > 0 THEN wrapped = wrapped + acc
+
+    skip = FALSE
+    FOR i = 1 TO LEN(wrapped)
+        c1 = MID$(wrapped, i, 1)
+        _DEST CANVAS
+        LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
+        LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), CYANU, B
+        COLOR YELLOWU, BOXBG: PrintCentered by + 2, "-=  " + title + "  =-"
+        ' draw everything revealed so far, split on the wrap breaks
+        shown = LEFT$(wrapped, i)
+        ln = 0: p = 1
+        COLOR WHITE, BOXBG
+        DO
+            nl = INSTR(p, shown, CHR$(10))
+            IF nl = 0 THEN piece = MID$(shown, p) ELSE piece = MID$(shown, p, nl - p)
+            _PRINTSTRING ((bx + 4) * CW, (by + 5 + ln) * CH), piece
+            IF nl = 0 THEN EXIT DO
+            p = nl + 1: ln = ln + 1
+        LOOP
+        COLOR CYANU, BOXBG: PrintCentered by + bh - 2, "[ any key to continue ]"
+        _DISPLAY
+        IF c1 <> CHR$(10) AND c1 <> " " THEN VoiceBlip 380 + (ASC(c1) MOD 12) * 40
+        IF NOT skip THEN
+            k = INKEY$
+            IF k <> "" THEN skip = TRUE
+            _LIMIT 45
+        END IF
+    NEXT i
+    ' hold on the fully-revealed text
+    DO: k = INKEY$: LOOP UNTIL k = ""
+    DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
 END SUB
 
 
@@ -573,7 +693,7 @@ FUNCTION RollDiceShow% (n AS INTEGER)
                     DrawDie bx + sz + gap, by, sz, die_b
                 END IF
             NEXT j
-            IF opt_sfx THEN SOUND 380 + f * 28, 0.05
+            IF opt_sfx THEN Tone 380 + f * 28, 0.05
             _DISPLAY
             _LIMIT 22
         NEXT f
@@ -639,7 +759,7 @@ FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
             LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), REDU, B
             COLOR CYANU, BOXBG: PrintCentered by + 1, "-= " + caption + " =-"
             COLOR YELLOWU, BOXBG: PrintCentered by + 3, "[  " + _TRIM$(STR$(shown)) + "  ]"
-            IF opt_sfx THEN SOUND 380 + f * 28, 0.05
+            IF opt_sfx THEN Tone 380 + f * 28, 0.05
             _DISPLAY
             _LIMIT 22
         NEXT f

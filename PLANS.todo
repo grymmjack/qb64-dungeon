@@ -10,7 +10,7 @@ Refactor:
         ✔ MENU @done(26-07-23)
 
 Dialogs:
-    ☐ Create scrolling text window
+    ✔ Create scrolling text window (ScrollText: typewriter reveal + voice blips) @done(26-07-23)
     ✔ Create character sheet @done(26-07-23)
     ✔ Create menu option lightbar (simple) @done(26-07-23)
     ✔ Create combat @done(26-07-23)
@@ -26,16 +26,17 @@ Game Menu Actions:
     ✔ Create LOAD A CHARACTER @done(26-07-23)
     ✔ Create SETTINGS: @done(26-07-23)
         ✔ Music: ON @done(26-07-23)
-        ☐ Music volume
+        ✔ Music volume (slider) @done(26-07-23)
         ✔ SoundFX: ON @done(26-07-23)
-        ☐ SoundFX volume
-        ☐ Voice: ON
-        ☐ Voice volume
+        ✔ SoundFX volume (slider) @done(26-07-23)
+        ✔ Voice: ON (typewriter text blips) @done(26-07-23)
+        ✔ Voice volume (slider) @done(26-07-23)
         ✔ Show Dice @done(26-07-23)
         ✔ Full screen @done(26-07-23)
 
 Doors:
     ✔ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it. @done(26-07-23)
+    ✔ Strong/reinforced doors: ~1 in 6 brown doors are locked; break with a STR check (d20+STR vs 13) @done(26-07-23)
     ☐ Add level door (white)   [needs a white-door tile painted into the board art]
 
 Rooms:
@@ -162,13 +163,14 @@ Sounds:
     ✔ Add sound effect of dice rolling critical success @done(26-07-23)
     ✔ Add sound effect of dice rolling critical failure @done(26-07-23)
     ✔ Add sound effect when moving @done(26-07-23)
-    ☐ Add sound effect when time passing without moving
+    ✔ Add sound effect when time passing without moving (idle ambient) @done(26-07-23)
     ✔ Add sound effect when bumping into wall @done(26-07-23)
     ✔ Add sound effect when bumping into door @done(26-07-23)
-    ☐ Add sound effect when bumping into strong door
+    ✔ Add sound effect when bumping into strong door (heavy thud) @done(26-07-23)
     ✔ Add sound effect when finding secret door @done(26-07-23)
-    ☐ Add sound effect when going through secret door
+    ✔ Add sound effect when going through secret door @done(26-07-23)
     ✔ Add sound effect when opening regular door @done(26-07-23)
-    ☐ Add sound effect when opening strong door
-    ☐ Add sound effect when breaking door
+    ✔ Add sound effect when opening strong door (break->open) @done(26-07-23)
+    ✔ Add sound effect when breaking door (splintering crash) @done(26-07-23)
     ✔ Add sound effect for picking up treasure @done(26-07-23)
+    ✔ Volume sliders: Music / SFX / Voice (0-100%) @done(26-07-23)
