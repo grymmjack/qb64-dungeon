@@ -35,15 +35,15 @@ Game Menu Actions:
         ✔ Full screen @done(26-07-23)
 
 Doors:
-    ☐ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it.
-    ☐ Add level door (white)
+    ✔ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it. @done(26-07-23)
+    ☐ Add level door (white)   [needs a white-door tile painted into the board art]
 
 Rooms:
     ✔ Add room type and define properties: @done(26-07-23)
         x, y, w, h, was_looted, monster_fought, player_died, monster_died, has_level_key, is_boss_room
         ✔ was_looted: player found treasure @done(26-07-23)
-        ☐ monster_fought: player fought monster
-        ☐ player_died: player died in this room
+        ✔ monster_fought: player fought monster @done(26-07-23)
+        ✔ player_died: player died in this room @done(26-07-23)
         ✔ monster_died: monster died in this room @done(26-07-23)
     ✔ Add room randomizer for each game: @done(26-07-23)
         ✔ has_level_key: room contains the level key (only 1 room per level should have this) @done(26-07-23)
@@ -78,9 +78,10 @@ Debugging:
             ☐ Fighting Player
         ✔ Number of moves made @done(26-07-23)
         ✔ Game start time / Current time @done(26-07-23)
-    ☐ Add crosshair inspector mode for mouse:
-        ☐ Mouse position x, y in pixels
-        ☐ Mouse position x, y in cells
+    ✔ Add crosshair inspector mode for mouse: @done(26-07-23)
+        ✔ Mouse position x, y in pixels @done(26-07-23)
+        ✔ Mouse position x, y in cells @done(26-07-23)
+        ✔ Cell kind under the mouse (OPEN/WALL/SECRET) @done(26-07-23)
 
 Collision:
     ✔ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&) @done(23-05-29 17:12)

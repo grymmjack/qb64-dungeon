@@ -369,6 +369,8 @@ SUB DrawDebug
     DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER, i AS INTEGER
     DIM onpath AS INTEGER, inroom AS INTEGER, ondoor AS INTEGER, onsecret AS INTEGER, nearsd AS INTEGER
     DIM img AS LONG, el AS LONG, bg AS _UNSIGNED LONG
+    DIM mx AS INTEGER, my AS INTEGER, mcx AS INTEGER, mcy AS INTEGER, kind AS INTEGER, kn AS STRING
+    DIM fought AS STRING, died AS STRING, boss AS STRING, loot AS STRING, oldsrc AS LONG
     cx = c.x \ CW: cy = c.y \ CH
     sec = SECTOR.get_by_xy(c.x, c.y)
     img = _NEWIMAGE(CW, CH, 32)
@@ -383,14 +385,38 @@ SUB DrawDebug
             IF ABS(SD_X(i) - cx) <= 2 AND ABS(SD_Y(i) - cy) <= 2 THEN nearsd = -1
         END IF
     NEXT i
+    ' current room flags
+    IF sec >= 1 THEN
+        fought = YN$(SECTORS(sec).monster_fought): died = YN$(SECTORS(sec).player_died)
+        boss = YN$(SECTORS(sec).is_boss): loot = YN$(SECTORS(sec).looted)
+    ELSE
+        fought = "-": died = "-": boss = "-": loot = "-"
+    END IF
+    ' mouse crosshair inspector -- drain queued mouse events, sample the cell under it
+    DO WHILE _MOUSEINPUT: LOOP
+    mx = _MOUSEX: my = _MOUSEY
+    mcx = mx \ CW: mcy = my \ CH
+    oldsrc = _SOURCE: _SOURCE CANVAS_COPY
+    kind = CellKind(mcx, mcy)
+    _SOURCE oldsrc
+    SELECT CASE kind
+        CASE 1: kn = "OPEN"
+        CASE 2: kn = "SECRET"
+        CASE ELSE: kn = "WALL"
+    END SELECT
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     bg = _RGB32(&H00, &H00, &H40)
     _DEST CANVAS
-    LINE (0, 0)-(50 * CW, 5 * CH), bg, BF
-    LINE (0, 0)-(50 * CW, 5 * CH), CYANU, B
+    ' crosshair through the mouse pointer
+    LINE (mx, 0)-(mx, SH * CH - 1), _RGB32(&H00, &HFF, &H00)
+    LINE (0, my)-(SW * CW - 1, my), _RGB32(&H00, &HFF, &H00)
+    LINE (0, 0)-(52 * CW, 6 * CH), bg, BF
+    LINE (0, 0)-(52 * CW, 6 * CH), CYANU, B
     COLOR YELLOWU, bg
     _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
     _PRINTSTRING (1 * CW, 1 * CH), "sector " + _TRIM$(STR$(sec)) + "   moves " + _TRIM$(STR$(moves_made)) + "   time " + MMSS$(el)
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " door:" + YN$(ondoor) + " secret:" + YN$(onsecret) + " nearSD:" + YN$(nearsd)
-    _PRINTSTRING (1 * CW, 3 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
+    _PRINTSTRING (1 * CW, 3 * CH), "room: fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
+    _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
+    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn
 END SUB

@@ -130,6 +130,11 @@ FUNCTION PlayGame%
                 IF TryMove(k) THEN
                     steps_left = steps_left - 1
                     moves_made = moves_made + 1
+                    ' step THROUGH a door, don't stop on it: auto-advance one more cell
+                    ' the same direction (a free hop -- costs no movement point)
+                    IF OnDoorNow THEN
+                        IF TryMove(k) THEN moves_made = moves_made + 1
+                    END IF
                     ' returning to the entrance patches you up (D&D mode)
                     IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN player_hp = player_maxhp
                     IF InRoomNow THEN
@@ -308,6 +313,7 @@ SUB DoCombatDnD (sec AS INTEGER)
 
             IF player_hp <= 0 THEN                ' downed
                 player_hp = 0
+                SECTORS(sec).player_died = TRUE
                 DrawCombatPanel sec, mon, lead
                 lost = gold: gold = 0
                 Sfx "lose"
@@ -365,6 +371,7 @@ SUB MonsterAttack (sec AS INTEGER)
     SELECT CASE r
         CASE 2                                  ' ADVENTURER KILLED!
             lost = gold: gold = 0
+            SECTORS(sec).player_died = TRUE
             Sfx "lose"
             Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop all your treasure and crawl back to START.   [ press any key ]"
             WaitKey

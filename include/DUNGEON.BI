@@ -30,6 +30,7 @@ TYPE SECTOR
     secret_found AS INTEGER  ' (unused) legacy flag
     treasure_item AS INTEGER ' special-item code for this room's treasure (see TRE_ITEM)
     monster_fought AS INTEGER ' room flag: combat has happened here
+    player_died AS INTEGER    ' room flag: the player was slain/downed here
     mhp     AS INTEGER       ' D&D mode: monster max hit points
     mhp_now AS INTEGER       ' D&D mode: monster current hit points (mid-fight)
     mac     AS INTEGER       ' D&D mode: monster armor class (d20+tohit must meet/beat)

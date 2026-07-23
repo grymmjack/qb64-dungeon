@@ -114,7 +114,7 @@ SUB RandomizeRooms
     FOR i = 1 TO 9
         SECTORS(i).monster = "": SECTORS(i).malive = FALSE: SECTORS(i).is_boss = FALSE
         SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = "": SECTORS(i).treasure_item = 0
-        SECTORS(i).monster_fought = FALSE
+        SECTORS(i).monster_fought = FALSE: SECTORS(i).player_died = FALSE
     NEXT i
     ' sectors 2..9 correspond to levels 2..9; store the number for THIS player's class
     FOR i = 2 TO 9
