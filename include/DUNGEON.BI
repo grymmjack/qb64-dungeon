@@ -49,10 +49,11 @@ TYPE PCLASS
     combat_bonus AS INTEGER     ' added to the 2d6 attack roll (Oldschool mode)
     secret_bonus AS INTEGER     ' edge at finding secret doors
     blurb        AS STRING
-    hp           AS INTEGER     ' D&D mode: max hit points
-    tohit        AS INTEGER     ' D&D mode: bonus added to the d20 attack roll
+    hp           AS INTEGER     ' D&D mode: base max hit points (fallback if not rolled)
+    tohit        AS INTEGER     ' D&D mode: base bonus added to the d20 attack roll
     dmg          AS INTEGER     ' D&D mode: damage die (sides)
-    ac           AS INTEGER     ' D&D mode: armor class (defence)
+    ac           AS INTEGER     ' D&D mode: base armor class (defence)
+    hitdie       AS INTEGER     ' D&D mode: hit die size for rolling HP at character creation
 END TYPE
 
 DIM SHARED AS INTEGER SW, SH, CW, CH
@@ -96,6 +97,11 @@ DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and
 DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
 DIM SHARED opt_oldschool AS INTEGER   ' TRUE: Dungeon! 2d6-vs-target combat; FALSE: D&D d20/HP combat
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
+' old-school 3d6 ability scores (rolled in CREATE A CHARACTER) + the stats derived from them
+DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
+DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
+DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
+DIM SHARED player_dmgdie AS INTEGER, player_dmgbonus AS INTEGER  ' weapon die + STR/INT damage mod
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter

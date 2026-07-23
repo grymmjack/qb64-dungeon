@@ -39,6 +39,99 @@ END FUNCTION
 
 
 ' ============================================================================
+'  OLD-SCHOOL CHARACTER GENERATION (3d6 abilities + rolled hit points)
+' ============================================================================
+
+' Standard ability modifier: floor((score - 10) / 2).  Range -4..+4 for 3d6.
+FUNCTION AbilMod% (score AS INTEGER)
+    AbilMod = INT((score - 10) / 2)
+END FUNCTION
+
+
+' Format a modifier for display: "+2", "0", "-1".
+FUNCTION ModStr$ (m AS INTEGER)
+    IF m >= 0 THEN ModStr$ = "+" + _TRIM$(STR$(m)) ELSE ModStr$ = _TRIM$(STR$(m))
+END FUNCTION
+
+
+' A plain, un-rolled character: average scores, class-baseline combat stats.
+' Used for the default HERO and for loaded champions (whose scores aren't saved).
+SUB InitDefaultChar (pc AS INTEGER)
+    player_str = 10: player_int = 10: player_wis = 10
+    player_dex = 10: player_con = 10: player_cha = 10
+    player_maxhp = CLASSES(pc).hp: player_hp = player_maxhp
+    player_tohit = CLASSES(pc).tohit
+    player_ac = CLASSES(pc).ac
+    player_dmgdie = CLASSES(pc).dmg
+    player_dmgbonus = 0
+END SUB
+
+
+' Draw the character-generation sheet. `rolled` = how many abilities are in
+' (0..6); `done` = HP + derived stats are ready (final screen with the prompt).
+SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTEGER)
+    DIM i AS INTEGER, y AS INTEGER, nm(1 TO 6) AS STRING, row AS STRING
+    nm(1) = "STR": nm(2) = "INT": nm(3) = "WIS": nm(4) = "DEX": nm(5) = "CON": nm(6) = "CHA"
+    _DEST CANVAS: CLS , BLACK
+    COLOR YELLOWU, BLACK: PrintCentered 3, "R O L L   U P   Y O U R   " + CLASSES(pc).name
+    FOR i = 1 TO 6
+        y = 9 + (i - 1) * 2
+        IF i <= rolled THEN
+            row = nm(i) + "   " + RIGHT$("  " + _TRIM$(STR$(sc(i))), 2) + "   (" + ModStr$(AbilMod(sc(i))) + ")"
+            IF i = rolled AND NOT done THEN COLOR WHITE, REDU ELSE COLOR WHITE, BLACK
+        ELSE
+            row = nm(i) + "   --"
+            COLOR GREY, BLACK
+        END IF
+        PrintCentered y, "   " + row + "   "
+    NEXT i
+    IF done THEN
+        COLOR GREENU, BLACK
+        PrintCentered 23, "HIT POINTS  " + _TRIM$(STR$(player_maxhp))
+        COLOR CYANU, BLACK
+        PrintCentered 25, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
+        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll a new hero      [ENTER] keep this one"
+    ELSE
+        COLOR CYANU, BLACK: PrintCentered 44, "rolling 3d6 for each ability..."
+    END IF
+    _DISPLAY
+END SUB
+
+
+' The full generation flow: roll 3d6 for six abilities, roll hit points on the
+' class hit die, derive the D&D combat stats, and let the player re-roll.
+' Honours Real Dice (each 3d6 becomes a PromptRoll when that setting is on).
+SUB RollCharacter (pc AS INTEGER)
+    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING
+    DO
+        FOR i = 1 TO 6
+            DrawCharGen pc, sc(), i - 1, 0             ' show sheet, then tumble this ability
+            sc(i) = GameRoll(3, 6, 0, "ability score")
+        NEXT i
+        player_str = sc(1): player_int = sc(2): player_wis = sc(3)
+        player_dex = sc(4): player_con = sc(5): player_cha = sc(6)
+        ' hit points: three hit dice + 3x the CON modifier (a level-ish start), min 3
+        DrawCharGen pc, sc(), 6, 0
+        hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
+        player_maxhp = hproll + 3 * AbilMod(player_con)
+        IF player_maxhp < 3 THEN player_maxhp = 3
+        player_hp = player_maxhp
+        ' Wizards strike with INT (spells); everyone else with STR
+        IF pc = 4 THEN atkmod = AbilMod(player_int) ELSE atkmod = AbilMod(player_str)
+        player_tohit = CLASSES(pc).tohit + atkmod
+        player_dmgdie = CLASSES(pc).dmg
+        player_dmgbonus = atkmod
+        player_ac = CLASSES(pc).ac + AbilMod(player_dex)
+        DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/keep prompt
+        DO
+            _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+        LOOP UNTIL k = "R" OR k = CHR$(13)
+        Sfx "select"
+    LOOP UNTIL k = CHR$(13)
+END SUB
+
+
+' ============================================================================
 '  INTRO
 ' ============================================================================
 
@@ -96,7 +189,10 @@ FUNCTION RunMenu%
                 result = MENU_ENTER: EXIT DO
             ELSEIF sel = 2 THEN
                 chosen = SelectClass
-                IF chosen > 0 THEN player_class = chosen: player_name = ""
+                IF chosen > 0 THEN
+                    player_class = chosen: player_name = ""
+                    RollCharacter chosen             ' old-school 3d6 stats + rolled HP
+                END IF
             ELSEIF sel = 3 THEN
                 LoadCharacter
             ELSEIF sel = 4 THEN
@@ -207,11 +303,13 @@ SUB ShowCharSheet
     COLOR YELLOWU, BOXBG: PrintCentered 16, "-=  C H A R A C T E R  =-"
     COLOR WHITE, BOXBG
     PrintCentered 19, "Champion:  " + class_name
+    COLOR CYANU, BOXBG
+    PrintCentered 20, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
     IF NOT opt_oldschool THEN
         COLOR GREENU, BOXBG
-        PrintCentered 20, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(CLASSES(player_class).ac)) + "    To-Hit +" + _TRIM$(STR$(CLASSES(player_class).tohit)) + "    Dmg 1d" + _TRIM$(STR$(CLASSES(player_class).dmg))
-        COLOR WHITE, BOXBG
+        PrintCentered 22, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(player_ac)) + "    To-Hit " + ModStr$(player_tohit) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
     END IF
+    COLOR WHITE, BOXBG
     PrintCentered 21, "Gold:  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
     IF has_key THEN PrintCentered 23, "Level Key:  HELD" ELSE PrintCentered 23, "Level Key:  not yet found"
     IF item_sword > 0 THEN swordtxt = "Magic Sword +" + _TRIM$(STR$(item_sword)) ELSE swordtxt = "(none)"
@@ -470,11 +568,11 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
         ELSE
             GameRoll = raw + bonus: last_raw = raw
         END IF
-    ELSEIF sides = 6 THEN
-        t = RollDiceShow(n)
+    ELSEIF sides = 6 AND n <= 2 THEN
+        t = RollDiceShow(n)                        ' 1d6 / 2d6 show pip dice
         GameRoll = t + bonus: last_raw = t
     ELSE
-        t = ShowRollText(n, sides, what)
+        t = ShowRollText(n, sides, what)           ' 3d6 / polyhedral use the number tumbler
         GameRoll = t + bonus: last_raw = t
     END IF
 END FUNCTION

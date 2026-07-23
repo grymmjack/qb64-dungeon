@@ -44,6 +44,7 @@ InitSectors
 InitClasses
 InitMonsterTables
 player_class = 1                 ' default HERO until the player creates a character
+InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
 ' ---------------------------------------------------------------- state machine
 DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
@@ -95,7 +96,7 @@ FUNCTION PlayGame%
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
     has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
     moves_made = 0
-    player_maxhp = CLASSES(player_class).hp: player_hp = player_maxhp   ' D&D mode: full HP at the door
+    player_hp = player_maxhp         ' D&D mode: full HP at the door (max set at character creation)
     RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
     game_start = TIMER               ' start the run timer
 
@@ -244,7 +245,7 @@ SUB DoCombatDnD (sec AS INTEGER)
     isboss = SECTORS(sec).is_boss
     lvl = sec                                   ' sector index doubles as dungeon level 2..9
     mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
-    thb = CLASSES(player_class).tohit
+    thb = player_tohit                          ' final to-hit incl. ability modifier
     IF SECTORS(sec).mhp_now <= 0 THEN SECTORS(sec).mhp_now = SECTORS(sec).mhp   ' fresh fight
     rounds = 0
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
@@ -261,7 +262,8 @@ SUB DoCombatDnD (sec AS INTEGER)
             ' ---------- player attacks ----------
             atk = GameRoll(1, 20, thb, "to hit the " + mon)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
-                dmg = RollDie(CLASSES(player_class).dmg) + RollDie(CLASSES(player_class).dmg) + item_sword
+                dmg = RollDie(player_dmgdie) + RollDie(player_dmgdie) + player_dmgbonus + item_sword
+                IF dmg < 1 THEN dmg = 1
                 SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
                 Sfx "crit"
                 Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
@@ -271,7 +273,8 @@ SUB DoCombatDnD (sec AS INTEGER)
                 Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
                 WaitKey
             ELSEIF atk >= SECTORS(sec).mac THEN   ' hit
-                dmg = RollDie(CLASSES(player_class).dmg) + item_sword
+                dmg = RollDie(player_dmgdie) + player_dmgbonus + item_sword
+                IF dmg < 1 THEN dmg = 1
                 SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
                 Sfx "hit"
                 Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(SECTORS(sec).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
@@ -292,11 +295,11 @@ SUB DoCombatDnD (sec AS INTEGER)
 
             ' ---------- monster strikes back (computer rolls) ----------
             matk = RollDie(20) + mtohit
-            IF matk >= CLASSES(player_class).ac THEN
+            IF matk >= player_ac THEN
                 mdmg = RollDie(6) + lvl \ 3: IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 Sfx "bump"
-                Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(CLASSES(player_class).ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
+                Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
                 WaitKey
             ELSE
                 Banner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", "You weather the assault.   [ press any key ]"
@@ -331,7 +334,7 @@ SUB DrawCombatPanel (sec AS INTEGER, mon AS STRING, lead AS STRING)
     COLOR REDU, BOXBG
     PrintCentered by + 3, mon + "   " + HpBar$(SECTORS(sec).mhp_now, SECTORS(sec).mhp, 22) + "  " + _TRIM$(STR$(SECTORS(sec).mhp_now)) + "/" + _TRIM$(STR$(SECTORS(sec).mhp)) + " HP   AC " + _TRIM$(STR$(SECTORS(sec).mac))
     COLOR GREENU, BOXBG
-    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(CLASSES(player_class).ac))
+    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac))
     COLOR CYANU, BOXBG: PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     _DISPLAY
 END SUB

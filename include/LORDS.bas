@@ -107,6 +107,7 @@ SUB LoadCharacter
         IF k = CHR$(13) THEN
             player_name = nm(sel)
             player_class = ClassIndex(klass(sel))
+            InitDefaultChar player_class          ' baseline stats (ability scores aren't saved)
             Sfx "select"
             EXIT SUB
         END IF
