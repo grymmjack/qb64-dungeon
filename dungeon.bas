@@ -67,6 +67,14 @@ DIM SHARED CLASSES(1 TO 4) AS PCLASS
 DIM SHARED player_class AS INTEGER
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
+' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
+DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
+DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER
+DIM SHARED FULL_BOARD AS LONG                     ' pristine board (doors + secret rooms visible)
+DIM SHARED VIS(0 TO 131, 0 TO 60) AS _BYTE        ' 1 = cell currently revealed
+DIM SHARED DOORCELL(0 TO 131, 0 TO 60) AS _BYTE   ' 1 = a secret-door cell
+DIM SHARED SECRET(0 TO 131, 0 TO 60) AS _BYTE     ' 1 = fogged (door-connected sealed cell)
+DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 
 SW = 132: SH = 51: CW = 8: CH = 16
 
@@ -90,12 +98,13 @@ $RESIZE:ON
 $RESIZE:STRETCH
 CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
+FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "DUNGEON"
 _FONT CH
 SCREEN CANVAS
 _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
-BOARD_ANSI = LoadFile$("assets/ansi/board-132x50-no-secrets.ans")
+BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
 player_class = 1                 ' default HERO until the player creates a character
@@ -134,6 +143,7 @@ SCREEN 0: _DEST 0
 _DELAY 0.5
 _FREEIMAGE CANVAS
 _FREEIMAGE CANVAS_COPY
+_FREEIMAGE FULL_BOARD
 SYSTEM
 
 
@@ -174,7 +184,6 @@ SUB InitSectors
 
     SECTORS(9).kolor = _RGB32(&HAA, &H00, &HAA): SECTORS(9).label = "LEVEL 9 - THE CRYPT"
     SECTORS(9).start_x = 35: SECTORS(9).start_y = 1: SECTORS(9).end_x = 78: SECTORS(9).end_y = 16
-    SECTORS(9).secret_here = TRUE                  ' SEARCH here to reveal the Level Key
 END SUB
 
 
@@ -505,47 +514,198 @@ SUB CollectTreasure (sec AS INTEGER)
 END SUB
 
 
-' [F] search the current room for a secret door. Only the Crypt hides one (the
-' Level Key); the Elf's secret_bonus makes the d6 check far more reliable.
+' [F] search for a hidden secret door within a couple of cells of the cursor.
+' The Elf's secret_bonus makes the d6 check far more reliable. The first door
+' found also yields the Level Key.
 SUB DoSearch
-    DIM sec AS INTEGER, roll AS INTEGER
-    sec = SECTOR.get_by_xy(c.x, c.y)
-    IF sec < 1 OR NOT InRoomNow THEN
-        Sfx "search"
-        Banner "You search, but there are only bare walls here.", "(Search inside a room.)   [ press any key ]"
-        WaitKey
-        cursor_erase: cursor_draw: _DISPLAY
-        EXIT SUB
-    END IF
-    IF SECTORS(sec).secret_here AND NOT SECTORS(sec).secret_found THEN
-        roll = RollDie(6) + CLASSES(player_class).secret_bonus
-        IF roll >= 5 THEN
-            SECTORS(sec).secret_found = TRUE
-            has_key = TRUE
-            RevealSecretDoor sec
-            Sfx "secret"
-            Banner "A SECRET DOOR grinds open in the " + SECTORS(sec).label + "!", "You claim the LEVEL KEY.   [ press any key ]"
-        ELSE
-            Sfx "search"
-            Banner "You run your hands over the cold stone... nothing yet.", "(Keep searching -- an Elf has the keenest eye.)   [ press any key ]"
+    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER
+    DIM found_any AS INTEGER, near_hidden AS INTEGER
+    ccx = c.x \ CW: ccy = c.y \ CH
+    roll = RollDie(6) + CLASSES(player_class).secret_bonus
+    found_any = FALSE: near_hidden = FALSE
+    FOR i = 1 TO SD_N
+        IF NOT SD_FOUND(i) THEN
+            IF ABS(SD_X(i) - ccx) <= 2 AND ABS(SD_Y(i) - ccy) <= 2 THEN
+                near_hidden = TRUE
+                IF roll >= 5 THEN
+                    SD_FOUND(i) = TRUE
+                    RevealRegionFromDoor i    ' reveal door + the area it connects to
+                    found_any = TRUE
+                END IF
+            END IF
         END IF
+    NEXT
+
+    IF found_any THEN
+        Sfx "secret"
+        IF NOT has_key THEN
+            has_key = TRUE
+            Banner "A SECRET DOOR grinds open -- the LEVEL KEY lies beyond!", "A hidden passage is revealed.   [ press any key ]"
+        ELSE
+            Banner "You uncover another SECRET DOOR!", "A hidden passage is revealed.   [ press any key ]"
+        END IF
+    ELSEIF near_hidden THEN
+        Sfx "search"
+        Banner "Your fingers trace a faint seam in the stone...", "Something is hidden nearby -- keep searching!   [ press any key ]"
     ELSE
         Sfx "search"
-        Banner "You search the " + SECTORS(sec).label + " but find no secrets.", "[ press any key ]"
+        Banner "You search the walls but find no secrets here.", "[ press any key ]"
     END IF
     WaitKey
     cursor_erase: cursor_draw: _DISPLAY
 END SUB
 
 
-' Paint a bright-blue secret-door tile into a room (on both canvases) so it
-' shows and reads as passable terrain afterwards.
-SUB RevealSecretDoor (sec AS INTEGER)
-    DIM AS INTEGER dx, dy
-    dx = ((SECTORS(sec).start_x + SECTORS(sec).end_x) \ 2) * CW
-    dy = ((SECTORS(sec).start_y + SECTORS(sec).end_y) \ 2) * CH
-    _DEST CANVAS_COPY: LINE (dx, dy)-(dx + CW - 1, dy + CH - 1), BRIGHT_BLUE, BF
-    _DEST CANVAS: LINE (dx, dy)-(dx + CW - 1, dy + CH - 1), BRIGHT_BLUE, BF
+' Classify a cell of FULL_BOARD by its centre pixel (caller sets _SOURCE FULL_BOARD):
+' 0 = wall, 1 = walkable terrain (path/room/door), 2 = secret-door tile.
+FUNCTION CellKind% (cx AS INTEGER, cy AS INTEGER)
+    DIM col AS _UNSIGNED LONG, sec AS INTEGER
+    col = POINT(cx * CW + CW \ 2, cy * CH + CH \ 2)
+    IF col = BRIGHT_BLUE THEN CellKind = 2: EXIT FUNCTION
+    IF col = YELLOW OR col = BROWN THEN CellKind = 1: EXIT FUNCTION
+    sec = SECTOR.get_by_xy(cx * CW, cy * CH)
+    IF sec >= 1 THEN
+        IF col = SECTORS(sec).kolor THEN CellKind = 1: EXIT FUNCTION
+    END IF
+    CellKind = 0
+END FUNCTION
+
+
+' Scan FULL_BOARD for bright-blue secret-door tiles and record their cells.
+SUB DetectSecretDoors
+    DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, blue AS INTEGER
+    SD_N = 0
+    _SOURCE FULL_BOARD
+    FOR cy = 1 TO SH - 4
+        FOR cx = 1 TO SW - 2
+            blue = 0
+            FOR py = 1 TO CH - 1 STEP 2
+                FOR px = 1 TO CW - 1 STEP 2
+                    IF POINT(cx * CW + px, cy * CH + py) = BRIGHT_BLUE THEN blue = blue + 1
+                NEXT px
+            NEXT py
+            IF blue >= 2 AND SD_N < UBOUND(SD_X) THEN
+                SD_N = SD_N + 1
+                SD_X(SD_N) = cx: SD_Y(SD_N) = cy: SD_FOUND(SD_N) = FALSE
+            END IF
+        NEXT cx
+    NEXT cy
+END SUB
+
+
+' Build the played board from FULL_BOARD: flood-fill the area reachable from
+' START without crossing a door (the "public" area), then black out every
+' walkable cell that is only reachable through a door, plus the doors.
+SUB InitFog
+    DIM cx AS INTEGER, cy AS INTEGER, i AS INTEGER, head AS INTEGER, tail AS INTEGER
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            VIS(cx, cy) = 0: DOORCELL(cx, cy) = 0: SECRET(cx, cy) = 0
+        NEXT cx
+    NEXT cy
+
+    DetectSecretDoors
+    FOR i = 1 TO SD_N: DOORCELL(SD_X(i), SD_Y(i)) = 1: NEXT i
+
+    ' 1) BFS the public area from START (doors are treated as walls)
+    _SOURCE FULL_BOARD
+    head = 0: tail = 0
+    QX(0) = START_CX: QY(0) = START_CY: VIS(START_CX, START_CY) = 1: tail = 1
+    DO WHILE head < tail
+        cx = QX(head): cy = QY(head): head = head + 1
+        FogVisit cx - 1, cy, tail
+        FogVisit cx + 1, cy, tail
+        FogVisit cx, cy - 1, tail
+        FogVisit cx, cy + 1, tail
+    LOOP
+
+    ' 2) BFS the secret network outward from every door (through non-public
+    '    walkable cells + doors) so ONLY door-connected areas get fogged --
+    '    isolated terrain-coloured graphics (labels, legend) stay visible.
+    head = 0: tail = 0
+    FOR i = 1 TO SD_N
+        IF SECRET(SD_X(i), SD_Y(i)) = 0 THEN
+            SECRET(SD_X(i), SD_Y(i)) = 1
+            QX(tail) = SD_X(i): QY(tail) = SD_Y(i): tail = tail + 1
+        END IF
+    NEXT i
+    DO WHILE head < tail
+        cx = QX(head): cy = QY(head): head = head + 1
+        SecretVisit cx - 1, cy, tail
+        SecretVisit cx + 1, cy, tail
+        SecretVisit cx, cy - 1, tail
+        SecretVisit cx, cy + 1, tail
+    LOOP
+
+    ' 3) compose the played board: full board, then black out the secret cells
+    _PUTIMAGE (0, 0), FULL_BOARD, CANVAS_COPY
+    _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            IF SECRET(cx, cy) = 1 THEN
+                _DEST CANVAS_COPY: LINE (cx * CW, cy * CH)-(cx * CW + CW - 1, cy * CH + CH - 1), BLACK, BF
+                _DEST CANVAS: LINE (cx * CW, cy * CH)-(cx * CW + CW - 1, cy * CH + CH - 1), BLACK, BF
+            END IF
+        NEXT cx
+    NEXT cy
+END SUB
+
+
+' Public-area BFS helper: enqueue a walkable, unseen, non-door neighbour.
+SUB FogVisit (nx AS INTEGER, ny AS INTEGER, tail AS INTEGER)
+    IF nx < 0 OR nx > SW - 1 OR ny < 0 OR ny > SH - 1 THEN EXIT SUB
+    IF VIS(nx, ny) <> 0 OR DOORCELL(nx, ny) <> 0 THEN EXIT SUB
+    IF CellKind(nx, ny) <> 1 THEN EXIT SUB
+    VIS(nx, ny) = 1
+    QX(tail) = nx: QY(tail) = ny: tail = tail + 1
+END SUB
+
+
+' Secret-network BFS helper: flood into non-public walkable cells and doors.
+SUB SecretVisit (nx AS INTEGER, ny AS INTEGER, tail AS INTEGER)
+    IF nx < 0 OR nx > SW - 1 OR ny < 0 OR ny > SH - 1 THEN EXIT SUB
+    IF SECRET(nx, ny) <> 0 OR VIS(nx, ny) <> 0 THEN EXIT SUB
+    IF DOORCELL(nx, ny) = 0 AND CellKind(nx, ny) <> 1 THEN EXIT SUB
+    SECRET(nx, ny) = 1
+    QX(tail) = nx: QY(tail) = ny: tail = tail + 1
+END SUB
+
+
+' Copy one cell's pristine pixels from FULL_BOARD back onto the played canvases.
+SUB RevealCell (cx AS INTEGER, cy AS INTEGER)
+    DIM px AS INTEGER, py AS INTEGER
+    px = cx * CW: py = cy * CH
+    _PUTIMAGE (px, py)-(px + CW - 1, py + CH - 1), FULL_BOARD, CANVAS_COPY, (px, py)-(px + CW - 1, py + CH - 1)
+    _PUTIMAGE (px, py)-(px + CW - 1, py + CH - 1), FULL_BOARD, CANVAS, (px, py)-(px + CW - 1, py + CH - 1)
+END SUB
+
+
+' Reveal a found door and flood-fill outward through the sealed area it opens
+' onto -- stopping at walls and other (still-hidden) doors.
+SUB RevealRegionFromDoor (di AS INTEGER)
+    DIM cx AS INTEGER, cy AS INTEGER, head AS INTEGER, tail AS INTEGER
+    _SOURCE FULL_BOARD
+    cx = SD_X(di): cy = SD_Y(di)
+    RevealCell cx, cy: VIS(cx, cy) = 1
+    head = 0: tail = 0: QX(0) = cx: QY(0) = cy: tail = 1
+    DO WHILE head < tail
+        cx = QX(head): cy = QY(head): head = head + 1
+        RevealVisit cx - 1, cy, tail
+        RevealVisit cx + 1, cy, tail
+        RevealVisit cx, cy - 1, tail
+        RevealVisit cx, cy + 1, tail
+    LOOP
+END SUB
+
+
+' BFS helper for reveal: reveal a hidden, walkable, non-door neighbour. (_SOURCE = FULL_BOARD)
+SUB RevealVisit (nx AS INTEGER, ny AS INTEGER, tail AS INTEGER)
+    IF nx < 0 OR nx > SW - 1 OR ny < 0 OR ny > SH - 1 THEN EXIT SUB
+    IF VIS(nx, ny) <> 0 OR DOORCELL(nx, ny) <> 0 THEN EXIT SUB
+    IF CellKind(nx, ny) <> 1 THEN EXIT SUB
+    RevealCell nx, ny
+    VIS(nx, ny) = 1
+    QX(tail) = nx: QY(tail) = ny: tail = tail + 1
 END SUB
 
 
@@ -573,8 +733,8 @@ END SUB
 '  BOARD + CURSOR  (pixel-color collision, adapted from TEST-MOVEMENT-MAP.bas)
 ' ============================================================================
 SUB StartBoard
-    _DEST CANVAS_COPY: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)   ' clean board (collision source)
-    _DEST CANVAS: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)    ' pristine board (everything visible)
+    InitFog                          ' build the fogged CANVAS_COPY + CANVAS (secret areas sealed)
     render_room_labels
     c.cursor_color = _RGB32(&HFF, &H00, &H00, &HAA)
     c.x = START_CX * CW: c.y = START_CY * CH

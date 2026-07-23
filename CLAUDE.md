@@ -79,12 +79,21 @@ Environment specifics that dictate this approach:
   miss table in `DoConsequence`). Movement (1d6) and combat (2d6) rolls animate on-screen
   pip dice (`RollDiceShow` / `DrawDie`). Four player classes (`CLASSES(1..4)`: Hero/Elf/Superhero/
   Wizard) with distinct gold goals + combat bonuses are chosen via the menu's CREATE A
-  CHARACTER (`SelectClass`). Room flags on `SECTOR` add a boss room (`is_boss`), looseable
-  treasure caches (`treasure`/`trapped`/`looted`, via `CollectTreasure`), and a secret door
-  holding the Level Key — revealed by the `[F]` SEARCH action (`DoSearch` / `RevealSecretDoor`),
-  where the Elf's `secret_bonus` matters and the win now requires gold **and** `has_key`.
-  All events route through the `Sfx` sound dispatcher. Build/run it from the repo root
-  (asset paths are `assets/...`, not `../assets/...`).
+  CHARACTER (`SelectClass`). Room flags on `SECTOR` add a boss room (`is_boss`) and looteable
+  treasure caches (`treasure`/`trapped`/`looted`, via `CollectTreasure`). All events route
+  through the `Sfx` sound dispatcher. Build/run it from the repo root (asset paths are
+  `assets/...`, not `../assets/...`).
+- **Secret doors / fog-of-war** (`dungeon.bas`, `InitFog`). The board loads from
+  `assets/ansi/_/board-132x60-no-labels.ans` (same map as the no-secrets board **plus**
+  bright-blue secret-door tiles). At load, `DetectSecretDoors` scans a pristine `FULL_BOARD`
+  image for those tiles; a BFS from START (doors treated as walls) marks the "public" area,
+  and a second BFS seeded from every door marks the door-connected "secret" cells. The played
+  `CANVAS`/`CANVAS_COPY` are `FULL_BOARD` with the secret cells + doors painted black — so
+  hidden doors read as ordinary wall and the base map matches the no-secrets layout. `[F]`
+  `DoSearch` (Elf's `secret_bonus` helps) flood-fills outward from a found door
+  (`RevealRegionFromDoor`), copying just that region back from `FULL_BOARD` — revealing the
+  door and only what it connects to. The first door found grants the Level Key; the win
+  requires gold **and** `has_key` **and** returning to START.
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
