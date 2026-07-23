@@ -152,8 +152,8 @@ SUB RunSettings
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 7
-        IF k = "S" THEN sel = sel + 1: IF sel > 7 THEN sel = 1
+        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 8
+        IF k = "S" THEN sel = sel + 1: IF sel > 8 THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
         IF k = CHR$(27) THEN EXIT SUB
         IF k = " " OR k = CHR$(13) THEN
@@ -163,18 +163,19 @@ SUB RunSettings
                 CASE 3: opt_showdice = NOT opt_showdice
                 CASE 4: opt_realdice = NOT opt_realdice
                 CASE 5: opt_dicemath = NOT opt_dicemath
-                CASE 6
+                CASE 6: opt_oldschool = NOT opt_oldschool
+                CASE 7
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 7: EXIT SUB
+                CASE 8: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
 
         _DEST CANVAS: CLS , BLACK
-        COLOR YELLOWU, BLACK: PrintCentered 6, "-=  S E T T I N G S  =-"
-        FOR i = 1 TO 7
-            y = 11 + (i - 1) * 4
+        COLOR YELLOWU, BLACK: PrintCentered 5, "-=  S E T T I N G S  =-"
+        FOR i = 1 TO 8
+            y = 9 + (i - 1) * 4
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
                 CASE 2: lbl = "Sound FX": vtxt = OnOff$(opt_sfx)
@@ -183,11 +184,14 @@ SUB RunSettings
                 CASE 5
                     lbl = "Dice Math"
                     IF opt_dicemath THEN vtxt = "YOU add mods" ELSE vtxt = "GAME adds mods"
-                CASE 6: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 6
+                    lbl = "Oldschool"
+                    IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
+                CASE 7: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREY, BLACK
-            IF i = 7 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
+            IF i = 8 THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
         COLOR CYANU, BLACK: PrintCentered 43, "[W/S] move    [ENTER] toggle    [ESC] back"
         _DISPLAY
@@ -203,6 +207,11 @@ SUB ShowCharSheet
     COLOR YELLOWU, BOXBG: PrintCentered 16, "-=  C H A R A C T E R  =-"
     COLOR WHITE, BOXBG
     PrintCentered 19, "Champion:  " + class_name
+    IF NOT opt_oldschool THEN
+        COLOR GREENU, BOXBG
+        PrintCentered 20, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(CLASSES(player_class).ac)) + "    To-Hit +" + _TRIM$(STR$(CLASSES(player_class).tohit)) + "    Dmg 1d" + _TRIM$(STR$(CLASSES(player_class).dmg))
+        COLOR WHITE, BOXBG
+    END IF
     PrintCentered 21, "Gold:  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
     IF has_key THEN PrintCentered 23, "Level Key:  HELD" ELSE PrintCentered 23, "Level Key:  not yet found"
     IF item_sword > 0 THEN swordtxt = "Magic Sword +" + _TRIM$(STR$(item_sword)) ELSE swordtxt = "(none)"
@@ -294,9 +303,11 @@ SUB DrawHUD
     el = TIMER - game_start
     IF el < 0 THEN el = el + 86400
     tmr = _TRIM$(STR$(el \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(el MOD 60)), 2)
+    DIM hptag AS STRING
+    IF NOT opt_oldschool THEN hptag = "   HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp))
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + tmr + "   " + lbl
+    hud = " " + class_name + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK
@@ -442,36 +453,78 @@ END FUNCTION
 ' own dice and types the result (and, per the Dice-Math setting, either adds the
 ' modifier themselves or lets the game add it). Otherwise the game rolls on screen.
 FUNCTION DoRoll% (n AS INTEGER, bonus AS INTEGER, what AS STRING)
+    DoRoll = GameRoll(n, 6, bonus, what)
+END FUNCTION
+
+
+' Generalised roll: n dice of any size (d6 shows pips, others show a number
+' tumbler) plus a modifier -- honouring Real-Dice / Dice-Math exactly like DoRoll.
+' Used by D&D-mode combat for d20 to-hit and weapon damage dice.
+FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS STRING)
     DIM raw AS INTEGER, t AS INTEGER
     IF opt_realdice THEN
-        raw = PromptRoll(n, bonus, what)
+        raw = PromptRoll(n, sides, bonus, what)
         die_a = 0: die_b = 0
         IF opt_dicemath THEN
-            DoRoll = raw: last_raw = raw - bonus       ' player entered the total
+            GameRoll = raw: last_raw = raw - bonus
         ELSE
-            DoRoll = raw + bonus: last_raw = raw       ' player entered the dice
+            GameRoll = raw + bonus: last_raw = raw
         END IF
-    ELSE
+    ELSEIF sides = 6 THEN
         t = RollDiceShow(n)
-        DoRoll = t + bonus: last_raw = t               ' natural dice sum
+        GameRoll = t + bonus: last_raw = t
+    ELSE
+        t = ShowRollText(n, sides, what)
+        GameRoll = t + bonus: last_raw = t
     END IF
 END FUNCTION
 
 
+' A number-tumbler for polyhedral dice (d8/d10/d20...) that d6 pips can't show.
+' Flickers random totals, settles on the real one, and returns it.
+FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
+    DIM AS INTEGER total, f, i, bx, by, bw, shown
+    total = 0
+    FOR i = 1 TO n: total = total + RollDie(sides): NEXT i
+    IF opt_showdice THEN
+        bw = 46
+        bx = (SW - bw) \ 2: by = 32
+        FOR f = 1 TO 16
+            IF f < 13 THEN
+                shown = 0
+                FOR i = 1 TO n: shown = shown + RollDie(sides): NEXT i
+            ELSE
+                shown = total
+            END IF
+            _DEST CANVAS
+            LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), BOXBG, BF
+            LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), REDU, B
+            COLOR CYANU, BOXBG: PrintCentered by + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+            COLOR YELLOWU, BOXBG: PrintCentered by + 3, "[  " + _TRIM$(STR$(shown)) + "  ]"
+            IF opt_sfx THEN SOUND 380 + f * 28, 0.05
+            _DISPLAY
+            _LIMIT 22
+        NEXT f
+        _DELAY 0.6
+    END IF
+    ShowRollText = total
+END FUNCTION
+
+
 ' Ask the player what they physically rolled; validates against the possible range.
-FUNCTION PromptRoll% (n AS INTEGER, bonus AS INTEGER, what AS STRING)
+FUNCTION PromptRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS STRING)
     DIM entry AS STRING, k AS STRING, ch AS INTEGER, v AS INTEGER
     DIM spec AS STRING, l1 AS STRING, msg AS STRING, lo AS INTEGER, hi AS INTEGER
-    spec = _TRIM$(STR$(n)) + "d6"
+    spec = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     IF bonus > 0 AND opt_dicemath THEN
         l1 = "Roll " + spec + ", add +" + _TRIM$(STR$(bonus)) + ", and enter the TOTAL:"
-        lo = n + bonus: hi = n * 6 + bonus
+        lo = n + bonus: hi = n * sides + bonus
     ELSEIF bonus > 0 THEN
         l1 = "Roll " + spec + " (the game adds +" + _TRIM$(STR$(bonus)) + ") -- enter your DICE:"
-        lo = n: hi = n * 6
+        lo = n: hi = n * sides
     ELSE
         l1 = "Roll " + spec + " and enter the result:"
-        lo = n: hi = n * 6
+        lo = n: hi = n * sides
     END IF
     entry = "": msg = ""
     DO

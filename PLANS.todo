@@ -125,7 +125,20 @@ Turns:
 
 Dice:
     ✔ Add dice rolling @done(26-07-23)
-        1d20, 3d6+3DL (3d6 + 3 drop lowest), etc.   [only 1d6/2d6 so far]
+        ✔ 1d6 / 2d6 (movement, Oldschool combat, search) @done(26-07-23)
+        ✔ Arbitrary NdX via GameRoll (d20 to-hit, dN damage in D&D mode) @done(26-07-23)
+        ☐ 3d6+3DL (drop-lowest) notation
+
+Combat Modes:
+    ✔ Oldschool Mode setting (default ON) @done(26-07-23)
+        ✔ ON: classic Dungeon! 2d6-vs-target combat @done(26-07-23)
+        ✔ OFF: D&D d20 to-hit vs AC, weapon damage dice, monster HP @done(26-07-23)
+        ✔ Multi-round fights with player + monster HP @done(26-07-23)
+        ✔ Per-class HP / to-hit / damage die / AC @done(26-07-23)
+        ✔ Monster HP + AC scaled by level (boss extra-tanky) @done(26-07-23)
+        ✔ Natural 20 crit (double dice) / natural 1 fumble @done(26-07-23)
+        ✔ Downed -> lose gold, dragged to START, revived; heal at START @done(26-07-23)
+        ✔ Real-dice input works for d20 + damage dice too @done(26-07-23)
 
 Cursor:
     ✘ Make pulse or animated so can see it better @cancelled(23-05-25 23:27)

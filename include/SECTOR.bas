@@ -114,6 +114,7 @@ SUB RandomizeRooms
     FOR i = 1 TO 9
         SECTORS(i).monster = "": SECTORS(i).malive = FALSE: SECTORS(i).is_boss = FALSE
         SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = "": SECTORS(i).treasure_item = 0
+        SECTORS(i).monster_fought = FALSE
     NEXT i
     ' sectors 2..9 correspond to levels 2..9; store the number for THIS player's class
     FOR i = 2 TO 9
@@ -122,6 +123,9 @@ SUB RandomizeRooms
         SECTORS(i).malive = TRUE
         SECTORS(i).treasure_name = TRE_NAME(i, t): SECTORS(i).treasure = TRE_GOLD(i, t)
         SECTORS(i).treasure_item = TRE_ITEM(i, t)
+        ' D&D-mode stats scale with the level: deeper monsters are tougher and harder to hit
+        SECTORS(i).mhp = i * 4 + RollDie(6) + 2: SECTORS(i).mhp_now = SECTORS(i).mhp
+        SECTORS(i).mac = 9 + i
     NEXT i
     ' one deep room (levels 6-9) holds the boss + a great hoard. Bosses are "-"
     ' for Hero/Elf (need a Magic Sword) and merely brutal for Superhero/Wizard.
@@ -136,27 +140,36 @@ SUB RandomizeRooms
     SECTORS(bossroom).treasure_name = "DRAGON'S HOARD"
     SECTORS(bossroom).treasure = SECTORS(bossroom).treasure + 6000
     SECTORS(bossroom).treasure_item = 0
+    ' the boss is a brutal D&D fight: fat HP pool, hard to hit
+    SECTORS(bossroom).mhp = 45 + bossroom * 3 + RollDie(10): SECTORS(bossroom).mhp_now = SECTORS(bossroom).mhp
+    SECTORS(bossroom).mac = 19
 END SUB
 
 
 ' Authentic DUNGEON! win totals: Hero/Elf 10k, Superhero 20k, Wizard 30k.
 
 SUB InitClasses
+    ' Oldschool fields: combat_bonus/secret_bonus.  D&D fields: hp / tohit / dmg (die sides) / ac.
+    ' --- tune the D&D balance here ---
     CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 10000
     CLASSES(1).combat_bonus = 0: CLASSES(1).secret_bonus = 0
     CLASSES(1).blurb = "Solid fighter. Finds secret doors on a 1-2. Needs 10,000 gold."
+    CLASSES(1).hp = 24: CLASSES(1).tohit = 4: CLASSES(1).dmg = 8: CLASSES(1).ac = 15
 
     CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 10000
     CLASSES(2).combat_bonus = -1: CLASSES(2).secret_bonus = 2
     CLASSES(2).blurb = "Weakest fighter, but finds secret doors on a 1-4. Needs 10,000."
+    CLASSES(2).hp = 16: CLASSES(2).tohit = 3: CLASSES(2).dmg = 6: CLASSES(2).ac = 13
 
     CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 20000
     CLASSES(3).combat_bonus = 0: CLASSES(3).secret_bonus = 0
     CLASSES(3).blurb = "The deadliest warrior -- slays monsters on low rolls. Needs 20,000 gold."
+    CLASSES(3).hp = 32: CLASSES(3).tohit = 6: CLASSES(3).dmg = 10: CLASSES(3).ac = 17
 
     CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 30000
     CLASSES(4).combat_bonus = 0: CLASSES(4).secret_bonus = 1
     CLASSES(4).blurb = "Slays with spells; can't use Magic Swords. Needs 30,000 gold."
+    CLASSES(4).hp = 14: CLASSES(4).tohit = 5: CLASSES(4).dmg = 10: CLASSES(4).ac = 12
 END SUB
 
 

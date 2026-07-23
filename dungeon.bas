@@ -38,6 +38,7 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
+opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
@@ -94,6 +95,7 @@ FUNCTION PlayGame%
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
     has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
     moves_made = 0
+    player_maxhp = CLASSES(player_class).hp: player_hp = player_maxhp   ' D&D mode: full HP at the door
     RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
     game_start = TIMER               ' start the run timer
 
@@ -127,6 +129,8 @@ FUNCTION PlayGame%
                 IF TryMove(k) THEN
                     steps_left = steps_left - 1
                     moves_made = moves_made + 1
+                    ' returning to the entrance patches you up (D&D mode)
+                    IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN player_hp = player_maxhp
                     IF InRoomNow THEN
                         sec = SECTOR.get_by_xy(c.x, c.y)
                         IF sec >= 1 THEN
@@ -158,6 +162,13 @@ FUNCTION DoCombat% (sec AS INTEGER)
     DIM k AS STRING
     DIM AS INTEGER d1, d2, sm, need, target, unbeatable
     DIM lead AS STRING, p2 AS STRING, whatguards AS STRING
+    DoCombat = 0
+    SECTORS(sec).monster_fought = TRUE
+    IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
+        DoCombatDnD sec
+        cursor_erase: cursor_draw: _DISPLAY
+        EXIT FUNCTION
+    END IF
     need = SECTORS(sec).mnum
     target = need - item_sword                ' the raw 2d6 the player must roll (Magic Sword helps)
     unbeatable = (target > 12)                ' "-" on the card: needs a stronger blade
@@ -217,6 +228,131 @@ FUNCTION DoCombat% (sec AS INTEGER)
 END FUNCTION
 
 
+' ===========================================================================
+'  D&D-STYLE COMBAT (Oldschool Mode OFF)
+'  Multi-round: player rolls d20 + to-hit vs the monster's AC; on a hit, roll
+'  the class damage die (+ Magic Sword) off the monster's HP. The monster then
+'  strikes back (computer rolls its d20) against the player's AC and HP. Repeat
+'  until the monster drops (win + treasure) or the player is downed (lose gold,
+'  dragged back to START and revived). ESC flees; wounds persist if you return.
+' ===========================================================================
+SUB DoCombatDnD (sec AS INTEGER)
+    DIM k AS STRING, mon AS STRING, lead AS STRING
+    DIM AS INTEGER lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
+    DIM lost AS LONG
+    mon = SECTORS(sec).monster
+    isboss = SECTORS(sec).is_boss
+    lvl = sec                                   ' sector index doubles as dungeon level 2..9
+    mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
+    thb = CLASSES(player_class).tohit
+    IF SECTORS(sec).mhp_now <= 0 THEN SECTORS(sec).mhp_now = SECTORS(sec).mhp   ' fresh fight
+    rounds = 0
+    IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
+
+    DO
+        _LIMIT 60
+        DrawCombatPanel sec, mon, lead
+        k = INKEY$
+        IF k = CHR$(27) THEN                     ' flee -- back out the way you came
+            c.x = c.prev_x: c.y = c.prev_y
+            EXIT SUB
+        ELSEIF k = " " THEN
+            rounds = rounds + 1
+            ' ---------- player attacks ----------
+            atk = GameRoll(1, 20, thb, "to hit the " + mon)
+            IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
+                dmg = RollDie(CLASSES(player_class).dmg) + RollDie(CLASSES(player_class).dmg) + item_sword
+                SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
+                Sfx "crit"
+                Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
+                WaitKey
+            ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss
+                Sfx "fumble"
+                Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
+                WaitKey
+            ELSEIF atk >= SECTORS(sec).mac THEN   ' hit
+                dmg = RollDie(CLASSES(player_class).dmg) + item_sword
+                SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
+                Sfx "hit"
+                Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(SECTORS(sec).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
+                WaitKey
+            ELSE                                  ' miss
+                Sfx "miss"
+                Banner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(SECTORS(sec).mac)) + ")", "The " + mon + " dodges your blow.   [ press any key ]"
+                WaitKey
+            END IF
+
+            IF SECTORS(sec).mhp_now <= 0 THEN     ' monster slain
+                SECTORS(sec).mhp_now = 0
+                SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
+                Sfx "treasure"
+                ClaimTreasure sec, rounds
+                EXIT SUB
+            END IF
+
+            ' ---------- monster strikes back (computer rolls) ----------
+            matk = RollDie(20) + mtohit
+            IF matk >= CLASSES(player_class).ac THEN
+                mdmg = RollDie(6) + lvl \ 3: IF isboss THEN mdmg = mdmg + 3
+                player_hp = player_hp - mdmg
+                Sfx "bump"
+                Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(CLASSES(player_class).ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
+                WaitKey
+            ELSE
+                Banner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", "You weather the assault.   [ press any key ]"
+                WaitKey
+            END IF
+
+            IF player_hp <= 0 THEN                ' downed
+                player_hp = 0
+                DrawCombatPanel sec, mon, lead
+                lost = gold: gold = 0
+                Sfx "lose"
+                Banner "YOU ARE DOWNED by the " + mon + "!", "You lose all your treasure (" + _TRIM$(STR$(lost)) + ") and are dragged back to START.   [ press any key ]"
+                WaitKey
+                c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+                player_hp = player_maxhp          ' revived at the entrance
+                EXIT SUB
+            END IF
+        END IF
+        _DISPLAY
+    LOOP
+END SUB
+
+
+' Draw the D&D combat panel: monster + player HP bars and the action prompt.
+SUB DrawCombatPanel (sec AS INTEGER, mon AS STRING, lead AS STRING)
+    DIM AS INTEGER bx, by, bw, bh
+    bx = 16: by = 39: bw = 100: bh = 10
+    _DEST CANVAS
+    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
+    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    COLOR YELLOWU, BOXBG: PrintCentered by + 1, lead + " blocks your path!"
+    COLOR REDU, BOXBG
+    PrintCentered by + 3, mon + "   " + HpBar$(SECTORS(sec).mhp_now, SECTORS(sec).mhp, 22) + "  " + _TRIM$(STR$(SECTORS(sec).mhp_now)) + "/" + _TRIM$(STR$(SECTORS(sec).mhp)) + " HP   AC " + _TRIM$(STR$(SECTORS(sec).mac))
+    COLOR GREENU, BOXBG
+    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(CLASSES(player_class).ac))
+    COLOR CYANU, BOXBG: PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
+    _DISPLAY
+END SUB
+
+
+' A textual HP bar, e.g. "[##########----------]".
+FUNCTION HpBar$ (cur AS INTEGER, mx AS INTEGER, width AS INTEGER)
+    DIM AS INTEGER filled, i
+    DIM s AS STRING
+    IF mx <= 0 THEN mx = 1
+    filled = INT((cur * width) / mx + 0.5)
+    IF filled < 0 THEN filled = 0
+    IF filled > width THEN filled = width
+    s = "["
+    FOR i = 1 TO width
+        IF i <= filled THEN s = s + "#" ELSE s = s + "-"
+    NEXT i
+    HpBar$ = s + "]"
+END FUNCTION
+
+
 ' Authentic DUNGEON! MONSTER ATTACK TABLE: when your attack fails, the monster
 ' strikes back -- roll 2d6 and apply the result.
 SUB MonsterAttack (sec AS INTEGER)
@@ -263,7 +399,11 @@ END SUB
 ' Award a slain room's treasure -- gold, or a special item card.
 SUB ClaimTreasure (sec AS INTEGER, sm AS INTEGER)
     DIM slay AS STRING, line2 AS STRING, itm AS INTEGER
-    slay = "You slay the " + SECTORS(sec).monster + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
+    IF opt_oldschool THEN
+        slay = "You slay the " + SECTORS(sec).monster + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
+    ELSE
+        slay = "You slay the " + SECTORS(sec).monster + "!  (felled in " + _TRIM$(STR$(sm)) + " rounds)"
+    END IF
     itm = SECTORS(sec).treasure_item
     SELECT CASE itm
         CASE 1, 2                                ' Magic Sword (+1 / +2)

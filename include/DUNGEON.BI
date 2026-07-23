@@ -29,6 +29,10 @@ TYPE SECTOR
     secret_here AS INTEGER   ' (unused) legacy flag
     secret_found AS INTEGER  ' (unused) legacy flag
     treasure_item AS INTEGER ' special-item code for this room's treasure (see TRE_ITEM)
+    monster_fought AS INTEGER ' room flag: combat has happened here
+    mhp     AS INTEGER       ' D&D mode: monster max hit points
+    mhp_now AS INTEGER       ' D&D mode: monster current hit points (mid-fight)
+    mac     AS INTEGER       ' D&D mode: monster armor class (d20+tohit must meet/beat)
 END TYPE
 
 TYPE CURSOR
@@ -42,9 +46,13 @@ END TYPE
 TYPE PCLASS
     name         AS STRING
     gold_goal    AS LONG
-    combat_bonus AS INTEGER     ' added to the 2d6 attack roll
-    secret_bonus AS INTEGER     ' edge at finding secret doors (future use)
+    combat_bonus AS INTEGER     ' added to the 2d6 attack roll (Oldschool mode)
+    secret_bonus AS INTEGER     ' edge at finding secret doors
     blurb        AS STRING
+    hp           AS INTEGER     ' D&D mode: max hit points
+    tohit        AS INTEGER     ' D&D mode: bonus added to the d20 attack roll
+    dmg          AS INTEGER     ' D&D mode: damage die (sides)
+    ac           AS INTEGER     ' D&D mode: armor class (defence)
 END TYPE
 
 DIM SHARED AS INTEGER SW, SH, CW, CH
@@ -86,6 +94,8 @@ DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill que
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER
 DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and types the result
 DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
+DIM SHARED opt_oldschool AS INTEGER   ' TRUE: Dungeon! 2d6-vs-target combat; FALSE: D&D d20/HP combat
+DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter

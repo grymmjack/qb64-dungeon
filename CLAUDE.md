@@ -84,11 +84,21 @@ Environment specifics that dictate this approach:
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
   the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
-  in a sector with a live monster triggers 2d6 combat (`DoCombat`). Movement (1d6) and combat
-  (2d6) rolls animate on-screen pip dice (`RollDiceShow` / `DrawDie`). Every roll goes through
-  `DoRoll(n, bonus, label)`: with the SETTINGS **Real Dice** toggle on, the player rolls their
-  own physical dice and types the result (`PromptRoll`) — the **Dice Math** toggle decides
-  whether they add the modifier or the game does. Four player classes
+  in a sector with a live monster triggers combat (`DoCombat`). Movement (1d6) and 2d6 rolls
+  animate on-screen pip dice (`RollDiceShow` / `DrawDie`); polyhedral dice (d20/d8/d10) use a
+  number tumbler (`ShowRollText`). Every roll goes through `GameRoll(n, sides, bonus, label)`
+  (with `DoRoll` a d6 wrapper over it): with the SETTINGS **Real Dice** toggle on, the player
+  rolls their own physical dice and types the result (`PromptRoll`) — the **Dice Math** toggle
+  decides whether they add the modifier or the game does.
+  **Two combat systems**, chosen by the SETTINGS **Oldschool** toggle (default ON): ON is the
+  classic Dungeon! **2d6-vs-target** (`DoCombat`, one roll — slay or roll the Monster Attack
+  Table), OFF is **D&D-style** (`DoCombatDnD`) — multi-round with monster **HP + AC**
+  (`SECTOR.mhp/mhp_now/mac`, scaled by level in `RandomizeRooms`) and per-class **HP / to-hit /
+  damage die / AC** (`PCLASS.hp/tohit/dmg/ac` in `InitClasses`): each round the player rolls
+  d20+to-hit vs the monster's AC then a damage die (`DrawCombatPanel` shows HP bars); the
+  monster strikes back (computer-rolled) against the player's AC/HP; natural 20 crits (double
+  dice), natural 1 fumbles; being downed loses all gold and drags you back to START (revived),
+  and returning to START heals to full. Both systems honour Real Dice. Four player classes
   (`CLASSES(1..4)`: Hero/Elf/Superhero/Wizard) with the authentic DUNGEON! win totals
   (10k/10k/20k/30k) and combat modifiers are chosen via CREATE A CHARACTER (`SelectClass`).
   **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
