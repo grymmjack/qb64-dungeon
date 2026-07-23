@@ -11,7 +11,7 @@ Refactor:
 
 Dialogs:
     ☐ Create scrolling text window
-    ☐ Create character sheet
+    ✔ Create character sheet @done(26-07-23)
     ✔ Create menu option lightbar (simple) @done(26-07-23)
     ✔ Create combat @done(26-07-23)
     ✔ Create defeat @done(26-07-23)

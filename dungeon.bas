@@ -36,6 +36,7 @@ TYPE SECTOR
     looted  AS INTEGER       ' treasure already taken
     secret_here AS INTEGER   ' (unused) legacy flag
     secret_found AS INTEGER  ' (unused) legacy flag
+    treasure_item AS INTEGER ' special-item code for this room's treasure (see TRE_ITEM)
 END TYPE
 
 TYPE CURSOR
@@ -69,7 +70,11 @@ DIM SHARED player_class AS INTEGER
 ' Dungeon!-style monster + treasure pools, 3 per level (levels 1-9), randomised per game.
 DIM SHARED MON_NAME(1 TO 9, 1 TO 3) AS STRING, MON_NUM(1 TO 9, 1 TO 3) AS INTEGER
 DIM SHARED TRE_NAME(1 TO 9, 1 TO 3) AS STRING, TRE_GOLD(1 TO 9, 1 TO 3) AS INTEGER
+DIM SHARED TRE_ITEM(1 TO 9, 1 TO 3) AS INTEGER   ' 0=gold, 1=MagicSword+1, 2=MagicSword+2, 3=SecretDoorCard
 DIM SHARED BOSS_NAME(1 TO 4) AS STRING
+' player inventory (special treasure cards)
+DIM SHARED item_sword AS INTEGER      ' Magic Sword combat bonus held (0/1/2)
+DIM SHARED item_secret_card AS INTEGER ' holds the Secret Door Card
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
@@ -214,6 +219,11 @@ SUB InitMonsterTables
     SetTre 8, "GOLD NECKLACE", 9000, "HUGE RUBY", 8000, "HUGE DIAMOND", 10000
     SetTre 9, "HUGE DIAMOND", 10000, "GOLD NECKLACE", 9000, "HUGE SAPPHIRE", 6000
 
+    ' special treasure cards seeded into the pools (real cards from the deck)
+    TRE_NAME(2, 3) = "MAGIC SWORD +1": TRE_GOLD(2, 3) = 500: TRE_ITEM(2, 3) = 1
+    TRE_NAME(4, 3) = "SECRET DOOR CARD": TRE_GOLD(4, 3) = 0: TRE_ITEM(4, 3) = 3
+    TRE_NAME(6, 3) = "MAGIC SWORD +2": TRE_GOLD(6, 3) = 500: TRE_ITEM(6, 3) = 2
+
     BOSS_NAME(1) = "RED DRAGON": BOSS_NAME(2) = "BLUE DRAGON"
     BOSS_NAME(3) = "EVIL WIZARD": BOSS_NAME(4) = "BLACK PUDDING"
 END SUB
@@ -239,7 +249,7 @@ SUB RandomizeRooms
     DIM i AS INTEGER, m AS INTEGER, t AS INTEGER, bossroom AS INTEGER
     FOR i = 1 TO 9
         SECTORS(i).monster = "": SECTORS(i).malive = FALSE: SECTORS(i).is_boss = FALSE
-        SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = ""
+        SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = "": SECTORS(i).treasure_item = 0
     NEXT i
     ' sectors 2..9 correspond to levels 2..9
     FOR i = 2 TO 9
@@ -247,6 +257,7 @@ SUB RandomizeRooms
         SECTORS(i).monster = MON_NAME(i, m): SECTORS(i).mnum = MON_NUM(i, m)
         SECTORS(i).malive = TRUE
         SECTORS(i).treasure_name = TRE_NAME(i, t): SECTORS(i).treasure = TRE_GOLD(i, t)
+        SECTORS(i).treasure_item = TRE_ITEM(i, t)
     NEXT i
     ' one deep room (levels 6-9) holds the boss + a great hoard
     bossroom = RollDie(4) + 5
@@ -254,6 +265,7 @@ SUB RandomizeRooms
     SECTORS(bossroom).monster = BOSS_NAME(RollDie(4)): SECTORS(bossroom).mnum = 11
     SECTORS(bossroom).treasure_name = "DRAGON'S HOARD"
     SECTORS(bossroom).treasure = SECTORS(bossroom).treasure + 6000
+    SECTORS(bossroom).treasure_item = 0
 END SUB
 
 
@@ -417,11 +429,11 @@ FUNCTION PlayGame%
     DIM i AS INTEGER
     class_name = CLASSES(player_class).name
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
-    has_key = FALSE
+    has_key = FALSE: item_sword = 0: item_secret_card = FALSE
     RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
 
     StartBoard
-    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll   WASD move   [F] search for secret doors   fight monsters for treasure   ESC flee"
+    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  WASD move  [F] search  [C] character  fight for treasure  ESC flee"
     WaitKey
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
@@ -432,6 +444,7 @@ FUNCTION PlayGame%
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
         IF k = "F" THEN DoSearch
+        IF k = "C" THEN ShowCharSheet
 
         IF need_roll THEN
             IF k = " " THEN
@@ -476,7 +489,7 @@ FUNCTION DoCombat% (sec AS INTEGER)
     DIM AS INTEGER d1, d2, sm, need, bonus, target
     DIM lead AS STRING
     need = SECTORS(sec).mnum
-    bonus = CLASSES(player_class).combat_bonus
+    bonus = CLASSES(player_class).combat_bonus + item_sword   ' class + Magic Sword
     target = need - bonus                     ' the raw 2d6 the player must roll
     IF target < 2 THEN target = 2
     DoCombat = 0
@@ -496,10 +509,8 @@ FUNCTION DoCombat% (sec AS INTEGER)
             d1 = die_a: d2 = die_b
             IF sm >= target THEN
                 SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
-                gold = gold + SECTORS(sec).treasure
                 Sfx "treasure"
-                Banner "You slay the " + SECTORS(sec).monster + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")", "You claim the " + SECTORS(sec).treasure_name + " -- " + _TRIM$(STR$(SECTORS(sec).treasure)) + " GOLD!   [ press any key ]"
-                WaitKey
+                ClaimTreasure sec, sm
                 EXIT DO
             ELSE
                 MonsterAttack sec               ' failed -- roll on the Monster Attack Table
@@ -558,6 +569,57 @@ SUB MonsterAttack (sec AS INTEGER)
 END SUB
 
 
+' Award a slain room's treasure -- gold, or a special item card.
+SUB ClaimTreasure (sec AS INTEGER, sm AS INTEGER)
+    DIM slay AS STRING, line2 AS STRING, itm AS INTEGER
+    slay = "You slay the " + SECTORS(sec).monster + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
+    itm = SECTORS(sec).treasure_item
+    SELECT CASE itm
+        CASE 1, 2                                ' Magic Sword (+1 / +2)
+            IF player_class = 4 THEN             ' a Wizard cannot use a Magic Sword
+                gold = gold + 500
+                line2 = "A " + SECTORS(sec).treasure_name + " -- a Wizard can't wield it; you sell it for 500 gold."
+            ELSEIF itm > item_sword THEN         ' keep only the stronger sword
+                item_sword = itm
+                line2 = "You take up the " + SECTORS(sec).treasure_name + "!  (+" + _TRIM$(STR$(itm)) + " to your attacks)"
+            ELSE
+                gold = gold + 500
+                line2 = "Another " + SECTORS(sec).treasure_name + " -- you already hold a keener blade; +500 gold."
+            END IF
+        CASE 3                                    ' Secret Door Card
+            item_secret_card = TRUE
+            line2 = "You find the SECRET DOOR CARD -- you now sense secret doors automatically!"
+        CASE ELSE                                 ' plain gold treasure
+            gold = gold + SECTORS(sec).treasure
+            line2 = "You claim the " + SECTORS(sec).treasure_name + " -- " + _TRIM$(STR$(SECTORS(sec).treasure)) + " GOLD!"
+    END SELECT
+    Banner slay, line2 + "   [ press any key ]"
+    WaitKey
+END SUB
+
+
+' [C] character sheet: class, wealth, and the special items carried.
+SUB ShowCharSheet
+    DIM y AS INTEGER, swordtxt AS STRING
+    _DEST CANVAS
+    LINE (30 * CW, 14 * CH)-(102 * CW, 38 * CH), BOXBG, BF
+    LINE (30 * CW, 14 * CH)-(102 * CW, 38 * CH), REDU, B
+    COLOR YELLOWU, BOXBG: PrintCentered 16, "-=  C H A R A C T E R  =-"
+    COLOR WHITE, BOXBG
+    PrintCentered 19, "Champion:  " + class_name
+    PrintCentered 21, "Gold:  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
+    IF has_key THEN PrintCentered 23, "Level Key:  HELD" ELSE PrintCentered 23, "Level Key:  not yet found"
+    IF item_sword > 0 THEN swordtxt = "Magic Sword +" + _TRIM$(STR$(item_sword)) ELSE swordtxt = "(none)"
+    PrintCentered 26, "Magic Sword:  " + swordtxt
+    IF item_secret_card THEN PrintCentered 28, "Secret Door Card:  HELD" ELSE PrintCentered 28, "Secret Door Card:  (none)"
+    COLOR CYANU, BOXBG: PrintCentered 31, CLASSES(player_class).blurb
+    COLOR YELLOWU, BOXBG: PrintCentered 35, "[ press any key ]"
+    _DISPLAY
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+
 ' [F] search for a hidden secret door within a couple of cells of the cursor.
 ' The Elf's secret_bonus makes the d6 check far more reliable. The first door
 ' found also yields the Level Key.
@@ -566,6 +628,7 @@ SUB DoSearch
     DIM found_any AS INTEGER, near_hidden AS INTEGER
     ccx = c.x \ CW: ccy = c.y \ CH
     roll = RollDie(6) + CLASSES(player_class).secret_bonus
+    IF item_secret_card THEN roll = 99          ' the Secret Door Card never fails
     found_any = FALSE: near_hidden = FALSE
     FOR i = 1 TO SD_N
         IF NOT SD_FOUND(i) THEN
@@ -957,9 +1020,12 @@ SUB DrawHUD
     sec = SECTOR.get_by_xy(c.x, c.y)
     IF sec >= 1 THEN lbl = SECTORS(sec).label ELSE lbl = "THE HALLS"
     IF has_key THEN keytag = "KEY" ELSE keytag = "no key"
+    DIM inv AS STRING
+    IF item_sword > 0 THEN inv = inv + "  SWD+" + _TRIM$(STR$(item_sword))
+    IF item_secret_card THEN inv = inv + "  SDC"
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + lbl
+    hud = " " + class_name + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK

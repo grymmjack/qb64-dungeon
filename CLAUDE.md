@@ -83,8 +83,11 @@ Environment specifics that dictate this approach:
   authentic monster + treasure from that level's pool (`InitMonsterTables`, real card names
   and Hero to-hit numbers), and one deep sector becomes the boss lair (`is_boss`). A missed
   attack rolls the authentic **MONSTER ATTACK TABLE** (`MonsterAttack`: killed / serious
-  wound / light wound / stunned / missed). All events route through the `Sfx` dispatcher.
-  Build/run from the repo root (asset paths are `assets/...`, not `../assets/...`).
+  wound / light wound / stunned / missed). Special treasure cards seeded into the pools grant
+  powers (`ClaimTreasure`): a **Magic Sword** (+1/+2 to attacks; a Wizard can't wield one) and
+  the **Secret Door Card** (searches never fail). A `[C]` character sheet (`ShowCharSheet`)
+  shows class, gold, key, and items. All events route through the `Sfx` dispatcher. Build/run
+  from the repo root (asset paths are `assets/...`, not `../assets/...`).
 - **Secret doors / fog-of-war** (`dungeon.bas`, `InitFog`). The board loads from
   `assets/ansi/_/board-132x60-no-labels.ans` (same map as the no-secrets board **plus**
   bright-blue secret-door tiles). At load, `DetectSecretDoors` scans a pristine `FULL_BOARD`
