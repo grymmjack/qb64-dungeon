@@ -87,3 +87,4 @@ DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and
 DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
+DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter

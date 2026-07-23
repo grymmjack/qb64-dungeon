@@ -357,3 +357,40 @@ SUB render_room_labels
     _PRINTSTRING (104 * CW, 22 * CH), "TREASURE"
 END SUB
 
+
+
+' [~] debug overlay: cursor position, cell states, move count, timer.
+FUNCTION YN$ (b AS INTEGER)
+    IF b THEN YN$ = "Y" ELSE YN$ = "N"
+END FUNCTION
+
+
+SUB DrawDebug
+    DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER, i AS INTEGER
+    DIM onpath AS INTEGER, inroom AS INTEGER, ondoor AS INTEGER, onsecret AS INTEGER, nearsd AS INTEGER
+    DIM img AS LONG, el AS LONG, bg AS _UNSIGNED LONG
+    cx = c.x \ CW: cy = c.y \ CH
+    sec = SECTOR.get_by_xy(c.x, c.y)
+    img = _NEWIMAGE(CW, CH, 32)
+    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    onpath = image_is_monochromatic(img, YELLOW)
+    onsecret = image_is_monochromatic(img, BRIGHT_BLUE)
+    _FREEIMAGE img
+    inroom = InRoomNow
+    ondoor = OnDoorNow
+    FOR i = 1 TO SD_N
+        IF NOT SD_FOUND(i) THEN
+            IF ABS(SD_X(i) - cx) <= 2 AND ABS(SD_Y(i) - cy) <= 2 THEN nearsd = -1
+        END IF
+    NEXT i
+    el = TIMER - game_start: IF el < 0 THEN el = el + 86400
+    bg = _RGB32(&H00, &H00, &H40)
+    _DEST CANVAS
+    LINE (0, 0)-(50 * CW, 5 * CH), bg, BF
+    LINE (0, 0)-(50 * CW, 5 * CH), CYANU, B
+    COLOR YELLOWU, bg
+    _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
+    _PRINTSTRING (1 * CW, 1 * CH), "sector " + _TRIM$(STR$(sec)) + "   moves " + _TRIM$(STR$(moves_made)) + "   time " + MMSS$(el)
+    _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " door:" + YN$(ondoor) + " secret:" + YN$(onsecret) + " nearSD:" + YN$(nearsd)
+    _PRINTSTRING (1 * CW, 3 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
+END SUB

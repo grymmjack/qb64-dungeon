@@ -93,6 +93,7 @@ FUNCTION PlayGame%
     class_name = CLASSES(player_class).name
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
     has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
+    moves_made = 0
     RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
     game_start = TIMER               ' start the run timer
 
@@ -111,6 +112,7 @@ FUNCTION PlayGame%
         IF k = "F" THEN DoSearch
         IF k = "C" THEN ShowCharSheet
         IF k = "V" THEN ScryView
+        IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
 
         IF need_roll THEN
             IF k = " " THEN
@@ -124,6 +126,7 @@ FUNCTION PlayGame%
             IF (k = "W" OR k = "A" OR k = "S" OR k = "D") AND steps_left > 0 THEN
                 IF TryMove(k) THEN
                     steps_left = steps_left - 1
+                    moves_made = moves_made + 1
                     IF InRoomNow THEN
                         sec = SECTOR.get_by_xy(c.x, c.y)
                         IF sec >= 1 THEN
@@ -145,6 +148,7 @@ FUNCTION PlayGame%
         END IF
 
         DrawHUD
+        IF dbg_on THEN DrawDebug
         _DISPLAY
     LOOP
 END FUNCTION
