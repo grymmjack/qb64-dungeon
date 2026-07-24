@@ -9,14 +9,25 @@
 '  frost/siren hooks in PlayGame.
 ' ============================================================================
 
-' Saving throw: 50% base, +/-10% per point of the relevant ability modifier,
-' clamped to 5..95%. TRUE = the danger is avoided.
-FUNCTION SaveThrow% (abmod AS INTEGER)
-    DIM pct AS INTEGER
-    pct = 50 + abmod * 10
-    IF pct < 5 THEN pct = 5
-    IF pct > 95 THEN pct = 95
-    SaveThrow = (RollDie(100) <= pct)
+' Saving throw, rolled ON SCREEN as a d20 (Real-Dice players roll their own).
+' Math: roll d20 + (ability modifier * 2), save on DC 11 -- which reproduces the
+' old "50% base, +/-10% per ability point" odds exactly (each point = +2 = +10%).
+' Natural 20 always saves, natural 1 always fails. Plays a success/fail sound.
+' `what` is shown in the roll caption. TRUE = the danger is avoided.
+FUNCTION SaveThrow% (abmod AS INTEGER, what AS STRING)
+    DIM tot AS INTEGER, bonus AS INTEGER, saved AS INTEGER, dc AS INTEGER
+    dc = 11
+    bonus = abmod * 2
+    tot = GameRoll(1, 20, bonus, "SAVE vs " + what + " -- need " + _TRIM$(STR$(dc)) + "+ to save")
+    IF last_raw = 20 THEN
+        saved = -1                         ' natural 20 always saves
+    ELSEIF last_raw = 1 THEN
+        saved = 0                          ' natural 1 always fails
+    ELSE
+        saved = (tot >= dc)
+    END IF
+    IF saved THEN Sfx "saveok" ELSE Sfx "savebad"
+    SaveThrow = saved
 END FUNCTION
 
 
@@ -80,20 +91,20 @@ SUB SpringTrap (rm AS INTEGER)
     SELECT CASE tt
         CASE 1                                      ' POISON DARTS -- save vs poison (CON)
             Sfx "trap"
-            Banner "CLICK -- POISON DARTS hiss from the chest!", "Save vs poison (CON)..."
-            _DELAY 1.8
-            IF SaveThrow(AbilMod(player_con)) THEN
-                Banner "You twist aside -- the darts clatter past!", "Saved!   [ press any key ]"
+            Banner "CLICK -- POISON DARTS hiss from the chest!", "Roll to SAVE vs poison!"
+            CombatPause
+            IF SaveThrow(AbilMod(player_con), "poison (CON)") THEN
+                Banner "You twist aside -- the darts clatter past!", "SAVED!   [ press any key ]"
             ELSE
                 poison_turns = poison_turns + RollDie(4)
                 Banner "A dart pricks you -- venom burns in your veins!", "POISONED: -1 HP for " + _TRIM$(STR$(poison_turns)) + " turns.   [ press any key ]"
             END IF
         CASE 2                                      ' BOMB -- dodge (DEX), maybe catch fire
             Sfx "trap"
-            Banner "TICK TICK -- a BOMB tumbles out of the chest!", "Dodge (DEX)..."
-            _DELAY 1.8
-            IF SaveThrow(AbilMod(player_dex)) THEN
-                Banner "You dive clear as it bursts!", "Dodged!   [ press any key ]"
+            Banner "TICK TICK -- a BOMB tumbles out of the chest!", "Roll to DODGE the blast!"
+            CombatPause
+            IF SaveThrow(AbilMod(player_dex), "the bomb (DEX)") THEN
+                Banner "You dive clear as it bursts!", "DODGED!   [ press any key ]"
             ELSE
                 dmg = RollDie(6)
                 player_hp = player_hp - dmg: IF player_hp < 1 THEN player_hp = 1
@@ -106,10 +117,10 @@ SUB SpringTrap (rm AS INTEGER)
             END IF
         CASE 3                                      ' FROST BOMB -- save vs frost (CON)
             Sfx "trap"
-            Banner "A FROST BOMB shatters in a burst of rime!", "Save vs frost (CON)..."
-            _DELAY 1.8
-            IF SaveThrow(AbilMod(player_con)) THEN
-                Banner "You shrug off the freezing blast!", "Saved!   [ press any key ]"
+            Banner "A FROST BOMB shatters in a burst of rime!", "Roll to SAVE vs frost!"
+            CombatPause
+            IF SaveThrow(AbilMod(player_con), "frost (CON)") THEN
+                Banner "You shrug off the freezing blast!", "SAVED!   [ press any key ]"
             ELSEIF num_players > 1 THEN              ' multiplayer: frozen in place, no damage
                 frost_turns = frost_turns + RollDie(4)
                 Banner "You are frozen solid!", "FROZEN: you cannot move for " + _TRIM$(STR$(frost_turns)) + " turns.   [ press any key ]"
@@ -120,10 +131,10 @@ SUB SpringTrap (rm AS INTEGER)
             END IF
         CASE ELSE                                   ' MAGIC SIREN -- save vs magic (WIS)
             Sfx "trap"
-            Banner "A MAGIC SIREN wails up out of the chest!", "Save vs magic (WIS)..."
-            _DELAY 1.8
-            IF SaveThrow(AbilMod(player_wis)) THEN
-                Banner "You clap the lid shut before it carries!", "Saved!   [ press any key ]"
+            Banner "A MAGIC SIREN wails up out of the chest!", "Roll to SAVE vs magic!"
+            CombatPause
+            IF SaveThrow(AbilMod(player_wis), "the siren (WIS)") THEN
+                Banner "You clap the lid shut before it carries!", "SAVED!   [ press any key ]"
             ELSE
                 siren_turns = siren_turns + RollDie(4)
                 Banner "The alarm shrieks through the halls!", "For " + _TRIM$(STR$(siren_turns)) + " turns, wandering monsters hunt you!   [ press any key ]"

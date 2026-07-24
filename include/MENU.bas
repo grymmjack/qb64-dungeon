@@ -1031,6 +1031,8 @@ SUB Sfx (kind AS STRING)
         CASE "search": Tone 300, 0.05: Tone 260, 0.05
         CASE "win": Tone 523, 0.12: Tone 659, 0.12: Tone 784, 0.12: Tone 1046, 0.28
         CASE "lose": Tone 300, 0.16: Tone 220, 0.16: Tone 130, 0.34
+        CASE "saveok": Tone 784, 0.07: Tone 1046, 0.07: Tone 1318, 0.18   ' bright rising -- saved!
+        CASE "savebad": Tone 392, 0.12: Tone 294, 0.14: Tone 196, 0.28    ' sad descending -- failed
         CASE "select": Tone 220, 0.06
     END SELECT
 END SUB
