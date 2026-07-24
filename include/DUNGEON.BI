@@ -166,6 +166,11 @@ DIM SHARED item_boots AS INTEGER      ' Elf Boots: +2 to the movement roll
 DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you back to START
 DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
 DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
+' -- status effects from curio traps (tick down as turns pass; shown in the HUD) --
+DIM SHARED poison_turns AS INTEGER   ' poison darts: -1 HP per turn (damage over time)
+DIM SHARED fire_turns AS INTEGER     ' bomb fire: -1 HP per turn (damage over time)
+DIM SHARED frost_turns AS INTEGER    ' frost bomb: movement frozen this many turns
+DIM SHARED siren_turns AS INTEGER    ' magic siren: encounter chance raised while it wails
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
 ' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to

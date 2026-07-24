@@ -124,6 +124,7 @@ FUNCTION PlayGame%
     lvl_reached(1) = TRUE            ' you start on the 1st level
     char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
     item_potion_small = 0: item_potion_large = 0
+    poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
 
     IF num_players > 1 THEN
         ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
@@ -159,6 +160,8 @@ FUNCTION PlayGame%
         IF k = "F" THEN DoSearch
         IF k = "C" THEN ShowCharSheet
         IF k = "V" THEN ScryView
+        IF k = "H" THEN UsePotion FALSE: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        IF k = "P" THEN PauseGame: idle_ticks = 0
         IF k = "?" OR k = "/" THEN ShowKeys
         IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
 
@@ -216,8 +219,14 @@ FUNCTION PlayGame%
                         IF sec >= 1 THEN
                             ' a monster guards this room's treasure?
                             IF ROOMS(sec).malive AND LEN(_TRIM$(ROOMS(sec).monster)) > 0 THEN
-                                res = DoCombat(sec)
-                                IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
+                                ' ESP Medallion: foresee the monster and choose to enter or back off
+                                IF item_esp AND NOT EspEnter(sec) THEN
+                                    c.x = c.prev_x: c.y = c.prev_y   ' heed the warning, step back out
+                                    cursor_erase: cursor_draw
+                                ELSE
+                                    res = DoCombat(sec)
+                                    IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
+                                END IF
                             END IF
                             ' recover a fallen rival's loot once the room is clear (multiplayer)
                             IF num_players > 1 AND NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
@@ -236,6 +245,23 @@ FUNCTION PlayGame%
 
         DrawHUD
         IF dbg_on THEN DrawDebug
+        _DISPLAY
+    LOOP
+END FUNCTION
+
+
+' ESP Medallion: foresee the monster guarding a room and choose whether to enter.
+' Returns TRUE to fight, FALSE to heed the warning and back away.
+FUNCTION EspEnter% (rm AS INTEGER)
+    DIM k AS STRING, lead AS STRING
+    IF ROOMS(rm).is_boss THEN lead = "the BOSS " + _TRIM$(ROOMS(rm).monster) ELSE lead = "a " + _TRIM$(ROOMS(rm).monster)
+    Sfx "idle"
+    Banner "Your ESP MEDALLION tingles -- " + lead + " lurks beyond this door!", "[Y] enter and fight   [N] back away"
+    DO
+        _LIMIT 60
+        k = UCASE$(INKEY$)
+        IF k = "Y" OR k = CHR$(13) OR k = " " THEN EspEnter = -1: EXIT FUNCTION
+        IF k = "N" OR k = CHR$(27) THEN EspEnter = 0: EXIT FUNCTION
         _DISPLAY
     LOOP
 END FUNCTION
@@ -351,6 +377,9 @@ SUB DoCombatDnD (rm AS INTEGER)
         IF k = CHR$(27) THEN                     ' flee -- back out the way you came
             c.x = c.prev_x: c.y = c.prev_y
             EXIT SUB
+        ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (free action)
+            UsePotion FALSE
+            DrawCombatPanel rm, mon, lead
         ELSEIF k = " " THEN
             rounds = rounds + 1
             ' ---------- player attacks ----------
@@ -414,7 +443,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
                 Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
-                CombatPause
+                WaitKey                           ' let the death sink in before the blood falls
                 BloodDrip                         ' blood runs down the screen, fade to black
                 c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
                 player_hp = player_maxhp          ' revived at the entrance
@@ -439,7 +468,12 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
     COLOR GREENU, BOXBG
     PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac + item_armor))
-    COLOR CYANU, BOXBG: PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
+    COLOR CYANU, BOXBG
+    IF item_potion_small > 0 OR item_potion_large > 0 THEN
+        PrintCentered by + 8, "[SPACE] attack    [H] potion (" + _TRIM$(STR$(item_potion_small + item_potion_large)) + ")    [ESC] flee"
+    ELSE
+        PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
+    END IF
     _DISPLAY
 END SUB
 
@@ -473,7 +507,7 @@ SUB MonsterAttack (rm AS INTEGER)
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
             Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
-            CombatPause
+            WaitKey                             ' let the death sink in before the blood falls
             BloodDrip                           ' blood runs down the screen, fade to black
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
             cursor_erase: cursor_draw: FadeInCurrent   ' the dungeon fades back in at START
@@ -514,32 +548,46 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     mon = _TRIM$(ROOMS(rm).monster): tname = _TRIM$(ROOMS(rm).treasure_name)
     lvl = ROOMS(rm).sec: goldbefore = gold                 ' chronicle this kill + its haul
     IF lvl >= 1 AND lvl <= 9 THEN lvl_kills(lvl) = lvl_kills(lvl) + 1: lvl_reached(lvl) = TRUE
+    char_xp = char_xp + XP_PER_KILL_LVL * lvl              ' XP scales with the monster's depth
+    IF ROOMS(rm).is_boss THEN char_xp = char_xp + XP_PER_KILL_LVL * lvl   ' a boss is worth double
     IF opt_oldschool THEN
         slay = "You slay the " + mon + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
     ELSE
         slay = "You slay the " + mon + "!  (felled in " + _TRIM$(STR$(sm)) + " rounds)"
     END IF
     itm = ROOMS(rm).treasure_item
+    DIM newp AS INTEGER
     SELECT CASE itm
-        CASE 1, 2                                ' Magic Sword (+1 / +2)
+        CASE 1, 2                                ' Magic Sword -- every blade found is keener than the last
             IF player_class = 4 THEN             ' a Wizard cannot use a Magic Sword
                 gold = gold + 500
+                LogTreasure "Magic Sword (sold)", 500
                 line2 = "A " + tname + " -- a Wizard can't wield it; you sell it for 500 gold."
-            ELSEIF itm > item_sword THEN         ' keep only the stronger sword
-                item_sword = itm
-                line2 = "You take up the " + tname + "!  (+" + _TRIM$(STR$(itm)) + " to your attacks)"
             ELSE
-                gold = gold + 500
-                line2 = "Another " + tname + " -- you already hold a keener blade; +500 gold."
+                newp = itm                       ' a duplicate/weaker blade is reforged one step stronger
+                IF newp <= item_sword THEN newp = item_sword + 1
+                IF newp > 5 THEN newp = 5        ' +5 is the legendary cap
+                IF newp > item_sword THEN
+                    item_sword = newp
+                    LogTreasure "Magic Sword +" + _TRIM$(STR$(item_sword)), 500 * item_sword
+                    line2 = "You take up a finer blade -- your sword is now +" + _TRIM$(STR$(item_sword)) + " to attacks!"
+                ELSE
+                    gold = gold + 1000
+                    LogTreasure "Magic Sword (sold)", 1000
+                    line2 = "Your blade is already legendary (+5) -- you sell this one for 1000 gold."
+                END IF
             END IF
         CASE 3                                    ' Secret Door Card
             item_secret_card = TRUE
+            LogTreasure "Secret Door Card", 0
             line2 = "You find the SECRET DOOR CARD -- you now sense secret doors automatically!"
         CASE 4                                    ' ESP Medallion
             item_esp = TRUE
-            line2 = "You don the ESP MEDALLION -- you can now sense each room's treasure!"
+            LogTreasure "ESP Medallion", 0
+            line2 = "You don the ESP MEDALLION -- you now foresee the monster beyond a door!"
         CASE 5                                    ' Crystal Ball
             item_crystal = TRUE
+            LogTreasure "Crystal Ball", 0
             line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
         CASE 6                                    ' the LEVEL KEY (this game's key room)
             has_key = TRUE
@@ -547,33 +595,43 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             gold = gold + ROOMS(rm).treasure
             IF ROOMS(rm).treasure > 0 THEN LogTreasure "Key Vault hoard", ROOMS(rm).treasure
             line2 = "You seize the LEVEL KEY! Now escape to the entrance with your gold to WIN."
-        CASE 7, 8                                 ' Shield (+2 AC) / Magic Armor (+3 AC)
+        CASE 7, 8                                 ' Shield / Magic Armor -- each set finer than the last
             IF itm = 7 THEN acb = 2 ELSE acb = 3
-            IF acb > item_armor THEN
-                item_armor = acb
+            newp = acb                            ' a duplicate/weaker set is reforged one step stronger
+            IF newp <= item_armor THEN newp = item_armor + 1
+            IF newp > 6 THEN newp = 6             ' +6 AC is the cap
+            IF newp > item_armor THEN
+                item_armor = newp
+                LogTreasure _TRIM$(tname) + " (+" + _TRIM$(STR$(item_armor)) + " AC)", 500 * item_armor
                 line2 = "You don the " + tname + " -- your Armor Class rises to " + _TRIM$(STR$(player_ac + item_armor)) + "!"
             ELSE
-                gold = gold + 500
-                line2 = "A " + tname + " -- you already wear stouter protection; +500 gold."
+                gold = gold + 1000
+                LogTreasure "Armor (sold)", 1000
+                line2 = "Your armor is already peerless (+6 AC) -- you sell this for 1000 gold."
             END IF
         CASE 9                                     ' Magic Bow (+2 to-hit, strikes from range)
             IF NOT item_bow THEN
                 item_bow = TRUE
+                LogTreasure "Magic Bow", 0
                 line2 = "You take up the " + tname + " -- +2 to hit, striking before they close!"
             ELSE
                 gold = gold + 500
+                LogTreasure "Magic Bow (sold)", 500
                 line2 = "Another " + tname + " -- you already carry one; +500 gold."
             END IF
         CASE 10                                    ' Elf Boots (+2 to the movement roll)
             IF NOT item_boots THEN
                 item_boots = TRUE
+                LogTreasure "Elf Boots", 0
                 line2 = "You lace on the " + tname + " -- +2 to every movement roll!"
             ELSE
                 gold = gold + 500
+                LogTreasure "Elf Boots (sold)", 500
                 line2 = "Another pair of " + tname + " -- you already run swift; +500 gold."
             END IF
         CASE 11                                    ' Teleport Scroll (consumable, [T])
             item_teleport = item_teleport + 1
+            LogTreasure "Teleport Scroll", 0
             line2 = "You pocket a TELEPORT SCROLL (" + _TRIM$(STR$(item_teleport)) + " held) -- press [T] to whisk to START."
         CASE ELSE                                 ' plain gold treasure
             gold = gold + ROOMS(rm).treasure
@@ -583,7 +641,120 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     IF lvl >= 1 AND lvl <= 9 THEN lvl_gold(lvl) = lvl_gold(lvl) + (gold - goldbefore)
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
+    ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
+    ' slot rm > ROOM_N) never drop one -- that would make them farmable.
+    IF rm <= ROOM_N THEN
+        IF RollDie(100) <= TREASURE_POTION_PCT THEN
+            item_potion_large = item_potion_large + 1
+            Sfx "treasure"
+            Banner "Among the spoils glints a LARGE HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d8).   [ press any key ]"
+            CombatPause
+        END IF
+        ' clearing every room of a level: a healing cache + (D&D) a level-up
+        IF lvl >= 1 AND lvl <= 9 THEN
+            IF NOT lvl_cleared(lvl) THEN
+                IF LevelFullyCleared(lvl) THEN GrantLevelClear lvl
+            END IF
+        END IF
+    END IF
 END SUB
+
+
+' TRUE once every monster-bearing room of a dungeon level has been slain.
+FUNCTION LevelFullyCleared% (lvl AS INTEGER)
+    DIM r AS INTEGER
+    LevelFullyCleared = FALSE
+    FOR r = 1 TO ROOM_N
+        IF ROOMS(r).sec = lvl AND LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN
+            IF ROOMS(r).malive THEN EXIT FUNCTION      ' a lair still holds a live monster
+        END IF
+    NEXT r
+    LevelFullyCleared = TRUE
+END FUNCTION
+
+
+' Reward for sweeping a whole floor: mark it cleared (now a safe zone), grant a
+' healing cache (small potion always; a large one LEVELCLEAR_LARGE_PCT of the time),
+' and in D&D mode advance the character a level -- rolling the class hit die for +HP.
+SUB GrantLevelClear (lvl AS INTEGER)
+    DIM hpgain AS INTEGER, got AS STRING
+    lvl_cleared(lvl) = TRUE
+    Sfx "win"
+    Banner "The " + Ordinal$(lvl) + " level is CLEARED!", "Every lair on this floor lies empty -- it is a safe haven now.   [ press any key ]"
+    CombatPause
+    IF NOT opt_oldschool THEN                       ' D&D level-up: +1 level, roll the hit die for HP
+        char_level = char_level + 1
+        hpgain = GameRoll(1, CLASSES(player_class).hitdie, AbilMod(player_con), "LEVEL UP! roll your hit die")
+        IF hpgain < 1 THEN hpgain = 1
+        player_maxhp = player_maxhp + hpgain
+        player_hp = player_maxhp                    ' fully restored on level-up
+        Sfx "key"
+        Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
+        CombatPause
+    END IF
+    item_potion_small = item_potion_small + 1
+    got = "a SMALL HEALING POTION (1d4)"
+    IF RollDie(100) <= LEVELCLEAR_LARGE_PCT THEN
+        item_potion_large = item_potion_large + 1
+        got = got + " and a LARGE one (1d8)"
+    END IF
+    Sfx "treasure"
+    Banner "The cleared floor yields " + got + ".", "Press [H] in a fight to quaff a potion.   [ press any key ]"
+    CombatPause
+END SUB
+
+
+' Quaff a healing potion. If the player holds both sizes, ask which; otherwise
+' drink whatever is held. Heals the rolled amount (small 1d4 / large 1d8), capped
+' at max HP. A free action in combat (no monster riposte). silentIfNone TRUE
+' suppresses the "no potions" nag (used when [H] is pressed on the board).
+SUB UsePotion (silentIfNone AS INTEGER)
+    DIM which AS INTEGER, heal AS INTEGER
+    IF item_potion_small <= 0 AND item_potion_large <= 0 THEN
+        IF NOT silentIfNone THEN
+            Banner "You have no healing potions.", "Slay monsters and clear floors to find them.   [ press any key ]"
+            WaitKey
+        END IF
+        EXIT SUB
+    END IF
+    which = 0
+    IF item_potion_small > 0 AND item_potion_large > 0 THEN
+        which = AskPotionChoice
+        IF which = 0 THEN EXIT SUB                  ' cancelled
+    ELSEIF item_potion_large > 0 THEN
+        which = 2
+    ELSE
+        which = 1
+    END IF
+    IF which = 1 THEN
+        item_potion_small = item_potion_small - 1
+        heal = GameRoll(1, POTION_SMALL_DIE, 0, "SMALL HEALING POTION")
+    ELSE
+        item_potion_large = item_potion_large - 1
+        heal = GameRoll(1, POTION_LARGE_DIE, 0, "LARGE HEALING POTION")
+    END IF
+    IF heal < 1 THEN heal = 1
+    player_hp = player_hp + heal
+    IF player_hp > player_maxhp THEN player_hp = player_maxhp
+    Sfx "treasure"
+    Banner "You quaff the potion and recover " + _TRIM$(STR$(heal)) + " HP.", "Now at " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP.   [ press any key ]"
+    CombatPause
+END SUB
+
+
+' Prompt which potion to drink when the player holds both. Returns 1 small, 2 large, 0 cancel.
+FUNCTION AskPotionChoice%
+    DIM k AS STRING
+    Banner "Which potion? [S] small (1d4, " + _TRIM$(STR$(item_potion_small)) + " held)   [L] large (1d8, " + _TRIM$(STR$(item_potion_large)) + " held)", "[ESC] cancel"
+    DO
+        _LIMIT 60
+        k = UCASE$(INKEY$)
+        IF k = "S" THEN AskPotionChoice = 1: EXIT FUNCTION
+        IF k = "L" THEN AskPotionChoice = 2: EXIT FUNCTION
+        IF k = CHR$(27) THEN AskPotionChoice = 0: EXIT FUNCTION
+        _DISPLAY
+    LOOP
+END FUNCTION
 
 
 ' Record a named treasure in the active player's log (shown on the character sheet).
@@ -611,7 +782,23 @@ SUB DropEverything (rm AS INTEGER)
     item_sword = 0
     item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
     item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0
+    item_potion_small = 0: item_potion_large = 0
     IF cur_player >= 1 AND cur_player <= 4 THEN LOOT_N(cur_player) = 0   ' the treasure log goes too
+END SUB
+
+
+' Freeze the game so the player can step away (bio break). Halts the idle/real-time
+' clock -- the caller resets idle_ticks on return. Any key resumes.
+SUB PauseGame
+    DIM k AS STRING
+    Sfx "idle"
+    Banner "-- PAUSED --", "Take your time.   [ press any key to resume ]"
+    DO
+        _LIMIT 30
+        k = INKEY$
+        _DISPLAY
+    LOOP UNTIL k <> ""
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
 
 

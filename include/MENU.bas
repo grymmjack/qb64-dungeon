@@ -618,9 +618,13 @@ SUB ShowCharSheet
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
-    who = class_name: IF num_players > 1 THEN who = _TRIM$(player_name) + " the " + class_name
+    who = _TRIM$(player_name) + " the " + class_name
+    IF _TRIM$(player_name) = "" THEN who = class_name
     COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  C H A R A C T E R  =-"
-    COLOR WHITE, BOXBG: PrintCentered 6, "Champion:  " + who
+    DIM chline AS STRING
+    chline = "Champion:  " + who
+    IF NOT opt_oldschool THEN chline = chline + "        Level " + _TRIM$(STR$(char_level)) + "    XP " + _TRIM$(STR$(char_xp))
+    COLOR WHITE, BOXBG: PrintCentered 6, chline
     COLOR CYANU, BOXBG
     PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
     IF NOT opt_oldschool THEN
@@ -640,6 +644,8 @@ SUB ShowCharSheet
     IF item_bow THEN inv = inv + "Magic Bow (+2 hit)    "
     IF item_boots THEN inv = inv + "Elf Boots (+2 move)    "
     IF item_teleport > 0 THEN inv = inv + "Teleport x" + _TRIM$(STR$(item_teleport)) + " [T]    "
+    IF item_potion_small > 0 THEN inv = inv + "Sm Potion x" + _TRIM$(STR$(item_potion_small)) + " [H]    "
+    IF item_potion_large > 0 THEN inv = inv + "Lg Potion x" + _TRIM$(STR$(item_potion_large)) + " [H]    "
     IF item_secret_card THEN inv = inv + "Secret Door Card    "
     IF item_esp THEN inv = inv + "ESP Medallion    "
     IF item_crystal THEN inv = inv + "Crystal Ball [V]    "
@@ -726,7 +732,9 @@ SUB ShowKeys
     ky(9) = "~  or  `": ds(9) = "Toggle the debug overlay"
     ky(10) = "ESC": ds(10) = "Flee combat / quit to menu"
     ky(11) = "R": ds(11) = "Re-roll (during character creation)"
-    n = 11
+    ky(12) = "H": ds(12) = "Quaff a healing potion"
+    ky(13) = "P": ds(13) = "Pause the game (bio break)"
+    n = 13
     _DEST CANVAS
     LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), BOXBG, BF
     LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), CYANU, B
@@ -776,6 +784,18 @@ END SUB
 '  BOARD + CURSOR  (pixel-color collision, adapted from TEST-MOVEMENT-MAP.bas)
 ' ============================================================================
 
+' Compact readout of any active status effects, for the HUD (empty when clear).
+FUNCTION StatusTag$
+    DIM s AS STRING
+    s = ""
+    IF poison_turns > 0 THEN s = s + " {PSN" + _TRIM$(STR$(poison_turns)) + "}"
+    IF fire_turns > 0 THEN s = s + " {FIRE" + _TRIM$(STR$(fire_turns)) + "}"
+    IF frost_turns > 0 THEN s = s + " {FRZ" + _TRIM$(STR$(frost_turns)) + "}"
+    IF siren_turns > 0 THEN s = s + " {SIREN" + _TRIM$(STR$(siren_turns)) + "}"
+    StatusTag$ = s
+END FUNCTION
+
+
 SUB DrawHUD
     DIM sec AS INTEGER, lbl AS STRING, hud AS STRING
     _DEST CANVAS
@@ -788,18 +808,19 @@ SUB DrawHUD
     IF item_secret_card THEN inv = inv + "  SDC"
     IF item_esp THEN inv = inv + "  ESP"
     IF item_crystal THEN inv = inv + "  CRY"
+    IF item_potion_small + item_potion_large > 0 THEN inv = inv + "  POT" + _TRIM$(STR$(item_potion_small + item_potion_large))
     DIM el AS LONG, tmr AS STRING
     el = TIMER - game_start
     IF el < 0 THEN el = el + 86400
     tmr = _TRIM$(STR$(el \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(el MOD 60)), 2)
-    DIM hptag AS STRING
-    IF NOT opt_oldschool THEN hptag = "   HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp))
+    DIM hptag AS STRING, lvltag AS STRING
+    IF NOT opt_oldschool THEN hptag = "   HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)): lvltag = " L" + _TRIM$(STR$(char_level))
     DIM movetag AS STRING, ptag AS STRING
-    IF opt_boardgame THEN movetag = "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) ELSE movetag = "   FREE MOVE"
+    IF opt_boardgame THEN movetag = "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) ELSE movetag = "   MOVES " + _TRIM$(STR$(moves_made))
     IF num_players > 1 THEN ptag = "P" + _TRIM$(STR$(cur_player)) + " " + player_name + "  " ELSE ptag = ""
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + ptag + class_name + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + "   " + tmr + "   " + lbl
+    hud = " " + ptag + class_name + lvltag + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + StatusTag$ + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK
