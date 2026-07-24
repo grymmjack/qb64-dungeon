@@ -166,37 +166,45 @@ SUB FadeOut
 END SUB
 
 
-' Death transition: streaks of blood run down and OPAQUELY flood the whole screen
-' solid red, then it slowly fades to black.
+' Death transition: adjacent vertical strips of blood each run down on their own
+' stagger + speed, piling up strip by strip until the whole screen is red -- then
+' it slowly fades to black. (No sweeping rectangle -- the strips do the filling.)
 SUB BloodDrip
-    DIM nd AS INTEGER, i AS INTEGER, f AS INTEGER, fill AS INTEGER
-    DIM dx(1 TO 80) AS INTEGER, dlen(1 TO 80) AS INTEGER, dsp(1 TO 80) AS INTEGER, dw(1 TO 80) AS INTEGER
-    DIM darkred AS _UNSIGNED LONG, brightred AS _UNSIGNED LONG, fillred AS _UNSIGNED LONG
-    darkred = _RGB32(&H98, &H00, &H00): brightred = _RGB32(&HDA, &H20, &H20): fillred = _RGB32(&H80, &H00, &H00)
-    nd = 72
-    FOR i = 1 TO nd
-        dx(i) = INT(RND * (SW * CW))
-        dlen(i) = -INT(RND * (SH * CH) * 0.6)    ' staggered start delay
-        dsp(i) = 14 + INT(RND * 20)              ' the drips race ahead...
-        dw(i) = 4 + INT(RND * 11)                ' streak width
+    DIM strw AS INTEGER, ns AS INTEGER, i AS INTEGER, f AS INTEGER, px AS INTEGER, allfull AS INTEGER
+    DIM slen(1 TO 220) AS INTEGER, sdelay(1 TO 220) AS INTEGER, ssp(1 TO 220) AS INTEGER
+    DIM darkred AS _UNSIGNED LONG, brightred AS _UNSIGNED LONG
+    darkred = _RGB32(&H90, &H00, &H00): brightred = _RGB32(&HDA, &H24, &H24)
+    strw = 8                                     ' strip width (tile the full width -- no gaps)
+    ns = (SW * CW) \ strw + 1
+    IF ns > 220 THEN ns = 220
+    FOR i = 1 TO ns
+        sdelay(i) = INT(RND * 42)                ' each strip starts at its own moment
+        ssp(i) = 13 + INT(RND * 22)              ' ...and runs at its own speed
+        slen(i) = 0
     NEXT i
     _DEST CANVAS
-    fill = 0
-    ' drips run down; a SOLID red flood follows behind them, top-down, covering all
-    FOR f = 1 TO 74
-        FOR i = 1 TO nd
-            dlen(i) = dlen(i) + dsp(i)
-            IF dlen(i) > 0 THEN
-                LINE (dx(i), 0)-(dx(i) + dw(i), dlen(i)), darkred, BF
-                LINE (dx(i), dlen(i) - 14)-(dx(i) + dw(i), dlen(i) + 6), brightred, BF   ' running drip head
+    f = 0
+    DO
+        f = f + 1
+        allfull = -1
+        FOR i = 1 TO ns
+            IF f >= sdelay(i) THEN
+                slen(i) = slen(i) + ssp(i)
+                IF slen(i) > SH * CH THEN slen(i) = SH * CH
+                px = (i - 1) * strw
+                LINE (px, 0)-(px + strw - 1, slen(i)), darkred, BF          ' the strip so far
+                IF slen(i) < SH * CH THEN
+                    LINE (px, slen(i) - 12)-(px + strw - 1, slen(i) + 4), brightred, BF   ' its running head
+                    allfull = 0
+                END IF
+            ELSE
+                allfull = 0
             END IF
         NEXT i
-        fill = fill + (SH * CH) \ 60             ' ...the solid red flood covers behind them
-        IF fill > 0 THEN LINE (0, 0)-(SW * CW - 1, fill), fillred, BF
         _DISPLAY
         _LIMIT 60
-    NEXT f
-    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), fillred, BF   ' guarantee the whole screen is solid red
+    LOOP UNTIL allfull OR f > 220
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), darkred, BF   ' guarantee fully solid
     _DISPLAY
     _DELAY 0.35                                          ' hold the blood-soaked screen a beat
     ' slow fade from red to black
