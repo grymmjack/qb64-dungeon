@@ -180,8 +180,20 @@ SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
     LOOP
     ROOMS(rid).sec = sec
     ROOMS(rid).cells = tail                 ' block size (tail = cells enqueued)
-    ROOMS(rid).cx = (minx + maxx) \ 2
-    ROOMS(rid).cy = (miny + maxy) \ 2
+    ' Marker cell = the real room cell nearest the bbox centre. The bounding-box
+    ' centre itself can land on a WALL for an L-shaped/irregular block, which used
+    ' to drop the monster glyph onto an unreachable wall tile (so combat never
+    ' fired). Every enqueued QX/QY cell is genuine room floor, so snap to the
+    ' closest one -- guaranteeing the monster sits where the player can step.
+    DIM ccx AS INTEGER, ccy AS INTEGER, bi AS INTEGER, qi AS INTEGER
+    DIM bestd AS LONG, dd AS LONG
+    ccx = (minx + maxx) \ 2: ccy = (miny + maxy) \ 2
+    bi = 0: bestd = 2147483647
+    FOR qi = 0 TO tail - 1
+        dd = (QX(qi) - ccx) * (QX(qi) - ccx) + (QY(qi) - ccy) * (QY(qi) - ccy)
+        IF dd < bestd THEN bestd = dd: bi = qi
+    NEXT qi
+    ROOMS(rid).cx = QX(bi): ROOMS(rid).cy = QY(bi)
 END SUB
 
 
