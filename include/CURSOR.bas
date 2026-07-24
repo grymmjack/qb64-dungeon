@@ -75,6 +75,20 @@ SUB cursor_draw
         NEXT p
     END IF
     LINE (c.x, c.y)-(c.x + CW - 1, c.y + CH - 1), c.cursor_color, BF
+    ' proximity ring: highlight the cursor when a door of interest is adjacent
+    DIM ring AS _UNSIGNED LONG, hasring AS INTEGER
+    hasring = FALSE
+    IF NearSecretDoorHint THEN
+        ring = _RGB32(&H40, &H90, &HFF): hasring = TRUE    ' a hidden secret door is near -- search!
+    ELSEIF NearStrongDoor THEN
+        ring = _RGB32(&HFF, &H88, &H00): hasring = TRUE    ' a reinforced door is adjacent
+    ELSEIF NearRegularDoor THEN
+        ring = BROWN: hasring = TRUE                        ' an ordinary door is adjacent
+    END IF
+    IF hasring THEN
+        LINE (c.x, c.y)-(c.x + CW - 1, c.y + CH - 1), ring, B
+        LINE (c.x - 1, c.y - 1)-(c.x + CW, c.y + CH), ring, B
+    END IF
 END SUB
 
 

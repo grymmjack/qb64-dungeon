@@ -78,11 +78,11 @@ Debugging:
             ✔ In Room @done(26-07-23)
             ✔ In Room Level (sector shown) @done(26-07-23)
             ✔ Near Door (on-door) @done(26-07-23)
-            ☐ Near Regular Door
-            ✘ Near Strong Door @cancelled(23-05-29 17:14)
-            ✔ Near Secret Door @done(26-07-23)
-            ☐ Fighting Monster
-            ☐ Fighting Player
+            ✔ Near Regular Door (nearRD) @done(26-07-23)
+            ✔ Near Strong Door (nearStr) @done(26-07-23)
+            ✔ Near Secret Door (nearSD) @done(26-07-23)
+            ✘ Fighting Monster @cancelled(26-07-23) -- modal combat, no persistent board state
+            ✘ Fighting Player @cancelled(26-07-23) -- no PvP in hot-seat
         ✔ Number of moves made @done(26-07-23)
         ✔ Game start time / Current time @done(26-07-23)
     ✔ Add crosshair inspector mode for mouse: @done(26-07-23)
@@ -94,10 +94,10 @@ Collision:
     ✔ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&) @done(23-05-29 17:12)
         Returns true if the image is composed of only 2 colors
     ✔ Modify function CURSOR.can_move depending on states @done(23-05-29 17:12)
-    ☐ Add neighboring_cells function to determine if:
-        ☐ Near Door
-        ☐ Near Regular Door
-        ☐ Near Secret Door
+    ✔ Add neighboring_cells function to determine if: @done(26-07-23)
+        ✔ Near Door (NeighborHasColor / NearRegularDoor) @done(26-07-23)
+        ✔ Near Regular Door @done(26-07-23)
+        ✔ Near Secret Door (NearSecretDoorHint + NearStrongDoor) @done(26-07-23)
 
 Secret Doors:
     ✔ Add "detect secret door" action: @done(26-07-23)
@@ -172,12 +172,12 @@ Cursor:
         ✔ On path @done(23-05-29 17:12)
         ✔ In Room @done(23-05-29 17:12)
         ✔ In Room Level @done(23-05-29 17:12)
-        ☐ Near Door
-        ☐ Near Regular Door
-        ☐ Near Strong Door
-        ☐ Near Secret Door
-        ☐ Fighting Monster
-        ☐ Fighting Player
+        ✔ Near Door (cursor ring) @done(26-07-23)
+        ✔ Near Regular Door (brown ring) @done(26-07-23)
+        ✔ Near Strong Door (orange ring) @done(26-07-23)
+        ✔ Near Secret Door (blue ring -- search hint) @done(26-07-23)
+        ✘ Fighting Monster @cancelled(26-07-23) -- combat is modal (the combat panel IS the indicator)
+        ✘ Fighting Player @cancelled(26-07-23) -- hot-seat has no player-vs-player combat
 
 Sounds:
     ✔ Add preliminary sound for movement @done(23-05-28 00:17)

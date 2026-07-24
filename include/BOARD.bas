@@ -416,6 +416,57 @@ FUNCTION OnDoorNow%
 END FUNCTION
 
 
+' ---- neighbouring-cell inspection (drives the cursor's proximity states) ----
+
+' Colour of a cell centre in the CURRENT _SOURCE (black if out of bounds).
+FUNCTION CellColorAt~& (cx AS INTEGER, cy AS INTEGER)
+    IF cx < 0 OR cx > SW - 1 OR cy < 0 OR cy > SH - 1 THEN CellColorAt = BLACK: EXIT FUNCTION
+    CellColorAt = POINT(cx * CW + CW \ 2, cy * CH + CH \ 2)
+END FUNCTION
+
+' TRUE if any of the cursor's 4 orthogonal neighbours is the given colour.
+FUNCTION NeighborHasColor% (kol AS _UNSIGNED LONG)
+    DIM cx AS INTEGER, cy AS INTEGER, oldsrc AS LONG, res AS INTEGER
+    cx = c.x \ CW: cy = c.y \ CH
+    oldsrc = _SOURCE: _SOURCE CANVAS_COPY
+    res = FALSE
+    IF CellColorAt(cx - 1, cy) = kol THEN res = TRUE
+    IF CellColorAt(cx + 1, cy) = kol THEN res = TRUE
+    IF CellColorAt(cx, cy - 1) = kol THEN res = TRUE
+    IF CellColorAt(cx, cy + 1) = kol THEN res = TRUE
+    _SOURCE oldsrc
+    NeighborHasColor = res
+END FUNCTION
+
+' Adjacent to an ordinary (brown) door?
+FUNCTION NearRegularDoor% ()
+    NearRegularDoor = NeighborHasColor(BROWN)
+END FUNCTION
+
+' Adjacent to an un-broken reinforced (strong) door?
+FUNCTION NearStrongDoor% ()
+    DIM cx AS INTEGER, cy AS INTEGER
+    cx = c.x \ CW: cy = c.y \ CH
+    IF StrongDoorHere(cx - 1, cy) > 0 THEN NearStrongDoor = TRUE: EXIT FUNCTION
+    IF StrongDoorHere(cx + 1, cy) > 0 THEN NearStrongDoor = TRUE: EXIT FUNCTION
+    IF StrongDoorHere(cx, cy - 1) > 0 THEN NearStrongDoor = TRUE: EXIT FUNCTION
+    IF StrongDoorHere(cx, cy + 1) > 0 THEN NearStrongDoor = TRUE: EXIT FUNCTION
+    NearStrongDoor = FALSE
+END FUNCTION
+
+' Within 2 cells of a STILL-HIDDEN secret door -- a hint to search here.
+FUNCTION NearSecretDoorHint% ()
+    DIM i AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    cx = c.x \ CW: cy = c.y \ CH
+    FOR i = 1 TO SD_N
+        IF NOT SD_FOUND(i) THEN
+            IF ABS(SD_X(i) - cx) <= 2 AND ABS(SD_Y(i) - cy) <= 2 THEN NearSecretDoorHint = TRUE: EXIT FUNCTION
+        END IF
+    NEXT i
+    NearSecretDoorHint = FALSE
+END FUNCTION
+
+
 ' TRUE if the cursor cell is a (revealed) secret door -- a bright-blue tile.
 FUNCTION OnSecretDoorNow%
     DIM img AS LONG, r AS INTEGER
@@ -614,7 +665,7 @@ SUB DrawDebug
     COLOR YELLOWU, bg
     _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
     _PRINTSTRING (1 * CW, 1 * CH), "sector " + _TRIM$(STR$(sec)) + "   moves " + _TRIM$(STR$(moves_made)) + "   time " + MMSS$(el)
-    _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " door:" + YN$(ondoor) + " secret:" + YN$(onsecret) + " nearSD:" + YN$(nearsd)
+    _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
     _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn
