@@ -2,6 +2,33 @@ Note:
     The playable game now lives in ../dungeon.bas (a vertical slice assembling the
     scratchpad prototypes). Items below are checked off against that build.
 
+Roadmap (future / bigger efforts):
+    ☐ Extract a REUSABLE ENGINE from the game (so the next game starts from it):
+        Today it's "a game with a lot of reusable machinery" -- engine + game share
+        globals (DUNGEON.BI) and modules mix concerns. Split into:
+        ☐ engine/  -- ANSI-art world + pixel-colour collision (image_is_mono/dia,
+          CanMove, CellColorAt, NeighborHasColor); movement/input (TryMove, NormKey$,
+          IsMoveKey, door-hop); region detection (flood-fill DetectRooms/Doors);
+          visibility (fog BFS + raytraced FOV ComputeFOV/CastRay/FovRender); dice
+          (GameRoll, pip dice, tumbler, real-dice input); UI (animated ANSI menu +
+          wrapping lightbars, settings toggles/sliders, Banner, ScrollText); audio
+          (Sfx + volumes); persistence (settings + save/load); multiplayer scaffold
+          (active-player-as-working-globals, Load/SaveActivePlayer); character/stats
+          (3d6 gen, AbilMod, class templates).
+        ☐ game/   -- board art, monster/treasure/spell tables (InitMonsterTables),
+          class win totals, sector geometry, and the Dungeon! rules (DoCombat, kill
+          numbers, secret-key win). This is the swappable layer.
+        ☐ engine exposes hooks the game fills in (room/encounter callbacks, win
+          condition, data tables) -- the chamber event system below is the first user.
+    ☐ Special rooms = CHAMBERS with elaborate encounters (Darkest-Dungeon-style):
+        Per the manual, Dungeon! Rooms hold 1 monster + 1 treasure; CHAMBERS hold a
+        3-monster gauntlet and NO treasure (only dropped loot), and allow multiple
+        pawns. Build on the existing room detection:
+        ☐ Tag room-blocks as ROOM vs CHAMBER (the named big ones = chambers)
+        ☐ Rooms keep 1-monster + treasure; Chambers run a 3-monster gauntlet
+        ☐ Chamber EVENT table: gauntlet, curios (shrine/altar risk-reward choices),
+          traps/hazards, and "LORD" random events (scripted encounters)
+
 Refactor:
     ✔ Move code into include modules: @done(26-07-23)
         ✔ BOARD @done(26-07-23)
