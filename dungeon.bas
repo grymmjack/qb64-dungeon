@@ -50,7 +50,8 @@ opt_dicesolid = TRUE                          ' filled die body with a contrasti
 opt_d6pips = FALSE                            ' d6 rolls use the font's numbered die (on = hand-drawn pips)
 opt_dicespeed = 0                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
 opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
-opt_combatspeed = 0                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
+opt_combatspeed = 0                           ' (legacy) superseded by opt_msgdelay
+opt_msgdelay = 2                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
 opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red

@@ -243,7 +243,8 @@ DIM SHARED opt_mon_dicecolor AS INTEGER, opt_mon_dicesolid AS INTEGER
 DIM SHARED opt_mon_d6pips AS INTEGER, opt_mon_dicespeed AS INTEGER
 DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INTEGER, sav_dicespeed AS INTEGER
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled (no dice shimmer)
-DIM SHARED opt_combatspeed AS INTEGER ' pause after each combat action: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key (see CombatPause)
+DIM SHARED opt_combatspeed AS INTEGER ' (legacy, kept for save compat) -- superseded by opt_msgdelay
+DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key
 DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle (no action) -> wandering monsters can find you
 DIM SHARED opt_critfumble AS INTEGER  ' TRUE: the crit/fumble effects engine runs (cinematic + bonus/penalty rolls)
 DIM SHARED opt_lootrecovery AS INTEGER ' TRUE: death leaves your loot in the room to reclaim (default in D&D mode)

@@ -474,9 +474,9 @@ SUB RunSettings
                     IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
                     Sfx "select"
                 CASE 21
-                    opt_combatspeed = opt_combatspeed + delta
-                    IF opt_combatspeed < 0 THEN opt_combatspeed = 3
-                    IF opt_combatspeed > 3 THEN opt_combatspeed = 0
+                    opt_msgdelay = opt_msgdelay + delta
+                    IF opt_msgdelay < 0 THEN opt_msgdelay = 5
+                    IF opt_msgdelay > 5 THEN opt_msgdelay = 0
                     Sfx "select"
                 CASE 25
                     opt_mon_dicecolor = opt_mon_dicecolor + delta
@@ -521,8 +521,8 @@ SUB RunSettings
                 CASE 19: opt_smooth = NOT opt_smooth: ApplyDisplay
                 CASE 20: opt_fov = NOT opt_fov
                 CASE 21
-                    opt_combatspeed = opt_combatspeed + 1
-                    IF opt_combatspeed > 3 THEN opt_combatspeed = 0
+                    opt_msgdelay = opt_msgdelay + 1
+                    IF opt_msgdelay > 5 THEN opt_msgdelay = 0
                 CASE 22: opt_hardcore = NOT opt_hardcore
                 CASE 23: opt_critfumble = NOT opt_critfumble
                 CASE 24: opt_lootrecovery = NOT opt_lootrecovery
@@ -595,13 +595,8 @@ SUB RunSettings
                     IF opt_smooth THEN vtxt = "smooth" ELSE vtxt = "crisp pixels"
                 CASE 20: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
                 CASE 21
-                    lbl = "Combat Speed": slider = TRUE
-                    SELECT CASE opt_combatspeed
-                        CASE 0: vtxt = "slow"
-                        CASE 2: vtxt = "fast"
-                        CASE 3: vtxt = "wait for key"
-                        CASE ELSE: vtxt = "normal"
-                    END SELECT
+                    lbl = "Message Delay": slider = TRUE
+                    IF opt_msgdelay <= 0 THEN vtxt = "wait for key" ELSE vtxt = _TRIM$(STR$(opt_msgdelay)) + " sec"
                 CASE 22
                     lbl = "Time Passes When Idle"
                     IF opt_hardcore THEN vtxt = "hardcore (yes)" ELSE vtxt = "casual (no)"
@@ -938,6 +933,20 @@ SUB DrawHUD
     hud = " " + ptag + class_name + lvltag + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + DeathTag$ + StatusTag$ + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
+        ' prominent centred prompt -- the roll-to-move step is easy to miss otherwise
+        DIM rp AS STRING, bx1 AS INTEGER, bx2 AS INTEGER
+        rp = "[ SPACE ]  ROLL THE DICE TO MOVE"
+        bx1 = (SW - LEN(rp)) \ 2 - 2: bx2 = (SW + LEN(rp)) \ 2 + 2
+        IF (INT(TIMER * 2) MOD 2) = 0 THEN                          ' gentle pulse for attention
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), _RGB32(&H35, &H22, &H00), BF
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), YELLOWU, B
+            COLOR YELLOWU, _RGB32(&H35, &H22, &H00)
+        ELSE
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), _RGB32(&H22, &H16, &H00), BF
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), _RGB32(&HAA, &H88, &H00), B
+            COLOR _RGB32(&HDD, &HBB, &H33), _RGB32(&H22, &H16, &H00)
+        END IF
+        PrintCentered 3, rp
         COLOR YELLOWU, BLACK
         _PRINTSTRING ((SW - 17) * CW, 50 * CH), "[SPACE] ROLL DICE"
     ELSEIF gold >= target_gold AND has_key THEN
@@ -980,15 +989,9 @@ END SUB
 ' fast); Wait-for-key falls back to WaitKey. Keys pressed during a timed pause are
 ' drained afterwards so they don't spill into the next prompt or trigger a round.
 SUB CombatPause
-    DIM d AS SINGLE
-    SELECT CASE opt_combatspeed
-        CASE 0: d = 1.6              ' Slow
-        CASE 1: d = 0.9              ' Normal
-        CASE 2: d = 0.45             ' Fast
-        CASE ELSE: WaitKey: EXIT SUB ' Wait for key (manual)
-    END SELECT
-    _DELAY d
-    DO: LOOP UNTIL INKEY$ = ""       ' drain keys pressed during the pause
+    IF opt_msgdelay <= 0 THEN WaitKey: EXIT SUB   ' 0 = wait for a keypress (manual)
+    _DELAY opt_msgdelay                            ' else hold the message this many seconds
+    DO: LOOP UNTIL INKEY$ = ""                     ' drain keys pressed during the pause
 END SUB
 
 
