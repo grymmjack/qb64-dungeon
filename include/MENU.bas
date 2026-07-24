@@ -325,7 +325,7 @@ FUNCTION RunMenu%
         _DISPLAY
         IF firstframe THEN FadeInCurrent: firstframe = 0   ' fade the menu in on the first frame
     LOOP
-    FadeOut                                                 ' fade to black before the next screen
+    IF result = MENU_ENTER THEN BloodDrip ELSE FadeOut     ' blood-drip descent into the dungeon; plain fade otherwise
 
     IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
     music_handle = 0
