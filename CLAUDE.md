@@ -235,9 +235,15 @@ character `Q` printed in the d20 font:
   6 palettes via `DiceColors`), **Dice Finish** (`opt_dicesolid`, solid/hollow), **D6 Style**
   (`opt_d6pips`, pip art vs the font's numbered six — the font's d6 is a *numbered square*, which
   is why the hand-drawn pips are the default), and **Dice Speed** (`opt_dicespeed`; `DiceTiming`
-  returns the frame count / frame rate / settle frame / hold). `SETTINGS` renders a live sample
-  row via `DrawDicePreview`. **The running total is only drawn once `f >= settle`** — showing it
-  during the tumble spoils the roll.
+  returns the frame count / frame rate / settle frame / hold). `SETTINGS` renders a live 2×3
+  sample grid on the right via `DrawDicePreview`. **The running total is only drawn once
+  `f >= settle`** — showing it during the tumble spoils the roll. The roll box (`ShowRollTextEx`)
+  auto-sizes to the wider of the dice row and its caption/`sum` line, so a single narrow die
+  never leaves the `-= rolling 1d20 =-` header spilling past the box edges.
+- **Pixel Smoothing** (`opt_smooth`, default off) is a display setting applied by `ApplyDisplay`
+  (the one place the three `_FULLSCREEN` sites route through): on = `_FULLSCREEN _SQUAREPIXELS,
+  _SMOOTH` (bilinear — soft, and it makes the tumbling dice shimmer); off = `_FULLSCREEN
+  _SQUAREPIXELS` (crisp pixel-doubling, which suits the ANSI/text art and kills the shimmer).
 
 ## QB64PE conventions in this codebase
 

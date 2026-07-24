@@ -380,7 +380,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 20
+    CONST NSET = 21
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -444,9 +444,10 @@ SUB RunSettings
                 CASE 17: opt_heroicstats = NOT opt_heroicstats
                 CASE 18
                     opt_fullscreen = NOT opt_fullscreen
-                    IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 19: opt_fov = NOT opt_fov
-                CASE 20: SaveSettings: EXIT SUB
+                    ApplyDisplay
+                CASE 19: opt_smooth = NOT opt_smooth: ApplyDisplay
+                CASE 20: opt_fov = NOT opt_fov
+                CASE 21: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -502,56 +503,68 @@ SUB RunSettings
                     lbl = "Stat Roll"
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
                 CASE 18: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
-                CASE 19: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
+                CASE 19
+                    lbl = "Pixel Smoothing"
+                    IF opt_smooth THEN vtxt = "smooth" ELSE vtxt = "crisp pixels"
+                CASE 20: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        DrawDicePreview 44
-        COLOR CYANU, BLACK: PrintCentered 50, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
+        DrawDicePreview
+        COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
 END SUB
 
 
-' Live sample of the player's chosen dice, drawn under the SETTINGS list so the
-' colour / finish / d6-style choices can be judged by eye instead of by label.
-SUB DrawDicePreview (row AS INTEGER)
-    DIM AS INTEGER gap, totw, x0, dy, i, sz, x
-    DIM SD(1 TO 5) AS INTEGER, FV(1 TO 5) AS INTEGER, WD(1 TO 6) AS INTEGER
+' Live sample of the player's chosen dice, so the colour / finish / d6-style
+' choices can be judged by eye. Drawn as a 2x3 grid on the RIGHT of the SETTINGS
+' screen (the list is centred, so the right third is free) -- decoupled from the
+' list length, which now runs too tall for a bottom row.
+SUB DrawDicePreview
+    DIM SD(1 TO 6) AS INTEGER, FV(1 TO 6) AS INTEGER
+    DIM idx AS INTEGER, col AS INTEGER, rr AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM gx AS INTEGER, gy AS INTEGER, cellw AS INTEGER, cellh AS INTEGER
     SD(1) = 20: FV(1) = 20
     SD(2) = 12: FV(2) = 12
     SD(3) = 10: FV(3) = 10
     SD(4) = 8: FV(4) = 8
     SD(5) = 4: FV(5) = 4
-    sz = 48: gap = 16
-    totw = 0
-    FOR i = 1 TO 5
-        WD(i) = DieWidth(SD(i))
-        IF WD(i) < 8 THEN WD(i) = 56
-        totw = totw + WD(i) + gap
-    NEXT i
-    IF opt_d6pips THEN WD(6) = sz ELSE WD(6) = DieWidth(6)
-    IF WD(6) < 8 THEN WD(6) = 56
-    totw = totw + WD(6)
-    x0 = (SW * CW - totw) \ 2
-    dy = row * CH
+    SD(6) = 6: FV(6) = 6
+    cellw = 84: cellh = 92
+    gx = 100 * CW: gy = 15 * CH               ' top-left of the grid (right side)
     _DEST CANVAS
-    COLOR GREY, BLACK: PrintCentered row - 2, "your dice"   ' row-2: leave room for the point above the die
-    x = x0
-    FOR i = 1 TO 5
-        DrawFontDie x, dy, SD(i), FV(i)
-        x = x + WD(i) + gap
-    NEXT i
-    ' the d6 -- hand-drawn pips (nudged down to sit level with the font dice), or
-    ' the font's own numbered six-sider
-    IF opt_d6pips THEN
-        DrawDie x, dy + 14, sz, 6
-    ELSE
-        DrawFontDie x, dy, 6, 6
-    END IF
+    COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), " your dice"
+    FOR idx = 1 TO 6
+        col = (idx - 1) MOD 2
+        rr = (idx - 1) \ 2
+        px = gx + col * cellw
+        py = gy + rr * cellh
+        IF SD(idx) = 6 AND opt_d6pips THEN
+            DrawDie px + 8, py + 16, 48, 6     ' pip d6, centred in its cell
+        ELSE
+            DrawFontDie px, py, SD(idx), FV(idx)
+        END IF
+    NEXT idx
     _FONT CH
+END SUB
+
+
+' Apply the fullscreen + pixel-smoothing preferences to the display. _SMOOTH gives
+' bilinear-filtered scaling (soft, and it makes the tumbling dice shimmer); without
+' it the canvas is pixel-doubled crisp -- better suited to the ANSI/text art.
+SUB ApplyDisplay
+    IF opt_fullscreen THEN
+        IF opt_smooth THEN
+            _FULLSCREEN _SQUAREPIXELS, _SMOOTH
+        ELSE
+            _FULLSCREEN _SQUAREPIXELS
+        END IF
+    ELSE
+        _FULLSCREEN _OFF
+    END IF
 END SUB
 
 
@@ -1170,6 +1183,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, wh
     DIM dx AS INTEGER, dy AS INTEGER, x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER
     DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
     DIM lo AS INTEGER, drop AS INTEGER, dxi AS INTEGER
+    DIM hdr AS STRING, textw AS INTEGER, contentw AS INTEGER, boxw AS INTEGER, cx AS INTEGER, sll AS INTEGER
     IF n > 12 THEN n = 12
     total = 0
     FOR i = 1 TO n: v(i) = RollDie(sides): total = total + v(i): NEXT i
@@ -1194,9 +1208,22 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, wh
     IF dw < 8 THEN dw = 56
     gap = 14
     rowW = n * dw + (n - 1) * gap
-    dx = (SW * CW - rowW) \ 2
+    ' the box has to fit its widest TEXT line too (the caption, or the sum line) --
+    ' otherwise a single narrow die leaves the "-= rolling 1d20 =-" header spilling
+    ' out both sides of the box.
+    hdr = "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+    textw = LEN(hdr) * CW
+    IF n > 1 THEN
+        IF drop > 0 THEN sll = LEN("drop lowest -- sum  " + _TRIM$(STR$(total))) ELSE sll = LEN("sum  " + _TRIM$(STR$(total)))
+        IF sll * CW > textw THEN textw = sll * CW
+    END IF
+    contentw = rowW
+    IF textw > contentw THEN contentw = textw
+    boxw = contentw + 6 * CW                 ' ~24px breathing room each side
+    cx = SW * CW \ 2
+    x1 = cx - boxw \ 2: x2 = cx + boxw \ 2
+    dx = cx - rowW \ 2                        ' dice centred within the box
     dy = 33 * CH
-    x1 = dx - 24: x2 = dx + rowW + 24
     y1 = dy - 3 * CH: y2 = dy + dh + 3 * CH
 
     DiceTiming frames, rate, settle, hold

@@ -49,8 +49,9 @@ opt_dicecolor = 1                             ' dice palette: 0 Bone 1 Blood 2 E
 opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
 opt_d6pips = TRUE                             ' d6 rolls use the hand-drawn pip dice, not the font's numbered six
 opt_dicespeed = 1                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
+opt_smooth = FALSE                            ' default: crisp pixel-doubled fullscreen (no bilinear dice shimmer)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
-IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
+ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses

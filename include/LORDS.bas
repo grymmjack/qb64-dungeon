@@ -182,6 +182,7 @@ SUB SaveSettings
     PRINT #f, "dicesolid " + _TRIM$(STR$(opt_dicesolid))
     PRINT #f, "d6pips " + _TRIM$(STR$(opt_d6pips))
     PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
+    PRINT #f, "smooth " + _TRIM$(STR$(opt_smooth))
     CLOSE #f
 END SUB
 
@@ -216,6 +217,7 @@ SUB LoadSettings
                 CASE "dicesolid": opt_dicesolid = v
                 CASE "d6pips": opt_d6pips = v
                 CASE "dicespeed": opt_dicespeed = v
+                CASE "smooth": opt_smooth = v
             END SELECT
         END IF
     LOOP
