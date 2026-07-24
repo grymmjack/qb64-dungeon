@@ -933,24 +933,26 @@ END SUB
 ' return the total. The individual faces land in die_a / die_b.
 
 FUNCTION RollDiceShow% (n AS INTEGER)
-    RollDiceShow = RollPips(n, FALSE)
+    RollDiceShow = RollPips(n, FALSE, "")
 END FUNCTION
 
 
-' Tumble n pip d6 and return the total. With `droplow` set, the lowest die is
-' greyed out where it lands and left OUT of the total -- which is exactly the
-' 4d6-drop-lowest ability roll, shown honestly instead of as a bare number.
-FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER)
-    DIM AS INTEGER sz, gap, bw, bx, by, f, j, tot, lo, drop
+' Tumble n pip d6 and return the total. `caption` (e.g. "attacking the GOBLINS")
+' is shown atop the box so the player knows WHAT the roll is for. With `droplow`
+' set, the lowest die is greyed out where it lands and left OUT of the total --
+' exactly the 4d6-drop-lowest ability roll, shown honestly, not as a bare number.
+FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, caption AS STRING)
+    DIM AS INTEGER sz, gap, diceW, bx, by, f, j, tot, lo, drop
     DIM v(1 TO 8) AS INTEGER
     DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
+    DIM cx AS INTEGER, boxw AS INTEGER, contentw AS INTEGER, textw AS INTEGER, sll AS INTEGER
+    DIM x1 AS INTEGER, x2 AS INTEGER, ytop AS INTEGER, ybot AS INTEGER, hdr AS STRING
+    DIM ff AS INTEGER, av AS INTEGER, dxp AS INTEGER
     IF n < 1 THEN n = 1
     IF n > 8 THEN n = 8
     sz = 52: gap = 18
     IF n > 3 THEN sz = 40: gap = 12          ' shrink so four dice still sit comfortably
-    bw = n * sz + (n - 1) * gap
-    bx = (SW * CW - bw) \ 2
-    by = 33 * CH
+    diceW = n * sz + (n - 1) * gap
 
     tot = 0
     FOR j = 1 TO n: v(j) = RollDie(6): tot = tot + v(j): NEXT j
@@ -966,29 +968,44 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER)
     IF n >= 2 THEN die_b = v(2)
 
     IF opt_showdice THEN
+        ' box sized to the wider of the dice row and the caption / sum lines
+        hdr = ""
+        IF LEN(_TRIM$(caption)) > 0 THEN hdr = "-= " + _TRIM$(caption) + " =-"
+        textw = LEN(hdr) * CW
+        IF n > 1 THEN
+            IF drop > 0 THEN sll = LEN("drop lowest -- sum  " + _TRIM$(STR$(tot))) ELSE sll = LEN("sum  " + _TRIM$(STR$(tot)))
+            IF sll * CW > textw THEN textw = sll * CW
+        END IF
+        contentw = diceW
+        IF textw > contentw THEN contentw = textw
+        boxw = contentw + 6 * CW
+        cx = SW * CW \ 2
+        x1 = cx - boxw \ 2: x2 = cx + boxw \ 2
+        bx = cx - diceW \ 2                   ' dice centred within the box
+        by = 33 * CH
+        ytop = by - 3 * CH: ybot = by + sz + 3 * CH
+
         DiceTiming frames, rate, settle, hold
         FOR f = 1 TO frames
             _DEST CANVAS
-            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap + 2 * CH), BOXBG, BF
-            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap + 2 * CH), REDU, B
+            LINE (x1, ytop)-(x2, ybot), BOXBG, BF
+            LINE (x1, ytop)-(x2, ybot), REDU, B
+            IF LEN(hdr) > 0 THEN
+                _FONT CH
+                COLOR CYANU, BOXBG: PrintCentered ytop \ CH + 1, hdr
+            END IF
             FOR j = 1 TO n
                 IF f < settle THEN
                     DrawDie bx + (j - 1) * (sz + gap), by, sz, RollDie(6)
                 ELSE
                     DrawDie bx + (j - 1) * (sz + gap), by, sz, v(j)
-                    ' the discarded die dims once the dice settle
-                    IF j = drop THEN LINE (bx + (j - 1) * (sz + gap), by)-(bx + (j - 1) * (sz + gap) + sz, by + sz), _RGB32(&H00, &H00, &H00, &HB4), BF
                 END IF
             NEXT j
-            ' the total is a RESULT -- withhold it until the dice have landed
-            IF n > 1 AND f >= settle THEN
+            ' the total is a RESULT -- withheld until the dice land; for a
+            ' drop-lowest roll it waits until the dropped die has faded away
+            IF n > 1 AND f >= settle AND drop = 0 THEN
                 _FONT CH
-                COLOR YELLOWU, BOXBG
-                IF drop > 0 THEN
-                    PrintCentered (by + sz + gap) \ CH, "drop lowest -- sum  " + _TRIM$(STR$(tot))
-                ELSE
-                    PrintCentered (by + sz + gap) \ CH, "sum  " + _TRIM$(STR$(tot))
-                END IF
+                COLOR YELLOWU, BOXBG: PrintCentered ybot \ CH - 1, "sum  " + _TRIM$(STR$(tot))
             END IF
             IF opt_sfx THEN
                 IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05
@@ -996,6 +1013,25 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER)
             _DISPLAY
             _LIMIT rate
         NEXT f
+        ' fade the discarded die out -- it dissolves into the box, then the sum
+        ' (minus that die) is revealed
+        IF drop > 0 THEN
+            dxp = bx + (drop - 1) * (sz + gap)
+            FOR ff = 0 TO 12
+                DrawDie dxp, by, sz, v(drop)
+                av = ff * 22: IF av > 255 THEN av = 255
+                LINE (dxp - 4, by - 4)-(dxp + sz + 9, by + sz + 9), _RGBA32(&H20, &H00, &H00, av), BF
+                IF opt_sfx AND ff = 5 THEN Tone 170, 0.06
+                _DISPLAY
+                _LIMIT 40
+            NEXT ff
+            LINE (dxp - 4, by - 4)-(dxp + sz + 9, by + sz + 9), BOXBG, BF
+            IF n > 1 THEN
+                _FONT CH
+                COLOR YELLOWU, BOXBG: PrintCentered ybot \ CH - 1, "drop lowest -- sum  " + _TRIM$(STR$(tot))
+            END IF
+            _DISPLAY
+        END IF
         _DELAY hold                  ' hold so the settled dice are readable
     END IF
 
@@ -1025,7 +1061,7 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
             GameRoll = raw + bonus: last_raw = raw
         END IF
     ELSEIF sides = 6 AND opt_d6pips THEN
-        t = RollPips(n, FALSE)                     ' every d6 roll shows the pip dice
+        t = RollPips(n, FALSE, what)               ' every d6 roll shows the pip dice
         GameRoll = t + bonus: last_raw = t
     ELSE
         t = ShowRollText(n, sides, what)           ' polyhedra from the DPoly die fonts
@@ -1174,11 +1210,11 @@ FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
 END FUNCTION
 
 
-' As ShowRollText, but with `droplow` the lowest die is dimmed where it lands and
-' left OUT of the total -- the font-dice twin of RollPips' drop-lowest display, so
-' 4d6-drop-lowest animates properly whichever D6 Style the player picked.
+' As ShowRollText, but with `droplow` the lowest die FADES away after landing and
+' is left OUT of the total -- the font-dice twin of RollPips' drop-lowest display,
+' so 4d6-drop-lowest animates properly whichever D6 Style the player picked.
 FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, what AS STRING)
-    DIM v(1 TO 12) AS INTEGER, i AS INTEGER, total AS INTEGER, f AS INTEGER, shown AS INTEGER
+    DIM v(1 TO 12) AS INTEGER, i AS INTEGER, total AS INTEGER, f AS INTEGER, shown AS INTEGER, av AS INTEGER
     DIM fh AS LONG, dw AS INTEGER, dh AS INTEGER, gap AS INTEGER, rowW AS INTEGER
     DIM dx AS INTEGER, dy AS INTEGER, x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER
     DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
@@ -1208,10 +1244,15 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, wh
     IF dw < 8 THEN dw = 56
     gap = 14
     rowW = n * dw + (n - 1) * gap
-    ' the box has to fit its widest TEXT line too (the caption, or the sum line) --
-    ' otherwise a single narrow die leaves the "-= rolling 1d20 =-" header spilling
-    ' out both sides of the box.
-    hdr = "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+    ' Caption: WHAT the roll is for (e.g. "to hit the GOBLINS"), falling back to
+    ' the dice notation when no purpose was given. The box has to fit its widest
+    ' TEXT line -- caption or sum line -- else a single narrow die leaves the
+    ' header spilling out both sides of the box.
+    IF LEN(_TRIM$(what)) > 0 THEN
+        hdr = "-= " + _TRIM$(what) + " =-"
+    ELSE
+        hdr = "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+    END IF
     textw = LEN(hdr) * CW
     IF n > 1 THEN
         IF drop > 0 THEN sll = LEN("drop lowest -- sum  " + _TRIM$(STR$(total))) ELSE sll = LEN("sum  " + _TRIM$(STR$(total)))
@@ -1232,26 +1273,20 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, wh
         LINE (x1, y1)-(x2, y2), BOXBG, BF
         LINE (x1, y1)-(x2, y2), REDU, B
         _FONT CH
-        COLOR CYANU, BOXBG: PrintCentered y1 \ CH + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+        COLOR CYANU, BOXBG: PrintCentered y1 \ CH + 1, hdr
         FOR i = 1 TO n
             dxi = dx + (i - 1) * (dw + gap)
             IF f < settle THEN
                 DrawFontDie dxi, dy, sides, RollDie(sides)
             ELSE
                 DrawFontDie dxi, dy, sides, v(i)
-                ' the discarded die dims once the dice settle
-                IF i = drop THEN LINE (dxi, dy)-(dxi + dw, dy + dh), _RGB32(&H00, &H00, &H00, &HB4), BF
             END IF
         NEXT i
-        ' the total is a RESULT -- withhold it until the dice have actually landed
-        IF n > 1 AND f >= settle THEN
+        ' the total is a RESULT -- withheld until the dice land; for a drop-lowest
+        ' roll it waits until the dropped die has faded away
+        IF n > 1 AND f >= settle AND drop = 0 THEN
             _FONT CH
-            COLOR YELLOWU, BOXBG
-            IF drop > 0 THEN
-                PrintCentered y2 \ CH - 1, "drop lowest -- sum  " + _TRIM$(STR$(total))
-            ELSE
-                PrintCentered y2 \ CH - 1, "sum  " + _TRIM$(STR$(total))
-            END IF
+            COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, "sum  " + _TRIM$(STR$(total))
         END IF
         IF opt_sfx THEN
             IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05   ' a thunk as they land
@@ -1259,6 +1294,25 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, wh
         _DISPLAY
         _LIMIT rate
     NEXT f
+    ' fade the discarded die out -- it dissolves into the box, then the sum
+    ' (minus that die) is revealed
+    IF drop > 0 THEN
+        dxi = dx + (drop - 1) * (dw + gap)
+        FOR f = 0 TO 12
+            DrawFontDie dxi, dy, sides, v(drop)
+            av = f * 22: IF av > 255 THEN av = 255
+            LINE (dxi - 4, dy - CH)-(dxi + dw + 4, dy + dh + 4), _RGBA32(&H20, &H00, &H00, av), BF
+            IF opt_sfx AND f = 5 THEN Tone 170, 0.06
+            _DISPLAY
+            _LIMIT 40
+        NEXT f
+        LINE (dxi - 4, dy - CH)-(dxi + dw + 4, dy + dh + 4), BOXBG, BF
+        IF n > 1 THEN
+            _FONT CH
+            COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, "drop lowest -- sum  " + _TRIM$(STR$(total))
+        END IF
+        _DISPLAY
+    END IF
     _DELAY hold
     ShowRollTextEx = total
 END FUNCTION
@@ -1299,7 +1353,7 @@ FUNCTION RollAbility% ()
         IF opt_realdice THEN
             RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
         ELSEIF opt_d6pips THEN
-            RollAbility = RollPips(4, TRUE)                        ' four pip dice, lowest discarded
+            RollAbility = RollPips(4, TRUE, "roll 4d6, drop lowest")   ' four pip dice, lowest discarded
         ELSE
             RollAbility = ShowRollTextEx(4, 6, TRUE, "4d6 drop lowest")   ' same, on the font d6
         END IF
