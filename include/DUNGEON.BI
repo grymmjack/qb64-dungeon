@@ -18,6 +18,10 @@ CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter 
 CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
 CONST WANDER_GOLD_DIV = 6         ' wandering-monster gold = level treasure / this (lean -- no farming)
 CONST XP_PER_KILL_LVL = 10        ' XP per slain monster = its dungeon level * this (+ boss bonus)
+CONST CHEST_PCT = 20              ' % chance a curio chest appears after a room fight
+CONST CHEST_TRAP_PCT = 25         ' % chance a curio chest is trapped
+CONST SIREN_ENCOUNTER_BOOST = 20  ' + to the wandering-encounter % while a magic siren wails
+CONST SIREN_MOVE_PCT = 15         ' % chance each step (while a siren wails) to draw an encounter
 
 TYPE SECTOR
     start_x AS INTEGER

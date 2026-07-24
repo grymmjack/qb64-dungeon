@@ -189,8 +189,15 @@ FUNCTION PlayGame%
                 cursor_draw
             END IF
         ELSE
+            ' frozen by a frost bomb? each move attempt just melts a turn off the ice
+            IF IsMoveKey(k) AND frost_turns > 0 THEN
+                frost_turns = frost_turns - 1
+                Sfx "bump"
+                Banner "You are frozen fast!", "The rime locks your limbs (" + _TRIM$(STR$(frost_turns)) + " turns of frost remain)."
+                _DELAY 0.7
+                cursor_erase: cursor_draw: DrawHUD: _DISPLAY
             ' board-game mode gates movement on the dice roll + steps; free mode walks anytime
-            IF IsMoveKey(k) AND (NOT opt_boardgame OR steps_left > 0) THEN
+            ELSEIF IsMoveKey(k) AND (NOT opt_boardgame OR steps_left > 0) THEN
                 sd = StrongDoorAhead(k)
                 IF sd > 0 THEN
                     ' a reinforced door blocks the way -- spend the step trying to break it
@@ -208,6 +215,10 @@ FUNCTION PlayGame%
                     IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
                     loiter = 0                     ' moving on resets the lingering danger meter
+                    TickStatus                     ' poison/fire bite, siren winds down as a turn passes
+                    IF siren_turns > 0 THEN         ' a wailing siren drags monsters to you as you move
+                        IF RollDie(100) <= SIREN_MOVE_PCT THEN WanderEncounter
+                    END IF
                     curlvl = SECTOR.get_by_xy(c.x, c.y)   ' chronicle the levels you tread
                     IF curlvl >= 1 AND curlvl <= 9 THEN lvl_reached(curlvl) = TRUE
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
@@ -689,6 +700,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 IF LevelFullyCleared(lvl) THEN GrantLevelClear lvl
             END IF
         END IF
+        CurioChest rm                       ' a curio chest may reveal itself after the fight
     END IF
 END SUB
 
@@ -915,11 +927,14 @@ SUB LoiterTick
     IF sec >= 1 AND sec <= 9 THEN
         IF lvl_cleared(sec) THEN EXIT SUB          ' cleared this floor -- rest easy
     END IF
+    DIM encpct AS INTEGER
     loiter = loiter + 1
     IF loiter < LOITER_THRESHOLD THEN
         FlashOmen loiter                           ' building dread
     ELSE
-        IF RollDie(100) <= IDLE_ENCOUNTER_PCT THEN
+        encpct = IDLE_ENCOUNTER_PCT
+        IF siren_turns > 0 THEN encpct = encpct + SIREN_ENCOUNTER_BOOST   ' a siren makes it far worse
+        IF RollDie(100) <= encpct THEN
             loiter = 0
             WanderEncounter                        ' the dungeon sends something after you
         ELSE
@@ -972,6 +987,7 @@ END SUB
 '$INCLUDE:'include/LORDS.bas'
 '$INCLUDE:'include/PLAYERS.bas'
 '$INCLUDE:'include/EFFECTS.bas'
+'$INCLUDE:'include/CURIO.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'
