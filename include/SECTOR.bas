@@ -122,6 +122,8 @@ SUB RandomizeRooms
         sec = ROOMS(r).sec
         ROOMS(r).monster_fought = FALSE: ROOMS(r).player_died = FALSE
         ROOMS(r).looted = FALSE: ROOMS(r).is_boss = FALSE
+        ROOMS(r).drop_gold = 0: ROOMS(r).drop_sword = 0
+        ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
         IF r = startroom OR ROOMS(r).cells < MIN_ROOM THEN
             ROOMS(r).monster = "": ROOMS(r).malive = FALSE
             ROOMS(r).treasure = 0: ROOMS(r).treasure_name = "": ROOMS(r).treasure_item = 0

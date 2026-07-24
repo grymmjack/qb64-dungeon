@@ -189,6 +189,8 @@ FUNCTION PlayGame%
                                 res = DoCombat(sec)
                                 IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
                             END IF
+                            ' recover a fallen rival's loot once the room is clear (multiplayer)
+                            IF num_players > 1 AND NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
                         END IF
                     END IF
                     ' victory: enough gold, hold the Level Key, and back at the entrance
@@ -371,8 +373,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 player_hp = 0
                 ROOMS(rm).player_died = TRUE
                 DrawCombatPanel rm, mon, lead
-                lost = gold: gold = 0
-                DropEverything                    ' drop gold AND the special cards
+                lost = gold
+                DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
                 Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
                 WaitKey
@@ -429,7 +431,7 @@ SUB MonsterAttack (rm AS INTEGER)
         CASE 2                                  ' ADVENTURER KILLED!
             lost = gold
             ROOMS(rm).player_died = TRUE
-            DropEverything                      ' killed = drop gold AND all special cards
+            DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
             Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
             WaitKey
@@ -504,11 +506,45 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
 END SUB
 
 
-' On death a champion drops EVERYTHING carried -- gold and all special cards.
-SUB DropEverything
+' On death a champion drops EVERYTHING carried -- gold and all special cards. In
+' multiplayer the loot is left IN the room (rm) for any player to recover; solo it
+' is simply lost (recovering your own would void the death penalty).
+SUB DropEverything (rm AS INTEGER)
+    IF num_players > 1 AND rm >= 1 THEN
+        ROOMS(rm).drop_gold = ROOMS(rm).drop_gold + gold
+        IF item_sword > ROOMS(rm).drop_sword THEN ROOMS(rm).drop_sword = item_sword
+        IF item_secret_card THEN ROOMS(rm).drop_secret = TRUE
+        IF item_esp THEN ROOMS(rm).drop_esp = TRUE
+        IF item_crystal THEN ROOMS(rm).drop_crystal = TRUE
+    END IF
     gold = 0
     item_sword = 0
     item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
+END SUB
+
+
+' TRUE if a room holds recoverable dropped loot.
+FUNCTION HasDrop% (rm AS INTEGER)
+    HasDrop = (ROOMS(rm).drop_gold > 0) OR (ROOMS(rm).drop_sword > 0) OR ROOMS(rm).drop_secret OR ROOMS(rm).drop_esp OR ROOMS(rm).drop_crystal
+END FUNCTION
+
+
+' Pick up whatever a fallen rival left in this room.
+SUB CollectDrop (rm AS INTEGER)
+    DIM got AS STRING
+    IF NOT HasDrop(rm) THEN EXIT SUB
+    got = ""
+    IF ROOMS(rm).drop_gold > 0 THEN gold = gold + ROOMS(rm).drop_gold: got = _TRIM$(STR$(ROOMS(rm).drop_gold)) + " gold"
+    IF ROOMS(rm).drop_sword > item_sword AND player_class <> 4 THEN item_sword = ROOMS(rm).drop_sword: got = got + "   a Magic Sword"
+    IF ROOMS(rm).drop_secret THEN item_secret_card = TRUE: got = got + "   a Secret Door Card"
+    IF ROOMS(rm).drop_esp THEN item_esp = TRUE: got = got + "   an ESP Medallion"
+    IF ROOMS(rm).drop_crystal THEN item_crystal = TRUE: got = got + "   a Crystal Ball"
+    ROOMS(rm).drop_gold = 0: ROOMS(rm).drop_sword = 0
+    ROOMS(rm).drop_secret = FALSE: ROOMS(rm).drop_esp = FALSE: ROOMS(rm).drop_crystal = FALSE
+    Sfx "treasure"
+    Banner "You recover a fallen rival's spoils!", _TRIM$(got) + "   [ press any key ]"
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
 
 

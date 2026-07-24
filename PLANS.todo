@@ -145,6 +145,8 @@ Multiplayer:
         ✔ Shared board; each player has own gold/HP/items/key/position/colour @done(26-07-23)
         ✔ Per-player 2d6 kill numbers (each class faces its own card number) @done(26-07-23)
         ✔ All player tokens shown on the board; first to win ends the game @done(26-07-23)
+        ✔ Recoverable loot: a slain player's gold+cards drop IN the room; @done(26-07-23)
+          any player who clears that room grabs them (gold-coin marker). Solo = lost.
 
 Movement Modes:
     ✔ Boardgame Mode setting (default ON) @done(26-07-23)

@@ -57,6 +57,12 @@ TYPE ROOM
     looted  AS INTEGER
     monster_fought AS INTEGER
     player_died AS INTEGER
+    ' loot a fallen champion left here (multiplayer only -- recoverable by any player)
+    drop_gold AS LONG
+    drop_sword AS INTEGER
+    drop_secret AS INTEGER
+    drop_esp AS INTEGER
+    drop_crystal AS INTEGER
 END TYPE
 
 TYPE CURSOR
