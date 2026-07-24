@@ -151,7 +151,11 @@ DIM SHARED item_secret_card AS INTEGER ' holds the Secret Door Card
 DIM SHARED item_esp AS INTEGER        ' ESP Medallion: peek the treasure a monster guards
 DIM SHARED item_crystal AS INTEGER    ' Crystal Ball: [V] scry every room's contents
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
-DIM SHARED DIE_G(1 TO 6, 1 TO 6) AS STRING        ' polyhedron die art grids [d4/d6/d8/d10/d12/d20, row] (ANSI-DICE)
+' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
+' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to
+' the number tumbler). Each glyph IS a die face: 'A'+n draws the solid variant,
+' 'a'+n the outline variant -- see DieGlyphCode / DrawFontDie.
+DIM SHARED DFONT(1 TO 20) AS LONG
 DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (before modifiers) from DoRoll
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
@@ -178,6 +182,11 @@ DIM SHARED opt_oldschool AS INTEGER   ' TRUE: Dungeon! 2d6-vs-target combat; FAL
 DIM SHARED opt_heroicstats AS INTEGER ' TRUE: roll abilities 4d6-drop-lowest; FALSE: straight 3d6
 DIM SHARED opt_boardgame AS INTEGER   ' TRUE: roll dice + step-limited turns; FALSE: free "computer game" movement
 DIM SHARED opt_fov AS INTEGER         ' TRUE: line-of-sight fog-of-war (explore the map; start in the first room)
+' ---- dice look & feel (all persisted; see DiceColors / DrawFontDie) ----
+DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/Blood/Emerald/Sapphire/Gold/Amethyst)
+DIM SHARED opt_dicesolid AS INTEGER   ' TRUE: filled die body + contrasting number; FALSE: hollow outline
+DIM SHARED opt_d6pips AS INTEGER      ' TRUE: d6 rolls use the hand-drawn pip dice; FALSE: the numbered DPoly d6
+DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant (see DiceTiming)
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
 ' old-school 3d6 ability scores (rolled in CREATE A CHARACTER) + the stats derived from them
 DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER

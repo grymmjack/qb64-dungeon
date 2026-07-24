@@ -11,3 +11,4 @@
 *.bi linguist-language=qb64
 *.bm linguist-language=qb64
 *.frm linguist-language=qb64
+*.otf binary

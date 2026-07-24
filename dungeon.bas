@@ -45,6 +45,10 @@ opt_heroicstats = FALSE                       ' default: straight 3d6 ability ro
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
+opt_dicecolor = 1                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
+opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
+opt_d6pips = TRUE                             ' d6 rolls use the hand-drawn pip dice, not the font's numbered six
+opt_dicespeed = 1                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors

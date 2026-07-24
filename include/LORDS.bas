@@ -178,6 +178,10 @@ SUB SaveSettings
     PRINT #f, "boardgame " + _TRIM$(STR$(opt_boardgame))
     PRINT #f, "fov " + _TRIM$(STR$(opt_fov))
     PRINT #f, "players " + _TRIM$(STR$(num_players))
+    PRINT #f, "dicecolor " + _TRIM$(STR$(opt_dicecolor))
+    PRINT #f, "dicesolid " + _TRIM$(STR$(opt_dicesolid))
+    PRINT #f, "d6pips " + _TRIM$(STR$(opt_d6pips))
+    PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
     CLOSE #f
 END SUB
 
@@ -208,6 +212,10 @@ SUB LoadSettings
                 CASE "boardgame": opt_boardgame = v
                 CASE "fov": opt_fov = v
                 CASE "players": num_players = v
+                CASE "dicecolor": opt_dicecolor = v
+                CASE "dicesolid": opt_dicesolid = v
+                CASE "d6pips": opt_d6pips = v
+                CASE "dicespeed": opt_dicespeed = v
             END SELECT
         END IF
     LOOP
@@ -218,5 +226,7 @@ SUB LoadSettings
     opt_musicvol = Clamp10(opt_musicvol)
     opt_sfxvol = Clamp10(opt_sfxvol)
     opt_voicevol = Clamp10(opt_voicevol)
+    IF opt_dicecolor < 0 OR opt_dicecolor > 5 THEN opt_dicecolor = 1
+    IF opt_dicespeed < 0 OR opt_dicespeed > 3 THEN opt_dicespeed = 1
     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
 END SUB

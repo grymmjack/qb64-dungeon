@@ -84,9 +84,11 @@ Environment specifics that dictate this approach:
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
   the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
-  in a sector with a live monster triggers combat (`DoCombat`). Movement (1d6) and 2d6 rolls
-  animate on-screen pip dice (`RollDiceShow` / `DrawDie`); polyhedral dice (d20/d8/d10) use a
-  number tumbler (`ShowRollText`). Every roll goes through `GameRoll(n, sides, bonus, label)`
+  in a sector with a live monster triggers combat (`DoCombat`). **Dice** — every d6 roll
+  (movement 1d6, combat 2d6, the 3d6 ability rolls) animates hand-drawn pip dice
+  (`RollPips` / `DrawDie`; `RollDiceShow` is a 1-arg wrapper), and every non-d6 roll draws a real
+  polyhedron from the **DPoly OTF dice fonts** in `assets/fonts/dpoly` (`InitDice` /
+  `DrawFontDie` / `ShowRollText`) — see "Dice fonts" below. Every roll goes through `GameRoll(n, sides, bonus, label)`
   (with `DoRoll` a d6 wrapper over it): with the SETTINGS **Real Dice** toggle on, the player
   rolls their own physical dice and types the result (`PromptRoll`) — the **Dice Math** toggle
   decides whether they add the modifier or the game does.
@@ -204,6 +206,34 @@ with a `kolor` and `label`. `SECTOR.get_by_xy` resolves a pixel position to a se
 and the sector's color is what `in_room` matches against — this is how "which dungeon
 level am I in" is derived from position + art color.
 
+**Dice fonts (DPoly).** Non-d6 rolls are drawn with the six **DPoly** OTF dice fonts in
+`assets/fonts/dpoly` (dafont.com/dpoly), loaded by `InitDice` into `DFONT()` **indexed by side
+count** (`DFONT(20)` is the d20 font). Every glyph *is* a die face, so a d20 showing 17 is the
+character `Q` printed in the d20 font:
+
+- **`A` = the die's lowest face**, so face *n* is `CHR$(64 + n)` — d20 `A`..`T` = 1..20, d12
+  `A`..`L`, d8 `A`..`H`, d4 `A`..`D`. The **d10 is the exception**: its first glyph is the **0**
+  face (`A`=0, `B`=1 … `J`=9, and `K`..`T` are the 00/10/…/90 percentile faces), so a rolled 10
+  draws that `0` like a real ten-sider. `DieGlyphCode` encodes exactly this.
+- **UPPERCASE = solid die, lowercase = outline die** (same face). `DrawFontDie` prints the solid
+  variant in a body colour and then the outline variant *on top* in an ink colour under
+  **`_PRINTMODE _KEEPBACKGROUND`** — which yields a filled die with a **contrasting** number, a
+  look neither variant gives alone. `_KEEPBACKGROUND` is essential: the default
+  `_FILLBACKGROUND` would blank pass 1 with pass 2's background.
+- **Never load these `"monospace"`.** That flag squeezes every glyph into a fixed cell narrower
+  than the point size (d20 @56pt → a 49px cell) and **clips the polyhedra's left/right points**.
+  Load proportional and measure the real advance with **`_PRINTWIDTH`** (`DieWidth`) —
+  `_FONTWIDTH` returns 0 for proportional fonts.
+- Fonts that fail to load leave a handle of `0`; `ShowRollText` then falls back to the plain
+  number tumbler (`ShowRollValue`) rather than crashing.
+- The look is player-configurable in SETTINGS and persisted: **Dice Colour** (`opt_dicecolor`,
+  6 palettes via `DiceColors`), **Dice Finish** (`opt_dicesolid`, solid/hollow), **D6 Style**
+  (`opt_d6pips`, pip art vs the font's numbered six — the font's d6 is a *numbered square*, which
+  is why the hand-drawn pips are the default), and **Dice Speed** (`opt_dicespeed`; `DiceTiming`
+  returns the frame count / frame rate / settle frame / hold). `SETTINGS` renders a live sample
+  row via `DrawDicePreview`. **The running total is only drawn once `f >= settle`** — showing it
+  during the tumble spoils the roll.
+
 ## QB64PE conventions in this codebase
 
 - Type-sigil naming: `%` INTEGER, `&` LONG, `~&` `_UNSIGNED LONG` (colors/image handles),
@@ -227,6 +257,13 @@ level am I in" is derived from position + art color.
   fields are also kept **fixed-length** (`name AS STRING * 16`, `_TRIM$` on read) as the safe idiom.
 - **Gotcha:** single-line `IF` does not support `ELSEIF` / `ELSE IF` chains, and `LINE`, `SEG`,
   `VAL`, `CLS` are reserved words that can't be used as variable names.
+- **Gotcha:** relative paths resolve against the **executable's** directory, not the shell's cwd
+  — QB64PE chdirs to the binary at startup (`_CWD$` = the exe's dir, `_STARTDIR$` = where it was
+  launched). That is *why* `dungeon.run` must sit at the repo root for `assets/...` to resolve;
+  a test binary built into `scratchpads/` silently fails every `_FILEEXISTS`/`_LOADFONT`.
+- **Headless verification:** `$CONSOLE:ONLY` turns a throwaway `.bas` into a stdout tool
+  (`PRINT` goes to the terminal), which beats screenshotting for checking things like font
+  handles, file paths, or computed values.
 
 ## Line endings (enforced via .gitattributes)
 

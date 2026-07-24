@@ -380,7 +380,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 16
+    CONST NSET = 20
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -392,14 +392,24 @@ SUB RunSettings
         IF k = "W" OR k = "S" THEN Sfx "select"
         IF k = CHR$(27) THEN SaveSettings: EXIT SUB
 
-        ' A/D adjusts the volume sliders (items 2 / 4 / 6)
+        ' A/D adjusts the sliders: volumes (2/4/6), dice colour (10), speed (13), players (16)
         IF k = "A" OR k = "D" THEN
             IF k = "A" THEN delta = -1 ELSE delta = 1
             SELECT CASE sel
                 CASE 2: opt_musicvol = Clamp10(opt_musicvol + delta): IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10
                 CASE 4: opt_sfxvol = Clamp10(opt_sfxvol + delta): Sfx "select"
                 CASE 6: opt_voicevol = Clamp10(opt_voicevol + delta): VoiceBlip 700
-                CASE 12
+                CASE 10
+                    opt_dicecolor = opt_dicecolor + delta
+                    IF opt_dicecolor < 0 THEN opt_dicecolor = 5
+                    IF opt_dicecolor > 5 THEN opt_dicecolor = 0
+                    Sfx "select"
+                CASE 13
+                    opt_dicespeed = opt_dicespeed + delta
+                    IF opt_dicespeed < 0 THEN opt_dicespeed = 3
+                    IF opt_dicespeed > 3 THEN opt_dicespeed = 0
+                    Sfx "select"
+                CASE 16
                     num_players = num_players + delta
                     IF num_players < 1 THEN num_players = 1
                     IF num_players > 4 THEN num_players = 4
@@ -416,19 +426,27 @@ SUB RunSettings
                 CASE 7: opt_showdice = NOT opt_showdice
                 CASE 8: opt_realdice = NOT opt_realdice
                 CASE 9: opt_dicemath = NOT opt_dicemath
-                CASE 10: opt_oldschool = NOT opt_oldschool
-                CASE 11
+                CASE 10
+                    opt_dicecolor = opt_dicecolor + 1
+                    IF opt_dicecolor > 5 THEN opt_dicecolor = 0
+                CASE 11: opt_dicesolid = NOT opt_dicesolid
+                CASE 12: opt_d6pips = NOT opt_d6pips
+                CASE 13
+                    opt_dicespeed = opt_dicespeed + 1
+                    IF opt_dicespeed > 3 THEN opt_dicespeed = 0
+                CASE 14: opt_oldschool = NOT opt_oldschool
+                CASE 15
                     opt_boardgame = NOT opt_boardgame
                     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
-                CASE 12
+                CASE 16
                     num_players = num_players + 1: IF num_players > 4 THEN num_players = 1
                     IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
-                CASE 13: opt_heroicstats = NOT opt_heroicstats
-                CASE 14
+                CASE 17: opt_heroicstats = NOT opt_heroicstats
+                CASE 18
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 15: opt_fov = NOT opt_fov
-                CASE 16: SaveSettings: EXIT SUB
+                CASE 19: opt_fov = NOT opt_fov
+                CASE 20: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -436,7 +454,7 @@ SUB RunSettings
         _DEST CANVAS: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 1, "-=  S E T T I N G S  =-"
         FOR i = 1 TO NSET
-            y = 3 + (i - 1) * 3
+            y = 3 + (i - 1) * 2
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -450,10 +468,25 @@ SUB RunSettings
                 CASE 9
                     lbl = "Dice Math"
                     IF opt_dicemath THEN vtxt = "YOU add mods" ELSE vtxt = "GAME adds mods"
-                CASE 10
+                CASE 10: lbl = "  Dice Colour": vtxt = DiceColorName$: slider = TRUE
+                CASE 11
+                    lbl = "  Dice Finish"
+                    IF opt_dicesolid THEN vtxt = "solid" ELSE vtxt = "hollow outline"
+                CASE 12
+                    lbl = "  D6 Style"
+                    IF opt_d6pips THEN vtxt = "pips" ELSE vtxt = "numbered"
+                CASE 13
+                    lbl = "  Dice Speed": slider = TRUE
+                    SELECT CASE opt_dicespeed
+                        CASE 0: vtxt = "slow"
+                        CASE 2: vtxt = "fast"
+                        CASE 3: vtxt = "instant"
+                        CASE ELSE: vtxt = "normal"
+                    END SELECT
+                CASE 14
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
-                CASE 11
+                CASE 15
                     lbl = "Boardgame"
                     IF num_players > 1 THEN
                         vtxt = "roll to move (locked)"
@@ -462,22 +495,62 @@ SUB RunSettings
                     ELSE
                         vtxt = "free move"
                     END IF
-                CASE 12
+                CASE 16
                     lbl = "Players": slider = TRUE
                     IF num_players > 1 THEN vtxt = _TRIM$(STR$(num_players)) + "  (hot-seat)" ELSE vtxt = "1  (solo)"
-                CASE 13
+                CASE 17
                     lbl = "Stat Roll"
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
-                CASE 14: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
-                CASE 15: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
+                CASE 18: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 19: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
+        DrawDicePreview 44
         COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
+END SUB
+
+
+' Live sample of the player's chosen dice, drawn under the SETTINGS list so the
+' colour / finish / d6-style choices can be judged by eye instead of by label.
+SUB DrawDicePreview (row AS INTEGER)
+    DIM AS INTEGER gap, totw, x0, dy, i, sz, x
+    DIM SD(1 TO 5) AS INTEGER, FV(1 TO 5) AS INTEGER, WD(1 TO 6) AS INTEGER
+    SD(1) = 20: FV(1) = 20
+    SD(2) = 12: FV(2) = 12
+    SD(3) = 10: FV(3) = 10
+    SD(4) = 8: FV(4) = 8
+    SD(5) = 4: FV(5) = 4
+    sz = 48: gap = 16
+    totw = 0
+    FOR i = 1 TO 5
+        WD(i) = DieWidth(SD(i))
+        IF WD(i) < 8 THEN WD(i) = 56
+        totw = totw + WD(i) + gap
+    NEXT i
+    IF opt_d6pips THEN WD(6) = sz ELSE WD(6) = DieWidth(6)
+    IF WD(6) < 8 THEN WD(6) = 56
+    totw = totw + WD(6)
+    x0 = (SW * CW - totw) \ 2
+    dy = row * CH
+    _DEST CANVAS
+    COLOR GREY, BLACK: PrintCentered row - 1, "your dice"
+    x = x0
+    FOR i = 1 TO 5
+        DrawFontDie x, dy, SD(i), FV(i)
+        x = x + WD(i) + gap
+    NEXT i
+    ' the d6 -- hand-drawn pips, or the font's numbered six-sider
+    IF opt_d6pips THEN
+        DrawDie x, dy, sz, 6
+    ELSE
+        DrawFontDie x, dy, 6, 6
+    END IF
+    _FONT CH
 END SUB
 
 
@@ -846,36 +919,73 @@ END SUB
 ' return the total. The individual faces land in die_a / die_b.
 
 FUNCTION RollDiceShow% (n AS INTEGER)
-    DIM AS INTEGER sz, gap, bw, bx, by, f, j
+    RollDiceShow = RollPips(n, FALSE)
+END FUNCTION
+
+
+' Tumble n pip d6 and return the total. With `droplow` set, the lowest die is
+' greyed out where it lands and left OUT of the total -- which is exactly the
+' 4d6-drop-lowest ability roll, shown honestly instead of as a bare number.
+FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER)
+    DIM AS INTEGER sz, gap, bw, bx, by, f, j, tot, lo, drop
+    DIM v(1 TO 8) AS INTEGER
+    DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
+    IF n < 1 THEN n = 1
+    IF n > 8 THEN n = 8
     sz = 52: gap = 18
+    IF n > 3 THEN sz = 40: gap = 12          ' shrink so four dice still sit comfortably
     bw = n * sz + (n - 1) * gap
     bx = (SW * CW - bw) \ 2
     by = 33 * CH
-    die_a = RollDie(6): die_b = 0
-    IF n = 2 THEN die_b = RollDie(6)
+
+    tot = 0
+    FOR j = 1 TO n: v(j) = RollDie(6): tot = tot + v(j): NEXT j
+    drop = 0
+    IF droplow AND n > 1 THEN
+        lo = v(1): drop = 1
+        FOR j = 2 TO n
+            IF v(j) < lo THEN lo = v(j): drop = j
+        NEXT j
+        tot = tot - lo
+    END IF
+    die_a = v(1): die_b = 0
+    IF n >= 2 THEN die_b = v(2)
 
     IF opt_showdice THEN
-        FOR f = 1 TO 16
+        DiceTiming frames, rate, settle, hold
+        FOR f = 1 TO frames
             _DEST CANVAS
-            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), BOXBG, BF
-            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap), REDU, B
-            FOR j = 0 TO n - 1
-                IF f < 13 THEN
-                    DrawDie bx + j * (sz + gap), by, sz, RollDie(6)
-                ELSEIF j = 0 THEN
-                    DrawDie bx, by, sz, die_a
+            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap + 2 * CH), BOXBG, BF
+            LINE (bx - gap, by - gap)-(bx + bw + gap, by + sz + gap + 2 * CH), REDU, B
+            FOR j = 1 TO n
+                IF f < settle THEN
+                    DrawDie bx + (j - 1) * (sz + gap), by, sz, RollDie(6)
                 ELSE
-                    DrawDie bx + sz + gap, by, sz, die_b
+                    DrawDie bx + (j - 1) * (sz + gap), by, sz, v(j)
+                    ' the discarded die dims once the dice settle
+                    IF j = drop THEN LINE (bx + (j - 1) * (sz + gap), by)-(bx + (j - 1) * (sz + gap) + sz, by + sz), _RGB32(&H00, &H00, &H00, &HB4), BF
                 END IF
             NEXT j
-            IF opt_sfx THEN Tone 380 + f * 28, 0.05
+            ' the total is a RESULT -- withhold it until the dice have landed
+            IF n > 1 AND f >= settle THEN
+                _FONT CH
+                COLOR YELLOWU, BOXBG
+                IF drop > 0 THEN
+                    PrintCentered (by + sz + gap) \ CH, "drop lowest -- sum  " + _TRIM$(STR$(tot))
+                ELSE
+                    PrintCentered (by + sz + gap) \ CH, "sum  " + _TRIM$(STR$(tot))
+                END IF
+            END IF
+            IF opt_sfx THEN
+                IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05
+            END IF
             _DISPLAY
-            _LIMIT 22
+            _LIMIT rate
         NEXT f
-        _DELAY 0.7                   ' hold so the settled dice are readable
+        _DELAY hold                  ' hold so the settled dice are readable
     END IF
 
-    IF n = 2 THEN RollDiceShow = die_a + die_b ELSE RollDiceShow = die_a
+    RollPips = tot
 END FUNCTION
 
 
@@ -900,107 +1010,196 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
         ELSE
             GameRoll = raw + bonus: last_raw = raw
         END IF
-    ELSEIF sides = 6 AND n <= 2 THEN
-        t = RollDiceShow(n)                        ' 1d6 / 2d6 show pip dice
+    ELSEIF sides = 6 AND opt_d6pips THEN
+        t = RollPips(n, FALSE)                     ' every d6 roll shows the pip dice
         GameRoll = t + bonus: last_raw = t
     ELSE
-        t = ShowRollText(n, sides, what)           ' 3d6 / polyhedral use the number tumbler
+        t = ShowRollText(n, sides, what)           ' polyhedra from the DPoly die fonts
         GameRoll = t + bonus: last_raw = t
     END IF
 END FUNCTION
 
 
-' ---- polyhedron dice (ported from scratchpads/ANSI-DICE.BAS) for non-d6 rolls ----
+' ============================================================================
+'  POLYHEDRON DICE -- rendered from the DPoly OTF dice fonts (assets/fonts/dpoly)
+'
+'  Every glyph in these fonts IS a die face, so a d20 showing 17 is literally the
+'  character 'Q' printed in the d20 font. Two variants share each face:
+'      UPPERCASE 'A'+n  -> the SOLID die (filled body, number knocked out)
+'      lowercase 'a'+n  -> the OUTLINE die (hollow body, solid number)
+'  Printing the solid variant in a body colour and then the outline variant on
+'  top in an ink colour (with _PRINTMODE _KEEPBACKGROUND, so pass 2 doesn't erase
+'  pass 1) gives a filled die with a CONTRASTING number -- which neither variant
+'  produces on its own. See DrawFontDie.
+'
+'  NOTE: the fonts' own d6 is a numbered square, so d6 rolls default to the
+'  hand-drawn pip dice (DrawDie) instead -- toggled by the D6 Style setting.
+' ============================================================================
 
-' Load the die-art grids once (d4/d6/d8/d10/d12/d20). Each row's hex codes map to
-' CP437 block glyphs via DieChars$.  Called at startup.
+' Load the six DPoly die fonts. A handle of 0 means the font is missing, and the
+' roll silently falls back to the number tumbler -- never a crash.
+'
+' Deliberately NOT loaded "monospace": that flag squeezes every glyph into a fixed
+' cell narrower than the point size (d20 @56pt -> a 49px cell), which CLIPS the
+' left and right points off the polyhedra. Proportional loading keeps each die
+' whole; DieWidth measures the real advance with _PRINTWIDTH.
 SUB InitDice
-    DIE_G(1, 1) = "       ": DIE_G(1, 2) = "  4    ": DIE_G(1, 3) = " 847   ": DIE_G(1, 4) = " 444   ": DIE_G(1, 5) = "84447  ": DIE_G(1, 6) = "       "
-    DIE_G(2, 1) = "       ": DIE_G(2, 2) = " 444   ": DIE_G(2, 3) = " 444   ": DIE_G(2, 4) = " 444   ": DIE_G(2, 5) = " 444   ": DIE_G(2, 6) = "       "
-    DIE_G(3, 1) = "  6    ": DIE_G(3, 2) = " 847   ": DIE_G(3, 3) = " 444   ": DIE_G(3, 4) = " 444   ": DIE_G(3, 5) = " 847   ": DIE_G(3, 6) = "  5    "
-    DIE_G(4, 1) = "  87  ": DIE_G(4, 2) = "  44  ": DIE_G(4, 3) = " 8447 ": DIE_G(4, 4) = " 8447 ": DIE_G(4, 5) = "  44  ": DIE_G(4, 6) = "  87  "
-    DIE_G(5, 1) = "  44  ": DIE_G(5, 2) = " 4444 ": DIE_G(5, 3) = " 4444 ": DIE_G(5, 4) = " 6  6 ": DIE_G(5, 5) = " 4444 ": DIE_G(5, 6) = "  55  "
-    DIE_G(6, 1) = " 6446 ": DIE_G(6, 2) = "844447": DIE_G(6, 3) = "844447": DIE_G(6, 4) = "86  67": DIE_G(6, 5) = " 4444 ": DIE_G(6, 6) = "  55  "
+    CONST FP = "assets/fonts/dpoly/"
+    CONST PT = 56
+    DFONT(4) = _LOADFONT(FP + "DPoly Four-Sider.otf", PT)
+    DFONT(6) = _LOADFONT(FP + "DPoly Six-Sider.otf", PT)
+    DFONT(8) = _LOADFONT(FP + "DPoly Eight-Sider.otf", PT)
+    DFONT(10) = _LOADFONT(FP + "DPoly Ten-Sider.otf", PT)
+    DFONT(12) = _LOADFONT(FP + "DPoly Twelve-Sider.otf", PT)
+    DFONT(20) = _LOADFONT(FP + "DPoly Twenty-Sider.otf", PT)
 END SUB
 
-FUNCTION DieIndex% (sides AS INTEGER)
-    SELECT CASE sides
-        CASE 4: DieIndex = 1
-        CASE 6: DieIndex = 2
-        CASE 8: DieIndex = 3
-        CASE 10: DieIndex = 4
-        CASE 12: DieIndex = 5
-        CASE ELSE: DieIndex = 6
+
+' Actual on-screen width of one die face in `sides`' font (proportional fonts
+' report _FONTWIDTH = 0, so the glyph has to be measured instead).
+FUNCTION DieWidth% (sides AS INTEGER)
+    DIM fh AS LONG, w AS INTEGER
+    DieWidth = 0
+    IF sides < 1 OR sides > 20 THEN EXIT FUNCTION
+    fh = DFONT(sides)
+    IF fh <= 0 THEN EXIT FUNCTION
+    _DEST CANVAS
+    _FONT fh
+    w = _PRINTWIDTH("A")
+    _FONT CH
+    DieWidth = w
+END FUNCTION
+
+
+' Tumble pacing for the player's Dice Speed setting: how many frames the dice
+' flicker, how fast those frames run, and how long the result is held.
+' `settle` is the frame at which the dice stop being random and show the result.
+SUB DiceTiming (frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE)
+    SELECT CASE opt_dicespeed
+        CASE 0: frames = 30: rate = 14: hold = 1.2      ' Slow -- watch them tumble
+        CASE 2: frames = 11: rate = 36: hold = 0.45     ' Fast
+        CASE 3: frames = 2: rate = 60: hold = 0.25      ' Instant -- barely a flicker
+        CASE ELSE: frames = 17: rate = 22: hold = 0.7   ' Normal
+    END SELECT
+    settle = frames - 3
+    IF settle < 1 THEN settle = 1
+END SUB
+
+
+' Which glyph slot (0-based, 0 = 'A'/'a') shows `face` on a `sides`-sided die.
+' Every die starts at face 1 in slot 0 -- EXCEPT the d10, whose first glyph is the
+' 0 face, so a rolled 10 draws that 0 exactly like a real ten-sider.
+FUNCTION DieGlyphCode% (sides AS INTEGER, face AS INTEGER)
+    IF sides = 10 THEN
+        IF face >= 10 THEN DieGlyphCode = 0 ELSE DieGlyphCode = face
+    ELSE
+        DieGlyphCode = face - 1
+    END IF
+END FUNCTION
+
+
+' The player's chosen dice palette: `body` fills the die, `ink` draws its number.
+SUB DiceColors (body AS _UNSIGNED LONG, ink AS _UNSIGNED LONG)
+    SELECT CASE opt_dicecolor
+        CASE 0: body = _RGB32(&HEC, &HE4, &HD0): ink = _RGB32(&H1A, &H10, &H0C)   ' Bone
+        CASE 1: body = _RGB32(&HC4, &H22, &H22): ink = _RGB32(&HFF, &HEE, &HEE)   ' Blood
+        CASE 2: body = _RGB32(&H1E, &HA0, &H55): ink = _RGB32(&HF0, &HFF, &HF0)   ' Emerald
+        CASE 3: body = _RGB32(&H36, &H72, &HD8): ink = _RGB32(&HF0, &HF6, &HFF)   ' Sapphire
+        CASE 4: body = _RGB32(&HD8, &HA8, &H20): ink = _RGB32(&H24, &H1A, &H00)   ' Gold
+        CASE ELSE: body = _RGB32(&H8A, &H4C, &HC8): ink = _RGB32(&HF8, &HF0, &HFF) ' Amethyst
+    END SELECT
+END SUB
+
+
+FUNCTION DiceColorName$ ()
+    SELECT CASE opt_dicecolor
+        CASE 0: DiceColorName$ = "Bone"
+        CASE 1: DiceColorName$ = "Blood"
+        CASE 2: DiceColorName$ = "Emerald"
+        CASE 3: DiceColorName$ = "Sapphire"
+        CASE 4: DiceColorName$ = "Gold"
+        CASE ELSE: DiceColorName$ = "Amethyst"
     END SELECT
 END FUNCTION
 
-FUNCTION DieChars$ (txt AS STRING)
-    DIM s AS STRING, c AS STRING, i AS INTEGER
-    FOR i = 1 TO LEN(txt)
-        c = MID$(txt, i, 1)
-        SELECT CASE c
-            CASE "1": s = s + CHR$(176)
-            CASE "2": s = s + CHR$(177)
-            CASE "3": s = s + CHR$(178)
-            CASE "4": s = s + CHR$(219)
-            CASE "5": s = s + CHR$(223)
-            CASE "6": s = s + CHR$(220)
-            CASE "7": s = s + CHR$(221)
-            CASE "8": s = s + CHR$(222)
-            CASE "9": s = s + CHR$(254)
-            CASE "A": s = s + CHR$(250)
-            CASE ELSE: s = s + c
-        END SELECT
-    NEXT i
-    DieChars$ = s
-END FUNCTION
 
-' Draw one polyhedron die at cell (ox,oy) showing `val` on its face.
-SUB DrawPolyDie (ox AS INTEGER, oy AS INTEGER, sides AS INTEGER, dval AS INTEGER, numc AS _UNSIGNED LONG, body AS _UNSIGNED LONG, shadow AS _UNSIGNED LONG)
-    DIM di AS INTEGER, r AS INTEGER, s AS STRING, w AS INTEGER, l AS INTEGER, nx AS INTEGER, vs AS STRING
-    di = DieIndex(sides)
+' Draw one polyhedron at pixel (px,py) showing `face`. Solid finish = two passes
+' (body then ink); outline finish = the hollow variant in the body colour.
+SUB DrawFontDie (px AS INTEGER, py AS INTEGER, sides AS INTEGER, face AS INTEGER)
+    DIM fh AS LONG, code AS INTEGER
+    DIM body AS _UNSIGNED LONG, ink AS _UNSIGNED LONG
+    IF sides < 1 OR sides > 20 THEN EXIT SUB
+    fh = DFONT(sides)
+    IF fh <= 0 THEN EXIT SUB
+    DiceColors body, ink
+    code = DieGlyphCode(sides, face)
     _DEST CANVAS
-    FOR r = 1 TO 6
-        s = DieChars$(DIE_G(di, r))
-        IF r <= 4 THEN COLOR body, BOXBG ELSE COLOR shadow, BOXBG
-        _PRINTSTRING (ox * CW, (oy + r - 1) * CH), s
-    NEXT r
-    IF sides >= 10 THEN vs = RIGHT$("0" + _TRIM$(STR$(dval)), 2) ELSE vs = _TRIM$(STR$(dval))
-    w = LEN(DIE_G(di, 1)): l = LEN(vs)
-    nx = ox + (w - l) \ 2
-    COLOR numc, body
-    _PRINTSTRING (nx * CW, (oy + 2) * CH), vs
+    _FONT fh
+    _PRINTMODE _KEEPBACKGROUND          ' vital: pass 2 must not blank pass 1
+    IF opt_dicesolid THEN
+        COLOR body, BOXBG
+        _PRINTSTRING (px, py), CHR$(65 + code)      ' filled body
+        COLOR ink, BOXBG
+        _PRINTSTRING (px, py), CHR$(97 + code)      ' outline + number over it
+    ELSE
+        COLOR body, BOXBG
+        _PRINTSTRING (px, py), CHR$(97 + code)      ' hollow die only
+    END IF
+    _PRINTMODE _FILLBACKGROUND
+    _FONT CH                            ' back to the 8x16 game font
 END SUB
 
-' Tumble n polyhedron dice, settle on their rolled values, and return the sum.
+
+' Tumble n polyhedra, settle on their rolled values, and return the sum.
 FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DIM v(1 TO 12) AS INTEGER, i AS INTEGER, total AS INTEGER, f AS INTEGER, shown AS INTEGER
-    DIM dieW AS INTEGER, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, sx AS INTEGER
-    DIM body AS _UNSIGNED LONG, shadow AS _UNSIGNED LONG, numc AS _UNSIGNED LONG
+    DIM fh AS LONG, dw AS INTEGER, dh AS INTEGER, gap AS INTEGER, rowW AS INTEGER
+    DIM dx AS INTEGER, dy AS INTEGER, x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER
+    DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
+    IF n > 12 THEN n = 12
     total = 0
     FOR i = 1 TO n: v(i) = RollDie(sides): total = total + v(i): NEXT i
-    IF opt_showdice THEN
-        body = _RGB32(&HC4, &H2A, &H2A): shadow = _RGB32(&H5C, &H12, &H12): numc = _RGB32(&HFF, &HF2, &HF2)
-        dieW = 9                                  ' cells per die (incl. gap)
-        bw = n * dieW + 3
-        bx = (SW - bw) \ 2: by = 31
-        FOR f = 1 TO 16
-            _DEST CANVAS
-            LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 9) * CH), BOXBG, BF
-            LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 9) * CH), REDU, B
-            COLOR CYANU, BOXBG: PrintCentered by + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
-            FOR i = 1 TO n
-                sx = bx + 2 + (i - 1) * dieW
-                IF f < 13 THEN shown = RollDie(sides) ELSE shown = v(i)
-                DrawPolyDie sx, by + 2, sides, shown, numc, body, shadow
-            NEXT i
-            IF n > 1 THEN COLOR YELLOWU, BOXBG: PrintCentered by + 8, "sum  " + _TRIM$(STR$(total))
-            IF opt_sfx THEN Tone 380 + f * 28, 0.05
-            _DISPLAY
-            _LIMIT 22
-        NEXT f
-        _DELAY 0.7
+    IF NOT opt_showdice THEN ShowRollText = total: EXIT FUNCTION
+
+    fh = 0
+    IF sides >= 1 AND sides <= 20 THEN fh = DFONT(sides)
+    IF fh <= 0 THEN                     ' no die font this size -- plain number tumbler
+        ShowRollText = ShowRollValue(total, n * sides, "rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)))
+        EXIT FUNCTION
     END IF
+
+    dw = DieWidth(sides): dh = _FONTHEIGHT(fh)
+    IF dw < 8 THEN dw = 56
+    gap = 14
+    rowW = n * dw + (n - 1) * gap
+    dx = (SW * CW - rowW) \ 2
+    dy = 33 * CH
+    x1 = dx - 24: x2 = dx + rowW + 24
+    y1 = dy - 3 * CH: y2 = dy + dh + 3 * CH
+
+    DiceTiming frames, rate, settle, hold
+    FOR f = 1 TO frames
+        _DEST CANVAS
+        LINE (x1, y1)-(x2, y2), BOXBG, BF
+        LINE (x1, y1)-(x2, y2), REDU, B
+        _FONT CH
+        COLOR CYANU, BOXBG: PrintCentered y1 \ CH + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+        FOR i = 1 TO n
+            IF f < settle THEN shown = RollDie(sides) ELSE shown = v(i)
+            DrawFontDie dx + (i - 1) * (dw + gap), dy, sides, shown
+        NEXT i
+        ' the total is a RESULT -- withhold it until the dice have actually landed
+        IF n > 1 AND f >= settle THEN
+            _FONT CH
+            COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, "sum  " + _TRIM$(STR$(total))
+        END IF
+        IF opt_sfx THEN
+            IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05   ' a thunk as they land
+        END IF
+        _DISPLAY
+        _LIMIT rate
+    NEXT f
+    _DELAY hold
     ShowRollText = total
 END FUNCTION
 
@@ -1009,21 +1208,25 @@ END FUNCTION
 ' KNOWN total -- lets callers (e.g. 4d6-drop-lowest) control what is summed.
 FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
     DIM AS INTEGER f, bx, by, bw, shown
+    DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
     IF opt_showdice THEN
         bw = 46
         bx = (SW - bw) \ 2: by = 32
-        FOR f = 1 TO 16
-            IF f < 13 THEN shown = INT(RND * hi) + 1 ELSE shown = total
+        DiceTiming frames, rate, settle, hold
+        FOR f = 1 TO frames
+            IF f < settle THEN shown = INT(RND * hi) + 1 ELSE shown = total
             _DEST CANVAS
             LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), BOXBG, BF
             LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 6) * CH), REDU, B
             COLOR CYANU, BOXBG: PrintCentered by + 1, "-= " + caption + " =-"
             COLOR YELLOWU, BOXBG: PrintCentered by + 3, "[  " + _TRIM$(STR$(shown)) + "  ]"
-            IF opt_sfx THEN Tone 380 + f * 28, 0.05
+            IF opt_sfx THEN
+                IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05
+            END IF
             _DISPLAY
-            _LIMIT 22
+            _LIMIT rate
         NEXT f
-        _DELAY 0.6
+        _DELAY hold
     END IF
     ShowRollValue = total
 END FUNCTION
@@ -1036,6 +1239,8 @@ FUNCTION RollAbility% ()
     IF opt_heroicstats THEN
         IF opt_realdice THEN
             RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
+        ELSEIF opt_d6pips THEN
+            RollAbility = RollPips(4, TRUE)        ' four pip dice, the lowest visibly discarded
         ELSE
             FOR i = 1 TO 4: d(i) = RollDie(6): NEXT i
             lo = d(1)
