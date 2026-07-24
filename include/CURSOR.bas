@@ -63,7 +63,16 @@ END SUB
 
 
 SUB cursor_draw
+    DIM p AS INTEGER
     _DEST CANVAS
+    ' other hot-seat players' tokens (drawn under the active cursor)
+    IF num_players > 1 THEN
+        FOR p = 1 TO num_players
+            IF p <> cur_player AND PLAYERS(p).active THEN
+                LINE (PLAYERS(p).cx, PLAYERS(p).cy)-(PLAYERS(p).cx + CW - 1, PLAYERS(p).cy + CH - 1), PLAYERS(p).kolor, BF
+            END IF
+        NEXT p
+    END IF
     LINE (c.x, c.y)-(c.x + CW - 1, c.y + CH - 1), c.cursor_color, BF
 END SUB
 

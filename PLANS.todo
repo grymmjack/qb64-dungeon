@@ -131,6 +131,15 @@ Dice:
         ✔ Arbitrary NdX via GameRoll (d20 to-hit, dN damage in D&D mode) @done(26-07-23)
         ✔ 4d6-drop-lowest ability rolls (SETTINGS "Stat Roll" option) @done(26-07-23)
 
+Multiplayer:
+    ✔ Hot-seat multiplayer, up to 4 players (SETTINGS "Players") @done(26-07-23)
+        ✔ Each player creates their own character (class + 3d6 roll-up + name) @done(26-07-23)
+        ✔ Take turns: roll + move, then the seat passes to the next player @done(26-07-23)
+        ✔ >1 player forces Boardgame Mode ON (locked) @done(26-07-23)
+        ✔ Shared board; each player has own gold/HP/items/key/position/colour @done(26-07-23)
+        ✔ Per-player 2d6 kill numbers (each class faces its own card number) @done(26-07-23)
+        ✔ All player tokens shown on the board; first to win ends the game @done(26-07-23)
+
 Movement Modes:
     ✔ Boardgame Mode setting (default ON) @done(26-07-23)
         ✔ ON: roll 1d6 to move, step-limited turns (board-game feel) @done(26-07-23)

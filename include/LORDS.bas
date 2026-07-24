@@ -127,7 +127,7 @@ END SUB
 
 ' Name-entry prompt shown on victory, before enshrining the champion.
 FUNCTION EnterName$
-    DIM nm AS STRING, k AS STRING, ch AS INTEGER
+    DIM nm AS STRING, k AS STRING, chcode AS INTEGER   ' NOT "ch" -- would shadow the CH font handle
     nm = player_name
     DO
         _LIMIT 60
@@ -145,8 +145,8 @@ FUNCTION EnterName$
             ELSEIF k = CHR$(8) THEN
                 IF LEN(nm) > 0 THEN nm = LEFT$(nm, LEN(nm) - 1)
             ELSEIF LEN(k) = 1 THEN
-                ch = ASC(k)
-                IF ch >= 32 AND ch <= 126 AND LEN(nm) < 14 THEN nm = nm + k
+                chcode = ASC(k)
+                IF chcode >= 32 AND chcode <= 126 AND LEN(nm) < 14 THEN nm = nm + k
             END IF
         END IF
     LOOP

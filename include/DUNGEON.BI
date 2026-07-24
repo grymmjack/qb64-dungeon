@@ -18,7 +18,8 @@ TYPE SECTOR
     kolor   AS _UNSIGNED LONG
     label   AS STRING
     monster AS STRING
-    mnum    AS INTEGER       ' 2d6 total needed to defeat
+    mnum    AS INTEGER       ' 2d6 total needed to defeat (baked for the roller's class)
+    mslot   AS INTEGER       ' which of the level's 3 monsters (for per-player kill numbers)
     mgold   AS INTEGER       ' treasure guarded (sits under the monster)
     malive  AS INTEGER
     is_boss AS INTEGER       ' room flag: tougher guardian
@@ -57,6 +58,36 @@ TYPE PCLASS
     hitdie       AS INTEGER     ' D&D mode: hit die size for rolling HP at character creation
 END TYPE
 
+' One hot-seat player's complete state (parked here between turns; the active
+' player's state lives in the working globals -- see Load/SaveActivePlayer).
+TYPE PLAYER
+    active   AS INTEGER         ' still in the game
+    name     AS STRING * 16     ' fixed-length: variable-length strings in a UDT array crash QB64
+    klass    AS INTEGER         ' class index 1..4
+    gold     AS LONG
+    goal     AS LONG
+    has_key  AS INTEGER
+    sword    AS INTEGER
+    secret_card AS INTEGER
+    esp      AS INTEGER
+    crystal  AS INTEGER
+    hp       AS INTEGER
+    maxhp    AS INTEGER
+    sstr     AS INTEGER
+    sint     AS INTEGER
+    swis     AS INTEGER
+    sdex     AS INTEGER
+    scon     AS INTEGER
+    scha     AS INTEGER
+    tohit    AS INTEGER
+    ac       AS INTEGER
+    dmgdie   AS INTEGER
+    dmgbonus AS INTEGER
+    cx       AS INTEGER         ' cursor pixel position
+    cy       AS INTEGER
+    kolor    AS _UNSIGNED LONG  ' board token colour
+END TYPE
+
 DIM SHARED AS INTEGER SW, SH, CW, CH
 DIM SHARED AS LONG CANVAS, CANVAS_COPY
 DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
@@ -69,6 +100,9 @@ DIM SHARED AS INTEGER turn_num, steps_left, need_roll
 DIM SHARED class_name AS STRING
 DIM SHARED CLASSES(1 TO 4) AS PCLASS
 DIM SHARED player_class AS INTEGER
+' hot-seat multiplayer (up to 4). num_players 1 = solo; >1 forces Boardgame Mode.
+DIM SHARED PLAYERS(1 TO 4) AS PLAYER
+DIM SHARED num_players AS INTEGER, cur_player AS INTEGER
 ' Dungeon!-style monster + treasure pools, 3 per level (levels 1-9), randomised per game.
 DIM SHARED MON_NAME(1 TO 9, 1 TO 3) AS STRING
 ' per-class 2d6 kill numbers from the cards: [level, slot, class] 1=Hero 2=Elf 3=Superhero 4=Wizard (13 = can't kill barehanded)

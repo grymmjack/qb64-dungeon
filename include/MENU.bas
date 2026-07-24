@@ -266,7 +266,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 14
+    CONST NSET = 15
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -285,6 +285,12 @@ SUB RunSettings
                 CASE 2: opt_musicvol = Clamp10(opt_musicvol + delta): IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10
                 CASE 4: opt_sfxvol = Clamp10(opt_sfxvol + delta): Sfx "select"
                 CASE 6: opt_voicevol = Clamp10(opt_voicevol + delta): VoiceBlip 700
+                CASE 12
+                    num_players = num_players + delta
+                    IF num_players < 1 THEN num_players = 1
+                    IF num_players > 4 THEN num_players = 4
+                    IF num_players > 1 THEN opt_boardgame = TRUE
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -297,20 +303,25 @@ SUB RunSettings
                 CASE 8: opt_realdice = NOT opt_realdice
                 CASE 9: opt_dicemath = NOT opt_dicemath
                 CASE 10: opt_oldschool = NOT opt_oldschool
-                CASE 11: opt_boardgame = NOT opt_boardgame
-                CASE 12: opt_heroicstats = NOT opt_heroicstats
-                CASE 13
+                CASE 11
+                    opt_boardgame = NOT opt_boardgame
+                    IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
+                CASE 12
+                    num_players = num_players + 1: IF num_players > 4 THEN num_players = 1
+                    IF num_players > 1 THEN opt_boardgame = TRUE
+                CASE 13: opt_heroicstats = NOT opt_heroicstats
+                CASE 14
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 14: EXIT SUB
+                CASE 15: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
 
         _DEST CANVAS: CLS , BLACK
-        COLOR YELLOWU, BLACK: PrintCentered 2, "-=  S E T T I N G S  =-"
+        COLOR YELLOWU, BLACK: PrintCentered 1, "-=  S E T T I N G S  =-"
         FOR i = 1 TO NSET
-            y = 4 + (i - 1) * 3
+            y = 3 + (i - 1) * 3
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -329,17 +340,26 @@ SUB RunSettings
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
                 CASE 11
                     lbl = "Boardgame"
-                    IF opt_boardgame THEN vtxt = "roll to move" ELSE vtxt = "free move"
+                    IF num_players > 1 THEN
+                        vtxt = "roll to move (locked)"
+                    ELSEIF opt_boardgame THEN
+                        vtxt = "roll to move"
+                    ELSE
+                        vtxt = "free move"
+                    END IF
                 CASE 12
+                    lbl = "Players": slider = TRUE
+                    IF num_players > 1 THEN vtxt = _TRIM$(STR$(num_players)) + "  (hot-seat)" ELSE vtxt = "1  (solo)"
+                CASE 13
                     lbl = "Stat Roll"
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
-                CASE 13: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 14: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        COLOR CYANU, BLACK: PrintCentered 45, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 47, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
 END SUB
@@ -483,11 +503,12 @@ SUB DrawHUD
     tmr = _TRIM$(STR$(el \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(el MOD 60)), 2)
     DIM hptag AS STRING
     IF NOT opt_oldschool THEN hptag = "   HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp))
-    DIM movetag AS STRING
+    DIM movetag AS STRING, ptag AS STRING
     IF opt_boardgame THEN movetag = "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) ELSE movetag = "   FREE MOVE"
+    IF num_players > 1 THEN ptag = "P" + _TRIM$(STR$(cur_player)) + " " + player_name + "  " ELSE ptag = ""
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + class_name + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + "   " + tmr + "   " + lbl
+    hud = " " + ptag + class_name + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK
@@ -798,7 +819,7 @@ END FUNCTION
 
 ' Ask the player what they physically rolled; validates against the possible range.
 FUNCTION PromptRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS STRING)
-    DIM entry AS STRING, k AS STRING, ch AS INTEGER, v AS INTEGER
+    DIM entry AS STRING, k AS STRING, chcode AS INTEGER, v AS INTEGER   ' NOT "ch" -- shadows CH
     DIM spec AS STRING, l1 AS STRING, msg AS STRING, lo AS INTEGER, hi AS INTEGER
     spec = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     IF bonus > 0 AND opt_dicemath THEN
@@ -837,8 +858,8 @@ FUNCTION PromptRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS 
             ELSEIF k = CHR$(8) THEN
                 IF LEN(entry) > 0 THEN entry = LEFT$(entry, LEN(entry) - 1)
             ELSEIF LEN(k) = 1 THEN
-                ch = ASC(k)
-                IF ch >= 48 AND ch <= 57 AND LEN(entry) < 3 THEN entry = entry + k
+                chcode = ASC(k)
+                IF chcode >= 48 AND chcode <= 57 AND LEN(entry) < 3 THEN entry = entry + k
             END IF
         END IF
     LOOP

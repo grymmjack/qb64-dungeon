@@ -198,6 +198,14 @@ level am I in" is derived from position + art color.
   makes `CURSOR.erase` a no-op label (compiles clean, no error). Put each dotted call on its
   own line, or avoid dots in SUB names (`dungeon.bas` uses `cursor_erase`/`cursor_draw`).
   Dotted *functions* inside expressions (`x = SECTOR.get_by_xy(...)`) are unaffected.
+- **Gotcha (subtle, cost hours):** identifiers are **case-insensitive**, so a local like
+  `DIM ch AS INTEGER` **shadows the `DIM SHARED CH`** (font-cell height / font handle) *within
+  that procedure*. It compiles clean; then `_FONT CH` sees the local `0` → runtime **"Invalid
+  handle"**, and any `... * CH` coordinate silently becomes `0`. Never name a local after a
+  short shared global (`CH`/`CW`/`SW`/`SH`/`c`); the char-code locals are `chcode`. UDT string
+  fields are also kept **fixed-length** (`name AS STRING * 16`, `_TRIM$` on read) as the safe idiom.
+- **Gotcha:** single-line `IF` does not support `ELSEIF` / `ELSE IF` chains, and `LINE`, `SEG`,
+  `VAL`, `CLS` are reserved words that can't be used as variable names.
 
 ## Line endings (enforced via .gitattributes)
 

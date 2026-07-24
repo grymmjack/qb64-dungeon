@@ -43,6 +43,7 @@ opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + doe
 opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
 opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
 opt_boardgame = TRUE                          ' default: roll dice to move (off = free computer-game movement)
+num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
@@ -96,22 +97,27 @@ FUNCTION PlayGame%
     DIM AS INTEGER sec, res, idle_ticks, sd
 
     DIM i AS INTEGER
-    class_name = CLASSES(player_class).name
-    gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
-    IF NOT opt_boardgame THEN need_roll = FALSE   ' free-movement mode: no roll gate
-    has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
-    moves_made = 0
-    player_hp = player_maxhp         ' D&D mode: full HP at the door (max set at character creation)
-    RandomizeRooms                   ' roll fresh Dungeon! monsters + treasures per game
-    game_start = TIMER               ' start the run timer
-
-    StartBoard
-    ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies treasure enough to make your name a legend -- and a guardian set over every hoard. Find the Level Key, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. Few ever do."
-    cursor_erase: cursor_draw        ' clear the narration, reveal the board
     DIM hint AS STRING
+    SetupPlayers                     ' build every player (multiplayer: class + 3d6 roll-up + name each)
+    RandomizeRooms                   ' one shared board of monsters + treasures
+    game_start = TIMER               ' start the run timer
+    moves_made = 0: turn_num = 0: steps_left = 0
+    cur_player = 1
+
+    StartBoard                       ' build the board + fog (this resets the cursor to START)
+    LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
+    need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
+
+    IF num_players > 1 THEN
+        ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Whoever is first to claim a fortune and the Level Key -- and return alive to this entrance -- wins eternal glory. Let the delving begin."
+    ELSE
+        ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies treasure enough to make your name a legend -- and a guardian set over every hoard. Find the Level Key, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. Few ever do."
+    END IF
+    cursor_erase: cursor_draw        ' clear the narration, reveal the board
     IF opt_boardgame THEN hint = "[SPACE] roll  " ELSE hint = ""
     Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", hint + "move  [F] search  [C] sheet  [?] keys  fight  ESC flee"
     WaitKey
+    AnnounceTurn cur_player          ' multiplayer: announce whose turn it is
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
 
@@ -158,7 +164,7 @@ FUNCTION PlayGame%
                             END IF
                         END IF
                     END IF
-                    IF opt_boardgame AND steps_left <= 0 THEN need_roll = TRUE
+                    IF opt_boardgame AND steps_left <= 0 THEN EndPlayerTurn
                 ELSEIF TryMove(k) THEN
                     IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
@@ -166,6 +172,12 @@ FUNCTION PlayGame%
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
                         IF TryMove(k) THEN moves_made = moves_made + 1
+                    END IF
+                    ' passing through a revealed secret door grants this player the Level Key
+                    IF NOT has_key AND OnSecretDoorNow THEN
+                        has_key = TRUE: Sfx "key"
+                        Banner "You slip through a SECRET DOOR and take the LEVEL KEY!", "[ press any key ]"
+                        WaitKey: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
                     END IF
                     ' returning to the entrance patches you up (D&D mode)
                     IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN player_hp = player_maxhp
@@ -175,6 +187,7 @@ FUNCTION PlayGame%
                             ' a monster guards this room's treasure?
                             IF SECTORS(sec).malive AND LEN(SECTORS(sec).monster) > 0 THEN
                                 res = DoCombat(sec)
+                                IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
                             END IF
                         END IF
                     END IF
@@ -184,7 +197,7 @@ FUNCTION PlayGame%
                             PlayGame = OUT_WIN: EXIT FUNCTION
                         END IF
                     END IF
-                    IF opt_boardgame AND steps_left <= 0 THEN need_roll = TRUE
+                    IF opt_boardgame AND steps_left <= 0 THEN EndPlayerTurn
                 END IF
             END IF
         END IF
@@ -207,7 +220,16 @@ FUNCTION DoCombat% (sec AS INTEGER)
         cursor_erase: cursor_draw: _DISPLAY
         EXIT FUNCTION
     END IF
-    need = SECTORS(sec).mnum
+    ' the kill number depends on the ACTIVE player's class (matters in hot-seat)
+    IF SECTORS(sec).is_boss THEN
+        SELECT CASE player_class
+            CASE 1, 2: need = 13
+            CASE 3: need = 11
+            CASE ELSE: need = 12
+        END SELECT
+    ELSE
+        need = MON_N(sec, SECTORS(sec).mslot, player_class)
+    END IF
     target = need - item_sword                ' the raw 2d6 the player must roll (Magic Sword helps)
     unbeatable = (target > 12)                ' "-" on the card: needs a stronger blade
     IF target < 2 THEN target = 2
@@ -487,6 +509,7 @@ END SUB
 '$INCLUDE:'include/CURSOR.bas'
 '$INCLUDE:'include/MENU.bas'
 '$INCLUDE:'include/LORDS.bas'
+'$INCLUDE:'include/PLAYERS.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'

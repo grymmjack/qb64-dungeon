@@ -120,6 +120,7 @@ SUB RandomizeRooms
     FOR i = 2 TO 9
         m = RollDie(3): t = RollDie(3)
         SECTORS(i).monster = MON_NAME(i, m): SECTORS(i).mnum = MON_N(i, m, player_class)
+        SECTORS(i).mslot = m                        ' remember the slot for per-player kill numbers
         SECTORS(i).malive = TRUE
         SECTORS(i).treasure_name = TRE_NAME(i, t): SECTORS(i).treasure = TRE_GOLD(i, t)
         SECTORS(i).treasure_item = TRE_ITEM(i, t)
