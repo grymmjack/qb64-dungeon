@@ -219,22 +219,22 @@ SUB InitClasses
     CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 10000
     CLASSES(1).combat_bonus = 0: CLASSES(1).secret_bonus = 0
     CLASSES(1).blurb = "Solid fighter. Finds secret doors on a 1-2. Needs 10,000 gold."
-    CLASSES(1).hp = 24: CLASSES(1).tohit = 4: CLASSES(1).dmg = 8: CLASSES(1).ac = 15: CLASSES(1).hitdie = 10
+    CLASSES(1).hp = 24: CLASSES(1).tohit = 2: CLASSES(1).dmg = 8: CLASSES(1).ac = 15: CLASSES(1).hitdie = 10
 
     CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 10000
     CLASSES(2).combat_bonus = -1: CLASSES(2).secret_bonus = 2
     CLASSES(2).blurb = "Weakest fighter, but finds secret doors on a 1-4. Needs 10,000."
-    CLASSES(2).hp = 16: CLASSES(2).tohit = 3: CLASSES(2).dmg = 6: CLASSES(2).ac = 13: CLASSES(2).hitdie = 8
+    CLASSES(2).hp = 16: CLASSES(2).tohit = 1: CLASSES(2).dmg = 6: CLASSES(2).ac = 13: CLASSES(2).hitdie = 8
 
     CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 20000
     CLASSES(3).combat_bonus = 0: CLASSES(3).secret_bonus = 0
     CLASSES(3).blurb = "The deadliest warrior -- slays monsters on low rolls. Needs 20,000 gold."
-    CLASSES(3).hp = 32: CLASSES(3).tohit = 6: CLASSES(3).dmg = 10: CLASSES(3).ac = 17: CLASSES(3).hitdie = 12
+    CLASSES(3).hp = 32: CLASSES(3).tohit = 3: CLASSES(3).dmg = 10: CLASSES(3).ac = 17: CLASSES(3).hitdie = 12
 
     CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 30000
     CLASSES(4).combat_bonus = 0: CLASSES(4).secret_bonus = 1
     CLASSES(4).blurb = "Slays with spells; can't use Magic Swords. Needs 30,000 gold."
-    CLASSES(4).hp = 14: CLASSES(4).tohit = 5: CLASSES(4).dmg = 10: CLASSES(4).ac = 12: CLASSES(4).hitdie = 6
+    CLASSES(4).hp = 14: CLASSES(4).tohit = 2: CLASSES(4).dmg = 10: CLASSES(4).ac = 12: CLASSES(4).hitdie = 6
 END SUB
 
 
