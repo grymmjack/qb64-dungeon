@@ -150,7 +150,44 @@ SUB RandomizeRooms
         ROOMS(bossroom).mhp = 45 + sec * 3 + RollDie(10): ROOMS(bossroom).mhp_now = ROOMS(bossroom).mhp
         ROOMS(bossroom).mac = 19
     END IF
+
+    ' -- the LEVEL KEY: the prize of one random room on a DEEP level (never the
+    ' entrance level 1, never the boss), so winning requires descending. Its exact
+    ' room is pinpointed by the Crystal Ball; otherwise only its level is hinted.
+    DIM kcand(1 TO 400) AS INTEGER, nk AS INTEGER
+    key_room = 0: key_level = 0: nk = 0
+    FOR r = 1 TO ROOM_N
+        IF ROOMS(r).malive AND ROOMS(r).sec >= 2 AND NOT ROOMS(r).is_boss THEN nk = nk + 1: kcand(nk) = r
+    NEXT r
+    IF nk = 0 THEN                               ' fallback: any live monster room that isn't the boss
+        FOR r = 1 TO ROOM_N
+            IF ROOMS(r).malive AND NOT ROOMS(r).is_boss THEN nk = nk + 1: kcand(nk) = r
+        NEXT r
+    END IF
+    IF nk > 0 THEN
+        key_room = kcand(RollDie(nk))
+        key_level = ROOMS(key_room).sec
+        ROOMS(key_room).treasure_item = 6        ' 6 = Level Key (see ClaimTreasure)
+        ROOMS(key_room).treasure_name = "THE LEVEL KEY"
+    END IF
 END SUB
+
+
+' 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 4 -> "4th" ... (for the key-level hint).
+FUNCTION Ordinal$ (n AS INTEGER)
+    DIM suf AS STRING
+    SELECT CASE n MOD 100
+        CASE 11, 12, 13: suf = "th"
+        CASE ELSE
+            SELECT CASE n MOD 10
+                CASE 1: suf = "st"
+                CASE 2: suf = "nd"
+                CASE 3: suf = "rd"
+                CASE ELSE: suf = "th"
+            END SELECT
+    END SELECT
+    Ordinal$ = _TRIM$(STR$(n)) + suf
+END FUNCTION
 
 
 ' Authentic DUNGEON! win totals: Hero/Elf 10k, Superhero 20k, Wizard 30k.

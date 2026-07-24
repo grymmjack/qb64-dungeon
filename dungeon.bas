@@ -40,17 +40,17 @@ opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
 opt_musicvol = 7: opt_sfxvol = 8: opt_voicevol = 6   ' 0..10 volume sliders
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
-opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
-opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
+opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
+opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
-opt_dicecolor = 1                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
+opt_dicecolor = 3                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
 opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
-opt_d6pips = TRUE                             ' d6 rolls use the hand-drawn pip dice, not the font's numbered six
-opt_dicespeed = 1                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
-opt_smooth = FALSE                            ' default: crisp pixel-doubled fullscreen (no bilinear dice shimmer)
-opt_combatspeed = 1                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
+opt_d6pips = FALSE                            ' d6 rolls use the font's numbered die (on = hand-drawn pips)
+opt_dicespeed = 0                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
+opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
+opt_combatspeed = 0                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -114,14 +114,15 @@ FUNCTION PlayGame%
     cur_player = 1
 
     StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
-    RandomizeRooms                   ' give every detected room its own monster + treasure
+    RandomizeRooms                   ' give every detected room its own monster + treasure (+ the key room)
     LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
     need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
+    loiter = 0                       ' fresh danger meter for lingering
 
     IF num_players > 1 THEN
-        ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Whoever is first to claim a fortune and the Level Key -- and return alive to this entrance -- wins eternal glory. Let the delving begin."
+        ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
     ELSE
-        ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies treasure enough to make your name a legend -- and a guardian set over every hoard. Find the Level Key, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. Few ever do."
+        ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is rumoured to lie on the " + Ordinal$(key_level) + " level -- take it, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. A Crystal Ball would reveal exactly which room hides it. Few ever escape."
     END IF
     cursor_erase: cursor_draw        ' clear the narration, reveal the board
     IF opt_boardgame THEN hint = "[SPACE] roll  " ELSE hint = ""
@@ -182,12 +183,6 @@ FUNCTION PlayGame%
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
                         IF TryMove(k) THEN moves_made = moves_made + 1
-                    END IF
-                    ' passing through a revealed secret door grants this player the Level Key
-                    IF NOT has_key AND OnSecretDoorNow THEN
-                        has_key = TRUE: Sfx "key"
-                        Banner "You slip through a SECRET DOOR and take the LEVEL KEY!", "[ press any key ]"
-                        WaitKey: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
                     END IF
                     ' returning to the entrance patches you up (D&D mode)
                     IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN player_hp = player_maxhp
@@ -517,6 +512,12 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
         CASE 5                                    ' Crystal Ball
             item_crystal = TRUE
             line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
+        CASE 6                                    ' the LEVEL KEY (this game's key room)
+            has_key = TRUE
+            Sfx "key"
+            gold = gold + ROOMS(rm).treasure
+            IF ROOMS(rm).treasure > 0 THEN LogTreasure "Key Vault hoard", ROOMS(rm).treasure
+            line2 = "You seize the LEVEL KEY! Now escape to the entrance with your gold to WIN."
         CASE ELSE                                 ' plain gold treasure
             gold = gold + ROOMS(rm).treasure
             LogTreasure tname, ROOMS(rm).treasure

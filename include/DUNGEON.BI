@@ -158,6 +158,9 @@ DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceSh
 DIM SHARED DFONT(1 TO 20) AS LONG
 DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (before modifiers) from DoRoll
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
+DIM SHARED key_level AS INTEGER                   ' which dungeon level (2..9) hides the Level Key this game
+DIM SHARED key_room AS INTEGER                    ' the ROOMS() index whose treasure IS the Level Key (Crystal Ball reveals it)
+DIM SHARED loiter AS INTEGER                      ' rising danger from lingering (search/idle); triggers wandering monsters
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
 DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER

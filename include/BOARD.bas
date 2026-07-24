@@ -24,13 +24,7 @@ SUB DoSearch
 
     IF found_any THEN
         Sfx "secret"
-        IF NOT has_key THEN
-            has_key = TRUE
-            Sfx "key"                             ' the Level Key fanfare
-            Banner "A SECRET DOOR grinds open -- the LEVEL KEY lies beyond!", "A hidden passage is revealed.   [ press any key ]"
-        ELSE
-            Banner "You uncover another SECRET DOOR!", "A hidden passage is revealed.   [ press any key ]"
-        END IF
+        Banner "A SECRET DOOR grinds open before you!", "A hidden passage is revealed -- explore what it hides.   [ press any key ]"
     ELSEIF near_hidden THEN
         Sfx "search"
         Banner "Your fingers trace a faint seam in the stone...", "Something is hidden nearby -- keep searching!   [ press any key ]"

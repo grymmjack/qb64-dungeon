@@ -259,3 +259,20 @@ Sounds:
     ✔ Add sound effect when breaking door (splintering crash) @done(26-07-23)
     ✔ Add sound effect for picking up treasure @done(26-07-23)
     ✔ Volume sliders: Music / SFX / Voice (0-100%) @done(26-07-23)
+
+Refinement backlog (from playtest 26-07-24):
+    ✔ Level Key hidden on a random DEEP level (never level 1); Crystal Ball pinpoints the room @done(26-07-24)
+    ✔ Default settings match the player's config (D&D, 4d6-drop, Sapphire, slow dice, slow combat, smooth) @done(26-07-24)
+    ☐ Wandering monsters from LINGERING (loiter meter): every few searches / long idle spawns a
+      random encounter of the CURRENT level. `loiter` global already added; reset per game.
+        ☐ Escalating ATMOSPHERIC HINTS before the encounter fires ("scuffling footsteps", "torchlight
+          wavers at a hiss", "goosebumps on your neck", ...). Two pools: subtle -> close, then the fight.
+    ☐ Dice PHYSICS: dice bounce/tumble around the box with inertia + wall bounce (rotation limited by
+      the font approach; do translation-bounce + face flicker, settle into a row).
+    ☐ LEGENDARY LORDS overhaul: record per-level progression (levels 1-9 reached), monsters killed and
+      gold earned PER LEVEL; select a lord to view their full character sheet. (Save format v2.)
+    ☐ Treasure/ITEM CARD drops per the DUNGEON! rules: verify the item deck + drop odds against the
+      manual (Magic Sword, Magic Bow/Arrow, Shield, Cloak, ESP Medallion, Crystal Ball, Elf Boots,
+      Teleport, Wizard spells, etc.) and their per-level frequency; expand TRE_ITEM beyond the current 5.
+    ~ To-hit is class base + attribute mod (STR fighters / INT wizard) -- e.g. Hero +7 = +4 class +3 STR;
+      shown by CombatDerivation$. Working as designed; revisit class base values if combat stays too easy.

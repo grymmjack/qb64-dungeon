@@ -621,7 +621,7 @@ SUB ShowCharSheet
     ' wealth line
     COLOR YELLOWU, BOXBG
     ln = "GOLD  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
-    IF has_key THEN ln = ln + "        LEVEL KEY: HELD" ELSE ln = ln + "        LEVEL KEY: not found"
+    IF has_key THEN ln = ln + "        LEVEL KEY: HELD" ELSE ln = ln + "        LEVEL KEY: on the " + Ordinal$(key_level) + " level"
     PrintCentered 10, ln
     ' special items held
     inv = ""
@@ -685,6 +685,12 @@ SUB ScryView
         COLOR WHITE, BOXBG: PrintCentered y, SECTORS(i).label
         COLOR GREY, BOXBG: PrintCentered y + 1, _TRIM$(STR$(rclr(i))) + "/" + _TRIM$(STR$(rtot(i))) + " rooms cleared    " + _TRIM$(STR$(gleft(i))) + " gold still guarded"
     NEXT i
+    ' the Crystal Ball's true gift: it pinpoints the room hiding the Level Key
+    IF has_key THEN
+        COLOR GREENU, BOXBG: PrintCentered 43, "You already hold the LEVEL KEY -- flee to the entrance!"
+    ELSEIF key_room >= 1 THEN
+        COLOR YELLOWU, BOXBG: PrintCentered 43, "The LEVEL KEY is guarded by the " + _TRIM$(ROOMS(key_room).monster) + " on the " + Ordinal$(key_level) + " level."
+    END IF
     COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
     _DISPLAY
     WaitKey
