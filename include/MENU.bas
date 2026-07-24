@@ -970,11 +970,16 @@ END SUB
 
 
 SUB Banner (l1 AS STRING, l2 AS STRING)
-    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER
+    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER, l2b AS STRING
     _DEST CANVAS
+    ' On a TIMED message delay the prompt auto-advances, so '[ press any key ]'
+    ' is a lie -- rewrite it to '[ press to skip ]' (same length, honest). Only
+    ' Wait-for-key mode (opt_msgdelay <= 0) truly needs a press.
+    l2b = l2
+    IF opt_msgdelay > 0 THEN l2b = StrSubst$(l2, "[ press any key ]", "[ press to skip ]")
     ' auto-size the box to the widest line (min = the classic 96 cols, capped to
     ' the screen) so long lines never spill past the border
-    w = LEN(l1): IF LEN(l2) > w THEN w = LEN(l2)
+    w = LEN(l1): IF LEN(l2b) > w THEN w = LEN(l2b)
     w = w + 6
     IF w < 96 THEN w = 96
     IF w > 130 THEN w = 130
@@ -982,8 +987,8 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), BOXBG, BF
     LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), REDU, B
     COLOR WHITE, BOXBG: PrintCentered 24, l1
-    COLOR YELLOWU, BOXBG: PrintCentered 27, l2
-    bnr_l2 = l2: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
+    COLOR YELLOWU, BOXBG: PrintCentered 27, l2b
+    bnr_l2 = l2b: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
     _DISPLAY
 END SUB
 

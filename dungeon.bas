@@ -303,6 +303,28 @@ FUNCTION PlayGame%
 END FUNCTION
 
 
+' A flee attempt fails (the monster grabs you and drags you back) with a chance
+' that climbs the deeper you are: FLEE_FAIL_BASE on level 1, +FLEE_FAIL_STEP per
+' level below (level 9 = 55%). TRUE = you are caught; combat continues.
+FUNCTION FleeFails% (lvl AS INTEGER)
+    DIM pct AS INTEGER, dl AS INTEGER
+    dl = lvl: IF dl < 1 THEN dl = 1
+    pct = FLEE_FAIL_BASE + (dl - 1) * FLEE_FAIL_STEP
+    IF pct < 0 THEN pct = 0
+    IF pct > 95 THEN pct = 95
+    FleeFails = (RollDie(100) <= pct)
+END FUNCTION
+
+
+' The '[H] HEAL (n)' tail for a combat prompt -- shown only when you actually hold
+' a healing potion, with the current count (empty string otherwise).
+FUNCTION HealSuffix$
+    DIM n AS INTEGER
+    n = item_potion_small + item_potion_large
+    IF n > 0 THEN HealSuffix$ = "   [H] HEAL (" + _TRIM$(STR$(n)) + ")" ELSE HealSuffix$ = ""
+END FUNCTION
+
+
 ' ESP Medallion: foresee the monster guarding a room and choose whether to enter.
 ' Returns TRUE to fight, FALSE to heed the warning and back away.
 FUNCTION EspEnter% (rm AS INTEGER)
@@ -357,15 +379,29 @@ FUNCTION DoCombat% (rm AS INTEGER)
     ELSE
         p2 = "Roll " + _TRIM$(STR$(target)) + "+ on 2d6 to slay it   [SPACE] ATTACK   [ESC] FLEE"
     END IF
-    Banner lead + whatguards, p2
+    Banner lead + whatguards, p2 + HealSuffix$
 
     DO
         _LIMIT 60
         k = INKEY$
         IF k = CHR$(27) THEN
-            c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
-            StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "fled", 0, 0, 0
-            EXIT DO
+            IF FleeFails(sec) THEN               ' the deeper you are, the likelier it grabs you
+                Sfx "bump"
+                Banner "The " + mon + " lunges and drags you back!", "You cannot flee!   [ press any key ]"
+                CombatPause
+                Banner lead + whatguards, p2 + HealSuffix$   ' re-show the fight prompt
+            ELSE
+                c.x = c.prev_x: c.y = c.prev_y  ' back out the way you came
+                StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "fled", 0, 0, 0
+                Banner "You slip away from the " + mon + ".", "It still guards the " + _TRIM$(SECTORS(sec).label) + " -- return to finish it.   [ press any key ]"
+                CombatPause
+                EXIT DO
+            END IF
+        ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (only if you hold one)
+            IF item_potion_small + item_potion_large > 0 THEN
+                UsePotion FALSE
+                Banner lead + whatguards, p2 + HealSuffix$   ' re-show the fight prompt (count updated)
+            END IF
         ELSEIF k = " " AND NOT unbeatable THEN
             sm = DoRoll(2, item_sword, "attacking the " + mon)
             IF last_raw = 12 THEN
@@ -446,10 +482,19 @@ SUB DoCombatDnD (rm AS INTEGER)
         IF dirty THEN cursor_erase: cursor_draw: dirty = 0
         DrawCombatPanel rm, mon, lead
         k = INKEY$
-        IF k = CHR$(27) THEN                     ' flee -- back out the way you came
-            c.x = c.prev_x: c.y = c.prev_y
-            StatLog sec, rm, mon, isboss, wander, "fled", rounds, tot_dealt, tot_taken
-            EXIT SUB
+        IF k = CHR$(27) THEN                     ' attempt to flee
+            IF FleeFails(lvl) THEN               ' the deeper you are, the likelier it grabs you
+                Sfx "bump"
+                Banner "The " + mon + " lunges and drags you back!", "You cannot flee!   [ press any key ]"
+                CombatPause
+                dirty = -1                       ' clear the banner, redraw the panel next loop
+            ELSE
+                c.x = c.prev_x: c.y = c.prev_y   ' back out the way you came
+                StatLog sec, rm, mon, isboss, wander, "fled", rounds, tot_dealt, tot_taken
+                Banner "You slip away from the " + mon + ".", "It still guards the " + _TRIM$(SECTORS(sec).label) + " -- return to finish it.   [ press any key ]"
+                CombatPause
+                EXIT SUB
+            END IF
         ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (free action)
             UsePotion FALSE
             dirty = -1

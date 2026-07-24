@@ -22,6 +22,8 @@ CONST CHEST_PCT = 20              ' % chance a curio chest appears after a room 
 CONST CHEST_TRAP_PCT = 25         ' % chance a curio chest is trapped
 CONST SIREN_ENCOUNTER_BOOST = 20  ' + to the wandering-encounter % while a magic siren wails
 CONST SIREN_MOVE_PCT = 15         ' % chance each step (while a siren wails) to draw an encounter
+CONST FLEE_FAIL_BASE = 15         ' % chance a flee attempt fails (monster drags you back) on level 1
+CONST FLEE_FAIL_STEP = 5          ' + this % per dungeon level deeper (level 9 = 15 + 8*5 = 55%)
 
 TYPE SECTOR
     start_x AS INTEGER
