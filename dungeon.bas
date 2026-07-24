@@ -459,7 +459,7 @@ END FUNCTION
 SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
-    DIM AS INTEGER tot_dealt, tot_taken, wander
+    DIM AS INTEGER tot_dealt, tot_taken, wander, vanished
     DIM lost AS LONG
     wander = (rm > ROOM_N)                       ' TRUE for a wandering-monster scratch slot
     sec = ROOMS(rm).sec
@@ -603,10 +603,14 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
                 DrawCombatPanel rm, mon, lead
                 lost = gold
+                vanished = FALSE                  ' SOULS-LIKE: dying again forfeits a hoard you never reclaimed
+                IF opt_lootrecovery = 2 THEN vanished = AnyDropExists
                 StatLog sec, rm, mon, isboss, wander, "died", rounds, tot_dealt, tot_taken
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
-                IF opt_lootrecovery >= 1 AND NOT wander THEN
+                IF vanished THEN
+                    Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
+                ELSEIF opt_lootrecovery >= 1 AND NOT wander THEN
                     Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
                 ELSE
                     Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
@@ -666,7 +670,7 @@ END FUNCTION
 ' Authentic DUNGEON! MONSTER ATTACK TABLE: when your attack fails, the monster
 ' strikes back -- roll 2d6 and apply the result.
 SUB MonsterAttack (rm AS INTEGER)
-    DIM r AS INTEGER, mon AS STRING, lost AS LONG
+    DIM r AS INTEGER, mon AS STRING, lost AS LONG, vanished AS INTEGER
     mon = _TRIM$(ROOMS(rm).monster)
     PushMonsterDice: r = DoRoll(2, 0, "the " + mon + "'s ATTACK -- roll ITS 2d6"): PopMonsterDice   ' Real Dice: you roll for the monster
     SELECT CASE r
@@ -674,9 +678,13 @@ SUB MonsterAttack (rm AS INTEGER)
             lost = gold
             ROOMS(rm).player_died = TRUE
             IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
+            vanished = FALSE                    ' SOULS-LIKE: a second fall forfeits an unreclaimed hoard
+            IF opt_lootrecovery = 2 THEN vanished = AnyDropExists
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
-            IF opt_lootrecovery >= 1 AND rm <= ROOM_N THEN
+            IF vanished THEN
+                Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
+            ELSEIF opt_lootrecovery >= 1 AND rm <= ROOM_N THEN
                 Banner mon + " ATTACK (2): ADVENTURER KILLED!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(ROOMS(rm).sec).label) + " -- return for revenge!   [ press any key ]"
             ELSE
                 Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
@@ -975,6 +983,17 @@ SUB ClearAllDrops
         ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
     NEXT r
 END SUB
+
+
+' TRUE if any room still holds a recoverable drop. Used at a SOULS-LIKE death to
+' tell "first fall (a hoard to return for)" from "fell again -- it's lost forever".
+FUNCTION AnyDropExists% ()
+    DIM r AS INTEGER
+    AnyDropExists = 0
+    FOR r = 1 TO ROOM_N
+        IF HasDrop(r) THEN AnyDropExists = -1: EXIT FUNCTION
+    NEXT r
+END FUNCTION
 
 
 ' Freeze the game so the player can step away (bio break). Halts the idle/real-time
