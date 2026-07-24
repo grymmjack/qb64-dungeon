@@ -957,11 +957,11 @@ END SUB
 FUNCTION DeathTag$
     DIM s AS STRING, p AS INTEGER
     IF num_players <= 1 THEN
-        DeathTag$ = "   " + CHR$(15) + " " + _TRIM$(STR$(deaths(1)))
+        DeathTag$ = "   " + CHR$(15) + " " + _TRIM$(STR$(deaths(1))) + "/" + _TRIM$(STR$(opt_maxdeaths))
     ELSE
         s = "   " + CHR$(15)
         FOR p = 1 TO num_players
-            s = s + " P" + _TRIM$(STR$(p)) + ":" + _TRIM$(STR$(deaths(p)))
+            s = s + " P" + _TRIM$(STR$(p)) + ":" + _TRIM$(STR$(deaths(p))) + "/" + _TRIM$(STR$(opt_maxdeaths))
         NEXT p
         DeathTag$ = s
     END IF
