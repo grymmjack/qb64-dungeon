@@ -321,7 +321,7 @@ SUB DoCombatDnD (sec AS INTEGER)
             ' ---------- player attacks ----------
             atk = GameRoll(1, 20, thb, "to hit the " + mon)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
-                dmg = RollDie(player_dmgdie) + RollDie(player_dmgdie) + player_dmgbonus + item_sword
+                dmg = GameRoll(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
                 Sfx "crit"
@@ -332,7 +332,7 @@ SUB DoCombatDnD (sec AS INTEGER)
                 Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
                 WaitKey
             ELSEIF atk >= SECTORS(sec).mac THEN   ' hit
-                dmg = RollDie(player_dmgdie) + player_dmgbonus + item_sword
+                dmg = GameRoll(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
                 Sfx "hit"
@@ -352,10 +352,10 @@ SUB DoCombatDnD (sec AS INTEGER)
                 EXIT SUB
             END IF
 
-            ' ---------- monster strikes back (computer rolls) ----------
-            matk = RollDie(20) + mtohit
+            ' ---------- monster strikes back (you roll its dice in Real-Dice mode, else shown) ----------
+            matk = GameRoll(1, 20, mtohit, "the " + mon + "'s ATTACK -- roll ITS d20")
             IF matk >= player_ac THEN
-                mdmg = RollDie(6) + lvl \ 3: IF isboss THEN mdmg = mdmg + 3
+                mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 Sfx "bump"
                 Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
@@ -421,7 +421,7 @@ END FUNCTION
 SUB MonsterAttack (sec AS INTEGER)
     DIM r AS INTEGER, mon AS STRING, lost AS LONG
     mon = SECTORS(sec).monster
-    r = DoRoll(2, 0, "the " + mon + " strikes back")
+    r = DoRoll(2, 0, "the " + mon + "'s ATTACK -- roll ITS 2d6")   ' Real Dice: you roll for the monster
     SELECT CASE r
         CASE 2                                  ' ADVENTURER KILLED!
             lost = gold: gold = 0
