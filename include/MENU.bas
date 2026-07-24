@@ -212,6 +212,19 @@ FUNCTION RunMenu%
             END IF
         END IF
         IF k = CHR$(27) THEN result = MENU_FLEE: EXIT DO
+        ' one-key presets: set combat + exploration style in a single pass
+        IF k = "N" THEN
+            opt_oldschool = FALSE: opt_fov = TRUE                  ' NEW SCHOOL: D&D dice + Field of View
+            SaveSettings: Sfx "secret"
+            Banner "NEW SCHOOL !", "D&D dice combat   +   Field of View exploration"
+            _DELAY 0.9
+        END IF
+        IF k = "O" THEN
+            opt_oldschool = TRUE: opt_fov = FALSE                  ' OLD SCHOOL: 2d6 + no FOV
+            SaveSettings: Sfx "secret"
+            Banner "OLD SCHOOL !", "Classic Dungeon! 2d6 combat   +   full map (no Field of View)"
+            _DELAY 0.9
+        END IF
 
         ' torch-flicker the walls now and then
         t = t + 1
@@ -231,6 +244,10 @@ FUNCTION RunMenu%
         _DEST iBlock: CLS , BLACK: ANSI_Print (bl(sel))
         _DEST CANVAS: _PUTIMAGE (19 * CW, 15 * CH), iBlock
         COLOR CYANU, BLACK: PrintCentered 47, "CHAMPION: " + CLASSES(player_class).name
+        DIM cmb AS STRING, fv AS STRING
+        IF opt_oldschool THEN cmb = "2d6" ELSE cmb = "D&D"
+        IF opt_fov THEN fv = "on" ELSE fv = "off"
+        COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School      (Combat " + cmb + "   FOV " + fv + ")"
         _DISPLAY
     LOOP
 
