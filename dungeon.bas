@@ -337,7 +337,9 @@ SUB DoCombatDnD (rm AS INTEGER)
                 dmg = GameRoll(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
+                IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 Sfx "crit"
+                DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
                 WaitKey
             ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss
@@ -348,7 +350,9 @@ SUB DoCombatDnD (rm AS INTEGER)
                 dmg = GameRoll(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
+                IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 Sfx "hit"
+                DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
                 WaitKey
             ELSE                                  ' miss
@@ -370,7 +374,9 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF matk >= player_ac THEN
                 mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
+                IF player_hp < 0 THEN player_hp = 0
                 Sfx "bump"
+                DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
                 WaitKey
             ELSE
