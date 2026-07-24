@@ -12,7 +12,7 @@ CONST START_CX = 59, START_CY = 24
 ' --- gameplay tuning (potions, encounters, XP) ---
 CONST POTION_SMALL_DIE = 4        ' Small Healing Potion heals 1d4
 CONST POTION_LARGE_DIE = 8        ' Large Healing Potion heals 1d8
-CONST TREASURE_POTION_PCT = 50    ' % chance a slain hoard also yields a Large potion
+CONST TREASURE_POTION_PCT = 15    ' % chance a slain hoard also yields a (small) potion -- kept lean
 CONST LEVELCLEAR_LARGE_PCT = 30   ' % chance clearing a level also yields a Large potion
 CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter meter is full
 CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
@@ -104,7 +104,7 @@ END TYPE
 ' player's state lives in the working globals -- see Load/SaveActivePlayer).
 TYPE PLAYER
     active   AS INTEGER         ' still in the game
-    name     AS STRING * 16     ' fixed-length: variable-length strings in a UDT array crash QB64
+    name     AS STRING * 40     ' fixed-length (variable-len in a UDT array crashes QB64); 40 fits long random names
     klass    AS INTEGER         ' class index 1..4
     gold     AS LONG
     goal     AS LONG

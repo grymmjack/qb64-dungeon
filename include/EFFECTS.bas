@@ -98,7 +98,7 @@ SUB DramaticPause
         dots = dots + " ."
         Banner dots, ""
         Sfx "idle"
-        _DELAY 0.4
+        _DELAY 0.8
     NEXT i
 END SUB
 
@@ -111,7 +111,7 @@ SUB DoCrit (rm AS INTEGER, mon AS STRING, weap AS STRING, dmg AS INTEGER)
     i = RollDie(NCRIT)
     Sfx "crit"
     Banner ResolveFX$(CRITFX(i).say, weap, mon, dmg), "-- a CRITICAL blow! --"
-    _DELAY 1.1
+    _DELAY 2.2
     DramaticPause
     SELECT CASE CRITFX(i).kind
         CASE 1                                     ' heroic heal
@@ -138,7 +138,7 @@ SUB DoFumble (rm AS INTEGER, mon AS STRING, weap AS STRING)
     i = RollDie(NPFUM)
     Sfx "fumble"
     Banner ResolveFX$(PFUMBLE(i).say, weap, mon, 0), "-- a FUMBLE! --"
-    _DELAY 1.1
+    _DELAY 2.2
     SELECT CASE PFUMBLE(i).kind
         CASE 3                                     ' self-damage (never fatal)
             amt = RollDie(PFUMBLE(i).die): IF amt < 1 THEN amt = 1
@@ -165,7 +165,7 @@ SUB DoMonsterFumble (rm AS INTEGER, mon AS STRING)
     i = RollDie(NMFUM)
     Sfx "fumble"
     Banner "** the " + mon + " FUMBLES! **  (natural 1)", ResolveFX$(MFUMBLE(i).say, "", mon, 0)
-    _DELAY 1.0
+    _DELAY 2.0
     SELECT CASE MFUMBLE(i).kind
         CASE 3                                     ' self-damage
             amt = RollDie(MFUMBLE(i).die): IF amt < 1 THEN amt = 1

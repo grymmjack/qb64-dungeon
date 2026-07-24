@@ -81,7 +81,7 @@ SUB SpringTrap (rm AS INTEGER)
         CASE 1                                      ' POISON DARTS -- save vs poison (CON)
             Sfx "trap"
             Banner "CLICK -- POISON DARTS hiss from the chest!", "Save vs poison (CON)..."
-            _DELAY 0.9
+            _DELAY 1.8
             IF SaveThrow(AbilMod(player_con)) THEN
                 Banner "You twist aside -- the darts clatter past!", "Saved!   [ press any key ]"
             ELSE
@@ -91,7 +91,7 @@ SUB SpringTrap (rm AS INTEGER)
         CASE 2                                      ' BOMB -- dodge (DEX), maybe catch fire
             Sfx "trap"
             Banner "TICK TICK -- a BOMB tumbles out of the chest!", "Dodge (DEX)..."
-            _DELAY 0.9
+            _DELAY 1.8
             IF SaveThrow(AbilMod(player_dex)) THEN
                 Banner "You dive clear as it bursts!", "Dodged!   [ press any key ]"
             ELSE
@@ -107,7 +107,7 @@ SUB SpringTrap (rm AS INTEGER)
         CASE 3                                      ' FROST BOMB -- save vs frost (CON)
             Sfx "trap"
             Banner "A FROST BOMB shatters in a burst of rime!", "Save vs frost (CON)..."
-            _DELAY 0.9
+            _DELAY 1.8
             IF SaveThrow(AbilMod(player_con)) THEN
                 Banner "You shrug off the freezing blast!", "Saved!   [ press any key ]"
             ELSEIF num_players > 1 THEN              ' multiplayer: frozen in place, no damage
@@ -121,7 +121,7 @@ SUB SpringTrap (rm AS INTEGER)
         CASE ELSE                                   ' MAGIC SIREN -- save vs magic (WIS)
             Sfx "trap"
             Banner "A MAGIC SIREN wails up out of the chest!", "Save vs magic (WIS)..."
-            _DELAY 0.9
+            _DELAY 1.8
             IF SaveThrow(AbilMod(player_wis)) THEN
                 Banner "You clap the lid shut before it carries!", "Saved!   [ press any key ]"
             ELSE

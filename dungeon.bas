@@ -135,6 +135,7 @@ FUNCTION PlayGame%
         lvl_reached(1) = TRUE            ' you start on the 1st level
         char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
         item_potion_small = 0: item_potion_large = 0
+        item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0   ' newer items aren't in PLAYER type -- clear them so nothing leaks between games
         poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
         deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
 
@@ -250,13 +251,21 @@ FUNCTION PlayGame%
                             ROOMS(sec).seen = TRUE         ' entering reveals this room's monster on the board
                             ' a monster guards this room's treasure?
                             IF ROOMS(sec).malive AND LEN(_TRIM$(ROOMS(sec).monster)) > 0 THEN
-                                ' ESP Medallion: foresee the monster and choose to enter or back off
-                                IF item_esp AND NOT EspEnter(sec) THEN
-                                    c.x = c.prev_x: c.y = c.prev_y   ' heed the warning, step back out
-                                    cursor_erase: cursor_draw
+                                ' ESP Medallion (ONLY if held): foresee the monster; [N] backs off.
+                                ' NOTE: BASIC's AND does not short-circuit, so EspEnter must be called
+                                ' inside its own IF item_esp -- not as "item_esp AND EspEnter(...)",
+                                ' which would pop the prompt (and ignore [N]) even without the medallion.
+                                IF item_esp THEN
+                                    IF EspEnter(sec) THEN
+                                        res = DoCombat(sec)
+                                        IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
+                                    ELSE
+                                        c.x = c.prev_x: c.y = c.prev_y         ' heed the warning, step back out
+                                        cursor_erase: cursor_draw
+                                    END IF
                                 ELSE
                                     res = DoCombat(sec)
-                                    IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
+                                    IF opt_boardgame THEN steps_left = 0       ' no ESP -- straight into the fight
                                 END IF
                             END IF
                             ' reclaim dropped loot once the room is clear (your own, solo; a rival's, MP)
@@ -289,6 +298,7 @@ FUNCTION EspEnter% (rm AS INTEGER)
     IF ROOMS(rm).is_boss THEN lead = "the BOSS " + _TRIM$(ROOMS(rm).monster) ELSE lead = "a " + _TRIM$(ROOMS(rm).monster)
     Sfx "idle"
     Banner "Your ESP MEDALLION tingles -- " + lead + " lurks beyond this door!", "[Y] enter and fight   [N] back away"
+    DO: k = INKEY$: LOOP UNTIL k = ""            ' drain buffered movement keys so Y/N register at once
     DO
         _LIMIT 60
         k = UCASE$(INKEY$)
@@ -490,6 +500,16 @@ SUB DoCombatDnD (rm AS INTEGER)
                     ClaimTreasure rm, rounds
                     EXIT SUB
                 END IF
+            ELSEIF last_raw = 20 THEN             ' monster natural 20: crit, auto-hit, DOUBLE damage dice
+                mdmg = GameRoll(2, 6, lvl \ 3, "the " + mon + "'s CRITICAL damage -- roll ITS 2d6"): IF isboss THEN mdmg = mdmg + 3
+                IF mdmg < 1 THEN mdmg = 1
+                player_hp = player_hp - mdmg
+                IF player_hp < 0 THEN player_hp = 0
+                tot_taken = tot_taken + mdmg
+                Sfx "crit"
+                DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
+                Banner "** the " + mon + " CRITS you! **  (natural 20)", "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!   [ press any key ]"
+                CombatPause
             ELSEIF matk >= player_ac + item_armor THEN
                 mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
@@ -724,10 +744,10 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
     ' slot rm > ROOM_N) never drop one -- that would make them farmable.
     IF rm <= ROOM_N THEN
-        IF RollDie(100) <= TREASURE_POTION_PCT THEN
-            item_potion_large = item_potion_large + 1
+        IF RollDie(100) <= TREASURE_POTION_PCT THEN     ' occasional small potion in the hoard
+            item_potion_small = item_potion_small + 1
             Sfx "treasure"
-            Banner "Among the spoils glints a LARGE HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d8).   [ press any key ]"
+            Banner "Among the spoils glints a SMALL HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d4).   [ press any key ]"
             CombatPause
         END IF
         ' clearing every room of a level: a healing cache + (D&D) a level-up
