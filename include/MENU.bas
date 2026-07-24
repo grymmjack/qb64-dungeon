@@ -1068,8 +1068,19 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
         cx = SW * CW \ 2
         x1 = cx - boxw \ 2: x2 = cx + boxw \ 2
         bx = cx - diceW \ 2                   ' dice centred within the box
-        by = 33 * CH
-        ytop = by - 3 * CH: ybot = by + sz + 3 * CH
+        by = 33 * CH                          ' the row the dice settle into
+        ytop = by - 9 * CH: ybot = by + sz + 2 * CH   ' tall box -- room to bounce
+
+        ' physics: pip dice fall + bounce off the walls/floor, then ease into the row
+        DIM px(1 TO 8) AS SINGLE, py(1 TO 8) AS SINGLE, vx(1 TO 8) AS SINGLE, vy(1 TO 8) AS SINGLE
+        DIM sxp(1 TO 8) AS SINGLE, syp(1 TO 8) AS SINGLE, tt AS SINGLE
+        DIM leftw AS INTEGER, rightw AS INTEGER, floory AS INTEGER
+        leftw = x1 + 2 * CW: rightw = x2 - 2 * CW: floory = by
+        FOR j = 1 TO n
+            px(j) = leftw + RND * (rightw - leftw - sz)
+            py(j) = ytop + 2 * CH + RND * CH
+            vx(j) = (RND - 0.5) * 11: vy(j) = RND * 2
+        NEXT j
 
         DiceTiming frames, rate, settle, hold
         FOR f = 1 TO frames
@@ -1080,21 +1091,29 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                 _FONT CH
                 COLOR CYANU, BOXBG: PrintCentered ytop \ CH + 1, hdr
             END IF
+            IF f = settle THEN
+                FOR j = 1 TO n: sxp(j) = px(j): syp(j) = py(j): NEXT j
+            END IF
             FOR j = 1 TO n
                 IF f < settle THEN
-                    DrawDie bx + (j - 1) * (sz + gap), by, sz, RollDie(6)
+                    vy(j) = vy(j) + 0.7
+                    px(j) = px(j) + vx(j): py(j) = py(j) + vy(j)
+                    IF px(j) < leftw THEN px(j) = leftw: vx(j) = -vx(j) * 0.6
+                    IF px(j) > rightw - sz THEN px(j) = rightw - sz: vx(j) = -vx(j) * 0.6
+                    IF py(j) > floory THEN py(j) = floory: vy(j) = -vy(j) * 0.55: vx(j) = vx(j) * 0.85
+                    DrawDie px(j), py(j), sz, RollDie(6)
                 ELSE
-                    DrawDie bx + (j - 1) * (sz + gap), by, sz, v(j)
+                    tt = (f - settle) / (frames - settle): IF tt > 1 THEN tt = 1
+                    DrawDie sxp(j) + (bx + (j - 1) * (sz + gap) - sxp(j)) * tt, syp(j) + (by - syp(j)) * tt, sz, v(j)
                 END IF
             NEXT j
-            ' the RESULT line is withheld until the dice land; for a drop-lowest
-            ' roll it waits until the dropped die has faded away
+            ' the RESULT line is withheld until the dice have landed
             IF f >= settle AND drop = 0 AND LEN(rln) > 0 THEN
                 _FONT CH
                 COLOR YELLOWU, BOXBG: PrintCentered ybot \ CH - 1, rln
             END IF
             IF opt_sfx THEN
-                IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05
+                IF f = settle THEN Tone 240, 0.09 ELSE Tone 300 + (f MOD 5) * 40, 0.04
             END IF
             _DISPLAY
             _LIMIT rate
@@ -1348,8 +1367,20 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
     cx = SW * CW \ 2
     x1 = cx - boxw \ 2: x2 = cx + boxw \ 2
     dx = cx - rowW \ 2                        ' dice centred within the box
-    dy = 33 * CH
-    y1 = dy - 3 * CH: y2 = dy + dh + 3 * CH
+    dy = 33 * CH                              ' the row the dice settle into
+    y1 = dy - 9 * CH: y2 = dy + dh + 2 * CH    ' tall box -- room to bounce down into the row
+
+    ' physics: each die falls under gravity and bounces off the box walls/floor
+    ' with damping, flashing random faces, then eases into its neat row slot.
+    DIM px(1 TO 12) AS SINGLE, py(1 TO 12) AS SINGLE, vx(1 TO 12) AS SINGLE, vy(1 TO 12) AS SINGLE
+    DIM sxp(1 TO 12) AS SINGLE, syp(1 TO 12) AS SINGLE, tt AS SINGLE
+    DIM leftw AS INTEGER, rightw AS INTEGER, floory AS INTEGER
+    leftw = x1 + 2 * CW: rightw = x2 - 2 * CW: floory = dy
+    FOR i = 1 TO n
+        px(i) = leftw + RND * (rightw - leftw - dw)
+        py(i) = y1 + 2 * CH + RND * CH
+        vx(i) = (RND - 0.5) * 11: vy(i) = RND * 2
+    NEXT i
 
     DiceTiming frames, rate, settle, hold
     FOR f = 1 TO frames
@@ -1358,22 +1389,30 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
         LINE (x1, y1)-(x2, y2), REDU, B
         _FONT CH
         COLOR CYANU, BOXBG: PrintCentered y1 \ CH + 1, hdr
+        IF f = settle THEN
+            FOR i = 1 TO n: sxp(i) = px(i): syp(i) = py(i): NEXT i   ' freeze the bounce for the ease
+        END IF
         FOR i = 1 TO n
-            dxi = dx + (i - 1) * (dw + gap)
             IF f < settle THEN
-                DrawFontDie dxi, dy, sides, RollDie(sides)
+                vy(i) = vy(i) + 0.7                                  ' gravity
+                px(i) = px(i) + vx(i): py(i) = py(i) + vy(i)
+                IF px(i) < leftw THEN px(i) = leftw: vx(i) = -vx(i) * 0.6
+                IF px(i) > rightw - dw THEN px(i) = rightw - dw: vx(i) = -vx(i) * 0.6
+                IF py(i) > floory THEN py(i) = floory: vy(i) = -vy(i) * 0.55: vx(i) = vx(i) * 0.85
+                DrawFontDie px(i), py(i), sides, RollDie(sides)
             ELSE
-                DrawFontDie dxi, dy, sides, v(i)
+                tt = (f - settle) / (frames - settle): IF tt > 1 THEN tt = 1
+                dxi = dx + (i - 1) * (dw + gap)
+                DrawFontDie sxp(i) + (dxi - sxp(i)) * tt, syp(i) + (dy - syp(i)) * tt, sides, v(i)
             END IF
         NEXT i
-        ' the RESULT line is withheld until the dice land; for a drop-lowest roll
-        ' it waits until the dropped die has faded away
+        ' the RESULT line is withheld until the dice have landed
         IF f >= settle AND drop = 0 AND LEN(rln) > 0 THEN
             _FONT CH
             COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, rln
         END IF
         IF opt_sfx THEN
-            IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05   ' a thunk as they land
+            IF f = settle THEN Tone 240, 0.09 ELSE Tone 300 + (f MOD 5) * 40, 0.04
         END IF
         _DISPLAY
         _LIMIT rate
