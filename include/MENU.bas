@@ -958,9 +958,17 @@ END SUB
 
 
 SUB Banner (l1 AS STRING, l2 AS STRING)
+    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER
     _DEST CANVAS
-    LINE (18 * CW, 21 * CH)-(114 * CW, 30 * CH), BOXBG, BF
-    LINE (18 * CW, 21 * CH)-(114 * CW, 30 * CH), REDU, B
+    ' auto-size the box to the widest line (min = the classic 96 cols, capped to
+    ' the screen) so long lines never spill past the border
+    w = LEN(l1): IF LEN(l2) > w THEN w = LEN(l2)
+    w = w + 6
+    IF w < 96 THEN w = 96
+    IF w > 130 THEN w = 130
+    bx1 = (SW - w) \ 2: bx2 = bx1 + w
+    LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), BOXBG, BF
+    LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), REDU, B
     COLOR WHITE, BOXBG: PrintCentered 24, l1
     COLOR YELLOWU, BOXBG: PrintCentered 27, l2
     _DISPLAY
