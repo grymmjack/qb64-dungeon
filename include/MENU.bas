@@ -1314,6 +1314,57 @@ SUB InitDice
     DFONT(10) = _LOADFONT(FP + "DPoly Ten-Sider.otf", PT)
     DFONT(12) = _LOADFONT(FP + "DPoly Twelve-Sider.otf", PT)
     DFONT(20) = _LOADFONT(FP + "DPoly Twenty-Sider.otf", PT)
+    DFROT = _NEWIMAGE(DFROT_W, DFROT_H, 32)      ' scratch for the tumble-spin rotation
+END SUB
+
+
+' Render a font die into the DFROT scratch image (transparent background), centred,
+' so it can be rotate-blitted while it tumbles. Mirrors DrawFontDie's two-pass look.
+SUB RenderDieToScratch (sides AS INTEGER, face AS INTEGER)
+    DIM fh AS LONG, code AS INTEGER, body AS _UNSIGNED LONG, ink AS _UNSIGNED LONG
+    DIM od AS LONG, ox AS INTEGER, oy AS INTEGER, dw AS INTEGER
+    IF sides < 1 OR sides > 20 THEN EXIT SUB
+    fh = DFONT(sides): IF fh <= 0 THEN EXIT SUB
+    IF DFROT = 0 THEN EXIT SUB
+    DiceColors body, ink
+    code = DieGlyphCode(sides, face)
+    dw = DieWidth(sides): IF dw < 8 THEN dw = 56
+    od = _DEST
+    _DEST DFROT
+    CLS , _RGBA32(0, 0, 0, 0)                     ' transparent
+    _FONT fh
+    _PRINTMODE _KEEPBACKGROUND
+    ox = (DFROT_W - dw) \ 2
+    oy = (DFROT_H - _FONTHEIGHT(fh)) \ 2 + _FONTHEIGHT(fh) \ 4   ' nudge down (top vertex draws above pen)
+    IF opt_dicesolid THEN
+        COLOR body, _RGBA32(0, 0, 0, 0): _UPRINTSTRING (ox, oy), CHR$(65 + code)
+        COLOR ink, _RGBA32(0, 0, 0, 0): _UPRINTSTRING (ox, oy), CHR$(97 + code)
+    ELSE
+        COLOR body, _RGBA32(0, 0, 0, 0): _UPRINTSTRING (ox, oy), CHR$(97 + code)
+    END IF
+    _PRINTMODE _FILLBACKGROUND
+    _FONT CH
+    _DEST od
+END SUB
+
+
+' Rotate the WxH image `src` around its own centre by `ang` radians and draw it
+' centred at (cx,cy) on `dst`. Two _MAPTRIANGLEs = one textured quad (nearest-
+' neighbour, so the die stays crisp/pixelated to match the ANSI art).
+SUB RotoBlit (src AS LONG, w AS INTEGER, h AS INTEGER, cx AS SINGLE, cy AS SINGLE, ang AS SINGLE, dst AS LONG)
+    DIM ca AS SINGLE, sa AS SINGLE, hw AS SINGLE, hh AS SINGLE, od AS LONG
+    DIM x1 AS SINGLE, y1 AS SINGLE, x2 AS SINGLE, y2 AS SINGLE
+    DIM x3 AS SINGLE, y3 AS SINGLE, x4 AS SINGLE, y4 AS SINGLE
+    ca = COS(ang): sa = SIN(ang)
+    hw = w / 2: hh = h / 2
+    x1 = cx + (-hw) * ca - (-hh) * sa: y1 = cy + (-hw) * sa + (-hh) * ca   ' TL
+    x2 = cx + (hw) * ca - (-hh) * sa: y2 = cy + (hw) * sa + (-hh) * ca     ' TR
+    x3 = cx + (hw) * ca - (hh) * sa: y3 = cy + (hw) * sa + (hh) * ca       ' BR
+    x4 = cx + (-hw) * ca - (hh) * sa: y4 = cy + (-hw) * sa + (hh) * ca     ' BL
+    od = _DEST: _DEST dst
+    _MAPTRIANGLE (0, 0)-(w - 1, 0)-(w - 1, h - 1), src TO (x1, y1)-(x2, y2)-(x3, y3)
+    _MAPTRIANGLE (0, 0)-(w - 1, h - 1)-(0, h - 1), src TO (x1, y1)-(x3, y3)-(x4, y4)
+    _DEST od
 END SUB
 
 
@@ -1481,12 +1532,14 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
     ' with damping, flashing random faces, then eases into its neat row slot.
     DIM px(1 TO 12) AS SINGLE, py(1 TO 12) AS SINGLE, vx(1 TO 12) AS SINGLE, vy(1 TO 12) AS SINGLE
     DIM sxp(1 TO 12) AS SINGLE, syp(1 TO 12) AS SINGLE, tt AS SINGLE
+    DIM ang(1 TO 12) AS SINGLE, spin(1 TO 12) AS SINGLE
     DIM leftw AS INTEGER, rightw AS INTEGER, floory AS INTEGER
     leftw = x1 + 2 * CW: rightw = x2 - 2 * CW: floory = dy
     FOR i = 1 TO n
         px(i) = leftw + RND * (rightw - leftw - dw)
         py(i) = y1 + 2 * CH + RND * CH
         vx(i) = (RND - 0.5) * 11: vy(i) = RND * 2
+        ang(i) = RND * 6.2832: spin(i) = (RND - 0.5) * 0.5   ' random start angle + spin (rad/frame)
     NEXT i
 
     DiceTiming frames, rate, settle, hold
@@ -1503,10 +1556,12 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
             IF f < settle THEN
                 vy(i) = vy(i) + 0.7                                  ' gravity
                 px(i) = px(i) + vx(i): py(i) = py(i) + vy(i)
-                IF px(i) < leftw THEN px(i) = leftw: vx(i) = -vx(i) * 0.6
-                IF px(i) > rightw - dw THEN px(i) = rightw - dw: vx(i) = -vx(i) * 0.6
+                IF px(i) < leftw THEN px(i) = leftw: vx(i) = -vx(i) * 0.6: spin(i) = -spin(i)
+                IF px(i) > rightw - dw THEN px(i) = rightw - dw: vx(i) = -vx(i) * 0.6: spin(i) = -spin(i)
                 IF py(i) > floory THEN py(i) = floory: vy(i) = -vy(i) * 0.55: vx(i) = vx(i) * 0.85
-                DrawFontDie px(i), py(i), sides, RollDie(sides)
+                ang(i) = ang(i) + spin(i)                            ' spin as it tumbles; walls reverse it
+                RenderDieToScratch sides, RollDie(sides)
+                RotoBlit DFROT, DFROT_W, DFROT_H, px(i) + dw \ 2, py(i) + dh \ 2, ang(i), CANVAS
             ELSE
                 tt = (f - settle) / (frames - settle): IF tt > 1 THEN tt = 1
                 dxi = dx + (i - 1) * (dw + gap)

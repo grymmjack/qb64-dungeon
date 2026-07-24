@@ -196,6 +196,8 @@ DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceSh
 ' the number tumbler). Each glyph IS a die face: 'A'+n draws the solid variant,
 ' 'a'+n the outline variant -- see DieGlyphCode / DrawFontDie.
 DIM SHARED DFONT(1 TO 20) AS LONG
+DIM SHARED DFROT AS LONG                          ' scratch image a die renders into, then rotate-blits (tumble spin)
+CONST DFROT_W = 160, DFROT_H = 200               ' scratch size (fits a d20 @56pt + headroom for the top vertex)
 DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (before modifiers) from DoRoll
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 DIM SHARED key_level AS INTEGER                   ' which dungeon level (2..9) hides the Level Key this game
