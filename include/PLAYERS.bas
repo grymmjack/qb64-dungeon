@@ -114,6 +114,7 @@ SUB SetupPlayers
         PLAYERS(p).dmgdie = player_dmgdie: PLAYERS(p).dmgbonus = player_dmgbonus
         PLAYERS(p).cx = START_CX * CW: PLAYERS(p).cy = START_CY * CH
         PLAYERS(p).kolor = PlayerColor(p)
+        LOOT_N(p) = 0                             ' fresh treasure log
     NEXT p
 END SUB
 

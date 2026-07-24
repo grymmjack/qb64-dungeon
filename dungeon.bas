@@ -42,7 +42,7 @@ opt_musicvol = 7: opt_sfxvol = 8: opt_voicevol = 6   ' 0..10 volume sliders
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
 opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
-opt_boardgame = TRUE                          ' default: roll dice to move (off = free computer-game movement)
+opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
@@ -499,10 +499,21 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
         CASE ELSE                                 ' plain gold treasure
             gold = gold + ROOMS(rm).treasure
+            LogTreasure tname, ROOMS(rm).treasure
             line2 = "You claim the " + tname + " -- " + _TRIM$(STR$(ROOMS(rm).treasure)) + " GOLD!"
     END SELECT
     Banner slay, line2 + "   [ press any key ]"
     WaitKey
+END SUB
+
+
+' Record a named treasure in the active player's log (shown on the character sheet).
+SUB LogTreasure (nm AS STRING, g AS LONG)
+    IF cur_player < 1 OR cur_player > 4 THEN EXIT SUB
+    IF LOOT_N(cur_player) >= UBOUND(LOOT_NAME, 2) THEN EXIT SUB
+    LOOT_N(cur_player) = LOOT_N(cur_player) + 1
+    LOOT_NAME(cur_player, LOOT_N(cur_player)) = nm
+    LOOT_GOLD(cur_player, LOOT_N(cur_player)) = g
 END SUB
 
 
@@ -520,6 +531,7 @@ SUB DropEverything (rm AS INTEGER)
     gold = 0
     item_sword = 0
     item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
+    IF cur_player >= 1 AND cur_player <= 4 THEN LOOT_N(cur_player) = 0   ' the treasure log goes too
 END SUB
 
 

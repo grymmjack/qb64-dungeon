@@ -134,6 +134,10 @@ DIM SHARED player_class AS INTEGER
 ' hot-seat multiplayer (up to 4). num_players 1 = solo; >1 forces Boardgame Mode.
 DIM SHARED PLAYERS(1 TO 4) AS PLAYER
 DIM SHARED num_players AS INTEGER, cur_player AS INTEGER
+' per-player log of named treasures claimed (for the character sheet). Plain string
+' arrays are safe (unlike variable-length strings inside a UDT array).
+DIM SHARED LOOT_NAME(1 TO 4, 1 TO 80) AS STRING, LOOT_GOLD(1 TO 4, 1 TO 80) AS LONG
+DIM SHARED LOOT_N(1 TO 4) AS INTEGER
 ' Dungeon!-style monster + treasure pools, 3 per level (levels 1-9), randomised per game.
 DIM SHARED MON_NAME(1 TO 9, 1 TO 3) AS STRING
 ' per-class 2d6 kill numbers from the cards: [level, slot, class] 1=Hero 2=Elf 3=Superhero 4=Wizard (13 = can't kill barehanded)

@@ -289,7 +289,7 @@ SUB RunSettings
                     num_players = num_players + delta
                     IF num_players < 1 THEN num_players = 1
                     IF num_players > 4 THEN num_players = 4
-                    IF num_players > 1 THEN opt_boardgame = TRUE
+                    IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
                     Sfx "select"
             END SELECT
         END IF
@@ -308,7 +308,7 @@ SUB RunSettings
                     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
                 CASE 12
                     num_players = num_players + 1: IF num_players > 4 THEN num_players = 1
-                    IF num_players > 1 THEN opt_boardgame = TRUE
+                    IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
                 CASE 13: opt_heroicstats = NOT opt_heroicstats
                 CASE 14
                     opt_fullscreen = NOT opt_fullscreen
@@ -366,29 +366,52 @@ END SUB
 
 
 SUB ShowCharSheet
-    DIM y AS INTEGER, swordtxt AS STRING
+    DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, nshow AS INTEGER, inv AS STRING, ln AS STRING
+    DIM who AS STRING
     _DEST CANVAS
-    LINE (30 * CW, 14 * CH)-(102 * CW, 38 * CH), BOXBG, BF
-    LINE (30 * CW, 14 * CH)-(102 * CW, 38 * CH), REDU, B
-    COLOR YELLOWU, BOXBG: PrintCentered 16, "-=  C H A R A C T E R  =-"
-    COLOR WHITE, BOXBG
-    PrintCentered 19, "Champion:  " + class_name
+    LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
+    LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    who = class_name: IF num_players > 1 THEN who = _TRIM$(player_name) + " the " + class_name
+    COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  C H A R A C T E R  =-"
+    COLOR WHITE, BOXBG: PrintCentered 6, "Champion:  " + who
     COLOR CYANU, BOXBG
-    PrintCentered 20, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
+    PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
     IF NOT opt_oldschool THEN
         COLOR GREENU, BOXBG
-        PrintCentered 22, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(player_ac)) + "    To-Hit " + ModStr$(player_tohit) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
+        PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(player_ac)) + "    To-Hit " + ModStr$(player_tohit) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
     END IF
+    ' wealth line
+    COLOR YELLOWU, BOXBG
+    ln = "GOLD  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
+    IF has_key THEN ln = ln + "        LEVEL KEY: HELD" ELSE ln = ln + "        LEVEL KEY: not found"
+    PrintCentered 10, ln
+    ' special items held
+    inv = ""
+    IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
+    IF item_secret_card THEN inv = inv + "Secret Door Card    "
+    IF item_esp THEN inv = inv + "ESP Medallion    "
+    IF item_crystal THEN inv = inv + "Crystal Ball [V]    "
+    IF inv = "" THEN inv = "(no magic items yet)"
+    COLOR WHITE, BOXBG: PrintCentered 12, "MAGIC:  " + _TRIM$(inv)
+    ' the treasures claimed
+    COLOR REDU, BOXBG: PrintCentered 14, "-=  T R E A S U R E S   C L A I M E D  ( " + _TRIM$(STR$(LOOT_N(cur_player))) + " )  =-"
     COLOR WHITE, BOXBG
-    PrintCentered 21, "Gold:  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
-    IF has_key THEN PrintCentered 23, "Level Key:  HELD" ELSE PrintCentered 23, "Level Key:  not yet found"
-    IF item_sword > 0 THEN swordtxt = "Magic Sword +" + _TRIM$(STR$(item_sword)) ELSE swordtxt = "(none)"
-    PrintCentered 25, "Magic Sword:  " + swordtxt
-    IF item_secret_card THEN PrintCentered 27, "Secret Door Card:  HELD" ELSE PrintCentered 27, "Secret Door Card:  (none)"
-    IF item_esp THEN PrintCentered 29, "ESP Medallion:  HELD" ELSE PrintCentered 29, "ESP Medallion:  (none)"
-    IF item_crystal THEN PrintCentered 31, "Crystal Ball:  HELD  ([V] to scry)" ELSE PrintCentered 31, "Crystal Ball:  (none)"
-    COLOR CYANU, BOXBG: PrintCentered 34, CLASSES(player_class).blurb
-    COLOR YELLOWU, BOXBG: PrintCentered 37, "[ press any key ]"
+    IF LOOT_N(cur_player) = 0 THEN
+        COLOR GREY, BOXBG: PrintCentered 18, "(none yet -- slay a monster to claim its hoard)"
+    ELSE
+        nshow = LOOT_N(cur_player)
+        IF nshow > 60 THEN nshow = 60          ' two columns x 30 rows
+        FOR i = 1 TO nshow
+            IF (i AND 1) THEN col = 27 ELSE col = 68
+            y = 16 + (i - 1) \ 2
+            ln = PadR$(_TRIM$(LOOT_NAME(cur_player, i)), 18) + RIGHT$("      " + _TRIM$(STR$(LOOT_GOLD(cur_player, i))), 6) + "g"
+            _PRINTSTRING (col * CW, y * CH), ln
+        NEXT i
+        IF LOOT_N(cur_player) > 60 THEN
+            COLOR GREY, BOXBG: _PRINTSTRING (27 * CW, 47 * CH), "...and " + _TRIM$(STR$(LOOT_N(cur_player) - 60)) + " more"
+        END IF
+    END IF
+    COLOR YELLOWU, BOXBG: PrintCentered 46, "[ press any key ]"
     _DISPLAY
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
