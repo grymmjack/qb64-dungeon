@@ -1,0 +1,52 @@
+# class_events.txt -- what happens when the PLAYER (by class) acts in combat.
+# Format:  CLASS | event | text        (fields trimmed; '#' = comment; blanks skipped)
+# events:  attack (you land a hit)   miss (you whiff)   crit (a devastating blow)
+#          fumble (you botch it)     death (you are downed)
+# key "*" = the default for any class with no line of its own for that event.
+# Up to a handful of lines per (class,event); one is picked at random. Re-read at F5.
+#
+# Tokens: {player} {class} {mon} {dmg} {deaths} {level} {room} {treasure} {weapon}/{item}
+# --------------------------------------------------------------------------------------
+
+# ---- generic fallback for any class ----
+* | attack | You strike the {mon} for {dmg} damage.
+* | miss   | Your blow whistles past the {mon}.
+* | crit   | A perfect strike tears into the {mon}!
+* | fumble | You overreach and stumble past the {mon}.
+* | death  | The {mon} lands the final blow. Darkness takes you.
+
+# ---- HERO: a bold warrior, sword and shield ----
+HERO | attack | You hew into the {mon} with {weapon}, biting deep for {dmg}.
+HERO | attack | Steel rings as {weapon} carves the {mon} for {dmg} damage.
+HERO | attack | You plant your feet and drive {weapon} home for {dmg}.
+HERO | miss   | The {mon} slips your guard and {weapon} finds only air.
+HERO | miss   | You swing wide -- the {mon} ducks under {weapon}.
+HERO | crit   | You roar and bring {weapon} down in a shattering arc -- {dmg} damage!
+HERO | crit   | A hero's blow! {weapon} splits the {mon}'s defense wide open.
+HERO | fumble | Your boot skids and {weapon} bites the stone instead of the {mon}.
+HERO | death  | You fall to one knee, shield splintered, as the {mon} looms over you.
+HERO | death  | A warrior's end -- {weapon} slips from your hand as the dark closes in.
+
+# ---- ELF: swift and graceful, an elven blade ----
+ELF | attack | You dart in and open the {mon} with {weapon} for {dmg}.
+ELF | attack | Quick as moonlight, {weapon} flickers across the {mon} for {dmg}.
+ELF | miss   | You feint, but the {mon} refuses the bait.
+ELF | crit   | You pirouette past its guard -- {weapon} finds the vital mark for {dmg}!
+ELF | fumble | Your graceful lunge tangles and {weapon} goes wide.
+ELF | death  | You stumble, the forest-song fading, as the {mon} claims you.
+
+# ---- SUPERHERO: mighty beyond mortal measure ----
+SUPERHERO | attack | You batter the {mon} with a thunderous blow for {dmg}.
+SUPERHERO | attack | The {mon} buckles as you hammer it for {dmg} damage.
+SUPERHERO | miss   | You swing with such force the {mon} scrambles clear.
+SUPERHERO | crit   | A legendary strike! The {mon} is nearly torn asunder -- {dmg} damage!
+SUPERHERO | fumble | Your mighty swing carries you past the {mon}, off-balance.
+SUPERHERO | death  | Even a champion can fall. The {mon} stands over your broken form.
+
+# ---- WIZARD: arcane might, staff and spell ----
+WIZARD | attack | You loose a bolt of force that sears the {mon} for {dmg}.
+WIZARD | attack | Arcane fire leaps from {weapon} and scorches the {mon} for {dmg}.
+WIZARD | miss   | Your spell fizzles and the {mon} shrugs it off.
+WIZARD | crit   | Raw magic erupts -- the {mon} is blasted for {dmg}!
+WIZARD | fumble | The incantation twists in your mouth and the magic gutters out.
+WIZARD | death  | Your wards fail. The {mon} tears through the last of your magic.

@@ -182,7 +182,13 @@ Environment specifics that dictate this approach:
   `InitEffects` are now thin wrappers that call the `Load*` subs. Edit a file, press F5 — no
   code change needed to rebalance. Trap *mechanics* (poison/bomb/frost/siren) stay in code,
   keyed by each row's `kind`; everything else about a trap (name, save stat, dice, messages)
-  is data. Room/combat prose lives in the sibling **`assets/flavor/`** files (see FLAVOR.bas).
+  is data. Room/combat prose lives in the sibling **`assets/flavor/`** files: `regular`/
+  `special` room lines, `maxhit`, `forfeit` (see FLAVOR.bas), plus **per-monster and
+  per-class combat event text** — `monster_events.txt` / `class_events.txt` (`key | event |
+  text`, events attack/miss/crit/fumble/death, `key "*"` = default), loaded by **CTEXT.bas**
+  so each monster/class gets biology-appropriate hit/miss/crit/fumble/death lines. All flavor
+  supports `{mon} {player} {class} {dmg} {deaths} {level} {room} {treasure} {weapon}` tokens
+  via `Fill$`; combat sets the `FX_*` context globals before each line.
 
 [PLANS.todo](PLANS.todo) (todo.txt/@done format) is the roadmap and the source of truth
 for intended game rules (rooms, doors, dice, turns, cursor states).

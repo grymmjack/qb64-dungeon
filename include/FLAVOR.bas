@@ -125,6 +125,7 @@ SUB RoomFlavor (rm AS INTEGER)
     deep = FALSE
     IF si > 0 THEN IF SP_FN(si) > 0 THEN deep = -1
     IF deep THEN
+        Sfx "key"                                          ' a chime marks a named/special room
         ScrollText _TRIM$(SP_KEY(si)), SP_FLAV(si, RollDie(SP_FN(si)))
         cursor_erase: cursor_draw: DrawHUD: _DISPLAY
     ELSE

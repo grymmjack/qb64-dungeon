@@ -180,6 +180,20 @@ DIM SHARED TRAPS(1 TO 20) AS TRAPROW, NTRAP AS INTEGER
 
 ' -- shared scratch buffer for the data-file loaders (see DATA.bas) --
 DIM SHARED DLINE(1 TO 600) AS STRING, DLINE_N AS INTEGER
+
+' -- per-monster / per-class combat event text (data-driven; see CTEXT.bas) --
+' Each row is one line for one (category, key, event). key "*" is the default used
+' when a specific monster/class has no line of its own for that event.
+TYPE EVTROW
+    cat  AS INTEGER          ' 1 = monster, 2 = player class
+    mkey AS STRING * 24      ' monster name / class name (UPPER), or "*"  (KEY is reserved)
+    evt  AS INTEGER          ' 1 attack, 2 miss, 3 crit, 4 fumble, 5 death
+    text AS STRING * 140     ' template; tokens like {mon} {dmg} {player} are filled at show time
+END TYPE
+DIM SHARED EVT(1 TO 1400) AS EVTROW, EVT_N AS INTEGER
+' flavor-context globals: combat sets these so Fill$ can resolve the {tokens}
+DIM SHARED FX_MON AS STRING, FX_DMG AS INTEGER, FX_LEVEL AS INTEGER
+DIM SHARED FX_ROOM AS STRING, FX_TREASURE AS STRING, FX_ITEM AS STRING
 DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll

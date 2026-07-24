@@ -85,10 +85,13 @@ END SUB
 ' event (a heroic heal, or a savage extra blow). Base double-damage is applied by
 ' the caller; this adds the flourish on top. Only called when opt_critfumble is on.
 SUB DoCrit (rm AS INTEGER, mon AS STRING, weap AS STRING, dmg AS INTEGER)
-    DIM i AS INTEGER, amt AS INTEGER
+    DIM i AS INTEGER, amt AS INTEGER, fl AS STRING
     i = RollDie(NCRIT)
     Sfx "crit"
-    Banner ResolveFX$(CRITFX(i).say, weap, mon, dmg), "-- a CRITICAL blow! --"
+    FX_MON = mon: FX_DMG = dmg                     ' per-class crit flavor if the class has any
+    fl = EventLine$(2, class_name, 3)
+    IF LEN(fl) = 0 THEN fl = ResolveFX$(CRITFX(i).say, weap, mon, dmg)
+    Banner fl, "-- a CRITICAL blow! --"
     _DELAY 2.2
     DramaticPause
     SELECT CASE CRITFX(i).kind
@@ -112,10 +115,13 @@ END SUB
 ' Player FUMBLE: a random pratfall + its penalty (self-damage never fatal, a
 ' dropped turn, or spilled gold). Only called when opt_critfumble is on.
 SUB DoFumble (rm AS INTEGER, mon AS STRING, weap AS STRING)
-    DIM i AS INTEGER, amt AS INTEGER, lost AS LONG
+    DIM i AS INTEGER, amt AS INTEGER, lost AS LONG, fl AS STRING
     i = RollDie(NPFUM)
     Sfx "fumble"
-    Banner ResolveFX$(PFUMBLE(i).say, weap, mon, 0), "-- a FUMBLE! --"
+    FX_MON = mon: FX_DMG = 0                       ' per-class fumble flavor if the class has any
+    fl = EventLine$(2, class_name, 4)
+    IF LEN(fl) = 0 THEN fl = ResolveFX$(PFUMBLE(i).say, weap, mon, 0)
+    Banner fl, "-- a FUMBLE! --"
     _DELAY 2.2
     SELECT CASE PFUMBLE(i).kind
         CASE 3                                     ' self-damage (never fatal)
@@ -139,10 +145,13 @@ END SUB
 ' Monster natural-1 fumble: it wounds itself or wastes its turn. Only called when
 ' opt_critfumble is on. The caller checks for the monster dying of self-harm.
 SUB DoMonsterFumble (rm AS INTEGER, mon AS STRING)
-    DIM i AS INTEGER, amt AS INTEGER
+    DIM i AS INTEGER, amt AS INTEGER, fl AS STRING
     i = RollDie(NMFUM)
     Sfx "fumble"
-    Banner "** the " + mon + " FUMBLES! **  (natural 1)", ResolveFX$(MFUMBLE(i).say, "", mon, 0)
+    FX_MON = mon: FX_DMG = 0                       ' per-monster fumble flavor if it has any
+    fl = EventLine$(1, mon, 4)
+    IF LEN(fl) = 0 THEN fl = ResolveFX$(MFUMBLE(i).say, "", mon, 0)
+    Banner "** the " + mon + " FUMBLES! **  (natural 1)", fl
     _DELAY 2.0
     SELECT CASE MFUMBLE(i).kind
         CASE 3                                     ' self-damage

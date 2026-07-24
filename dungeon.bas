@@ -69,6 +69,7 @@ InitLabels                       ' build the room-label table + the label-cell m
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
+InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -556,7 +557,7 @@ END FUNCTION
 '  dragged back to START and revived). ESC flees; wounds persist if you return.
 ' ===========================================================================
 SUB DoCombatDnD (rm AS INTEGER)
-    DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING
+    DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING, cdf AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
     DIM AS INTEGER tot_dealt, tot_taken, wander, vanished, god_favor, acted, did_attack
     DIM lost AS LONG
@@ -573,6 +574,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
     rounds = 0: combat_round = 1
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
+    FX_MON = mon: FX_LEVEL = sec: FX_ROOM = _TRIM$(SECTORS(sec).label)   ' flavor context for {tokens}
 
     DIM dirty AS INTEGER
     dirty = -1                                   ' clear any lingering pre-combat banner on entry
@@ -626,7 +628,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                     DoCrit rm, mon, WeaponName$, dmg    ' cinematic: smash-saying -> pause -> bonus event
                     DrawCombatPanel rm, mon, lead
                 ELSE
-                    Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
+                    FX_DMG = dmg
+                    EventBanner "** CRITICAL HIT! **  (natural 20)", 2, class_name, 3, "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!"
                     CombatPause
                 END IF
             ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss (and maybe a mishap)
@@ -635,7 +638,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                     DrawCombatPanel rm, mon, lead
                 ELSE
                     Sfx "fumble"
-                    Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
+                    FX_DMG = 0
+                    EventBanner "** FUMBLE! **  (natural 1)", 2, class_name, 4, "Your attack goes wide of the " + mon + "."
                     CombatPause
                 END IF
             ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
@@ -646,7 +650,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_dealt = tot_dealt + dmg
                 Sfx "hit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
-                Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
+                FX_DMG = dmg
+                EventBanner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", 2, class_name, 1, "You deal " + _TRIM$(STR$(dmg)) + " damage."
                 CombatPause
                 IF last_raw = player_dmgdie THEN            ' MAX on the damage die -- brutal flavor (even without a crit)
                     mhs = MaxHitSaying$(mon, WeaponName$)
@@ -658,7 +663,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 END IF
             ELSE                                  ' miss
                 Sfx "miss"
-                Banner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "The " + mon + " dodges your blow.   [ press any key ]"
+                FX_DMG = 0
+                EventBanner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", 2, class_name, 2, "The " + mon + " dodges your blow."
                 CombatPause
             END IF
 
@@ -695,7 +701,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_taken = tot_taken + mdmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
-                Banner "** the " + mon + " CRITS you! **  (natural 20)", "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!   [ press any key ]"
+                FX_DMG = mdmg
+                EventBanner "** the " + mon + " CRITS you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
                 CombatPause
             ELSEIF matk >= player_ac + item_armor THEN
                 PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
@@ -705,10 +712,12 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_taken = tot_taken + mdmg
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
-                Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
+                FX_DMG = mdmg
+                EventBanner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
                 CombatPause
             ELSE
-                Banner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", "You weather the assault.   [ press any key ]"
+                FX_DMG = 0
+                EventBanner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", 1, mon, 2, "You weather the assault."
                 CombatPause
             END IF
 
@@ -717,6 +726,9 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).player_died = TRUE
                 IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
                 DrawCombatPanel rm, mon, lead
+                FX_MON = mon: FX_DMG = mdmg        ' your class's own death cry, if it has one
+                cdf = EventLine$(2, class_name, 5)
+                IF LEN(cdf) > 0 THEN Banner "YOU ARE SLAIN!", cdf + "   [ press any key ]": WaitKey
                 lost = gold
                 vanished = FALSE                  ' SOULS-LIKE: dying again forfeits a hoard you never reclaimed
                 IF opt_lootrecovery = 2 THEN vanished = AnyDropExists
@@ -837,9 +849,16 @@ END SUB
 ' Award a slain room's treasure -- gold, or a special item card.
 SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     DIM slay AS STRING, line2 AS STRING, itm AS INTEGER, mon AS STRING, tname AS STRING, acb AS INTEGER
-    DIM lvl AS INTEGER, goldbefore AS LONG
+    DIM lvl AS INTEGER, goldbefore AS LONG, dfl AS STRING
     mon = _TRIM$(ROOMS(rm).monster): tname = _TRIM$(ROOMS(rm).treasure_name)
     lvl = ROOMS(rm).sec: goldbefore = gold                 ' chronicle this kill + its haul
+    FX_MON = mon: FX_LEVEL = lvl: FX_TREASURE = tname      ' flavor context for the death line
+    dfl = EventLine$(1, mon, 5)                            ' the monster's own death throes, if any
+    IF LEN(dfl) > 0 THEN
+        Sfx "treasure"
+        Banner "The " + mon + " is slain!", dfl + "   [ press any key ]"
+        CombatPause
+    END IF
     IF lvl >= 1 AND lvl <= 9 THEN lvl_kills(lvl) = lvl_kills(lvl) + 1: lvl_reached(lvl) = TRUE
     char_xp = char_xp + XP_PER_KILL_LVL * lvl              ' XP scales with the monster's depth
     IF ROOMS(rm).is_boss THEN char_xp = char_xp + XP_PER_KILL_LVL * lvl   ' a boss is worth double
@@ -1289,6 +1308,7 @@ END SUB
 '$INCLUDE:'include/STATS.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'
+'$INCLUDE:'include/CTEXT.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'
