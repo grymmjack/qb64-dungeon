@@ -381,8 +381,10 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "lose"
                 Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
                 WaitKey
+                BloodDrip                         ' blood runs down the screen, fade to black
                 c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
                 player_hp = player_maxhp          ' revived at the entrance
+                cursor_erase: cursor_draw: FadeInCurrent   ' the dungeon fades back in at START
                 EXIT SUB
             END IF
         END IF
@@ -438,7 +440,9 @@ SUB MonsterAttack (rm AS INTEGER)
             Sfx "lose"
             Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
             WaitKey
+            BloodDrip                           ' blood runs down the screen, fade to black
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+            cursor_erase: cursor_draw: FadeInCurrent   ' the dungeon fades back in at START
         CASE 3                                   ' SERIOUS WOUND
             lost = gold \ 2: gold = gold - lost
             Sfx "trap"

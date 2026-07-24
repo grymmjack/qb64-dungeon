@@ -132,19 +132,92 @@ END SUB
 
 
 ' ============================================================================
+'  SCREEN FADES
+' ============================================================================
+
+' Fade whatever is currently composed on CANVAS in from black.
+SUB FadeInCurrent
+    DIM scene AS LONG, a AS INTEGER
+    scene = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _PUTIMAGE (0, 0), CANVAS, scene              ' snapshot the composed screen
+    _DEST CANVAS
+    FOR a = 255 TO 0 STEP -20
+        _PUTIMAGE (0, 0), scene, CANVAS
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, a), BF
+        _DISPLAY
+        _LIMIT 60
+    NEXT a
+    _PUTIMAGE (0, 0), scene, CANVAS
+    _DISPLAY
+    _FREEIMAGE scene
+END SUB
+
+' Fade the current screen out to black (cumulative darkening -- no buffer needed).
+SUB FadeOut
+    DIM i AS INTEGER
+    _DEST CANVAS
+    FOR i = 1 TO 14
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H2C), BF
+        _DISPLAY
+        _LIMIT 60
+    NEXT i
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
+    _DISPLAY
+END SUB
+
+
+' Death transition: streaks of blood run down the screen, the whole view reddens,
+' then it fades to black.
+SUB BloodDrip
+    DIM nd AS INTEGER, i AS INTEGER, f AS INTEGER
+    DIM dx(1 TO 80) AS INTEGER, dlen(1 TO 80) AS INTEGER, dsp(1 TO 80) AS INTEGER, dw(1 TO 80) AS INTEGER
+    DIM dark AS _UNSIGNED LONG, bright AS _UNSIGNED LONG, tint AS _UNSIGNED LONG
+    dark = _RGB32(&H72, &H00, &H00): bright = _RGB32(&HC8, &H1A, &H1A): tint = _RGB32(&H55, &H00, &H00, &H07)
+    nd = 70
+    FOR i = 1 TO nd
+        dx(i) = INT(RND * (SW * CW))
+        dlen(i) = -INT(RND * (SH * CH))          ' negative = staggered start delay
+        dsp(i) = 9 + INT(RND * 18)               ' fall speed
+        dw(i) = 3 + INT(RND * 10)                ' streak width
+    NEXT i
+    _DEST CANVAS
+    FOR f = 1 TO 78
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), tint, BF     ' the view slowly reddens
+        FOR i = 1 TO nd
+            dlen(i) = dlen(i) + dsp(i)
+            IF dlen(i) > 0 THEN
+                LINE (dx(i), 0)-(dx(i) + dw(i), dlen(i)), dark, BF
+                LINE (dx(i), dlen(i) - 12)-(dx(i) + dw(i), dlen(i) + 6), bright, BF   ' the running drip head
+            END IF
+        NEXT i
+        _DISPLAY
+        _LIMIT 60
+    NEXT f
+    FadeOut                                       ' then to black
+END SUB
+
+
+' ============================================================================
 '  INTRO
 ' ============================================================================
 
 SUB ShowIntro
-    DIM ansi AS STRING, mus AS LONG, k AS STRING
+    DIM ansi AS STRING, mus AS LONG, k AS STRING, frames AS INTEGER
     ansi = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
     mus = _SNDOPEN("assets/music/vr-theme.rad")
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDPLAY mus
     _DEST CANVAS: _FONT CH: CLS , BLACK
     ANSI_Print (ansi)
-    _DISPLAY
-    DO: _LIMIT 30: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    FadeInCurrent                               ' fade the logo in from black
+    frames = 0
+    DO
+        _LIMIT 30
+        k = INKEY$
+        frames = frames + 1
+        _DISPLAY
+    LOOP UNTIL k <> "" OR frames >= 150          ' auto-advance to the menu after ~5s idle
+    FadeOut                                      ' fade to black before the menu
     IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
 END SUB
 
@@ -181,6 +254,7 @@ FUNCTION RunMenu%
     IF mus > 0 AND opt_music THEN _SNDLOOP mus
 
     sel = 1: t = 0: result = 0
+    DIM firstframe AS INTEGER: firstframe = -1
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))          ' arrows/numpad -> WASD
@@ -249,7 +323,9 @@ FUNCTION RunMenu%
         IF opt_fov THEN fv = "on" ELSE fv = "off"
         COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School      (Combat " + cmb + "   FOV " + fv + ")"
         _DISPLAY
+        IF firstframe THEN FadeInCurrent: firstframe = 0   ' fade the menu in on the first frame
     LOOP
+    FadeOut                                                 ' fade to black before the next screen
 
     IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
     music_handle = 0
@@ -526,8 +602,9 @@ SUB ShowEnd (win AS INTEGER)
         COLOR GREY, BLACK: PrintCentered 23, "The dungeon claims another soul..."
     END IF
     COLOR YELLOWU, BLACK: PrintCentered 28, "[ press any key to return to the menu ]"
-    _DISPLAY
+    FadeInCurrent                               ' fade the end screen in
     WaitKey
+    FadeOut                                      ' fade out before returning to the menu
 END SUB
 
 

@@ -474,7 +474,7 @@ SUB StartBoard
     IF opt_fov THEN InitFOV          ' start explored = just the entrance room + line of sight
     cursor_erase                     ' render the board (full, or through the fog) + labels
     cursor_draw
-    _DISPLAY
+    FadeInCurrent                    ' fade the dungeon in from black
 END SUB
 
 
