@@ -77,13 +77,28 @@ SUB InitMonsterTables
     SetTre 8, "GOLD NECKLACE", 9000, "HUGE RUBY", 8000, "HUGE DIAMOND", 10000
     SetTre 9, "HUGE DIAMOND", 10000, "GOLD NECKLACE", 9000, "HUGE SAPPHIRE", 6000
 
-    ' special treasure cards seeded into the pools (real cards from the deck).
-    ' TRE_ITEM: 1=Sword+1 2=Sword+2 3=SecretDoorCard 4=ESP Medallion 5=Crystal Ball
-    TRE_NAME(2, 3) = "MAGIC SWORD +1": TRE_GOLD(2, 3) = 500: TRE_ITEM(2, 3) = 1
-    TRE_NAME(3, 3) = "ESP MEDALLION": TRE_GOLD(3, 3) = 500: TRE_ITEM(3, 3) = 4
-    TRE_NAME(4, 3) = "SECRET DOOR CARD": TRE_GOLD(4, 3) = 0: TRE_ITEM(4, 3) = 3
-    TRE_NAME(5, 3) = "CRYSTAL BALL": TRE_GOLD(5, 3) = 1000: TRE_ITEM(5, 3) = 5
-    TRE_NAME(6, 3) = "MAGIC SWORD +2": TRE_GOLD(6, 3) = 500: TRE_ITEM(6, 3) = 2
+    ' Magic-item cards seeded into the treasure pools. Each room independently
+    ' rolls one of its level's 3 slots (RandomizeRooms), so an item in slot 3 shows
+    ' up in ~1/3 of that level's rooms, items in slots 2+3 in ~2/3 -- getting richer
+    ' and rarer the deeper you delve. Frequencies here are a best-judgment take on
+    ' the DUNGEON! magic deck (Sword, Bow, Shield, Armor, Cloak/Boots, ESP, Crystal
+    ' Ball, Secret Door Card, Teleport) rather than a verified per-card count.
+    ' TRE_ITEM: 1=Sword+1 2=Sword+2 3=SecretDoorCard 4=ESP 5=CrystalBall 6=LevelKey(dynamic)
+    '           7=Shield(+2 AC) 8=MagicArmor(+3 AC) 9=MagicBow(+2 hit) 10=ElfBoots(+2 move) 11=Teleport
+    SetItem 2, 3, "MAGIC SWORD +1", 500, 1
+    SetItem 3, 3, "ESP MEDALLION", 500, 4
+    SetItem 3, 2, "SHIELD", 800, 7
+    SetItem 4, 3, "SECRET DOOR CARD", 0, 3
+    SetItem 4, 2, "ELF BOOTS", 900, 10
+    SetItem 5, 3, "CRYSTAL BALL", 1000, 5
+    SetItem 5, 2, "MAGIC BOW", 1200, 9
+    SetItem 6, 3, "MAGIC SWORD +2", 500, 2
+    SetItem 6, 2, "TELEPORT SCROLL", 400, 11
+    SetItem 7, 3, "MAGIC ARMOR", 1500, 8
+    SetItem 7, 2, "TELEPORT SCROLL", 400, 11
+    SetItem 8, 3, "SHIELD", 800, 7
+    SetItem 8, 2, "MAGIC BOW", 1200, 9
+    SetItem 9, 3, "MAGIC ARMOR", 1500, 8
 
     BOSS_NAME(1) = "RED DRAGON": BOSS_NAME(2) = "BLUE DRAGON"
     BOSS_NAME(3) = "EVIL WIZARD": BOSS_NAME(4) = "BLACK PUDDING"
@@ -103,6 +118,12 @@ SUB SetTre (lvl AS INTEGER, n1 AS STRING, g1 AS INTEGER, n2 AS STRING, g2 AS INT
     TRE_NAME(lvl, 1) = n1: TRE_GOLD(lvl, 1) = g1
     TRE_NAME(lvl, 2) = n2: TRE_GOLD(lvl, 2) = g2
     TRE_NAME(lvl, 3) = n3: TRE_GOLD(lvl, 3) = g3
+END SUB
+
+
+' Seed a magic-item card into one treasure slot of a level (name, sell/gold value, item code).
+SUB SetItem (lvl AS INTEGER, slot AS INTEGER, nm AS STRING, gold AS INTEGER, code AS INTEGER)
+    TRE_NAME(lvl, slot) = nm: TRE_GOLD(lvl, slot) = gold: TRE_ITEM(lvl, slot) = code
 END SUB
 
 

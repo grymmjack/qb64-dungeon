@@ -104,7 +104,7 @@ SYSTEM
 
 FUNCTION PlayGame%
     DIM k AS STRING
-    DIM AS INTEGER sec, res, idle_ticks, sd
+    DIM AS INTEGER sec, res, idle_ticks, sd, mvb
 
     DIM i AS INTEGER
     DIM hint AS STRING
@@ -152,10 +152,22 @@ FUNCTION PlayGame%
         IF k = "?" OR k = "/" THEN ShowKeys
         IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
 
+        IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
+            item_teleport = item_teleport - 1
+            Sfx "key"
+            Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"
+            WaitKey
+            c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+            player_hp = player_maxhp: need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
+            steps_left = 0: loiter = 0
+            cursor_erase: cursor_draw: FadeInCurrent: DrawHUD: _DISPLAY
+        END IF
+
         IF need_roll THEN
             IF k = " " THEN
                 turn_num = turn_num + 1
-                steps_left = DoRoll(1, 0, "your MOVEMENT roll")
+                mvb = 0: IF item_boots THEN mvb = 2       ' Elf Boots add to the movement roll
+                steps_left = DoRoll(1, mvb, "your MOVEMENT roll")
                 need_roll = FALSE
                 cursor_erase             ' wipe the dice box, restore the board
                 cursor_draw
@@ -315,6 +327,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     lvl = sec                                   ' sector index doubles as dungeon level 1..9
     mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
     thb = player_tohit                          ' final to-hit incl. ability modifier
+    IF item_bow THEN thb = thb + 2              ' Magic Bow: strike harder from range
     IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
     rounds = 0
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
@@ -368,13 +381,13 @@ SUB DoCombatDnD (rm AS INTEGER)
 
             ' ---------- monster strikes back (you roll its dice in Real-Dice mode, else shown) ----------
             matk = GameRoll(1, 20, mtohit, "the " + mon + "'s ATTACK -- roll ITS d20")
-            IF matk >= player_ac THEN
+            IF matk >= player_ac + item_armor THEN
                 mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
-                Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
+                Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
                 CombatPause
             ELSE
                 Banner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", "You weather the assault.   [ press any key ]"
@@ -413,7 +426,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     COLOR REDU, BOXBG
     PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
     COLOR GREENU, BOXBG
-    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac))
+    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac + item_armor))
     COLOR CYANU, BOXBG: PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     _DISPLAY
 END SUB
@@ -484,7 +497,7 @@ END SUB
 
 ' Award a slain room's treasure -- gold, or a special item card.
 SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
-    DIM slay AS STRING, line2 AS STRING, itm AS INTEGER, mon AS STRING, tname AS STRING
+    DIM slay AS STRING, line2 AS STRING, itm AS INTEGER, mon AS STRING, tname AS STRING, acb AS INTEGER
     mon = _TRIM$(ROOMS(rm).monster): tname = _TRIM$(ROOMS(rm).treasure_name)
     IF opt_oldschool THEN
         slay = "You slay the " + mon + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
@@ -519,6 +532,34 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             gold = gold + ROOMS(rm).treasure
             IF ROOMS(rm).treasure > 0 THEN LogTreasure "Key Vault hoard", ROOMS(rm).treasure
             line2 = "You seize the LEVEL KEY! Now escape to the entrance with your gold to WIN."
+        CASE 7, 8                                 ' Shield (+2 AC) / Magic Armor (+3 AC)
+            IF itm = 7 THEN acb = 2 ELSE acb = 3
+            IF acb > item_armor THEN
+                item_armor = acb
+                line2 = "You don the " + tname + " -- your Armor Class rises to " + _TRIM$(STR$(player_ac + item_armor)) + "!"
+            ELSE
+                gold = gold + 500
+                line2 = "A " + tname + " -- you already wear stouter protection; +500 gold."
+            END IF
+        CASE 9                                     ' Magic Bow (+2 to-hit, strikes from range)
+            IF NOT item_bow THEN
+                item_bow = TRUE
+                line2 = "You take up the " + tname + " -- +2 to hit, striking before they close!"
+            ELSE
+                gold = gold + 500
+                line2 = "Another " + tname + " -- you already carry one; +500 gold."
+            END IF
+        CASE 10                                    ' Elf Boots (+2 to the movement roll)
+            IF NOT item_boots THEN
+                item_boots = TRUE
+                line2 = "You lace on the " + tname + " -- +2 to every movement roll!"
+            ELSE
+                gold = gold + 500
+                line2 = "Another pair of " + tname + " -- you already run swift; +500 gold."
+            END IF
+        CASE 11                                    ' Teleport Scroll (consumable, [T])
+            item_teleport = item_teleport + 1
+            line2 = "You pocket a TELEPORT SCROLL (" + _TRIM$(STR$(item_teleport)) + " held) -- press [T] to whisk to START."
         CASE ELSE                                 ' plain gold treasure
             gold = gold + ROOMS(rm).treasure
             LogTreasure tname, ROOMS(rm).treasure
@@ -553,6 +594,7 @@ SUB DropEverything (rm AS INTEGER)
     gold = 0
     item_sword = 0
     item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
+    item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0
     IF cur_player >= 1 AND cur_player <= 4 THEN LOOT_N(cur_player) = 0   ' the treasure log goes too
 END SUB
 

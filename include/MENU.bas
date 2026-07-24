@@ -604,7 +604,9 @@ END FUNCTION
 
 SUB ShowCharSheet
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, nshow AS INTEGER, inv AS STRING, ln AS STRING
-    DIM who AS STRING
+    DIM who AS STRING, effac AS INTEGER, efth AS INTEGER
+    effac = player_ac + item_armor                     ' AC + worn armor/shield
+    efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
@@ -615,7 +617,7 @@ SUB ShowCharSheet
     PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
     IF NOT opt_oldschool THEN
         COLOR GREENU, BOXBG
-        PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(player_ac)) + "    To-Hit " + ModStr$(player_tohit) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
+        PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword)
         COLOR GREY, BOXBG: PrintCentered 9, CombatDerivation$(player_class)   ' where those bonuses come from
     END IF
     ' wealth line
@@ -626,6 +628,10 @@ SUB ShowCharSheet
     ' special items held
     inv = ""
     IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
+    IF item_armor > 0 THEN inv = inv + "Armor +" + _TRIM$(STR$(item_armor)) + " AC    "
+    IF item_bow THEN inv = inv + "Magic Bow (+2 hit)    "
+    IF item_boots THEN inv = inv + "Elf Boots (+2 move)    "
+    IF item_teleport > 0 THEN inv = inv + "Teleport x" + _TRIM$(STR$(item_teleport)) + " [T]    "
     IF item_secret_card THEN inv = inv + "Secret Door Card    "
     IF item_esp THEN inv = inv + "ESP Medallion    "
     IF item_crystal THEN inv = inv + "Crystal Ball [V]    "
@@ -700,18 +706,19 @@ END SUB
 
 ' [?] Controls: the single source of truth for key bindings, rendered as a table.
 SUB ShowKeys
-    DIM ky(1 TO 12) AS STRING, ds(1 TO 12) AS STRING, n AS INTEGER, i AS INTEGER, y AS INTEGER
+    DIM ky(1 TO 14) AS STRING, ds(1 TO 14) AS STRING, n AS INTEGER, i AS INTEGER, y AS INTEGER
     ky(1) = "WASD / Arrows": ds(1) = "Move up / left / down / right"
     ky(2) = "Numpad 7 9 1 3": ds(2) = "Move diagonally (NW/NE/SW/SE)"
     ky(3) = "SPACE": ds(3) = "Roll movement dice / Attack"
     ky(4) = "F": ds(4) = "Search for secret doors"
     ky(5) = "C": ds(5) = "Character sheet"
     ky(6) = "V": ds(6) = "Scry the dungeon (Crystal Ball)"
-    ky(7) = "?": ds(7) = "This controls list"
-    ky(8) = "~  or  `": ds(8) = "Toggle the debug overlay"
-    ky(9) = "ESC": ds(9) = "Flee combat / quit to menu"
-    ky(10) = "R": ds(10) = "Re-roll (during character creation)"
-    n = 10
+    ky(7) = "T": ds(7) = "Read a Teleport Scroll -> START"
+    ky(8) = "?": ds(8) = "This controls list"
+    ky(9) = "~  or  `": ds(9) = "Toggle the debug overlay"
+    ky(10) = "ESC": ds(10) = "Flee combat / quit to menu"
+    ky(11) = "R": ds(11) = "Re-roll (during character creation)"
+    n = 11
     _DEST CANVAS
     LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), BOXBG, BF
     LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), CYANU, B
