@@ -910,13 +910,98 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
 END FUNCTION
 
 
-' A number-tumbler for polyhedral dice (d8/d10/d20...) that d6 pips can't show.
-' Flickers random totals, settles on the real one, and returns it.
+' ---- polyhedron dice (ported from scratchpads/ANSI-DICE.BAS) for non-d6 rolls ----
+
+' Load the die-art grids once (d4/d6/d8/d10/d12/d20). Each row's hex codes map to
+' CP437 block glyphs via DieChars$.  Called at startup.
+SUB InitDice
+    DIE_G(1, 1) = "       ": DIE_G(1, 2) = "  4    ": DIE_G(1, 3) = " 847   ": DIE_G(1, 4) = " 444   ": DIE_G(1, 5) = "84447  ": DIE_G(1, 6) = "       "
+    DIE_G(2, 1) = "       ": DIE_G(2, 2) = " 444   ": DIE_G(2, 3) = " 444   ": DIE_G(2, 4) = " 444   ": DIE_G(2, 5) = " 444   ": DIE_G(2, 6) = "       "
+    DIE_G(3, 1) = "  6    ": DIE_G(3, 2) = " 847   ": DIE_G(3, 3) = " 444   ": DIE_G(3, 4) = " 444   ": DIE_G(3, 5) = " 847   ": DIE_G(3, 6) = "  5    "
+    DIE_G(4, 1) = "  87  ": DIE_G(4, 2) = "  44  ": DIE_G(4, 3) = " 8447 ": DIE_G(4, 4) = " 8447 ": DIE_G(4, 5) = "  44  ": DIE_G(4, 6) = "  87  "
+    DIE_G(5, 1) = "  44  ": DIE_G(5, 2) = " 4444 ": DIE_G(5, 3) = " 4444 ": DIE_G(5, 4) = " 6  6 ": DIE_G(5, 5) = " 4444 ": DIE_G(5, 6) = "  55  "
+    DIE_G(6, 1) = " 6446 ": DIE_G(6, 2) = "844447": DIE_G(6, 3) = "844447": DIE_G(6, 4) = "86  67": DIE_G(6, 5) = " 4444 ": DIE_G(6, 6) = "  55  "
+END SUB
+
+FUNCTION DieIndex% (sides AS INTEGER)
+    SELECT CASE sides
+        CASE 4: DieIndex = 1
+        CASE 6: DieIndex = 2
+        CASE 8: DieIndex = 3
+        CASE 10: DieIndex = 4
+        CASE 12: DieIndex = 5
+        CASE ELSE: DieIndex = 6
+    END SELECT
+END FUNCTION
+
+FUNCTION DieChars$ (txt AS STRING)
+    DIM s AS STRING, c AS STRING, i AS INTEGER
+    FOR i = 1 TO LEN(txt)
+        c = MID$(txt, i, 1)
+        SELECT CASE c
+            CASE "1": s = s + CHR$(176)
+            CASE "2": s = s + CHR$(177)
+            CASE "3": s = s + CHR$(178)
+            CASE "4": s = s + CHR$(219)
+            CASE "5": s = s + CHR$(223)
+            CASE "6": s = s + CHR$(220)
+            CASE "7": s = s + CHR$(221)
+            CASE "8": s = s + CHR$(222)
+            CASE "9": s = s + CHR$(254)
+            CASE "A": s = s + CHR$(250)
+            CASE ELSE: s = s + c
+        END SELECT
+    NEXT i
+    DieChars$ = s
+END FUNCTION
+
+' Draw one polyhedron die at cell (ox,oy) showing `val` on its face.
+SUB DrawPolyDie (ox AS INTEGER, oy AS INTEGER, sides AS INTEGER, dval AS INTEGER, numc AS _UNSIGNED LONG, body AS _UNSIGNED LONG, shadow AS _UNSIGNED LONG)
+    DIM di AS INTEGER, r AS INTEGER, s AS STRING, w AS INTEGER, l AS INTEGER, nx AS INTEGER, vs AS STRING
+    di = DieIndex(sides)
+    _DEST CANVAS
+    FOR r = 1 TO 6
+        s = DieChars$(DIE_G(di, r))
+        IF r <= 4 THEN COLOR body, BOXBG ELSE COLOR shadow, BOXBG
+        _PRINTSTRING (ox * CW, (oy + r - 1) * CH), s
+    NEXT r
+    IF sides >= 10 THEN vs = RIGHT$("0" + _TRIM$(STR$(dval)), 2) ELSE vs = _TRIM$(STR$(dval))
+    w = LEN(DIE_G(di, 1)): l = LEN(vs)
+    nx = ox + (w - l) \ 2
+    COLOR numc, body
+    _PRINTSTRING (nx * CW, (oy + 2) * CH), vs
+END SUB
+
+' Tumble n polyhedron dice, settle on their rolled values, and return the sum.
 FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
-    DIM total AS INTEGER, i AS INTEGER
+    DIM v(1 TO 12) AS INTEGER, i AS INTEGER, total AS INTEGER, f AS INTEGER, shown AS INTEGER
+    DIM dieW AS INTEGER, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, sx AS INTEGER
+    DIM body AS _UNSIGNED LONG, shadow AS _UNSIGNED LONG, numc AS _UNSIGNED LONG
     total = 0
-    FOR i = 1 TO n: total = total + RollDie(sides): NEXT i
-    ShowRollText = ShowRollValue(total, n * sides, "rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)))
+    FOR i = 1 TO n: v(i) = RollDie(sides): total = total + v(i): NEXT i
+    IF opt_showdice THEN
+        body = _RGB32(&HC4, &H2A, &H2A): shadow = _RGB32(&H5C, &H12, &H12): numc = _RGB32(&HFF, &HF2, &HF2)
+        dieW = 9                                  ' cells per die (incl. gap)
+        bw = n * dieW + 3
+        bx = (SW - bw) \ 2: by = 31
+        FOR f = 1 TO 16
+            _DEST CANVAS
+            LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 9) * CH), BOXBG, BF
+            LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + 9) * CH), REDU, B
+            COLOR CYANU, BOXBG: PrintCentered by + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+            FOR i = 1 TO n
+                sx = bx + 2 + (i - 1) * dieW
+                IF f < 13 THEN shown = RollDie(sides) ELSE shown = v(i)
+                DrawPolyDie sx, by + 2, sides, shown, numc, body, shadow
+            NEXT i
+            IF n > 1 THEN COLOR YELLOWU, BOXBG: PrintCentered by + 8, "sum  " + _TRIM$(STR$(total))
+            IF opt_sfx THEN Tone 380 + f * 28, 0.05
+            _DISPLAY
+            _LIMIT 22
+        NEXT f
+        _DELAY 0.7
+    END IF
+    ShowRollText = total
 END FUNCTION
 
 

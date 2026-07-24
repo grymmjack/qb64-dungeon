@@ -151,6 +151,7 @@ DIM SHARED item_secret_card AS INTEGER ' holds the Secret Door Card
 DIM SHARED item_esp AS INTEGER        ' ESP Medallion: peek the treasure a monster guards
 DIM SHARED item_crystal AS INTEGER    ' Crystal Ball: [V] scry every room's contents
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
+DIM SHARED DIE_G(1 TO 6, 1 TO 6) AS STRING        ' polyhedron die art grids [d4/d6/d8/d10/d12/d20, row] (ANSI-DICE)
 DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (before modifiers) from DoRoll
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.

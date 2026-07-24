@@ -51,6 +51,7 @@ BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map,
 InitSectors
 InitClasses
 InitMonsterTables
+InitDice
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
