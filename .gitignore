@@ -28,3 +28,6 @@ scratchpads/shots/*.png
 
 # Claude Code local files (activity log etc.)
 .claude/
+# runtime hall-of-fame save
+dungeon-lords.dat
+dungeon-settings.dat
