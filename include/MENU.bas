@@ -333,6 +333,7 @@ FUNCTION RunMenu%
     IF mus > 0 AND opt_music THEN _SNDLOOP mus
 
     sel = 1: t = 0: result = 0
+    bnr_l2 = ""                               ' no stale in-game banner should flash in the menu
     DIM firstframe AS INTEGER: firstframe = -1
     DO
         _LIMIT 60
@@ -1019,6 +1020,7 @@ SUB FlashPrompt
         _DISPLAY
         _LIMIT 30
     NEXT ff
+    bnr_l2 = ""     ' one-shot: a banner flashes once, never again (no stale redraws elsewhere)
 END SUB
 
 

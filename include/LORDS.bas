@@ -96,7 +96,9 @@ END FUNCTION
 
 ' Pad a string on the right to width w (for simple table columns).
 FUNCTION PadR$ (s AS STRING, w AS INTEGER)
-    IF LEN(s) >= w THEN PadR$ = LEFT$(s, w) ELSE PadR$ = s + SPACE$(w - LEN(s))
+    ' fixed width w; when truncating a too-long value keep a trailing space so it
+    ' never butts up against the next column
+    IF LEN(s) >= w THEN PadR$ = LEFT$(s, w - 1) + " " ELSE PadR$ = s + SPACE$(w - LEN(s))
 END FUNCTION
 
 
@@ -155,7 +157,7 @@ SUB ShowLords
         _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 4, "-=  L E G E N D A R Y   L O R D S  =-"
         COLOR CYANU, BLACK
-        _PRINTSTRING (26 * CW, 7 * CH), "#   " + PadR$("NAME", 16) + PadR$("CLASS", 12) + PadR$("GOLD", 8) + PadR$("TIME", 8) + "DEEPEST"
+        _PRINTSTRING (26 * CW, 7 * CH), "#   " + PadR$("NAME", 26) + PadR$("CLASS", 12) + PadR$("GOLD", 8) + PadR$("TIME", 8) + "DEEPEST"
         FOR i = 1 TO n
             IF i > 30 THEN EXIT FOR
             y = 8 + i
@@ -166,7 +168,7 @@ SUB ShowLords
             ELSE
                 COLOR WHITE, BLACK
             END IF
-            _PRINTSTRING (26 * CW, y * CH), PadR$(_TRIM$(STR$(i)) + ".", 4) + PadR$(nm(i), 16) + PadR$(klass(i), 12) + PadR$(_TRIM$(STR$(gld(i))), 8) + PadR$(MMSS$(secs(i)), 8) + DeepestLabel$(LORD_DETAIL(i))
+            _PRINTSTRING (26 * CW, y * CH), PadR$(_TRIM$(STR$(i)) + ".", 4) + PadR$(nm(i), 26) + PadR$(klass(i), 12) + PadR$(_TRIM$(STR$(gld(i))), 8) + PadR$(MMSS$(secs(i)), 8) + DeepestLabel$(LORD_DETAIL(i))
         NEXT i
         COLOR CYANU, BLACK: PrintCentered 45, "[W/S] pick    [ENTER] view chronicle    [ESC] back"
         _DISPLAY
@@ -266,7 +268,7 @@ FUNCTION EnterName$
                 IF LEN(nm) > 0 THEN nm = LEFT$(nm, LEN(nm) - 1)
             ELSEIF LEN(k) = 1 THEN
                 chcode = ASC(k)
-                IF chcode >= 32 AND chcode <= 126 AND LEN(nm) < 14 THEN nm = nm + k
+                IF chcode >= 32 AND chcode <= 126 AND LEN(nm) < 38 THEN nm = nm + k   ' 38 fits the long random names (PLAYER.name is 40)
             END IF
         END IF
     LOOP
