@@ -51,6 +51,8 @@ opt_d6pips = FALSE                            ' d6 rolls use the font's numbered
 opt_dicespeed = 0                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
 opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
 opt_combatspeed = 0                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
+opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
+opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -118,8 +120,10 @@ FUNCTION PlayGame%
     LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
     need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
     loiter = 0                       ' fresh danger meter for lingering
-    FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: NEXT i   ' fresh chronicle
+    FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
     lvl_reached(1) = TRUE            ' you start on the 1st level
+    char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
+    item_potion_small = 0: item_potion_large = 0
 
     IF num_players > 1 THEN
         ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
@@ -139,12 +143,16 @@ FUNCTION PlayGame%
         k = UCASE$(INKEY$)
         k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
 
-        ' standing idle also counts as lingering -- time passes, danger gathers
+        ' HARDCORE only: standing idle counts as lingering -- time passes, danger gathers.
+        ' In casual mode (default) you can stand still and plan in perfect safety.
         IF k <> "" THEN
             idle_ticks = 0
-        ELSE
+        ELSEIF opt_hardcore THEN
             idle_ticks = idle_ticks + 1
-            IF idle_ticks >= 600 THEN idle_ticks = 0: LoiterTick
+            IF idle_ticks >= 600 THEN
+                idle_ticks = 0
+                IF NOT InRoomNow THEN LoiterTick   ' danger gathers only out in the open halls
+            END IF
         END IF
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
@@ -677,15 +685,26 @@ SUB FlashOmen (stage AS INTEGER)
 END SUB
 
 
-' One "time passes" tick from lingering (a search, or a long idle). Two omens, then
-' on the third the dungeon sends something after you.
+' One "time passes" tick from lingering (a search, or a long hardcore idle). The early
+' ticks flash an omen; once the meter is full there is an IDLE_ENCOUNTER_PCT chance the
+' dungeon sends something after you (else a close omen and the meter stays hot). A level
+' you have fully cleared is yours -- no lingering danger there at all.
 SUB LoiterTick
+    DIM sec AS INTEGER
+    sec = SECTOR.get_by_xy(c.x, c.y)
+    IF sec >= 1 AND sec <= 9 THEN
+        IF lvl_cleared(sec) THEN EXIT SUB          ' cleared this floor -- rest easy
+    END IF
     loiter = loiter + 1
-    IF loiter >= 3 THEN
-        loiter = 0
-        WanderEncounter
+    IF loiter < LOITER_THRESHOLD THEN
+        FlashOmen loiter                           ' building dread
     ELSE
-        FlashOmen loiter
+        IF RollDie(100) <= IDLE_ENCOUNTER_PCT THEN
+            loiter = 0
+            WanderEncounter                        ' the dungeon sends something after you
+        ELSE
+            FlashOmen 2                            ' a near miss -- danger persists, roll again next tick
+        END IF
     END IF
 END SUB
 
@@ -698,6 +717,9 @@ SUB WanderEncounter
     cx = c.x \ CW: cy = c.y \ CH
     IF ABS(cx - START_CX) <= 3 AND ABS(cy - START_CY) <= 3 THEN EXIT SUB   ' the entrance is safe
     sec = SECTOR.get_by_xy(c.x, c.y): IF sec < 1 THEN sec = 1
+    IF sec >= 1 AND sec <= 9 THEN
+        IF lvl_cleared(sec) THEN EXIT SUB   ' a cleared level holds no more wanderers
+    END IF
     w = ROOM_N + 1: IF w > 400 THEN w = 400
     ROOMS(w).sec = sec
     m = RollDie(3)
@@ -707,7 +729,8 @@ SUB WanderEncounter
     ROOMS(w).mhp = sec * 4 + RollDie(6) + 2: ROOMS(w).mhp_now = ROOMS(w).mhp
     ROOMS(w).mac = 9 + sec
     t = RollDie(3)
-    ROOMS(w).treasure_name = TRE_NAME(sec, t): ROOMS(w).treasure = TRE_GOLD(sec, t) \ 2
+    ' wanderers carry only scraps -- you can't farm them for a quick win (WANDER_GOLD_DIV keeps it lean)
+    ROOMS(w).treasure_name = TRE_NAME(sec, t): ROOMS(w).treasure = TRE_GOLD(sec, t) \ WANDER_GOLD_DIV
     ROOMS(w).treasure_item = 0
     ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
     ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE

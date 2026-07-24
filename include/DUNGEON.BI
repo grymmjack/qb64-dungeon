@@ -9,6 +9,15 @@ CONST MENU_ENTER = 1, MENU_FLEE = 2
 CONST OUT_WIN = 1, OUT_LOSE = 2, OUT_FLEE = 3
 ' --- the entrance chamber (cell coords) ---
 CONST START_CX = 59, START_CY = 24
+' --- gameplay tuning (potions, encounters, XP) ---
+CONST POTION_SMALL_DIE = 4        ' Small Healing Potion heals 1d4
+CONST POTION_LARGE_DIE = 8        ' Large Healing Potion heals 1d8
+CONST TREASURE_POTION_PCT = 50    ' % chance a slain hoard also yields a Large potion
+CONST LEVELCLEAR_LARGE_PCT = 30   ' % chance clearing a level also yields a Large potion
+CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter meter is full
+CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
+CONST WANDER_GOLD_DIV = 6         ' wandering-monster gold = level treasure / this (lean -- no farming)
+CONST XP_PER_KILL_LVL = 10        ' XP per slain monster = its dungeon level * this (+ boss bonus)
 
 TYPE SECTOR
     start_x AS INTEGER
@@ -155,6 +164,8 @@ DIM SHARED item_armor AS INTEGER      ' best AC bonus from Shield/Armor/Cloak wo
 DIM SHARED item_bow AS INTEGER        ' Magic Bow: +2 to-hit (strike from range)
 DIM SHARED item_boots AS INTEGER      ' Elf Boots: +2 to the movement roll
 DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you back to START
+DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
+DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
 ' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to
@@ -170,6 +181,7 @@ DIM SHARED loiter AS INTEGER                      ' rising danger from lingering
 DIM SHARED lvl_kills(1 TO 9) AS INTEGER           ' monsters slain per dungeon level this run
 DIM SHARED lvl_gold(1 TO 9) AS LONG               ' gold claimed per dungeon level this run
 DIM SHARED lvl_reached(1 TO 9) AS INTEGER         ' levels the champion set foot on this run
+DIM SHARED lvl_cleared(1 TO 9) AS INTEGER         ' levels fully cleared this run (reward + level-up once each)
 DIM SHARED LORD_DETAIL(1 TO 200) AS STRING        ' raw saved chronicle per loaded lord (parsed on the detail screen)
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
@@ -202,6 +214,8 @@ DIM SHARED opt_d6pips AS INTEGER      ' TRUE: d6 rolls use the hand-drawn pip di
 DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant (see DiceTiming)
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled (no dice shimmer)
 DIM SHARED opt_combatspeed AS INTEGER ' pause after each combat action: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key (see CombatPause)
+DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle (no action) -> wandering monsters can find you
+DIM SHARED opt_critfumble AS INTEGER  ' TRUE: the crit/fumble effects engine runs (cinematic + bonus/penalty rolls)
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
 ' old-school 3d6 ability scores (rolled in CREATE A CHARACTER) + the stats derived from them
 DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER

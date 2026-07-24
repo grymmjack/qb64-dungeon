@@ -304,6 +304,8 @@ SUB SaveSettings
     PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
     PRINT #f, "smooth " + _TRIM$(STR$(opt_smooth))
     PRINT #f, "combatspeed " + _TRIM$(STR$(opt_combatspeed))
+    PRINT #f, "hardcore " + _TRIM$(STR$(opt_hardcore))
+    PRINT #f, "critfumble " + _TRIM$(STR$(opt_critfumble))
     CLOSE #f
 END SUB
 
@@ -340,6 +342,8 @@ SUB LoadSettings
                 CASE "dicespeed": opt_dicespeed = v
                 CASE "smooth": opt_smooth = v
                 CASE "combatspeed": opt_combatspeed = v
+                CASE "hardcore": opt_hardcore = v
+                CASE "critfumble": opt_critfumble = v
             END SELECT
         END IF
     LOOP
