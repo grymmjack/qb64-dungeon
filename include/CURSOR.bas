@@ -55,8 +55,15 @@ END SUB
 
 
 SUB cursor_erase
+    DIM pcx AS INTEGER, pcy AS INTEGER
     _DEST CANVAS
-    _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), CANVAS_COPY, CANVAS, (0, 0)-(SW * CW - 1, SH * CH - 1)
+    IF opt_fov THEN
+        pcx = c.x \ CW: pcy = c.y \ CH
+        IF pcx <> fov_cx OR pcy <> fov_cy THEN ComputeFOV   ' recompute sight only when moved
+        FovRender
+    ELSE
+        _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), CANVAS_COPY, CANVAS, (0, 0)-(SW * CW - 1, SH * CH - 1)
+    END IF
     render_room_labels
 END SUB
 
@@ -70,7 +77,9 @@ SUB cursor_draw
     IF num_players > 1 THEN
         FOR p = 1 TO num_players
             IF p <> cur_player AND PLAYERS(p).active THEN
-                LINE (PLAYERS(p).cx, PLAYERS(p).cy)-(PLAYERS(p).cx + CW - 1, PLAYERS(p).cy + CH - 1), PLAYERS(p).kolor, BF
+                IF NOT opt_fov OR LOS_LIT(PLAYERS(p).cx \ CW, PLAYERS(p).cy \ CH) THEN
+                    LINE (PLAYERS(p).cx, PLAYERS(p).cy)-(PLAYERS(p).cx + CW - 1, PLAYERS(p).cy + CH - 1), PLAYERS(p).kolor, BF
+                END IF
             END IF
         NEXT p
     END IF

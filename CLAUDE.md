@@ -141,6 +141,15 @@ Environment specifics that dictate this approach:
   room's contents). A `[C]` character sheet (`ShowCharSheet`) lists class, gold, key, and
   items. All events route through the `Sfx` dispatcher. Build/run from the repo root (asset
   paths are `assets/...`, not `../assets/...`).
+- **Line-of-sight fog-of-war** (SETTINGS **Line of Sight**, `opt_fov`, default off). Separate
+  from the secret-door fog: `LOS_LIT` (in sight now) + `LOS_SEEN` (ever explored) masks.
+  `ComputeFOV` casts Bresenham rays (`CastRay`) from the player out to a radius, each stopping
+  at the first opaque (black-wall) cell sampled from `CANVAS_COPY`; `cursor_erase` recomputes
+  only when the player's cell changed. `FovRender` blacks the screen, blits back only `LOS_SEEN`
+  cells from `CANVAS_COPY`, and dims those not currently `LOS_LIT`. Collision still reads the
+  full `CANVAS_COPY`, so you can walk into the dark. Room labels (`PutLabel`), tombstones, and
+  rival tokens are hidden until seen. **Gotcha:** the dim/hide tests must be `LOS_LIT(x,y) = 0`,
+  not `NOT LOS_LIT(...)` — `NOT` is bitwise, so `NOT 1` = -2 (still truthy).
 - **Secret doors / fog-of-war** (`dungeon.bas`, `InitFog`). The board loads from
   `assets/ansi/_/board-132x60-no-labels.ans` (same map as the no-secrets board **plus**
   bright-blue secret-door tiles). At load, `DetectSecretDoors` scans a pristine `FULL_BOARD`

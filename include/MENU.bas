@@ -266,7 +266,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 15
+    CONST NSET = 16
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -313,7 +313,8 @@ SUB RunSettings
                 CASE 14
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 15: EXIT SUB
+                CASE 15: opt_fov = NOT opt_fov
+                CASE 16: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -354,12 +355,13 @@ SUB RunSettings
                     lbl = "Stat Roll"
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
                 CASE 14: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 15: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        COLOR CYANU, BLACK: PrintCentered 47, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
 END SUB

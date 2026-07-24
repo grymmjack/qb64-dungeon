@@ -118,7 +118,7 @@ SUB DrawTombstones
     DIM coin AS _UNSIGNED LONG, shine AS _UNSIGNED LONG
     coin = _RGB32(&HFF, &HC0, &H20): shine = _RGB32(&HFF, &HF0, &H90)
     FOR r = 1 TO ROOM_N
-        IF VIS(ROOMS(r).cx, ROOMS(r).cy) THEN
+        IF VIS(ROOMS(r).cx, ROOMS(r).cy) AND (NOT opt_fov OR LOS_SEEN(ROOMS(r).cx, ROOMS(r).cy)) THEN
             px = ROOMS(r).cx * CW: py = ROOMS(r).cy * CH
             IF ROOMS(r).monster_fought AND NOT ROOMS(r).malive THEN
                 LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF     ' stone body
@@ -392,13 +392,87 @@ END SUB
 '  END SCREENS
 ' ============================================================================
 
+' ================= LINE-OF-SIGHT FOG-OF-WAR (opt_fov) =================
+
+' A cell blocks sight if it is a black wall (read from the collision board).
+' Assumes _SOURCE has been set to CANVAS_COPY by the caller.
+FUNCTION IsOpaque% (cx AS INTEGER, cy AS INTEGER)
+    IF cx < 0 OR cx > SW - 1 OR cy < 0 OR cy > SH - 1 THEN IsOpaque = TRUE: EXIT FUNCTION
+    IsOpaque = (POINT(cx * CW + CW \ 2, cy * CH + CH \ 2) = BLACK)
+END FUNCTION
+
+' Bresenham ray from the player (x0,y0) to (x1,y1): light every cell until a wall
+' blocks it (the wall itself is seen, but nothing beyond).
+SUB CastRay (x0 AS INTEGER, y0 AS INTEGER, x1 AS INTEGER, y1 AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER, sx AS INTEGER, sy AS INTEGER, derr AS INTEGER, e2 AS INTEGER
+    DIM x AS INTEGER, y AS INTEGER, first AS INTEGER
+    x = x0: y = y0: first = -1
+    dx = ABS(x1 - x0): dy = ABS(y1 - y0)
+    IF x0 < x1 THEN sx = 1 ELSE sx = -1
+    IF y0 < y1 THEN sy = 1 ELSE sy = -1
+    derr = dx - dy
+    DO
+        IF x >= 0 AND x <= SW - 1 AND y >= 0 AND y <= SH - 1 THEN LOS_LIT(x, y) = 1: LOS_SEEN(x, y) = 1
+        IF x = x1 AND y = y1 THEN EXIT SUB
+        IF NOT first THEN IF IsOpaque(x, y) THEN EXIT SUB   ' a wall -- seen, but sight stops here
+        first = 0
+        e2 = 2 * derr
+        IF e2 > -dy THEN derr = derr - dy: x = x + sx
+        IF e2 < dx THEN derr = derr + dx: y = y + sy
+    LOOP
+END SUB
+
+' Recompute which cells are lit from the player's cell (circular radius FOV_R).
+SUB ComputeFOV
+    CONST FOV_R = 10
+    DIM pcx AS INTEGER, pcy AS INTEGER, cx AS INTEGER, cy AS INTEGER, oldsrc AS LONG
+    pcx = c.x \ CW: pcy = c.y \ CH
+    FOR cy = 0 TO SH - 1: FOR cx = 0 TO SW - 1: LOS_LIT(cx, cy) = 0: NEXT cx: NEXT cy
+    oldsrc = _SOURCE: _SOURCE CANVAS_COPY
+    FOR cy = pcy - FOV_R TO pcy + FOV_R
+        FOR cx = pcx - FOV_R TO pcx + FOV_R
+            IF (cx - pcx) * (cx - pcx) + (cy - pcy) * (cy - pcy) <= FOV_R * FOV_R THEN CastRay pcx, pcy, cx, cy
+        NEXT cx
+    NEXT cy
+    _SOURCE oldsrc
+    fov_cx = pcx: fov_cy = pcy
+END SUB
+
+' Fresh line-of-sight state: nothing explored, then reveal the entrance room.
+SUB InitFOV
+    DIM cx AS INTEGER, cy AS INTEGER
+    FOR cy = 0 TO SH - 1: FOR cx = 0 TO SW - 1: LOS_SEEN(cx, cy) = 0: LOS_LIT(cx, cy) = 0: NEXT cx: NEXT cy
+    fov_cx = -999: fov_cy = -999
+    ComputeFOV
+END SUB
+
+' Draw the board through the fog: black everywhere, blit back explored cells,
+' dim the ones not currently in sight.
+SUB FovRender
+    DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, shade AS _UNSIGNED LONG
+    shade = _RGB32(&H00, &H00, &H00, &H99)
+    _DEST CANVAS
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            IF LOS_SEEN(cx, cy) THEN
+                px = cx * CW: py = cy * CH
+                _PUTIMAGE (px, py)-(px + CW - 1, py + CH - 1), CANVAS_COPY, CANVAS, (px, py)-(px + CW - 1, py + CH - 1)
+                IF LOS_LIT(cx, cy) = 0 THEN LINE (px, py)-(px + CW - 1, py + CH - 1), shade, BF   ' dim explored-not-lit
+            END IF
+        NEXT cx
+    NEXT cy
+END SUB
+
+
 SUB StartBoard
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)    ' pristine board (everything visible)
     InitFog                          ' build the fogged CANVAS_COPY + CANVAS (secret areas sealed)
-    render_room_labels
     c.cursor_color = _RGB32(&HFF, &H00, &H00, &HAA)
     c.x = START_CX * CW: c.y = START_CY * CH
     c.prev_x = c.x: c.prev_y = c.y
+    IF opt_fov THEN InitFOV          ' start explored = just the entrance room + line of sight
+    cursor_erase                     ' render the board (full, or through the fog) + labels
     cursor_draw
     _DISPLAY
 END SUB
@@ -570,39 +644,42 @@ END FUNCTION
 
 
 
-SUB render_room_labels
-    DIM AS _UNSIGNED LONG fg_color_blue, fg_color_red
-    fg_color_blue = _RGB32(&H00, &H00, &HAA)
-    fg_color_red = _RGB32(&HFF, &H55, &H55)
-    _DEST CANVAS
+' Draw a room label, but hide it in FOV mode until that spot has been seen.
+SUB PutLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING, fg AS _UNSIGNED LONG)
+    IF opt_fov THEN IF LOS_SEEN(cx, cy) = 0 THEN EXIT SUB
+    COLOR fg, YELLOW
+    _PRINTSTRING (cx * CW, cy * CH), txt
+END SUB
 
-    COLOR fg_color_red, YELLOW
-    _PRINTSTRING (57 * CW, 23 * CH), "START"
-    COLOR fg_color_blue, YELLOW
-    _PRINTSTRING (57 * CW, 25 * CH), "MAIN"
-    _PRINTSTRING (56 * CW, 26 * CH), "GALLERY"
-    _PRINTSTRING (14 * CW, 10 * CH), "ARMORY"
-    _PRINTSTRING (47 * CW, 7 * CH), "THE"
-    _PRINTSTRING (47 * CW, 8 * CH), "CRYPT"
-    _PRINTSTRING (83 * CW, 9 * CH), "WIZ'S"
-    _PRINTSTRING (84 * CW, 10 * CH), "LAB"
-    _PRINTSTRING (93 * CW, 7 * CH), "WIZ'S"
-    _PRINTSTRING (93 * CW, 8 * CH), "TREASURE"
-    _PRINTSTRING (3 * CW, 26 * CH), "KITCHEN"
-    _PRINTSTRING (18 * CW, 23 * CH), "GUARD"
-    _PRINTSTRING (18 * CW, 24 * CH), "ROOM"
-    _PRINTSTRING (18 * CW, 41 * CH), "STORE"
-    _PRINTSTRING (18 * CW, 42 * CH), "ROOM"
-    _PRINTSTRING (49 * CW, 39 * CH), "TORTURE"
-    _PRINTSTRING (49 * CW, 40 * CH), "CHAMBER"
-    _PRINTSTRING (88 * CW, 42 * CH), "QUEEN'S"
-    _PRINTSTRING (88 * CW, 43 * CH), "ANNEX"
-    _PRINTSTRING (87 * CW, 34 * CH), "QUEEN'S"
-    _PRINTSTRING (87 * CW, 35 * CH), "TREASURE"
-    _PRINTSTRING (90 * CW, 27 * CH), "KING'S"
-    _PRINTSTRING (88 * CW, 28 * CH), "LIBRARY"
-    _PRINTSTRING (104 * CW, 21 * CH), "KING'S"
-    _PRINTSTRING (104 * CW, 22 * CH), "TREASURE"
+SUB render_room_labels
+    DIM AS _UNSIGNED LONG b, r
+    b = _RGB32(&H00, &H00, &HAA): r = _RGB32(&HFF, &H55, &H55)
+    _DEST CANVAS
+    PutLabel 57, 23, "START", r
+    PutLabel 57, 25, "MAIN", b
+    PutLabel 56, 26, "GALLERY", b
+    PutLabel 14, 10, "ARMORY", b
+    PutLabel 47, 7, "THE", b
+    PutLabel 47, 8, "CRYPT", b
+    PutLabel 83, 9, "WIZ'S", b
+    PutLabel 84, 10, "LAB", b
+    PutLabel 93, 7, "WIZ'S", b
+    PutLabel 93, 8, "TREASURE", b
+    PutLabel 3, 26, "KITCHEN", b
+    PutLabel 18, 23, "GUARD", b
+    PutLabel 18, 24, "ROOM", b
+    PutLabel 18, 41, "STORE", b
+    PutLabel 18, 42, "ROOM", b
+    PutLabel 49, 39, "TORTURE", b
+    PutLabel 49, 40, "CHAMBER", b
+    PutLabel 88, 42, "QUEEN'S", b
+    PutLabel 88, 43, "ANNEX", b
+    PutLabel 87, 34, "QUEEN'S", b
+    PutLabel 87, 35, "TREASURE", b
+    PutLabel 90, 27, "KING'S", b
+    PutLabel 88, 28, "LIBRARY", b
+    PutLabel 104, 21, "KING'S", b
+    PutLabel 104, 22, "TREASURE", b
 END SUB
 
 

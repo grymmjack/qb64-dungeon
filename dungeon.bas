@@ -43,6 +43,7 @@ opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + doe
 opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
 opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
+opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors

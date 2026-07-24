@@ -161,6 +161,9 @@ DIM SHARED FULL_BOARD AS LONG                     ' pristine board (doors + secr
 DIM SHARED DOOR_X(1 TO 800) AS INTEGER, DOOR_Y(1 TO 800) AS INTEGER
 DIM SHARED DOOR_STRONG(1 TO 800) AS _BYTE, DOOR_BROKEN(1 TO 800) AS _BYTE, DOOR_N AS INTEGER
 DIM SHARED VIS(0 TO 131, 0 TO 60) AS _BYTE        ' 1 = cell currently revealed
+' line-of-sight fog-of-war (opt_fov): LIT = in sight now, SEEN = explored (ever seen)
+DIM SHARED LOS_LIT(0 TO 131, 0 TO 60) AS _BYTE, LOS_SEEN(0 TO 131, 0 TO 60) AS _BYTE
+DIM SHARED fov_cx AS INTEGER, fov_cy AS INTEGER   ' last position FOV was computed from
 DIM SHARED DOORCELL(0 TO 131, 0 TO 60) AS _BYTE   ' 1 = a secret-door cell
 DIM SHARED SECRET(0 TO 131, 0 TO 60) AS _BYTE     ' 1 = fogged (door-connected sealed cell)
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
@@ -173,6 +176,7 @@ DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the 
 DIM SHARED opt_oldschool AS INTEGER   ' TRUE: Dungeon! 2d6-vs-target combat; FALSE: D&D d20/HP combat
 DIM SHARED opt_heroicstats AS INTEGER ' TRUE: roll abilities 4d6-drop-lowest; FALSE: straight 3d6
 DIM SHARED opt_boardgame AS INTEGER   ' TRUE: roll dice + step-limited turns; FALSE: free "computer game" movement
+DIM SHARED opt_fov AS INTEGER         ' TRUE: line-of-sight fog-of-war (explore the map; start in the first room)
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
 ' old-school 3d6 ability scores (rolled in CREATE A CHARACTER) + the stats derived from them
 DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER

@@ -61,6 +61,13 @@ Menu:
     ✔ Add animation to menu @done(23-05-29 17:13)
     ✔ Create menu music @done(26-07-23)
 
+Visibility:
+    ✔ Line-of-Sight fog-of-war (SETTINGS "Line of Sight", default OFF) @done(26-07-23)
+        ✔ Raytraced FOV from the player (Bresenham rays blocked by walls) @done(26-07-23)
+        ✔ Start explored = just the entrance room + what's visible from it @done(26-07-23)
+        ✔ Lit = bright, explored-not-lit = dimmed, never-seen = black @done(26-07-23)
+        ✔ Room labels / tombstones / rival tokens hidden until seen @done(26-07-23)
+
 Board:
     ✔ Render room label text separately @done(23-05-25 23:09)
     ✘ Improve inaccessible blocks with decorations / props @cancelled(23-05-28 00:16)
