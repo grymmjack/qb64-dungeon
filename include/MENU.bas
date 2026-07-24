@@ -166,34 +166,47 @@ SUB FadeOut
 END SUB
 
 
-' Death transition: streaks of blood run down the screen, the whole view reddens,
-' then it fades to black.
+' Death transition: streaks of blood run down and OPAQUELY flood the whole screen
+' solid red, then it slowly fades to black.
 SUB BloodDrip
-    DIM nd AS INTEGER, i AS INTEGER, f AS INTEGER
+    DIM nd AS INTEGER, i AS INTEGER, f AS INTEGER, fill AS INTEGER
     DIM dx(1 TO 80) AS INTEGER, dlen(1 TO 80) AS INTEGER, dsp(1 TO 80) AS INTEGER, dw(1 TO 80) AS INTEGER
-    DIM dark AS _UNSIGNED LONG, bright AS _UNSIGNED LONG, tint AS _UNSIGNED LONG
-    dark = _RGB32(&H72, &H00, &H00): bright = _RGB32(&HC8, &H1A, &H1A): tint = _RGB32(&H55, &H00, &H00, &H07)
-    nd = 70
+    DIM darkred AS _UNSIGNED LONG, brightred AS _UNSIGNED LONG, fillred AS _UNSIGNED LONG
+    darkred = _RGB32(&H98, &H00, &H00): brightred = _RGB32(&HDA, &H20, &H20): fillred = _RGB32(&H80, &H00, &H00)
+    nd = 72
     FOR i = 1 TO nd
         dx(i) = INT(RND * (SW * CW))
-        dlen(i) = -INT(RND * (SH * CH))          ' negative = staggered start delay
-        dsp(i) = 9 + INT(RND * 18)               ' fall speed
-        dw(i) = 3 + INT(RND * 10)                ' streak width
+        dlen(i) = -INT(RND * (SH * CH) * 0.6)    ' staggered start delay
+        dsp(i) = 14 + INT(RND * 20)              ' the drips race ahead...
+        dw(i) = 4 + INT(RND * 11)                ' streak width
     NEXT i
     _DEST CANVAS
-    FOR f = 1 TO 78
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), tint, BF     ' the view slowly reddens
+    fill = 0
+    ' drips run down; a SOLID red flood follows behind them, top-down, covering all
+    FOR f = 1 TO 74
         FOR i = 1 TO nd
             dlen(i) = dlen(i) + dsp(i)
             IF dlen(i) > 0 THEN
-                LINE (dx(i), 0)-(dx(i) + dw(i), dlen(i)), dark, BF
-                LINE (dx(i), dlen(i) - 12)-(dx(i) + dw(i), dlen(i) + 6), bright, BF   ' the running drip head
+                LINE (dx(i), 0)-(dx(i) + dw(i), dlen(i)), darkred, BF
+                LINE (dx(i), dlen(i) - 14)-(dx(i) + dw(i), dlen(i) + 6), brightred, BF   ' running drip head
             END IF
         NEXT i
+        fill = fill + (SH * CH) \ 60             ' ...the solid red flood covers behind them
+        IF fill > 0 THEN LINE (0, 0)-(SW * CW - 1, fill), fillred, BF
         _DISPLAY
         _LIMIT 60
     NEXT f
-    FadeOut                                       ' then to black
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), fillred, BF   ' guarantee the whole screen is solid red
+    _DISPLAY
+    _DELAY 0.35                                          ' hold the blood-soaked screen a beat
+    ' slow fade from red to black
+    FOR f = 1 TO 48
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H0E), BF
+        _DISPLAY
+        _LIMIT 60
+    NEXT f
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
+    _DISPLAY
 END SUB
 
 
