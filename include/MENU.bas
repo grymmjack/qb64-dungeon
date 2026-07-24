@@ -90,6 +90,7 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
         PrintCentered 23, "HIT POINTS  " + _TRIM$(STR$(player_maxhp))
         COLOR CYANU, BLACK
         PrintCentered 25, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
+        COLOR GREY, BLACK: PrintCentered 27, CombatDerivation$(pc)   ' where those bonuses come from
         COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll a new hero      [ENTER] keep this one"
     ELSE
         COLOR CYANU, BLACK: PrintCentered 44, "rolling 3d6 for each ability..."
@@ -568,6 +569,23 @@ SUB ApplyDisplay
 END SUB
 
 
+' Spell out where the D&D combat bonuses come from: to-hit = class base + the
+' attack stat's modifier (STR for fighters, INT for the Wizard), damage adds that
+' same modifier, and AC = class base + the DEX modifier.
+FUNCTION CombatDerivation$ (pc AS INTEGER)
+    DIM baseth AS INTEGER, atkmod AS INTEGER, baseac AS INTEGER, dexmod AS INTEGER, statn AS STRING, s AS STRING
+    baseth = CLASSES(pc).tohit
+    atkmod = player_tohit - baseth
+    baseac = CLASSES(pc).ac
+    dexmod = player_ac - baseac
+    IF pc = 4 THEN statn = "INT" ELSE statn = "STR"
+    s = "To-Hit " + ModStr$(player_tohit) + " = " + ModStr$(baseth) + " class " + ModStr$(atkmod) + " " + statn
+    s = s + "     Dmg " + ModStr$(player_dmgbonus) + " " + statn
+    s = s + "     AC " + _TRIM$(STR$(player_ac)) + " = " + _TRIM$(STR$(baseac)) + " class " + ModStr$(dexmod) + " DEX"
+    CombatDerivation$ = s
+END FUNCTION
+
+
 SUB ShowCharSheet
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, nshow AS INTEGER, inv AS STRING, ln AS STRING
     DIM who AS STRING
@@ -582,6 +600,7 @@ SUB ShowCharSheet
     IF NOT opt_oldschool THEN
         COLOR GREENU, BOXBG
         PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(player_ac)) + "    To-Hit " + ModStr$(player_tohit) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
+        COLOR GREY, BOXBG: PrintCentered 9, CombatDerivation$(player_class)   ' where those bonuses come from
     END IF
     ' wealth line
     COLOR YELLOWU, BOXBG
