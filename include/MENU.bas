@@ -509,7 +509,7 @@ SUB RunSettings
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
         DrawDicePreview 44
-        COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 50, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
 END SUB
@@ -538,15 +538,16 @@ SUB DrawDicePreview (row AS INTEGER)
     x0 = (SW * CW - totw) \ 2
     dy = row * CH
     _DEST CANVAS
-    COLOR GREY, BLACK: PrintCentered row - 1, "your dice"
+    COLOR GREY, BLACK: PrintCentered row - 2, "your dice"   ' row-2: leave room for the point above the die
     x = x0
     FOR i = 1 TO 5
         DrawFontDie x, dy, SD(i), FV(i)
         x = x + WD(i) + gap
     NEXT i
-    ' the d6 -- hand-drawn pips, or the font's numbered six-sider
+    ' the d6 -- hand-drawn pips (nudged down to sit level with the font dice), or
+    ' the font's own numbered six-sider
     IF opt_d6pips THEN
-        DrawDie x, dy, sz, 6
+        DrawDie x, dy + 14, sz, 6
     ELSE
         DrawFontDie x, dy, 6, 6
     END IF
@@ -1056,7 +1057,8 @@ END SUB
 
 
 ' Actual on-screen width of one die face in `sides`' font (proportional fonts
-' report _FONTWIDTH = 0, so the glyph has to be measured instead).
+' report _FONTWIDTH = 0, so the glyph has to be measured instead). Uses the
+' Unicode metric to match _UPRINTSTRING, which is what DrawFontDie renders with.
 FUNCTION DieWidth% (sides AS INTEGER)
     DIM fh AS LONG, w AS INTEGER
     DieWidth = 0
@@ -1065,7 +1067,7 @@ FUNCTION DieWidth% (sides AS INTEGER)
     IF fh <= 0 THEN EXIT FUNCTION
     _DEST CANVAS
     _FONT fh
-    w = _PRINTWIDTH("A")
+    w = _UPRINTWIDTH("A")
     _FONT CH
     DieWidth = w
 END FUNCTION
@@ -1136,14 +1138,17 @@ SUB DrawFontDie (px AS INTEGER, py AS INTEGER, sides AS INTEGER, face AS INTEGER
     _DEST CANVAS
     _FONT fh
     _PRINTMODE _KEEPBACKGROUND          ' vital: pass 2 must not blank pass 1
+    ' _UPRINTSTRING, not _PRINTSTRING: _PRINTSTRING clips each glyph to the font
+    ' CELL, and these dice draw their top vertex ABOVE the cell -- so the point
+    ' gets sliced flat. The Unicode printer renders the whole glyph, point intact.
     IF opt_dicesolid THEN
         COLOR body, BOXBG
-        _PRINTSTRING (px, py), CHR$(65 + code)      ' filled body
+        _UPRINTSTRING (px, py), CHR$(65 + code)      ' filled body
         COLOR ink, BOXBG
-        _PRINTSTRING (px, py), CHR$(97 + code)      ' outline + number over it
+        _UPRINTSTRING (px, py), CHR$(97 + code)      ' outline + number over it
     ELSE
         COLOR body, BOXBG
-        _PRINTSTRING (px, py), CHR$(97 + code)      ' hollow die only
+        _UPRINTSTRING (px, py), CHR$(97 + code)      ' hollow die only
     END IF
     _PRINTMODE _FILLBACKGROUND
     _FONT CH                            ' back to the 8x16 game font
@@ -1152,19 +1157,36 @@ END SUB
 
 ' Tumble n polyhedra, settle on their rolled values, and return the sum.
 FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
+    ShowRollText = ShowRollTextEx(n, sides, FALSE, what)
+END FUNCTION
+
+
+' As ShowRollText, but with `droplow` the lowest die is dimmed where it lands and
+' left OUT of the total -- the font-dice twin of RollPips' drop-lowest display, so
+' 4d6-drop-lowest animates properly whichever D6 Style the player picked.
+FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, what AS STRING)
     DIM v(1 TO 12) AS INTEGER, i AS INTEGER, total AS INTEGER, f AS INTEGER, shown AS INTEGER
     DIM fh AS LONG, dw AS INTEGER, dh AS INTEGER, gap AS INTEGER, rowW AS INTEGER
     DIM dx AS INTEGER, dy AS INTEGER, x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER
     DIM frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS SINGLE
+    DIM lo AS INTEGER, drop AS INTEGER, dxi AS INTEGER
     IF n > 12 THEN n = 12
     total = 0
     FOR i = 1 TO n: v(i) = RollDie(sides): total = total + v(i): NEXT i
-    IF NOT opt_showdice THEN ShowRollText = total: EXIT FUNCTION
+    drop = 0
+    IF droplow AND n > 1 THEN
+        lo = v(1): drop = 1
+        FOR i = 2 TO n
+            IF v(i) < lo THEN lo = v(i): drop = i
+        NEXT i
+        total = total - lo
+    END IF
+    IF NOT opt_showdice THEN ShowRollTextEx = total: EXIT FUNCTION
 
     fh = 0
     IF sides >= 1 AND sides <= 20 THEN fh = DFONT(sides)
     IF fh <= 0 THEN                     ' no die font this size -- plain number tumbler
-        ShowRollText = ShowRollValue(total, n * sides, "rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)))
+        ShowRollTextEx = ShowRollValue(total, n * sides, "rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)))
         EXIT FUNCTION
     END IF
 
@@ -1185,13 +1207,24 @@ FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
         _FONT CH
         COLOR CYANU, BOXBG: PrintCentered y1 \ CH + 1, "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
         FOR i = 1 TO n
-            IF f < settle THEN shown = RollDie(sides) ELSE shown = v(i)
-            DrawFontDie dx + (i - 1) * (dw + gap), dy, sides, shown
+            dxi = dx + (i - 1) * (dw + gap)
+            IF f < settle THEN
+                DrawFontDie dxi, dy, sides, RollDie(sides)
+            ELSE
+                DrawFontDie dxi, dy, sides, v(i)
+                ' the discarded die dims once the dice settle
+                IF i = drop THEN LINE (dxi, dy)-(dxi + dw, dy + dh), _RGB32(&H00, &H00, &H00, &HB4), BF
+            END IF
         NEXT i
         ' the total is a RESULT -- withhold it until the dice have actually landed
         IF n > 1 AND f >= settle THEN
             _FONT CH
-            COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, "sum  " + _TRIM$(STR$(total))
+            COLOR YELLOWU, BOXBG
+            IF drop > 0 THEN
+                PrintCentered y2 \ CH - 1, "drop lowest -- sum  " + _TRIM$(STR$(total))
+            ELSE
+                PrintCentered y2 \ CH - 1, "sum  " + _TRIM$(STR$(total))
+            END IF
         END IF
         IF opt_sfx THEN
             IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05   ' a thunk as they land
@@ -1200,7 +1233,7 @@ FUNCTION ShowRollText% (n AS INTEGER, sides AS INTEGER, what AS STRING)
         _LIMIT rate
     NEXT f
     _DELAY hold
-    ShowRollText = total
+    ShowRollTextEx = total
 END FUNCTION
 
 
@@ -1235,19 +1268,13 @@ END FUNCTION
 ' Roll one ability score, honouring the Stat-Roll setting: straight 3d6, or
 ' 4d6-drop-lowest (the heroic method).  Respects Real Dice + Show Dice.
 FUNCTION RollAbility% ()
-    DIM d(1 TO 4) AS INTEGER, i AS INTEGER, lo AS INTEGER, sum AS INTEGER
     IF opt_heroicstats THEN
         IF opt_realdice THEN
             RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
         ELSEIF opt_d6pips THEN
-            RollAbility = RollPips(4, TRUE)        ' four pip dice, the lowest visibly discarded
+            RollAbility = RollPips(4, TRUE)                        ' four pip dice, lowest discarded
         ELSE
-            FOR i = 1 TO 4: d(i) = RollDie(6): NEXT i
-            lo = d(1)
-            FOR i = 2 TO 4: IF d(i) < lo THEN lo = d(i)
-            NEXT i
-            sum = d(1) + d(2) + d(3) + d(4) - lo
-            RollAbility = ShowRollValue(sum, 18, "4d6 drop lowest")
+            RollAbility = ShowRollTextEx(4, 6, TRUE, "4d6 drop lowest")   ' same, on the font d6
         END IF
     ELSE
         RollAbility = GameRoll(3, 6, 0, "ability score")

@@ -222,8 +222,13 @@ character `Q` printed in the d20 font:
   `_FILLBACKGROUND` would blank pass 1 with pass 2's background.
 - **Never load these `"monospace"`.** That flag squeezes every glyph into a fixed cell narrower
   than the point size (d20 @56pt → a 49px cell) and **clips the polyhedra's left/right points**.
-  Load proportional and measure the real advance with **`_PRINTWIDTH`** (`DieWidth`) —
+  Load proportional and measure the real advance with **`_UPRINTWIDTH`** (`DieWidth`) —
   `_FONTWIDTH` returns 0 for proportional fonts.
+- **Draw with `_UPRINTSTRING`, not `_PRINTSTRING`.** `_PRINTSTRING` clips each glyph to its font
+  **cell**, and these dice draw their top vertex *above* the cell — so `_PRINTSTRING` slices the
+  point off flat (worse on the pointy d20/d8; invisible at rest, obvious once you look at the top
+  edge). `_UPRINTSTRING` renders the whole glyph, point intact. It draws the point *above* the
+  `py` origin, so leave a little headroom above the dice in the layout.
 - Fonts that fail to load leave a handle of `0`; `ShowRollText` then falls back to the plain
   number tumbler (`ShowRollValue`) rather than crashing.
 - The look is player-configurable in SETTINGS and persisted: **Dice Colour** (`opt_dicecolor`,
