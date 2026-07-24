@@ -138,6 +138,17 @@ DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not 
 DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
 DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
+
+' -- Crit/Fumble effects engine (data-driven; see InitEffects) --
+' kind: 0 flavor-only, 1 heal player, 2 extra dmg to foe, 3 self-damage, 4 lose turn, 5 drop gold
+TYPE FXROW
+    say  AS STRING * 96      ' template; tokens {weapon} {mon} {n} are substituted at show time
+    kind AS INTEGER
+    die  AS INTEGER          ' magnitude die for the mechanical effect (0 = none)
+END TYPE
+DIM SHARED CRITFX(1 TO 30) AS FXROW, NCRIT AS INTEGER      ' player critical-hit results
+DIM SHARED PFUMBLE(1 TO 30) AS FXROW, NPFUM AS INTEGER     ' player fumble results
+DIM SHARED MFUMBLE(1 TO 30) AS FXROW, NMFUM AS INTEGER     ' monster natural-1 fumble results
 DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll

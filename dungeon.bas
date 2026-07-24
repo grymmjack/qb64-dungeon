@@ -61,6 +61,7 @@ InitClasses
 InitMonsterTables
 InitDice
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
+InitEffects                      ' load the crit/fumble effect tables
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -320,15 +321,23 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 ' natural 12 -- CRITICAL HIT, always slays
                 ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "crit"
-                Banner "** CRITICAL HIT! **  (natural 12)", "You cleave the " + mon + " in a single blow!   [ press any key ]"
-                CombatPause
+                IF opt_critfumble THEN
+                    DoCrit rm, mon, WeaponName$, 0     ' cinematic + a heroic heal on the killing blow
+                ELSE
+                    Banner "** CRITICAL HIT! **  (natural 12)", "You cleave the " + mon + " in a single blow!   [ press any key ]"
+                    CombatPause
+                END IF
                 ClaimTreasure rm, sm
                 EXIT DO
             ELSEIF last_raw = 2 THEN
-                ' natural 2 -- CRITICAL FUMBLE, the monster strikes hard
-                Sfx "fumble"
-                Banner "** CRITICAL FUMBLE! **  (snake eyes)", "Your blade slips -- the " + mon + " gets a free strike!   [ press any key ]"
-                CombatPause
+                ' natural 2 -- CRITICAL FUMBLE
+                IF opt_critfumble THEN
+                    DoFumble rm, mon, WeaponName$
+                ELSE
+                    Sfx "fumble"
+                    Banner "** CRITICAL FUMBLE! **  (snake eyes)", "Your blade slips -- the " + mon + " gets a free strike!   [ press any key ]"
+                    CombatPause
+                END IF
                 MonsterAttack rm
                 EXIT DO
             ELSEIF sm >= need THEN
@@ -394,12 +403,22 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
-                Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
-                CombatPause
-            ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss
-                Sfx "fumble"
-                Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
-                CombatPause
+                IF opt_critfumble THEN
+                    DoCrit rm, mon, WeaponName$, dmg    ' cinematic: smash-saying -> pause -> bonus event
+                    DrawCombatPanel rm, mon, lead
+                ELSE
+                    Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
+                    CombatPause
+                END IF
+            ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss (and maybe a mishap)
+                IF opt_critfumble THEN
+                    DoFumble rm, mon, WeaponName$
+                    DrawCombatPanel rm, mon, lead
+                ELSE
+                    Sfx "fumble"
+                    Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
+                    CombatPause
+                END IF
             ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
                 dmg = GameRoll(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
@@ -425,7 +444,16 @@ SUB DoCombatDnD (rm AS INTEGER)
 
             ' ---------- monster strikes back (you roll its dice in Real-Dice mode, else shown) ----------
             matk = GameRoll(1, 20, mtohit, "the " + mon + "'s ATTACK -- roll ITS d20")
-            IF matk >= player_ac + item_armor THEN
+            IF opt_critfumble AND last_raw = 1 THEN     ' the monster fumbles: hurts itself or reels
+                DoMonsterFumble rm, mon
+                IF ROOMS(rm).mhp_now <= 0 THEN          ' it may have slain itself
+                    ROOMS(rm).mhp_now = 0
+                    ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
+                    Sfx "treasure"
+                    ClaimTreasure rm, rounds
+                    EXIT SUB
+                END IF
+            ELSEIF matk >= player_ac + item_armor THEN
                 mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
@@ -943,6 +971,7 @@ END SUB
 '$INCLUDE:'include/MENU.bas'
 '$INCLUDE:'include/LORDS.bas'
 '$INCLUDE:'include/PLAYERS.bas'
+'$INCLUDE:'include/EFFECTS.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'
