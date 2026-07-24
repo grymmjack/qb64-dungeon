@@ -381,7 +381,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 21
+    CONST NSET = 22
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -416,6 +416,11 @@ SUB RunSettings
                     IF num_players > 4 THEN num_players = 4
                     IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
                     Sfx "select"
+                CASE 21
+                    opt_combatspeed = opt_combatspeed + delta
+                    IF opt_combatspeed < 0 THEN opt_combatspeed = 3
+                    IF opt_combatspeed > 3 THEN opt_combatspeed = 0
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -448,7 +453,10 @@ SUB RunSettings
                     ApplyDisplay
                 CASE 19: opt_smooth = NOT opt_smooth: ApplyDisplay
                 CASE 20: opt_fov = NOT opt_fov
-                CASE 21: SaveSettings: EXIT SUB
+                CASE 21
+                    opt_combatspeed = opt_combatspeed + 1
+                    IF opt_combatspeed > 3 THEN opt_combatspeed = 0
+                CASE 22: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -508,6 +516,14 @@ SUB RunSettings
                     lbl = "Pixel Smoothing"
                     IF opt_smooth THEN vtxt = "smooth" ELSE vtxt = "crisp pixels"
                 CASE 20: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
+                CASE 21
+                    lbl = "Combat Speed": slider = TRUE
+                    SELECT CASE opt_combatspeed
+                        CASE 0: vtxt = "slow"
+                        CASE 2: vtxt = "fast"
+                        CASE 3: vtxt = "wait for key"
+                        CASE ELSE: vtxt = "normal"
+                    END SELECT
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -799,6 +815,23 @@ SUB WaitKey
     DIM k AS STRING
     DO: k = INKEY$: LOOP UNTIL k = ""              ' drain buffered keys
     DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+END SUB
+
+
+' Pause after a combat action so the result is readable. Slow/Normal/Fast wait a
+' fixed beat (a held key can't blow through, which is what made combat feel too
+' fast); Wait-for-key falls back to WaitKey. Keys pressed during a timed pause are
+' drained afterwards so they don't spill into the next prompt or trigger a round.
+SUB CombatPause
+    DIM d AS SINGLE
+    SELECT CASE opt_combatspeed
+        CASE 0: d = 1.6              ' Slow
+        CASE 1: d = 0.9              ' Normal
+        CASE 2: d = 0.45             ' Fast
+        CASE ELSE: WaitKey: EXIT SUB ' Wait for key (manual)
+    END SELECT
+    _DELAY d
+    DO: LOOP UNTIL INKEY$ = ""       ' drain keys pressed during the pause
 END SUB
 
 

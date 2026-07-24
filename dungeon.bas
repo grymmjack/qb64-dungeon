@@ -50,6 +50,7 @@ opt_dicesolid = TRUE                          ' filled die body with a contrasti
 opt_d6pips = TRUE                             ' d6 rolls use the hand-drawn pip dice, not the font's numbered six
 opt_dicespeed = 1                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
 opt_smooth = FALSE                            ' default: crisp pixel-doubled fullscreen (no bilinear dice shimmer)
+opt_combatspeed = 1                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -271,14 +272,14 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "crit"
                 Banner "** CRITICAL HIT! **  (natural 12)", "You cleave the " + mon + " in a single blow!   [ press any key ]"
-                WaitKey
+                CombatPause
                 ClaimTreasure rm, sm
                 EXIT DO
             ELSEIF last_raw = 2 THEN
                 ' natural 2 -- CRITICAL FUMBLE, the monster strikes hard
                 Sfx "fumble"
                 Banner "** CRITICAL FUMBLE! **  (snake eyes)", "Your blade slips -- the " + mon + " gets a free strike!   [ press any key ]"
-                WaitKey
+                CombatPause
                 MonsterAttack rm
                 EXIT DO
             ELSEIF sm >= need THEN
@@ -341,11 +342,11 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
-                WaitKey
+                CombatPause
             ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss
                 Sfx "fumble"
                 Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
-                WaitKey
+                CombatPause
             ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
                 dmg = GameRoll(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
@@ -354,11 +355,11 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "hit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
-                WaitKey
+                CombatPause
             ELSE                                  ' miss
                 Sfx "miss"
                 Banner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "The " + mon + " dodges your blow.   [ press any key ]"
-                WaitKey
+                CombatPause
             END IF
 
             IF ROOMS(rm).mhp_now <= 0 THEN        ' monster slain
@@ -378,10 +379,10 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
-                WaitKey
+                CombatPause
             ELSE
                 Banner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", "You weather the assault.   [ press any key ]"
-                WaitKey
+                CombatPause
             END IF
 
             IF player_hp <= 0 THEN                ' downed
@@ -392,7 +393,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
                 Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
-                WaitKey
+                CombatPause
                 BloodDrip                         ' blood runs down the screen, fade to black
                 c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
                 player_hp = player_maxhp          ' revived at the entrance
@@ -451,7 +452,7 @@ SUB MonsterAttack (rm AS INTEGER)
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
             Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
-            WaitKey
+            CombatPause
             BloodDrip                           ' blood runs down the screen, fade to black
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
             cursor_erase: cursor_draw: FadeInCurrent   ' the dungeon fades back in at START
@@ -459,14 +460,14 @@ SUB MonsterAttack (rm AS INTEGER)
             lost = gold \ 2: gold = gold - lost
             Sfx "trap"
             Banner mon + " ATTACK (3): SERIOUS WOUND!", "You drop half your treasure (" + _TRIM$(STR$(lost)) + ") and retreat to START.   [ press any key ]"
-            WaitKey
+            CombatPause
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
         CASE 4, 5, 6                             ' LIGHT WOUND
             lost = 1000: IF lost > gold THEN lost = gold
             gold = gold - lost
             Sfx "miss"
             Banner mon + " ATTACK (" + _TRIM$(STR$(r)) + "): LIGHT WOUND!", "You drop " + _TRIM$(STR$(lost)) + " gold, retreat, and lose the turn.   [ press any key ]"
-            WaitKey
+            CombatPause
             c.x = c.prev_x: c.y = c.prev_y
             steps_left = 0: need_roll = TRUE
         CASE 7, 8                                ' STUNNED
@@ -474,12 +475,12 @@ SUB MonsterAttack (rm AS INTEGER)
             gold = gold - lost
             Sfx "miss"
             Banner mon + " ATTACK (" + _TRIM$(STR$(r)) + "): STUNNED!", "You drop " + _TRIM$(STR$(lost)) + " gold.   [ press any key ]"
-            WaitKey
+            CombatPause
             c.x = c.prev_x: c.y = c.prev_y
         CASE ELSE                                ' 9+ MISSED
             Sfx "bump"
             Banner "The " + mon + " MISSES!  (" + _TRIM$(STR$(r)) + ")", "No harm done -- stand and fight again, or flee.   [ press any key ]"
-            WaitKey
+            CombatPause
             c.x = c.prev_x: c.y = c.prev_y
     END SELECT
 END SUB
@@ -522,7 +523,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             line2 = "You claim the " + tname + " -- " + _TRIM$(STR$(ROOMS(rm).treasure)) + " GOLD!"
     END SELECT
     Banner slay, line2 + "   [ press any key ]"
-    WaitKey
+    CombatPause
 END SUB
 
 
