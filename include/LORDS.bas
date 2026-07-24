@@ -307,6 +307,10 @@ SUB SaveSettings
     PRINT #f, "hardcore " + _TRIM$(STR$(opt_hardcore))
     PRINT #f, "critfumble " + _TRIM$(STR$(opt_critfumble))
     PRINT #f, "lootrecovery " + _TRIM$(STR$(opt_lootrecovery))
+    PRINT #f, "mondicecolor " + _TRIM$(STR$(opt_mon_dicecolor))
+    PRINT #f, "mondicesolid " + _TRIM$(STR$(opt_mon_dicesolid))
+    PRINT #f, "mond6pips " + _TRIM$(STR$(opt_mon_d6pips))
+    PRINT #f, "mondicespeed " + _TRIM$(STR$(opt_mon_dicespeed))
     CLOSE #f
 END SUB
 
@@ -346,6 +350,10 @@ SUB LoadSettings
                 CASE "hardcore": opt_hardcore = v
                 CASE "critfumble": opt_critfumble = v
                 CASE "lootrecovery": opt_lootrecovery = v
+                CASE "mondicecolor": opt_mon_dicecolor = v
+                CASE "mondicesolid": opt_mon_dicesolid = v
+                CASE "mond6pips": opt_mon_d6pips = v
+                CASE "mondicespeed": opt_mon_dicespeed = v
             END SELECT
         END IF
     LOOP

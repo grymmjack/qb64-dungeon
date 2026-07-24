@@ -438,7 +438,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 25
+    CONST NSET = 29
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -478,6 +478,16 @@ SUB RunSettings
                     IF opt_combatspeed < 0 THEN opt_combatspeed = 3
                     IF opt_combatspeed > 3 THEN opt_combatspeed = 0
                     Sfx "select"
+                CASE 25
+                    opt_mon_dicecolor = opt_mon_dicecolor + delta
+                    IF opt_mon_dicecolor < 0 THEN opt_mon_dicecolor = 5
+                    IF opt_mon_dicecolor > 5 THEN opt_mon_dicecolor = 0
+                    Sfx "select"
+                CASE 28
+                    opt_mon_dicespeed = opt_mon_dicespeed + delta
+                    IF opt_mon_dicespeed < 0 THEN opt_mon_dicespeed = 3
+                    IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -516,7 +526,15 @@ SUB RunSettings
                 CASE 22: opt_hardcore = NOT opt_hardcore
                 CASE 23: opt_critfumble = NOT opt_critfumble
                 CASE 24: opt_lootrecovery = NOT opt_lootrecovery
-                CASE 25: SaveSettings: EXIT SUB
+                CASE 25
+                    opt_mon_dicecolor = opt_mon_dicecolor + 1
+                    IF opt_mon_dicecolor > 5 THEN opt_mon_dicecolor = 0
+                CASE 26: opt_mon_dicesolid = NOT opt_mon_dicesolid
+                CASE 27: opt_mon_d6pips = NOT opt_mon_d6pips
+                CASE 28
+                    opt_mon_dicespeed = opt_mon_dicespeed + 1
+                    IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
+                CASE 29: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -593,12 +611,28 @@ SUB RunSettings
                 CASE 24
                     lbl = "Loot Recovery"
                     IF opt_lootrecovery THEN vtxt = "reclaim on death" ELSE vtxt = "lost on death"
+                CASE 25: lbl = "  Monster Dice Colour": vtxt = ColorName$(opt_mon_dicecolor): slider = TRUE
+                CASE 26
+                    lbl = "  Monster Dice Finish"
+                    IF opt_mon_dicesolid THEN vtxt = "solid" ELSE vtxt = "hollow outline"
+                CASE 27
+                    lbl = "  Monster D6 Style"
+                    IF opt_mon_d6pips THEN vtxt = "pips" ELSE vtxt = "numbered"
+                CASE 28
+                    lbl = "  Monster Dice Speed": slider = TRUE
+                    SELECT CASE opt_mon_dicespeed
+                        CASE 0: vtxt = "slow"
+                        CASE 2: vtxt = "fast"
+                        CASE 3: vtxt = "instant"
+                        CASE ELSE: vtxt = "normal"
+                    END SELECT
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        DrawDicePreview
+        DrawDicePreview 100, " your dice"                       ' player dice on the right
+        PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
         COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
@@ -609,7 +643,10 @@ END SUB
 ' choices can be judged by eye. Drawn as a 2x3 grid on the RIGHT of the SETTINGS
 ' screen (the list is centred, so the right third is free) -- decoupled from the
 ' list length, which now runs too tall for a bottom row.
-SUB DrawDicePreview
+' Draw the live 2x3 sample grid using the CURRENT dice config, at cell-column
+' `gxc`, headed by `lbl`. Called twice from SETTINGS: player dice (right) and --
+' with the monster config swapped in -- monster dice (left).
+SUB DrawDicePreview (gxc AS INTEGER, lbl AS STRING)
     DIM SD(1 TO 6) AS INTEGER, FV(1 TO 6) AS INTEGER
     DIM idx AS INTEGER, col AS INTEGER, rr AS INTEGER, px AS INTEGER, py AS INTEGER
     DIM gx AS INTEGER, gy AS INTEGER, cellw AS INTEGER, cellh AS INTEGER
@@ -620,9 +657,9 @@ SUB DrawDicePreview
     SD(5) = 4: FV(5) = 4
     SD(6) = 6: FV(6) = 6
     cellw = 84: cellh = 92
-    gx = 100 * CW: gy = 15 * CH               ' top-left of the grid (right side)
+    gx = gxc * CW: gy = 15 * CH
     _DEST CANVAS
-    COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), " your dice"
+    COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
     FOR idx = 1 TO 6
         col = (idx - 1) MOD 2
         rr = (idx - 1) \ 2
@@ -1413,6 +1450,21 @@ END FUNCTION
 
 
 ' The player's chosen dice palette: `body` fills the die, `ink` draws its number.
+' Swap the working dice config to the MONSTER's look for the duration of a monster
+' roll, then restore. Wrap each monster GameRoll/DoRoll in a Push/Pop pair so the
+' player's dice look is never left swapped (even if combat exits mid-roll).
+SUB PushMonsterDice
+    sav_dicecolor = opt_dicecolor: sav_dicesolid = opt_dicesolid
+    sav_d6pips = opt_d6pips: sav_dicespeed = opt_dicespeed
+    opt_dicecolor = opt_mon_dicecolor: opt_dicesolid = opt_mon_dicesolid
+    opt_d6pips = opt_mon_d6pips: opt_dicespeed = opt_mon_dicespeed
+END SUB
+SUB PopMonsterDice
+    opt_dicecolor = sav_dicecolor: opt_dicesolid = sav_dicesolid
+    opt_d6pips = sav_d6pips: opt_dicespeed = sav_dicespeed
+END SUB
+
+
 SUB DiceColors (body AS _UNSIGNED LONG, ink AS _UNSIGNED LONG)
     SELECT CASE opt_dicecolor
         CASE 0: body = _RGB32(&HEC, &HE4, &HD0): ink = _RGB32(&H1A, &H10, &H0C)   ' Bone
@@ -1425,15 +1477,19 @@ SUB DiceColors (body AS _UNSIGNED LONG, ink AS _UNSIGNED LONG)
 END SUB
 
 
-FUNCTION DiceColorName$ ()
-    SELECT CASE opt_dicecolor
-        CASE 0: DiceColorName$ = "Bone"
-        CASE 1: DiceColorName$ = "Blood"
-        CASE 2: DiceColorName$ = "Emerald"
-        CASE 3: DiceColorName$ = "Sapphire"
-        CASE 4: DiceColorName$ = "Gold"
-        CASE ELSE: DiceColorName$ = "Amethyst"
+FUNCTION ColorName$ (idx AS INTEGER)
+    SELECT CASE idx
+        CASE 0: ColorName$ = "Bone"
+        CASE 1: ColorName$ = "Blood"
+        CASE 2: ColorName$ = "Emerald"
+        CASE 3: ColorName$ = "Sapphire"
+        CASE 4: ColorName$ = "Gold"
+        CASE ELSE: ColorName$ = "Amethyst"
     END SELECT
+END FUNCTION
+
+FUNCTION DiceColorName$ ()
+    DiceColorName$ = ColorName$(opt_dicecolor)
 END FUNCTION
 
 

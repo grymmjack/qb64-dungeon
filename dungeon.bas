@@ -53,6 +53,8 @@ opt_smooth = TRUE                             ' default: bilinear-smoothed fulls
 opt_combatspeed = 0                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
 opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
+opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
+opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
 opt_lootrecovery = NOT opt_oldschool          ' default: recoverable loot in D&D mode, lost in classic Dungeon!
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
@@ -490,7 +492,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             END IF
 
             ' ---------- monster strikes back (you roll its dice in Real-Dice mode, else shown) ----------
-            matk = GameRoll(1, 20, mtohit, "the " + mon + "'s ATTACK -- roll ITS d20")
+            PushMonsterDice: matk = GameRoll(1, 20, mtohit, "the " + mon + "'s ATTACK -- roll ITS d20"): PopMonsterDice
             IF opt_critfumble AND last_raw = 1 THEN     ' the monster fumbles: hurts itself or reels
                 DoMonsterFumble rm, mon
                 IF ROOMS(rm).mhp_now <= 0 THEN          ' it may have slain itself
@@ -501,7 +503,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                     EXIT SUB
                 END IF
             ELSEIF last_raw = 20 THEN             ' monster natural 20: crit, auto-hit, DOUBLE damage dice
-                mdmg = GameRoll(2, 6, lvl \ 3, "the " + mon + "'s CRITICAL damage -- roll ITS 2d6"): IF isboss THEN mdmg = mdmg + 3
+                PushMonsterDice: mdmg = GameRoll(2, 6, lvl \ 3, "the " + mon + "'s CRITICAL damage -- roll ITS 2d6"): PopMonsterDice
+                IF isboss THEN mdmg = mdmg + 3
                 IF mdmg < 1 THEN mdmg = 1
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
@@ -511,7 +514,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Banner "** the " + mon + " CRITS you! **  (natural 20)", "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!   [ press any key ]"
                 CombatPause
             ELSEIF matk >= player_ac + item_armor THEN
-                mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
+                PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
+                IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
@@ -594,7 +598,7 @@ END FUNCTION
 SUB MonsterAttack (rm AS INTEGER)
     DIM r AS INTEGER, mon AS STRING, lost AS LONG
     mon = _TRIM$(ROOMS(rm).monster)
-    r = DoRoll(2, 0, "the " + mon + "'s ATTACK -- roll ITS 2d6")   ' Real Dice: you roll for the monster
+    PushMonsterDice: r = DoRoll(2, 0, "the " + mon + "'s ATTACK -- roll ITS 2d6"): PopMonsterDice   ' Real Dice: you roll for the monster
     SELECT CASE r
         CASE 2                                  ' ADVENTURER KILLED!
             lost = gold

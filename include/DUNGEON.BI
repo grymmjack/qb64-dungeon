@@ -238,6 +238,10 @@ DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/B
 DIM SHARED opt_dicesolid AS INTEGER   ' TRUE: filled die body + contrasting number; FALSE: hollow outline
 DIM SHARED opt_d6pips AS INTEGER      ' TRUE: d6 rolls use the hand-drawn pip dice; FALSE: the numbered DPoly d6
 DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant (see DiceTiming)
+' -- a SEPARATE dice look for the MONSTER's rolls (same options; swapped in around monster rolls) --
+DIM SHARED opt_mon_dicecolor AS INTEGER, opt_mon_dicesolid AS INTEGER
+DIM SHARED opt_mon_d6pips AS INTEGER, opt_mon_dicespeed AS INTEGER
+DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INTEGER, sav_dicespeed AS INTEGER
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled (no dice shimmer)
 DIM SHARED opt_combatspeed AS INTEGER ' pause after each combat action: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key (see CombatPause)
 DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle (no action) -> wandering monsters can find you
