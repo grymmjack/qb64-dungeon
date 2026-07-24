@@ -37,6 +37,28 @@ TYPE SECTOR
     mac     AS INTEGER       ' D&D mode: monster armor class (d20+tohit must meet/beat)
 END TYPE
 
+' An individual room block (a colored rectangle within a sector). EVERY reachable
+' room holds a monster guarding a treasure -- detected by flood-fill (DetectRooms).
+TYPE ROOM
+    sec     AS INTEGER        ' which sector/level this block belongs to
+    cells   AS INTEGER        ' size of the block (tiny blocks = labels, no encounter)
+    cx      AS INTEGER        ' centre cell (for the tombstone marker + combat)
+    cy      AS INTEGER
+    monster AS STRING * 18
+    mslot   AS INTEGER        ' which of the level's 3 monsters (per-class kill numbers)
+    is_boss AS INTEGER
+    malive  AS INTEGER
+    mhp     AS INTEGER
+    mhp_now AS INTEGER
+    mac     AS INTEGER
+    treasure AS INTEGER
+    treasure_name AS STRING * 22
+    treasure_item AS INTEGER
+    looted  AS INTEGER
+    monster_fought AS INTEGER
+    player_died AS INTEGER
+END TYPE
+
 TYPE CURSOR
     x            AS INTEGER
     y            AS INTEGER
@@ -94,6 +116,9 @@ DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
 DIM SHARED AS _UNSIGNED LONG WHITE, GREY, REDU, GREENU, YELLOWU, CYANU, BOXBG
 DIM SHARED BOARD_ANSI AS STRING
 DIM SHARED SECTORS(1 TO 9) AS SECTOR
+' individual room blocks (per-block encounters), detected from the board art
+DIM SHARED ROOMS(1 TO 400) AS ROOM, ROOM_N AS INTEGER
+DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
 DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll

@@ -104,6 +104,95 @@ SUB DetectDoors
 END SUB
 
 
+' Flood-fill the board's coloured room blocks into individual ROOMs, one per
+' connected block of a sector's colour, recording a centre cell and cell->room
+' map (ROOMAT). Every reachable room later gets its own monster + treasure.
+' Draw a small grey headstone on every room whose monster has been slain, so the
+' board shows at a glance which rooms are cleared. (Rendered onto CANVAS after a
+' fresh board blit, so it rides along with cursor_draw.)
+SUB DrawTombstones
+    DIM r AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
+    grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
+    _DEST CANVAS
+    FOR r = 1 TO ROOM_N
+        IF ROOMS(r).monster_fought AND NOT ROOMS(r).malive THEN
+            IF VIS(ROOMS(r).cx, ROOMS(r).cy) THEN
+                px = ROOMS(r).cx * CW: py = ROOMS(r).cy * CH
+                LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF     ' stone body
+                LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF          ' rounded top
+                LINE (px + CW \ 2, py + 6)-(px + CW \ 2, py + CH - 3), dark     ' cross (vertical)
+                LINE (px + 2, py + 9)-(px + CW - 3, py + 9), dark               ' cross (horizontal)
+            END IF
+        END IF
+    NEXT r
+END SUB
+
+
+SUB DetectRooms
+    DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER
+    DIM oldsrc AS LONG
+    ROOM_N = 0
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1: ROOMAT(cx, cy) = 0: NEXT cx
+    NEXT cy
+    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    FOR cy = 1 TO SH - 2
+        FOR cx = 1 TO SW - 1
+            IF ROOMAT(cx, cy) = 0 THEN
+                sec = SECTOR.get_by_xy(cx * CW, cy * CH)
+                IF sec >= 1 THEN
+                    IF POINT(cx * CW + CW \ 2, cy * CH + CH \ 2) = SECTORS(sec).kolor THEN
+                        IF ROOM_N < UBOUND(ROOMS) THEN
+                            ROOM_N = ROOM_N + 1
+                            FloodRoom cx, cy, sec, ROOM_N
+                        END IF
+                    END IF
+                END IF
+            END IF
+        NEXT cx
+    NEXT cy
+    _SOURCE oldsrc
+END SUB
+
+
+' BFS one room block (same sector + colour, 4-connected); record its centre cell.
+SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
+    DIM head AS INTEGER, tail AS INTEGER, x AS INTEGER, y AS INTEGER
+    DIM minx AS INTEGER, maxx AS INTEGER, miny AS INTEGER, maxy AS INTEGER
+    DIM kol AS _UNSIGNED LONG
+    kol = SECTORS(sec).kolor
+    head = 0: tail = 0
+    QX(0) = sx: QY(0) = sy: ROOMAT(sx, sy) = rid: tail = 1
+    minx = sx: maxx = sx: miny = sy: maxy = sy
+    DO WHILE head < tail
+        x = QX(head): y = QY(head): head = head + 1
+        IF x < minx THEN minx = x
+        IF x > maxx THEN maxx = x
+        IF y < miny THEN miny = y
+        IF y > maxy THEN maxy = y
+        RoomVisit x - 1, y, sec, rid, kol, tail
+        RoomVisit x + 1, y, sec, rid, kol, tail
+        RoomVisit x, y - 1, sec, rid, kol, tail
+        RoomVisit x, y + 1, sec, rid, kol, tail
+    LOOP
+    ROOMS(rid).sec = sec
+    ROOMS(rid).cells = tail                 ' block size (tail = cells enqueued)
+    ROOMS(rid).cx = (minx + maxx) \ 2
+    ROOMS(rid).cy = (miny + maxy) \ 2
+END SUB
+
+
+SUB RoomVisit (x AS INTEGER, y AS INTEGER, sec AS INTEGER, rid AS INTEGER, kol AS _UNSIGNED LONG, tail AS INTEGER)
+    IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT SUB
+    IF ROOMAT(x, y) <> 0 THEN EXIT SUB
+    IF POINT(x * CW + CW \ 2, y * CH + CH \ 2) <> kol THEN EXIT SUB
+    IF SECTOR.get_by_xy(x * CW, y * CH) <> sec THEN EXIT SUB
+    ROOMAT(x, y) = rid
+    QX(tail) = x: QY(tail) = y: tail = tail + 1
+END SUB
+
+
 ' Re-roll which doors are "strong" (must be broken) -- about 1 in 6 -- and clear
 ' the broken flags.  Called each game so a fresh dungeon reinforces new doors.
 SUB MarkStrongDoors
@@ -183,6 +272,7 @@ SUB InitFog
     FOR i = 1 TO SD_N: DOORCELL(SD_X(i), SD_Y(i)) = 1: NEXT i
     DetectDoors                          ' regular (brown) doors -> DOOR arrays
     MarkStrongDoors                      ' re-roll which ones are reinforced this game
+    DetectRooms                          ' flood-fill the coloured room blocks -> ROOMS / ROOMAT
 
     ' 1) BFS the public area from START (doors are treated as walls)
     _SOURCE FULL_BOARD
@@ -485,10 +575,12 @@ SUB DrawDebug
             IF ABS(SD_X(i) - cx) <= 2 AND ABS(SD_Y(i) - cy) <= 2 THEN nearsd = -1
         END IF
     NEXT i
-    ' current room flags
-    IF sec >= 1 THEN
-        fought = YN$(SECTORS(sec).monster_fought): died = YN$(SECTORS(sec).player_died)
-        boss = YN$(SECTORS(sec).is_boss): loot = YN$(SECTORS(sec).looted)
+    ' current room flags (the room block under the cursor)
+    DIM rmid AS INTEGER
+    rmid = ROOMAT(cx, cy)
+    IF rmid >= 1 THEN
+        fought = YN$(ROOMS(rmid).monster_fought): died = YN$(ROOMS(rmid).player_died)
+        boss = YN$(ROOMS(rmid).is_boss): loot = YN$(ROOMS(rmid).looted)
     ELSE
         fought = "-": died = "-": boss = "-": loot = "-"
     END IF
@@ -516,7 +608,7 @@ SUB DrawDebug
     _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
     _PRINTSTRING (1 * CW, 1 * CH), "sector " + _TRIM$(STR$(sec)) + "   moves " + _TRIM$(STR$(moves_made)) + "   time " + MMSS$(el)
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " door:" + YN$(ondoor) + " secret:" + YN$(onsecret) + " nearSD:" + YN$(nearsd)
-    _PRINTSTRING (1 * CW, 3 * CH), "room: fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
+    _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
     _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn
 END SUB

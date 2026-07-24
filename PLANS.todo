@@ -40,6 +40,12 @@ Doors:
     ☐ Add level door (white)   [needs a white-door tile painted into the board art]
 
 Rooms:
+    ✔ Per-room encounters: EVERY room block (all levels incl. 1) has its own monster @done(26-07-23)
+        ✔ Flood-fill detects room blocks (DetectRooms -> ROOMS/ROOMAT), 90+ rooms @done(26-07-23)
+        ✔ Each room rolls its own monster + treasure from its level's pool @done(26-07-23)
+        ✔ Tombstone icon drawn on rooms whose monster is defeated @done(26-07-23)
+        ✔ On death, drop ALL treasure + gold + special cards (DropEverything) @done(26-07-23)
+        ✔ Entrance chamber + tiny label blocks stay safe (no encounter) @done(26-07-23)
     ✔ Add room type and define properties: @done(26-07-23)
         x, y, w, h, was_looted, monster_fought, player_died, monster_died, has_level_key, is_boss_room
         ✔ was_looted: player found treasure @done(26-07-23)

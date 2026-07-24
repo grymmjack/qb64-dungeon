@@ -65,6 +65,7 @@ END SUB
 SUB cursor_draw
     DIM p AS INTEGER
     _DEST CANVAS
+    DrawTombstones                       ' grey headstones on cleared rooms
     ' other hot-seat players' tokens (drawn under the active cursor)
     IF num_players > 1 THEN
         FOR p = 1 TO num_players

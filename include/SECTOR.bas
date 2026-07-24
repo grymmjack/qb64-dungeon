@@ -110,40 +110,44 @@ END SUB
 ' treasure from that level's pool; one deep room becomes the boss lair.
 
 SUB RandomizeRooms
-    DIM i AS INTEGER, m AS INTEGER, t AS INTEGER, bossroom AS INTEGER
-    FOR i = 1 TO 9
-        SECTORS(i).monster = "": SECTORS(i).malive = FALSE: SECTORS(i).is_boss = FALSE
-        SECTORS(i).looted = FALSE: SECTORS(i).treasure = 0: SECTORS(i).treasure_name = "": SECTORS(i).treasure_item = 0
-        SECTORS(i).monster_fought = FALSE: SECTORS(i).player_died = FALSE
-    NEXT i
-    ' sectors 2..9 correspond to levels 2..9; store the number for THIS player's class
-    FOR i = 2 TO 9
-        m = RollDie(3): t = RollDie(3)
-        SECTORS(i).monster = MON_NAME(i, m): SECTORS(i).mnum = MON_N(i, m, player_class)
-        SECTORS(i).mslot = m                        ' remember the slot for per-player kill numbers
-        SECTORS(i).malive = TRUE
-        SECTORS(i).treasure_name = TRE_NAME(i, t): SECTORS(i).treasure = TRE_GOLD(i, t)
-        SECTORS(i).treasure_item = TRE_ITEM(i, t)
-        ' D&D-mode stats scale with the level: deeper monsters are tougher and harder to hit
-        SECTORS(i).mhp = i * 4 + RollDie(6) + 2: SECTORS(i).mhp_now = SECTORS(i).mhp
-        SECTORS(i).mac = 9 + i
-    NEXT i
-    ' one deep room (levels 6-9) holds the boss + a great hoard. Bosses are "-"
-    ' for Hero/Elf (need a Magic Sword) and merely brutal for Superhero/Wizard.
-    bossroom = RollDie(4) + 5
-    SECTORS(bossroom).is_boss = TRUE
-    SECTORS(bossroom).monster = BOSS_NAME(RollDie(4))
-    SELECT CASE player_class
-        CASE 1, 2: SECTORS(bossroom).mnum = 13
-        CASE 3: SECTORS(bossroom).mnum = 11
-        CASE ELSE: SECTORS(bossroom).mnum = 12
-    END SELECT
-    SECTORS(bossroom).treasure_name = "DRAGON'S HOARD"
-    SECTORS(bossroom).treasure = SECTORS(bossroom).treasure + 6000
-    SECTORS(bossroom).treasure_item = 0
-    ' the boss is a brutal D&D fight: fat HP pool, hard to hit
-    SECTORS(bossroom).mhp = 45 + bossroom * 3 + RollDie(10): SECTORS(bossroom).mhp_now = SECTORS(bossroom).mhp
-    SECTORS(bossroom).mac = 19
+    ' EVERY detected room gets its own monster + treasure from its level's pool.
+    ' (Call DetectRooms first -- done in StartBoard/InitFog -- so ROOMS is populated.)
+    DIM r AS INTEGER, sec AS INTEGER, m AS INTEGER, t AS INTEGER, startroom AS INTEGER
+    DIM bossroom AS INTEGER, ndeep AS INTEGER
+    DIM deeproom(1 TO 400) AS INTEGER
+    CONST MIN_ROOM = 4                          ' blocks smaller than this are labels, not rooms
+    startroom = ROOMAT(START_CX, START_CY)      ' the entrance chamber stays safe
+    ndeep = 0
+    FOR r = 1 TO ROOM_N
+        sec = ROOMS(r).sec
+        ROOMS(r).monster_fought = FALSE: ROOMS(r).player_died = FALSE
+        ROOMS(r).looted = FALSE: ROOMS(r).is_boss = FALSE
+        IF r = startroom OR ROOMS(r).cells < MIN_ROOM THEN
+            ROOMS(r).monster = "": ROOMS(r).malive = FALSE
+            ROOMS(r).treasure = 0: ROOMS(r).treasure_name = "": ROOMS(r).treasure_item = 0
+        ELSE
+            m = RollDie(3): t = RollDie(3)
+            ROOMS(r).monster = MON_NAME(sec, m): ROOMS(r).mslot = m
+            ROOMS(r).malive = TRUE
+            ROOMS(r).treasure_name = TRE_NAME(sec, t): ROOMS(r).treasure = TRE_GOLD(sec, t)
+            ROOMS(r).treasure_item = TRE_ITEM(sec, t)
+            ROOMS(r).mhp = sec * 4 + RollDie(6) + 2: ROOMS(r).mhp_now = ROOMS(r).mhp
+            ROOMS(r).mac = 9 + sec
+            IF sec >= 6 THEN ndeep = ndeep + 1: deeproom(ndeep) = r
+        END IF
+    NEXT r
+    ' one deep room becomes the boss lair (a brutal fight + a great hoard)
+    IF ndeep > 0 THEN
+        bossroom = deeproom(RollDie(ndeep))
+        sec = ROOMS(bossroom).sec
+        ROOMS(bossroom).is_boss = TRUE
+        ROOMS(bossroom).monster = BOSS_NAME(RollDie(4))
+        ROOMS(bossroom).treasure_name = "DRAGON'S HOARD"
+        ROOMS(bossroom).treasure = ROOMS(bossroom).treasure + 6000
+        ROOMS(bossroom).treasure_item = 0
+        ROOMS(bossroom).mhp = 45 + sec * 3 + RollDie(10): ROOMS(bossroom).mhp_now = ROOMS(bossroom).mhp
+        ROOMS(bossroom).mac = 19
+    END IF
 END SUB
 
 

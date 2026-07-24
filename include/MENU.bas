@@ -405,18 +405,26 @@ SUB ScryView
         cursor_erase: cursor_draw: DrawHUD: _DISPLAY
         EXIT SUB
     END IF
+    DIM r AS INTEGER, rtot(1 TO 9) AS INTEGER, rclr(1 TO 9) AS INTEGER, gleft(1 TO 9) AS LONG
+    FOR i = 1 TO 9: rtot(i) = 0: rclr(i) = 0: gleft(i) = 0: NEXT i
+    FOR r = 1 TO ROOM_N
+        i = ROOMS(r).sec
+        IF LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN          ' an encounter room
+            rtot(i) = rtot(i) + 1
+            IF NOT ROOMS(r).malive THEN rclr(i) = rclr(i) + 1
+            IF NOT ROOMS(r).looted THEN gleft(i) = gleft(i) + ROOMS(r).treasure
+        END IF
+    NEXT r
     _DEST CANVAS
-    LINE (20 * CW, 8 * CH)-(112 * CW, 45 * CH), BOXBG, BF
-    LINE (20 * CW, 8 * CH)-(112 * CW, 45 * CH), CYANU, B
-    COLOR CYANU, BOXBG: PrintCentered 10, "-=  C R Y S T A L   B A L L  =-"
-    FOR i = 2 TO 9
-        y = 12 + (i - 2) * 4
-        IF SECTORS(i).malive THEN mons = SECTORS(i).monster ELSE mons = "(cleared)"
-        IF SECTORS(i).looted THEN tre = "looted" ELSE tre = SECTORS(i).treasure_name
+    LINE (18 * CW, 6 * CH)-(114 * CW, 47 * CH), BOXBG, BF
+    LINE (18 * CW, 6 * CH)-(114 * CW, 47 * CH), CYANU, B
+    COLOR CYANU, BOXBG: PrintCentered 8, "-=  C R Y S T A L   B A L L  =-"
+    FOR i = 1 TO 9
+        y = 11 + (i - 1) * 3
         COLOR WHITE, BOXBG: PrintCentered y, SECTORS(i).label
-        COLOR GREY, BOXBG: PrintCentered y + 1, mons + "   guarding   " + tre
+        COLOR GREY, BOXBG: PrintCentered y + 1, _TRIM$(STR$(rclr(i))) + "/" + _TRIM$(STR$(rtot(i))) + " rooms cleared    " + _TRIM$(STR$(gleft(i))) + " gold still guarded"
     NEXT i
-    COLOR YELLOWU, BOXBG: PrintCentered 43, "[ press any key ]"
+    COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
     _DISPLAY
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY

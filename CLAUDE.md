@@ -117,9 +117,21 @@ Environment specifics that dictate this approach:
   so arrows and the numpad work anywhere WASD does. SETTINGS also carry **volume sliders** (Music/SFX/Voice, `opt_*vol` 0-10; all effects
   route through `Tone`, music through `_SNDVOL music_handle`) and a **Voice** toggle that blips
   per glyph in the typewriter **`ScrollText`** window (used for the game-open narration).
-  **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
-  authentic monster + treasure from that level's pool (`InitMonsterTables`), and one deep
-  sector becomes the boss lair (`is_boss`). Each monster carries its exact **per-class** 2d6
+  **Per-room encounters, rolled fresh each game.** `DetectRooms` (BOARD.bas) flood-fills the
+  board's coloured blocks into ~90 individual `ROOMS()` (cell→room map in `ROOMAT()`), skipping
+  the entrance chamber and tiny label blocks (`ROOM.cells < 4`). `RandomizeRooms` then gives
+  EVERY room its own authentic monster + treasure from its level's pool (`InitMonsterTables`;
+  sector 1 included), with one deep room the boss lair (`is_boss`). Stepping onto a room cell
+  looks up `ROOMAT` and fights that room's monster — `DoCombat`/`DoCombatDnD`/`MonsterAttack`/
+  `ClaimTreasure` all take a **room index** and read `ROOMS(rm)` (the level label still comes
+  from `ROOMS(rm).sec` → `SECTORS`). `DrawTombstones` paints a headstone on each cleared room
+  (via `cursor_draw`); dying calls `DropEverything` (gold + all special cards). `SECTOR`'s old
+  monster fields are now vestigial. **Hot-seat multiplayer** (`include/PLAYERS.bas`): SETTINGS
+  **Players** (1-4; >1 forces Boardgame ON). The active player's state IS the working globals;
+  `PLAYERS(1..4)` parks each between turns via `Load/SaveActivePlayer`, `SetupPlayers` runs each
+  through class-select + roll-up + `PromptName$`, `EndPlayerTurn`/`NextActivePlayer`/`AnnounceTurn`
+  pass the seat, and `cursor_draw` shows every player's token (`PLAYER.kolor`).
+  Each monster carries its exact **per-class** 2d6
   kill numbers from the cards (`MON_N[level,slot,class]`; `13` = the "-" that needs a Magic
   Sword), and combat targets the player-class number directly. A missed attack rolls the
   authentic **MONSTER ATTACK TABLE** (`MonsterAttack`: killed / serious wound / light wound /

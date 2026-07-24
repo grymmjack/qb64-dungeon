@@ -99,12 +99,12 @@ FUNCTION PlayGame%
     DIM i AS INTEGER
     DIM hint AS STRING
     SetupPlayers                     ' build every player (multiplayer: class + 3d6 roll-up + name each)
-    RandomizeRooms                   ' one shared board of monsters + treasures
     game_start = TIMER               ' start the run timer
     moves_made = 0: turn_num = 0: steps_left = 0
     cur_player = 1
 
-    StartBoard                       ' build the board + fog (this resets the cursor to START)
+    StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
+    RandomizeRooms                   ' give every detected room its own monster + treasure
     LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
     need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
 
@@ -182,10 +182,10 @@ FUNCTION PlayGame%
                     ' returning to the entrance patches you up (D&D mode)
                     IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN player_hp = player_maxhp
                     IF InRoomNow THEN
-                        sec = SECTOR.get_by_xy(c.x, c.y)
+                        sec = ROOMAT(c.x \ CW, c.y \ CH)   ' which room block are we standing in?
                         IF sec >= 1 THEN
                             ' a monster guards this room's treasure?
-                            IF SECTORS(sec).malive AND LEN(SECTORS(sec).monster) > 0 THEN
+                            IF ROOMS(sec).malive AND LEN(_TRIM$(ROOMS(sec).monster)) > 0 THEN
                                 res = DoCombat(sec)
                                 IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
                             END IF
@@ -209,36 +209,37 @@ FUNCTION PlayGame%
 END FUNCTION
 
 
-FUNCTION DoCombat% (sec AS INTEGER)
-    DIM k AS STRING
-    DIM AS INTEGER d1, d2, sm, need, target, unbeatable
+FUNCTION DoCombat% (rm AS INTEGER)
+    DIM k AS STRING, mon AS STRING
+    DIM AS INTEGER sec, sm, need, target, unbeatable
     DIM lead AS STRING, p2 AS STRING, whatguards AS STRING
     DoCombat = 0
-    SECTORS(sec).monster_fought = TRUE
+    sec = ROOMS(rm).sec                            ' the room's dungeon level (label + kill numbers)
+    mon = _TRIM$(ROOMS(rm).monster)
+    ROOMS(rm).monster_fought = TRUE
     IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
-        DoCombatDnD sec
+        DoCombatDnD rm
         cursor_erase: cursor_draw: _DISPLAY
         EXIT FUNCTION
     END IF
     ' the kill number depends on the ACTIVE player's class (matters in hot-seat)
-    IF SECTORS(sec).is_boss THEN
+    IF ROOMS(rm).is_boss THEN
         SELECT CASE player_class
             CASE 1, 2: need = 13
             CASE 3: need = 11
             CASE ELSE: need = 12
         END SELECT
     ELSE
-        need = MON_N(sec, SECTORS(sec).mslot, player_class)
+        need = MON_N(sec, ROOMS(rm).mslot, player_class)
     END IF
     target = need - item_sword                ' the raw 2d6 the player must roll (Magic Sword helps)
     unbeatable = (target > 12)                ' "-" on the card: needs a stronger blade
     IF target < 2 THEN target = 2
-    DoCombat = 0
 
-    IF SECTORS(sec).is_boss THEN lead = "The BOSS " + SECTORS(sec).monster ELSE lead = "A " + SECTORS(sec).monster
+    IF ROOMS(rm).is_boss THEN lead = "The BOSS " + mon ELSE lead = "A " + mon
     ' the treasure is face-down under the monster -- unless the ESP Medallion peeks it
     whatguards = " guards the " + SECTORS(sec).label + "!"
-    IF item_esp THEN whatguards = " guards a " + SECTORS(sec).treasure_name + "!"
+    IF item_esp THEN whatguards = " guards a " + _TRIM$(ROOMS(rm).treasure_name) + "!"
     IF unbeatable THEN
         p2 = "Only a Magic Sword can harm it -- [ESC] FLEE"
     ELSE
@@ -253,29 +254,29 @@ FUNCTION DoCombat% (sec AS INTEGER)
             c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
             EXIT DO
         ELSEIF k = " " AND NOT unbeatable THEN
-            sm = DoRoll(2, item_sword, "attacking the " + SECTORS(sec).monster)
+            sm = DoRoll(2, item_sword, "attacking the " + mon)
             IF last_raw = 12 THEN
                 ' natural 12 -- CRITICAL HIT, always slays
-                SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
+                ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "crit"
-                Banner "** CRITICAL HIT! **  (natural 12)", "You cleave the " + SECTORS(sec).monster + " in a single blow!   [ press any key ]"
+                Banner "** CRITICAL HIT! **  (natural 12)", "You cleave the " + mon + " in a single blow!   [ press any key ]"
                 WaitKey
-                ClaimTreasure sec, sm
+                ClaimTreasure rm, sm
                 EXIT DO
             ELSEIF last_raw = 2 THEN
                 ' natural 2 -- CRITICAL FUMBLE, the monster strikes hard
                 Sfx "fumble"
-                Banner "** CRITICAL FUMBLE! **  (snake eyes)", "Your blade slips -- the " + SECTORS(sec).monster + " gets a free strike!   [ press any key ]"
+                Banner "** CRITICAL FUMBLE! **  (snake eyes)", "Your blade slips -- the " + mon + " gets a free strike!   [ press any key ]"
                 WaitKey
-                MonsterAttack sec
+                MonsterAttack rm
                 EXIT DO
             ELSEIF sm >= need THEN
-                SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
+                ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "treasure"
-                ClaimTreasure sec, sm
+                ClaimTreasure rm, sm
                 EXIT DO
             ELSE
-                MonsterAttack sec               ' failed -- roll on the Monster Attack Table
+                MonsterAttack rm                ' failed -- roll on the Monster Attack Table
                 EXIT DO
             END IF
         END IF
@@ -296,22 +297,23 @@ END FUNCTION
 '  until the monster drops (win + treasure) or the player is downed (lose gold,
 '  dragged back to START and revived). ESC flees; wounds persist if you return.
 ' ===========================================================================
-SUB DoCombatDnD (sec AS INTEGER)
+SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING
-    DIM AS INTEGER lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
+    DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
     DIM lost AS LONG
-    mon = SECTORS(sec).monster
-    isboss = SECTORS(sec).is_boss
-    lvl = sec                                   ' sector index doubles as dungeon level 2..9
+    sec = ROOMS(rm).sec
+    mon = _TRIM$(ROOMS(rm).monster)
+    isboss = ROOMS(rm).is_boss
+    lvl = sec                                   ' sector index doubles as dungeon level 1..9
     mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
     thb = player_tohit                          ' final to-hit incl. ability modifier
-    IF SECTORS(sec).mhp_now <= 0 THEN SECTORS(sec).mhp_now = SECTORS(sec).mhp   ' fresh fight
+    IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
     rounds = 0
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
 
     DO
         _LIMIT 60
-        DrawCombatPanel sec, mon, lead
+        DrawCombatPanel rm, mon, lead
         k = INKEY$
         IF k = CHR$(27) THEN                     ' flee -- back out the way you came
             c.x = c.prev_x: c.y = c.prev_y
@@ -323,7 +325,7 @@ SUB DoCombatDnD (sec AS INTEGER)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
                 dmg = GameRoll(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
-                SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
+                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 Sfx "crit"
                 Banner "** CRITICAL HIT! **  (natural 20)", "You savage the " + mon + " for " + _TRIM$(STR$(dmg)) + " damage!   [ press any key ]"
                 WaitKey
@@ -331,24 +333,24 @@ SUB DoCombatDnD (sec AS INTEGER)
                 Sfx "fumble"
                 Banner "** FUMBLE! **  (natural 1)", "Your attack goes wide of the " + mon + ".   [ press any key ]"
                 WaitKey
-            ELSEIF atk >= SECTORS(sec).mac THEN   ' hit
+            ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
                 dmg = GameRoll(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
-                SECTORS(sec).mhp_now = SECTORS(sec).mhp_now - dmg
+                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 Sfx "hit"
-                Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(SECTORS(sec).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
+                Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
                 WaitKey
             ELSE                                  ' miss
                 Sfx "miss"
-                Banner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(SECTORS(sec).mac)) + ")", "The " + mon + " dodges your blow.   [ press any key ]"
+                Banner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "The " + mon + " dodges your blow.   [ press any key ]"
                 WaitKey
             END IF
 
-            IF SECTORS(sec).mhp_now <= 0 THEN     ' monster slain
-                SECTORS(sec).mhp_now = 0
-                SECTORS(sec).malive = FALSE: SECTORS(sec).looted = TRUE
+            IF ROOMS(rm).mhp_now <= 0 THEN        ' monster slain
+                ROOMS(rm).mhp_now = 0
+                ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "treasure"
-                ClaimTreasure sec, rounds
+                ClaimTreasure rm, rounds
                 EXIT SUB
             END IF
 
@@ -367,11 +369,12 @@ SUB DoCombatDnD (sec AS INTEGER)
 
             IF player_hp <= 0 THEN                ' downed
                 player_hp = 0
-                SECTORS(sec).player_died = TRUE
-                DrawCombatPanel sec, mon, lead
+                ROOMS(rm).player_died = TRUE
+                DrawCombatPanel rm, mon, lead
                 lost = gold: gold = 0
+                DropEverything                    ' drop gold AND the special cards
                 Sfx "lose"
-                Banner "YOU ARE DOWNED by the " + mon + "!", "You lose all your treasure (" + _TRIM$(STR$(lost)) + ") and are dragged back to START.   [ press any key ]"
+                Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
                 WaitKey
                 c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
                 player_hp = player_maxhp          ' revived at the entrance
@@ -384,7 +387,7 @@ END SUB
 
 
 ' Draw the D&D combat panel: monster + player HP bars and the action prompt.
-SUB DrawCombatPanel (sec AS INTEGER, mon AS STRING, lead AS STRING)
+SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     DIM AS INTEGER bx, by, bw, bh
     bx = 16: by = 39: bw = 100: bh = 10
     _DEST CANVAS
@@ -392,7 +395,7 @@ SUB DrawCombatPanel (sec AS INTEGER, mon AS STRING, lead AS STRING)
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
     COLOR YELLOWU, BOXBG: PrintCentered by + 1, lead + " blocks your path!"
     COLOR REDU, BOXBG
-    PrintCentered by + 3, mon + "   " + HpBar$(SECTORS(sec).mhp_now, SECTORS(sec).mhp, 22) + "  " + _TRIM$(STR$(SECTORS(sec).mhp_now)) + "/" + _TRIM$(STR$(SECTORS(sec).mhp)) + " HP   AC " + _TRIM$(STR$(SECTORS(sec).mac))
+    PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
     COLOR GREENU, BOXBG
     PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac))
     COLOR CYANU, BOXBG: PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
@@ -418,16 +421,17 @@ END FUNCTION
 
 ' Authentic DUNGEON! MONSTER ATTACK TABLE: when your attack fails, the monster
 ' strikes back -- roll 2d6 and apply the result.
-SUB MonsterAttack (sec AS INTEGER)
+SUB MonsterAttack (rm AS INTEGER)
     DIM r AS INTEGER, mon AS STRING, lost AS LONG
-    mon = SECTORS(sec).monster
+    mon = _TRIM$(ROOMS(rm).monster)
     r = DoRoll(2, 0, "the " + mon + "'s ATTACK -- roll ITS 2d6")   ' Real Dice: you roll for the monster
     SELECT CASE r
         CASE 2                                  ' ADVENTURER KILLED!
-            lost = gold: gold = 0
-            SECTORS(sec).player_died = TRUE
+            lost = gold
+            ROOMS(rm).player_died = TRUE
+            DropEverything                      ' killed = drop gold AND all special cards
             Sfx "lose"
-            Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop all your treasure and crawl back to START.   [ press any key ]"
+            Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
             WaitKey
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
         CASE 3                                   ' SERIOUS WOUND
@@ -461,25 +465,26 @@ END SUB
 
 
 ' Award a slain room's treasure -- gold, or a special item card.
-SUB ClaimTreasure (sec AS INTEGER, sm AS INTEGER)
-    DIM slay AS STRING, line2 AS STRING, itm AS INTEGER
+SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
+    DIM slay AS STRING, line2 AS STRING, itm AS INTEGER, mon AS STRING, tname AS STRING
+    mon = _TRIM$(ROOMS(rm).monster): tname = _TRIM$(ROOMS(rm).treasure_name)
     IF opt_oldschool THEN
-        slay = "You slay the " + SECTORS(sec).monster + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
+        slay = "You slay the " + mon + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
     ELSE
-        slay = "You slay the " + SECTORS(sec).monster + "!  (felled in " + _TRIM$(STR$(sm)) + " rounds)"
+        slay = "You slay the " + mon + "!  (felled in " + _TRIM$(STR$(sm)) + " rounds)"
     END IF
-    itm = SECTORS(sec).treasure_item
+    itm = ROOMS(rm).treasure_item
     SELECT CASE itm
         CASE 1, 2                                ' Magic Sword (+1 / +2)
             IF player_class = 4 THEN             ' a Wizard cannot use a Magic Sword
                 gold = gold + 500
-                line2 = "A " + SECTORS(sec).treasure_name + " -- a Wizard can't wield it; you sell it for 500 gold."
+                line2 = "A " + tname + " -- a Wizard can't wield it; you sell it for 500 gold."
             ELSEIF itm > item_sword THEN         ' keep only the stronger sword
                 item_sword = itm
-                line2 = "You take up the " + SECTORS(sec).treasure_name + "!  (+" + _TRIM$(STR$(itm)) + " to your attacks)"
+                line2 = "You take up the " + tname + "!  (+" + _TRIM$(STR$(itm)) + " to your attacks)"
             ELSE
                 gold = gold + 500
-                line2 = "Another " + SECTORS(sec).treasure_name + " -- you already hold a keener blade; +500 gold."
+                line2 = "Another " + tname + " -- you already hold a keener blade; +500 gold."
             END IF
         CASE 3                                    ' Secret Door Card
             item_secret_card = TRUE
@@ -491,11 +496,19 @@ SUB ClaimTreasure (sec AS INTEGER, sm AS INTEGER)
             item_crystal = TRUE
             line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
         CASE ELSE                                 ' plain gold treasure
-            gold = gold + SECTORS(sec).treasure
-            line2 = "You claim the " + SECTORS(sec).treasure_name + " -- " + _TRIM$(STR$(SECTORS(sec).treasure)) + " GOLD!"
+            gold = gold + ROOMS(rm).treasure
+            line2 = "You claim the " + tname + " -- " + _TRIM$(STR$(ROOMS(rm).treasure)) + " GOLD!"
     END SELECT
     Banner slay, line2 + "   [ press any key ]"
     WaitKey
+END SUB
+
+
+' On death a champion drops EVERYTHING carried -- gold and all special cards.
+SUB DropEverything
+    gold = 0
+    item_sword = 0
+    item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
 END SUB
 
 
