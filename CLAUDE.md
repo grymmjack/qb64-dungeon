@@ -190,6 +190,10 @@ Environment specifics that dictate this approach:
   supports `{mon} {player} {class} {dmg} {deaths} {level} {room} {treasure} {weapon}` tokens
   via `Fill$`; combat sets the `FX_*` context globals before each line.
 
+[assets/README.md](assets/README.md) is the player/modder-facing map of every editable
+asset (data tables, flavor prose, music playlist, sound effects) with formats and the
+token list — keep it in sync when the asset formats change.
+
 [PLANS.todo](PLANS.todo) (todo.txt/@done format) is the roadmap and the source of truth
 for intended game rules (rooms, doors, dice, turns, cursor states).
 
