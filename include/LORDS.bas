@@ -306,6 +306,7 @@ SUB SaveSettings
     PRINT #f, "combatspeed " + _TRIM$(STR$(opt_combatspeed))
     PRINT #f, "hardcore " + _TRIM$(STR$(opt_hardcore))
     PRINT #f, "critfumble " + _TRIM$(STR$(opt_critfumble))
+    PRINT #f, "lootrecovery " + _TRIM$(STR$(opt_lootrecovery))
     CLOSE #f
 END SUB
 
@@ -344,6 +345,7 @@ SUB LoadSettings
                 CASE "combatspeed": opt_combatspeed = v
                 CASE "hardcore": opt_hardcore = v
                 CASE "critfumble": opt_critfumble = v
+                CASE "lootrecovery": opt_lootrecovery = v
             END SELECT
         END IF
     LOOP

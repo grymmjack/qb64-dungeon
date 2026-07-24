@@ -53,6 +53,7 @@ opt_smooth = TRUE                             ' default: bilinear-smoothed fulls
 opt_combatspeed = 0                           ' combat pace: 0 Slow, 1 Normal, 2 Fast, 3 Wait-for-key
 opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
+opt_lootrecovery = NOT opt_oldschool          ' default: recoverable loot in D&D mode, lost in classic Dungeon!
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -243,8 +244,8 @@ FUNCTION PlayGame%
                                     IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
                                 END IF
                             END IF
-                            ' recover a fallen rival's loot once the room is clear (multiplayer)
-                            IF num_players > 1 AND NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
+                            ' reclaim dropped loot once the room is clear (your own, solo; a rival's, MP)
+                            IF NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
                         END IF
                     END IF
                     ' victory: enough gold, hold the Level Key, and back at the entrance
@@ -496,7 +497,11 @@ SUB DoCombatDnD (rm AS INTEGER)
                 StatLog sec, rm, mon, isboss, wander, "died", rounds, tot_dealt, tot_taken
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
-                Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
+                IF opt_lootrecovery AND NOT wander THEN
+                    Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
+                ELSE
+                    Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
+                END IF
                 WaitKey                           ' let the death sink in before the blood falls
                 BloodDrip                         ' blood runs down the screen, fade to black
                 c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
@@ -561,7 +566,11 @@ SUB MonsterAttack (rm AS INTEGER)
             IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
-            Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
+            IF opt_lootrecovery AND rm <= ROOM_N THEN
+                Banner mon + " ATTACK (2): ADVENTURER KILLED!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(ROOMS(rm).sec).label) + " -- return for revenge!   [ press any key ]"
+            ELSE
+                Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
+            END IF
             WaitKey                             ' let the death sink in before the blood falls
             BloodDrip                           ' blood runs down the screen, fade to black
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
@@ -827,7 +836,10 @@ END SUB
 ' multiplayer the loot is left IN the room (rm) for any player to recover; solo it
 ' is simply lost (recovering your own would void the death penalty).
 SUB DropEverything (rm AS INTEGER)
-    IF num_players > 1 AND rm >= 1 THEN
+    ' With Loot Recovery on, the spoils are LEFT in the room to reclaim (solo:
+    ' trek back and re-clear it for revenge; multiplayer: any rival can grab it).
+    ' Wanderer deaths (scratch slot rm > ROOM_N) have no room to mark -- lost.
+    IF opt_lootrecovery AND rm >= 1 AND rm <= ROOM_N THEN
         ROOMS(rm).drop_gold = ROOMS(rm).drop_gold + gold
         IF item_sword > ROOMS(rm).drop_sword THEN ROOMS(rm).drop_sword = item_sword
         IF item_secret_card THEN ROOMS(rm).drop_secret = TRUE
@@ -877,7 +889,11 @@ SUB CollectDrop (rm AS INTEGER)
     ROOMS(rm).drop_gold = 0: ROOMS(rm).drop_sword = 0
     ROOMS(rm).drop_secret = FALSE: ROOMS(rm).drop_esp = FALSE: ROOMS(rm).drop_crystal = FALSE
     Sfx "treasure"
-    Banner "You recover a fallen rival's spoils!", _TRIM$(got) + "   [ press any key ]"
+    IF num_players > 1 THEN
+        Banner "You recover a fallen rival's spoils!", _TRIM$(got) + "   [ press any key ]"
+    ELSE
+        Banner "You reclaim the spoils you dropped here -- revenge is sweet!", _TRIM$(got) + "   [ press any key ]"
+    END IF
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
@@ -919,6 +935,23 @@ FUNCTION LoiterOmen$ (stage AS INTEGER)
 END FUNCTION
 
 
+' TRUE when the player stands in a CLEARED room that holds a secret door -- a safe
+' haven where no wandering monster will disturb them (secret-door room = sanctuary,
+' once its own monster is slain).
+FUNCTION InSanctuary%
+    DIM rm AS INTEGER, i AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    InSanctuary = 0
+    IF NOT InRoomNow THEN EXIT FUNCTION
+    rm = ROOMAT(c.x \ CW, c.y \ CH)
+    IF rm < 1 THEN EXIT FUNCTION
+    IF ROOMS(rm).malive AND LEN(_TRIM$(ROOMS(rm).monster)) > 0 THEN EXIT FUNCTION   ' its monster still lurks
+    cx = c.x \ CW: cy = c.y \ CH
+    FOR i = 1 TO SD_N
+        IF ABS(SD_X(i) - cx) <= 3 AND ABS(SD_Y(i) - cy) <= 3 THEN InSanctuary = -1: EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
+
 ' Flash an omen briefly (no keypress), then restore the board.
 SUB FlashOmen (stage AS INTEGER)
     Sfx "idle"
@@ -938,6 +971,7 @@ SUB LoiterTick
     IF sec >= 1 AND sec <= 9 THEN
         IF lvl_cleared(sec) THEN EXIT SUB          ' cleared this floor -- rest easy
     END IF
+    IF InSanctuary THEN EXIT SUB                   ' a cleared secret-door room is a safe haven
     DIM encpct AS INTEGER
     loiter = loiter + 1
     IF loiter < LOITER_THRESHOLD THEN

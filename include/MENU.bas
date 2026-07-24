@@ -438,7 +438,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 24
+    CONST NSET = 25
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -515,7 +515,8 @@ SUB RunSettings
                     IF opt_combatspeed > 3 THEN opt_combatspeed = 0
                 CASE 22: opt_hardcore = NOT opt_hardcore
                 CASE 23: opt_critfumble = NOT opt_critfumble
-                CASE 24: SaveSettings: EXIT SUB
+                CASE 24: opt_lootrecovery = NOT opt_lootrecovery
+                CASE 25: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -523,7 +524,7 @@ SUB RunSettings
         _DEST CANVAS: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 1, "-=  S E T T I N G S  =-"
         FOR i = 1 TO NSET
-            y = 2 + (i - 1) * 2
+            y = 3 + (i - 1)                     ' single-row list (grown too long for double spacing)
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -589,6 +590,9 @@ SUB RunSettings
                 CASE 23
                     lbl = "Crits & Fumbles"
                     IF opt_critfumble THEN vtxt = "cinematic" ELSE vtxt = "plain"
+                CASE 24
+                    lbl = "Loot Recovery"
+                    IF opt_lootrecovery THEN vtxt = "reclaim on death" ELSE vtxt = "lost on death"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
