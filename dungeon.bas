@@ -42,6 +42,7 @@ opt_musicvol = 7: opt_sfxvol = 8: opt_voicevol = 6   ' 0..10 volume sliders
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = TRUE                          ' default: classic Dungeon! 2d6 combat (off = D&D d20/HP)
 opt_heroicstats = FALSE                       ' default: straight 3d6 ability rolls (on = 4d6 drop-low)
+opt_boardgame = TRUE                          ' default: roll dice to move (off = free computer-game movement)
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
@@ -97,6 +98,7 @@ FUNCTION PlayGame%
     DIM i AS INTEGER
     class_name = CLASSES(player_class).name
     gold = 0: target_gold = CLASSES(player_class).gold_goal: turn_num = 0: steps_left = 0: need_roll = TRUE
+    IF NOT opt_boardgame THEN need_roll = FALSE   ' free-movement mode: no roll gate
     has_key = FALSE: item_sword = 0: item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
     moves_made = 0
     player_hp = player_maxhp         ' D&D mode: full HP at the door (max set at character creation)
@@ -106,7 +108,9 @@ FUNCTION PlayGame%
     StartBoard
     ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies treasure enough to make your name a legend -- and a guardian set over every hoard. Find the Level Key, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. Few ever do."
     cursor_erase: cursor_draw        ' clear the narration, reveal the board
-    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", "[SPACE] roll  move  [F] search  [C] sheet  [?] keys  fight  ESC flee"
+    DIM hint AS STRING
+    IF opt_boardgame THEN hint = "[SPACE] roll  " ELSE hint = ""
+    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", hint + "move  [F] search  [C] sheet  [?] keys  fight  ESC flee"
     WaitKey
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
@@ -140,11 +144,12 @@ FUNCTION PlayGame%
                 cursor_draw
             END IF
         ELSE
-            IF IsMoveKey(k) AND steps_left > 0 THEN
+            ' board-game mode gates movement on the dice roll + steps; free mode walks anytime
+            IF IsMoveKey(k) AND (NOT opt_boardgame OR steps_left > 0) THEN
                 sd = StrongDoorAhead(k)
                 IF sd > 0 THEN
                     ' a reinforced door blocks the way -- spend the step trying to break it
-                    steps_left = steps_left - 1
+                    IF opt_boardgame THEN steps_left = steps_left - 1
                     IF BreakDoorAttempt(sd) THEN
                         IF TryMove(k) THEN
                             moves_made = moves_made + 1
@@ -153,9 +158,9 @@ FUNCTION PlayGame%
                             END IF
                         END IF
                     END IF
-                    IF steps_left <= 0 THEN need_roll = TRUE
+                    IF opt_boardgame AND steps_left <= 0 THEN need_roll = TRUE
                 ELSEIF TryMove(k) THEN
-                    steps_left = steps_left - 1
+                    IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
@@ -179,7 +184,7 @@ FUNCTION PlayGame%
                             PlayGame = OUT_WIN: EXIT FUNCTION
                         END IF
                     END IF
-                    IF steps_left <= 0 THEN need_roll = TRUE
+                    IF opt_boardgame AND steps_left <= 0 THEN need_roll = TRUE
                 END IF
             END IF
         END IF

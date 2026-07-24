@@ -7,7 +7,7 @@ FUNCTION SelectClass%
     sel = player_class: IF sel < 1 OR sel > 4 THEN sel = 1
     DO
         _LIMIT 60
-        k = UCASE$(INKEY$)
+        k = NormKey$(UCASE$(INKEY$))         ' arrows / numpad -> WASD too
         IF k = "W" OR k = "A" THEN
             sel = sel - 1: IF sel < 1 THEN sel = 4
             IF opt_sfx THEN Tone 200, 0.1
@@ -266,7 +266,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 13
+    CONST NSET = 14
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -297,11 +297,12 @@ SUB RunSettings
                 CASE 8: opt_realdice = NOT opt_realdice
                 CASE 9: opt_dicemath = NOT opt_dicemath
                 CASE 10: opt_oldschool = NOT opt_oldschool
-                CASE 11: opt_heroicstats = NOT opt_heroicstats
-                CASE 12
+                CASE 11: opt_boardgame = NOT opt_boardgame
+                CASE 12: opt_heroicstats = NOT opt_heroicstats
+                CASE 13
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
-                CASE 13: EXIT SUB
+                CASE 14: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -309,7 +310,7 @@ SUB RunSettings
         _DEST CANVAS: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 2, "-=  S E T T I N G S  =-"
         FOR i = 1 TO NSET
-            y = 5 + (i - 1) * 3
+            y = 4 + (i - 1) * 3
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -327,9 +328,12 @@ SUB RunSettings
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
                 CASE 11
+                    lbl = "Boardgame"
+                    IF opt_boardgame THEN vtxt = "roll to move" ELSE vtxt = "free move"
+                CASE 12
                     lbl = "Stat Roll"
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
-                CASE 12: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
+                CASE 13: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -479,9 +483,11 @@ SUB DrawHUD
     tmr = _TRIM$(STR$(el \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(el MOD 60)), 2)
     DIM hptag AS STRING
     IF NOT opt_oldschool THEN hptag = "   HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp))
+    DIM movetag AS STRING
+    IF opt_boardgame THEN movetag = "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) ELSE movetag = "   FREE MOVE"
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + class_name + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + "   TURN " + _TRIM$(STR$(turn_num)) + "   STEPS " + _TRIM$(STR$(steps_left)) + "   " + tmr + "   " + lbl
+    hud = " " + class_name + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK

@@ -131,6 +131,12 @@ Dice:
         ✔ Arbitrary NdX via GameRoll (d20 to-hit, dN damage in D&D mode) @done(26-07-23)
         ✔ 4d6-drop-lowest ability rolls (SETTINGS "Stat Roll" option) @done(26-07-23)
 
+Movement Modes:
+    ✔ Boardgame Mode setting (default ON) @done(26-07-23)
+        ✔ ON: roll 1d6 to move, step-limited turns (board-game feel) @done(26-07-23)
+        ✔ OFF: free "computer game" movement, no dice roll to move @done(26-07-23)
+    ✔ Arrow keys / numpad work on every screen WASD does (SelectClass fixed) @done(26-07-23)
+
 Combat Modes:
     ✔ Oldschool Mode setting (default ON) @done(26-07-23)
         ✔ ON: classic Dungeon! 2d6-vs-target combat @done(26-07-23)

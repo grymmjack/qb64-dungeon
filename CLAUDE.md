@@ -110,7 +110,11 @@ Environment specifics that dictate this approach:
   a door hops one cell further so you pass through it. `[?]` `ShowKeys` lists every binding.
   About 1 in 6 brown doors are **reinforced** (`DetectDoors`/`MarkStrongDoors`/`DOOR_STRONG`):
   bumping one (`StrongDoorAhead`) forces a STR check to `BreakDoorAttempt` it (thud + splinter
-  sounds). SETTINGS also carry **volume sliders** (Music/SFX/Voice, `opt_*vol` 0-10; all effects
+  sounds). The SETTINGS **Boardgame** toggle (default ON) governs movement: ON is the classic
+  roll-1d6-then-step-that-many turn structure; OFF (`opt_boardgame` FALSE) is free "computer
+  game" walking — the roll/`steps_left`/`need_roll` bookkeeping is bypassed and the HUD shows
+  `FREE MOVE`. Every directional menu (`SelectClass` included) routes keys through `NormKey$`,
+  so arrows and the numpad work anywhere WASD does. SETTINGS also carry **volume sliders** (Music/SFX/Voice, `opt_*vol` 0-10; all effects
   route through `Tone`, music through `_SNDVOL music_handle`) and a **Voice** toggle that blips
   per glyph in the typewriter **`ScrollText`** window (used for the game-open narration).
   **Rooms are rolled fresh each game** (`RandomizeRooms`): each level's sector draws an
