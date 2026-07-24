@@ -478,6 +478,11 @@ SUB RunSettings
                     IF opt_msgdelay < 0 THEN opt_msgdelay = 5
                     IF opt_msgdelay > 5 THEN opt_msgdelay = 0
                     Sfx "select"
+                CASE 24
+                    opt_lootrecovery = opt_lootrecovery + delta
+                    IF opt_lootrecovery < 0 THEN opt_lootrecovery = 2
+                    IF opt_lootrecovery > 2 THEN opt_lootrecovery = 0
+                    Sfx "select"
                 CASE 25
                     opt_mon_dicecolor = opt_mon_dicecolor + delta
                     IF opt_mon_dicecolor < 0 THEN opt_mon_dicecolor = 5
@@ -525,7 +530,9 @@ SUB RunSettings
                     IF opt_msgdelay > 5 THEN opt_msgdelay = 0
                 CASE 22: opt_hardcore = NOT opt_hardcore
                 CASE 23: opt_critfumble = NOT opt_critfumble
-                CASE 24: opt_lootrecovery = NOT opt_lootrecovery
+                CASE 24
+                    opt_lootrecovery = opt_lootrecovery + 1
+                    IF opt_lootrecovery > 2 THEN opt_lootrecovery = 0
                 CASE 25
                     opt_mon_dicecolor = opt_mon_dicecolor + 1
                     IF opt_mon_dicecolor > 5 THEN opt_mon_dicecolor = 0
@@ -604,8 +611,12 @@ SUB RunSettings
                     lbl = "Crits & Fumbles"
                     IF opt_critfumble THEN vtxt = "cinematic" ELSE vtxt = "plain"
                 CASE 24
-                    lbl = "Loot Recovery"
-                    IF opt_lootrecovery THEN vtxt = "reclaim on death" ELSE vtxt = "lost on death"
+                    lbl = "Loot on Death": slider = TRUE
+                    SELECT CASE opt_lootrecovery
+                        CASE 0: vtxt = "lost (classic)"
+                        CASE 2: vtxt = "souls-like (1 try)"
+                        CASE ELSE: vtxt = "reclaim (normal)"
+                    END SELECT
                 CASE 25: lbl = "  Monster Dice Colour": vtxt = ColorName$(opt_mon_dicecolor): slider = TRUE
                 CASE 26
                     lbl = "  Monster Dice Finish"
@@ -971,6 +982,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), REDU, B
     COLOR WHITE, BOXBG: PrintCentered 24, l1
     COLOR YELLOWU, BOXBG: PrintCentered 27, l2
+    bnr_l2 = l2: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
     _DISPLAY
 END SUB
 
@@ -987,8 +999,26 @@ END SUB
 
 SUB WaitKey
     DIM k AS STRING
-    DO: k = INKEY$: LOOP UNTIL k = ""              ' drain buffered keys
+    _KEYCLEAR              ' drain buffered keys
     DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    FlashPrompt
+END SUB
+
+
+' Acknowledge a keypress at a '[ press any key ]' prompt: a soft click + a quick
+' light-up of the last banner's prompt line (which the next redraw then clears).
+SUB FlashPrompt
+    DIM ff AS INTEGER
+    Sfx "select"
+    IF LEN(_TRIM$(bnr_l2)) = 0 THEN EXIT SUB
+    _DEST CANVAS: _FONT CH
+    FOR ff = 1 TO 4
+        LINE ((bnr_bx1 + 1) * CW, 27 * CH)-((bnr_bx2 - 1) * CW, 28 * CH), BOXBG, BF
+        IF ff MOD 2 = 1 THEN COLOR WHITE, REDU ELSE COLOR YELLOWU, BOXBG
+        PrintCentered 27, bnr_l2
+        _DISPLAY
+        _LIMIT 30
+    NEXT ff
 END SUB
 
 
@@ -998,18 +1028,18 @@ END SUB
 ' drained afterwards so they don't spill into the next prompt or trigger a round.
 SUB CombatPause
     DIM f AS INTEGER, maxf AS INTEGER
-    DO: LOOP UNTIL INKEY$ = ""                     ' drain keys buffered before the prompt
+    _KEYCLEAR                     ' drain keys buffered before the prompt
     IF opt_msgdelay <= 0 THEN                       ' 0 = wait for a keypress (manual)
         DO: _LIMIT 60: _DISPLAY: LOOP UNTIL INKEY$ <> ""
-        EXIT SUB
+        FlashPrompt: EXIT SUB
     END IF
     maxf = opt_msgdelay * 60                        ' else auto-advance after the delay...
     FOR f = 1 TO maxf
         _LIMIT 60
-        IF INKEY$ <> "" THEN EXIT FOR               ' ...or ANY key advances early
+        IF INKEY$ <> "" THEN FlashPrompt: EXIT FOR  ' ...or ANY key advances early (with feedback)
         _DISPLAY
     NEXT f
-    DO: LOOP UNTIL INKEY$ = ""                      ' drain
+    _KEYCLEAR                      ' drain
 END SUB
 
 
@@ -1125,7 +1155,7 @@ SUB ScrollText (title AS STRING, body AS STRING)
         END IF
     NEXT i
     ' hold on the fully-revealed text
-    DO: k = INKEY$: LOOP UNTIL k = ""
+    _KEYCLEAR
     DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
 END SUB
 
@@ -1195,6 +1225,49 @@ FUNCTION RollLineText$ (roll AS INTEGER, bonus AS INTEGER, ndice AS INTEGER, dro
     IF dropped THEN s = "drop lowest -- " + s
     RollLineText$ = s
 END FUNCTION
+
+
+' Reveal the roll math one beat at a time inside the dice box -- roll ... + ...
+' bonus ... = ... total -- with a rising tick per beat and a bright ding on the
+' total. Builds tension. Any key skips the remaining delays. bx1/bx2 = box cols,
+' mrow = the math row. Nothing to reveal for a single die with no bonus.
+SUB RevealMath (bx1 AS INTEGER, bx2 AS INTEGER, mrow AS INTEGER, roll AS INTEGER, bonus AS INTEGER, ndice AS INTEGER, dropped AS INTEGER)
+    DIM parts(1 TO 6) AS STRING, np AS INTEGER, i AS INTEGER, j AS INTEGER, acc AS STRING, skip AS INTEGER
+    np = 0
+    IF bonus <> 0 THEN
+        np = 5
+        parts(1) = _TRIM$(STR$(roll))
+        IF bonus > 0 THEN parts(2) = "  +" ELSE parts(2) = "  -"
+        parts(3) = "  " + _TRIM$(STR$(ABS(bonus)))
+        parts(4) = "  ="
+        parts(5) = "  " + _TRIM$(STR$(roll + bonus))
+    ELSEIF ndice > 1 THEN
+        np = 2
+        parts(1) = "sum"
+        parts(2) = "  " + _TRIM$(STR$(roll))
+    ELSE
+        EXIT SUB
+    END IF
+    acc = "": IF dropped THEN acc = "drop lowest -- "
+    skip = FALSE
+    _DEST CANVAS: _FONT CH
+    FOR i = 1 TO np
+        acc = acc + parts(i)
+        LINE ((bx1 + 1) * CW, mrow * CH)-((bx2 - 1) * CW, (mrow + 1) * CH), BOXBG, BF
+        COLOR YELLOWU, BOXBG: PrintCentered mrow, acc
+        _DISPLAY
+        IF opt_sfx THEN
+            IF i = np THEN Tone 1100, 0.15 ELSE Tone 440 + i * 130, 0.06   ' rising ticks; bright ding on the total
+        END IF
+        IF NOT skip THEN
+            FOR j = 1 TO 22                                       ' ~0.36s of suspense per beat
+                _LIMIT 60
+                IF INKEY$ <> "" THEN skip = -1: EXIT FOR
+                _DISPLAY
+            NEXT j
+        END IF
+    NEXT i
+END SUB
 
 
 ' Tumble n pip d6 and return the total. `caption` (e.g. "attacking the GOBLINS")
@@ -1279,11 +1352,6 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                     DrawDie sxp(j) + (bx + (j - 1) * (sz + gap) - sxp(j)) * tt, syp(j) + (by - syp(j)) * tt, sz, v(j)
                 END IF
             NEXT j
-            ' the RESULT line is withheld until the dice have landed
-            IF f >= settle AND drop = 0 AND LEN(rln) > 0 THEN
-                _FONT CH
-                COLOR YELLOWU, BOXBG: PrintCentered ybot \ CH - 1, rln
-            END IF
             IF opt_sfx THEN
                 IF f = settle THEN Tone 240, 0.09 ELSE Tone 300 + (f MOD 5) * 40, 0.04
             END IF
@@ -1303,12 +1371,9 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                 _LIMIT 40
             NEXT ff
             LINE (dxp - 4, by - 4)-(dxp + sz + 9, by + sz + 9), BOXBG, BF
-            IF LEN(rln) > 0 THEN
-                _FONT CH
-                COLOR YELLOWU, BOXBG: PrintCentered ybot \ CH - 1, rln
-            END IF
             _DISPLAY
         END IF
+        RevealMath x1 \ CW, x2 \ CW, ybot \ CH - 1, tot, bonus, n, drop > 0   ' slow, tense math reveal
         _DELAY hold                  ' hold so the settled dice are readable
     END IF
 
@@ -1652,11 +1717,6 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
                 DrawFontDie sxp(i) + (dxi - sxp(i)) * tt, syp(i) + (dy - syp(i)) * tt, sides, v(i)
             END IF
         NEXT i
-        ' the RESULT line is withheld until the dice have landed
-        IF f >= settle AND drop = 0 AND LEN(rln) > 0 THEN
-            _FONT CH
-            COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, rln
-        END IF
         IF opt_sfx THEN
             IF f = settle THEN Tone 240, 0.09 ELSE Tone 300 + (f MOD 5) * 40, 0.04
         END IF
@@ -1676,12 +1736,9 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
             _LIMIT 40
         NEXT f
         LINE (dxi - 4, dy - CH)-(dxi + dw + 4, dy + dh + 4), BOXBG, BF
-        IF LEN(rln) > 0 THEN
-            _FONT CH
-            COLOR YELLOWU, BOXBG: PrintCentered y2 \ CH - 1, rln
-        END IF
         _DISPLAY
     END IF
+    RevealMath x1 \ CW, x2 \ CW, y2 \ CH - 1, total, bonus, n, drop > 0   ' slow, tense math reveal
     _DELAY hold
     ShowRollTextEx = total
 END FUNCTION

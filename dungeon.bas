@@ -56,7 +56,7 @@ opt_hardcore = FALSE                          ' default casual: idling is safe (
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
-opt_lootrecovery = NOT opt_oldschool          ' default: recoverable loot in D&D mode, lost in classic Dungeon!
+IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 1   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -307,7 +307,7 @@ FUNCTION EspEnter% (rm AS INTEGER)
     IF ROOMS(rm).is_boss THEN lead = "the BOSS " + _TRIM$(ROOMS(rm).monster) ELSE lead = "a " + _TRIM$(ROOMS(rm).monster)
     Sfx "idle"
     Banner "Your ESP MEDALLION tingles -- " + lead + " lurks beyond this door!", "[Y] enter and fight   [N] back away"
-    DO: k = INKEY$: LOOP UNTIL k = ""            ' drain buffered movement keys so Y/N register at once
+    _KEYCLEAR            ' drain buffered movement keys so Y/N register at once
     DO
         _LIMIT 60
         k = UCASE$(INKEY$)
@@ -552,7 +552,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 StatLog sec, rm, mon, isboss, wander, "died", rounds, tot_dealt, tot_taken
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
-                IF opt_lootrecovery AND NOT wander THEN
+                IF opt_lootrecovery >= 1 AND NOT wander THEN
                     Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
                 ELSE
                     Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
@@ -622,7 +622,7 @@ SUB MonsterAttack (rm AS INTEGER)
             IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
-            IF opt_lootrecovery AND rm <= ROOM_N THEN
+            IF opt_lootrecovery >= 1 AND rm <= ROOM_N THEN
                 Banner mon + " ATTACK (2): ADVENTURER KILLED!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(ROOMS(rm).sec).label) + " -- return for revenge!   [ press any key ]"
             ELSE
                 Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
@@ -895,7 +895,8 @@ SUB DropEverything (rm AS INTEGER)
     ' With Loot Recovery on, the spoils are LEFT in the room to reclaim (solo:
     ' trek back and re-clear it for revenge; multiplayer: any rival can grab it).
     ' Wanderer deaths (scratch slot rm > ROOM_N) have no room to mark -- lost.
-    IF opt_lootrecovery AND rm >= 1 AND rm <= ROOM_N THEN
+    IF opt_lootrecovery >= 1 AND rm >= 1 AND rm <= ROOM_N THEN
+        IF opt_lootrecovery = 2 THEN ClearAllDrops   ' SOULS-LIKE: only your most recent death's spoils survive
         ROOMS(rm).drop_gold = ROOMS(rm).drop_gold + gold
         IF item_sword > ROOMS(rm).drop_sword THEN ROOMS(rm).drop_sword = item_sword
         IF item_secret_card THEN ROOMS(rm).drop_secret = TRUE
@@ -908,6 +909,17 @@ SUB DropEverything (rm AS INTEGER)
     item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0
     item_potion_small = 0: item_potion_large = 0
     IF cur_player >= 1 AND cur_player <= 4 THEN LOOT_N(cur_player) = 0   ' the treasure log goes too
+END SUB
+
+
+' Wipe every room's recoverable drop -- SOULS-LIKE mode calls this on each death,
+' so dying again before you reclaim your last hoard loses it forever.
+SUB ClearAllDrops
+    DIM r AS INTEGER
+    FOR r = 1 TO ROOM_N
+        ROOMS(r).drop_gold = 0: ROOMS(r).drop_sword = 0
+        ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
+    NEXT r
 END SUB
 
 

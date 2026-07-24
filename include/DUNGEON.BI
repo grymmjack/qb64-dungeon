@@ -192,6 +192,7 @@ DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you ba
 DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
 DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
 DIM SHARED combat_round AS INTEGER   ' current D&D combat round (shown on the combat panel)
+DIM SHARED bnr_l2 AS STRING, bnr_bx1 AS INTEGER, bnr_bx2 AS INTEGER   ' last Banner's prompt line + box, for the keypress flash
 ' -- status effects from curio traps (tick down as turns pass; shown in the HUD) --
 DIM SHARED poison_turns AS INTEGER   ' poison darts: -1 HP per turn (damage over time)
 DIM SHARED fire_turns AS INTEGER     ' bomb fire: -1 HP per turn (damage over time)
