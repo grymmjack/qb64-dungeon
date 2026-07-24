@@ -171,7 +171,9 @@ FUNCTION PlayGame%
     DO
         _LIMIT 60
         IF player_out THEN                        ' the active player has spent their last life
-            IF HandleForfeit THEN PlayGame = OUT_LOSE: EXIT FUNCTION   ' solo (or last one standing) -> game over
+            ' solo (or last one standing) -> the run is over for good. Delete the save so a
+            ' permadeath run can never be "continued" back to life.
+            IF HandleForfeit THEN DeleteSave: PlayGame = OUT_LOSE: EXIT FUNCTION
         END IF
         k = UCASE$(INKEY$)
         k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
