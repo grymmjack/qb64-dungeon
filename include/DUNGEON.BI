@@ -140,6 +140,7 @@ DIM SHARED SECTORS(1 TO 9) AS SECTOR
 DIM SHARED ROOMS(1 TO 400) AS ROOM, ROOM_N AS INTEGER
 DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
 DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
+DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
 
@@ -185,6 +186,7 @@ DIM SHARED item_boots AS INTEGER      ' Elf Boots: +2 to the movement roll
 DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you back to START
 DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
 DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
+DIM SHARED combat_round AS INTEGER   ' current D&D combat round (shown on the combat panel)
 ' -- status effects from curio traps (tick down as turns pass; shown in the HUD) --
 DIM SHARED poison_turns AS INTEGER   ' poison darts: -1 HP per turn (damage over time)
 DIM SHARED fire_turns AS INTEGER     ' bomb fire: -1 HP per turn (damage over time)

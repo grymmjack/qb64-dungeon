@@ -1033,6 +1033,11 @@ SUB Sfx (kind AS STRING)
         CASE "lose": Tone 300, 0.16: Tone 220, 0.16: Tone 130, 0.34
         CASE "saveok": Tone 784, 0.07: Tone 1046, 0.07: Tone 1318, 0.18   ' bright rising -- saved!
         CASE "savebad": Tone 392, 0.12: Tone 294, 0.14: Tone 196, 0.28    ' sad descending -- failed
+        CASE "chest": Tone 240, 0.05: Tone 190, 0.06: Tone 320, 0.05: Tone 150, 0.18   ' creak + clunk (lid opens)
+        CASE "boom": Tone 130, 0.05: Tone 90, 0.10: Tone 60, 0.24         ' bomb -- low blast
+        CASE "hiss": Tone 2000, 0.04: Tone 1700, 0.04: Tone 1450, 0.05: Tone 1200, 0.08   ' darts -- hiss
+        CASE "fizzle": Tone 1000, 0.03: Tone 1300, 0.03: Tone 800, 0.03: Tone 1100, 0.03: Tone 700, 0.06   ' frost -- crackle
+        CASE "alarm": Tone 800, 0.1: Tone 1050, 0.1: Tone 800, 0.1: Tone 1050, 0.16   ' siren -- wail
         CASE "select": Tone 220, 0.06
     END SELECT
 END SUB

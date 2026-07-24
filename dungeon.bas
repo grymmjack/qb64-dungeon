@@ -226,6 +226,7 @@ FUNCTION PlayGame%
                         IF TryMove(k) THEN
                             moves_made = moves_made + 1
                             IF OnDoorNow THEN
+                                DOOROPEN(c.x \ CW, c.y \ CH) = TRUE   ' broken door is now open (FOV)
                                 IF TryMove(k) THEN moves_made = moves_made + 1
                             END IF
                         END IF
@@ -244,6 +245,7 @@ FUNCTION PlayGame%
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
+                        DOOROPEN(c.x \ CW, c.y \ CH) = TRUE   ' opening the door lets you see through it (FOV)
                         IF TryMove(k) THEN moves_made = moves_made + 1
                     END IF
                     ' returning to the entrance patches you up (D&D mode)
@@ -425,7 +427,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     thb = player_tohit                          ' final to-hit incl. ability modifier
     IF item_bow THEN thb = thb + 2              ' Magic Bow: strike harder from range
     IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
-    rounds = 0
+    rounds = 0: combat_round = 1
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
 
     DO
@@ -440,7 +442,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             UsePotion FALSE
             DrawCombatPanel rm, mon, lead
         ELSEIF k = " " THEN
-            rounds = rounds + 1
+            rounds = rounds + 1: combat_round = rounds
             ' ---------- player attacks ----------
             atk = GameRoll(1, 20, thb, "to hit the " + mon)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
@@ -564,6 +566,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
     COLOR YELLOWU, BOXBG: PrintCentered by + 1, lead + " blocks your path!"
+    COLOR REDU, BOXBG: _PRINTSTRING ((bx + bw - 12) * CW, (by + 1) * CH), "ROUND:" + STR$(combat_round)
     COLOR REDU, BOXBG
     PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
     COLOR GREENU, BOXBG

@@ -64,6 +64,8 @@ SUB CurioChest (rm AS INTEGER)
         IF k = "L" OR k = CHR$(27) THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY: EXIT SUB
         _DISPLAY
     LOOP
+    Sfx "chest"                                     ' the lid creaks open...
+    DramaticPause                                   ' . . . the suspense
     ' 25% trapped -- the trap springs on open, before the loot
     IF RollDie(100) <= CHEST_TRAP_PCT THEN SpringTrap rm
     ' the reward -- gold scaled by depth
@@ -90,7 +92,7 @@ SUB SpringTrap (rm AS INTEGER)
     tt = RollDie(4)                                 ' 1 darts, 2 bomb, 3 frost, 4 siren
     SELECT CASE tt
         CASE 1                                      ' POISON DARTS -- save vs poison (CON)
-            Sfx "trap"
+            Sfx "hiss"
             Banner "CLICK -- POISON DARTS hiss from the chest!", "Roll to SAVE vs poison!"
             CombatPause
             IF SaveThrow(AbilMod(player_con), "poison (CON)") THEN
@@ -100,7 +102,7 @@ SUB SpringTrap (rm AS INTEGER)
                 Banner "A dart pricks you -- venom burns in your veins!", "POISONED: -1 HP for " + _TRIM$(STR$(poison_turns)) + " turns.   [ press any key ]"
             END IF
         CASE 2                                      ' BOMB -- dodge (DEX), maybe catch fire
-            Sfx "trap"
+            Sfx "boom"
             Banner "TICK TICK -- a BOMB tumbles out of the chest!", "Roll to DODGE the blast!"
             CombatPause
             IF SaveThrow(AbilMod(player_dex), "the bomb (DEX)") THEN
@@ -116,7 +118,7 @@ SUB SpringTrap (rm AS INTEGER)
                 Banner "BOOM!", ln + "   [ press any key ]"
             END IF
         CASE 3                                      ' FROST BOMB -- save vs frost (CON)
-            Sfx "trap"
+            Sfx "fizzle"
             Banner "A FROST BOMB shatters in a burst of rime!", "Roll to SAVE vs frost!"
             CombatPause
             IF SaveThrow(AbilMod(player_con), "frost (CON)") THEN
@@ -130,7 +132,7 @@ SUB SpringTrap (rm AS INTEGER)
                 Banner "Frost sears your skin!", "You take " + _TRIM$(STR$(dmg)) + " cold damage.   [ press any key ]"
             END IF
         CASE ELSE                                   ' MAGIC SIREN -- save vs magic (WIS)
-            Sfx "trap"
+            Sfx "alarm"
             Banner "A MAGIC SIREN wails up out of the chest!", "Roll to SAVE vs magic!"
             CombatPause
             IF SaveThrow(AbilMod(player_wis), "the siren (WIS)") THEN

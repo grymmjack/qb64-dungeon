@@ -404,8 +404,14 @@ END SUB
 ' A cell blocks sight if it is a black wall (read from the collision board).
 ' Assumes _SOURCE has been set to CANVAS_COPY by the caller.
 FUNCTION IsOpaque% (cx AS INTEGER, cy AS INTEGER)
+    DIM col AS _UNSIGNED LONG
     IF cx < 0 OR cx > SW - 1 OR cy < 0 OR cy > SH - 1 THEN IsOpaque = TRUE: EXIT FUNCTION
-    IsOpaque = (POINT(cx * CW + CW \ 2, cy * CH + CH \ 2) = BLACK)
+    col = POINT(cx * CW + CW \ 2, cy * CH + CH \ 2)
+    IF col = BLACK THEN IsOpaque = TRUE: EXIT FUNCTION
+    ' a closed door (brown) blocks sight -- you can't see into a room until you open
+    ' it by passing through (DOOROPEN). Once opened, sight passes through freely.
+    IF col = BROWN THEN IF DOOROPEN(cx, cy) = 0 THEN IsOpaque = TRUE: EXIT FUNCTION
+    IsOpaque = FALSE
 END FUNCTION
 
 ' Bresenham ray from the player (x0,y0) to (x1,y1): light every cell until a wall
@@ -449,6 +455,7 @@ END SUB
 SUB InitFOV
     DIM cx AS INTEGER, cy AS INTEGER
     FOR cy = 0 TO SH - 1: FOR cx = 0 TO SW - 1: LOS_SEEN(cx, cy) = 0: LOS_LIT(cx, cy) = 0: NEXT cx: NEXT cy
+    FOR cy = 0 TO 60: FOR cx = 0 TO 131: DOOROPEN(cx, cy) = 0: NEXT cx: NEXT cy   ' all doors start closed
     fov_cx = -999: fov_cy = -999
     ComputeFOV
 END SUB
