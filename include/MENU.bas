@@ -1028,10 +1028,13 @@ END SUB
 ' drained afterwards so they don't spill into the next prompt or trigger a round.
 SUB CombatPause
     DIM f AS INTEGER, maxf AS INTEGER
-    _KEYCLEAR                     ' drain keys buffered before the prompt
+    ' NOTE: do NOT drain the buffer up front -- a key you pressed while the dice
+    ' were still rolling should advance THIS prompt (draining it here made every
+    ' '[ press any key ]' need a second press). We only drain AFTER advancing so
+    ' the advance key can't spill into the next attack.
     IF opt_msgdelay <= 0 THEN                       ' 0 = wait for a keypress (manual)
         DO: _LIMIT 60: _DISPLAY: LOOP UNTIL INKEY$ <> ""
-        FlashPrompt: EXIT SUB
+        FlashPrompt: _KEYCLEAR: EXIT SUB
     END IF
     maxf = opt_msgdelay * 60                        ' else auto-advance after the delay...
     FOR f = 1 TO maxf
@@ -1039,7 +1042,7 @@ SUB CombatPause
         IF INKEY$ <> "" THEN FlashPrompt: EXIT FOR  ' ...or ANY key advances early (with feedback)
         _DISPLAY
     NEXT f
-    _KEYCLEAR                      ' drain
+    _KEYCLEAR                      ' drain the advance key so it can't trigger the next round
 END SUB
 
 
@@ -1738,7 +1741,13 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
         LINE (dxi - 4, dy - CH)-(dxi + dw + 4, dy + dh + 4), BOXBG, BF
         _DISPLAY
     END IF
-    RevealMath x1 \ CW, x2 \ CW, y2 \ CH - 1, total, bonus, n, drop > 0   ' slow, tense math reveal
+    ' On a single d20 showing 1 or 20 the math is moot (nat-1 = fumble, nat-20 =
+    ' crit, whatever the modifier) -- skip the reveal and let combat proceed.
+    IF sides = 20 AND n = 1 AND (total = 1 OR total = 20) THEN
+        ' no math -- the die face says it all
+    ELSE
+        RevealMath x1 \ CW, x2 \ CW, y2 \ CH - 1, total, bonus, n, drop > 0   ' slow, tense math reveal
+    END IF
     _DELAY hold
     ShowRollTextEx = total
 END FUNCTION

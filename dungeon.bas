@@ -437,8 +437,13 @@ SUB DoCombatDnD (rm AS INTEGER)
     rounds = 0: combat_round = 1
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
 
+    DIM dirty AS INTEGER
+    dirty = -1                                   ' clear any lingering pre-combat banner on entry
     DO
         _LIMIT 60
+        ' Once an action's banners are done, wipe the message/dice area and redraw
+        ' the board so ONLY the combat panel shows -- makes it obvious it's your turn.
+        IF dirty THEN cursor_erase: cursor_draw: dirty = 0
         DrawCombatPanel rm, mon, lead
         k = INKEY$
         IF k = CHR$(27) THEN                     ' flee -- back out the way you came
@@ -447,9 +452,10 @@ SUB DoCombatDnD (rm AS INTEGER)
             EXIT SUB
         ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (free action)
             UsePotion FALSE
-            DrawCombatPanel rm, mon, lead
+            dirty = -1
         ELSEIF k = " " THEN
             rounds = rounds + 1: combat_round = rounds
+            dirty = -1                           ' this round's banners will need clearing next loop
             ' ---------- player attacks ----------
             atk = GameRoll(1, 20, thb, "to hit the " + mon)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
