@@ -166,6 +166,11 @@ DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 DIM SHARED key_level AS INTEGER                   ' which dungeon level (2..9) hides the Level Key this game
 DIM SHARED key_room AS INTEGER                    ' the ROOMS() index whose treasure IS the Level Key (Crystal Ball reveals it)
 DIM SHARED loiter AS INTEGER                      ' rising danger from lingering (search/idle); triggers wandering monsters
+' per-run chronicle for the Legendary Lords: what the champion did on each level
+DIM SHARED lvl_kills(1 TO 9) AS INTEGER           ' monsters slain per dungeon level this run
+DIM SHARED lvl_gold(1 TO 9) AS LONG               ' gold claimed per dungeon level this run
+DIM SHARED lvl_reached(1 TO 9) AS INTEGER         ' levels the champion set foot on this run
+DIM SHARED LORD_DETAIL(1 TO 200) AS STRING        ' raw saved chronicle per loaded lord (parsed on the detail screen)
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
 DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER

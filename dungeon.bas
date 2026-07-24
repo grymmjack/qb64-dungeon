@@ -104,7 +104,7 @@ SYSTEM
 
 FUNCTION PlayGame%
     DIM k AS STRING
-    DIM AS INTEGER sec, res, idle_ticks, sd, mvb
+    DIM AS INTEGER sec, res, idle_ticks, sd, mvb, curlvl
 
     DIM i AS INTEGER
     DIM hint AS STRING
@@ -118,6 +118,8 @@ FUNCTION PlayGame%
     LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
     need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
     loiter = 0                       ' fresh danger meter for lingering
+    FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: NEXT i   ' fresh chronicle
+    lvl_reached(1) = TRUE            ' you start on the 1st level
 
     IF num_players > 1 THEN
         ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
@@ -192,6 +194,8 @@ FUNCTION PlayGame%
                     IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
                     loiter = 0                     ' moving on resets the lingering danger meter
+                    curlvl = SECTOR.get_by_xy(c.x, c.y)   ' chronicle the levels you tread
+                    IF curlvl >= 1 AND curlvl <= 9 THEN lvl_reached(curlvl) = TRUE
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
@@ -498,7 +502,10 @@ END SUB
 ' Award a slain room's treasure -- gold, or a special item card.
 SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     DIM slay AS STRING, line2 AS STRING, itm AS INTEGER, mon AS STRING, tname AS STRING, acb AS INTEGER
+    DIM lvl AS INTEGER, goldbefore AS LONG
     mon = _TRIM$(ROOMS(rm).monster): tname = _TRIM$(ROOMS(rm).treasure_name)
+    lvl = ROOMS(rm).sec: goldbefore = gold                 ' chronicle this kill + its haul
+    IF lvl >= 1 AND lvl <= 9 THEN lvl_kills(lvl) = lvl_kills(lvl) + 1: lvl_reached(lvl) = TRUE
     IF opt_oldschool THEN
         slay = "You slay the " + mon + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
     ELSE
@@ -565,6 +572,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             LogTreasure tname, ROOMS(rm).treasure
             line2 = "You claim the " + tname + " -- " + _TRIM$(STR$(ROOMS(rm).treasure)) + " GOLD!"
     END SELECT
+    IF lvl >= 1 AND lvl <= 9 THEN lvl_gold(lvl) = lvl_gold(lvl) + (gold - goldbefore)
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
 END SUB
