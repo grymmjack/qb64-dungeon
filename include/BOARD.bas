@@ -34,6 +34,7 @@ SUB DoSearch
     END IF
     WaitKey
     cursor_erase: cursor_draw: _DISPLAY
+    LoiterTick                                     ' lingering to search draws danger closer
 END SUB
 
 

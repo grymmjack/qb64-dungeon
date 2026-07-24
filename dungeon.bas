@@ -137,12 +137,12 @@ FUNCTION PlayGame%
         k = UCASE$(INKEY$)
         k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
 
-        ' ambient "idle" tick when the player sits still for a while
+        ' standing idle also counts as lingering -- time passes, danger gathers
         IF k <> "" THEN
             idle_ticks = 0
         ELSE
             idle_ticks = idle_ticks + 1
-            IF idle_ticks >= 600 THEN Sfx "idle": idle_ticks = 0
+            IF idle_ticks >= 600 THEN idle_ticks = 0: LoiterTick
         END IF
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
@@ -179,6 +179,7 @@ FUNCTION PlayGame%
                 ELSEIF TryMove(k) THEN
                     IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
+                    loiter = 0                     ' moving on resets the lingering danger meter
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
@@ -581,7 +582,92 @@ SUB CollectDrop (rm AS INTEGER)
 END SUB
 
 
-' [C] character sheet: class, wealth, and the special items carried.
+' ============================================================================
+'  LINGERING -> WANDERING MONSTERS
+'  Hanging about (searching the same spot, standing idle) has a cost: the `loiter`
+'  meter rises, first with atmospheric omens, then a wandering monster of the
+'  current level ambushes you. Moving to a new cell resets the meter.
+' ============================================================================
+
+' A random atmospheric omen. stage 1 = something stirs (distant); stage 2+ = it's
+' close. Drawn as a brief flash so it sets mood without demanding a keypress.
+FUNCTION LoiterOmen$ (stage AS INTEGER)
+    IF stage <= 1 THEN
+        SELECT CASE RollDie(8)
+            CASE 1: LoiterOmen$ = "You hear faint scuffling somewhere in the dark."
+            CASE 2: LoiterOmen$ = "A cold draft carries a distant, wet growl."
+            CASE 3: LoiterOmen$ = "Loose grit trickles down from the ceiling."
+            CASE 4: LoiterOmen$ = "Goosebumps prickle the back of your neck."
+            CASE 5: LoiterOmen$ = "Your torchlight wavers, though there is no wind."
+            CASE 6: LoiterOmen$ = "Something skitters past in the dark, then falls silent."
+            CASE 7: LoiterOmen$ = "The shadows seem to lean in and watch you."
+            CASE ELSE: LoiterOmen$ = "Far off, a door groans open on rusted hinges."
+        END SELECT
+    ELSE
+        SELECT CASE RollDie(8)
+            CASE 1: LoiterOmen$ = "Claws click on stone -- closer now."
+            CASE 2: LoiterOmen$ = "A hiss echoes from just beyond the doorway."
+            CASE 3: LoiterOmen$ = "The stench of something rank rolls over you."
+            CASE 4: LoiterOmen$ = "Heavy, wet breathing rasps in the dark nearby."
+            CASE 5: LoiterOmen$ = "Red eyes glint at the edge of your torchlight."
+            CASE 6: LoiterOmen$ = "Gravel crunches under a weight that is not yours."
+            CASE 7: LoiterOmen$ = "A low growl trembles in the floor beneath your boots."
+            CASE ELSE: LoiterOmen$ = "You are not alone in here -- and it has found you."
+        END SELECT
+    END IF
+END FUNCTION
+
+
+' Flash an omen briefly (no keypress), then restore the board.
+SUB FlashOmen (stage AS INTEGER)
+    Sfx "idle"
+    Banner LoiterOmen$(stage), "-- best not to linger --"
+    _DELAY 1.7
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+
+' One "time passes" tick from lingering (a search, or a long idle). Two omens, then
+' on the third the dungeon sends something after you.
+SUB LoiterTick
+    loiter = loiter + 1
+    IF loiter >= 3 THEN
+        loiter = 0
+        WanderEncounter
+    ELSE
+        FlashOmen loiter
+    END IF
+END SUB
+
+
+' Ambush by a wandering monster of the CURRENT dungeon level. Set up in a scratch
+' ROOMS() slot (never mapped in ROOMAT, so it can't be walked into), then fought
+' with the normal combat code. Wanderers travel light: modest gold, no cards, no key.
+SUB WanderEncounter
+    DIM AS INTEGER sec, w, m, t, res, cx, cy
+    cx = c.x \ CW: cy = c.y \ CH
+    IF ABS(cx - START_CX) <= 3 AND ABS(cy - START_CY) <= 3 THEN EXIT SUB   ' the entrance is safe
+    sec = SECTOR.get_by_xy(c.x, c.y): IF sec < 1 THEN sec = 1
+    w = ROOM_N + 1: IF w > 400 THEN w = 400
+    ROOMS(w).sec = sec
+    m = RollDie(3)
+    ROOMS(w).monster = MON_NAME(sec, m): ROOMS(w).mslot = m
+    ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
+    ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
+    ROOMS(w).mhp = sec * 4 + RollDie(6) + 2: ROOMS(w).mhp_now = ROOMS(w).mhp
+    ROOMS(w).mac = 9 + sec
+    t = RollDie(3)
+    ROOMS(w).treasure_name = TRE_NAME(sec, t): ROOMS(w).treasure = TRE_GOLD(sec, t) \ 2
+    ROOMS(w).treasure_item = 0
+    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
+    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    c.prev_x = c.x: c.prev_y = c.y                ' fleeing a wanderer just leaves you put
+    Sfx "trap"
+    Banner "A WANDERING " + _TRIM$(ROOMS(w).monster) + " bursts from the shadows!", "Your lingering has drawn it to you.   [ press any key ]"
+    WaitKey
+    res = DoCombat(w)
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
 
 ' ============================================================================
 '  MODULES
