@@ -69,21 +69,55 @@ END SUB
 
 
 
+' Draw the board entities on top of the map: a monster glyph (§, red on cyan --
+' matching the legend) in every live-monster room, or a green $ where a fallen
+' rival left recoverable loot. Honours Field of View: with FOV off, every monster
+' shows (so you can plan / spot random spawns); with FOV on, only rooms you have
+' actually explored (LOS_SEEN) reveal their monster.
+SUB DrawEntities
+    DIM r AS INTEGER, gx AS INTEGER, gy AS INTEGER, vis AS INTEGER
+    _DEST CANVAS
+    _FONT CH
+    FOR r = 1 TO ROOM_N
+        gx = ROOMS(r).cx: gy = ROOMS(r).cy
+        IF gx >= 0 AND gy >= 0 AND gx <= 131 AND gy <= 60 THEN
+            vis = TRUE
+            IF opt_fov THEN
+                IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
+            END IF
+            IF vis THEN
+                IF ROOMS(r).malive AND LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN
+                    COLOR _RGB32(&HFF, &H55, &H55), _RGB32(&H55, &HFF, &HFF)   ' § monster: red on cyan
+                    _PRINTSTRING (gx * CW, gy * CH), CHR$(21)
+                ELSEIF HasDrop(r) THEN
+                    COLOR _RGB32(&H55, &HFF, &H55), BLACK                      ' $ recoverable loot: green
+                    _PRINTSTRING (gx * CW, gy * CH), "$"
+                END IF
+            END IF
+        END IF
+    NEXT r
+END SUB
+
+
 SUB cursor_draw
     DIM p AS INTEGER
     _DEST CANVAS
     DrawTombstones                       ' grey headstones on cleared rooms
-    ' other hot-seat players' tokens (drawn under the active cursor)
+    DrawEntities                         ' monster glyphs + recoverable loot (FOV-aware)
+    ' other hot-seat players' tokens -- drawn as their NUMBER (white on their colour)
     IF num_players > 1 THEN
         FOR p = 1 TO num_players
             IF p <> cur_player AND PLAYERS(p).active THEN
                 IF NOT opt_fov OR LOS_LIT(PLAYERS(p).cx \ CW, PLAYERS(p).cy \ CH) THEN
-                    LINE (PLAYERS(p).cx, PLAYERS(p).cy)-(PLAYERS(p).cx + CW - 1, PLAYERS(p).cy + CH - 1), PLAYERS(p).kolor, BF
+                    _FONT CH: COLOR WHITE, PLAYERS(p).kolor
+                    _PRINTSTRING (PLAYERS(p).cx, PLAYERS(p).cy), _TRIM$(STR$(p))
                 END IF
             END IF
         NEXT p
     END IF
-    LINE (c.x, c.y)-(c.x + CW - 1, c.y + CH - 1), c.cursor_color, BF
+    ' the active player -- their NUMBER, white on legend-blue (the "# Player #" key)
+    _FONT CH: COLOR WHITE, _RGB32(&H55, &H55, &HFF)
+    _PRINTSTRING (c.x, c.y), _TRIM$(STR$(cur_player))
     ' proximity ring: highlight the cursor when a door of interest is adjacent
     DIM ring AS _UNSIGNED LONG, hasring AS INTEGER
     hasring = FALSE
