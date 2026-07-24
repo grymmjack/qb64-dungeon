@@ -795,7 +795,8 @@ SUB ShowKeys
     ky(11) = "R": ds(11) = "Re-roll (during character creation)"
     ky(12) = "H": ds(12) = "Quaff a healing potion"
     ky(13) = "P": ds(13) = "Pause the game (bio break)"
-    n = 13
+    ky(14) = "G": ds(14) = "Save game (solo; CONTINUE on entry)"
+    n = 14
     _DEST CANVAS
     LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), BOXBG, BF
     LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), CYANU, B

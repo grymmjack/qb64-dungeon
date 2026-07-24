@@ -113,33 +113,47 @@ FUNCTION PlayGame%
 
     DIM i AS INTEGER
     DIM hint AS STRING
-    SetupPlayers                     ' build every player (multiplayer: class + 3d6 roll-up + name each)
-    game_start = TIMER               ' start the run timer
-    moves_made = 0: turn_num = 0: steps_left = 0
-    cur_player = 1
-
-    StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
-    RandomizeRooms                   ' give every detected room its own monster + treasure (+ the key room)
-    LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
-    need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
-    loiter = 0                       ' fresh danger meter for lingering
-    FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
-    lvl_reached(1) = TRUE            ' you start on the 1st level
-    char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
-    item_potion_small = 0: item_potion_large = 0
-    poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
-    deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
-
-    IF num_players > 1 THEN
-        ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
-    ELSE
-        ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is rumoured to lie on the " + Ordinal$(key_level) + " level -- take it, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. A Crystal Ball would reveal exactly which room hides it. Few ever escape."
+    DIM didload AS INTEGER
+    didload = FALSE
+    IF HasSave THEN                  ' a saved delve exists -- offer to continue it
+        IF AskContinue THEN LoadGameApply: didload = TRUE
     END IF
+
+    IF NOT didload THEN
+        SetupPlayers                     ' build every player (multiplayer: class + 3d6 roll-up + name each)
+        game_start = TIMER               ' start the run timer
+        moves_made = 0: turn_num = 0: steps_left = 0
+        cur_player = 1
+        run_seed = INT(RND * 2000000000) + 1   ' seed this dungeon so save/load can reproduce it exactly
+        RANDOMIZE run_seed
+        StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
+        RandomizeRooms                   ' give every detected room its own monster + treasure (+ the key room)
+        LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
+        need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
+        loiter = 0                       ' fresh danger meter for lingering
+        FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
+        lvl_reached(1) = TRUE            ' you start on the 1st level
+        char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
+        item_potion_small = 0: item_potion_large = 0
+        poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
+        deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
+
+        IF num_players > 1 THEN
+            ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
+        ELSE
+            ScrollText "THE DESCENT", "Torchlight gutters as you, " + class_name + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is rumoured to lie on the " + Ordinal$(key_level) + " level -- take it, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. A Crystal Ball would reveal exactly which room hides it. Few ever escape."
+        END IF
+    END IF
+
     cursor_erase: cursor_draw        ' clear the narration, reveal the board
     IF opt_boardgame THEN hint = "[SPACE] roll  " ELSE hint = ""
-    Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", hint + "move  [F] search  [C] sheet  [?] keys  fight  ESC flee"
+    IF didload THEN
+        Banner "-- RESUMED --  " + _TRIM$(player_name) + " the " + class_name + " returns to the depths.", "[G] saves your progress anytime.   [ press any key ]"
+    ELSE
+        Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", hint + "move  [F] search  [G] save  [?] keys  fight  ESC flee"
+    END IF
     WaitKey
-    AnnounceTurn cur_player          ' multiplayer: announce whose turn it is
+    IF NOT didload THEN AnnounceTurn cur_player   ' multiplayer: announce whose turn it is
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
 
@@ -166,6 +180,7 @@ FUNCTION PlayGame%
         IF k = "V" THEN ScryView
         IF k = "H" THEN UsePotion FALSE: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
         IF k = "P" THEN PauseGame: idle_ticks = 0
+        IF k = "G" AND num_players = 1 THEN SaveAndToast: idle_ticks = 0
         IF k = "?" OR k = "/" THEN ShowKeys
         IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
 
@@ -251,6 +266,7 @@ FUNCTION PlayGame%
                     ' victory: enough gold, hold the Level Key, and back at the entrance
                     IF gold >= target_gold AND has_key THEN
                         IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN
+                            DeleteSave                       ' the run is won -- clear any stale save
                             PlayGame = OUT_WIN: EXIT FUNCTION
                         END IF
                     END IF
@@ -1034,6 +1050,7 @@ END SUB
 '$INCLUDE:'include/EFFECTS.bas'
 '$INCLUDE:'include/CURIO.bas'
 '$INCLUDE:'include/STATS.bas'
+'$INCLUDE:'include/SAVEGAME.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'

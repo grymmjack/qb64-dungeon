@@ -241,6 +241,8 @@ DIM SHARED opt_combatspeed AS INTEGER ' pause after each combat action: 0 Slow, 
 DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle (no action) -> wandering monsters can find you
 DIM SHARED opt_critfumble AS INTEGER  ' TRUE: the crit/fumble effects engine runs (cinematic + bonus/penalty rolls)
 DIM SHARED opt_lootrecovery AS INTEGER ' TRUE: death leaves your loot in the room to reclaim (default in D&D mode)
+DIM SHARED run_seed AS DOUBLE          ' the RNG seed the current dungeon was built from (so save/load can reproduce it)
+DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
 ' old-school 3d6 ability scores (rolled in CREATE A CHARACTER) + the stats derived from them
 DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
