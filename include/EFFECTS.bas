@@ -11,31 +11,9 @@
 ' ============================================================================
 
 SUB InitEffects
+    ' The crit/fumble lines now live in assets/data/effects.txt -- edit + F5.
     NCRIT = 0: NPFUM = 0: NMFUM = 0
-    ' -- player CRITICAL HIT: mostly a heroic heal, some a savage follow-through --
-    AddFX 1, "AARGH! You hew into the {mon} with {weapon}, cleaving it near in two!", 1, 4
-    AddFX 1, "You drive {weapon} clean through the {mon} -- it shrieks and buckles!", 1, 4
-    AddFX 1, "A perfect strike! {weapon} shatters the {mon}'s guard and bites deep!", 1, 4
-    AddFX 1, "You roar and bring {weapon} down, splitting the {mon} apart!", 2, 6
-    AddFX 1, "Time slows -- {weapon} finds the gap and the {mon} folds around it!", 2, 6
-    AddFX 1, "You spin low and open the {mon} shoulder to hip with {weapon}!", 1, 4
-    AddFX 1, "The {mon} never saw it -- {weapon} lands true and it staggers!", 0, 0
-    AddFX 1, "With a savage cry you hammer {weapon} home; the {mon} caves in!", 1, 4
-    AddFX 1, "You duck the {mon}'s guard and bury {weapon} to the hilt!", 2, 6
-    ' -- player FUMBLE: hurt yourself, drop your grip, spill gold, or just whiff --
-    AddFX 2, "You swing wild, lose your footing, and crack your own shin!", 3, 4
-    AddFX 2, "{weapon} slips from your sweaty grip and clatters away!", 4, 0
-    AddFX 2, "You stumble past the {mon}, spilling coins from your pouch!", 5, 5
-    AddFX 2, "Your strike goes wide and you nearly gut yourself!", 3, 4
-    AddFX 2, "You trip on a loose stone and sprawl at the {mon}'s feet!", 4, 0
-    AddFX 2, "Overbalanced, you flail -- the blow whistles harmlessly past!", 0, 0
-    AddFX 2, "Your boot skids in the muck; {weapon} bites only air.", 0, 0
-    ' -- monster natural-1: it hurts itself or wastes its turn --
-    AddFX 3, "The {mon} lunges, trips, and gashes itself on its own claws!", 3, 4
-    AddFX 3, "The {mon} overreaches and sprawls, wasting its turn!", 0, 0
-    AddFX 3, "The {mon} snaps at you, misses, and bites its own flank!", 3, 4
-    AddFX 3, "The {mon} slips in its own filth and crashes down!", 0, 0
-    AddFX 3, "The {mon} swings so hard it wrenches itself and reels!", 3, 4
+    LoadEffects
 END SUB
 
 

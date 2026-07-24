@@ -85,63 +85,58 @@ SUB CurioChest (rm AS INTEGER)
 END SUB
 
 
-' Spring one of four traps, each with its own saving throw and effect.
+' Spring one trap from assets/data/traps.txt: roll a random loaded trap, take its
+' saving throw, and on a failure run its mechanic (kind). Trap NAMES, save stats,
+' sounds, dice and messages are all editable in the data file; the four mechanics
+' (poison DoT / bomb / frost / siren) stay in code, keyed by the row's `kind`.
 SUB SpringTrap (rm AS INTEGER)
-    DIM tt AS INTEGER, dmg AS INTEGER, sec AS INTEGER, ln AS STRING
-    sec = ROOMS(rm).sec: IF sec < 1 THEN sec = 1
-    tt = RollDie(4)                                 ' 1 darts, 2 bomb, 3 frost, 4 siren
-    SELECT CASE tt
-        CASE 1                                      ' POISON DARTS -- save vs poison (CON)
-            Sfx "hiss"
-            Banner "CLICK -- POISON DARTS hiss from the chest!", "Roll to SAVE vs poison!"
-            CombatPause
-            IF SaveThrow(AbilMod(player_con), "poison (CON)") THEN
-                Banner "You twist aside -- the darts clatter past!", "SAVED!   [ press any key ]"
-            ELSE
-                poison_turns = poison_turns + RollDie(4)
-                Banner "A dart pricks you -- venom burns in your veins!", "POISONED: -1 HP for " + _TRIM$(STR$(poison_turns)) + " turns.   [ press any key ]"
-            END IF
-        CASE 2                                      ' BOMB -- dodge (DEX), maybe catch fire
-            Sfx "boom"
-            Banner "TICK TICK -- a BOMB tumbles out of the chest!", "Roll to DODGE the blast!"
-            CombatPause
-            IF SaveThrow(AbilMod(player_dex), "the bomb (DEX)") THEN
-                Banner "You dive clear as it bursts!", "DODGED!   [ press any key ]"
-            ELSE
-                dmg = RollDie(6)
+    DIM tt AS INTEGER, dmg AS INTEGER, amod AS INTEGER, ln AS STRING
+    DIM tname AS STRING, tsave AS STRING, tword AS STRING
+    DIM ftit AS STRING, fbod AS STRING
+    IF NTRAP <= 0 THEN EXIT SUB                     ' no traps loaded -- nothing to spring
+    tt = RollDie(NTRAP)
+    tname = _TRIM$(TRAPS(tt).name): tsave = _TRIM$(TRAPS(tt).save): tword = _TRIM$(TRAPS(tt).word)
+    ftit = _TRIM$(TRAPS(tt).ftit): fbod = _TRIM$(TRAPS(tt).fbod)
+    IF LEN(tword) = 0 THEN tword = "SAVE"
+    SELECT CASE tsave                               ' which ability the save uses
+        CASE "DEX": amod = AbilMod(player_dex)
+        CASE "WIS": amod = AbilMod(player_wis)
+        CASE ELSE: amod = AbilMod(player_con)
+    END SELECT
+
+    Sfx _TRIM$(TRAPS(tt).sfx)
+    Banner _TRIM$(TRAPS(tt).trig), "Roll to " + tword + "!"
+    CombatPause
+    IF SaveThrow(amod, tname + " (" + tsave + ")") THEN
+        Banner _TRIM$(TRAPS(tt).smsg), tword + "D!   [ press any key ]"
+    ELSE
+        SELECT CASE TRAPS(tt).kind
+            CASE 1                                  ' POISON -- damage over time
+                poison_turns = poison_turns + RollDie(TRAPS(tt).die)
+                Banner ftit, StrSubst$(fbod, "{n}", _TRIM$(STR$(poison_turns))) + "   [ press any key ]"
+            CASE 2                                  ' BOMB -- damage, maybe catch fire
+                dmg = RollDie(TRAPS(tt).die)
                 player_hp = player_hp - dmg: IF player_hp < 1 THEN player_hp = 1
-                ln = "The blast rocks you for " + _TRIM$(STR$(dmg)) + " damage!"
+                ln = StrSubst$(fbod, "{n}", _TRIM$(STR$(dmg)))
                 IF RollDie(100) <= 25 THEN
                     fire_turns = fire_turns + RollDie(4)
                     ln = ln + " You are set ALIGHT (-1 HP/turn)!"
                 END IF
-                Banner "BOOM!", ln + "   [ press any key ]"
-            END IF
-        CASE 3                                      ' FROST BOMB -- save vs frost (CON)
-            Sfx "fizzle"
-            Banner "A FROST BOMB shatters in a burst of rime!", "Roll to SAVE vs frost!"
-            CombatPause
-            IF SaveThrow(AbilMod(player_con), "frost (CON)") THEN
-                Banner "You shrug off the freezing blast!", "SAVED!   [ press any key ]"
-            ELSEIF num_players > 1 THEN              ' multiplayer: frozen in place, no damage
-                frost_turns = frost_turns + RollDie(4)
-                Banner "You are frozen solid!", "FROZEN: you cannot move for " + _TRIM$(STR$(frost_turns)) + " turns.   [ press any key ]"
-            ELSE                                     ' solo: straight cold damage
-                dmg = RollDie(4)
-                player_hp = player_hp - dmg: IF player_hp < 1 THEN player_hp = 1
-                Banner "Frost sears your skin!", "You take " + _TRIM$(STR$(dmg)) + " cold damage.   [ press any key ]"
-            END IF
-        CASE ELSE                                   ' MAGIC SIREN -- save vs magic (WIS)
-            Sfx "alarm"
-            Banner "A MAGIC SIREN wails up out of the chest!", "Roll to SAVE vs magic!"
-            CombatPause
-            IF SaveThrow(AbilMod(player_wis), "the siren (WIS)") THEN
-                Banner "You clap the lid shut before it carries!", "SAVED!   [ press any key ]"
-            ELSE
-                siren_turns = siren_turns + RollDie(4)
-                Banner "The alarm shrieks through the halls!", "For " + _TRIM$(STR$(siren_turns)) + " turns, wandering monsters hunt you!   [ press any key ]"
-            END IF
-    END SELECT
+                Banner ftit, ln + "   [ press any key ]"
+            CASE 3                                  ' FROST -- freeze (multiplayer) or cold damage (solo)
+                IF num_players > 1 THEN
+                    frost_turns = frost_turns + RollDie(TRAPS(tt).die)
+                    Banner "You are frozen solid!", "FROZEN: you cannot move for " + _TRIM$(STR$(frost_turns)) + " turns.   [ press any key ]"
+                ELSE
+                    dmg = RollDie(TRAPS(tt).die)
+                    player_hp = player_hp - dmg: IF player_hp < 1 THEN player_hp = 1
+                    Banner ftit, StrSubst$(fbod, "{n}", _TRIM$(STR$(dmg))) + "   [ press any key ]"
+                END IF
+            CASE ELSE                               ' SIREN -- raise the wandering-monster rate
+                siren_turns = siren_turns + RollDie(TRAPS(tt).die)
+                Banner ftit, StrSubst$(fbod, "{n}", _TRIM$(STR$(siren_turns))) + "   [ press any key ]"
+        END SELECT
+    END IF
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB

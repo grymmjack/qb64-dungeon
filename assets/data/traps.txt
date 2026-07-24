@@ -1,0 +1,19 @@
+# traps.txt -- curio-chest traps. One trap per line, pipe-delimited (fields trimmed).
+# When a trapped chest is opened, one of these is chosen at random; you roll a saving
+# throw, and on a failure the effect lands. Re-read at launch (F5).
+#
+# kind : selects the MECHANIC (fixed in code): 1 poison (-1 HP/turn), 2 bomb (damage,
+#        25% also sets you alight), 3 frost (solo: cold damage; multiplayer: frozen in
+#        place), 4 siren (raises the wandering-monster rate for a while).
+# save : ability the saving throw uses -- CON, DEX, or WIS.
+# word : the save verb: SAVE or DODGE ("Roll to <word>!" / "<word>D!").
+# sfx  : sound cue -- hiss, boom, fizzle, alarm (any name Sfx knows).
+# die  : magnitude die -- damage dealt, or number of turns the effect lasts (RollDie).
+# {n} in the fail body = the rolled magnitude. You can add more rows (e.g. a second
+# poison variant with different text); kind just picks which mechanic runs.
+#
+# kind | name         | save | word  | sfx    | die | trigger                                    | savemsg                                  | failtitle                                     | failbody
+1 | POISON DARTS | CON | SAVE  | hiss   | 4 | CLICK -- POISON DARTS hiss from the chest! | You twist aside -- the darts clatter past! | A dart pricks you -- venom burns in your veins! | POISONED: -1 HP for {n} turns.
+2 | BOMB         | DEX | DODGE | boom   | 6 | TICK TICK -- a BOMB tumbles out of the chest! | You dive clear as it bursts!             | BOOM!                                         | The blast rocks you for {n} damage!
+3 | FROST BOMB   | CON | SAVE  | fizzle | 4 | A FROST BOMB shatters in a burst of rime!  | You shrug off the freezing blast!         | Frost sears your skin!                        | You take {n} cold damage.
+4 | MAGIC SIREN  | WIS | SAVE  | alarm  | 4 | A MAGIC SIREN wails up out of the chest!   | You clap the lid shut before it carries!  | The alarm shrieks through the halls!          | For {n} turns, wandering monsters hunt you!

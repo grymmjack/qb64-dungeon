@@ -162,6 +162,24 @@ END TYPE
 DIM SHARED CRITFX(1 TO 30) AS FXROW, NCRIT AS INTEGER      ' player critical-hit results
 DIM SHARED PFUMBLE(1 TO 30) AS FXROW, NPFUM AS INTEGER     ' player fumble results
 DIM SHARED MFUMBLE(1 TO 30) AS FXROW, NMFUM AS INTEGER     ' monster natural-1 fumble results
+
+' -- Curio-chest traps (data-driven; loaded from assets/data/traps.txt; see SpringTrap) --
+TYPE TRAPROW
+    kind AS INTEGER          ' mechanic: 1 poison, 2 bomb, 3 frost, 4 siren
+    name AS STRING * 20
+    save AS STRING * 4       ' CON / DEX / WIS
+    word AS STRING * 8       ' save verb: SAVE / DODGE
+    sfx  AS STRING * 8
+    die  AS INTEGER          ' magnitude die (damage or turns)
+    trig AS STRING * 72      ' trigger banner (line 1)
+    smsg AS STRING * 72      ' save-success banner (line 1)
+    ftit AS STRING * 56      ' failure banner title (line 1)
+    fbod AS STRING * 72      ' failure banner body (line 2); {n} = rolled magnitude
+END TYPE
+DIM SHARED TRAPS(1 TO 20) AS TRAPROW, NTRAP AS INTEGER
+
+' -- shared scratch buffer for the data-file loaders (see DATA.bas) --
+DIM SHARED DLINE(1 TO 600) AS STRING, DLINE_N AS INTEGER
 DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll

@@ -1,0 +1,36 @@
+# monsters.txt -- the bestiary. One monster per line, pipe-delimited.
+# Fields are TRIMMED, so pad with spaces to line the columns up however you like.
+# Lines starting with # are comments; blank lines are ignored. Re-read at launch (F5).
+#
+# Each dungeon level (1-9) has 3 monster SLOTS; a room rolls one of its level's slots.
+# The four numbers are the exact DUNGEON! 2d6 kill number for each class -- the roll
+# you must MEET OR BEAT to slay it. 13 means "-" on the card: unkillable without a Magic Sword.
+#
+# lvl | slot | name          | HERO | ELF | SUP | WIZ
+1 | 1 | GIANT RATS     | 4  | 5  | 3  | 3
+1 | 2 | GIANT LIZARD   | 4  | 5  | 2  | 5
+1 | 3 | GOBLINS        | 4  | 3  | 2  | 5
+2 | 1 | SKELETON       | 4  | 5  | 3  | 6
+2 | 2 | HOBGOBLINS     | 5  | 4  | 3  | 6
+2 | 3 | GIANT SPIDER   | 6  | 6  | 4  | 5
+3 | 1 | GHOULS         | 6  | 5  | 4  | 6
+3 | 2 | GARGOYLE       | 6  | 7  | 5  | 6
+3 | 3 | EVIL HERO      | 7  | 8  | 5  | 6
+4 | 1 | EVIL HERO      | 7  | 8  | 5  | 6
+4 | 2 | GIANT SNAKE    | 8  | 10 | 6  | 9
+4 | 3 | GHOULS         | 6  | 5  | 4  | 6
+5 | 1 | WEREWOLF       | 9  | 9  | 7  | 7
+5 | 2 | OGRE           | 9  | 8  | 6  | 8
+5 | 3 | GIANT SNAKE    | 8  | 10 | 6  | 9
+6 | 1 | MUMMY          | 10 | 11 | 8  | 8
+6 | 2 | TROLL          | 10 | 9  | 8  | 8
+6 | 3 | VAMPIRE        | 10 | 12 | 8  | 9
+7 | 1 | GIANT          | 11 | 10 | 9  | 10
+7 | 2 | WITCH          | 11 | 11 | 9  | 5
+7 | 3 | GREEN SLIME    | 11 | 13 | 10 | 11
+8 | 1 | PURPLE WORM    | 11 | 12 | 10 | 12
+8 | 2 | BLACK PUDDING  | 12 | 13 | 12 | 12
+8 | 3 | MUMMY          | 10 | 11 | 8  | 8
+9 | 1 | EVIL WIZARD    | 12 | 13 | 11 | 7
+9 | 2 | RED DRAGON     | 13 | 13 | 11 | 12
+9 | 3 | BLUE DRAGON    | 12 | 13 | 10 | 12

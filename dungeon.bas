@@ -66,7 +66,8 @@ InitClasses
 InitMonsterTables
 InitDice
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
-InitEffects                      ' load the crit/fumble effect tables
+InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
+LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
@@ -1274,6 +1275,7 @@ END SUB
 ' ============================================================================
 '  MODULES
 ' ============================================================================
+'$INCLUDE:'include/DATA.bas'
 '$INCLUDE:'include/SECTOR.bas'
 '$INCLUDE:'include/BOARD.bas'
 '$INCLUDE:'include/CURSOR.bas'

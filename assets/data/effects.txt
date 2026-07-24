@@ -1,0 +1,31 @@
+# effects.txt -- cinematic CRIT and FUMBLE lines (the Crits & Fumbles setting).
+# One effect per line, pipe-delimited (fields trimmed). Re-read at launch (F5).
+#
+# table: 1 = player CRITICAL HIT   2 = player FUMBLE   3 = monster natural-1 (self-mishap)
+# kind : 0 flavor-only   1 heal player   2 extra damage to foe   3 self-damage
+#        4 lose a turn   5 drop gold
+# die  : magnitude die for the mechanical effect (0 = none)
+# text : the line shown. Tokens {mon} and {weapon} are filled in at show time. No pipes in text.
+#
+# table | kind | die | text
+1 | 1 | 4 | AARGH! You hew into the {mon} with {weapon}, cleaving it near in two!
+1 | 1 | 4 | You drive {weapon} clean through the {mon} -- it shrieks and buckles!
+1 | 1 | 4 | A perfect strike! {weapon} shatters the {mon}'s guard and bites deep!
+1 | 2 | 6 | You roar and bring {weapon} down, splitting the {mon} apart!
+1 | 2 | 6 | Time slows -- {weapon} finds the gap and the {mon} folds around it!
+1 | 1 | 4 | You spin low and open the {mon} shoulder to hip with {weapon}!
+1 | 0 | 0 | The {mon} never saw it -- {weapon} lands true and it staggers!
+1 | 1 | 4 | With a savage cry you hammer {weapon} home; the {mon} caves in!
+1 | 2 | 6 | You duck the {mon}'s guard and bury {weapon} to the hilt!
+2 | 3 | 4 | You swing wild, lose your footing, and crack your own shin!
+2 | 4 | 0 | {weapon} slips from your sweaty grip and clatters away!
+2 | 5 | 5 | You stumble past the {mon}, spilling coins from your pouch!
+2 | 3 | 4 | Your strike goes wide and you nearly gut yourself!
+2 | 4 | 0 | You trip on a loose stone and sprawl at the {mon}'s feet!
+2 | 0 | 0 | Overbalanced, you flail -- the blow whistles harmlessly past!
+2 | 0 | 0 | Your boot skids in the muck; {weapon} bites only air.
+3 | 3 | 4 | The {mon} lunges, trips, and gashes itself on its own claws!
+3 | 0 | 0 | The {mon} overreaches and sprawls, wasting its turn!
+3 | 3 | 4 | The {mon} snaps at you, misses, and bites its own flank!
+3 | 0 | 0 | The {mon} slips in its own filth and crashes down!
+3 | 3 | 4 | The {mon} swings so hard it wrenches itself and reels!

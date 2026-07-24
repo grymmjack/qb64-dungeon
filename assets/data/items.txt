@@ -1,0 +1,26 @@
+# items.txt -- magic-item cards seeded into the treasure pools. One item per line.
+# An item OVERRIDES the treasure slot it names (see treasures.txt): put a MAGIC SWORD in
+# level 2 / slot 3 and that slot yields the sword instead of its gold treasure. Because a
+# room rolls 1 of its 3 slots, an item in slot 3 turns up in ~1/3 of that level's rooms.
+# Deeper levels seed rarer, stronger items. Lines starting with # are comments.
+# Re-read at launch (F5).
+#
+# type codes: 1=MagicSword+1  2=MagicSword+2  3=SecretDoorCard  4=ESP Medallion
+#             5=CrystalBall   7=Shield(+2 AC) 8=MagicArmor(+3 AC) 9=MagicBow(+2 hit)
+#             10=ElfBoots(+2 move) 11=TeleportScroll   (6=LevelKey is placed dynamically)
+#
+# lvl | slot | name             | gold | type
+2 | 3 | MAGIC SWORD +1   | 500  | 1
+3 | 3 | ESP MEDALLION    | 500  | 4
+3 | 2 | SHIELD           | 800  | 7
+4 | 3 | SECRET DOOR CARD | 0    | 3
+4 | 2 | ELF BOOTS        | 900  | 10
+5 | 3 | CRYSTAL BALL     | 1000 | 5
+5 | 2 | MAGIC BOW        | 1200 | 9
+6 | 3 | MAGIC SWORD +2   | 500  | 2
+6 | 2 | TELEPORT SCROLL  | 400  | 11
+7 | 3 | MAGIC ARMOR      | 1500 | 8
+7 | 2 | TELEPORT SCROLL  | 400  | 11
+8 | 3 | SHIELD           | 800  | 7
+8 | 2 | MAGIC BOW        | 1200 | 9
+9 | 3 | MAGIC ARMOR      | 1500 | 8

@@ -36,72 +36,13 @@ END SUB
 ' Values approximate the board game (exact card numbers live on the cards).
 
 SUB InitMonsterTables
-    ' --- monsters: name + the exact per-class 2d6 kill numbers from the cards ---
-    '     Mob lvl, slot, name, Hero, Elf, Superhero, Wizard   (13 = "-" can't kill barehanded)
-    Mob 1, 1, "GIANT RATS", 4, 5, 3, 3
-    Mob 1, 2, "GIANT LIZARD", 4, 5, 2, 5
-    Mob 1, 3, "GOBLINS", 4, 3, 2, 5
-    Mob 2, 1, "SKELETON", 4, 5, 3, 6
-    Mob 2, 2, "HOBGOBLINS", 5, 4, 3, 6
-    Mob 2, 3, "GIANT SPIDER", 6, 6, 4, 5
-    Mob 3, 1, "GHOULS", 6, 5, 4, 6
-    Mob 3, 2, "GARGOYLE", 6, 7, 5, 6
-    Mob 3, 3, "EVIL HERO", 7, 8, 5, 6
-    Mob 4, 1, "EVIL HERO", 7, 8, 5, 6
-    Mob 4, 2, "GIANT SNAKE", 8, 10, 6, 9
-    Mob 4, 3, "GHOULS", 6, 5, 4, 6
-    Mob 5, 1, "WEREWOLF", 9, 9, 7, 7
-    Mob 5, 2, "OGRE", 9, 8, 6, 8
-    Mob 5, 3, "GIANT SNAKE", 8, 10, 6, 9
-    Mob 6, 1, "MUMMY", 10, 11, 8, 8
-    Mob 6, 2, "TROLL", 10, 9, 8, 8
-    Mob 6, 3, "VAMPIRE", 10, 12, 8, 9
-    Mob 7, 1, "GIANT", 11, 10, 9, 10
-    Mob 7, 2, "WITCH", 11, 11, 9, 5
-    Mob 7, 3, "GREEN SLIME", 11, 13, 10, 11
-    Mob 8, 1, "PURPLE WORM", 11, 12, 10, 12
-    Mob 8, 2, "BLACK PUDDING", 12, 13, 12, 12
-    Mob 8, 3, "MUMMY", 10, 11, 8, 8
-    Mob 9, 1, "EVIL WIZARD", 12, 13, 11, 7
-    Mob 9, 2, "RED DRAGON", 13, 13, 11, 12
-    Mob 9, 3, "BLUE DRAGON", 12, 13, 10, 12
-
-    ' --- treasures: real card names + gold-piece values, richer the deeper you go ---
-    SetTre 1, "SILVER CUP", 1000, "SACK OF GOLD", 1000, "SILVER RING", 2000
-    SetTre 2, "SILVER RING", 2000, "GOLD CUP", 2500, "GOLD RING", 3000
-    SetTre 3, "GOLD RING", 3000, "GOLD CUP", 2500, "SILVER COFFER", 4000
-    SetTre 4, "SILVER COFFER", 4000, "JADE IDOL", 5000, "HUGE EMERALD", 5000
-    SetTre 5, "HUGE EMERALD", 5000, "JADE IDOL", 5000, "HUGE SAPPHIRE", 6000
-    SetTre 6, "HUGE SAPPHIRE", 6000, "SILVER NECKLACE", 7000, "HUGE RUBY", 8000
-    SetTre 7, "SILVER NECKLACE", 7000, "HUGE RUBY", 8000, "GOLD NECKLACE", 9000
-    SetTre 8, "GOLD NECKLACE", 9000, "HUGE RUBY", 8000, "HUGE DIAMOND", 10000
-    SetTre 9, "HUGE DIAMOND", 10000, "GOLD NECKLACE", 9000, "HUGE SAPPHIRE", 6000
-
-    ' Magic-item cards seeded into the treasure pools. Each room independently
-    ' rolls one of its level's 3 slots (RandomizeRooms), so an item in slot 3 shows
-    ' up in ~1/3 of that level's rooms, items in slots 2+3 in ~2/3 -- getting richer
-    ' and rarer the deeper you delve. Frequencies here are a best-judgment take on
-    ' the DUNGEON! magic deck (Sword, Bow, Shield, Armor, Cloak/Boots, ESP, Crystal
-    ' Ball, Secret Door Card, Teleport) rather than a verified per-card count.
-    ' TRE_ITEM: 1=Sword+1 2=Sword+2 3=SecretDoorCard 4=ESP 5=CrystalBall 6=LevelKey(dynamic)
-    '           7=Shield(+2 AC) 8=MagicArmor(+3 AC) 9=MagicBow(+2 hit) 10=ElfBoots(+2 move) 11=Teleport
-    SetItem 2, 3, "MAGIC SWORD +1", 500, 1
-    SetItem 3, 3, "ESP MEDALLION", 500, 4
-    SetItem 3, 2, "SHIELD", 800, 7
-    SetItem 4, 3, "SECRET DOOR CARD", 0, 3
-    SetItem 4, 2, "ELF BOOTS", 900, 10
-    SetItem 5, 3, "CRYSTAL BALL", 1000, 5
-    SetItem 5, 2, "MAGIC BOW", 1200, 9
-    SetItem 6, 3, "MAGIC SWORD +2", 500, 2
-    SetItem 6, 2, "TELEPORT SCROLL", 400, 11
-    SetItem 7, 3, "MAGIC ARMOR", 1500, 8
-    SetItem 7, 2, "TELEPORT SCROLL", 400, 11
-    SetItem 8, 3, "SHIELD", 800, 7
-    SetItem 8, 2, "MAGIC BOW", 1200, 9
-    SetItem 9, 3, "MAGIC ARMOR", 1500, 8
-
-    BOSS_NAME(1) = "RED DRAGON": BOSS_NAME(2) = "BLUE DRAGON"
-    BOSS_NAME(3) = "EVIL WIZARD": BOSS_NAME(4) = "BLACK PUDDING"
+    ' The bestiary, treasure pools, magic items and boss names now live in the
+    ' editable files under assets/data/ -- edit those and press F5. LoadTreasures
+    ' fills every slot; LoadItems then overrides slots that hold a magic-item card.
+    LoadMonsters
+    LoadTreasures
+    LoadItems
+    LoadBosses
 END SUB
 
 
@@ -118,6 +59,13 @@ SUB SetTre (lvl AS INTEGER, n1 AS STRING, g1 AS INTEGER, n2 AS STRING, g2 AS INT
     TRE_NAME(lvl, 1) = n1: TRE_GOLD(lvl, 1) = g1
     TRE_NAME(lvl, 2) = n2: TRE_GOLD(lvl, 2) = g2
     TRE_NAME(lvl, 3) = n3: TRE_GOLD(lvl, 3) = g3
+END SUB
+
+
+' Set one treasure slot (used by LoadTreasures reading assets/data/treasures.txt).
+SUB SetTreSlot (lvl AS INTEGER, slot AS INTEGER, nm AS STRING, gold AS INTEGER)
+    IF lvl < 1 OR lvl > 9 OR slot < 1 OR slot > 3 THEN EXIT SUB
+    TRE_NAME(lvl, slot) = nm: TRE_GOLD(lvl, slot) = gold: TRE_ITEM(lvl, slot) = 0
 END SUB
 
 
