@@ -325,6 +325,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
         k = INKEY$
         IF k = CHR$(27) THEN
             c.x = c.prev_x: c.y = c.prev_y      ' back out the way you came
+            StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "fled", 0, 0, 0
             EXIT DO
         ELSEIF k = " " AND NOT unbeatable THEN
             sm = DoRoll(2, item_sword, "attacking the " + mon)
@@ -339,6 +340,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
                     CombatPause
                 END IF
                 ClaimTreasure rm, sm
+                StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "killed", 1, 0, 0
                 EXIT DO
             ELSEIF last_raw = 2 THEN
                 ' natural 2 -- CRITICAL FUMBLE
@@ -355,6 +357,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "treasure"
                 ClaimTreasure rm, sm
+                StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "killed", 1, 0, 0
                 EXIT DO
             ELSE
                 MonsterAttack rm                ' failed -- roll on the Monster Attack Table
@@ -381,7 +384,9 @@ END FUNCTION
 SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
+    DIM AS INTEGER tot_dealt, tot_taken, wander
     DIM lost AS LONG
+    wander = (rm > ROOM_N)                       ' TRUE for a wandering-monster scratch slot
     sec = ROOMS(rm).sec
     mon = _TRIM$(ROOMS(rm).monster)
     isboss = ROOMS(rm).is_boss
@@ -399,6 +404,7 @@ SUB DoCombatDnD (rm AS INTEGER)
         k = INKEY$
         IF k = CHR$(27) THEN                     ' flee -- back out the way you came
             c.x = c.prev_x: c.y = c.prev_y
+            StatLog sec, rm, mon, isboss, wander, "fled", rounds, tot_dealt, tot_taken
             EXIT SUB
         ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (free action)
             UsePotion FALSE
@@ -412,6 +418,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
+                tot_dealt = tot_dealt + dmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 IF opt_critfumble THEN
@@ -435,6 +442,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
+                tot_dealt = tot_dealt + dmg
                 Sfx "hit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
@@ -450,6 +458,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 Sfx "treasure"
                 ClaimTreasure rm, rounds
+                StatLog sec, rm, mon, isboss, wander, "killed", rounds, tot_dealt, tot_taken
                 EXIT SUB
             END IF
 
@@ -468,6 +477,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
+                tot_taken = tot_taken + mdmg
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 Banner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", "You take " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
@@ -483,6 +493,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
                 DrawCombatPanel rm, mon, lead
                 lost = gold
+                StatLog sec, rm, mon, isboss, wander, "died", rounds, tot_dealt, tot_taken
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
                 Sfx "lose"
                 Banner "YOU ARE DOWNED by the " + mon + "!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
@@ -988,6 +999,7 @@ END SUB
 '$INCLUDE:'include/PLAYERS.bas'
 '$INCLUDE:'include/EFFECTS.bas'
 '$INCLUDE:'include/CURIO.bas'
+'$INCLUDE:'include/STATS.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'
