@@ -306,6 +306,9 @@ DIM SHARED music_handle AS LONG                  ' currently-looping menu/level 
 DIM SHARED MUSIC_FILE(1 TO 9) AS STRING          ' music file assigned to each dungeon level (in assets/music/)
 DIM SHARED music_level AS INTEGER                ' the level whose track is loaded right now (0 = none)
 DIM SHARED music_curfile AS STRING               ' the file currently loaded (so same-file levels don't restart it)
+' -- optional file-based sound effects (assets/sfx/<name>.ogg|mp3|wav|flac; see MUSIC.bas) --
+' If a file exists for an Sfx name it plays instead of the tone beeper; otherwise the beeper is used.
+DIM SHARED SFX_NAME(1 TO 48) AS STRING, SFX_HND(1 TO 48) AS LONG, SFX_N AS INTEGER
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter

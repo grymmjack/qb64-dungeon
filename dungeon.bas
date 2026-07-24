@@ -71,6 +71,7 @@ LoadTraps                        ' load the curio-chest traps (assets/data/traps
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
+InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/*); beeper covers the rest
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 

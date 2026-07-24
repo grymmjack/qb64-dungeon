@@ -1140,7 +1140,10 @@ END SUB
 
 SUB Sfx (kind AS STRING)
     IF NOT opt_sfx THEN EXIT SUB
-    SELECT CASE kind
+    DIM h AS LONG
+    h = SfxHandle(kind)                         ' a real audio file for this effect?
+    IF h > 0 THEN _SNDPLAYCOPY h, opt_sfxvol / 10: EXIT SUB   ' play it (a copy, so effects can overlap)
+    SELECT CASE kind                            ' otherwise fall back to the tone beeper
         CASE "move": Tone 350, 0.08
         CASE "bump": Tone 170, 0.12
         CASE "door": Tone 300, 0.06: Tone 520, 0.09
