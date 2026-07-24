@@ -1,0 +1,103 @@
+# DUNGEON -- regular-room flavor, ONE LINER per line, format:  <level>|<text>
+# Shown (typewriter style, top of screen) the first time you enter an ordinary
+# room on that dungeon level. Levels 1-9 get darker as you descend. Edit freely
+# -- add/remove lines, keep the "<level>|" prefix. Lines starting with # are ignored.
+
+1|Dust motes drift in the still, cold air.
+1|Your footsteps echo down the empty corridor.
+1|Old torch brackets rust on the damp stone walls.
+1|A faint smell of mildew hangs over the room.
+1|Cobwebs cling to the corners, long abandoned.
+1|Water drips somewhere out of sight, steady and slow.
+1|The floor is littered with cracked flagstones.
+1|A cold draft brushes past you from an unseen gap.
+1|Faded scratches mar the walls -- claw marks, perhaps.
+1|The silence here feels almost watchful.
+
+2|A rat skitters into the shadows as you enter.
+2|The air grows colder, and thicker.
+2|Bones crunch softly underfoot.
+2|Something has nested here, and recently.
+2|The walls sweat with a greasy damp.
+2|A low, wet dripping echoes from the dark.
+2|Old bloodstains have blackened into the stone.
+2|The room reeks of animal musk.
+2|Broken weapons lie rusting in a heap.
+2|You feel unseen eyes tracking your steps.
+
+3|A guttering green light seeps from the mossy walls.
+3|The floor is slick with something you would rather not name.
+3|Distant chittering rises and falls in the dark.
+3|Fungus glows faintly on the ceiling above.
+3|The stench of rot makes your eyes water.
+3|Half-eaten remains lie scattered in a corner.
+3|The stone here is warm, as if something breathes beneath.
+3|Your torch sputters in the foul, heavy air.
+3|Scorch marks blacken one entire wall.
+3|A whisper brushes your ear, then is gone.
+
+4|The temperature drops sharply as you step inside.
+4|Strange sigils are scratched deep into the floor.
+4|The dark here seems to swallow your torchlight.
+4|A cold hand of dread settles on your shoulders.
+4|Shattered cages hang from rusted chains.
+4|The air tastes of copper and old fear.
+4|Something vast shifts in the blackness beyond.
+4|Faint moaning drifts up from cracks in the floor.
+4|Your breath fogs and hangs, unwilling to fade.
+4|The walls are carved with screaming faces.
+
+5|A red glow pulses faintly deep in the stone.
+5|The floor is scattered with gnawed and splintered bone.
+5|Heat radiates from somewhere far below.
+5|Chains rattle though no wind stirs them.
+5|The shadows here move against the light.
+5|A thick, sweet stench of decay coats your throat.
+5|Ancient runes flare and dim as you pass.
+5|You hear breathing that is not your own.
+5|The ceiling drips a slow, dark ichor.
+5|Something laughs, low and wet, then falls silent.
+
+6|The very air trembles with a distant roar.
+6|Molten cracks vein the floor with sullen orange.
+6|Twisted statues leer from every corner.
+6|The heat here is a living, pressing thing.
+6|Screams echo up from the depths, then cut off.
+6|Your skin crawls with unseen malice.
+6|The stone floor is worn smooth by countless feet.
+6|A pall of ash hangs heavy in the gloom.
+6|Eyes gleam and vanish at the edge of the light.
+6|The dread here is thick enough to taste.
+
+7|Reality seems to bend at the edges of your sight.
+7|The walls weep a slow, black tar.
+7|Whispers in no living tongue crowd your mind.
+7|Bones fuse into the very stone of the walls.
+7|The air is thick with the reek of the grave.
+7|Cold fire dances without heat along the floor.
+7|Your shadow lags a heartbeat behind you.
+7|Something enormous breathes in the dark ahead.
+7|The floor is carpeted in centuries of dust and dead.
+7|A distant bell tolls, though none should hang here.
+
+8|The dark is absolute, and it is watching.
+8|The ground pulses like a slow, vast heartbeat.
+8|Faces press out from the melting walls.
+8|An unbearable weight of ages bears down on you.
+8|The air itself seems to whisper your name.
+8|Rivers of shadow crawl across the floor.
+8|Every instinct screams at you to flee.
+8|The stone is hot and slick as living flesh.
+8|A chorus of the damned moans just out of hearing.
+8|Here, even your torchlight seems afraid.
+
+9|This is the bottom of the world, and it hungers.
+9|The dark here has weight, and teeth.
+9|The walls breathe. The floor breathes. It all breathes.
+9|A presence vast and ancient turns its gaze upon you.
+9|Reality frays; the void grins through the cracks.
+9|The air is a scream held on the edge of sound.
+9|Every shadow here has known a thousand deaths.
+9|You stand where light has never truly reached.
+9|The deep itself leans close to watch you die.
+9|Turn back, whispers the dark. You will not.

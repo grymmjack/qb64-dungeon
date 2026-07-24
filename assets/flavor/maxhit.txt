@@ -1,0 +1,16 @@
+# DUNGEON -- MAX-DAMAGE flavor. One line each. Shown (in addition to the normal
+# hit line) whenever you roll the MAXIMUM on your damage die, even without a crit.
+# {mon} and {weapon} are substituted. Edit freely; lines starting with # ignored.
+
+A perfect blow -- {weapon} bites to the bone and the {mon} staggers!
+You put your whole weight behind it; the {mon} folds around {weapon}.
+The strike lands clean and deep -- the {mon} shrieks and reels away.
+Bone splinters as {weapon} slams home. The {mon} will feel that one.
+You find the gap in its guard and drive {weapon} through it savagely.
+A crushing, textbook hit -- the {mon} sags, spraying dark blood.
+{weapon} connects with a sickening crunch; the {mon} nearly buckles.
+You hew into the {mon} with everything you have -- and it shows.
+The {mon} never got its guard up; {weapon} rakes it open.
+A brutal, hammering strike sends the {mon} reeling on its heels.
+Flawless. {weapon} lands where it hurts most and the {mon} howls.
+You wind up and unload -- the {mon} takes the full, awful weight of it.

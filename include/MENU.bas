@@ -989,9 +989,19 @@ END SUB
 ' fast); Wait-for-key falls back to WaitKey. Keys pressed during a timed pause are
 ' drained afterwards so they don't spill into the next prompt or trigger a round.
 SUB CombatPause
-    IF opt_msgdelay <= 0 THEN WaitKey: EXIT SUB   ' 0 = wait for a keypress (manual)
-    _DELAY opt_msgdelay                            ' else hold the message this many seconds
-    DO: LOOP UNTIL INKEY$ = ""                     ' drain keys pressed during the pause
+    DIM f AS INTEGER, maxf AS INTEGER
+    DO: LOOP UNTIL INKEY$ = ""                     ' drain keys buffered before the prompt
+    IF opt_msgdelay <= 0 THEN                       ' 0 = wait for a keypress (manual)
+        DO: _LIMIT 60: _DISPLAY: LOOP UNTIL INKEY$ <> ""
+        EXIT SUB
+    END IF
+    maxf = opt_msgdelay * 60                        ' else auto-advance after the delay...
+    FOR f = 1 TO maxf
+        _LIMIT 60
+        IF INKEY$ <> "" THEN EXIT FOR               ' ...or ANY key advances early
+        _DISPLAY
+    NEXT f
+    DO: LOOP UNTIL INKEY$ = ""                      ' drain
 END SUB
 
 

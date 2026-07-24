@@ -142,6 +142,11 @@ DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not 
 DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING
+' -- room/combat flavor text (loaded from editable assets/flavor/*.txt; see FLAVOR.bas) --
+DIM SHARED REG_FLAV(1 TO 9, 1 TO 24) AS STRING, REG_N(1 TO 9) AS INTEGER   ' regular-room one-liners per level
+DIM SHARED SP_KEY(1 TO 30) AS STRING, SP_X(1 TO 30) AS INTEGER, SP_Y(1 TO 30) AS INTEGER, SP_N AS INTEGER
+DIM SHARED SP_FLAV(1 TO 30, 1 TO 8) AS STRING, SP_FN(1 TO 30) AS INTEGER   ' special (named) room deep flavor
+DIM SHARED MAXHIT(1 TO 30) AS STRING, MAXHIT_N AS INTEGER                  ' max-damage combat flavor
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
 
 ' -- Crit/Fumble effects engine (data-driven; see InitEffects) --

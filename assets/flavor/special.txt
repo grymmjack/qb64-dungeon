@@ -1,0 +1,70 @@
+# DUNGEON -- SPECIAL (named) room flavor. Format:  <ROOM KEY>|<text>
+# Shown in the narration window the first time you enter that named room. Keys
+# must match the room labels (see AddSpecial in include/FLAVOR.bas). Give each
+# room 4-5 richer, themed variations; one is picked at random. Edit freely.
+# Lines starting with # are ignored.
+
+MAIN GALLERY|The Main Gallery stretches wide and pillared, its vaulted dark swallowing your torchlight whole. Every path in this dungeon seems to bleed back to here.
+MAIN GALLERY|Faded banners rot from the rafters of the Main Gallery, the crests of houses long extinct. Your footsteps ring out and are answered from every side.
+MAIN GALLERY|The Main Gallery is the dungeon's cold heart -- a crossroads of shadow where a hundred corridors meet and none of them feel safe.
+MAIN GALLERY|Broken statues line the Main Gallery, their faces chiseled away. Whoever ruled here wished to be remembered, and someone saw to it that they would not be.
+
+ARMORY|Racks that once bristled with spears and blades stand empty and rust-eaten, though a few notched weapons still lie where they fell. Whatever army mustered here marched out long ago -- and never marched back.
+ARMORY|The Armory walls are lined with dented shields bearing a sigil no living herald could name. Dark stains spread beneath each rack, as if the weapons themselves had bled.
+ARMORY|Broken sword-hilts and shattered helms litter the Armory floor. A whetstone sits by a cold forge, still slick with oil, as though its keeper stepped away only moments ago.
+ARMORY|Chainmail hangs from the Armory walls in curtains of rust, links fused by centuries of damp. Something, you note, has been sharpening its claws against the grindstone.
+
+THE CRYPT|Row upon row of stone sarcophagi fill the Crypt, their lids carved with the faces of the long dead. One lid, you notice, has been pushed aside -- from within.
+THE CRYPT|The Crypt air is dry and reverent, thick with the dust of ages and the sweet rot of old flowers. Names worn smooth by time cover every wall.
+THE CRYPT|Candles that should have guttered out centuries ago still burn cold and blue throughout the Crypt. The dead here, it seems, are not so restful as they ought to be.
+THE CRYPT|Bone-dust coats the Crypt floor in a fine grey powder -- and your footprints are not the only fresh ones. Something walks these tombs, and it does not sleep.
+
+WIZ'S LAB|Shattered alembics and spilled reagents cover the Wizard's Lab, their fumes still curling in impossible colours. A half-finished sigil smoulders on the central table.
+WIZ'S LAB|The Wizard's Lab hums with a residual, prickling power. Jars of things that should not float bob gently against their stoppers.
+WIZ'S LAB|Star-charts and blasphemous diagrams paper every inch of the Lab's walls. In the centre, a scorched circle marks where some experiment went catastrophically wrong.
+WIZ'S LAB|The air in the Wizard's Lab tastes of ozone and burnt hair. Something in a bell jar turns, slowly, to follow you as you cross the room.
+
+WIZ'S TREASURE|The Wizard's hoard glitters with more than gold: rings that whisper, tomes bound in strange hide, and a crystal that shows you your own death. Best not to linger on that one.
+WIZ'S TREASURE|Enchanted trinkets fill the Wizard's Treasure vault, each humming its own faint, discordant note. Together they make a music that sets your teeth on edge.
+WIZ'S TREASURE|The Wizard's Treasure is guarded by wards you can feel but not see -- a static crawl across your skin with every step deeper in.
+WIZ'S TREASURE|Gold here is the least of it. The Wizard's Treasure holds artefacts that bend the eye and coins that were never struck by any mortal mint.
+
+KITCHEN|The great hearth of the Kitchen is cold now, but the spit above it still turns -- slow and creaking, though nothing tends it. On it roasts something you refuse to look at closely.
+KITCHEN|Rusted cleavers and cauldrons crusted with unspeakable residue fill the Kitchen. Whatever was cooked here, it was not for gentle appetites.
+KITCHEN|The Kitchen reeks of rancid grease and old smoke. Long tables run with dark stains, and the meat hooks overhead swing gently in a draft you cannot feel.
+KITCHEN|A pot bubbles over the dead Kitchen fire, though no flame burns beneath it. The stew inside smells almost -- almost -- like something you would want to eat.
+
+GUARD ROOM|The Guard Room is strewn with overturned stools and a card game abandoned mid-hand. The garrison left in a hurry -- or was taken.
+GUARD ROOM|Rusted racks of pikes line the Guard Room, and a cold brazier still holds the ash of the last watch. Someone scratched a tally of days into the wall, then stopped.
+GUARD ROOM|The Guard Room stinks of stale sweat and fear. A single boot lies in the corner, and the door is barred -- from the inside.
+GUARD ROOM|Dice and copper coins lie scattered across the Guard Room floor, mid-throw. Whatever came for the watch, it gave them no time to finish the game.
+
+STORE ROOM|The Store Room is packed with rotted crates and barrels swollen with age, their contents long since turned to mould and worse. Something scuttles behind the sacks.
+STORE ROOM|Shelves sag under the weight of forgotten supplies in the Store Room, all of it spoiled, all of it crawling -- provisions for an army that never returned.
+STORE ROOM|The Store Room air is thick with spores and the sweet reek of rot. Grain sacks have burst and grown pale, questing tendrils toward the light.
+STORE ROOM|Broken barrels and split crates fill the Store Room, and in the dark between them, small eyes glint -- and multiply.
+
+TORTURE CHAMBER|The Torture Chamber is a gallery of rusted horrors: racks and irons and things without names, all dark with old use. The screams have long faded, but the walls remember.
+TORTURE CHAMBER|Chains hang from the Torture Chamber ceiling, ending in hooks that turn slowly of their own accord. The stone drain in the floor has never quite run clean.
+TORTURE CHAMBER|Instruments of agony line the Torture Chamber walls in neat, obscene rows. A single chair sits in the centre, its straps worn smooth by desperate struggling.
+TORTURE CHAMBER|The Torture Chamber air is heavy with dried blood and despair. Something scratches a slow, patient rhythm from inside the iron maiden.
+
+QUEEN'S ANNEX|The Queen's Annex keeps a faded, poisonous elegance: rotted silk drapes, a cracked vanity, a music box that plays a single warped note when you pass.
+QUEEN'S ANNEX|Perfume and decay war in the air of the Queen's Annex. A portrait on the wall has had its eyes carefully scratched out.
+QUEEN'S ANNEX|The Queen's Annex is a boudoir gone to grave-mould, its finery grey with dust. The great bed is neatly made -- and something beneath it is very still.
+QUEEN'S ANNEX|Withered rose petals carpet the Queen's Annex floor, and a hand mirror lies cracked upon the chaise. It shows no reflection at all.
+
+QUEEN'S TREASURE|The Queen's Treasure spills across the floor in a river of jewels and pearls, each piece cold as a tomb. Her crown sits atop the pile, still faintly warm.
+QUEEN'S TREASURE|Gowns sewn with gemstones moulder in the Queen's Treasure vault beside caskets of rings. Every gem seems to watch you with a small, avaricious gleam.
+QUEEN'S TREASURE|The Queen's Treasure glitters with a beauty that feels like a trap. Necklaces of black pearls coil in their cases like sleeping serpents.
+QUEEN'S TREASURE|Jewellery of impossible craft fills the Queen's Treasure -- and beneath the gold, the bones of everyone who came before you for it.
+
+KING'S LIBRARY|The King's Library rises in tiers of rotting tomes and crumbling scrolls, their knowledge bleeding away into damp. One book lies open on a lectern, its ink still wet.
+KING'S LIBRARY|Ten thousand books line the King's Library, and every one of them is screaming -- if you hold very still and listen. Best not to hold still.
+KING'S LIBRARY|Dust and silverfish rule the King's Library now, but the wisdom of a fallen age still slumbers in its shelves. Some of it was never meant to be read.
+KING'S LIBRARY|The King's Library air is thick with old vellum and older secrets. A ladder rolls slowly along the stacks, though no hand pushes it.
+
+KING'S TREASURE|The King's Treasure is a dragon's dream: mountains of coin, chalices, crowns and sceptres heaped to the ceiling. All of it his, and all of it cursed.
+KING'S TREASURE|Gold beyond counting fills the King's Treasure, so much it has slumped into glittering dunes. Greed prickles up your spine like a fever.
+KING'S TREASURE|The King's Treasure could ransom a kingdom twice over. The King himself, they say, never left it -- and in a sense, he never did.
+KING'S TREASURE|Coins cascade underfoot in the King's Treasure, and somewhere beneath the hoard, something ancient and possessive begins -- slowly -- to stir.

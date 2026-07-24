@@ -66,6 +66,7 @@ InitMonsterTables
 InitDice
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
 InitEffects                      ' load the crit/fumble effect tables
+InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -253,7 +254,10 @@ FUNCTION PlayGame%
                     IF InRoomNow THEN
                         sec = ROOMAT(c.x \ CW, c.y \ CH)   ' which room block are we standing in?
                         IF sec >= 1 THEN
-                            ROOMS(sec).seen = TRUE         ' entering reveals this room's monster on the board
+                            IF NOT ROOMS(sec).seen THEN
+                                ROOMS(sec).seen = TRUE     ' entering reveals this room's monster on the board
+                                RoomFlavor sec             ' first-entry atmosphere (special or level one-liner)
+                            END IF
                             ' a monster guards this room's treasure?
                             IF ROOMS(sec).malive AND LEN(_TRIM$(ROOMS(sec).monster)) > 0 THEN
                                 ' ESP Medallion (ONLY if held): foresee the monster; [N] backs off.
@@ -414,7 +418,7 @@ END FUNCTION
 '  dragged back to START and revived). ESC flees; wounds persist if you return.
 ' ===========================================================================
 SUB DoCombatDnD (rm AS INTEGER)
-    DIM k AS STRING, mon AS STRING, lead AS STRING
+    DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
     DIM AS INTEGER tot_dealt, tot_taken, wander
     DIM lost AS LONG
@@ -479,6 +483,14 @@ SUB DoCombatDnD (rm AS INTEGER)
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 Banner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "You deal " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
                 CombatPause
+                IF last_raw = player_dmgdie THEN            ' MAX on the damage die -- brutal flavor (even without a crit)
+                    mhs = MaxHitSaying$(mon, WeaponName$)
+                    IF LEN(mhs) > 0 THEN
+                        Sfx "crit"
+                        Banner "** A CRUSHING BLOW! **  (max damage)", mhs + "   [ press any key ]"
+                        CombatPause
+                    END IF
+                END IF
             ELSE                                  ' miss
                 Sfx "miss"
                 Banner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", "The " + mon + " dodges your blow.   [ press any key ]"
@@ -973,7 +985,7 @@ FUNCTION LoiterOmen$ (stage AS INTEGER)
             CASE 5: LoiterOmen$ = "Red eyes glint at the edge of your torchlight."
             CASE 6: LoiterOmen$ = "Gravel crunches under a weight that is not yours."
             CASE 7: LoiterOmen$ = "A low growl trembles in the floor beneath your boots."
-            CASE ELSE: LoiterOmen$ = "You are not alone in here -- and it has found you."
+            CASE ELSE: LoiterOmen$ = "Something is very near now -- move, before it finds you."
         END SELECT
     END IF
 END FUNCTION
@@ -1079,6 +1091,7 @@ END SUB
 '$INCLUDE:'include/CURIO.bas'
 '$INCLUDE:'include/STATS.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
+'$INCLUDE:'include/FLAVOR.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'
