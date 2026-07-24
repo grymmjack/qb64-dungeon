@@ -21,6 +21,11 @@ Roadmap (future / bigger efforts):
         ☐ engine exposes hooks the game fills in (room/encounter callbacks, win
           condition, data tables) -- the chamber event system below is the first user.
     ☐ DEEP TACTICAL COMBAT screen (party vs. a group of enemies -- see mockup):
+        REFERENCE MOCKUP: assets/ansi/ui-fight.xb  (XBIN, editable in text mode -- the
+          full screen layout the mockup shows). Supporting art already made:
+          assets/ansi/monsters/gnoll.xb (+.ans/.icy) enemy portrait,
+          assets/ansi/dice/d20.xb (+.ans/.icy) die art. Render/edit the .xb in an
+          XBIN editor (DRAW / PabloDraw); the .ans variants can be ANSI_Print'd in-game.
         A full Gold-Box/Darkest-Dungeon-style encounter screen. Big evolution of
         DoCombatDnD. Reuses what we have: HpBar$, the dice tumbler/pip dice, crit
         detection + "CRITICAL HIT!" fanfare, per-actor HP / to-hit / AC / damage die.
