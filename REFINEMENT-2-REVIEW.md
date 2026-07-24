@@ -105,11 +105,11 @@ spreadsheet to tune the difficulty curve.
   field by field, but the first real test should be a **save → quit → CONTINUE** cycle.
   It's **single-player** (hot-seat `PLAYERS()` state isn't serialized yet), and `[G]`
   is disabled in multiplayer.
-- **Dice rotation is the one deferred item.** The dice already fall/bounce/tumble; true
-  glyph *rotation* (via `_MAPTRIANGLE`) is a visual change I didn't want to ship to a
-  feature you love **without watching it iterate** — and I couldn't screenshot the
-  fullscreen build while you were in it. Say the word and I'll do it in a focused pass
-  with you looking.
+- **Dice rotation — DONE** (`6543415`). The polyhedra now **spin as they tumble** and
+  ease upright on settle. I verified the `_MAPTRIANGLE` technique in isolation first
+  (`scratchpads/TEST-DICE-ROT.bas` → a PNG of a d20 at 0/20/45/70/90°) so it never
+  touched your fullscreen session. Give it a roll and tell me if you want it faster/
+  slower or a tighter spin.
 - **Trap/chest/potion odds & saving-throw math** are my best-judgment first pass
   (all constants at the top of `DUNGEON.BI` — easy to tune).
 - **The board legend is baked ANSI art** — if you want a `$ = your dropped loot` entry

@@ -298,8 +298,8 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
     ✔ Combat stats CSV log (dungeon-stats.csv) for difficulty analysis @done(26-07-24)
     ✔ Save / load game (single slot, seed-reproduced) + [G] save + CONTINUE on entry @done(26-07-24)
     ✔ [P] pause for bio breaks; death waits for a keypress before the blood transition @done(26-07-24)
-    ☐ Dice ROTATION: spin the polyhedra via _MAPTRIANGLE (render die to image, rotate-blit, ease upright
-      on settle). Deferred -- needs live visual iteration; bounce/tumble already ships.
+    ✔ Dice ROTATION: polyhedra spin via _MAPTRIANGLE (render die to scratch image, rotate-blit, ease
+      upright on settle). Verified via scratchpads/TEST-DICE-ROT.bas. @done(26-07-24)
     ☐ Multiplayer save/load: serialize the PLAYERS() hot-seat array ([G] is solo-only for now).
     ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in DUNGEON.BI).
     ☐ Board legend art: add "$ = your dropped loot" to the baked .ans (art-side edit).
