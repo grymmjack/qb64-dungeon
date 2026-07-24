@@ -276,6 +276,57 @@ SUB BloodDrip
 END SUB
 
 
+' Forfeit transition: the same falling-strips effect as BloodDrip, but drained of
+' colour -- grey strips run down and pile into black. Used when a run ends for good
+' (all lives spent). The user asked for "darkness fading down like blood but grey".
+SUB DarknessFall
+    DIM strw AS INTEGER, ns AS INTEGER, i AS INTEGER, f AS INTEGER, px AS INTEGER, allfull AS INTEGER
+    DIM slen(1 TO 220) AS INTEGER, sdelay(1 TO 220) AS INTEGER, ssp(1 TO 220) AS INTEGER
+    DIM darkgrey AS _UNSIGNED LONG, litegrey AS _UNSIGNED LONG
+    darkgrey = _RGB32(&H1E, &H1E, &H1E): litegrey = _RGB32(&H55, &H55, &H55)
+    strw = 8
+    ns = (SW * CW) \ strw + 1
+    IF ns > 220 THEN ns = 220
+    FOR i = 1 TO ns
+        sdelay(i) = INT(RND * 42)
+        ssp(i) = 13 + INT(RND * 22)
+        slen(i) = 0
+    NEXT i
+    _DEST CANVAS
+    f = 0
+    DO
+        f = f + 1
+        allfull = -1
+        FOR i = 1 TO ns
+            IF f >= sdelay(i) THEN
+                slen(i) = slen(i) + ssp(i)
+                IF slen(i) > SH * CH THEN slen(i) = SH * CH
+                px = (i - 1) * strw
+                LINE (px, 0)-(px + strw - 1, slen(i)), darkgrey, BF          ' the strip so far
+                IF slen(i) < SH * CH THEN
+                    LINE (px, slen(i) - 12)-(px + strw - 1, slen(i) + 4), litegrey, BF   ' its running head
+                    allfull = 0
+                END IF
+            ELSE
+                allfull = 0
+            END IF
+        NEXT i
+        _DISPLAY
+        _LIMIT 60
+    LOOP UNTIL allfull OR f > 220
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), darkgrey, BF   ' guarantee fully solid grey
+    _DISPLAY
+    _DELAY 0.35                                            ' hold the ashen screen a beat
+    FOR f = 1 TO 48                                        ' slow fade from grey to black
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H0E), BF
+        _DISPLAY
+        _LIMIT 60
+    NEXT f
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
+    _DISPLAY
+END SUB
+
+
 ' ============================================================================
 '  INTRO
 ' ============================================================================
@@ -439,7 +490,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 29
+    CONST NSET = 30
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -485,11 +536,16 @@ SUB RunSettings
                     IF opt_lootrecovery > 2 THEN opt_lootrecovery = 0
                     Sfx "select"
                 CASE 25
+                    opt_maxdeaths = opt_maxdeaths + delta
+                    IF opt_maxdeaths < 1 THEN opt_maxdeaths = 9
+                    IF opt_maxdeaths > 9 THEN opt_maxdeaths = 1
+                    Sfx "select"
+                CASE 26
                     opt_mon_dicecolor = opt_mon_dicecolor + delta
                     IF opt_mon_dicecolor < 0 THEN opt_mon_dicecolor = 5
                     IF opt_mon_dicecolor > 5 THEN opt_mon_dicecolor = 0
                     Sfx "select"
-                CASE 28
+                CASE 29
                     opt_mon_dicespeed = opt_mon_dicespeed + delta
                     IF opt_mon_dicespeed < 0 THEN opt_mon_dicespeed = 3
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
@@ -535,14 +591,17 @@ SUB RunSettings
                     opt_lootrecovery = opt_lootrecovery + 1
                     IF opt_lootrecovery > 2 THEN opt_lootrecovery = 0
                 CASE 25
+                    opt_maxdeaths = opt_maxdeaths + 1
+                    IF opt_maxdeaths > 9 THEN opt_maxdeaths = 1
+                CASE 26
                     opt_mon_dicecolor = opt_mon_dicecolor + 1
                     IF opt_mon_dicecolor > 5 THEN opt_mon_dicecolor = 0
-                CASE 26: opt_mon_dicesolid = NOT opt_mon_dicesolid
-                CASE 27: opt_mon_d6pips = NOT opt_mon_d6pips
-                CASE 28
+                CASE 27: opt_mon_dicesolid = NOT opt_mon_dicesolid
+                CASE 28: opt_mon_d6pips = NOT opt_mon_d6pips
+                CASE 29
                     opt_mon_dicespeed = opt_mon_dicespeed + 1
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
-                CASE 29: SaveSettings: EXIT SUB
+                CASE 30: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -618,14 +677,17 @@ SUB RunSettings
                         CASE 2: vtxt = "souls-like (1 try)"
                         CASE ELSE: vtxt = "reclaim (normal)"
                     END SELECT
-                CASE 25: lbl = "  Monster Dice Colour": vtxt = ColorName$(opt_mon_dicecolor): slider = TRUE
-                CASE 26
+                CASE 25
+                    lbl = "Max Deaths": slider = TRUE
+                    vtxt = _TRIM$(STR$(opt_maxdeaths)) + " lives"
+                CASE 26: lbl = "  Monster Dice Colour": vtxt = ColorName$(opt_mon_dicecolor): slider = TRUE
+                CASE 27
                     lbl = "  Monster Dice Finish"
                     IF opt_mon_dicesolid THEN vtxt = "solid" ELSE vtxt = "hollow outline"
-                CASE 27
+                CASE 28
                     lbl = "  Monster D6 Style"
                     IF opt_mon_d6pips THEN vtxt = "pips" ELSE vtxt = "numbered"
-                CASE 28
+                CASE 29
                     lbl = "  Monster Dice Speed": slider = TRUE
                     SELECT CASE opt_mon_dicespeed
                         CASE 0: vtxt = "slow"

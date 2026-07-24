@@ -57,6 +57,7 @@ opt_critfumble = TRUE                         ' default on: the crit/fumble effe
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 1   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
+opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -142,6 +143,7 @@ FUNCTION PlayGame%
         item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0   ' newer items aren't in PLAYER type -- clear them so nothing leaks between games
         poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
         deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
+        player_out = FALSE                                                  ' nobody has forfeited yet
 
         DIM ident AS STRING                                                 ' "Grognard the Fast, a HERO" (or "the HERO" if unnamed)
         IF _TRIM$(player_name) <> "" THEN ident = _TRIM$(player_name) + ", a " + class_name ELSE ident = "the " + class_name
@@ -167,6 +169,9 @@ FUNCTION PlayGame%
 
     DO
         _LIMIT 60
+        IF player_out THEN                        ' the active player has spent their last life
+            IF HandleForfeit THEN PlayGame = OUT_LOSE: EXIT FUNCTION   ' solo (or last one standing) -> game over
+        END IF
         k = UCASE$(INKEY$)
         k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
 
@@ -325,6 +330,90 @@ FUNCTION HealSuffix$
 END FUNCTION
 
 
+' Gods' favour: a fallen adventurer on their LAST life, come back to reclaim spoils
+' they never recovered, may (50%) be blessed -- tipping every combat die by +1 per
+' death they have already suffered, so sheer persistence can finally win through.
+FUNCTION GodsFavor% ()
+    DIM d AS INTEGER
+    GodsFavor = 0
+    IF cur_player >= 1 AND cur_player <= 4 THEN d = deaths(cur_player) ELSE d = deaths(1)
+    IF d < 1 THEN EXIT FUNCTION                        ' no boost until you have actually died
+    IF d < opt_maxdeaths - 1 THEN EXIT FUNCTION        ' only when this is your final life
+    IF NOT AnyDropExists THEN EXIT FUNCTION            ' only while spoils still await reclaiming
+    IF RollDie(100) <= 50 THEN GodsFavor = d           ' 50%: the gods tip the dice +d
+END FUNCTION
+
+
+' After a death's flavor banner (caller has already WaitKey'd), run the after-death
+' transition. If the fallen adventurer has spent their LAST life they FORFEIT -- a
+' grey darkness falls to a sad epitaph and player_out is set so PlayGame ends their
+' run. Otherwise they revive at START with a rally naming how many chances remain.
+SUB ReviveOrForfeit (rm AS INTEGER)
+    DIM diedcount AS INTEGER, chances AS INTEGER
+    IF cur_player >= 1 AND cur_player <= 4 THEN diedcount = deaths(cur_player) ELSE diedcount = deaths(1)
+    chances = opt_maxdeaths - diedcount           ' resurrections still to come after THIS death
+    IF chances <= 0 THEN                           ' out of lives -- the run is over
+        ForfeitScreen
+        player_out = -1
+        EXIT SUB
+    END IF
+    BloodDrip                                      ' the red death wipe -> black
+    c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+    player_hp = player_maxhp                        ' revived, made whole again, at the entrance
+    cursor_erase: cursor_draw: FadeInCurrent        ' the dungeon fades back in at START
+    Sfx "levelup"
+    IF chances = 1 THEN
+        Banner "You have perished -- but ONE last chance remains.", "Make it count... better luck this time!   [ press any key ]"
+    ELSE
+        Banner "You have perished -- but you still have " + _TRIM$(STR$(chances)) + " chances left.", "Rise and delve again... better luck this time!   [ press any key ]"
+    END IF
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+
+' The end of a run: a grey darkness (not blood) falls down the screen, then a random
+' sad epitaph lingers over the black until a key is pressed.
+SUB ForfeitScreen
+    DIM ep AS STRING, kk AS STRING
+    Sfx "lose"
+    DarknessFall                                   ' grey/black cousin of the blood drip
+    ep = ForfeitEpitaph$
+    _DEST CANVAS: _FONT CH
+    COLOR GREY, BLACK: PrintCentered 22, ep
+    COLOR _RGB32(&H88, &H88, &H88), BLACK: PrintCentered 25, "Your tale ends here, in the dark."
+    COLOR _RGB32(&H55, &H55, &H55), BLACK: PrintCentered 28, "[ press any key ]"
+    _DISPLAY
+    _KEYCLEAR
+    DO: _LIMIT 30: kk = INKEY$: _DISPLAY: LOOP UNTIL kk <> ""
+END SUB
+
+
+' React to a set player_out flag. Returns TRUE if the whole game is over (solo, or
+' the last player standing forfeited). In multiplayer, marks the fallen player out
+' of the game and passes the seat to a survivor.
+FUNCTION HandleForfeit% ()
+    DIM i AS INTEGER, alive AS INTEGER
+    HandleForfeit = 0
+    player_out = 0
+    IF num_players <= 1 THEN HandleForfeit = -1: EXIT FUNCTION    ' solo: game over
+    IF cur_player >= 1 AND cur_player <= 4 THEN PLAYERS(cur_player).active = FALSE
+    alive = 0
+    FOR i = 1 TO num_players
+        IF PLAYERS(i).active THEN alive = alive + 1
+    NEXT i
+    IF alive <= 0 THEN HandleForfeit = -1: EXIT FUNCTION          ' nobody left -- game over
+    Banner "PLAYER " + _TRIM$(STR$(cur_player)) + " is out of lives!", _TRIM$(player_name) + " the " + class_name + " is lost to the dungeon forever.   [ press any key ]"
+    WaitKey
+    SaveActivePlayer cur_player                    ' park the (now inactive) fallen player
+    cur_player = NextActivePlayer(cur_player)
+    LoadActivePlayer cur_player
+    cursor_erase: cursor_draw
+    AnnounceTurn cur_player
+    need_roll = TRUE
+END FUNCTION
+
+
 ' ESP Medallion: foresee the monster guarding a room and choose whether to enter.
 ' Returns TRUE to fight, FALSE to heed the warning and back away.
 FUNCTION EspEnter% (rm AS INTEGER)
@@ -345,7 +434,7 @@ END FUNCTION
 
 FUNCTION DoCombat% (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING
-    DIM AS INTEGER sec, sm, need, target, unbeatable
+    DIM AS INTEGER sec, sm, need, target, unbeatable, god_favor
     DIM lead AS STRING, p2 AS STRING, whatguards AS STRING
     DoCombat = 0
     sec = ROOMS(rm).sec                            ' the room's dungeon level (label + kill numbers)
@@ -366,7 +455,8 @@ FUNCTION DoCombat% (rm AS INTEGER)
     ELSE
         need = MON_N(sec, ROOMS(rm).mslot, player_class)
     END IF
-    target = need - item_sword                ' the raw 2d6 the player must roll (Magic Sword helps)
+    god_favor = GodsFavor                     ' desperate last-life spoils-rescue may earn a divine boost
+    target = need - item_sword - god_favor    ' the raw 2d6 the player must roll (Magic Sword + the gods help)
     unbeatable = (target > 12)                ' "-" on the card: needs a stronger blade
     IF target < 2 THEN target = 2
 
@@ -378,6 +468,11 @@ FUNCTION DoCombat% (rm AS INTEGER)
         p2 = "Only a Magic Sword can harm it -- [ESC] FLEE"
     ELSE
         p2 = "Roll " + _TRIM$(STR$(target)) + "+ on 2d6 to slay it   [SPACE] ATTACK   [ESC] FLEE"
+    END IF
+    IF god_favor > 0 THEN                          ' the desperate are watched over -- tell them
+        Sfx "levelup"
+        Banner "THE GODS FAVOUR THE DESPERATE!", "Fortune lowers the roll you need by " + _TRIM$(STR$(god_favor)) + " this fight.   [ press any key ]"
+        WaitKey
     END IF
     Banner lead + whatguards, p2 + HealSuffix$
 
@@ -397,10 +492,11 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 CombatPause
                 EXIT DO
             END IF
-        ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (only if you hold one)
+        ELSEIF k = "H" OR k = "h" THEN           ' quaff a potion -- this IS your action; the monster then strikes
             IF item_potion_small + item_potion_large > 0 THEN
                 UsePotion FALSE
-                Banner lead + whatguards, p2 + HealSuffix$   ' re-show the fight prompt (count updated)
+                MonsterAttack rm                 ' healing spends your turn, so the monster gets its swing
+                EXIT DO
             END IF
         ELSEIF k = " " AND NOT unbeatable THEN
             sm = DoRoll(2, item_sword, "attacking the " + mon)
@@ -459,7 +555,7 @@ END FUNCTION
 SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
-    DIM AS INTEGER tot_dealt, tot_taken, wander, vanished
+    DIM AS INTEGER tot_dealt, tot_taken, wander, vanished, god_favor, acted, did_attack
     DIM lost AS LONG
     wander = (rm > ROOM_N)                       ' TRUE for a wandering-monster scratch slot
     sec = ROOMS(rm).sec
@@ -469,12 +565,19 @@ SUB DoCombatDnD (rm AS INTEGER)
     mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
     thb = player_tohit                          ' final to-hit incl. ability modifier
     IF item_bow THEN thb = thb + 2              ' Magic Bow: strike harder from range
+    god_favor = GodsFavor                       ' desperate last-life spoils-rescue may earn a divine dice boost
+    IF god_favor > 0 THEN thb = thb + god_favor
     IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
     rounds = 0: combat_round = 1
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
 
     DIM dirty AS INTEGER
     dirty = -1                                   ' clear any lingering pre-combat banner on entry
+    IF god_favor > 0 THEN                         ' the desperate are watched over -- tell them
+        Sfx "levelup"
+        Banner "THE GODS FAVOUR THE DESPERATE!", "Fortune guides your hand: +" + _TRIM$(STR$(god_favor)) + " to every strike this fight.   [ press any key ]"
+        WaitKey
+    END IF
     DO
         _LIMIT 60
         ' Once an action's banners are done, wipe the message/dice area and redraw
@@ -482,6 +585,7 @@ SUB DoCombatDnD (rm AS INTEGER)
         IF dirty THEN cursor_erase: cursor_draw: dirty = 0
         DrawCombatPanel rm, mon, lead
         k = INKEY$
+        acted = 0: did_attack = 0
         IF k = CHR$(27) THEN                     ' attempt to flee
             IF FleeFails(lvl) THEN               ' the deeper you are, the likelier it grabs you
                 Sfx "bump"
@@ -495,10 +599,14 @@ SUB DoCombatDnD (rm AS INTEGER)
                 CombatPause
                 EXIT SUB
             END IF
-        ELSEIF k = "H" OR k = "h" THEN           ' quaff a healing potion (free action)
-            UsePotion FALSE
+        ELSEIF k = "H" OR k = "h" THEN           ' quaff a potion -- this IS your action; the monster still swings
+            IF item_potion_small + item_potion_large > 0 THEN
+                UsePotion FALSE
+                acted = -1
+            END IF
             dirty = -1
         ELSEIF k = " " THEN
+            acted = -1: did_attack = -1
             rounds = rounds + 1: combat_round = rounds
             dirty = -1                           ' this round's banners will need clearing next loop
             ' ---------- player attacks ----------
@@ -559,6 +667,10 @@ SUB DoCombatDnD (rm AS INTEGER)
                 StatLog sec, rm, mon, isboss, wander, "killed", rounds, tot_dealt, tot_taken
                 EXIT SUB
             END IF
+        END IF
+
+        IF acted THEN                             ' attacked OR healed -> the monster takes its turn
+            IF NOT did_attack THEN rounds = rounds + 1: combat_round = rounds   ' a heal spends a round too
 
             ' ---------- monster strikes back (you roll its dice in Real-Dice mode, else shown) ----------
             PushMonsterDice: matk = GameRoll(1, 20, mtohit, "the " + mon + "'s ATTACK -- roll ITS d20"): PopMonsterDice
@@ -615,11 +727,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ELSE
                     Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
                 END IF
-                WaitKey                           ' let the death sink in before the blood falls
-                BloodDrip                         ' blood runs down the screen, fade to black
-                c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
-                player_hp = player_maxhp          ' revived at the entrance
-                cursor_erase: cursor_draw: FadeInCurrent   ' the dungeon fades back in at START
+                WaitKey                           ' let the death sink in before the transition
+                ReviveOrForfeit rm                ' blood (or grey forfeit) -> revive with a rally, or end the run
                 EXIT SUB
             END IF
         END IF
@@ -636,6 +745,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
     COLOR YELLOWU, BOXBG: PrintCentered by + 1, lead + " blocks your path!"
+    COLOR CYANU, BOXBG: _PRINTSTRING ((bx + 2) * CW, (by + 1) * CH), "LEVEL" + STR$(ROOMS(rm).sec)
     COLOR REDU, BOXBG: _PRINTSTRING ((bx + bw - 12) * CW, (by + 1) * CH), "ROUND:" + STR$(combat_round)
     COLOR REDU, BOXBG
     PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
@@ -689,10 +799,8 @@ SUB MonsterAttack (rm AS INTEGER)
             ELSE
                 Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
             END IF
-            WaitKey                             ' let the death sink in before the blood falls
-            BloodDrip                           ' blood runs down the screen, fade to black
-            c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
-            cursor_erase: cursor_draw: FadeInCurrent   ' the dungeon fades back in at START
+            WaitKey                             ' let the death sink in before the transition
+            ReviveOrForfeit rm                  ' blood (or grey forfeit) -> revive with a rally, or end the run
         CASE 3                                   ' SERIOUS WOUND
             lost = gold \ 2: gold = gold - lost
             Sfx "trap"

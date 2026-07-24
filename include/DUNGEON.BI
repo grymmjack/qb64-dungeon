@@ -149,6 +149,7 @@ DIM SHARED REG_FLAV(1 TO 9, 1 TO 24) AS STRING, REG_N(1 TO 9) AS INTEGER   ' reg
 DIM SHARED SP_KEY(1 TO 30) AS STRING, SP_X(1 TO 30) AS INTEGER, SP_Y(1 TO 30) AS INTEGER, SP_N AS INTEGER
 DIM SHARED SP_FLAV(1 TO 30, 1 TO 8) AS STRING, SP_FN(1 TO 30) AS INTEGER   ' special (named) room deep flavor
 DIM SHARED MAXHIT(1 TO 30) AS STRING, MAXHIT_N AS INTEGER                  ' max-damage combat flavor
+DIM SHARED FORFEIT_FLAV(1 TO 30) AS STRING, FORFEIT_N AS INTEGER           ' sad epitaphs shown when a run is forfeited (all lives spent)
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
 
 ' -- Crit/Fumble effects engine (data-driven; see InitEffects) --
@@ -258,6 +259,8 @@ DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1
 DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle (no action) -> wandering monsters can find you
 DIM SHARED opt_critfumble AS INTEGER  ' TRUE: the crit/fumble effects engine runs (cinematic + bonus/penalty rolls)
 DIM SHARED opt_lootrecovery AS INTEGER ' TRUE: death leaves your loot in the room to reclaim (default in D&D mode)
+DIM SHARED opt_maxdeaths AS INTEGER    ' lives before permadeath: reach this many deaths and you forfeit (1..9, default 3)
+DIM SHARED player_out AS INTEGER       ' set TRUE the moment the active player uses up their last life (PlayGame ends the run)
 DIM SHARED run_seed AS DOUBLE          ' the RNG seed the current dungeon was built from (so save/load can reproduce it)
 DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points

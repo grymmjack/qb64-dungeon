@@ -310,6 +310,7 @@ SUB SaveSettings
     PRINT #f, "hardcore " + _TRIM$(STR$(opt_hardcore))
     PRINT #f, "critfumble " + _TRIM$(STR$(opt_critfumble))
     PRINT #f, "lootrecovery " + _TRIM$(STR$(opt_lootrecovery))
+    PRINT #f, "maxdeaths " + _TRIM$(STR$(opt_maxdeaths))
     PRINT #f, "mondicecolor " + _TRIM$(STR$(opt_mon_dicecolor))
     PRINT #f, "mondicesolid " + _TRIM$(STR$(opt_mon_dicesolid))
     PRINT #f, "mond6pips " + _TRIM$(STR$(opt_mon_d6pips))
@@ -354,6 +355,7 @@ SUB LoadSettings
                 CASE "hardcore": opt_hardcore = v
                 CASE "critfumble": opt_critfumble = v
                 CASE "lootrecovery": opt_lootrecovery = v
+                CASE "maxdeaths": opt_maxdeaths = v
                 CASE "mondicecolor": opt_mon_dicecolor = v
                 CASE "mondicesolid": opt_mon_dicesolid = v
                 CASE "mond6pips": opt_mon_d6pips = v
@@ -365,6 +367,8 @@ SUB LoadSettings
     ' sanity clamps
     IF num_players < 1 THEN num_players = 1
     IF num_players > 4 THEN num_players = 4
+    IF opt_maxdeaths < 1 THEN opt_maxdeaths = 3
+    IF opt_maxdeaths > 9 THEN opt_maxdeaths = 9
     opt_musicvol = Clamp10(opt_musicvol)
     opt_sfxvol = Clamp10(opt_sfxvol)
     opt_voicevol = Clamp10(opt_voicevol)
