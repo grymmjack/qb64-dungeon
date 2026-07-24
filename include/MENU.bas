@@ -69,13 +69,49 @@ END SUB
 
 ' Draw the character-generation sheet. `rolled` = how many abilities are in
 ' (0..6); `done` = HP + derived stats are ready (final screen with the prompt).
+' One line of the class's mechanical numbers.
+FUNCTION ClassPerks$ (pc AS INTEGER)
+    ClassPerks$ = "Hit die d" + _TRIM$(STR$(CLASSES(pc).hitdie)) + "     To-Hit base " + ModStr$(CLASSES(pc).tohit) + "     Damage d" + _TRIM$(STR$(CLASSES(pc).dmg)) + "     AC base " + _TRIM$(STR$(CLASSES(pc).ac))
+END FUNCTION
+
+' One line of the class's special ability (flavor + the mechanical edge).
+FUNCTION ClassSpecial$ (pc AS INTEGER)
+    SELECT CASE pc
+        CASE 1: ClassSpecial$ = "HERO -- a stout, dependable all-rounder."
+        CASE 2: ClassSpecial$ = "ELF -- doubles your odds of finding secret doors."
+        CASE 3: ClassSpecial$ = "SUPERHERO -- mightiest in melee; strikes hardest."
+        CASE 4: ClassSpecial$ = "WIZARD -- attacks with INT; cannot wield magic swords."
+        CASE ELSE: ClassSpecial$ = ""
+    END SELECT
+END FUNCTION
+
+' A colourful, humorous D&D-style name (a first name + an epithet).
+FUNCTION RandomHeroName$
+    DIM f(1 TO 20) AS STRING, s(1 TO 20) AS STRING
+    f(1) = "Bort": f(2) = "Grimble": f(3) = "Sir Reginald": f(4) = "Fumblewick": f(5) = "Mungo"
+    f(6) = "Grognak": f(7) = "Beans": f(8) = "Thistlewit": f(9) = "Piffle": f(10) = "Sir Lancelittle"
+    f(11) = "Dungwold": f(12) = "Bumbershoot": f(13) = "Gorm": f(14) = "Snout": f(15) = "Wartleby"
+    f(16) = "Higgs": f(17) = "Drizzle": f(18) = "Sniffles": f(19) = "Belch": f(20) = "Throg"
+    s(1) = "the Unlucky": s(2) = "the Slightly Brave": s(3) = "Facepunch": s(4) = "Bumblesnatch": s(5) = "the Damp"
+    s(6) = "Cheesewright": s(7) = "the Confused": s(8) = "Ironbottom": s(9) = "the Mostly Dead": s(10) = "Puddlejump"
+    s(11) = "the Flatulent": s(12) = "Gutbuster": s(13) = "the Tardy": s(14) = "Noseworthy": s(15) = "the Perpetually Lost"
+    s(16) = "Skullthumper": s(17) = "the Overconfident": s(18) = "Manytoes": s(19) = "the Sticky": s(20) = "Widdershins"
+    RandomHeroName$ = f(RollDie(20)) + " " + s(RollDie(20))
+END FUNCTION
+
+
 SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTEGER)
     DIM i AS INTEGER, y AS INTEGER, nm(1 TO 6) AS STRING, row AS STRING
     nm(1) = "STR": nm(2) = "INT": nm(3) = "WIS": nm(4) = "DEX": nm(5) = "CON": nm(6) = "CHA"
     _DEST CANVAS: CLS , BLACK
-    COLOR YELLOWU, BLACK: PrintCentered 3, "R O L L   U P   Y O U R   " + CLASSES(pc).name
+    COLOR YELLOWU, BLACK: PrintCentered 2, "C R E A T E   A   C H A R A C T E R"
+    COLOR WHITE, BLACK: PrintCentered 4, "Name:  " + _TRIM$(player_name)
+    COLOR CYANU, BLACK: PrintCentered 5, "Class:  " + _TRIM$(CLASSES(pc).name) + "        Win goal:  " + _TRIM$(STR$(CLASSES(pc).gold_goal)) + " gold"
+    COLOR GREY, BLACK: PrintCentered 6, _TRIM$(CLASSES(pc).blurb)
+    COLOR GREENU, BLACK: PrintCentered 7, ClassSpecial$(pc)
+    COLOR CYANU, BLACK: PrintCentered 8, ClassPerks$(pc)
     FOR i = 1 TO 6
-        y = 9 + (i - 1) * 2
+        y = 11 + (i - 1) * 2
         IF i <= rolled THEN
             row = nm(i) + "   " + RIGHT$("  " + _TRIM$(STR$(sc(i))), 2) + "   (" + ModStr$(AbilMod(sc(i))) + ")"
             IF i = rolled AND NOT done THEN COLOR WHITE, REDU ELSE COLOR WHITE, BLACK
@@ -87,13 +123,18 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
     NEXT i
     IF done THEN
         COLOR GREENU, BLACK
-        PrintCentered 23, "HIT POINTS  " + _TRIM$(STR$(player_maxhp))
+        PrintCentered 24, "HIT POINTS  " + _TRIM$(STR$(player_maxhp))
         COLOR CYANU, BLACK
-        PrintCentered 25, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
-        COLOR GREY, BLACK: PrintCentered 27, CombatDerivation$(pc)   ' where those bonuses come from
-        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll a new hero      [ENTER] keep this one"
+        PrintCentered 26, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
+        COLOR GREY, BLACK: PrintCentered 28, CombatDerivation$(pc)   ' where those bonuses come from
+        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll hero     [N] new name     [ENTER] keep this one"
     ELSE
-        COLOR CYANU, BLACK: PrintCentered 44, "rolling 3d6 for each ability..."
+        COLOR CYANU, BLACK
+        IF rolled < 6 THEN
+            PrintCentered 44, "[ press a key ] roll " + nm(rolled + 1) + "        [A] auto-roll the rest        [N] new name"
+        ELSE
+            PrintCentered 44, "[ press a key ] roll your HIT POINTS        [A] auto"
+        END IF
     END IF
     _DISPLAY
 END SUB
@@ -103,16 +144,31 @@ END SUB
 ' class hit die, derive the D&D combat stats, and let the player re-roll.
 ' Honours Real Dice (each 3d6 becomes a PromptRoll when that setting is on).
 SUB RollCharacter (pc AS INTEGER)
-    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING
+    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER
+    IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
     DO
+        auto = FALSE
         FOR i = 1 TO 6
-            DrawCharGen pc, sc(), i - 1, 0             ' show sheet, then tumble this ability
+            DrawCharGen pc, sc(), i - 1, 0             ' show sheet + the prompt to roll this ability
+            IF NOT auto THEN                           ' the player presses a key to roll each stat...
+                DO
+                    _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+                    IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), i - 1, 0: k = ""
+                LOOP UNTIL k <> ""
+                IF k = "A" THEN auto = -1: Sfx "select"  ' ...or [A] to auto-roll the rest
+            END IF
             sc(i) = RollAbility                        ' 3d6 or 4d6-drop-low per the Stat-Roll setting
         NEXT i
         player_str = sc(1): player_int = sc(2): player_wis = sc(3)
         player_dex = sc(4): player_con = sc(5): player_cha = sc(6)
         ' hit points: three hit dice + 3x the CON modifier (a level-ish start), min 3
         DrawCharGen pc, sc(), 6, 0
+        IF NOT auto THEN
+            DO
+                _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+                IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, 0: k = ""
+            LOOP UNTIL k <> ""
+        END IF
         hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
         player_maxhp = hproll + 3 * AbilMod(player_con)
         IF player_maxhp < 3 THEN player_maxhp = 3
@@ -123,9 +179,10 @@ SUB RollCharacter (pc AS INTEGER)
         player_dmgdie = CLASSES(pc).dmg
         player_dmgbonus = atkmod
         player_ac = CLASSES(pc).ac + AbilMod(player_dex)
-        DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/keep prompt
+        DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt
         DO
             _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+            IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, -1: k = ""
         LOOP UNTIL k = "R" OR k = CHR$(13)
         Sfx "select"
     LOOP UNTIL k = CHR$(13)
