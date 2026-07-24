@@ -81,9 +81,13 @@ SUB DrawEntities
     FOR r = 1 TO ROOM_N
         gx = ROOMS(r).cx: gy = ROOMS(r).cy
         IF gx >= 0 AND gy >= 0 AND gx <= 131 AND gy <= 60 THEN
-            vis = TRUE
-            IF opt_fov THEN
-                IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
+            gx = EntityDrawX(r): gy = EntityDrawY(r)   ' shift off any level label under the marker
+            vis = FALSE
+            ' Monsters stay hidden until the player has actually ENTERED their room
+            ' (no board-wide reveal), and -- in FOV mode -- until that spot is seen.
+            IF ROOMS(r).seen THEN
+                vis = TRUE
+                IF opt_fov THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
             END IF
             IF vis THEN
                 IF ROOMS(r).malive AND LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN
@@ -96,6 +100,40 @@ SUB DrawEntities
             END IF
         END IF
     NEXT r
+END SUB
+
+
+' A room's marker cell can land under a level label; these find the nearest cell
+' of the SAME room that no label prints on, so the monster/loot glyph never sits
+' on top of "8th", "TORTURE CHAMBER", etc. Falls back to the marker if none clear.
+FUNCTION EntityDrawX% (r AS INTEGER)
+    DIM ox AS INTEGER, oy AS INTEGER
+    EntityShiftFind r, ox, oy
+    EntityDrawX = ox
+END FUNCTION
+FUNCTION EntityDrawY% (r AS INTEGER)
+    DIM ox AS INTEGER, oy AS INTEGER
+    EntityShiftFind r, ox, oy
+    EntityDrawY = oy
+END FUNCTION
+SUB EntityShiftFind (r AS INTEGER, ox AS INTEGER, oy AS INTEGER)
+    DIM bx AS INTEGER, by AS INTEGER, rad AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER
+    bx = ROOMS(r).cx: by = ROOMS(r).cy
+    ox = bx: oy = by
+    IF bx < 0 OR by < 0 OR bx > 131 OR by > 60 THEN EXIT SUB
+    IF LABELMASK(bx, by) = 0 THEN EXIT SUB          ' marker is already clear of any label
+    FOR rad = 1 TO 3                                ' spiral out to a same-room, label-free cell
+        FOR dy = -rad TO rad
+            FOR dx = -rad TO rad
+                nx = bx + dx: ny = by + dy
+                IF nx >= 0 AND ny >= 0 AND nx <= 131 AND ny <= 60 THEN
+                    IF ROOMAT(nx, ny) = r AND LABELMASK(nx, ny) = 0 THEN
+                        ox = nx: oy = ny: EXIT SUB
+                    END IF
+                END IF
+            NEXT dx
+        NEXT dy
+    NEXT rad
 END SUB
 
 

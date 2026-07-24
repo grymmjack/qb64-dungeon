@@ -60,6 +60,7 @@ InitSectors
 InitClasses
 InitMonsterTables
 InitDice
+InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -125,6 +126,7 @@ FUNCTION PlayGame%
     char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
     item_potion_small = 0: item_potion_large = 0
     poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
+    deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
 
     IF num_players > 1 THEN
         ScrollText "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin."
@@ -217,6 +219,7 @@ FUNCTION PlayGame%
                     IF InRoomNow THEN
                         sec = ROOMAT(c.x \ CW, c.y \ CH)   ' which room block are we standing in?
                         IF sec >= 1 THEN
+                            ROOMS(sec).seen = TRUE         ' entering reveals this room's monster on the board
                             ' a monster guards this room's treasure?
                             IF ROOMS(sec).malive AND LEN(_TRIM$(ROOMS(sec).monster)) > 0 THEN
                                 ' ESP Medallion: foresee the monster and choose to enter or back off
@@ -438,6 +441,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF player_hp <= 0 THEN                ' downed
                 player_hp = 0
                 ROOMS(rm).player_died = TRUE
+                IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
                 DrawCombatPanel rm, mon, lead
                 lost = gold
                 DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
@@ -504,6 +508,7 @@ SUB MonsterAttack (rm AS INTEGER)
         CASE 2                                  ' ADVENTURER KILLED!
             lost = gold
             ROOMS(rm).player_died = TRUE
+            IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
             Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You drop your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"

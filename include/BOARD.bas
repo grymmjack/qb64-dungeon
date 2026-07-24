@@ -658,35 +658,68 @@ SUB PutLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING, fg AS _UNSIGNED LONG)
     _PRINTSTRING (cx * CW, cy * CH), txt
 END SUB
 
+' The board's room labels live in one data table (LBL_*), used both to render them
+' and to build LABELMASK -- so monster glyphs can be kept off the label cells.
+SUB InitLabels
+    LBL_N = 0
+    AddLabel 57, 23, "START"
+    AddLabel 57, 25, "MAIN"
+    AddLabel 56, 26, "GALLERY"
+    AddLabel 14, 10, "ARMORY"
+    AddLabel 47, 7, "THE"
+    AddLabel 47, 8, "CRYPT"
+    AddLabel 83, 9, "WIZ'S"
+    AddLabel 84, 10, "LAB"
+    AddLabel 93, 7, "WIZ'S"
+    AddLabel 93, 8, "TREASURE"
+    AddLabel 3, 26, "KITCHEN"
+    AddLabel 18, 23, "GUARD"
+    AddLabel 18, 24, "ROOM"
+    AddLabel 18, 41, "STORE"
+    AddLabel 18, 42, "ROOM"
+    AddLabel 49, 39, "TORTURE"
+    AddLabel 49, 40, "CHAMBER"
+    AddLabel 88, 42, "QUEEN'S"
+    AddLabel 88, 43, "ANNEX"
+    AddLabel 87, 34, "QUEEN'S"
+    AddLabel 87, 35, "TREASURE"
+    AddLabel 90, 27, "KING'S"
+    AddLabel 88, 28, "LIBRARY"
+    AddLabel 104, 21, "KING'S"
+    AddLabel 104, 22, "TREASURE"
+    BuildLabelMask
+END SUB
+
+SUB AddLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING)
+    IF LBL_N >= UBOUND(LBL_X) THEN EXIT SUB
+    LBL_N = LBL_N + 1
+    LBL_X(LBL_N) = cx: LBL_Y(LBL_N) = cy: LBL_T(LBL_N) = txt
+END SUB
+
+' Mark every cell a label prints over (plus one cell of padding) so DrawEntities
+' can steer monster glyphs clear of the level labels.
+SUB BuildLabelMask
+    DIM i AS INTEGER, x AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    FOR cy = 0 TO 60
+        FOR cx = 0 TO 131: LABELMASK(cx, cy) = 0: NEXT cx
+    NEXT cy
+    FOR i = 1 TO LBL_N
+        cy = LBL_Y(i)
+        FOR x = LBL_X(i) - 1 TO LBL_X(i) + LEN(LBL_T(i))    ' -1/+len = one cell of padding each side
+            IF x >= 0 AND x <= 131 AND cy >= 0 AND cy <= 60 THEN LABELMASK(x, cy) = -1
+        NEXT x
+    NEXT i
+END SUB
+
 SUB render_room_labels
     DIM AS _UNSIGNED LONG b, r
+    DIM i AS INTEGER, fg AS _UNSIGNED LONG
     b = _RGB32(&H00, &H00, &HAA): r = _RGB32(&HFF, &H55, &H55)
     _DEST CANVAS
-    PutLabel 57, 23, "START", r
-    PutLabel 57, 25, "MAIN", b
-    PutLabel 56, 26, "GALLERY", b
-    PutLabel 14, 10, "ARMORY", b
-    PutLabel 47, 7, "THE", b
-    PutLabel 47, 8, "CRYPT", b
-    PutLabel 83, 9, "WIZ'S", b
-    PutLabel 84, 10, "LAB", b
-    PutLabel 93, 7, "WIZ'S", b
-    PutLabel 93, 8, "TREASURE", b
-    PutLabel 3, 26, "KITCHEN", b
-    PutLabel 18, 23, "GUARD", b
-    PutLabel 18, 24, "ROOM", b
-    PutLabel 18, 41, "STORE", b
-    PutLabel 18, 42, "ROOM", b
-    PutLabel 49, 39, "TORTURE", b
-    PutLabel 49, 40, "CHAMBER", b
-    PutLabel 88, 42, "QUEEN'S", b
-    PutLabel 88, 43, "ANNEX", b
-    PutLabel 87, 34, "QUEEN'S", b
-    PutLabel 87, 35, "TREASURE", b
-    PutLabel 90, 27, "KING'S", b
-    PutLabel 88, 28, "LIBRARY", b
-    PutLabel 104, 21, "KING'S", b
-    PutLabel 104, 22, "TREASURE", b
+    FOR i = 1 TO LBL_N
+        IF LBL_T(i) = "START" THEN fg = r ELSE fg = b
+        PutLabel LBL_X(i), LBL_Y(i), LBL_T(i), fg
+    NEXT i
 END SUB
 
 

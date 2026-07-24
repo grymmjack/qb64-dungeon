@@ -66,6 +66,7 @@ TYPE ROOM
     looted  AS INTEGER
     monster_fought AS INTEGER
     player_died AS INTEGER
+    seen    AS INTEGER        ' the player has entered this room -- only then is its monster drawn
     ' loot a fallen champion left here (multiplayer only -- recoverable by any player)
     drop_gold AS LONG
     drop_sword AS INTEGER
@@ -134,6 +135,9 @@ DIM SHARED SECTORS(1 TO 9) AS SECTOR
 ' individual room blocks (per-block encounters), detected from the board art
 DIM SHARED ROOMS(1 TO 400) AS ROOM, ROOM_N AS INTEGER
 DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
+DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
+DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING
+DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
 DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll

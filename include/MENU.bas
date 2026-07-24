@@ -784,6 +784,22 @@ END SUB
 '  BOARD + CURSOR  (pixel-color collision, adapted from TEST-MOVEMENT-MAP.bas)
 ' ============================================================================
 
+' Per-player death tally for the HUD. CHR$(15) is the closest ROM-font glyph to a
+' skull/marker; solo shows one count, hot-seat shows all seats.
+FUNCTION DeathTag$
+    DIM s AS STRING, p AS INTEGER
+    IF num_players <= 1 THEN
+        DeathTag$ = "   " + CHR$(15) + " " + _TRIM$(STR$(deaths(1)))
+    ELSE
+        s = "   " + CHR$(15)
+        FOR p = 1 TO num_players
+            s = s + " P" + _TRIM$(STR$(p)) + ":" + _TRIM$(STR$(deaths(p)))
+        NEXT p
+        DeathTag$ = s
+    END IF
+END FUNCTION
+
+
 ' Compact readout of any active status effects, for the HUD (empty when clear).
 FUNCTION StatusTag$
     DIM s AS STRING
@@ -820,7 +836,7 @@ SUB DrawHUD
     IF num_players > 1 THEN ptag = "P" + _TRIM$(STR$(cur_player)) + " " + player_name + "  " ELSE ptag = ""
     LINE (0, 50 * CH)-(SW * CW, 51 * CH), BLACK, BF
     COLOR WHITE, BLACK
-    hud = " " + ptag + class_name + lvltag + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + StatusTag$ + "   " + tmr + "   " + lbl
+    hud = " " + ptag + class_name + lvltag + hptag + "   GOLD " + _TRIM$(STR$(gold)) + "/" + _TRIM$(STR$(target_gold)) + "   " + keytag + inv + movetag + DeathTag$ + StatusTag$ + "   " + tmr + "   " + lbl
     _PRINTSTRING (0, 50 * CH), hud
     IF need_roll THEN
         COLOR YELLOWU, BLACK
