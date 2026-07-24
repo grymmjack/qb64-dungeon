@@ -70,6 +70,7 @@ InitEffects                      ' load the crit/fumble effect tables (assets/da
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
+LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -86,6 +87,7 @@ DO
             IF r = MENU_ENTER THEN game_state = ST_PLAY ELSE game_state = ST_QUIT
         CASE ST_PLAY
             o = PlayGame
+            StopLevelMusic                       ' silence the in-game track before the menu music resumes
             SELECT CASE o
                 CASE OUT_WIN: game_state = ST_WIN
                 CASE OUT_LOSE: game_state = ST_LOSE
@@ -168,6 +170,11 @@ FUNCTION PlayGame%
     IF NOT didload THEN AnnounceTurn cur_player   ' multiplayer: announce whose turn it is
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
+
+    DIM startlvl AS INTEGER                        ' start this level's music before the first step
+    music_level = 0: music_curfile = ""
+    startlvl = SECTOR.get_by_xy(c.x, c.y): IF startlvl < 1 THEN startlvl = 1
+    PlayLevelMusic startlvl
 
     DO
         _LIMIT 60
@@ -255,6 +262,7 @@ FUNCTION PlayGame%
                     END IF
                     curlvl = SECTOR.get_by_xy(c.x, c.y)   ' chronicle the levels you tread
                     IF curlvl >= 1 AND curlvl <= 9 THEN lvl_reached(curlvl) = TRUE
+                    PlayLevelMusic curlvl                 ' switch to this level's track (no-op if unchanged)
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
@@ -1309,6 +1317,7 @@ END SUB
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'
 '$INCLUDE:'include/CTEXT.bas'
+'$INCLUDE:'include/MUSIC.bas'
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'

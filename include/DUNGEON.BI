@@ -301,7 +301,11 @@ DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
 DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
 DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
 DIM SHARED player_dmgdie AS INTEGER, player_dmgbonus AS INTEGER  ' weapon die + STR/INT damage mod
-DIM SHARED music_handle AS LONG                  ' currently-looping menu music (for live volume)
+DIM SHARED music_handle AS LONG                  ' currently-looping menu/level music (for live volume)
+' -- per-level in-game music (data-driven; assets/music/playlist.txt; see MUSIC.bas) --
+DIM SHARED MUSIC_FILE(1 TO 9) AS STRING          ' music file assigned to each dungeon level (in assets/music/)
+DIM SHARED music_level AS INTEGER                ' the level whose track is loaded right now (0 = none)
+DIM SHARED music_curfile AS STRING               ' the file currently loaded (so same-file levels don't restart it)
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter
