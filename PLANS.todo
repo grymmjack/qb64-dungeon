@@ -20,6 +20,29 @@ Roadmap (future / bigger efforts):
           numbers, secret-key win). This is the swappable layer.
         ☐ engine exposes hooks the game fills in (room/encounter callbacks, win
           condition, data tables) -- the chamber event system below is the first user.
+    ☐ DEEP TACTICAL COMBAT screen (party vs. a group of enemies -- see mockup):
+        A full Gold-Box/Darkest-Dungeon-style encounter screen. Big evolution of
+        DoCombatDnD. Reuses what we have: HpBar$, the dice tumbler/pip dice, crit
+        detection + "CRITICAL HIT!" fanfare, per-actor HP / to-hit / AC / damage die.
+        New systems it needs:
+        ☐ Multi-enemy encounters -- fight a GROUP at once (e.g. 4 gnolls), each an
+          actor with its own portrait, weapon (mace 1d6, spear 1d4, claw 1d2...),
+          armour/AC, and HP bar. (Ties into CHAMBERS below.)
+        ☐ Initiative + turn order bar ("ROUND n / INITIATIVE: GNOLL1 > PLAYER > ...")
+          with the active actor highlighted; cycle turns.
+        ☐ Health TIERS derived from HP% (WOUNDED / BLOODIED / CRITICAL / AT DEATH'S DOOR)
+        ☐ Stances (ATTACKING / GUARDING / PRONE) affecting to-hit / defence
+        ☐ Status effects with duration -- POISONED -1 (3/3), PRONE, etc. (tick per round)
+        ☐ Action menu: ATTACK (melee/ranged) - GUARD - CAST - USE - FLEE, with target
+          selection (crosshair over the chosen enemy)
+        ☐ Spells (the Dungeon! Spell Cards): Lightning Bolt, Fireball, Heal, ...
+        ☐ Persistent scrolling COMBAT LOG (to-hit rolls, damage, effects) -- extend ScrollText
+        ☐ Crit fanfare with narrated consequences ("entrails fly", "slammed prone", bonus
+          damage shown: 1d8(+1) = 7 x2 = 14)
+        ☐ Enemy + player PORTRAITS (ANSI art per monster / class)
+        ☐ Colour-coded polyhedral dice tray (d20/d12/d10/d8/d6/d4) -- extend the tumbler
+        This is the flagship consumer of the reusable engine's combat subsystem.
+
     ☐ Special rooms = CHAMBERS with elaborate encounters (Darkest-Dungeon-style):
         Per the manual, Dungeon! Rooms hold 1 monster + 1 treasure; CHAMBERS hold a
         3-monster gauntlet and NO treasure (only dropped loot), and allow multiple
