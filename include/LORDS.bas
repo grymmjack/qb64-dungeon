@@ -153,3 +153,70 @@ FUNCTION EnterName$
     IF _TRIM$(nm) = "" THEN nm = class_name
     EnterName$ = nm
 END FUNCTION
+
+
+' ============================================================================
+'  SETTINGS PERSISTENCE (dungeon-settings.dat) -- remembers the player's prefs
+' ============================================================================
+
+SUB SaveSettings
+    DIM f AS INTEGER
+    f = FREEFILE
+    OPEN "dungeon-settings.dat" FOR OUTPUT AS #f
+    PRINT #f, "music " + _TRIM$(STR$(opt_music))
+    PRINT #f, "sfx " + _TRIM$(STR$(opt_sfx))
+    PRINT #f, "voice " + _TRIM$(STR$(opt_voice))
+    PRINT #f, "showdice " + _TRIM$(STR$(opt_showdice))
+    PRINT #f, "fullscreen " + _TRIM$(STR$(opt_fullscreen))
+    PRINT #f, "musicvol " + _TRIM$(STR$(opt_musicvol))
+    PRINT #f, "sfxvol " + _TRIM$(STR$(opt_sfxvol))
+    PRINT #f, "voicevol " + _TRIM$(STR$(opt_voicevol))
+    PRINT #f, "realdice " + _TRIM$(STR$(opt_realdice))
+    PRINT #f, "dicemath " + _TRIM$(STR$(opt_dicemath))
+    PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
+    PRINT #f, "heroicstats " + _TRIM$(STR$(opt_heroicstats))
+    PRINT #f, "boardgame " + _TRIM$(STR$(opt_boardgame))
+    PRINT #f, "fov " + _TRIM$(STR$(opt_fov))
+    PRINT #f, "players " + _TRIM$(STR$(num_players))
+    CLOSE #f
+END SUB
+
+
+SUB LoadSettings
+    DIM f AS INTEGER, ln AS STRING, k AS STRING, v AS INTEGER, sp AS INTEGER
+    IF NOT _FILEEXISTS("dungeon-settings.dat") THEN EXIT SUB
+    f = FREEFILE
+    OPEN "dungeon-settings.dat" FOR INPUT AS #f
+    DO WHILE NOT EOF(f)
+        LINE INPUT #f, ln
+        sp = INSTR(ln, " ")
+        IF sp > 0 THEN
+            k = LEFT$(ln, sp - 1): v = VAL(MID$(ln, sp + 1))
+            SELECT CASE k
+                CASE "music": opt_music = v
+                CASE "sfx": opt_sfx = v
+                CASE "voice": opt_voice = v
+                CASE "showdice": opt_showdice = v
+                CASE "fullscreen": opt_fullscreen = v
+                CASE "musicvol": opt_musicvol = v
+                CASE "sfxvol": opt_sfxvol = v
+                CASE "voicevol": opt_voicevol = v
+                CASE "realdice": opt_realdice = v
+                CASE "dicemath": opt_dicemath = v
+                CASE "oldschool": opt_oldschool = v
+                CASE "heroicstats": opt_heroicstats = v
+                CASE "boardgame": opt_boardgame = v
+                CASE "fov": opt_fov = v
+                CASE "players": num_players = v
+            END SELECT
+        END IF
+    LOOP
+    CLOSE #f
+    ' sanity clamps
+    IF num_players < 1 THEN num_players = 1
+    IF num_players > 4 THEN num_players = 4
+    opt_musicvol = Clamp10(opt_musicvol)
+    opt_sfxvol = Clamp10(opt_sfxvol)
+    opt_voicevol = Clamp10(opt_voicevol)
+    IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
+END SUB

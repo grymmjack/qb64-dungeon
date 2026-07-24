@@ -276,7 +276,7 @@ SUB RunSettings
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = NSET
         IF k = "S" THEN sel = sel + 1: IF sel > NSET THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
-        IF k = CHR$(27) THEN EXIT SUB
+        IF k = CHR$(27) THEN SaveSettings: EXIT SUB
 
         ' A/D adjusts the volume sliders (items 2 / 4 / 6)
         IF k = "A" OR k = "D" THEN
@@ -314,7 +314,7 @@ SUB RunSettings
                     opt_fullscreen = NOT opt_fullscreen
                     IF opt_fullscreen THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH ELSE _FULLSCREEN _OFF
                 CASE 15: opt_fov = NOT opt_fov
-                CASE 16: EXIT SUB
+                CASE 16: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
