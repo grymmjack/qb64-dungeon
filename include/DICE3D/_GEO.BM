@@ -1,0 +1,354 @@
+$INCLUDEONCE
+''
+' DICE3D - Generic polyhedron mesh builder.
+'
+' Given only a vertex list for a die, this computes the faces by convex hull
+' (a triple is a hull face iff every other vertex lies on one side of its
+' plane; coplanar vertices merge into the polygon), then for each face derives:
+'   - a tangent frame (t,b,n) used both to project UVs (minimal number warp)
+'     and to build the "point this face at the camera" target quaternion,
+'   - opposite-sum numbering (faces sum to sides+1; D4 gets 1..4),
+'   - a fan triangulation into the shared triangle soup.
+'
+' Vertex data + numbering are the only die-specific parts; everything else is
+' one pipeline for D4..D20. (Mesh technique adapted from Petr's dice.bas.)
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+CONST DICE3D_TILE = 128
+CONST DICE3D_MARGIN = 12
+
+''
+' Fill DICE3D_MV / DICE3D_NV with a die's vertices, normalized to circumradius 1.
+SUB dice3d_verts (sides AS INTEGER)
+    DIM AS SINGLE p
+    DIM AS INTEGER i
+    DIM AS SINGLE mr, L
+    p = 1.6180339887 '                   golden ratio
+    SELECT CASE sides
+        CASE 4
+            DICE3D_NV = 4: REDIM DICE3D_MV(0 TO 3) AS DICE3D_VEC3
+            dice3d_setv 0, 1, 1, 1: dice3d_setv 1, 1, -1, -1
+            dice3d_setv 2, -1, 1, -1: dice3d_setv 3, -1, -1, 1
+        CASE 8
+            DICE3D_NV = 6: REDIM DICE3D_MV(0 TO 5) AS DICE3D_VEC3
+            dice3d_setv 0, 1, 0, 0: dice3d_setv 1, -1, 0, 0
+            dice3d_setv 2, 0, 1, 0: dice3d_setv 3, 0, -1, 0
+            dice3d_setv 4, 0, 0, 1: dice3d_setv 5, 0, 0, -1
+        CASE 20
+            DICE3D_NV = 12: REDIM DICE3D_MV(0 TO 11) AS DICE3D_VEC3
+            dice3d_setv 0, 0, 1, p: dice3d_setv 1, 0, 1, -p
+            dice3d_setv 2, 0, -1, p: dice3d_setv 3, 0, -1, -p
+            dice3d_setv 4, 1, p, 0: dice3d_setv 5, 1, -p, 0
+            dice3d_setv 6, -1, p, 0: dice3d_setv 7, -1, -p, 0
+            dice3d_setv 8, p, 0, 1: dice3d_setv 9, p, 0, -1
+            dice3d_setv 10, -p, 0, 1: dice3d_setv 11, -p, 0, -1
+        CASE 12
+            DICE3D_NV = 20: REDIM DICE3D_MV(0 TO 19) AS DICE3D_VEC3
+            '--- 8 cube corners ---
+            dice3d_setv 0, 1, 1, 1: dice3d_setv 1, 1, 1, -1
+            dice3d_setv 2, 1, -1, 1: dice3d_setv 3, 1, -1, -1
+            dice3d_setv 4, -1, 1, 1: dice3d_setv 5, -1, 1, -1
+            dice3d_setv 6, -1, -1, 1: dice3d_setv 7, -1, -1, -1
+            '--- (0, +/-1/p, +/-p) ---
+            dice3d_setv 8, 0, 1 / p, p: dice3d_setv 9, 0, 1 / p, -p
+            dice3d_setv 10, 0, -1 / p, p: dice3d_setv 11, 0, -1 / p, -p
+            '--- (+/-1/p, +/-p, 0) ---
+            dice3d_setv 12, 1 / p, p, 0: dice3d_setv 13, 1 / p, -p, 0
+            dice3d_setv 14, -1 / p, p, 0: dice3d_setv 15, -1 / p, -p, 0
+            '--- (+/-p, 0, +/-1/p) ---
+            dice3d_setv 16, p, 0, 1 / p: dice3d_setv 17, p, 0, -1 / p
+            dice3d_setv 18, -p, 0, 1 / p: dice3d_setv 19, -p, 0, -1 / p
+        CASE 10 '                         pentagonal trapezohedron = polar dual of
+            '                             a pentagonal antiprism (guarantees planar kites)
+            DICE3D_NV = 12: REDIM DICE3D_MV(0 TO 11) AS DICE3D_VEC3
+            DIM AS SINGLE aa, a1, a2
+            DIM AS INTEGER ii, ipn, idx
+            DIM AS DICE3D_VEC3 pp(0 TO 4), qq(0 TO 4)
+            aa = 0.5 '                    half-height for an equilateral antiprism
+            FOR ii = 0 TO 4
+                a1 = (72 * ii) * DICE3D_DEG2RAD: a2 = (72 * ii + 36) * DICE3D_DEG2RAD
+                pp(ii).X = COS(a1): pp(ii).Y = SIN(a1): pp(ii).Z = aa
+                qq(ii).X = COS(a2): qq(ii).Y = SIN(a2): qq(ii).Z = -aa
+            NEXT
+            DICE3D_MV(0).X = 0: DICE3D_MV(0).Y = 0: DICE3D_MV(0).Z = 1 / aa '   top apex dual
+            DICE3D_MV(1).X = 0: DICE3D_MV(1).Y = 0: DICE3D_MV(1).Z = -1 / aa '  bottom apex dual
+            idx = 2
+            FOR ii = 0 TO 4
+                ipn = (ii + 1) MOD 5
+                dice3d_polar_dual pp(ii), pp(ipn), qq(ii), DICE3D_MV(idx): idx = idx + 1
+                dice3d_polar_dual qq(ii), qq(ipn), pp(ipn), DICE3D_MV(idx): idx = idx + 1
+            NEXT
+        CASE ELSE '                       default D6 cube
+            DICE3D_NV = 8: REDIM DICE3D_MV(0 TO 7) AS DICE3D_VEC3
+            dice3d_setv 0, -1, -1, -1: dice3d_setv 1, 1, -1, -1
+            dice3d_setv 2, 1, 1, -1: dice3d_setv 3, -1, 1, -1
+            dice3d_setv 4, -1, -1, 1: dice3d_setv 5, 1, -1, 1
+            dice3d_setv 6, 1, 1, 1: dice3d_setv 7, -1, 1, 1
+    END SELECT
+    '--- normalize to circumradius 1 so every die is a comparable size ---
+    mr = 0
+    FOR i = 0 TO DICE3D_NV - 1
+        L = SQR(DICE3D_MV(i).X ^ 2 + DICE3D_MV(i).Y ^ 2 + DICE3D_MV(i).Z ^ 2)
+        IF L > mr THEN mr = L
+    NEXT
+    IF mr < 0.0001 THEN mr = 1
+    FOR i = 0 TO DICE3D_NV - 1
+        DICE3D_MV(i).X = DICE3D_MV(i).X / mr
+        DICE3D_MV(i).Y = DICE3D_MV(i).Y / mr
+        DICE3D_MV(i).Z = DICE3D_MV(i).Z / mr
+    NEXT
+END SUB
+
+SUB dice3d_setv (i AS INTEGER, x AS SINGLE, y AS SINGLE, z AS SINGLE)
+    DICE3D_MV(i).X = x: DICE3D_MV(i).Y = y: DICE3D_MV(i).Z = z
+END SUB
+
+''
+' Polar dual of the triangle (a,b,c): the vertex n/d where the triangle's plane
+' is n.x = d (n outward unit). Used to build the trapezohedron from an antiprism.
+SUB dice3d_polar_dual (a AS DICE3D_VEC3, b AS DICE3D_VEC3, c AS DICE3D_VEC3, o AS DICE3D_VEC3)
+    DIM AS DICE3D_VEC3 e1, e2, n
+    DIM AS SINGLE d
+    dice3d_vsub b, a, e1: dice3d_vsub c, a, e2
+    dice3d_vcross e1, e2, n
+    dice3d_vnorm n, n
+    d = dice3d_vdot(n, a)
+    IF d < 0 THEN n.X = -n.X: n.Y = -n.Y: n.Z = -n.Z: d = -d
+    IF d < 0.0001 THEN d = 0.0001
+    o.X = n.X / d: o.Y = n.Y / d: o.Z = n.Z / d
+END SUB
+
+''
+' Build the full mesh (faces, triangles, UVs, per-face target poses, numbering)
+' for `sides`. Uses the number labels in labels() (1-based value -> string); if
+' labels(0) = "" it defaults to numeric strings.
+SUB dice3d_build (sides AS INTEGER)
+    DIM AS INTEGER i, j, k, m, f, g, p, s, nf, ntop, fbase, t, nextval, pcnt, neg, mc, bp
+    DIM AS SINGLE eps, dpl, dd, bestdot, uspan, vspan, sc, ucen, vcen, umin, umax, vmin, vmax, ang, maxab, bd, dl2
+    DIM AS DICE3D_VEC3 vi, vj, vk, e1, e2, nrm, cen, rel, ta, bb, e0
+    '--- hull face storage (index soup) ---
+    REDIM fStart(0 TO 63) AS INTEGER, fSize(0 TO 63) AS INTEGER
+    REDIM fIdx(0 TO 511) AS INTEGER
+    REDIM fN(0 TO 63) AS DICE3D_VEC3
+    REDIM faceVal(0 TO 63) AS INTEGER
+    REDIM mem(0 TO 31) AS INTEGER
+    REDIM ux(0 TO 31) AS SINGLE, uy(0 TO 31) AS SINGLE, uu(0 TO 31) AS SINGLE, vv(0 TO 31) AS SINGLE
+
+    dice3d_verts sides
+    eps = 0.002
+    nf = 0: ntop = 0
+
+    '=== convex hull: find each face plane once ===
+    FOR i = 0 TO DICE3D_NV - 3
+        FOR j = i + 1 TO DICE3D_NV - 2
+            FOR k = j + 1 TO DICE3D_NV - 1
+                vi = DICE3D_MV(i): vj = DICE3D_MV(j): vk = DICE3D_MV(k)
+                dice3d_vsub vj, vi, e1: dice3d_vsub vk, vi, e2
+                dice3d_vcross e1, e2, nrm
+                IF dice3d_vlen(nrm) < eps THEN _CONTINUE
+                dice3d_vnorm nrm, nrm
+                dpl = dice3d_vdot(nrm, vi)
+                '--- must be a supporting plane (all others on one side) ---
+                pcnt = 0: neg = 0
+                FOR m = 0 TO DICE3D_NV - 1
+                    dd = dice3d_vdot(nrm, DICE3D_MV(m)) - dpl
+                    IF dd > eps THEN pcnt = pcnt + 1
+                    IF dd < -eps THEN neg = neg + 1
+                NEXT
+                IF pcnt > 0 AND neg > 0 THEN _CONTINUE
+                '--- collect coplanar members (ascending index) ---
+                mc = 0
+                FOR m = 0 TO DICE3D_NV - 1
+                    IF ABS(dice3d_vdot(nrm, DICE3D_MV(m)) - dpl) <= eps THEN mem(mc) = m: mc = mc + 1
+                NEXT
+                '--- dedup vs faces already recorded ---
+                IF dice3d_face_seen%(fStart(), fSize(), fIdx(), nf, mem(), mc) THEN _CONTINUE
+                '--- outward normal points away from origin ---
+                cen.X = 0: cen.Y = 0: cen.Z = 0
+                FOR p = 0 TO mc - 1
+                    cen.X = cen.X + DICE3D_MV(mem(p)).X: cen.Y = cen.Y + DICE3D_MV(mem(p)).Y: cen.Z = cen.Z + DICE3D_MV(mem(p)).Z
+                NEXT
+                cen.X = cen.X / mc: cen.Y = cen.Y / mc: cen.Z = cen.Z / mc
+                IF dice3d_vdot(nrm, cen) < 0 THEN nrm.X = -nrm.X: nrm.Y = -nrm.Y: nrm.Z = -nrm.Z
+                '--- order members CCW around centroid in the face plane ---
+                dice3d_order_face mem(), mc, cen, nrm
+                '--- record face ---
+                fStart(nf) = ntop: fSize(nf) = mc: fN(nf) = nrm
+                FOR p = 0 TO mc - 1: fIdx(ntop) = mem(p): ntop = ntop + 1: NEXT
+                nf = nf + 1
+            NEXT
+        NEXT
+    NEXT
+    DICE3D_NF = nf
+
+    '=== opposite-sum numbering (D4 has no opposite pairs) ===
+    FOR f = 0 TO nf - 1: faceVal(f) = 0: NEXT
+    nextval = 1
+    FOR f = 0 TO nf - 1
+        IF faceVal(f) = 0 THEN
+            faceVal(f) = nextval
+            g = -1: bestdot = -0.9
+            FOR m = 0 TO nf - 1
+                IF m <> f THEN
+                    IF faceVal(m) = 0 THEN
+                        dd = dice3d_vdot(fN(f), fN(m))
+                        IF dd < bestdot THEN bestdot = dd: g = m
+                    END IF
+                END IF
+            NEXT
+            IF g >= 0 THEN faceVal(g) = sides + 1 - nextval
+            nextval = nextval + 1
+        END IF
+    NEXT
+    '--- D10 uses 0..9 (opposite faces sum to 9) ---
+    IF sides = 10 THEN
+        FOR f = 0 TO nf - 1: faceVal(f) = faceVal(f) - 1: NEXT
+    END IF
+
+    '=== per-face data + fan triangulation ===
+    REDIM DICE3D_FACE_Q(0 TO nf - 1) AS DICE3D_QUAT
+    REDIM DICE3D_FACE_N(0 TO nf - 1) AS DICE3D_VEC3
+    REDIM DICE3D_FACE_VAL(0 TO nf - 1) AS INTEGER
+    REDIM DICE3D_FACE_LABEL(0 TO nf - 1) AS STRING
+    REDIM DICE3D_VAL2FACE(0 TO sides) AS INTEGER
+    REDIM DICE3D_FVN(0 TO nf - 1) AS INTEGER
+    REDIM DICE3D_FVIDX(0 TO nf - 1, 0 TO 7) AS INTEGER
+    DICE3D_NT = ntop - 2 * nf '           each face -> (verts-2) triangles; sum = ntop-2*nf
+    REDIM DICE3D_TA(0 TO DICE3D_NT - 1) AS INTEGER
+    REDIM DICE3D_TB(0 TO DICE3D_NT - 1) AS INTEGER
+    REDIM DICE3D_TC(0 TO DICE3D_NT - 1) AS INTEGER
+    REDIM DICE3D_TUX(0 TO DICE3D_NT - 1, 0 TO 2) AS SINGLE
+    REDIM DICE3D_TUY(0 TO DICE3D_NT - 1, 0 TO 2) AS SINGLE
+    REDIM DICE3D_TFACE(0 TO DICE3D_NT - 1) AS INTEGER
+
+    t = 0
+    FOR f = 0 TO nf - 1
+        s = fSize(f): fbase = fStart(f)
+        DICE3D_FACE_VAL(f) = faceVal(f)
+        DICE3D_FACE_N(f) = fN(f)
+        DICE3D_FACE_LABEL(f) = LTRIM$(STR$(faceVal(f)))
+        DICE3D_VAL2FACE(faceVal(f)) = f
+        DICE3D_FVN(f) = s
+        FOR p = 0 TO s - 1: DICE3D_FVIDX(f, p) = fIdx(fbase + p): NEXT
+        '--- centroid + tangent frame ---
+        cen.X = 0: cen.Y = 0: cen.Z = 0
+        FOR p = 0 TO s - 1
+            cen.X = cen.X + DICE3D_MV(fIdx(fbase + p)).X: cen.Y = cen.Y + DICE3D_MV(fIdx(fbase + p)).Y: cen.Z = cen.Z + DICE3D_MV(fIdx(fbase + p)).Z
+        NEXT
+        cen.X = cen.X / s: cen.Y = cen.Y / s: cen.Z = cen.Z / s
+        '--- face frame: b = the number's "up" axis. D10 kites aim it down the
+        '    kite's long axis (toward the sharp point) so the number sits
+        '    straight; other dice use the first edge so squares stay edge-flat. ---
+        IF sides = 10 THEN
+            bp = 0: bd = -1
+            FOR p = 0 TO s - 1
+                dice3d_vsub DICE3D_MV(fIdx(fbase + p)), cen, e0
+                dl2 = dice3d_vlen(e0)
+                IF dl2 > bd THEN bd = dl2: bp = p
+            NEXT
+            dice3d_vsub DICE3D_MV(fIdx(fbase + bp)), cen, e0
+            dd = dice3d_vdot(e0, fN(f))
+            bb.X = e0.X - fN(f).X * dd: bb.Y = e0.Y - fN(f).Y * dd: bb.Z = e0.Z - fN(f).Z * dd
+            dice3d_vnorm bb, bb
+            dice3d_vcross bb, fN(f), ta '  t = b x n
+        ELSE
+            dice3d_vsub DICE3D_MV(fIdx(fbase + 1)), DICE3D_MV(fIdx(fbase)), e0
+            dd = dice3d_vdot(e0, fN(f))
+            ta.X = e0.X - fN(f).X * dd: ta.Y = e0.Y - fN(f).Y * dd: ta.Z = e0.Z - fN(f).Z * dd
+            dice3d_vnorm ta, ta
+            dice3d_vcross fN(f), ta, bb '  b = n x t
+        END IF
+        dice3d_qfrombasis ta, bb, fN(f), DICE3D_FACE_Q(f)
+        '--- project members to (u,v) CENTRED ON THE CENTROID, fit to the tile ---
+        maxab = 0.0001
+        FOR p = 0 TO s - 1
+            dice3d_vsub DICE3D_MV(fIdx(fbase + p)), cen, rel
+            uu(p) = dice3d_vdot(rel, ta): vv(p) = dice3d_vdot(rel, bb)
+            IF ABS(uu(p)) > maxab THEN maxab = ABS(uu(p))
+            IF ABS(vv(p)) > maxab THEN maxab = ABS(vv(p))
+        NEXT
+        sc = (DICE3D_TILE / 2 - DICE3D_MARGIN) / maxab
+        FOR p = 0 TO s - 1
+            ux(p) = DICE3D_TILE / 2 + uu(p) * sc
+            uy(p) = f * DICE3D_TILE + DICE3D_TILE / 2 - vv(p) * sc
+        NEXT
+        '--- fan triangulate ---
+        FOR p = 1 TO s - 2
+            DICE3D_TA(t) = fIdx(fbase): DICE3D_TB(t) = fIdx(fbase + p): DICE3D_TC(t) = fIdx(fbase + p + 1)
+            DICE3D_TUX(t, 0) = ux(0): DICE3D_TUY(t, 0) = uy(0)
+            DICE3D_TUX(t, 1) = ux(p): DICE3D_TUY(t, 1) = uy(p)
+            DICE3D_TUX(t, 2) = ux(p + 1): DICE3D_TUY(t, 2) = uy(p + 1)
+            DICE3D_TFACE(t) = f
+            t = t + 1
+        NEXT
+    NEXT
+
+    '--- D4 top-read: at each corner (a vertex) stamp the value of the face
+    '    OPPOSITE that vertex, so the three faces meeting at the up-apex all
+    '    show the same number = the base (down) face's value ---
+    REDIM DICE3D_CORNERVAL(0 TO DICE3D_NT - 1, 0 TO 2) AS INTEGER
+    IF sides = 4 THEN
+        DIM AS INTEGER corner, vtx, tt
+        FOR t = 0 TO DICE3D_NT - 1
+            FOR corner = 0 TO 2
+                IF corner = 0 THEN vtx = DICE3D_TA(t) ELSE IF corner = 1 THEN vtx = DICE3D_TB(t) ELSE vtx = DICE3D_TC(t)
+                FOR tt = 0 TO DICE3D_NT - 1
+                    IF DICE3D_TA(tt) <> vtx AND DICE3D_TB(tt) <> vtx AND DICE3D_TC(tt) <> vtx THEN
+                        DICE3D_CORNERVAL(t, corner) = DICE3D_FACE_VAL(tt): EXIT FOR
+                    END IF
+                NEXT
+            NEXT
+        NEXT
+    END IF
+END SUB
+
+''
+' True if the coplanar member set mem()(0..mc-1) matches a face already stored.
+FUNCTION dice3d_face_seen% (fStart() AS INTEGER, fSize() AS INTEGER, fIdx() AS INTEGER, nf AS INTEGER, mem() AS INTEGER, mc AS INTEGER)
+    DIM AS INTEGER f, p, ok
+    FOR f = 0 TO nf - 1
+        IF fSize(f) = mc THEN
+            ok = -1
+            FOR p = 0 TO mc - 1
+                IF dice3d_idx_in%(fIdx(), fStart(f), fSize(f), mem(p)) = 0 THEN ok = 0: EXIT FOR
+            NEXT
+            IF ok THEN dice3d_face_seen% = -1: EXIT FUNCTION
+        END IF
+    NEXT
+    dice3d_face_seen% = 0
+END FUNCTION
+
+FUNCTION dice3d_idx_in% (fIdx() AS INTEGER, st AS INTEGER, cnt AS INTEGER, vtarget AS INTEGER)
+    DIM AS INTEGER p
+    FOR p = 0 TO cnt - 1
+        IF fIdx(st + p) = vtarget THEN dice3d_idx_in% = -1: EXIT FUNCTION
+    NEXT
+    dice3d_idx_in% = 0
+END FUNCTION
+
+''
+' Order a face's member indices CCW around the centroid within the face plane.
+SUB dice3d_order_face (mem() AS INTEGER, mc AS INTEGER, cen AS DICE3D_VEC3, n AS DICE3D_VEC3)
+    DIM AS INTEGER p, q, tmp
+    DIM AS DICE3D_VEC3 ta, bb, e0, rel
+    REDIM ang(0 TO mc - 1) AS SINGLE
+    DIM AS SINGLE dd
+    dice3d_vsub DICE3D_MV(mem(0)), cen, e0
+    dd = dice3d_vdot(e0, n)
+    ta.X = e0.X - n.X * dd: ta.Y = e0.Y - n.Y * dd: ta.Z = e0.Z - n.Z * dd
+    dice3d_vnorm ta, ta
+    dice3d_vcross n, ta, bb
+    FOR p = 0 TO mc - 1
+        dice3d_vsub DICE3D_MV(mem(p)), cen, rel
+        ang(p) = _ATAN2(dice3d_vdot(rel, bb), dice3d_vdot(rel, ta))
+    NEXT
+    FOR p = 1 TO mc - 1
+        tmp = mem(p): dd = ang(p): q = p - 1
+        DO WHILE q >= 0
+            IF ang(q) <= dd THEN EXIT DO
+            mem(q + 1) = mem(q): ang(q + 1) = ang(q): q = q - 1
+        LOOP
+        mem(q + 1) = tmp: ang(q + 1) = dd
+    NEXT
+END SUB

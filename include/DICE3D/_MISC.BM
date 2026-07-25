@@ -1,0 +1,199 @@
+$INCLUDEONCE
+''
+' DICE3D - Small math/util helpers (self-contained, dice3d_ prefixed so the
+' library never collides with a host program's own helpers).
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+CONST DICE3D_DEG2RAD = 0.017453292519943295#
+
+''
+' Rotate a model-space point by Euler degrees (X, then Y, then Z).
+' ox/oy/oz receive the rotated point.
+SUB dice3d_rot (px AS SINGLE, py AS SINGLE, pz AS SINGLE, rx AS SINGLE, ry AS SINGLE, rz AS SINGLE, ox AS SINGLE, oy AS SINGLE, oz AS SINGLE)
+    DIM AS DOUBLE a, s, c, x, y, z, x2, y2, z2
+    x = px: y = py: z = pz
+    '--- about X ---
+    a = rx * DICE3D_DEG2RAD: s = SIN(a): c = COS(a)
+    y2 = y * c - z * s: z2 = y * s + z * c: y = y2: z = z2
+    '--- about Y ---
+    a = ry * DICE3D_DEG2RAD: s = SIN(a): c = COS(a)
+    x2 = x * c + z * s: z2 = -x * s + z * c: x = x2: z = z2
+    '--- about Z ---
+    a = rz * DICE3D_DEG2RAD: s = SIN(a): c = COS(a)
+    x2 = x * c - y * s: y2 = x * s + y * c: x = x2: y = y2
+    ox = x: oy = y: oz = z
+END SUB
+
+''
+' Angle lerp that always turns the short way (wraps delta to +/-180).
+FUNCTION dice3d_lerpang! (cur AS SINGLE, tgt AS SINGLE, f AS SINGLE)
+    DIM AS SINGLE d
+    d = tgt - cur
+    DO WHILE d > 180: d = d - 360: LOOP
+    DO WHILE d < -180: d = d + 360: LOOP
+    dice3d_lerpang! = cur + d * f
+END FUNCTION
+
+''
+' Shortest absolute angular distance between two degree angles.
+FUNCTION dice3d_angdist! (cur AS SINGLE, tgt AS SINGLE)
+    DIM AS SINGLE d
+    d = tgt - cur
+    DO WHILE d > 180: d = d - 360: LOOP
+    DO WHILE d < -180: d = d + 360: LOOP
+    dice3d_angdist! = ABS(d)
+END FUNCTION
+
+FUNCTION dice3d_clampf! (v AS SINGLE, lo AS SINGLE, hi AS SINGLE)
+    IF v < lo THEN
+        dice3d_clampf! = lo
+    ELSEIF v > hi THEN
+        dice3d_clampf! = hi
+    ELSE
+        dice3d_clampf! = v
+    END IF
+END FUNCTION
+
+''
+' Random single in [lo, hi].
+FUNCTION dice3d_randf! (lo AS SINGLE, hi AS SINGLE)
+    dice3d_randf! = lo + RND * (hi - lo)
+END FUNCTION
+
+'==============================================================================
+' Vector helpers (DICE3D_VEC3)
+'==============================================================================
+SUB dice3d_vsub (a AS DICE3D_VEC3, b AS DICE3D_VEC3, r AS DICE3D_VEC3)
+    r.X = a.X - b.X: r.Y = a.Y - b.Y: r.Z = a.Z - b.Z
+END SUB
+
+SUB dice3d_vadd (a AS DICE3D_VEC3, b AS DICE3D_VEC3, r AS DICE3D_VEC3)
+    r.X = a.X + b.X: r.Y = a.Y + b.Y: r.Z = a.Z + b.Z
+END SUB
+
+SUB dice3d_vcross (a AS DICE3D_VEC3, b AS DICE3D_VEC3, r AS DICE3D_VEC3)
+    r.X = a.Y * b.Z - a.Z * b.Y
+    r.Y = a.Z * b.X - a.X * b.Z
+    r.Z = a.X * b.Y - a.Y * b.X
+END SUB
+
+FUNCTION dice3d_vdot! (a AS DICE3D_VEC3, b AS DICE3D_VEC3)
+    dice3d_vdot! = a.X * b.X + a.Y * b.Y + a.Z * b.Z
+END FUNCTION
+
+FUNCTION dice3d_vlen! (a AS DICE3D_VEC3)
+    dice3d_vlen! = SQR(a.X * a.X + a.Y * a.Y + a.Z * a.Z)
+END FUNCTION
+
+SUB dice3d_vnorm (a AS DICE3D_VEC3, r AS DICE3D_VEC3)
+    DIM AS SINGLE L
+    L = SQR(a.X * a.X + a.Y * a.Y + a.Z * a.Z)
+    IF L < 0.000001 THEN L = 1
+    r.X = a.X / L: r.Y = a.Y / L: r.Z = a.Z / L
+END SUB
+
+'==============================================================================
+' Quaternion helpers (DICE3D_QUAT), unit rotation quaternions
+'==============================================================================
+SUB dice3d_qidentity (r AS DICE3D_QUAT)
+    r.W = 1: r.X = 0: r.Y = 0: r.Z = 0
+END SUB
+
+SUB dice3d_qnormalize (q AS DICE3D_QUAT)
+    DIM AS SINGLE L
+    L = SQR(q.W * q.W + q.X * q.X + q.Y * q.Y + q.Z * q.Z)
+    IF L < 0.000001 THEN q.W = 1: q.X = 0: q.Y = 0: q.Z = 0: EXIT SUB
+    q.W = q.W / L: q.X = q.X / L: q.Y = q.Y / L: q.Z = q.Z / L
+END SUB
+
+SUB dice3d_qmul (a AS DICE3D_QUAT, b AS DICE3D_QUAT, r AS DICE3D_QUAT)
+    r.W = a.W * b.W - a.X * b.X - a.Y * b.Y - a.Z * b.Z
+    r.X = a.W * b.X + a.X * b.W + a.Y * b.Z - a.Z * b.Y
+    r.Y = a.W * b.Y - a.X * b.Z + a.Y * b.W + a.Z * b.X
+    r.Z = a.W * b.Z + a.X * b.Y - a.Y * b.X + a.Z * b.W
+END SUB
+
+''
+' Quaternion from an axis (need not be unit) and an angle in radians.
+SUB dice3d_qaxisangle (axis AS DICE3D_VEC3, ang AS SINGLE, r AS DICE3D_QUAT)
+    DIM AS SINGLE L, s, h
+    L = SQR(axis.X * axis.X + axis.Y * axis.Y + axis.Z * axis.Z)
+    IF L < 0.000001 THEN dice3d_qidentity r: EXIT SUB
+    h = ang * 0.5: s = SIN(h) / L
+    r.W = COS(h): r.X = axis.X * s: r.Y = axis.Y * s: r.Z = axis.Z * s
+END SUB
+
+''
+' Rotate a vector by a unit quaternion: v' = v + 2*cross(qv, cross(qv,v) + w*v).
+SUB dice3d_qrot (q AS DICE3D_QUAT, v AS DICE3D_VEC3, o AS DICE3D_VEC3)
+    DIM AS SINGLE tx, ty, tz
+    tx = 2 * (q.Y * v.Z - q.Z * v.Y)
+    ty = 2 * (q.Z * v.X - q.X * v.Z)
+    tz = 2 * (q.X * v.Y - q.Y * v.X)
+    o.X = v.X + q.W * tx + (q.Y * tz - q.Z * ty)
+    o.Y = v.Y + q.W * ty + (q.Z * tx - q.X * tz)
+    o.Z = v.Z + q.W * tz + (q.X * ty - q.Y * tx)
+END SUB
+
+''
+' Spherical linear interpolation from a to b by t in [0,1].
+SUB dice3d_qslerp (a AS DICE3D_QUAT, b AS DICE3D_QUAT, t AS SINGLE, r AS DICE3D_QUAT)
+    DIM AS SINGLE d, k0, k1, th, s
+    DIM bb AS DICE3D_QUAT
+    bb = b
+    d = a.W * b.W + a.X * b.X + a.Y * b.Y + a.Z * b.Z
+    IF d < 0 THEN
+        bb.W = -b.W: bb.X = -b.X: bb.Y = -b.Y: bb.Z = -b.Z: d = -d
+    END IF
+    IF d > 0.9995 THEN
+        k0 = 1 - t: k1 = t '                 nearly parallel: linear + renormalize
+    ELSE
+        th = _ACOS(d): s = SIN(th)
+        k0 = SIN((1 - t) * th) / s
+        k1 = SIN(t * th) / s
+    END IF
+    r.W = a.W * k0 + bb.W * k1
+    r.X = a.X * k0 + bb.X * k1
+    r.Y = a.Y * k0 + bb.Y * k1
+    r.Z = a.Z * k0 + bb.Z * k1
+    dice3d_qnormalize r
+END SUB
+
+FUNCTION dice3d_qdot! (a AS DICE3D_QUAT, b AS DICE3D_QUAT)
+    dice3d_qdot! = a.W * b.W + a.X * b.X + a.Y * b.Y + a.Z * b.Z
+END FUNCTION
+
+''
+' Build the quaternion for the rotation whose matrix has rows (t, b, n).
+' That rotation maps t->+X, b->+Y, n->+Z, i.e. it points face-normal n at the
+' camera with (t,b) as the on-screen (right,up) axes.
+SUB dice3d_qfrombasis (t AS DICE3D_VEC3, b AS DICE3D_VEC3, n AS DICE3D_VEC3, r AS DICE3D_QUAT)
+    DIM AS SINGLE m00, m01, m02, m10, m11, m12, m20, m21, m22, tr, s
+    m00 = t.X: m01 = t.Y: m02 = t.Z
+    m10 = b.X: m11 = b.Y: m12 = b.Z
+    m20 = n.X: m21 = n.Y: m22 = n.Z
+    tr = m00 + m11 + m22
+    IF tr > 0 THEN
+        s = SQR(tr + 1) * 2
+        r.W = 0.25 * s: r.X = (m21 - m12) / s: r.Y = (m02 - m20) / s: r.Z = (m10 - m01) / s
+    ELSEIF m00 > m11 AND m00 > m22 THEN
+        s = SQR(1 + m00 - m11 - m22) * 2
+        r.W = (m21 - m12) / s: r.X = 0.25 * s: r.Y = (m01 + m10) / s: r.Z = (m02 + m20) / s
+    ELSEIF m11 > m22 THEN
+        s = SQR(1 + m11 - m00 - m22) * 2
+        r.W = (m02 - m20) / s: r.X = (m01 + m10) / s: r.Y = 0.25 * s: r.Z = (m12 + m21) / s
+    ELSE
+        s = SQR(1 + m22 - m00 - m11) * 2
+        r.W = (m10 - m01) / s: r.X = (m02 + m20) / s: r.Y = (m12 + m21) / s: r.Z = 0.25 * s
+    END IF
+    dice3d_qnormalize r
+END SUB
+
+''
+' A random orientation quaternion.
+SUB dice3d_qrandom (r AS DICE3D_QUAT)
+    DIM ax AS DICE3D_VEC3
+    ax.X = RND * 2 - 1: ax.Y = RND * 2 - 1: ax.Z = RND * 2 - 1
+    dice3d_qaxisangle ax, RND * 6.2831853, r
+END SUB

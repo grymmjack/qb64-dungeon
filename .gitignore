@@ -32,4 +32,4 @@ scratchpads/shots/*.png
 dungeon-lords.dat
 dungeon-settings.dat
 dungeon-stats.csv
-dungeon-save.dat
+dungeon-save.dat*

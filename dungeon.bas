@@ -8,6 +8,8 @@
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bi'
 
 '$INCLUDE:'include/DUNGEON.BI'
+'$INCLUDE:'include/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
+'$INCLUDE:'include/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
 SW = 132: SH = 51: CW = 8: CH = 16
 
 ' collision palette (must match the board ANSI art exactly)
@@ -56,6 +58,9 @@ opt_hardcore = FALSE                          ' default casual: idling is safe (
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
+opt_dice3d = FALSE: opt_mon_dice3d = FALSE    ' dice render: FALSE = font/pip dice (default), TRUE = 3D dice
+opt_dice3d_set = 5: opt_mon_dice3d_set = 1    ' default 3D sets: player Sapphire, monster Ruby (overridden by save)
+opt_dicefont = 1                              ' default dice numeral font: built-in (overridden by save)
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 1   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
@@ -72,6 +77,8 @@ InitFlavor                       ' load the room + combat flavor text (assets/fl
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
 InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/*); beeper covers the rest
+LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
+LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (assets/fonts/dicefonts.txt)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -1169,7 +1176,9 @@ SUB CollectDrop (rm AS INTEGER)
     ROOMS(rm).drop_gold = 0: ROOMS(rm).drop_sword = 0
     ROOMS(rm).drop_secret = FALSE: ROOMS(rm).drop_esp = FALSE: ROOMS(rm).drop_crystal = FALSE
     Sfx "treasure"
-    IF num_players > 1 THEN
+    IF NOT ROOMS(rm).player_died THEN
+        Banner "You claim the treasure left waiting here.", _TRIM$(got) + "   [ press any key ]"   ' a curio left unopened, etc.
+    ELSEIF num_players > 1 THEN
         Banner "You recover a fallen rival's spoils!", _TRIM$(got) + "   [ press any key ]"
     ELSE
         Banner "You reclaim the spoils you dropped here -- revenge is sweet!", _TRIM$(got) + "   [ press any key ]"
@@ -1319,6 +1328,9 @@ END SUB
 '$INCLUDE:'include/FLAVOR.bas'
 '$INCLUDE:'include/CTEXT.bas'
 '$INCLUDE:'include/MUSIC.bas'
+
+'$INCLUDE:'include/DICE3D/_ALL.BM'      ' 3D dice implementation (bottom, per the module's contract)
+'$INCLUDE:'include/DICE3D_GAME.bas'     ' dungeon<->DICE3D glue (LoadDiceSets, Show3DRoll)
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'

@@ -1,0 +1,9 @@
+# dicefonts.txt -- fonts for the 3D dice numerals (SETTINGS "Dice Font" cycles these).
+# One per line:  display name | file (in assets/fonts/, "-" = built-in) | size in points.
+# Drop your own .ttf/.otf in assets/fonts/ (or a subfolder) and add a line here. F5 to reload.
+#
+# name       | file                              | size
+Default      | -                                 | 0
+JetBrains    | dice/jetbrains-extrabold.ttf      | 60
+Serif        | dice/liberation-serif-bold.ttf    | 60
+Sans         | dice/liberation-sans-bold.ttf     | 60

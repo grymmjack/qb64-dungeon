@@ -110,8 +110,8 @@ SUB DrawTombstones
     DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
     grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
     _DEST CANVAS
-    DIM coin AS _UNSIGNED LONG, shine AS _UNSIGNED LONG
-    coin = _RGB32(&HFF, &HC0, &H20): shine = _RGB32(&HFF, &HF0, &H90)
+    ' Headstones only. Loot markers (the fallen-body ☻ and the recoverable-$ glyph)
+    ' are drawn by DrawEntities, which runs after this and matches the board legend.
     FOR r = 1 TO ROOM_N
         IF VIS(ROOMS(r).cx, ROOMS(r).cy) AND (NOT opt_fov OR LOS_SEEN(ROOMS(r).cx, ROOMS(r).cy)) THEN
             px = ROOMS(r).cx * CW: py = ROOMS(r).cy * CH
@@ -120,11 +120,6 @@ SUB DrawTombstones
                 LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF          ' rounded top
                 LINE (px + CW \ 2, py + 6)-(px + CW \ 2, py + CH - 3), dark     ' cross (vertical)
                 LINE (px + 2, py + 9)-(px + CW - 3, py + 9), dark               ' cross (horizontal)
-            END IF
-            ' a fallen rival's dropped loot -- a gold coin marker
-            IF ROOMS(r).drop_gold > 0 OR ROOMS(r).drop_sword > 0 OR ROOMS(r).drop_secret OR ROOMS(r).drop_esp OR ROOMS(r).drop_crystal THEN
-                LINE (px + 2, py + 4)-(px + CW - 3, py + CH - 3), coin, BF
-                LINE (px + 3, py + 5)-(px + CW - 4, py + 7), shine, BF
             END IF
         END IF
     NEXT r

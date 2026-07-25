@@ -1,0 +1,307 @@
+$INCLUDEONCE
+''
+' DICE3D - Texture baking. One TILE x TILE cell per face. Because faces are
+' textured, materials (Solid/Crystal/Marble/Noise), bevel shading, numbers,
+' D6 pips, and custom sprite-map faces are all just "draw into a tile" work,
+' done once per roll.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+'--- colour helpers -----------------------------------------------------------
+FUNCTION dice3d_shade~& (c AS _UNSIGNED LONG, fct AS SINGLE)
+    DIM AS INTEGER r, g, b
+    r = _RED32(c) * fct: g = _GREEN32(c) * fct: b = _BLUE32(c) * fct
+    IF r > 255 THEN r = 255
+    IF g > 255 THEN g = 255
+    IF b > 255 THEN b = 255
+    dice3d_shade~& = _RGBA32(r, g, b, _ALPHA32(c))
+END FUNCTION
+
+FUNCTION dice3d_mix~& (c1 AS _UNSIGNED LONG, c2 AS _UNSIGNED LONG, t AS SINGLE)
+    DIM AS INTEGER r, g, b, a
+    r = _RED32(c1) + (_RED32(c2) - _RED32(c1)) * t
+    g = _GREEN32(c1) + (_GREEN32(c2) - _GREEN32(c1)) * t
+    b = _BLUE32(c1) + (_BLUE32(c2) - _BLUE32(c1)) * t
+    a = _ALPHA32(c1) + (_ALPHA32(c2) - _ALPHA32(c1)) * t
+    dice3d_mix~& = _RGBA32(r, g, b, a)
+END FUNCTION
+
+'--- custom face sprite map ----------------------------------------------------
+SUB dice3d_face_ensure ()
+    DIM i AS INTEGER
+    IF DICE3D_FACE_MAP_READY = 0 THEN
+        FOR i = 0 TO UBOUND(DICE3D_FACE_CELL_MAP): DICE3D_FACE_CELL_MAP(i) = -1: NEXT
+        DICE3D_FACE_MAP_READY = -1
+    END IF
+END SUB
+
+''
+' Map a die value to a sprite-sheet cell index (see cfg.FACE_SHEET / CELL_W/H).
+SUB dice3d_set_face (value AS INTEGER, cell AS INTEGER)
+    dice3d_face_ensure
+    IF value >= 0 AND value <= UBOUND(DICE3D_FACE_CELL_MAP) THEN DICE3D_FACE_CELL_MAP(value) = cell
+END SUB
+
+''
+' Forget all custom face mappings.
+SUB dice3d_face_reset ()
+    DICE3D_FACE_MAP_READY = 0: dice3d_face_ensure
+END SUB
+
+FUNCTION dice3d_face_cell% (value AS INTEGER)
+    dice3d_face_ensure
+    IF value >= 0 AND value <= UBOUND(DICE3D_FACE_CELL_MAP) THEN
+        dice3d_face_cell% = DICE3D_FACE_CELL_MAP(value)
+    ELSE
+        dice3d_face_cell% = -1
+    END IF
+END FUNCTION
+
+'--- primitives ---------------------------------------------------------------
+SUB dice3d_fillcircle (cx AS SINGLE, cy AS SINGLE, r AS SINGLE, c AS _UNSIGNED LONG)
+    DIM AS INTEGER yy
+    DIM AS SINGLE dx
+    FOR yy = -r TO r
+        dx = SQR(r * r - yy * yy)
+        LINE (cx - dx, cy + yy)-(cx + dx, cy + yy), c
+    NEXT
+END SUB
+
+''
+' Fill one tile with the configured material, then apply bevel edge shading.
+SUB dice3d_fill_tile (tx AS INTEGER, ty AS INTEGER, cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG)
+    DIM AS INTEGER x, y, d, bw, aa, baseA
+    DIM AS SINGLE tv, mv, fct, texop
+    DIM AS _UNSIGNED LONG col, vein, lite, pat
+    texop = cfg.TEX_OPACITY
+    IF cfg.MATERIAL = DICE3D_MAT_CRYSTAL THEN baseA = cfg.CRYSTAL_ALPHA * 255 ELSE baseA = cfg.BODY_ALPHA * 255
+    IF baseA < 0 THEN baseA = 0
+    IF baseA > 255 THEN baseA = 255
+    SELECT CASE cfg.MATERIAL
+        CASE DICE3D_MAT_CRYSTAL '          translucent glassy gradient + sheen
+            lite = dice3d_mix~&(bodyKol, _RGBA32(255, 255, 255, 255), 0.55)
+            FOR y = 0 TO DICE3D_TILE - 1
+                tv = y / (DICE3D_TILE - 1)
+                col = dice3d_mix~&(lite, bodyKol, tv)
+                LINE (tx, ty + y)-(tx + DICE3D_TILE - 1, ty + y), _RGBA32(_RED32(col), _GREEN32(col), _BLUE32(col), baseA)
+            NEXT
+            FOR x = -DICE3D_TILE TO DICE3D_TILE STEP 5 '   diagonal sheen streaks
+                LINE (tx + x, ty)-(tx + x + DICE3D_TILE, ty + DICE3D_TILE - 1), _RGBA32(255, 255, 255, 22)
+            NEXT
+        CASE DICE3D_MAT_MARBLE '           veined marble (vein colour + pattern opacity)
+            vein = cfg.MARBLE_KOLOR
+            lite = dice3d_mix~&(bodyKol, _RGBA32(255, 255, 255, 255), 0.3)
+            FOR y = 0 TO DICE3D_TILE - 1
+                FOR x = 0 TO DICE3D_TILE - 1
+                    mv = 0.5 + 0.5 * SIN(x * 0.11 + 2.6 * SIN(y * 0.085) + 1.7 * SIN(x * 0.045 + y * 0.12))
+                    pat = dice3d_mix~&(lite, vein, mv)
+                    col = dice3d_mix~&(bodyKol, pat, texop)
+                    PSET (tx + x, ty + y), _RGBA32(_RED32(col), _GREEN32(col), _BLUE32(col), baseA)
+                NEXT
+            NEXT
+        CASE DICE3D_MAT_NOISE '            grainy noise (grain strength = pattern opacity)
+            FOR y = 0 TO DICE3D_TILE - 1
+                FOR x = 0 TO DICE3D_TILE - 1
+                    fct = 0.72 + RND * 0.5
+                    pat = dice3d_shade~&(bodyKol, fct)
+                    col = dice3d_mix~&(bodyKol, pat, texop)
+                    PSET (tx + x, ty + y), _RGBA32(_RED32(col), _GREEN32(col), _BLUE32(col), baseA)
+                NEXT
+            NEXT
+        CASE ELSE '                        solid
+            LINE (tx, ty)-(tx + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), _RGBA32(_RED32(bodyKol), _GREEN32(bodyKol), _BLUE32(bodyKol), baseA), BF
+    END SELECT
+    '--- bevel: darken toward the edges (fake rounded chamfer) ---
+    IF cfg.BEVEL > 0.01 THEN
+        bw = INT(cfg.BEVEL * DICE3D_TILE * 0.34)
+        FOR d = 0 TO bw - 1
+            aa = 150 * (1 - d / bw)
+            LINE (tx + d, ty + d)-(tx + DICE3D_TILE - 1 - d, ty + DICE3D_TILE - 1 - d), _RGBA32(0, 0, 0, aa), B
+        NEXT
+    END IF
+END SUB
+
+''
+' Stamp text centered at (cx,cy). With a TrueType fontH it prints directly
+' (antialiased); otherwise it stretch-blits the built-in font to height h.
+SUB dice3d_stamp_num (dst AS LONG, cx AS INTEGER, cy AS INTEGER, s AS STRING, h AS INTEGER, fg AS _UNSIGNED LONG, fontH AS LONG)
+    DIM AS LONG od, os, tmp, oldf
+    DIM AS INTEGER tw, th, dw, dh
+    od = _DEST: os = _SOURCE
+    IF fontH <> 0 THEN
+        '--- render the TTF at native size to a temp image, then scale it to the target
+        '    height h (so a custom font is sized by NUM_SCALE, exactly like the built-in
+        '    one -- not left at its raw _LOADFONT point size). ---
+        _DEST dst: oldf = _FONT: _FONT fontH
+        tw = _PRINTWIDTH(s): th = _FONTHEIGHT: _FONT oldf
+        IF tw < 1 THEN tw = 1
+        IF th < 1 THEN th = 1
+        tmp = _NEWIMAGE(tw, th, 32)
+        _DEST tmp: CLS , _RGBA32(0, 0, 0, 0)
+        _FONT fontH: COLOR fg, _RGBA32(0, 0, 0, 0): _PRINTMODE _KEEPBACKGROUND
+        _PRINTSTRING (0, 0), s
+        _FONT oldf
+        dh = h: dw = (tw * dh) \ th
+        _DEST dst
+        _PUTIMAGE (cx - dw \ 2, cy - dh \ 2)-(cx + dw \ 2, cy + dh \ 2), tmp, dst
+        _FREEIMAGE tmp
+        _DEST od: _SOURCE os
+        EXIT SUB
+    END IF
+    tw = 8 * LEN(s): th = 16
+    tmp = _NEWIMAGE(tw, th, 32)
+    _DEST tmp
+    CLS , _RGBA32(0, 0, 0, 0)
+    COLOR fg, _RGBA32(0, 0, 0, 0)
+    _PRINTMODE _KEEPBACKGROUND
+    _PRINTSTRING (0, 0), s
+    dh = h: dw = (tw * dh) \ th
+    _PUTIMAGE (cx - dw \ 2, cy - dh \ 2)-(cx + dw \ 2, cy + dh \ 2), tmp, dst
+    _FREEIMAGE tmp
+    _DEST od: _SOURCE os
+END SUB
+
+''
+' Stamp text centered at (cx,cy), scaled to pixel height h, ROTATED so the top
+' of the text points along (upx,upy) (image coords, +y = down). Antialiased if
+' fontH is a TTF handle. Used for D4 top-read corner numbers.
+SUB dice3d_stamp_num_rot (dst AS LONG, cx AS SINGLE, cy AS SINGLE, s AS STRING, h AS INTEGER, fg AS _UNSIGNED LONG, fontH AS LONG, upx AS SINGLE, upy AS SINGLE)
+    DIM AS LONG od, tmp, oldf
+    DIM AS INTEGER tw, th
+    DIM AS SINGLE ul, ux2, uy2, rx, ry, hw, hh2, x0, y0, x1, y1, x2, y2, x3, y3
+    od = _DEST
+    IF fontH <> 0 THEN
+        tmp = _NEWIMAGE(8, 8, 32): _DEST tmp: oldf = _FONT: _FONT fontH
+        tw = _PRINTWIDTH(s): th = _FONTHEIGHT: _FONT oldf: _DEST od: _FREEIMAGE tmp
+        tmp = _NEWIMAGE(tw, th, 32): _DEST tmp: CLS , _RGBA32(0, 0, 0, 0)
+        oldf = _FONT: _FONT fontH: COLOR fg, _RGBA32(0, 0, 0, 0): _PRINTMODE _KEEPBACKGROUND
+        _PRINTSTRING (0, 0), s: _FONT oldf
+    ELSE
+        tw = 8 * LEN(s): th = 16
+        tmp = _NEWIMAGE(tw, th, 32): _DEST tmp: CLS , _RGBA32(0, 0, 0, 0)
+        COLOR fg, _RGBA32(0, 0, 0, 0): _PRINTMODE _KEEPBACKGROUND: _PRINTSTRING (0, 0), s
+    END IF
+    _DEST od
+    ul = SQR(upx * upx + upy * upy): IF ul < 0.0001 THEN ul = 1
+    ux2 = upx / ul: uy2 = upy / ul '     unit "up" of the glyph
+    rx = -uy2: ry = ux2 '                unit "right" = up rotated 90 CW
+    hh2 = h / 2: hw = (tw * (h / th)) / 2
+    x0 = cx - hw * rx + hh2 * ux2: y0 = cy - hw * ry + hh2 * uy2 '  TL (top-left)
+    x1 = cx + hw * rx + hh2 * ux2: y1 = cy + hw * ry + hh2 * uy2 '  TR
+    x2 = cx + hw * rx - hh2 * ux2: y2 = cy + hw * ry - hh2 * uy2 '  BR
+    x3 = cx - hw * rx - hh2 * ux2: y3 = cy - hw * ry - hh2 * uy2 '  BL
+    _MAPTRIANGLE (0, 0)-(tw, 0)-(tw, th), tmp TO(x0, y0)-(x1, y1)-(x2, y2), dst, _SMOOTH
+    _MAPTRIANGLE (0, 0)-(tw, th)-(0, th), tmp TO(x0, y0)-(x2, y2)-(x3, y3), dst, _SMOOTH
+    _FREEIMAGE tmp
+    _DEST od
+END SUB
+
+''
+' Draw standard D6 pips for value v (1..6) into a tile.
+SUB dice3d_draw_pips (tx AS INTEGER, ty AS INTEGER, v AS INTEGER, cfg AS DICE3D_CONFIG)
+    DIM pipOn(0 TO 8) AS INTEGER '        3x3 grid, row-major, index = row*3+col
+    DIM AS INTEGER c, col, row
+    DIM AS SINGLE pr, px, py
+    '--- which grid cells hold a pip for each value ---
+    SELECT CASE v
+        CASE 1: pipOn(4) = 1
+        CASE 2: pipOn(0) = 1: pipOn(8) = 1
+        CASE 3: pipOn(0) = 1: pipOn(4) = 1: pipOn(8) = 1
+        CASE 4: pipOn(0) = 1: pipOn(2) = 1: pipOn(6) = 1: pipOn(8) = 1
+        CASE 5: pipOn(0) = 1: pipOn(2) = 1: pipOn(4) = 1: pipOn(6) = 1: pipOn(8) = 1
+        CASE 6: pipOn(0) = 1: pipOn(2) = 1: pipOn(3) = 1: pipOn(5) = 1: pipOn(6) = 1: pipOn(8) = 1
+    END SELECT
+    pr = DICE3D_TILE * 0.088
+    FOR c = 0 TO 8
+        IF pipOn(c) THEN
+            col = c MOD 3: row = c \ 3
+            px = tx + DICE3D_TILE * (0.26 + col * 0.24)
+            py = ty + DICE3D_TILE * (0.26 + row * 0.24)
+            SELECT CASE cfg.PIP_STYLE
+                CASE DICE3D_PIP_SQUARE
+                    LINE (px - pr, py - pr)-(px + pr, py + pr), cfg.NUM_KOLOR, BF
+                CASE DICE3D_PIP_SPRITE
+                    IF cfg.PIP_SPRITE <> 0 THEN _PUTIMAGE (px - pr, py - pr)-(px + pr, py + pr), cfg.PIP_SPRITE
+                CASE ELSE '               dot
+                    dice3d_fillcircle px, py, pr, cfg.NUM_KOLOR
+            END SELECT
+        END IF
+    NEXT
+END SUB
+
+''
+' Blit a sprite-sheet cell into a tile (for custom face maps).
+SUB dice3d_blit_cell (dst AS LONG, tx AS INTEGER, ty AS INTEGER, cfg AS DICE3D_CONFIG, cell AS INTEGER)
+    DIM AS INTEGER cols, sx, sy, m
+    IF cfg.FACE_SHEET = 0 OR cfg.FACE_CELL_W <= 0 OR cfg.FACE_CELL_H <= 0 THEN EXIT SUB
+    cols = _WIDTH(cfg.FACE_SHEET) \ cfg.FACE_CELL_W
+    IF cols < 1 THEN cols = 1
+    sx = (cell MOD cols) * cfg.FACE_CELL_W
+    sy = (cell \ cols) * cfg.FACE_CELL_H
+    m = 12
+    _PUTIMAGE (tx + m, ty + m)-(tx + DICE3D_TILE - 1 - m, ty + DICE3D_TILE - 1 - m), cfg.FACE_SHEET, dst, (sx, sy)-(sx + cfg.FACE_CELL_W - 1, sy + cfg.FACE_CELL_H - 1)
+END SUB
+
+''
+' D4 top-read: stamp 3 small numbers near a face's corners. The value at each
+' corner is the value of the face OPPOSITE that vertex (precomputed in _GEO.BM),
+' so the three faces meeting at the up-apex all show the result.
+SUB dice3d_draw_d4_corners (img AS LONG, f AS INTEGER, ty AS INTEGER, cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER c, hh
+    DIM AS SINGLE cxp, cyp, tcx, tcy, inset
+    tcx = DICE3D_TILE / 2: tcy = ty + DICE3D_TILE / 2
+    '--- ~60% of a regular number (3 per face); sized by NUM_SCALE, font-independent ---
+    hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.62)
+    IF hh < 8 THEN hh = 8
+    inset = 0.46 '                       distance from the corner toward centre (bigger = further from the tip)
+    FOR c = 0 TO 2
+        cxp = DICE3D_TUX(f, c) + (tcx - DICE3D_TUX(f, c)) * inset
+        cyp = DICE3D_TUY(f, c) + (tcy - DICE3D_TUY(f, c)) * inset
+        '--- rotate so the number's top faces its corner (top-read) ---
+        dice3d_stamp_num_rot img, cxp, cyp, LTRIM$(STR$(DICE3D_CORNERVAL(f, c))), hh, cfg.NUM_KOLOR, cfg.FONT_HANDLE, DICE3D_TUX(f, c) - tcx, DICE3D_TUY(f, c) - tcy
+    NEXT
+END SUB
+
+''
+' Build the face atlas for the current mesh (one TILE cell per face).
+' mode: 0 = labels as-is, 1 = tens ("00".."90" from value*10).
+FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mode AS INTEGER)
+    DIM AS LONG img, od
+    DIM AS INTEGER f, ty, hh, fv, cell
+    DIM AS STRING lab
+    od = _DEST
+    img = _NEWIMAGE(DICE3D_TILE, DICE3D_TILE * DICE3D_NF, 32)
+    _DEST img
+    CLS , _RGBA32(0, 0, 0, 0)
+    FOR f = 0 TO DICE3D_NF - 1
+        ty = f * DICE3D_TILE
+        fv = DICE3D_FACE_VAL(f)
+        dice3d_fill_tile 0, ty, cfg, bodyKol
+        IF cfg.EDGE_TRANSPARENT = 0 THEN
+            LINE (0, ty)-(DICE3D_TILE - 1, ty + DICE3D_TILE - 1), cfg.EDGE_KOLOR, B
+        END IF
+        cell = -1
+        IF cfg.FACE_SHEET <> 0 THEN cell = dice3d_face_cell%(fv)
+        IF cell >= 0 THEN
+            dice3d_blit_cell img, 0, ty, cfg, cell
+        ELSEIF cfg.D6_PIPS AND DICE3D_NF = 6 AND mode = 0 THEN
+            dice3d_draw_pips 0, ty, fv, cfg
+        ELSEIF cfg.NUMERIC AND DICE3D_NF = 4 THEN
+            dice3d_draw_d4_corners img, f, ty, cfg '   3 numbers per face (top-read)
+        ELSEIF cfg.NUMERIC THEN
+            IF mode = 1 THEN
+                lab = LTRIM$(STR$(fv * 10))
+                IF LEN(lab) < 2 THEN lab = "0" + lab
+            ELSE
+                lab = DICE3D_FACE_LABEL(f)
+            END IF
+            ' Size EVERY numeral to the two-digit height (the 0.72 that keeps "20"
+            ' inside the face), so a single "3" no longer towers over "20" -- the
+            ' player asked for 1- and 2-digit faces to read at the same size.
+            hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.72)
+            dice3d_stamp_num img, DICE3D_TILE \ 2, ty + DICE3D_TILE \ 2, lab, hh, cfg.NUM_KOLOR, cfg.FONT_HANDLE
+        END IF
+    NEXT
+    _DEST od
+    dice3d_make_atlas& = img
+END FUNCTION

@@ -69,6 +69,8 @@ SUB InitSfxFiles
     RegisterSfx "win": RegisterSfx "lose": RegisterSfx "saveok": RegisterSfx "savebad"
     RegisterSfx "chest": RegisterSfx "boom": RegisterSfx "hiss": RegisterSfx "fizzle"
     RegisterSfx "alarm": RegisterSfx "select": RegisterSfx "levelup"
+    RegisterSfx "diceroll": RegisterSfx "diceland"      ' 3D-dice throw / land cues
+    RegisterSfx "dice_edge": RegisterSfx "dice_settle"  ' optional per-bounce clack + settle for the 3D dice
 END SUB
 
 ' Load the first existing assets/sfx/<nm>.<ext> into the SFX map (silent if none exist).

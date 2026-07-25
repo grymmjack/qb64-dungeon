@@ -490,17 +490,18 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 30
+    CONST NSET = 34
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
+    Build3DPreviews                                 ' render the 3D dice previews once (rebuilt on set change)
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = NSET
         IF k = "S" THEN sel = sel + 1: IF sel > NSET THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
-        IF k = CHR$(27) THEN SaveSettings: EXIT SUB
+        IF k = CHR$(27) THEN SaveSettings: Free3DPreviews: EXIT SUB
 
         ' A/D adjusts the sliders: volumes (2/4/6), dice colour (10), speed (13), players (16)
         IF k = "A" OR k = "D" THEN
@@ -550,6 +551,23 @@ SUB RunSettings
                     IF opt_mon_dicespeed < 0 THEN opt_mon_dicespeed = 3
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
                     Sfx "select"
+                CASE 30
+                    opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d: Build3DPreviews: Sfx "select"
+                CASE 31
+                    opt_dice3d_set = opt_dice3d_set + delta
+                    IF opt_dice3d_set < 1 THEN opt_dice3d_set = DSET_COUNT
+                    IF opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
+                    LoadDiceSets: Build3DPreviews: Sfx "select"
+                CASE 32
+                    opt_mon_dice3d_set = opt_mon_dice3d_set + delta
+                    IF opt_mon_dice3d_set < 1 THEN opt_mon_dice3d_set = DSET_COUNT
+                    IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
+                    LoadDiceSets: Build3DPreviews: Sfx "select"
+                CASE 33
+                    opt_dicefont = opt_dicefont + delta
+                    IF opt_dicefont < 1 THEN opt_dicefont = DICEFONT_N
+                    IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
+                    Build3DPreviews: Sfx "select"
             END SELECT
         END IF
 
@@ -601,7 +619,20 @@ SUB RunSettings
                 CASE 29
                     opt_mon_dicespeed = opt_mon_dicespeed + 1
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
-                CASE 30: SaveSettings: EXIT SUB
+                CASE 30: opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d: Build3DPreviews
+                CASE 31
+                    opt_dice3d_set = opt_dice3d_set + 1
+                    IF opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
+                    LoadDiceSets: Build3DPreviews
+                CASE 32
+                    opt_mon_dice3d_set = opt_mon_dice3d_set + 1
+                    IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
+                    LoadDiceSets: Build3DPreviews
+                CASE 33
+                    opt_dicefont = opt_dicefont + 1
+                    IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
+                    Build3DPreviews
+                CASE 34: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -695,13 +726,30 @@ SUB RunSettings
                         CASE 3: vtxt = "instant"
                         CASE ELSE: vtxt = "normal"
                     END SELECT
+                CASE 30
+                    lbl = "Dice Style": slider = TRUE
+                    IF opt_dice3d THEN vtxt = "3D dice" ELSE vtxt = "font dice (2D)"
+                CASE 31
+                    lbl = "  Player 3D Set": slider = TRUE
+                    IF opt_dice3d_set >= 1 AND opt_dice3d_set <= DSET_COUNT THEN vtxt = _TRIM$(DSET_NAME(opt_dice3d_set)) ELSE vtxt = "-"
+                CASE 32
+                    lbl = "  Monster 3D Set": slider = TRUE
+                    IF opt_mon_dice3d_set >= 1 AND opt_mon_dice3d_set <= DSET_COUNT THEN vtxt = _TRIM$(DSET_NAME(opt_mon_dice3d_set)) ELSE vtxt = "-"
+                CASE 33
+                    lbl = "  Dice Font": slider = TRUE
+                    IF opt_dicefont >= 1 AND opt_dicefont <= DICEFONT_N THEN vtxt = _TRIM$(DICEFONT_NAME(opt_dicefont)) ELSE vtxt = "-"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        DrawDicePreview 100, " your dice"                       ' player dice on the right
-        PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
+        IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
+            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M, MSET3D(dice3d_set_index%(20))
+        ELSE                                                    ' font dice: the live 2x3 sample grid
+            DrawDicePreview 100, " your dice"                   ' player dice on the right
+            PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
+        END IF
         COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
@@ -1170,6 +1218,8 @@ SUB Sfx (kind AS STRING)
         CASE "fizzle": Tone 1000, 0.03: Tone 1300, 0.03: Tone 800, 0.03: Tone 1100, 0.03: Tone 700, 0.06   ' frost -- crackle
         CASE "alarm": Tone 800, 0.1: Tone 1050, 0.1: Tone 800, 0.1: Tone 1050, 0.16   ' siren -- wail
         CASE "select": Tone 220, 0.06
+        CASE "diceroll": Tone 260, 0.02: Tone 330, 0.02: Tone 240, 0.02: Tone 300, 0.03   ' dice thrown -- a quick rattle
+        CASE "diceland": Tone 380, 0.03: Tone 210, 0.06                                    ' dice come to rest -- a click/thud
     END SELECT
 END SUB
 
@@ -1177,7 +1227,7 @@ END SUB
 ' A single "voice" blip for the typewriter text window, at the Voice volume.
 SUB VoiceBlip (freq AS INTEGER)
     IF NOT opt_voice THEN EXIT SUB
-    SOUND freq, 0.03, opt_voicevol / 10
+    SOUND freq, 0.03, opt_voicevol / 10 * 0.4      ' per-glyph typewriter blip -- kept quiet vs the slider
 END SUB
 
 
@@ -1485,6 +1535,9 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
         ELSE
             GameRoll = raw + bonus: last_raw = raw
         END IF
+    ELSEIF opt_dice3d AND dice3d_ready THEN
+        t = Show3DRoll(n, sides, bonus, 0, what)   ' animated 3D polyhedra (DICE3D module); shows the bonus in its sum
+        GameRoll = t + bonus: last_raw = t
     ELSEIF sides = 6 AND opt_d6pips THEN
         t = RollPips(n, FALSE, bonus, what)        ' every d6 roll shows the pip dice
         GameRoll = t + bonus: last_raw = t
@@ -1634,10 +1687,12 @@ SUB PushMonsterDice
     sav_d6pips = opt_d6pips: sav_dicespeed = opt_dicespeed
     opt_dicecolor = opt_mon_dicecolor: opt_dicesolid = opt_mon_dicesolid
     opt_d6pips = opt_mon_d6pips: opt_dicespeed = opt_mon_dicespeed
+    sav_dice3d = opt_dice3d: opt_dice3d = opt_mon_dice3d: dice3d_use_mon = -1   ' 3D: use the monster set/flag
 END SUB
 SUB PopMonsterDice
     opt_dicecolor = sav_dicecolor: opt_dicesolid = sav_dicesolid
     opt_d6pips = sav_d6pips: opt_dicespeed = sav_dicespeed
+    opt_dice3d = sav_dice3d: dice3d_use_mon = 0
 END SUB
 
 
@@ -1867,6 +1922,8 @@ FUNCTION RollAbility% ()
     IF opt_heroicstats THEN
         IF opt_realdice THEN
             RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
+        ELSEIF opt_dice3d AND dice3d_ready THEN
+            RollAbility = Show3DRoll(4, 6, 0, 1, "4d6 drop lowest")   ' 3D: roll four, drop lowest (API's dl1)
         ELSEIF opt_d6pips THEN
             RollAbility = RollPips(4, TRUE, 0, "roll 4d6, drop lowest")   ' four pip dice, lowest discarded
         ELSE
