@@ -102,6 +102,19 @@ DIM SHARED DICE3D_SSDIV AS INTEGER
 '    upside-down). 0 = off (pure physics rest). Set by the caller before dice3d_roll.
 DIM SHARED DICE3D_UPRIGHT AS INTEGER
 
+'--- Optional HARDWARE render: present the dice via 3D _MAPTRIANGLE on the OpenGL layer
+'    (native display resolution, hardware texture filtering = genuinely smooth, unaffected
+'    by any software-canvas fullscreen scaling). The caller draws the tray/background on
+'    the software screen, sets these params + a hardware-copy atlas, then rolls. 0 = the
+'    software box-buffer renderer. present() branches on this.
+DIM SHARED DICE3D_HW AS INTEGER
+DIM SHARED DICE3D_HWATLAS AS LONG   ' hardware (_COPYIMAGE ,33) atlas; built lazily, freed by the caller
+DIM SHARED DICE3D_HW_S AS SINGLE    ' GPU units per model unit (die on-screen size)
+DIM SHARED DICE3D_HW_Z AS SINGLE    ' base view depth (negative; ~-5)
+DIM SHARED DICE3D_HW_CX AS SINGLE   ' GPU x of the tray centre (0 = screen centre)
+DIM SHARED DICE3D_HW_CY AS SINGLE   ' GPU y of the tray centre (0 = screen centre; +up)
+DIM SHARED DICE3D_HW_PXK AS SINGLE  ' GPU units per box-pixel (maps die scatter positions)
+
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames
 DIM SHARED DICE3D_SHOT_DIR AS STRING

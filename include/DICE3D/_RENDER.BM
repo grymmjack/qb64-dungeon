@@ -11,6 +11,71 @@ $INCLUDEONCE
 '
 ' @author Rick Christy <grymmjack@gmail.com>
 
+' Hardware present: render every die via 3D _MAPTRIANGLE onto the OpenGL layer (native
+' resolution, hardware-filtered = smooth), over whatever the caller drew on the software
+' screen. The atlas is copied to a hardware image once (DICE3D_HWATLAS), reused each frame.
+SUB dice3d_present_hw (cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER i, lo, hi
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    IF DICE3D_HWATLAS = 0 THEN
+        IF hi >= lo THEN
+            IF DICE3D_DICE(lo).ATLAS <> 0 THEN DICE3D_HWATLAS = _COPYIMAGE(DICE3D_DICE(lo).ATLAS, 33)
+        END IF
+    END IF
+    FOR i = lo TO hi
+        dice3d_render_die_hw DICE3D_DICE(i), cfg
+    NEXT
+    _DISPLAY
+END SUB
+
+' Render one die as textured 3D triangles on the GL layer. Same view transform as the
+' software renderer (yaw/tilt), but instead of projecting to 2D we hand the GPU 3D coords
+' and let it project + perspective-correct + bilinear-filter. Painter-sorted (no depth
+' buffer) so translucent (crystal) bodies keep their look. Box-pixel positions map to GPU
+' units via DICE3D_HW_PXK; the die scales by DICE3D_HW_S; the tray sits at (CX,CY,Z).
+SUB dice3d_render_die_hw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
+    IF di.SIDES <= 0 THEN EXIT SUB
+    IF di.FADE <= 0 THEN EXIT SUB
+    IF DICE3D_HWATLAS = 0 THEN EXIT SUB
+    DIM AS INTEGER i, t, a, b, cc, j, ti
+    DIM AS SINGLE cosT, sinT, cosY, sinY, xx, yy, zz, gx, gy, gz
+    DIM rv AS DICE3D_VEC3
+    REDIM AS SINGLE X(0 TO DICE3D_NV - 1), Y(0 TO DICE3D_NV - 1), Z(0 TO DICE3D_NV - 1), VZ(0 TO DICE3D_NV - 1)
+    cosT = COS(cfg.CAM_TILT * 0.0174532925): sinT = SIN(cfg.CAM_TILT * 0.0174532925)
+    cosY = COS(cfg.CAM_YAW * 0.0174532925): sinY = SIN(cfg.CAM_YAW * 0.0174532925)
+    gx = DICE3D_HW_CX + (di.PX - cfg.BOX_W * 0.5) * DICE3D_HW_PXK
+    gy = DICE3D_HW_CY - (di.PY - di.PZ - cfg.BOX_H * 0.5) * DICE3D_HW_PXK
+    gz = DICE3D_HW_Z
+    FOR i = 0 TO DICE3D_NV - 1
+        dice3d_qrot di.Q, DICE3D_MV(i), rv
+        xx = rv.X * cosY + rv.Z * sinY
+        zz = -rv.X * sinY + rv.Z * cosY
+        yy = rv.Y * cosT + zz * sinT
+        zz = zz * cosT - rv.Y * sinT
+        X(i) = gx + xx * DICE3D_HW_S: Y(i) = gy + yy * DICE3D_HW_S: Z(i) = gz + zz * DICE3D_HW_S
+        VZ(i) = zz
+    NEXT
+    REDIM AS INTEGER ord(0 TO DICE3D_NT - 1)
+    REDIM AS SINGLE az(0 TO DICE3D_NT - 1)
+    FOR t = 0 TO DICE3D_NT - 1: ord(t) = t: az(t) = (VZ(DICE3D_TA(t)) + VZ(DICE3D_TB(t)) + VZ(DICE3D_TC(t))) / 3: NEXT
+    FOR i = 1 TO DICE3D_NT - 1
+        ti = ord(i): j = i - 1
+        DO WHILE j >= 0
+            IF az(ord(j)) <= az(ti) THEN EXIT DO
+            ord(j + 1) = ord(j): j = j - 1
+        LOOP
+        ord(j + 1) = ti
+    NEXT
+    IF di.FADE < 1 THEN _SETALPHA INT(di.FADE * 255), , DICE3D_HWATLAS
+    FOR i = 0 TO DICE3D_NT - 1
+        t = ord(i)
+        a = DICE3D_TA(t): b = DICE3D_TB(t): cc = DICE3D_TC(t)
+        _MAPTRIANGLE (DICE3D_TUX(t, 0), DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1), DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2), DICE3D_TUY(t, 2)), DICE3D_HWATLAS TO(X(a), Y(a), Z(a))-(X(b), Y(b), Z(b))-(X(cc), Y(cc), Z(cc)), , _SMOOTH
+    NEXT
+    IF di.FADE < 1 THEN _SETALPHA 255, , DICE3D_HWATLAS
+END SUB
+
+
 SUB dice3d_render_die (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
     IF di.SIDES <= 0 THEN EXIT SUB
     IF di.FADE <= 0 THEN EXIT SUB
@@ -97,6 +162,7 @@ END SUB
 SUB dice3d_present (cfg AS DICE3D_CONFIG)
     DIM AS LONG od
     DIM AS INTEGER i
+    IF DICE3D_HW THEN dice3d_present_hw cfg: EXIT SUB   ' hardware / OpenGL path (native-res, smooth)
     od = _DEST
     _DEST DICE3D_BOXBUF
     IF cfg.BOX_SHOW_BACK THEN

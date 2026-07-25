@@ -45,90 +45,82 @@ END SUB
 ' Roll n dice of `sides` sides as animated 3D dice and return the raw sum (no bonus --
 ' GameRoll adds that, matching the font/pip paths). `what` is the caption. Picks the
 ' monster set when dice3d_use_mon is set (Push/PopMonsterDice), else the player set.
-CONST DICE3D_SS = 2          ' supersample factor: render the box 2x, smooth-downscale -> AA dice
+CONST DICE3D_SS = 2          ' (settings preview only) supersample the static preview image
+
+' GL projection calibration for a 1056x816 CANVAS at view depth Z (from x11grab tests):
+' 1 model unit ~= 103 screen px at Z=-5, so 1 box-pixel ~= 1/103 GPU units. HW_S is derived
+' from DIE_SIZE so a die renders at exactly its physics footprint.
+CONST DICE3D_HW_ZBASE = -5.0
+CONST DICE3D_HW_PXPERUNIT = 103.0
 
 FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
-    DIM AS INTEGER dbw, dbh, dbx, dby, dds, hf, smoothed
+    DIM AS INTEGER tw, th, tx, ty, hf
+    DIM pxk AS SINGLE
     REDIM r(1 TO 1) AS INTEGER
-
-    ' The AA'd dice live on CANVAS; _SQUAREPIXELS upscales it nearest-neighbour, which
-    ' re-jaggies them. We want a BILINEAR upscale for the roll but WITHOUT the aspect
-    ' stretch. _FULLSCREEN only re-applies the smooth flag when the base mode changes, so
-    ' bump the mode (_STRETCH) then set it straight back to _SQUAREPIXELS,_SMOOTH in the
-    ' same breath -- no frame is shown between, so no visible stretch, but the smoothing
-    ' now takes effect (keeping square pixels / correct aspect). ApplyDisplay restores the
-    ' player's crisp mode after the roll.
-    smoothed = FALSE
-    IF opt_fullscreen THEN
-        IF NOT opt_smooth THEN
-            _FULLSCREEN _STRETCH, _SMOOTH
-            _FULLSCREEN _SQUAREPIXELS, _SMOOTH
-            smoothed = -1
-        END IF
-    END IF
 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
 
-    ' On-screen dice sized to roughly match the 2D font dice (~56px across).
-    dds = 30                                        ' half-extent -> ~60px die
-
-    ' Caption / roll header (sizes the box so a long caption never spills).
     IF LEN(_TRIM$(what)) > 0 THEN
         hdr = "-= " + _TRIM$(what) + " =-"
     ELSE
         hdr = "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
     END IF
 
-    ' Compact tray: just enough room for the dice to scatter, widened for more dice
-    ' and to fit the caption. Small footprint, like the old font-dice box.
-    dbw = 70 + n * 64
-    IF dbw < (LEN(hdr) + 4) * CW THEN dbw = (LEN(hdr) + 4) * CW
-    IF dbw > SW * CW - 40 THEN dbw = SW * CW - 40
-    dbh = 116
-    dbx = (SW * CW - dbw) \ 2
-    dby = 14 * CH
+    ' The tray (a software box on CANVAS) -- the 3D dice render on the GL layer over it.
+    cfg.DIE_SIZE = 40                              ' die radius in box/screen px (~80px die)
+    tw = 150 + n * 90
+    IF tw < (LEN(hdr) + 4) * CW THEN tw = (LEN(hdr) + 4) * CW
+    IF tw > SW * CW - 40 THEN tw = SW * CW - 40
+    th = 150
+    tx = (SW * CW - tw) \ 2
+    ty = 13 * CH
+    cfg.BOX_W = tw: cfg.BOX_H = th                 ' physics tray (box pixels == screen pixels)
 
-    ' Render at SSx into the box buffer, then dice3d_present smooth-downscales to the
-    ' on-screen rect (dbx,dby,dbw,dbh) -- crisp, anti-aliased dice.
-    cfg.BOX_X = dbx: cfg.BOX_Y = dby
-    cfg.BOX_W = dbw * DICE3D_SS: cfg.BOX_H = dbh * DICE3D_SS
-    cfg.DIE_SIZE = dds * DICE3D_SS
-    DICE3D_SSDIV = DICE3D_SS
-    DICE3D_UPRIGHT = -1                             ' turn each die to show its result upright + readable
+    ' Hardware (OpenGL) present: native-resolution, hardware-filtered = genuinely smooth,
+    ' independent of the software-canvas fullscreen scaling.
+    pxk = 1.0 / DICE3D_HW_PXPERUNIT
+    DICE3D_HW = -1
+    DICE3D_HWATLAS = 0
+    DICE3D_HW_Z = DICE3D_HW_ZBASE
+    DICE3D_HW_PXK = pxk
+    DICE3D_HW_S = cfg.DIE_SIZE * pxk               ' render the die at its physics footprint
+    DICE3D_HW_CX = 0                               ' tray centred horizontally on screen
+    DICE3D_HW_CY = -((ty + th * 0.5) - SH * CH * 0.5) * pxk   ' shift up to the tray row
+    DICE3D_UPRIGHT = -1                            ' show each die's result upright + readable
 
-    ' Sound: a throw rattle now; per-bounce clacks + a settle thud come from optional
-    ' files (assets/sfx/dice_edge.*, dice_settle.*) via the module's SND hooks. Without
-    ' those files we still play a 'landed' click after the dice settle (see below).
+    ' Sound: throw rattle now; per-bounce clacks + settle from optional assets/sfx files.
     cfg.SOUND_ENABLED = opt_sfx
     cfg.SND_EDGE_H = SfxHandle("dice_edge")
     cfg.SND_SETTLE_H = SfxHandle("dice_settle")
     Sfx "diceroll"
 
-    ' The "roll box": a framed header above the tray (the box the font dice used to show).
+    ' Draw the framed header + tray on CANVAS (software, crisp); the GL dice sit over it.
     _DEST CANVAS: _FONT CH
-    LINE (dbx, 11 * CH)-(dbx + dbw, 14 * CH), BOXBG, BF
-    LINE (dbx, 11 * CH)-(dbx + dbw, 14 * CH), REDU, B
-    COLOR YELLOWU, BOXBG: PrintCentered 12, hdr
+    LINE (tx, 10 * CH)-(tx + tw, 13 * CH), BOXBG, BF
+    LINE (tx, 10 * CH)-(tx + tw, 13 * CH), REDU, B
+    LINE (tx, ty)-(tx + tw, ty + th), BOXBG, BF
+    LINE (tx, ty)-(tx + tw, ty + th), REDU, B
+    COLOR YELLOWU, BOXBG: PrintCentered 11, hdr
     _DISPLAY
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
-    dice3d_roll notation, cfg, r()                 ' animates in the box, returns when settled
-    IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"   ' 'landed' click if no settle-sound file
+    dice3d_roll notation, cfg, r()                 ' animates on the GL layer, returns settled
+    IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"
 
-    ' Hold the settled dice a readable beat so back-to-back rolls (to-hit -> damage ->
-    ' the monster's swing) don't blur together. Any key skips it.
+    ' Hold the settled dice a readable beat -- must keep RE-rendering the GL dice each frame
+    ' (the hardware layer is cleared every _DISPLAY), else they vanish. Any key skips it.
     _KEYCLEAR
     FOR hf = 1 TO 42
         _LIMIT 60
+        dice3d_present_hw cfg
         IF INKEY$ <> "" THEN EXIT FOR
-        _DISPLAY
     NEXT hf
     _KEYCLEAR
 
-    DICE3D_SSDIV = 0                                ' leave the shared flag off for other callers
-    IF smoothed THEN ApplyDisplay                  ' restore the player's crisp fullscreen
+    IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
+    DICE3D_HW = 0
     Show3DRoll = dice3d_total%
 END FUNCTION
 
