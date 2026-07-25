@@ -28,8 +28,17 @@ CONST DICE3D_SS = 2          ' supersample factor: render the box 2x, smooth-dow
 
 FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
-    DIM AS INTEGER dbw, dbh, dbx, dby, dds, hf
+    DIM AS INTEGER dbw, dbh, dbx, dby, dds, hf, smoothed
     REDIM r(1 TO 1) AS INTEGER
+
+    ' The AA'd dice live on CANVAS, which is nearest-scaled to fullscreen when Pixel
+    ' Smoothing is off -- re-jaggying them. Force bilinear fullscreen just for the roll,
+    ' then restore, so the tumbling dice are smooth without softening the ANSI art the
+    ' rest of the time.
+    smoothed = FALSE
+    IF opt_fullscreen THEN
+        IF NOT opt_smooth THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH: smoothed = -1
+    END IF
 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
@@ -74,5 +83,6 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     _KEYCLEAR
 
     DICE3D_SSDIV = 0                                ' leave the shared flag off for other callers
+    IF smoothed THEN ApplyDisplay                  ' restore the player's crisp fullscreen
     Show3DRoll = dice3d_total%
 END FUNCTION
