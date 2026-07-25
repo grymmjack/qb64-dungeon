@@ -1,0 +1,369 @@
+$INCLUDEONCE
+''
+' DICE3D - Public API: defaults, notation parsing, and the roll driver.
+'
+' Typical use from a host program that already has a SCREEN up:
+'
+'     DIM cfg AS DICE3D_CONFIG
+'     dice3d_config_defaults cfg
+'     cfg.BOX_X = 250: cfg.BOX_Y = 160: cfg.BOX_W = 300: cfg.BOX_H = 300
+'     REDIM results(1 TO 1) AS INTEGER
+'     dice3d_roll "4d6dl1", cfg, results()   ' animates in the box, hands back
+'     PRINT "kept total ="; DICE3D_LAST_TOTAL
+'
+' NOTE: the roll loop uses _DISPLAY (manual present). Host game loops normally
+' already drive _DISPLAY themselves, so this is a no-op change for them.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+''
+' Sensible defaults for every field. Test-friendly: deep-blue box, light dice.
+SUB dice3d_config_defaults (cfg AS DICE3D_CONFIG)
+    cfg.BOX_X = 0: cfg.BOX_Y = 0: cfg.BOX_W = 300: cfg.BOX_H = 300
+    cfg.BOX_SHOW_OUTLINE = -1: cfg.BOX_OUTLINE_KOLOR = _RGB32(120, 160, 255)
+    cfg.BOX_SHOW_BACK = -1: cfg.BOX_BACK_KOLOR = _RGB32(0, 0, 90) '  deep blue
+    cfg.DIE_SIZE = 40
+    cfg.CAM_TILT = 32: cfg.CAM_YAW = 0: cfg.FOV = 0
+    cfg.MATERIAL = DICE3D_MAT_SOLID
+    cfg.BODY_KOLOR = _RGB32(235, 235, 240)
+    cfg.NUM_KOLOR = _RGB32(20, 20, 30)
+    cfg.EDGE_KOLOR = _RGB32(60, 60, 70): cfg.EDGE_TRANSPARENT = 0
+    cfg.BEVEL = 0.2
+    cfg.NUMERIC = -1
+    cfg.NUM_SCALE = 0.42
+    cfg.FONT_HANDLE = 0: cfg.FONT_PX = 0
+    cfg.BODY_ALPHA = 1
+    cfg.TEX_OPACITY = 1
+    cfg.MARBLE_KOLOR = _RGB32(90, 90, 105)
+    cfg.CRYSTAL_ALPHA = 0.72
+    cfg.WIRE_ENABLED = 0
+    cfg.WIRE_KOLOR = _RGB32(0, 0, 0)
+    cfg.WIRE_OPACITY = 0.5
+    cfg.D6_PIPS = 0: cfg.PIP_STYLE = DICE3D_PIP_DOT: cfg.PIP_SPRITE = 0
+    cfg.FACE_SHEET = 0: cfg.FACE_CELL_W = 0: cfg.FACE_CELL_H = 0
+    cfg.PCT_HI_KOLOR = _RGB32(235, 235, 240): cfg.PCT_LO_KOLOR = _RGB32(235, 180, 180)
+    cfg.DROP_LOWEST = 0: cfg.DROP_FX = DICE3D_DROPFX_FADE
+    cfg.SOUND_ENABLED = 0: cfg.SND_EDGE_H = 0: cfg.SND_SETTLE_H = 0
+    cfg.RENDER_MODE = DICE3D_RENDER_SOFTWARE
+    cfg.FPS = 60
+    cfg.MAX_ROLL_SECS = 6
+    cfg.GRAVITY = 0.9: cfg.RESTITUTION = 0.55: cfg.FRICTION = 0.95
+    cfg.SPIN_STRENGTH = 30: cfg.THROW_STRENGTH = 7
+END SUB
+
+''
+' True if `sides` is a die type the mesh builder currently supports.
+FUNCTION dice3d_supported% (sides AS INTEGER)
+    SELECT CASE sides
+        CASE 4, 6, 8, 10, 12, 20: dice3d_supported% = -1
+        CASE ELSE: dice3d_supported% = 0
+    END SELECT
+END FUNCTION
+
+''
+' Random face value for a die: D10 rolls 0..9, everything else 1..sides.
+FUNCTION dice3d_rollval% (sides AS INTEGER)
+    IF sides = 10 THEN
+        dice3d_rollval% = INT(RND * 10)
+    ELSE
+        dice3d_rollval% = 1 + INT(RND * sides)
+    END IF
+END FUNCTION
+
+''
+' Advance every active die until all settle (or ESC / MAX_ROLL_SECS).
+SUB dice3d_run_loop (cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER i, done, lo, hi
+    DIM AS DOUBLE t0
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    t0 = TIMER
+    DO
+        done = -1
+        FOR i = lo TO hi
+            dice3d_step DICE3D_DICE(i), cfg
+            IF DICE3D_DICE(i).SETTLED = 0 THEN done = 0
+        NEXT
+        dice3d_separate cfg
+        dice3d_present cfg
+        IF cfg.FPS > 0 THEN _LIMIT cfg.FPS
+        IF _KEYDOWN(27) THEN EXIT DO
+        IF TIMER - t0 > cfg.MAX_ROLL_SECS THEN EXIT DO
+    LOOP UNTIL done
+    FOR i = lo TO hi: dice3d_read_value DICE3D_DICE(i): NEXT '   guarantee values
+END SUB
+
+'==============================================================================
+' Runtime result API - query the last roll from your program.
+'==============================================================================
+FUNCTION dice3d_count% ()
+    dice3d_count% = DICE3D_LAST_COUNT
+END FUNCTION
+
+FUNCTION dice3d_sides% ()
+    dice3d_sides% = DICE3D_LAST_SIDES
+END FUNCTION
+
+FUNCTION dice3d_total% ()
+    dice3d_total% = DICE3D_LAST_TOTAL
+END FUNCTION
+
+FUNCTION dice3d_value% (idx AS INTEGER)
+    IF idx >= 1 AND idx <= DICE3D_LAST_COUNT THEN dice3d_value% = DICE3D_LAST_VALUE(idx)
+END FUNCTION
+
+FUNCTION dice3d_dropped% (idx AS INTEGER)
+    IF idx >= 1 AND idx <= DICE3D_LAST_COUNT THEN dice3d_dropped% = DICE3D_LAST_DROPPED(idx)
+END FUNCTION
+
+''
+' Common per-die throw kinematics (position/velocity/spin scatter).
+SUB dice3d_throw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG, r AS SINGLE)
+    di.FADE = 1
+    di.PX = dice3d_randf(r, cfg.BOX_W - r)
+    di.PY = dice3d_randf(r, cfg.BOX_H - r)
+    di.PZ = dice3d_randf(cfg.BOX_H * 0.3, cfg.BOX_H * 0.55)
+    di.VX = dice3d_randf(-cfg.THROW_STRENGTH, cfg.THROW_STRENGTH)
+    di.VY = dice3d_randf(-cfg.THROW_STRENGTH, cfg.THROW_STRENGTH): di.VZ = 0
+    dice3d_qrandom di.Q
+    di.WX = dice3d_randf(-cfg.SPIN_STRENGTH, cfg.SPIN_STRENGTH)
+    di.WY = dice3d_randf(-cfg.SPIN_STRENGTH, cfg.SPIN_STRENGTH)
+    di.WZ = dice3d_randf(-cfg.SPIN_STRENGTH, cfg.SPIN_STRENGTH)
+    di.SLOW_FRAMES = 0
+END SUB
+
+''
+' Read the integer that follows `key` in `t`. Returns -1 if key absent, 1 if
+' present with no number (e.g. bare "dl" = drop lowest 1), else the number.
+FUNCTION dice3d_modval% (t AS STRING, mkey AS STRING)
+    DIM AS INTEGER p, i
+    DIM AS STRING d, ch
+    p = INSTR(t, mkey)
+    IF p = 0 THEN dice3d_modval% = -1: EXIT FUNCTION
+    i = p + LEN(mkey): d = ""
+    DO WHILE i <= LEN(t)
+        ch = MID$(t, i, 1)
+        IF ch >= "0" AND ch <= "9" THEN
+            d = d + ch: i = i + 1
+        ELSE
+            EXIT DO
+        END IF
+    LOOP
+    IF d = "" THEN dice3d_modval% = 1 ELSE dice3d_modval% = VAL(d)
+END FUNCTION
+
+''
+' Parse "XdY" + modifiers (dlN dhN khN klN, +N/-N) into a DICE3D_SPEC.
+SUB dice3d_parse_spec (s AS STRING, spec AS DICE3D_SPEC)
+    DIM AS STRING t, ch, l, digits
+    DIM AS INTEGER i, p, kh, kl
+    t = ""
+    FOR i = 1 TO LEN(s)
+        ch = MID$(s, i, 1)
+        IF ch <> " " THEN t = t + LCASE$(ch)
+    NEXT
+    spec.CNT = 1: spec.SIDES = 6: spec.DROP_LOW = 0: spec.DROP_HIGH = 0: spec.FLATMOD = 0
+    p = INSTR(t, "d")
+    IF p = 0 THEN EXIT SUB
+    l = LEFT$(t, p - 1)
+    IF l <> "" THEN spec.CNT = VAL(l)
+    IF spec.CNT < 1 THEN spec.CNT = 1
+    digits = "": i = p + 1
+    DO WHILE i <= LEN(t)
+        ch = MID$(t, i, 1)
+        IF ch >= "0" AND ch <= "9" THEN
+            digits = digits + ch: i = i + 1
+        ELSE
+            EXIT DO
+        END IF
+    LOOP
+    IF digits <> "" THEN spec.SIDES = VAL(digits)
+    IF spec.SIDES < 2 THEN spec.SIDES = 6
+    IF INSTR(t, "%") > 0 THEN spec.SIDES = 100 '   "d%" = percentile
+    i = dice3d_modval%(t, "dl"): IF i >= 0 THEN spec.DROP_LOW = i
+    i = dice3d_modval%(t, "dh"): IF i >= 0 THEN spec.DROP_HIGH = i
+    kh = dice3d_modval%(t, "kh")
+    kl = dice3d_modval%(t, "kl")
+    IF kh >= 0 THEN spec.DROP_LOW = spec.CNT - kh
+    IF kl >= 0 THEN spec.DROP_HIGH = spec.CNT - kl
+    IF spec.DROP_LOW < 0 THEN spec.DROP_LOW = 0
+    IF spec.DROP_HIGH < 0 THEN spec.DROP_HIGH = 0
+    p = INSTR(t, "+"): IF p > 0 THEN spec.FLATMOD = spec.FLATMOD + VAL(MID$(t, p))
+    p = INSTR(t, "-"): IF p > 0 THEN spec.FLATMOD = spec.FLATMOD + VAL(MID$(t, p))
+END SUB
+
+''
+' After settle, flag the dropped dice (lowest/highest) and total the kept ones.
+SUB dice3d_apply_drops (cfg AS DICE3D_CONFIG, spec AS DICE3D_SPEC)
+    DIM AS INTEGER n, i, j, tmp, lo, hi, dl, dh
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE): n = hi - lo + 1
+    REDIM idx(0 TO n - 1) AS INTEGER
+    FOR i = 0 TO n - 1: idx(i) = lo + i: NEXT
+    '--- insertion sort idx by die VALUE ascending ---
+    FOR i = 1 TO n - 1
+        tmp = idx(i): j = i - 1
+        DO WHILE j >= 0
+            IF DICE3D_DICE(idx(j)).VALUE <= DICE3D_DICE(tmp).VALUE THEN EXIT DO
+            idx(j + 1) = idx(j): j = j - 1
+        LOOP
+        idx(j + 1) = tmp
+    NEXT
+    dl = spec.DROP_LOW: IF cfg.DROP_LOWEST > dl THEN dl = cfg.DROP_LOWEST
+    dh = spec.DROP_HIGH
+    IF dl + dh > n THEN dl = n: dh = 0
+    FOR i = 0 TO dl - 1: DICE3D_DICE(idx(i)).DROPPED = -1: NEXT
+    FOR i = 0 TO dh - 1: DICE3D_DICE(idx(n - 1 - i)).DROPPED = -1: NEXT
+    DICE3D_LAST_TOTAL = spec.FLATMOD
+    FOR i = lo TO hi
+        IF DICE3D_DICE(i).DROPPED = 0 THEN DICE3D_LAST_TOTAL = DICE3D_LAST_TOTAL + DICE3D_DICE(i).VALUE
+    NEXT
+END SUB
+
+''
+' Animate the drop FX: dropped dice fade out (and swell, if DROP_FX = EXPLODE)
+' after a short settle pause. No-op when nothing was dropped.
+SUB dice3d_drop_fx (cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER i, lo, hi, anydrop, active, hold
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    anydrop = 0
+    FOR i = lo TO hi: IF DICE3D_DICE(i).DROPPED THEN anydrop = -1
+    NEXT
+    IF anydrop = 0 THEN EXIT SUB
+
+    '--- brief pause so the player reads the result before dice vanish ---
+    FOR hold = 1 TO 24
+        dice3d_present cfg
+        IF cfg.FPS > 0 THEN _LIMIT cfg.FPS
+    NEXT
+
+    DO
+        active = 0
+        FOR i = lo TO hi
+            IF DICE3D_DICE(i).DROPPED AND DICE3D_DICE(i).FADE > 0 THEN
+                DICE3D_DICE(i).DROP_T = DICE3D_DICE(i).DROP_T + 0.05
+                DICE3D_DICE(i).FADE = 1 - DICE3D_DICE(i).DROP_T
+                IF DICE3D_DICE(i).FADE < 0 THEN DICE3D_DICE(i).FADE = 0
+                IF cfg.DROP_FX = DICE3D_DROPFX_EXPLODE THEN DICE3D_DICE(i).PZ = DICE3D_DICE(i).PZ + 2.5
+                active = -1
+            END IF
+        NEXT
+        dice3d_present cfg
+        IF cfg.FPS > 0 THEN _LIMIT cfg.FPS
+    LOOP WHILE active
+END SUB
+
+''
+' Roll dice: build mesh + atlas, animate the tumble/settle in the box, hand
+' control back. results() is REDIM'd to (1 TO count) and filled with each die's
+' value; DICE3D_LAST_TOTAL holds the kept sum + flat modifier.
+SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
+    DIM spec AS DICE3D_SPEC
+    DIM AS INTEGER cnt, sides, i
+    DIM AS LONG atlas
+    DIM AS SINGLE r
+
+    dice3d_parse_spec notation, spec
+    cnt = spec.CNT: IF cnt < 1 THEN cnt = 1
+
+    '--- percentile d100 splits into a tens + units d10 pair (own driver) ---
+    IF spec.SIDES = 100 THEN dice3d_roll_pct cnt, cfg, results(): EXIT SUB
+
+    sides = spec.SIDES
+    IF dice3d_supported%(sides) = 0 THEN sides = 6
+
+    DICE3D_FRAME = 0
+    DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
+    dice3d_build sides
+    atlas = dice3d_make_atlas&(cfg, cfg.BODY_KOLOR, 0)
+
+    r = cfg.DIE_SIZE * 1.3
+    REDIM DICE3D_DICE(0 TO cnt - 1) AS DICE3D_DIE
+    FOR i = 0 TO cnt - 1
+        DICE3D_DICE(i).SIDES = sides '   value is set by the physics settle, not preset
+        DICE3D_DICE(i).ATLAS = atlas
+        dice3d_throw DICE3D_DICE(i), cfg, r
+    NEXT
+
+    dice3d_run_loop cfg
+    dice3d_apply_drops cfg, spec
+    dice3d_drop_fx cfg
+
+    '--- publish results (values, dropped flags, total) for the runtime API ---
+    DICE3D_LAST_COUNT = cnt: DICE3D_LAST_SIDES = sides
+    REDIM results(1 TO cnt) AS INTEGER
+    REDIM DICE3D_LAST_VALUE(1 TO cnt) AS INTEGER
+    REDIM DICE3D_LAST_DROPPED(1 TO cnt) AS INTEGER
+    FOR i = 0 TO cnt - 1
+        results(i + 1) = DICE3D_DICE(i).VALUE
+        DICE3D_LAST_VALUE(i + 1) = DICE3D_DICE(i).VALUE
+        DICE3D_LAST_DROPPED(i + 1) = DICE3D_DICE(i).DROPPED
+    NEXT
+
+    _FREEIMAGE atlas
+    _FREEIMAGE DICE3D_BOXBUF
+END SUB
+
+''
+' Re-render the dice from the LAST roll with the current config, without any
+' physics. Cheap way to preview look changes (colour, material, bevel, tilt,
+' font, wireframe, size). Requires a prior dice3d_roll (non-percentile).
+SUB dice3d_repose (cfg AS DICE3D_CONFIG)
+    DIM AS LONG atlas
+    DIM AS INTEGER i, lo, hi
+    IF DICE3D_NF <= 0 THEN EXIT SUB
+    IF UBOUND(DICE3D_DICE) < LBOUND(DICE3D_DICE) THEN EXIT SUB
+    DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
+    atlas = dice3d_make_atlas&(cfg, cfg.BODY_KOLOR, 0)
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    FOR i = lo TO hi: DICE3D_DICE(i).ATLAS = atlas: NEXT
+    dice3d_present cfg
+    _FREEIMAGE atlas
+    _FREEIMAGE DICE3D_BOXBUF
+END SUB
+
+''
+' Percentile roll: `cnt` pairs of d10 (a tens die 00..90 + a units die 0..9),
+' each pair colored PCT_HI_KOLOR / PCT_LO_KOLOR. results(p) = pair total
+' (00 + 0 reads as 100); DICE3D_LAST_TOTAL = sum of pair totals.
+SUB dice3d_roll_pct (cnt AS INTEGER, cfg AS DICE3D_CONFIG, results() AS INTEGER)
+    DIM AS LONG atlasHi, atlasLo
+    DIM AS INTEGER i, tens, units, ptotal
+    DIM AS SINGLE r
+
+    DICE3D_FRAME = 0
+    DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
+    dice3d_build 10
+    atlasHi = dice3d_make_atlas&(cfg, cfg.PCT_HI_KOLOR, 1) '  tens 00..90
+    atlasLo = dice3d_make_atlas&(cfg, cfg.PCT_LO_KOLOR, 0) '  units 0..9
+
+    r = cfg.DIE_SIZE * 1.3
+    REDIM DICE3D_DICE(0 TO 2 * cnt - 1) AS DICE3D_DIE
+    FOR i = 0 TO cnt - 1
+        '--- tens die (value set by physics) ---
+        DICE3D_DICE(2 * i).SIDES = 10: DICE3D_DICE(2 * i).ROLE = DICE3D_ROLE_PCT_HI
+        DICE3D_DICE(2 * i).ATLAS = atlasHi
+        dice3d_throw DICE3D_DICE(2 * i), cfg, r
+        '--- units die (value set by physics) ---
+        DICE3D_DICE(2 * i + 1).SIDES = 10: DICE3D_DICE(2 * i + 1).ROLE = DICE3D_ROLE_PCT_LO
+        DICE3D_DICE(2 * i + 1).ATLAS = atlasLo
+        dice3d_throw DICE3D_DICE(2 * i + 1), cfg, r
+    NEXT
+
+    dice3d_run_loop cfg
+
+    DICE3D_LAST_COUNT = cnt: DICE3D_LAST_SIDES = 100
+    REDIM results(1 TO cnt) AS INTEGER
+    REDIM DICE3D_LAST_VALUE(1 TO cnt) AS INTEGER
+    REDIM DICE3D_LAST_DROPPED(1 TO cnt) AS INTEGER
+    DICE3D_LAST_TOTAL = 0
+    FOR i = 0 TO cnt - 1
+        tens = DICE3D_DICE(2 * i).VALUE: units = DICE3D_DICE(2 * i + 1).VALUE
+        ptotal = tens * 10 + units
+        IF ptotal = 0 THEN ptotal = 100
+        results(i + 1) = ptotal
+        DICE3D_LAST_VALUE(i + 1) = ptotal
+        DICE3D_LAST_TOTAL = DICE3D_LAST_TOTAL + ptotal
+    NEXT
+
+    _FREEIMAGE atlasHi: _FREEIMAGE atlasLo
+    _FREEIMAGE DICE3D_BOXBUF
+END SUB

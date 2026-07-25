@@ -1,0 +1,165 @@
+$INCLUDEONCE
+''
+' DICE3D - Physics + settle.
+'
+' Top-down tray model: each die has an (PX,PY) floor position that bounces off
+' the box walls, a PZ height that hops under gravity, and a tumbling
+' orientation. Dice also push apart so they never stack. Once a die is slow in
+' all three (spin, hop, slide) for a few frames it snaps to the pose that shows
+' its rolled VALUE.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+CONST DICE3D_REST_ENERGY = 9.0# '        spin energy (deg/frame)^2 sum threshold
+CONST DICE3D_REST_LINSPD2 = 0.6# '       linear speed^2 threshold (px/frame)^2
+CONST DICE3D_DWELL = 6 '                 frames a die must stay slow before settling
+CONST DICE3D_RADIUS_K = 1.30# '          collision radius = DIE_SIZE * this
+
+''
+' -------------------------------------------------------------------------
+' Settle predicate (learning seam): is this die at rest this frame?
+' -------------------------------------------------------------------------
+' Tuned default: rotational ENERGY (WX^2+WY^2+WZ^2) below threshold AND not
+' hopping AND barely sliding. A dwell counter in dice3d_step() then requires
+' this to hold for DICE3D_DWELL consecutive frames, so a die that momentarily
+' slows mid-tumble does not settle early. Swap the body freely - the counter
+' logic lives in the caller, so this stays a pure predicate.
+FUNCTION dice3d_should_settle% (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
+    DIM AS SINGLE energy, linspd2
+    energy = di.WX * di.WX + di.WY * di.WY + di.WZ * di.WZ
+    linspd2 = di.VX * di.VX + di.VY * di.VY
+    IF energy < DICE3D_REST_ENERGY AND di.PZ <= 0 AND di.VZ = 0 AND linspd2 < DICE3D_REST_LINSPD2 THEN
+        dice3d_should_settle% = -1
+    ELSE
+        dice3d_should_settle% = 0
+    END IF
+END FUNCTION
+
+CONST DICE3D_SETTLE_SPIN = 8.0# '        spin (deg/frame) below which a die starts tipping onto a face
+CONST DICE3D_SETTLE_EASE = 0.22# '       fraction of the tip-correction applied per frame
+CONST DICE3D_SETTLE_DAMP = 0.72# '       extra spin damping while tipping
+CONST DICE3D_SETTLE_ANG = 0.03# '        radians (~1.7 deg) considered flat/at rest
+
+SUB dice3d_step (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
+    DIM AS SINGLE r, lin, wlen, spin, dotv, ang, k
+    DIM AS INTEGER f, best
+    DIM waxis AS DICE3D_VEC3, wn AS DICE3D_VEC3, axis AS DICE3D_VEC3, tgt AS DICE3D_VEC3
+    DIM dq AS DICE3D_QUAT, qn AS DICE3D_QUAT
+    di.HIT_WALL = 0
+    IF di.SETTLED THEN EXIT SUB
+    r = cfg.DIE_SIZE * DICE3D_RADIUS_K
+
+    '--- vertical hop under gravity, bounce off the floor (PZ=0) ---
+    di.VZ = di.VZ - cfg.GRAVITY
+    di.PZ = di.PZ + di.VZ
+    IF di.PZ < 0 THEN
+        di.PZ = 0
+        di.VZ = -di.VZ * cfg.RESTITUTION
+        IF ABS(di.VZ) < cfg.GRAVITY * 2 THEN di.VZ = 0
+    END IF
+
+    '--- slide across the floor, bounce off the four walls ---
+    di.PX = di.PX + di.VX
+    di.PY = di.PY + di.VY
+    IF di.PX < r THEN di.PX = r: di.VX = -di.VX * cfg.RESTITUTION: di.HIT_WALL = -1
+    IF di.PX > cfg.BOX_W - r THEN di.PX = cfg.BOX_W - r: di.VX = -di.VX * cfg.RESTITUTION: di.HIT_WALL = -1
+    IF di.PY < r THEN di.PY = r: di.VY = -di.VY * cfg.RESTITUTION: di.HIT_WALL = -1
+    IF di.PY > cfg.BOX_H - r THEN di.PY = cfg.BOX_H - r: di.VY = -di.VY * cfg.RESTITUTION: di.HIT_WALL = -1
+    IF di.HIT_WALL AND cfg.SOUND_ENABLED AND cfg.SND_EDGE_H <> 0 THEN
+        IF ABS(di.VX) + ABS(di.VY) > 1.5 THEN _SNDPLAYCOPY cfg.SND_EDGE_H
+    END IF
+
+    '--- linear friction (stronger once it's on the floor) ---
+    IF di.PZ <= 0 THEN lin = 0.90 ELSE lin = 0.995
+    di.VX = di.VX * lin: di.VY = di.VY * lin
+
+    '--- tumble: integrate the angular-velocity vector as a rotation ---
+    wlen = SQR(di.WX * di.WX + di.WY * di.WY + di.WZ * di.WZ)
+    IF wlen > 0.0001 THEN
+        waxis.X = di.WX / wlen: waxis.Y = di.WY / wlen: waxis.Z = di.WZ / wlen
+        dice3d_qaxisangle waxis, wlen * DICE3D_DEG2RAD, dq
+        dice3d_qmul dq, di.Q, qn: dice3d_qnormalize qn: di.Q = qn
+    END IF
+    di.WX = di.WX * cfg.FRICTION: di.WY = di.WY * cfg.FRICTION: di.WZ = di.WZ * cfg.FRICTION
+
+    '--- NATURAL SETTLE: once slow, tip whichever face is already closest to
+    '    the reading axis flat onto it. That face IS the value - no snap to a
+    '    predetermined pose, so no weird end-spin. (D4 rests on its base, so it
+    '    reads the face pointing AWAY from the camera.) ---
+    spin = SQR(di.WX * di.WX + di.WY * di.WY + di.WZ * di.WZ)
+    IF spin < DICE3D_SETTLE_SPIN THEN
+        tgt.X = 0: tgt.Y = 0
+        IF di.SIDES = 4 THEN tgt.Z = -1 ELSE tgt.Z = 1
+        best = -1: dotv = -2
+        FOR f = 0 TO DICE3D_NF - 1
+            dice3d_qrot di.Q, DICE3D_FACE_N(f), wn
+            IF wn.Z * tgt.Z > dotv THEN dotv = wn.Z * tgt.Z: best = f
+        NEXT
+        di.VALUE = DICE3D_FACE_VAL(best)
+        dice3d_qrot di.Q, DICE3D_FACE_N(best), wn
+        dice3d_vcross wn, tgt, axis
+        dotv = wn.X * tgt.X + wn.Y * tgt.Y + wn.Z * tgt.Z
+        IF dotv > 1 THEN dotv = 1
+        IF dotv < -1 THEN dotv = -1
+        ang = _ACOS(dotv)
+        IF dice3d_vlen(axis) > 0.0001 AND ang > 0.00001 THEN
+            IF ang < DICE3D_SETTLE_ANG AND spin < 1.5 AND di.PZ <= 0 THEN k = 1 ELSE k = DICE3D_SETTLE_EASE
+            dice3d_qaxisangle axis, ang * k, dq
+            dice3d_qmul dq, di.Q, qn: dice3d_qnormalize qn: di.Q = qn
+        END IF
+        di.WX = di.WX * DICE3D_SETTLE_DAMP: di.WY = di.WY * DICE3D_SETTLE_DAMP: di.WZ = di.WZ * DICE3D_SETTLE_DAMP
+        di.VX = di.VX * 0.8: di.VY = di.VY * 0.8
+        IF ang < DICE3D_SETTLE_ANG AND spin < 1.5 AND di.PZ <= 0 THEN
+            di.SETTLED = -1
+            IF cfg.SOUND_ENABLED AND cfg.SND_SETTLE_H <> 0 THEN _SNDPLAYCOPY cfg.SND_SETTLE_H
+        END IF
+    END IF
+END SUB
+
+''
+' Read a die's value from its current orientation (face nearest the reading
+' axis). Guarantees a value even if a roll times out before fully settling.
+SUB dice3d_read_value (di AS DICE3D_DIE)
+    DIM AS INTEGER f, best
+    DIM AS SINGLE dotv, tz
+    DIM wn AS DICE3D_VEC3
+    IF di.SIDES = 4 THEN tz = -1 ELSE tz = 1
+    best = -1: dotv = -2
+    FOR f = 0 TO DICE3D_NF - 1
+        dice3d_qrot di.Q, DICE3D_FACE_N(f), wn
+        IF wn.Z * tz > dotv THEN dotv = wn.Z * tz: best = f
+    NEXT
+    IF best >= 0 THEN di.VALUE = DICE3D_FACE_VAL(best)
+END SUB
+
+''
+' Push overlapping dice apart (top-down circle separation) and keep everyone
+' inside the walls. Cheap O(n^2) - fine for a handful of dice.
+SUB dice3d_separate (cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER i, j, lo, hi
+    DIM AS SINGLE r, dx, dy, d, ov, nx, ny
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    r = cfg.DIE_SIZE * DICE3D_RADIUS_K
+    FOR i = lo TO hi - 1
+        FOR j = i + 1 TO hi
+            dx = DICE3D_DICE(j).PX - DICE3D_DICE(i).PX
+            dy = DICE3D_DICE(j).PY - DICE3D_DICE(i).PY
+            d = SQR(dx * dx + dy * dy)
+            IF d < 2 * r AND d > 0.0001 THEN
+                ov = (2 * r - d) / 2
+                nx = dx / d: ny = dy / d
+                DICE3D_DICE(i).PX = DICE3D_DICE(i).PX - nx * ov
+                DICE3D_DICE(i).PY = DICE3D_DICE(i).PY - ny * ov
+                DICE3D_DICE(j).PX = DICE3D_DICE(j).PX + nx * ov
+                DICE3D_DICE(j).PY = DICE3D_DICE(j).PY + ny * ov
+            END IF
+        NEXT
+    NEXT
+    '--- re-clamp inside the box after any pushes ---
+    FOR i = lo TO hi
+        IF DICE3D_DICE(i).PX < r THEN DICE3D_DICE(i).PX = r
+        IF DICE3D_DICE(i).PX > cfg.BOX_W - r THEN DICE3D_DICE(i).PX = cfg.BOX_W - r
+        IF DICE3D_DICE(i).PY < r THEN DICE3D_DICE(i).PY = r
+        IF DICE3D_DICE(i).PY > cfg.BOX_H - r THEN DICE3D_DICE(i).PY = cfg.BOX_H - r
+    NEXT
+END SUB

@@ -8,6 +8,8 @@
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bi'
 
 '$INCLUDE:'include/DUNGEON.BI'
+'$INCLUDE:'include/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
+'$INCLUDE:'include/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
 SW = 132: SH = 51: CW = 8: CH = 16
 
 ' collision palette (must match the board ANSI art exactly)
@@ -56,6 +58,7 @@ opt_hardcore = FALSE                          ' default casual: idling is safe (
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
+opt_dice3d = FALSE: opt_mon_dice3d = FALSE    ' dice render: FALSE = font/pip dice (default), TRUE = 3D dice
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 1   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
@@ -72,6 +75,7 @@ InitFlavor                       ' load the room + combat flavor text (assets/fl
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
 InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/*); beeper covers the rest
+LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
@@ -1319,6 +1323,9 @@ END SUB
 '$INCLUDE:'include/FLAVOR.bas'
 '$INCLUDE:'include/CTEXT.bas'
 '$INCLUDE:'include/MUSIC.bas'
+
+'$INCLUDE:'include/DICE3D/_ALL.BM'      ' 3D dice implementation (bottom, per the module's contract)
+'$INCLUDE:'include/DICE3D_GAME.bas'     ' dungeon<->DICE3D glue (LoadDiceSets, Show3DRoll)
 
 '$INCLUDE:'include/Toolbox64/FileOps.bas'
 '$INCLUDE:'include/Toolbox64/ANSIPrint.bas'

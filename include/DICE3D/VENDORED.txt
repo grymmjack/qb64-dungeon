@@ -1,0 +1,3 @@
+Vendored snapshot of DICE3D (3D polyhedral dice) by Rick Christy.
+Source: /home/grymmjack/git/qb64/qb64/GRAPHICS/3D/DICE3D
+Do not add to QB64_GJ_LIB until kinks are worked out here; then swap the include path.

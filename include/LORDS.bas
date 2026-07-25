@@ -315,6 +315,8 @@ SUB SaveSettings
     PRINT #f, "mondicesolid " + _TRIM$(STR$(opt_mon_dicesolid))
     PRINT #f, "mond6pips " + _TRIM$(STR$(opt_mon_d6pips))
     PRINT #f, "mondicespeed " + _TRIM$(STR$(opt_mon_dicespeed))
+    PRINT #f, "dice3d " + _TRIM$(STR$(opt_dice3d))
+    PRINT #f, "mondice3d " + _TRIM$(STR$(opt_mon_dice3d))
     CLOSE #f
 END SUB
 
@@ -360,6 +362,8 @@ SUB LoadSettings
                 CASE "mondicesolid": opt_mon_dicesolid = v
                 CASE "mond6pips": opt_mon_d6pips = v
                 CASE "mondicespeed": opt_mon_dicespeed = v
+                CASE "dice3d": opt_dice3d = v
+                CASE "mondice3d": opt_mon_dice3d = v
             END SELECT
         END IF
     LOOP

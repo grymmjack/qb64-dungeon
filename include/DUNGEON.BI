@@ -285,6 +285,9 @@ DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast,
 DIM SHARED opt_mon_dicecolor AS INTEGER, opt_mon_dicesolid AS INTEGER
 DIM SHARED opt_mon_d6pips AS INTEGER, opt_mon_dicespeed AS INTEGER
 DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INTEGER, sav_dicespeed AS INTEGER
+' 3D dice: opt_dice3d/opt_mon_dice3d pick 3D (TRUE) vs the font/pip dice (FALSE) for player/monster.
+' Push/PopMonsterDice swap opt_dice3d and set dice3d_use_mon so a roll knows which set to draw.
+DIM SHARED opt_dice3d AS INTEGER, opt_mon_dice3d AS INTEGER, sav_dice3d AS INTEGER, dice3d_use_mon AS INTEGER
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled (no dice shimmer)
 DIM SHARED opt_combatspeed AS INTEGER ' (legacy, kept for save compat) -- superseded by opt_msgdelay
 DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key

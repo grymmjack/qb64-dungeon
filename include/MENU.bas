@@ -490,7 +490,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 30
+    CONST NSET = 31
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -601,7 +601,8 @@ SUB RunSettings
                 CASE 29
                     opt_mon_dicespeed = opt_mon_dicespeed + 1
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
-                CASE 30: SaveSettings: EXIT SUB
+                CASE 30: opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d   ' Font <-> 3D (both, for now)
+                CASE 31: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -695,6 +696,9 @@ SUB RunSettings
                         CASE 3: vtxt = "instant"
                         CASE ELSE: vtxt = "normal"
                     END SELECT
+                CASE 30
+                    lbl = "Dice Style": slider = TRUE
+                    IF opt_dice3d THEN vtxt = "3D dice" ELSE vtxt = "font dice (2D)"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -1485,6 +1489,9 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
         ELSE
             GameRoll = raw + bonus: last_raw = raw
         END IF
+    ELSEIF opt_dice3d AND dice3d_ready THEN
+        t = Show3DRoll(n, sides, what)             ' animated 3D polyhedra (DICE3D module)
+        GameRoll = t + bonus: last_raw = t
     ELSEIF sides = 6 AND opt_d6pips THEN
         t = RollPips(n, FALSE, bonus, what)        ' every d6 roll shows the pip dice
         GameRoll = t + bonus: last_raw = t
@@ -1634,10 +1641,12 @@ SUB PushMonsterDice
     sav_d6pips = opt_d6pips: sav_dicespeed = opt_dicespeed
     opt_dicecolor = opt_mon_dicecolor: opt_dicesolid = opt_mon_dicesolid
     opt_d6pips = opt_mon_d6pips: opt_dicespeed = opt_mon_dicespeed
+    sav_dice3d = opt_dice3d: opt_dice3d = opt_mon_dice3d: dice3d_use_mon = -1   ' 3D: use the monster set/flag
 END SUB
 SUB PopMonsterDice
     opt_dicecolor = sav_dicecolor: opt_dicesolid = sav_dicesolid
     opt_d6pips = sav_d6pips: opt_dicespeed = sav_dicespeed
+    opt_dice3d = sav_dice3d: dice3d_use_mon = 0
 END SUB
 
 

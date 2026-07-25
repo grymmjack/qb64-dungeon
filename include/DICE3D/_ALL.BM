@@ -1,0 +1,12 @@
+$INCLUDEONCE
+''
+' DICE3D - Aggregated implementation includes.
+' Include this once, at the very bottom of your program.
+
+'$INCLUDE:'_MISC.BM'
+'$INCLUDE:'_GEO.BM'
+'$INCLUDE:'_TEX.BM'
+'$INCLUDE:'_RENDER.BM'
+'$INCLUDE:'_PHYSICS.BM'
+'$INCLUDE:'_DICE.BM'
+'$INCLUDE:'_IO.BM'

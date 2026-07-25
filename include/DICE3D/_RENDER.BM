@@ -1,0 +1,122 @@
+$INCLUDEONCE
+''
+' DICE3D - Software 3D renderer.
+'
+' Per die: rotate model vertices by the die's orientation, project
+' orthographically into the box buffer (positions map 1:1 to the top-down box;
+' height PZ lifts the die up-screen), painter-sort the triangles far->near, and
+' texture each with 2D _MAPTRIANGLE from the die's face atlas.
+'
+' Convexity means painter's order alone is correct - no z-buffer needed.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+SUB dice3d_render_die (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
+    IF di.SIDES <= 0 THEN EXIT SUB
+    IF di.FADE <= 0 THEN EXIT SUB
+
+    DIM AS INTEGER i, t, a, b, c, j, ti
+    DIM AS SINGLE scl, cosT, sinT, cosY, sinY, yy, zz, xx, camd, persp
+    DIM rv AS DICE3D_VEC3
+    REDIM AS SINGLE xs(0 TO DICE3D_NV - 1), ys(0 TO DICE3D_NV - 1), zs(0 TO DICE3D_NV - 1)
+
+    scl = cfg.DIE_SIZE
+    '--- exploding dropped dice swell as they fade ---
+    IF di.DROPPED AND cfg.DROP_FX = DICE3D_DROPFX_EXPLODE THEN scl = scl * (1 + di.DROP_T * 1.8)
+    cosT = COS(cfg.CAM_TILT * 0.0174532925): sinT = SIN(cfg.CAM_TILT * 0.0174532925)
+    cosY = COS(cfg.CAM_YAW * 0.0174532925): sinY = SIN(cfg.CAM_YAW * 0.0174532925)
+    camd = 0
+    IF cfg.FOV > 0.5 THEN
+        camd = 1 / TAN(cfg.FOV * 0.5 * 0.0174532925)
+        IF camd < 1.25 THEN camd = 1.25 '   keep camera outside the die
+    END IF
+    persp = 1
+    FOR i = 0 TO DICE3D_NV - 1
+        dice3d_qrot di.Q, DICE3D_MV(i), rv
+        '--- orbit: yaw about Y, then pitch about X ---
+        xx = rv.X * cosY + rv.Z * sinY
+        zz = -rv.X * sinY + rv.Z * cosY
+        yy = rv.Y * cosT + zz * sinT
+        zz = zz * cosT - rv.Y * sinT
+        IF camd > 0 THEN persp = camd / (camd - zz) '  perspective foreshorten
+        xs(i) = di.PX + xx * persp * scl
+        ys(i) = di.PY - yy * persp * scl - di.PZ '   screen Y grows down; +Y up; PZ lifts
+        zs(i) = zz '                          view depth for painter sort
+    NEXT
+
+    '--- painter sort triangle indices by average depth (ascending = far first) ---
+    REDIM AS INTEGER ord(0 TO DICE3D_NT - 1)
+    REDIM AS SINGLE az(0 TO DICE3D_NT - 1)
+    FOR t = 0 TO DICE3D_NT - 1
+        ord(t) = t
+        az(t) = (zs(DICE3D_TA(t)) + zs(DICE3D_TB(t)) + zs(DICE3D_TC(t))) / 3
+    NEXT
+    FOR i = 1 TO DICE3D_NT - 1
+        ti = ord(i): j = i - 1
+        DO WHILE j >= 0
+            IF az(ord(j)) <= az(ti) THEN EXIT DO
+            ord(j + 1) = ord(j): j = j - 1
+        LOOP
+        ord(j + 1) = ti
+    NEXT
+
+    '--- FADE < 1 dims the whole die via the atlas alpha (drop FX) ---
+    IF di.FADE < 1 THEN _SETALPHA INT(di.FADE * 255), , di.ATLAS
+    FOR i = 0 TO DICE3D_NT - 1
+        t = ord(i)
+        a = DICE3D_TA(t): b = DICE3D_TB(t): c = DICE3D_TC(t)
+        _MAPTRIANGLE (DICE3D_TUX(t, 0), DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1), DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2), DICE3D_TUY(t, 2)), di.ATLAS TO(xs(a), ys(a))-(xs(b), ys(b))-(xs(c), ys(c)), DICE3D_BOXBUF, _SMOOTH
+    NEXT
+    IF di.FADE < 1 THEN _SETALPHA 255, , di.ATLAS
+
+    '--- wireframe overlay: outline each front-facing face polygon ---
+    IF cfg.WIRE_ENABLED AND di.FADE > 0 THEN
+        DIM AS INTEGER wf, wp, va, vb
+        DIM wnn AS DICE3D_VEC3
+        DIM wc AS _UNSIGNED LONG
+        DIM AS SINGLE nz, nzz
+        wc = _RGBA32(_RED32(cfg.WIRE_KOLOR), _GREEN32(cfg.WIRE_KOLOR), _BLUE32(cfg.WIRE_KOLOR), INT(cfg.WIRE_OPACITY * di.FADE * 255))
+        FOR wf = 0 TO DICE3D_NF - 1
+            dice3d_qrot di.Q, DICE3D_FACE_N(wf), wnn
+            nzz = -wnn.X * sinY + wnn.Z * cosY
+            nz = nzz * cosT - wnn.Y * sinT
+            IF nz > 0.03 THEN '            front-facing
+                FOR wp = 0 TO DICE3D_FVN(wf) - 1
+                    va = DICE3D_FVIDX(wf, wp)
+                    vb = DICE3D_FVIDX(wf, (wp + 1) MOD DICE3D_FVN(wf))
+                    LINE (xs(va), ys(va))-(xs(vb), ys(vb)), wc
+                NEXT
+            END IF
+        NEXT
+    END IF
+END SUB
+
+''
+' Composite one frame: clear the box buffer, draw all dice, draw the outline,
+' then blit the buffer over the caller's screen and present.
+SUB dice3d_present (cfg AS DICE3D_CONFIG)
+    DIM AS LONG od
+    DIM AS INTEGER i
+    od = _DEST
+    _DEST DICE3D_BOXBUF
+    IF cfg.BOX_SHOW_BACK THEN
+        CLS , cfg.BOX_BACK_KOLOR
+    ELSE
+        CLS , _RGBA32(0, 0, 0, 0)
+    END IF
+    FOR i = LBOUND(DICE3D_DICE) TO UBOUND(DICE3D_DICE)
+        dice3d_render_die DICE3D_DICE(i), cfg
+    NEXT
+    IF cfg.BOX_SHOW_OUTLINE THEN LINE (0, 0)-(cfg.BOX_W - 1, cfg.BOX_H - 1), cfg.BOX_OUTLINE_KOLOR, B
+    _DEST od
+    _PUTIMAGE (cfg.BOX_X, cfg.BOX_Y), DICE3D_BOXBUF, od
+    _DISPLAY
+
+    '--- optional frame capture (off unless DICE3D_SHOT_EVERY > 0) ---
+    DICE3D_FRAME = DICE3D_FRAME + 1
+    IF DICE3D_SHOT_EVERY > 0 THEN
+        IF DICE3D_FRAME MOD DICE3D_SHOT_EVERY = 0 THEN
+            _SAVEIMAGE DICE3D_SHOT_DIR + "/f" + RIGHT$("0000" + LTRIM$(STR$(DICE3D_FRAME)), 4) + ".png", DICE3D_BOXBUF
+        END IF
+    END IF
+END SUB

@@ -1,0 +1,225 @@
+$INCLUDEONCE
+''
+' DICE3D - Save/load: a single config, a whole "dice set" (one config per die
+' type), and named colour themes. Plain "KEY=value" text so files are readable
+' and editable. Handle fields (fonts/sprites/sounds) are NOT saved - they are
+' program resources; FONT_PX carries the intended size so a program can reload.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+
+'--- die type <-> set slot (0..6 = d4 d6 d8 d10 d12 d20 d100) ------------------
+FUNCTION dice3d_set_index% (sides AS INTEGER)
+    SELECT CASE sides
+        CASE 4: dice3d_set_index% = 0
+        CASE 6: dice3d_set_index% = 1
+        CASE 8: dice3d_set_index% = 2
+        CASE 10: dice3d_set_index% = 3
+        CASE 12: dice3d_set_index% = 4
+        CASE 20: dice3d_set_index% = 5
+        CASE 100: dice3d_set_index% = 6
+        CASE ELSE: dice3d_set_index% = 1
+    END SELECT
+END FUNCTION
+
+FUNCTION dice3d_set_name$ (slot AS INTEGER)
+    DIM nm(0 TO 6) AS STRING
+    nm(0) = "d4": nm(1) = "d6": nm(2) = "d8": nm(3) = "d10": nm(4) = "d12": nm(5) = "d20": nm(6) = "d100"
+    IF slot >= 0 AND slot <= 6 THEN dice3d_set_name$ = nm(slot) ELSE dice3d_set_name$ = "d6"
+END FUNCTION
+
+SUB dice3d_wr (fh AS INTEGER, k AS STRING, v AS STRING)
+    PRINT #fh, k + "=" + v
+END SUB
+
+FUNCTION dice3d_ns$ (x AS SINGLE)
+    dice3d_ns$ = _TRIM$(STR$(x))
+END FUNCTION
+
+FUNCTION dice3d_nl$ (x AS _UNSIGNED LONG)
+    dice3d_nl$ = _TRIM$(STR$(x))
+END FUNCTION
+
+''
+' Write all persistable fields of cfg to an already-open file handle.
+SUB dice3d_config_write (fh AS INTEGER, cfg AS DICE3D_CONFIG)
+    dice3d_wr fh, "BOX_X", dice3d_ns$(cfg.BOX_X): dice3d_wr fh, "BOX_Y", dice3d_ns$(cfg.BOX_Y)
+    dice3d_wr fh, "BOX_W", dice3d_ns$(cfg.BOX_W): dice3d_wr fh, "BOX_H", dice3d_ns$(cfg.BOX_H)
+    dice3d_wr fh, "BOX_SHOW_OUTLINE", dice3d_ns$(cfg.BOX_SHOW_OUTLINE)
+    dice3d_wr fh, "BOX_OUTLINE_KOLOR", dice3d_nl$(cfg.BOX_OUTLINE_KOLOR)
+    dice3d_wr fh, "BOX_SHOW_BACK", dice3d_ns$(cfg.BOX_SHOW_BACK)
+    dice3d_wr fh, "BOX_BACK_KOLOR", dice3d_nl$(cfg.BOX_BACK_KOLOR)
+    dice3d_wr fh, "DIE_SIZE", dice3d_ns$(cfg.DIE_SIZE): dice3d_wr fh, "CAM_TILT", dice3d_ns$(cfg.CAM_TILT)
+    dice3d_wr fh, "CAM_YAW", dice3d_ns$(cfg.CAM_YAW): dice3d_wr fh, "FOV", dice3d_ns$(cfg.FOV)
+    dice3d_wr fh, "MATERIAL", dice3d_ns$(cfg.MATERIAL)
+    dice3d_wr fh, "BODY_KOLOR", dice3d_nl$(cfg.BODY_KOLOR): dice3d_wr fh, "NUM_KOLOR", dice3d_nl$(cfg.NUM_KOLOR)
+    dice3d_wr fh, "EDGE_KOLOR", dice3d_nl$(cfg.EDGE_KOLOR): dice3d_wr fh, "EDGE_TRANSPARENT", dice3d_ns$(cfg.EDGE_TRANSPARENT)
+    dice3d_wr fh, "BEVEL", dice3d_ns$(cfg.BEVEL): dice3d_wr fh, "NUMERIC", dice3d_ns$(cfg.NUMERIC)
+    dice3d_wr fh, "NUM_SCALE", dice3d_ns$(cfg.NUM_SCALE): dice3d_wr fh, "FONT_PX", dice3d_ns$(cfg.FONT_PX)
+    dice3d_wr fh, "BODY_ALPHA", dice3d_ns$(cfg.BODY_ALPHA): dice3d_wr fh, "TEX_OPACITY", dice3d_ns$(cfg.TEX_OPACITY)
+    dice3d_wr fh, "MARBLE_KOLOR", dice3d_nl$(cfg.MARBLE_KOLOR): dice3d_wr fh, "CRYSTAL_ALPHA", dice3d_ns$(cfg.CRYSTAL_ALPHA)
+    dice3d_wr fh, "WIRE_ENABLED", dice3d_ns$(cfg.WIRE_ENABLED)
+    dice3d_wr fh, "WIRE_KOLOR", dice3d_nl$(cfg.WIRE_KOLOR): dice3d_wr fh, "WIRE_OPACITY", dice3d_ns$(cfg.WIRE_OPACITY)
+    dice3d_wr fh, "D6_PIPS", dice3d_ns$(cfg.D6_PIPS): dice3d_wr fh, "PIP_STYLE", dice3d_ns$(cfg.PIP_STYLE)
+    dice3d_wr fh, "PCT_HI_KOLOR", dice3d_nl$(cfg.PCT_HI_KOLOR): dice3d_wr fh, "PCT_LO_KOLOR", dice3d_nl$(cfg.PCT_LO_KOLOR)
+    dice3d_wr fh, "DROP_LOWEST", dice3d_ns$(cfg.DROP_LOWEST): dice3d_wr fh, "DROP_FX", dice3d_ns$(cfg.DROP_FX)
+    dice3d_wr fh, "GRAVITY", dice3d_ns$(cfg.GRAVITY): dice3d_wr fh, "RESTITUTION", dice3d_ns$(cfg.RESTITUTION)
+    dice3d_wr fh, "FRICTION", dice3d_ns$(cfg.FRICTION): dice3d_wr fh, "SPIN_STRENGTH", dice3d_ns$(cfg.SPIN_STRENGTH)
+    dice3d_wr fh, "THROW_STRENGTH", dice3d_ns$(cfg.THROW_STRENGTH): dice3d_wr fh, "MAX_ROLL_SECS", dice3d_ns$(cfg.MAX_ROLL_SECS)
+    dice3d_wr fh, "FPS", dice3d_ns$(cfg.FPS): dice3d_wr fh, "SOUND_ENABLED", dice3d_ns$(cfg.SOUND_ENABLED)
+END SUB
+
+''
+' Apply a single "key" with string "value" to cfg.
+SUB dice3d_config_apply (cfg AS DICE3D_CONFIG, k AS STRING, v AS STRING)
+    DIM AS SINGLE n
+    DIM AS _UNSIGNED LONG c
+    n = VAL(v): c = VAL(v)
+    SELECT CASE k
+        CASE "BOX_X": cfg.BOX_X = n
+        CASE "BOX_Y": cfg.BOX_Y = n
+        CASE "BOX_W": cfg.BOX_W = n
+        CASE "BOX_H": cfg.BOX_H = n
+        CASE "BOX_SHOW_OUTLINE": cfg.BOX_SHOW_OUTLINE = n
+        CASE "BOX_OUTLINE_KOLOR": cfg.BOX_OUTLINE_KOLOR = c
+        CASE "BOX_SHOW_BACK": cfg.BOX_SHOW_BACK = n
+        CASE "BOX_BACK_KOLOR": cfg.BOX_BACK_KOLOR = c
+        CASE "DIE_SIZE": cfg.DIE_SIZE = n
+        CASE "CAM_TILT": cfg.CAM_TILT = n
+        CASE "CAM_YAW": cfg.CAM_YAW = n
+        CASE "FOV": cfg.FOV = n
+        CASE "MATERIAL": cfg.MATERIAL = n
+        CASE "BODY_KOLOR": cfg.BODY_KOLOR = c
+        CASE "NUM_KOLOR": cfg.NUM_KOLOR = c
+        CASE "EDGE_KOLOR": cfg.EDGE_KOLOR = c
+        CASE "EDGE_TRANSPARENT": cfg.EDGE_TRANSPARENT = n
+        CASE "BEVEL": cfg.BEVEL = n
+        CASE "NUMERIC": cfg.NUMERIC = n
+        CASE "NUM_SCALE": cfg.NUM_SCALE = n
+        CASE "FONT_PX": cfg.FONT_PX = n
+        CASE "BODY_ALPHA": cfg.BODY_ALPHA = n
+        CASE "TEX_OPACITY": cfg.TEX_OPACITY = n
+        CASE "MARBLE_KOLOR": cfg.MARBLE_KOLOR = c
+        CASE "CRYSTAL_ALPHA": cfg.CRYSTAL_ALPHA = n
+        CASE "WIRE_ENABLED": cfg.WIRE_ENABLED = n
+        CASE "WIRE_KOLOR": cfg.WIRE_KOLOR = c
+        CASE "WIRE_OPACITY": cfg.WIRE_OPACITY = n
+        CASE "D6_PIPS": cfg.D6_PIPS = n
+        CASE "PIP_STYLE": cfg.PIP_STYLE = n
+        CASE "PCT_HI_KOLOR": cfg.PCT_HI_KOLOR = c
+        CASE "PCT_LO_KOLOR": cfg.PCT_LO_KOLOR = c
+        CASE "DROP_LOWEST": cfg.DROP_LOWEST = n
+        CASE "DROP_FX": cfg.DROP_FX = n
+        CASE "GRAVITY": cfg.GRAVITY = n
+        CASE "RESTITUTION": cfg.RESTITUTION = n
+        CASE "FRICTION": cfg.FRICTION = n
+        CASE "SPIN_STRENGTH": cfg.SPIN_STRENGTH = n
+        CASE "THROW_STRENGTH": cfg.THROW_STRENGTH = n
+        CASE "MAX_ROLL_SECS": cfg.MAX_ROLL_SECS = n
+        CASE "FPS": cfg.FPS = n
+        CASE "SOUND_ENABLED": cfg.SOUND_ENABLED = n
+    END SELECT
+END SUB
+
+'--- split "KEY=value" -> key + value (value may be empty) ---------------------
+SUB dice3d_kv (ln AS STRING, k AS STRING, v AS STRING)
+    DIM p AS INTEGER
+    p = INSTR(ln, "=")
+    IF p = 0 THEN k = _TRIM$(ln): v = "": EXIT SUB
+    k = _TRIM$(LEFT$(ln, p - 1)): v = _TRIM$(MID$(ln, p + 1))
+END SUB
+
+''
+' Save / load one config.
+SUB dice3d_config_save (cfg AS DICE3D_CONFIG, file AS STRING)
+    DIM fh AS INTEGER
+    fh = FREEFILE
+    OPEN file FOR OUTPUT AS #fh
+    dice3d_config_write fh, cfg
+    CLOSE #fh
+END SUB
+
+FUNCTION dice3d_config_load% (cfg AS DICE3D_CONFIG, file AS STRING)
+    DIM fh AS INTEGER
+    DIM AS STRING ln, k, v
+    IF _FILEEXISTS(file) = 0 THEN dice3d_config_load% = 0: EXIT FUNCTION
+    fh = FREEFILE
+    OPEN file FOR INPUT AS #fh
+    DO UNTIL EOF(fh)
+        LINE INPUT #fh, ln
+        IF _TRIM$(ln) <> "" AND LEFT$(_TRIM$(ln), 1) <> "[" THEN
+            dice3d_kv ln, k, v: dice3d_config_apply cfg, k, v
+        END IF
+    LOOP
+    CLOSE #fh
+    dice3d_config_load% = -1
+END FUNCTION
+
+''
+' Save / load a whole dice set: 7 configs, one per die type, in [dN] sections.
+SUB dice3d_set_save (cset() AS DICE3D_CONFIG, file AS STRING)
+    DIM AS INTEGER fh, i
+    fh = FREEFILE
+    OPEN file FOR OUTPUT AS #fh
+    PRINT #fh, "# DICE3D dice set"
+    FOR i = 0 TO 6
+        PRINT #fh, "[" + dice3d_set_name$(i) + "]"
+        dice3d_config_write fh, cset(i + LBOUND(cset))
+    NEXT
+    CLOSE #fh
+END SUB
+
+FUNCTION dice3d_set_load% (cset() AS DICE3D_CONFIG, file AS STRING)
+    DIM AS INTEGER fh, cur, i, lo
+    DIM AS STRING ln, k, v, sec
+    IF _FILEEXISTS(file) = 0 THEN dice3d_set_load% = 0: EXIT FUNCTION
+    lo = LBOUND(cset): cur = -1
+    fh = FREEFILE
+    OPEN file FOR INPUT AS #fh
+    DO UNTIL EOF(fh)
+        LINE INPUT #fh, ln
+        ln = _TRIM$(ln)
+        IF ln = "" OR LEFT$(ln, 1) = "#" THEN
+            '   comment / blank
+        ELSEIF LEFT$(ln, 1) = "[" THEN
+            sec = MID$(ln, 2, LEN(ln) - 2)
+            cur = -1
+            FOR i = 0 TO 6: IF dice3d_set_name$(i) = sec THEN cur = i
+            NEXT
+        ELSEIF cur >= 0 THEN
+            dice3d_kv ln, k, v: dice3d_config_apply cset(lo + cur), k, v
+        END IF
+    LOOP
+    CLOSE #fh
+    dice3d_set_load% = -1
+END FUNCTION
+
+''
+' Named colour theme = the colour fields only, in theme_<tname>.txt.
+SUB dice3d_theme_save (tname AS STRING, cfg AS DICE3D_CONFIG)
+    DIM fh AS INTEGER
+    fh = FREEFILE
+    OPEN "theme_" + tname + ".txt" FOR OUTPUT AS #fh
+    dice3d_wr fh, "BODY_KOLOR", dice3d_nl$(cfg.BODY_KOLOR)
+    dice3d_wr fh, "NUM_KOLOR", dice3d_nl$(cfg.NUM_KOLOR)
+    dice3d_wr fh, "EDGE_KOLOR", dice3d_nl$(cfg.EDGE_KOLOR)
+    dice3d_wr fh, "BOX_BACK_KOLOR", dice3d_nl$(cfg.BOX_BACK_KOLOR)
+    dice3d_wr fh, "BOX_OUTLINE_KOLOR", dice3d_nl$(cfg.BOX_OUTLINE_KOLOR)
+    dice3d_wr fh, "MARBLE_KOLOR", dice3d_nl$(cfg.MARBLE_KOLOR)
+    dice3d_wr fh, "WIRE_KOLOR", dice3d_nl$(cfg.WIRE_KOLOR)
+    CLOSE #fh
+END SUB
+
+FUNCTION dice3d_theme_load% (tname AS STRING, cfg AS DICE3D_CONFIG)
+    DIM fh AS INTEGER
+    DIM AS STRING ln, k, v, file
+    file = "theme_" + tname + ".txt"
+    IF _FILEEXISTS(file) = 0 THEN dice3d_theme_load% = 0: EXIT FUNCTION
+    fh = FREEFILE
+    OPEN file FOR INPUT AS #fh
+    DO UNTIL EOF(fh)
+        LINE INPUT #fh, ln
+        IF _TRIM$(ln) <> "" THEN dice3d_kv ln, k, v: dice3d_config_apply cfg, k, v
+    LOOP
+    CLOSE #fh
+    dice3d_theme_load% = -1
+END FUNCTION
