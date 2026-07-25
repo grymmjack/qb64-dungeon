@@ -461,7 +461,9 @@ FUNCTION DoCombat% (rm AS INTEGER)
     mon = _TRIM$(ROOMS(rm).monster)
     ROOMS(rm).monster_fought = TRUE
     IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
+        combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm
+        combat_active = 0                           ' (cleared here so ALL of DoCombatDnD's exits are covered)
         cursor_erase: cursor_draw: _DISPLAY
         EXIT FUNCTION
     END IF
@@ -591,6 +593,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     rounds = 0: combat_round = 1
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
     FX_MON = mon: FX_LEVEL = sec: FX_ROOM = _TRIM$(SECTORS(sec).label)   ' flavor context for {tokens}
+    combat_rm = rm: combat_mon = mon: combat_lead = lead                  ' so DrawHUD can keep the panel painted
 
     DIM dirty AS INTEGER
     dirty = -1                                   ' clear any lingering pre-combat banner on entry

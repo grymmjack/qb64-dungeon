@@ -227,6 +227,12 @@ DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you ba
 DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
 DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
 DIM SHARED combat_round AS INTEGER   ' current D&D combat round (shown on the combat panel)
+' Kept combat context so any board redraw (a dice-roll's cleanup, etc.) can repaint the combat
+' panel -- it stays CONSTANT during a fight instead of vanishing behind rolls and banners.
+DIM SHARED combat_active AS INTEGER  ' TRUE only while DoCombatDnD is running
+DIM SHARED combat_rm AS INTEGER
+DIM SHARED combat_mon AS STRING
+DIM SHARED combat_lead AS STRING
 DIM SHARED bnr_l2 AS STRING, bnr_bx1 AS INTEGER, bnr_bx2 AS INTEGER   ' last Banner's prompt line + box, for the keypress flash
 ' -- status effects from curio traps (tick down as turns pass; shown in the HUD) --
 DIM SHARED poison_turns AS INTEGER   ' poison darts: -1 HP per turn (damage over time)
