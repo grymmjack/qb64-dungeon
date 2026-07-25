@@ -18,8 +18,19 @@ CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter 
 CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
 CONST WANDER_GOLD_DIV = 6         ' wandering-monster gold = level treasure / this (lean -- no farming)
 CONST XP_PER_KILL_LVL = 10        ' XP per slain monster = its dungeon level * this (+ boss bonus)
-CONST CHEST_PCT = 20              ' % chance a curio chest appears after a room fight
-CONST CHEST_TRAP_PCT = 25         ' % chance a curio chest is trapped
+CONST CHEST_PCT = 20              ' % chance a curio turns up after a room fight
+CONST CHEST_TRAP_PCT = 25         ' % chance a curio CHEST is trapped
+CONST CURIO_PATH_PCT = 3          ' % chance per explored corridor step that a curio turns up
+CONST CURIO_COOLDOWN = 16         ' minimum steps between path curios (anti-spam)
+TYPE CURIO_T
+    kind AS STRING * 12           ' the mechanic (dispatched in code)
+    nm AS STRING * 24             ' display name
+    weight AS INTEGER             ' relative spawn frequency
+    prompt AS STRING * 96         ' the discovery line
+END TYPE
+DIM SHARED CURIOS(1 TO 40) AS CURIO_T
+DIM SHARED NCURIO AS INTEGER
+DIM SHARED curio_cool AS INTEGER  ' steps since the last path curio (counts down)
 CONST SIREN_ENCOUNTER_BOOST = 20  ' + to the wandering-encounter % while a magic siren wails
 CONST SIREN_MOVE_PCT = 15         ' % chance each step (while a siren wails) to draw an encounter
 CONST FLEE_FAIL_BASE = 15         ' % chance a flee attempt fails (monster drags you back) on level 1

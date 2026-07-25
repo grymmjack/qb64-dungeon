@@ -74,6 +74,7 @@ InitDice
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
+LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
@@ -149,6 +150,7 @@ FUNCTION PlayGame%
         LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
         StartTurnMove                    ' set turn 1's move budget (roll 1d6 / up-to-5 / free)
         loiter = 0                       ' fresh danger meter for lingering
+        curio_cool = 0                   ' path curios may start turning up right away
         FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
         lvl_reached(1) = TRUE            ' you start on the 1st level
         char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
@@ -273,6 +275,13 @@ FUNCTION PlayGame%
                     IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
                     loiter = 0                     ' moving on resets the lingering danger meter
+                    ' out on the paths, a curio rarely turns up (D&D mode, corridors only, cooldown-gated)
+                    IF curio_cool > 0 THEN curio_cool = curio_cool - 1
+                    IF NOT opt_oldschool AND curio_cool <= 0 THEN
+                        IF ROOMAT(c.x \ CW, c.y \ CH) = 0 THEN     ' on a corridor, not inside a room
+                            IF RollDie(100) <= CURIO_PATH_PCT THEN curio_cool = CURIO_COOLDOWN: DoCurio 0
+                        END IF
+                    END IF
                     TickStatus                     ' poison/fire bite, siren winds down as a turn passes
                     IF siren_turns > 0 THEN         ' a wailing siren drags monsters to you as you move
                         IF RollDie(100) <= SIREN_MOVE_PCT THEN WanderEncounter
@@ -1065,7 +1074,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
         END IF
         ' Curio chests spring HP-damaging traps and drop healing potions -- neither exists
         ' in Dungeon!, so they're a D&D-mode feature only.
-        IF NOT opt_oldschool THEN CurioChest rm     ' a curio chest may reveal itself after the fight
+        IF NOT opt_oldschool AND RollDie(100) <= CHEST_PCT THEN DoCurio rm   ' a curio may turn up after the fight
     END IF
 END SUB
 
