@@ -775,7 +775,12 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     _DEST CANVAS
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
-    COLOR YELLOWU, BOXBG: PrintCentered by + 1, lead + " blocks your path!"
+    COLOR YELLOWU, BOXBG
+    IF combat_round > 1 THEN                      ' between rounds -- the fight is on-going; prompt to act again
+        PrintCentered by + 1, "You still face " + LCASE$(LEFT$(_TRIM$(lead), 1)) + MID$(_TRIM$(lead), 2) + " -- choose your action!"
+    ELSE                                          ' first look -- the encounter opens
+        PrintCentered by + 1, _TRIM$(lead) + " blocks your path!"
+    END IF
     COLOR CYANU, BOXBG: _PRINTSTRING ((bx + 2) * CW, (by + 1) * CH), "LEVEL" + STR$(ROOMS(rm).sec)
     COLOR REDU, BOXBG: _PRINTSTRING ((bx + bw - 12) * CW, (by + 1) * CH), "ROUND:" + STR$(combat_round)
     COLOR REDU, BOXBG
