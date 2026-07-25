@@ -89,8 +89,18 @@ SUB dice3d_run_loop (cfg AS DICE3D_CONFIG)
         IF _KEYDOWN(27) THEN EXIT DO
         IF TIMER - t0 > cfg.MAX_ROLL_SECS THEN EXIT DO
     LOOP UNTIL done
-    FOR i = lo TO hi: dice3d_read_value DICE3D_DICE(i): NEXT '   guarantee values
-    IF DICE3D_UPRIGHT THEN dice3d_showcase cfg '  turn each die to show its result upright
+    ' Decide each die's RESULT. Reading the face the physics happened to leave pointing
+    ' up is NOT uniform -- the start orientation (dice3d_qrandom samples an axis from a
+    ' CUBE, not a sphere) and the settle both skew it, and a calmer tumble makes the skew
+    ' worse. So for a fair GAME die, draw a uniform value and pose the die to SHOW it
+    ' (dice3d_showcase). Fall back to the honest-physics read only when UPRIGHT is off
+    ' (we aren't going to reorient the die anyway).
+    IF DICE3D_UPRIGHT THEN
+        FOR i = lo TO hi: DICE3D_DICE(i).VALUE = dice3d_rollval%(DICE3D_DICE(i).SIDES): NEXT
+        dice3d_showcase cfg '                       slerp each die to show its rolled value, upright
+    ELSE
+        FOR i = lo TO hi: dice3d_read_value DICE3D_DICE(i): NEXT '   honest physics: the face that landed up
+    END IF
 END SUB
 
 '==============================================================================
