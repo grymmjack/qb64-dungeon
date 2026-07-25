@@ -38,7 +38,7 @@ SUB dice3d_render_die_hw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
     IF di.FADE <= 0 THEN EXIT SUB
     IF DICE3D_HWATLAS = 0 THEN EXIT SUB
     DIM AS INTEGER i, t, a, b, cc, j, ti
-    DIM AS SINGLE cosT, sinT, cosY, sinY, xx, yy, zz, gx, gy, gz
+    DIM AS SINGLE cosT, sinT, cosY, sinY, xx, yy, zz, gx, gy, gz, ds
     DIM rv AS DICE3D_VEC3
     REDIM AS SINGLE X(0 TO DICE3D_NV - 1), Y(0 TO DICE3D_NV - 1), Z(0 TO DICE3D_NV - 1), VZ(0 TO DICE3D_NV - 1)
     cosT = COS(cfg.CAM_TILT * 0.0174532925): sinT = SIN(cfg.CAM_TILT * 0.0174532925)
@@ -46,13 +46,17 @@ SUB dice3d_render_die_hw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
     gx = DICE3D_HW_CX + (di.PX - cfg.BOX_W * 0.5) * DICE3D_HW_PXK
     gy = DICE3D_HW_CY - (di.PY - di.PZ - cfg.BOX_H * 0.5) * DICE3D_HW_PXK
     gz = DICE3D_HW_Z
+    ' A dropped die fades via di.FADE, but _SETALPHA is invalid on a hardware (GL) texture
+    ' -- so shrink the die toward its centre as it "fades" instead. Full size at FADE = 1.
+    ds = DICE3D_HW_S
+    IF di.FADE < 1 THEN ds = DICE3D_HW_S * di.FADE
     FOR i = 0 TO DICE3D_NV - 1
         dice3d_qrot di.Q, DICE3D_MV(i), rv
         xx = rv.X * cosY + rv.Z * sinY
         zz = -rv.X * sinY + rv.Z * cosY
         yy = rv.Y * cosT + zz * sinT
         zz = zz * cosT - rv.Y * sinT
-        X(i) = gx + xx * DICE3D_HW_S: Y(i) = gy + yy * DICE3D_HW_S: Z(i) = gz + zz * DICE3D_HW_S
+        X(i) = gx + xx * ds: Y(i) = gy + yy * ds: Z(i) = gz + zz * ds
         VZ(i) = zz
     NEXT
     REDIM AS INTEGER ord(0 TO DICE3D_NT - 1)
@@ -66,13 +70,11 @@ SUB dice3d_render_die_hw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
         LOOP
         ord(j + 1) = ti
     NEXT
-    IF di.FADE < 1 THEN _SETALPHA INT(di.FADE * 255), , DICE3D_HWATLAS
     FOR i = 0 TO DICE3D_NT - 1
         t = ord(i)
         a = DICE3D_TA(t): b = DICE3D_TB(t): cc = DICE3D_TC(t)
         _MAPTRIANGLE (DICE3D_TUX(t, 0), DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1), DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2), DICE3D_TUY(t, 2)), DICE3D_HWATLAS TO(X(a), Y(a), Z(a))-(X(b), Y(b), Z(b))-(X(cc), Y(cc), Z(cc)), , _SMOOTH
     NEXT
-    IF di.FADE < 1 THEN _SETALPHA 255, , DICE3D_HWATLAS
 END SUB
 
 
