@@ -197,3 +197,49 @@ SUB DrawCurioArt (kd AS STRING, caption AS STRING)
     IF LEN(p) = 0 THEN EXIT SUB
     CombatArtBox p, 1, 18, 4, 12, "-= " + _TRIM$(caption) + " =-", YELLOWU
 END SUB
+
+' Path to a NAMED room's location scene (assets/pixel-art/rooms), by its flavor key.
+' All 13 named rooms map 1:1 to a room sprite. "" if none / art absent.
+FUNCTION SpecialSprite$ (ky AS STRING)
+    DIM k AS STRING, nm AS STRING, p AS STRING
+    k = UCASE$(_TRIM$(ky))
+    SELECT CASE k
+        CASE "MAIN GALLERY": nm = "main-gallery"
+        CASE "ARMORY": nm = "armory"
+        CASE "THE CRYPT": nm = "the-crypt"
+        CASE "WIZ'S LAB": nm = "wizards-lab"
+        CASE "WIZ'S TREASURE": nm = "wizards-treasure"
+        CASE "KITCHEN": nm = "kitchen"
+        CASE "GUARD ROOM": nm = "barracks"
+        CASE "STORE ROOM": nm = "stone-room"
+        CASE "TORTURE CHAMBER": nm = "torture-chamber"
+        CASE "QUEEN'S ANNEX": nm = "queens-armor"
+        CASE "QUEEN'S TREASURE": nm = "queens-treasure"
+        CASE "KING'S LIBRARY": nm = "kings-library"
+        CASE "KING'S TREASURE": nm = "kings-treasure"
+        CASE ELSE: nm = ""
+    END SELECT
+    IF nm = "" THEN SpecialSprite$ = "": EXIT FUNCTION
+    p = "assets/pixel-art/rooms/" + nm + ".png"
+    IF _FILEEXISTS(p) THEN SpecialSprite$ = p ELSE SpecialSprite$ = ""
+END FUNCTION
+
+' Named-room flavor crawl WITH an establishing shot: frame the location art centred
+' above the ScrollText window (rows 1-11, which the crawl box at rows 12-38 never
+' repaints, so it persists through the whole typewriter). Falls back to a plain crawl
+' when art is off or the sprite is missing -- the words always show either way.
+SUB ScrollTextArt (title AS STRING, body AS STRING, sprPath AS STRING)
+    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
+    IF opt_artstyle > 0 AND LEN(sprPath) > 0 THEN
+        IF _FILEEXISTS(sprPath) THEN
+            bw = 30 * CW: bh = 10 * CH
+            bx = (SW * CW - bw) \ 2: by = 1 * CH
+            _DEST CANVAS
+            LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
+            LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), CYANU, B
+            DIM drew AS INTEGER
+            drew = DrawSpriteFit%(sprPath, bx, by, bw, bh)
+        END IF
+    END IF
+    ScrollText title, body
+END SUB

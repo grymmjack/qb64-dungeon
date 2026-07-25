@@ -146,6 +146,7 @@ SUB RandomizeRooms
         ROOMS(key_room).treasure_item = 6        ' 6 = Level Key (see ClaimTreasure)
         ROOMS(key_room).treasure_name = "THE LEVEL KEY"
     END IF
+    BindSpecialRooms                             ' tie each named-room label to its nearest detected room (flavor crawl + art)
 END SUB
 
 
