@@ -85,7 +85,11 @@ CONST DICE3D_SS = 2          ' (settings preview only) supersample the static pr
 CONST DICE3D_HW_ZBASE = -5.0
 CONST DICE3D_HW_PXPERUNIT = 103.0
 
-FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS STRING)
+' droplow > 0 rolls N dice but keeps the top (N - droplow) -- e.g. Show3DRoll(4,6,0,1,..)
+' is the classic 4d6-drop-lowest ability roll. The DICE3D module owns the mechanic: we
+' just build the "4d6dl1" notation, and it animates all four, fades the lowest, and
+' totals the kept three (dice3d_total%). droplow = 0 is an ordinary NdS roll.
+FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
     DIM AS INTEGER tw, th, tx, ty, hf, hbw, hbx
     DIM pxk AS SINGLE
@@ -156,25 +160,33 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS 
     _DISPLAY
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
+    IF droplow > 0 THEN notation = notation + "dl" + _TRIM$(STR$(droplow))   ' e.g. 4d6dl1
     dice3d_roll notation, cfg, r()                 ' animates on the GL layer, returns settled
     IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"
 
     ' Show the roll as a sum under the tray (like the 2D dice: "3 + 3 = 6"), which
     ' persists. The modifier rides along as one more addend -- "3 + 3 + 2  =  8" for
     ' 2d6+2, "17 + 5  =  22" for 1d20+5 -- so the player sees their bonus applied.
-    DIM res AS STRING, ri AS INTEGER, rrow AS INTEGER
-    res = ""
+    DIM res AS STRING, ri AS INTEGER, rrow AS INTEGER, dropstr AS STRING, kept AS INTEGER
+    res = "": dropstr = "": kept = 0
     FOR ri = 1 TO dice3d_count%
-        IF ri > 1 THEN res = res + " + "
-        res = res + _TRIM$(STR$(dice3d_value%(ri)))
+        IF dice3d_dropped%(ri) THEN                  ' a 4d6-drop-lowest die that didn't count
+            IF LEN(dropstr) > 0 THEN dropstr = dropstr + " "
+            dropstr = dropstr + _TRIM$(STR$(dice3d_value%(ri)))
+        ELSE
+            IF LEN(res) > 0 THEN res = res + " + "
+            res = res + _TRIM$(STR$(dice3d_value%(ri)))
+            kept = kept + 1
+        END IF
     NEXT
     IF bonus > 0 THEN res = res + " + " + _TRIM$(STR$(bonus))
     IF bonus < 0 THEN res = res + " - " + _TRIM$(STR$(-bonus))
-    IF dice3d_count% > 1 OR bonus <> 0 THEN
+    IF kept > 1 OR bonus <> 0 OR LEN(dropstr) > 0 THEN
         res = res + "  =  " + _TRIM$(STR$(dice3d_total% + bonus))
     ELSE
         res = "=  " + res + "  ="                    ' a lone die, no bonus: just frame the number
     END IF
+    IF LEN(dropstr) > 0 THEN res = res + "   (drop " + dropstr + ")"
     rrow = (ty + th) \ CH
     _DEST CANVAS: _FONT CH
     LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxviolet, BF
