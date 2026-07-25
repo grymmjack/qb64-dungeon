@@ -1206,6 +1206,8 @@ SUB Sfx (kind AS STRING)
         CASE "fizzle": Tone 1000, 0.03: Tone 1300, 0.03: Tone 800, 0.03: Tone 1100, 0.03: Tone 700, 0.06   ' frost -- crackle
         CASE "alarm": Tone 800, 0.1: Tone 1050, 0.1: Tone 800, 0.1: Tone 1050, 0.16   ' siren -- wail
         CASE "select": Tone 220, 0.06
+        CASE "diceroll": Tone 260, 0.02: Tone 330, 0.02: Tone 240, 0.02: Tone 300, 0.03   ' dice thrown -- a quick rattle
+        CASE "diceland": Tone 380, 0.03: Tone 210, 0.06                                    ' dice come to rest -- a click/thud
     END SELECT
 END SUB
 

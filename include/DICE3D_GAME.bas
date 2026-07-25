@@ -52,14 +52,14 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DIM AS INTEGER dbw, dbh, dbx, dby, dds, hf, smoothed
     REDIM r(1 TO 1) AS INTEGER
 
-    ' The AA'd dice live on CANVAS, which is nearest-scaled to fullscreen when Pixel
-    ' Smoothing is off -- re-jaggying them. Force bilinear fullscreen just for the roll,
-    ' then restore, so the tumbling dice are smooth without softening the ANSI art the
-    ' rest of the time.
+    ' The AA'd dice live on CANVAS; _SQUAREPIXELS (crisp) upscales it nearest-neighbour,
+    ' which re-jaggies them (integer scaling ignores the smooth flag). Switch to a
+    ' bilinear STRETCH just for the roll -- that genuinely smooths the upscale -- then
+    ' ApplyDisplay restores the player's crisp mode, so the ANSI art stays crisp the rest
+    ' of the time. (The board stretches slightly to fill during the roll; the dice are the
+    ' focus, and they come out smooth.)
     smoothed = FALSE
-    IF opt_fullscreen THEN
-        IF NOT opt_smooth THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH: smoothed = -1
-    END IF
+    IF opt_fullscreen THEN _FULLSCREEN _STRETCH, _SMOOTH: smoothed = -1
 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
@@ -91,6 +91,14 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DICE3D_SSDIV = DICE3D_SS
     DICE3D_UPRIGHT = -1                             ' turn each die to show its result upright + readable
 
+    ' Sound: a throw rattle now; per-bounce clacks + a settle thud come from optional
+    ' files (assets/sfx/dice_edge.*, dice_settle.*) via the module's SND hooks. Without
+    ' those files we still play a 'landed' click after the dice settle (see below).
+    cfg.SOUND_ENABLED = opt_sfx
+    cfg.SND_EDGE_H = SfxHandle("dice_edge")
+    cfg.SND_SETTLE_H = SfxHandle("dice_settle")
+    Sfx "diceroll"
+
     ' The "roll box": a framed header above the tray (the box the font dice used to show).
     _DEST CANVAS: _FONT CH
     LINE (dbx, 11 * CH)-(dbx + dbw, 14 * CH), BOXBG, BF
@@ -100,6 +108,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     dice3d_roll notation, cfg, r()                 ' animates in the box, returns when settled
+    IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"   ' 'landed' click if no settle-sound file
 
     ' Hold the settled dice a readable beat so back-to-back rolls (to-hit -> damage ->
     ' the monster's swing) don't blur together. Any key skips it.
