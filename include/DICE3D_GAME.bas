@@ -9,6 +9,38 @@ $INCLUDEONCE
 ' (the purple/green crystal set); a separate assets/data/diceset-monster.txt overrides
 ' the monster set if present. dice3d_ready gates 3D -- a missing/bad set falls back to
 ' the font dice so the game never breaks.
+' Load the dice-numeral fonts listed in assets/fonts/dicefonts.txt (name | file | size).
+' Entry 1 is always a built-in "Default" (handle 0). Others _LOADFONT their file.
+SUB LoadDiceFonts
+    DIM i AS INTEGER, fn AS STRING, px AS INTEGER
+    DICEFONT_N = 0
+    ReadDataFile "assets/fonts/dicefonts.txt"
+    FOR i = 1 TO DLINE_N
+        IF DICEFONT_N < UBOUND(DICEFONT_NAME) THEN
+            DICEFONT_N = DICEFONT_N + 1
+            DICEFONT_NAME(DICEFONT_N) = DField$(DLINE(i), 1)
+            fn = DField$(DLINE(i), 2): px = VAL(DField$(DLINE(i), 3))
+            DICEFONT_PX(DICEFONT_N) = px
+            DICEFONT_H(DICEFONT_N) = 0
+            IF fn <> "-" AND px > 0 THEN
+                IF _FILEEXISTS("assets/fonts/" + fn) THEN DICEFONT_H(DICEFONT_N) = _LOADFONT("assets/fonts/" + fn, px)
+            END IF
+        END IF
+    NEXT i
+    IF DICEFONT_N = 0 THEN
+        DICEFONT_N = 1: DICEFONT_NAME(1) = "Default": DICEFONT_H(1) = 0: DICEFONT_PX(1) = 0
+    END IF
+    IF opt_dicefont < 1 OR opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
+END SUB
+
+' Apply the selected numeral font (handle + size) to a config before its atlas is baked.
+SUB SetDiceFont (cfg AS DICE3D_CONFIG)
+    IF opt_dicefont >= 1 AND opt_dicefont <= DICEFONT_N THEN
+        cfg.FONT_HANDLE = DICEFONT_H(opt_dicefont)
+        IF DICEFONT_PX(opt_dicefont) > 0 THEN cfg.FONT_PX = DICEFONT_PX(opt_dicefont)
+    END IF
+END SUB
+
 ' Read the dice-set manifest (assets/data/dicesets.txt): each line "display name | file".
 SUB LoadDiceManifest
     DIM i AS INTEGER
@@ -102,6 +134,8 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     cfg.SND_EDGE_H = SfxHandle("dice_edge")
     cfg.SND_SETTLE_H = SfxHandle("dice_settle")
     IF opt_sfx THEN DICE3D_SND_VOL = opt_sfxvol / 10 ELSE DICE3D_SND_VOL = 0
+    DICE3D_ATLAS_DIE = 96                           ' bake a hi-res atlas so the numerals stay sharp
+    SetDiceFont cfg                                 ' apply the chosen dice numeral font
     Sfx "diceroll"
 
     ' Draw the framed header (caption-width) + a compact tray on CANVAS (crisp); GL dice over.
@@ -142,9 +176,9 @@ SUB Build3DPreviews
     Free3DPreviews
     IF NOT dice3d_ready THEN EXIT SUB
     dice3d_build 20
-    pc = DSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96
+    pc = DSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_P = _COPYIMAGE(a, 33): _FREEIMAGE a
-    pc = MSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96
+    pc = MSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_M = _COPYIMAGE(a, 33): _FREEIMAGE a
     REDIM DICE3D_DICE(0 TO 0) AS DICE3D_DIE
     DICE3D_DICE(0).SIDES = 20: DICE3D_DICE(0).FADE = 1: DICE3D_DICE(0).VALUE = 20

@@ -319,6 +319,7 @@ SUB SaveSettings
     PRINT #f, "mondice3d " + _TRIM$(STR$(opt_mon_dice3d))
     PRINT #f, "dice3dset " + _TRIM$(STR$(opt_dice3d_set))
     PRINT #f, "mondice3dset " + _TRIM$(STR$(opt_mon_dice3d_set))
+    PRINT #f, "dicefont " + _TRIM$(STR$(opt_dicefont))
     CLOSE #f
 END SUB
 
@@ -368,6 +369,7 @@ SUB LoadSettings
                 CASE "mondice3d": opt_mon_dice3d = v
                 CASE "dice3dset": opt_dice3d_set = v
                 CASE "mondice3dset": opt_mon_dice3d_set = v
+                CASE "dicefont": opt_dicefont = v
             END SELECT
         END IF
     LOOP

@@ -274,7 +274,10 @@ SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
     DICE3D_FRAME = 0
     DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
     dice3d_build sides
+    DIM adie AS SINGLE: adie = cfg.DIE_SIZE
+    IF DICE3D_ATLAS_DIE > 0 THEN cfg.DIE_SIZE = DICE3D_ATLAS_DIE   ' bake a hi-res atlas (numbers stay sharp)
     atlas = dice3d_make_atlas&(cfg, cfg.BODY_KOLOR, 0)
+    cfg.DIE_SIZE = adie                                            ' restore for physics + render scale
 
     r = cfg.DIE_SIZE * 1.3
     REDIM DICE3D_DICE(0 TO cnt - 1) AS DICE3D_DIE

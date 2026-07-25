@@ -60,6 +60,7 @@ opt_mon_dicecolor = 1                         ' monster dice default to a menaci
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
 opt_dice3d = FALSE: opt_mon_dice3d = FALSE    ' dice render: FALSE = font/pip dice (default), TRUE = 3D dice
 opt_dice3d_set = 5: opt_mon_dice3d_set = 1    ' default 3D sets: player Sapphire, monster Ruby (overridden by save)
+opt_dicefont = 1                              ' default dice numeral font: built-in (overridden by save)
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 1   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
@@ -77,6 +78,7 @@ InitCombatText                   ' load per-monster + per-class combat event tex
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
 InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/*); beeper covers the rest
 LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
+LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (assets/fonts/dicefonts.txt)
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 

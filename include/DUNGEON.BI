@@ -290,6 +290,7 @@ DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INT
 DIM SHARED opt_dice3d AS INTEGER, opt_mon_dice3d AS INTEGER, sav_dice3d AS INTEGER, dice3d_use_mon AS INTEGER
 ' which set (1-based index into the dicesets.txt manifest) the player / monster roll
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER
+DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled (no dice shimmer)
 DIM SHARED opt_combatspeed AS INTEGER ' (legacy, kept for save compat) -- superseded by opt_msgdelay
 DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key

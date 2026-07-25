@@ -490,7 +490,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 33
+    CONST NSET = 34
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -563,6 +563,11 @@ SUB RunSettings
                     IF opt_mon_dice3d_set < 1 THEN opt_mon_dice3d_set = DSET_COUNT
                     IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
                     LoadDiceSets: Build3DPreviews: Sfx "select"
+                CASE 33
+                    opt_dicefont = opt_dicefont + delta
+                    IF opt_dicefont < 1 THEN opt_dicefont = DICEFONT_N
+                    IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
+                    Build3DPreviews: Sfx "select"
             END SELECT
         END IF
 
@@ -623,7 +628,11 @@ SUB RunSettings
                     opt_mon_dice3d_set = opt_mon_dice3d_set + 1
                     IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
                     LoadDiceSets: Build3DPreviews
-                CASE 33: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 33
+                    opt_dicefont = opt_dicefont + 1
+                    IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
+                    Build3DPreviews
+                CASE 34: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -726,6 +735,9 @@ SUB RunSettings
                 CASE 32
                     lbl = "  Monster 3D Set": slider = TRUE
                     IF opt_mon_dice3d_set >= 1 AND opt_mon_dice3d_set <= DSET_COUNT THEN vtxt = _TRIM$(DSET_NAME(opt_mon_dice3d_set)) ELSE vtxt = "-"
+                CASE 33
+                    lbl = "  Dice Font": slider = TRUE
+                    IF opt_dicefont >= 1 AND opt_dicefont <= DICEFONT_N THEN vtxt = _TRIM$(DICEFONT_NAME(opt_dicefont)) ELSE vtxt = "-"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

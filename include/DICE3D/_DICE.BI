@@ -119,6 +119,11 @@ DIM SHARED DICE3D_HW_PXK AS SINGLE  ' GPU units per box-pixel (maps die scatter 
 '    the physics plays built-in tone beeps/boops at this volume (0..1). 0 = silent fallback.
 DIM SHARED DICE3D_SND_VOL AS SINGLE
 
+'--- Optional atlas resolution override: bake the face texture at this DIE_SIZE (px) even
+'    if the die renders smaller (e.g. hardware dice render small but want a crisp hi-res
+'    atlas so numbers stay sharp). 0 = bake at the config's DIE_SIZE.
+DIM SHARED DICE3D_ATLAS_DIE AS SINGLE
+
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames
 DIM SHARED DICE3D_SHOT_DIR AS STRING
