@@ -1075,6 +1075,10 @@ SUB DrawHUD
         COLOR GREENU, BLACK
         _PRINTSTRING ((SW - 23) * CW, 50 * CH), "RETURN TO START TO WIN!"
     END IF
+    ' Keep the combat panel constant through a fight: every roll's cleanup ends with a
+    ' DrawHUD, so repainting the panel here means it never vanishes behind a dice roll or
+    ' a result banner (the HUD line is row 50, the panel rows 39-49 -- no overlap).
+    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead
 END SUB
 
 
