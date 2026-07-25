@@ -127,13 +127,13 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
         COLOR CYANU, BLACK
         PrintCentered 26, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
         COLOR GREY, BLACK: PrintCentered 28, CombatDerivation$(pc)   ' where those bonuses come from
-        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll hero     [N] new name     [ENTER] keep this one"
+        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll     [N] new name     [ENTER] keep this one     [ESC] back to menu"
     ELSE
         COLOR CYANU, BLACK
         IF rolled < 6 THEN
-            PrintCentered 44, "[ press a key ] roll " + nm(rolled + 1) + "        [A] auto-roll the rest        [N] new name"
+            PrintCentered 44, "[ press a key ] roll " + nm(rolled + 1) + "      [A] auto-roll the rest      [N] new name      [ESC] back"
         ELSE
-            PrintCentered 44, "[ press a key ] roll your HIT POINTS        [A] auto"
+            PrintCentered 44, "[ press a key ] roll your HIT POINTS      [A] auto      [ESC] back"
         END IF
     END IF
     _DISPLAY
@@ -144,19 +144,24 @@ END SUB
 ' class hit die, derive the D&D combat stats, and let the player re-roll.
 ' Honours Real Dice (each 3d6 becomes a PromptRoll when that setting is on).
 SUB RollCharacter (pc AS INTEGER)
-    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER
+    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
     IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
+    DICE3D_YOFF = 14                                ' drop the 3D dice tray below the stat sheet so the scores stay visible
+    stay_auto = FALSE                               ' once [A] is pressed it stays on through every re-roll
     DO
-        auto = FALSE
+        auto = stay_auto
         FOR i = 1 TO 6
             DrawCharGen pc, sc(), i - 1, 0             ' show sheet + the prompt to roll this ability
             IF NOT auto THEN                           ' the player presses a key to roll each stat...
                 DO
                     _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
                     IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), i - 1, 0: k = ""
+                    IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' one ESC aborts back to the menu
                 LOOP UNTIL k <> ""
-                IF k = "A" THEN auto = -1: Sfx "select"  ' ...or [A] to auto-roll the rest
+                IF k = "A" THEN auto = -1: stay_auto = -1: Sfx "select"  ' ...or [A] to auto-roll the rest (and every re-roll after)
+            ELSE
+                IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB  ' ESC bails out mid auto-roll too
             END IF
             sc(i) = RollAbility                        ' 3d6 or 4d6-drop-low per the Stat-Roll setting
         NEXT i
@@ -168,7 +173,10 @@ SUB RollCharacter (pc AS INTEGER)
             DO
                 _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
                 IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, 0: k = ""
+                IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
             LOOP UNTIL k <> ""
+        ELSE
+            IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
         END IF
         hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
         player_maxhp = hproll + 3 * AbilMod(player_con)
@@ -184,9 +192,11 @@ SUB RollCharacter (pc AS INTEGER)
         DO
             _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
             IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, -1: k = ""
+            IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' ESC from the final prompt bails too
         LOOP UNTIL k = "R" OR k = CHR$(13)
         Sfx "select"
     LOOP UNTIL k = CHR$(13)
+    DICE3D_YOFF = 0                                ' restore the normal dice position for combat / movement
 END SUB
 
 

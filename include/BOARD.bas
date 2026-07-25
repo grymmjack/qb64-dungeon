@@ -3,17 +3,20 @@
 ' ============================================================================
 
 SUB DoSearch
-    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER
+    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER, thresh AS INTEGER
     DIM found_any AS INTEGER, near_hidden AS INTEGER
     ccx = c.x \ CW: ccy = c.y \ CH
-    roll = DoRoll(1, CLASSES(player_class).secret_bonus, "SEARCHING for secret doors")
-    IF item_secret_card THEN roll = 99          ' the Secret Door Card never fails
+    ' DUNGEON! convention: roll LOW to find a secret door -- Hero on 1-2, Elf on 1-4
+    ' (double odds), Wizard on 1-3. secret_bonus widens the winning band by that much.
+    roll = DoRoll(1, 0, "SEARCHING for secret doors")   ' a raw d6, shown honestly
+    thresh = 2 + CLASSES(player_class).secret_bonus
+    IF item_secret_card THEN thresh = 6          ' the Secret Door Card never fails (any roll finds)
     found_any = FALSE: near_hidden = FALSE
     FOR i = 1 TO SD_N
         IF NOT SD_FOUND(i) THEN
             IF ABS(SD_X(i) - ccx) <= 2 AND ABS(SD_Y(i) - ccy) <= 2 THEN
                 near_hidden = TRUE
-                IF roll >= 5 THEN
+                IF roll <= thresh THEN
                     SD_FOUND(i) = TRUE
                     RevealRegionFromDoor i    ' reveal door + the area it connects to
                     found_any = TRUE

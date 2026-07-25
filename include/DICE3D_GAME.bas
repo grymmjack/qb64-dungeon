@@ -120,7 +120,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     IF tw > SW * CW - 40 THEN tw = SW * CW - 40
     th = 132
     tx = (SW * CW - tw) \ 2
-    ty = 12 * CH
+    ty = (12 + DICE3D_YOFF) * CH                    ' DICE3D_YOFF shifts the whole tray down (char-gen clears the stat sheet)
     cfg.BOX_W = tw: cfg.BOX_H = th                 ' physics tray (box pixels == screen pixels)
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
@@ -152,11 +152,11 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     ' Draw the framed royal-purple header (caption-width) + the roomy tray on CANVAS (crisp).
     _DEST CANVAS: _FONT CH
-    LINE (hbx, 9 * CH)-(hbx + hbw, 12 * CH), boxviolet, BF
-    LINE (hbx, 9 * CH)-(hbx + hbw, 12 * CH), boxedge, B
+    LINE (hbx, (9 + DICE3D_YOFF) * CH)-(hbx + hbw, (12 + DICE3D_YOFF) * CH), boxviolet, BF
+    LINE (hbx, (9 + DICE3D_YOFF) * CH)-(hbx + hbw, (12 + DICE3D_YOFF) * CH), boxedge, B
     LINE (tx, ty)-(tx + tw, ty + th), boxviolet, BF
     LINE (tx, ty)-(tx + tw, ty + th), boxedge, B
-    COLOR YELLOWU, boxviolet: PrintCentered 10, hdr
+    COLOR YELLOWU, boxviolet: PrintCentered 10 + DICE3D_YOFF, hdr
     _DISPLAY
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
