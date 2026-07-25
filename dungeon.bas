@@ -53,6 +53,7 @@ opt_dicesolid = TRUE                          ' filled die body with a contrasti
 opt_d6pips = FALSE                            ' d6 rolls use the font's numbered die (on = hand-drawn pips)
 opt_dicespeed = 0                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
 opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
+opt_artstyle = 2                              ' default: Hybrid -- ANSI board + pixel-art portraits where they exist
 opt_combatspeed = 0                           ' (legacy) superseded by opt_msgdelay
 opt_msgdelay = 2                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
 opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
@@ -833,6 +834,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     ELSE
         PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     END IF
+    DrawMonsterArt mon                          ' pixel-art portrait above the panel (Hybrid/Pixel modes, if the sprite exists)
     _DISPLAY
 END SUB
 
@@ -1415,6 +1417,7 @@ END SUB
 '$INCLUDE:'include/PLAYERS.bas'
 '$INCLUDE:'include/EFFECTS.bas'
 '$INCLUDE:'include/CURIO.bas'
+'$INCLUDE:'include/SPRITES.bas'
 '$INCLUDE:'include/STATS.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'

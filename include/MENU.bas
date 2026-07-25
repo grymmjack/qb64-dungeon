@@ -523,7 +523,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 35
+    CONST NSET = 36
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -666,7 +666,9 @@ SUB RunSettings
                     IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
                     Build3DPreviews
                 CASE 34: opt_movedice = NOT opt_movedice
-                CASE 35: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 35
+                    opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
+                CASE 36: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -775,6 +777,13 @@ SUB RunSettings
                 CASE 34
                     lbl = "Move Style"
                     IF opt_movedice THEN vtxt = "roll 1d6" ELSE vtxt = "up to 5 (Dungeon!)"
+                CASE 35
+                    lbl = "Art Style"
+                    SELECT CASE opt_artstyle
+                        CASE 1: vtxt = "Pixel Art"
+                        CASE 2: vtxt = "Hybrid (ANSI + pixel)"
+                        CASE ELSE: vtxt = "ANSI"
+                    END SELECT
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -870,6 +879,16 @@ SUB ShowCharSheet
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    ' pixel-art class portrait, top-right of the sheet (Hybrid/Pixel modes, if it exists)
+    IF opt_artstyle > 0 THEN
+        DIM csp AS STRING, ddrew AS INTEGER
+        csp = ClassSprite$(player_class)
+        IF LEN(csp) > 0 AND _FILEEXISTS(csp) THEN
+            LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), _RGB32(&H10, &H08, &H10), BF
+            LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), REDU, B
+            ddrew = DrawSpriteFit%(csp, 92 * CW, 5 * CH, 16 * CW, 16 * CH)
+        END IF
+    END IF
     who = _TRIM$(player_name) + " the " + class_name
     IF _TRIM$(player_name) = "" THEN who = class_name
     COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  C H A R A C T E R  =-"
