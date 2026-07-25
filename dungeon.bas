@@ -534,6 +534,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
         Banner "THE GODS FAVOUR THE DESPERATE!", "Fortune lowers the roll you need by " + _TRIM$(STR$(god_favor)) + " this fight.   [ press any key ]"
         WaitKey
     END IF
+    DrawCombatArt mon, sec                          ' pixel-art: monster (left) + location (right); persists behind the centre banner/dice
     Banner lead + whatguards, p2 + HealSuffix$
 
     DO
@@ -834,7 +835,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     ELSE
         PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     END IF
-    DrawMonsterArt mon                          ' pixel-art portrait above the panel (Hybrid/Pixel modes, if the sprite exists)
+    DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
     _DISPLAY
 END SUB
 

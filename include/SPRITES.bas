@@ -86,21 +86,77 @@ FUNCTION ClassSprite$ (pc AS INTEGER)
     IF nm = "" THEN ClassSprite$ = "" ELSE ClassSprite$ = "assets/pixel-art/classes/" + nm + ".png"
 END FUNCTION
 
-' Draw the monster's portrait in a framed box above the combat panel -- pixel-art
-' modes only, and only if the sprite exists (otherwise nothing happens, and the
-' fight looks exactly as it always did).
-SUB DrawMonsterArt (nm AS STRING)
-    DIM p AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
-    IF opt_artstyle = 0 THEN EXIT SUB
-    p = MonsterSprite$(nm)
-    IF LEN(p) = 0 THEN EXIT SUB
-    bw = 176: bh = 176
-    bx = (SW * CW - bw) \ 2
-    by = 26 * CH                                   ' floats above the combat panel (row 39)
+' The short room name for a level -- the part after "LEVEL n - " (e.g.
+' "KING'S QUARTERS"), so a location caption fits its box. Falls back to whole label.
+FUNCTION RoomShortName$ (sec AS INTEGER)
+    DIM s AS STRING, p AS INTEGER
+    IF sec < 1 OR sec > 9 THEN RoomShortName$ = "": EXIT FUNCTION
+    s = _TRIM$(SECTORS(sec).label)
+    p = INSTR(s, " - ")
+    IF p > 0 THEN s = _TRIM$(MID$(s, p + 3))
+    RoomShortName$ = s
+END FUNCTION
+
+' Path to a level's location/scene sprite (assets/pixel-art/rooms). The nine
+' sectors don't name their sprites 1:1, so map each to its closest scene. "" if none.
+FUNCTION LocationSprite$ (sec AS INTEGER)
+    DIM nm AS STRING, p AS STRING
+    SELECT CASE sec
+        CASE 1: nm = "main-gallery"                 ' MAIN GALLERY
+        CASE 2: nm = "barracks"                     ' GUARD ROOM
+        CASE 3: nm = "armory"                       ' ARMORY
+        CASE 4: nm = "stone-room"                   ' STORE ROOM
+        CASE 5: nm = "torture-chamber"              ' TORTURE CHAMBER
+        CASE 6: nm = "kings-treasure"               ' KING'S QUARTERS
+        CASE 7: nm = "wizards-lab"                  ' WIZ'S QUARTERS
+        CASE 8: nm = "queens-treasure"              ' QUEEN'S QUARTERS
+        CASE 9: nm = "the-crypt"                    ' THE CRYPT
+        CASE ELSE: nm = ""
+    END SELECT
+    IF nm = "" THEN LocationSprite$ = "": EXIT FUNCTION
+    p = "assets/pixel-art/rooms/" + nm + ".png"
+    IF _FILEEXISTS(p) THEN LocationSprite$ = p ELSE LocationSprite$ = ""
+END FUNCTION
+
+' Draw one framed art box with a caption bar, anchored to a character-cell rect.
+' Cols/rows are cells; the art is fit inside and the caption centred in a bar just
+' above the frame. Drawn on CANVAS (persists behind the GL dice / banners).
+SUB CombatArtBox (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER, caption AS STRING, edge AS _UNSIGNED LONG)
+    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
+    DIM capx AS INTEGER, capy AS INTEGER, cap AS STRING
+    bx = col * CW: by = row * CH: bw = cols * CW: bh = rows * CH
     _DEST CANVAS
+    ' caption bar: one text row above the frame, same width
+    capy = by - 4 - CH
+    LINE (bx - 4, capy - 2)-(bx + bw + 4, by - 4), BOXBG, BF
+    LINE (bx - 4, capy - 2)-(bx + bw + 4, by - 4), edge, B
+    ' the framed art box
     LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
-    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), REDU, B
-    IF DrawSpriteFit%(p, bx, by, bw, bh) THEN
-        COLOR REDU, BOXBG: PrintCentered (by \ CH) - 1, "-= " + _TRIM$(nm) + " =-"
+    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), edge, B
+    IF DrawSpriteFit%(path, bx, by, bw, bh) THEN
+        cap = caption
+        IF LEN(cap) > cols + 2 THEN cap = LEFT$(cap, cols + 2)   ' never spill the bar
+        capx = bx + (bw - LEN(cap) * CW) \ 2
+        IF capx < bx - 4 THEN capx = bx - 4
+        COLOR edge, BOXBG: _PRINTSTRING (capx, capy), cap
     END IF
+END SUB
+
+' Draw the combat art -- the monster portrait framed top-LEFT and the location
+' scene framed top-RIGHT -- on CANVAS. Positioned clear of the centre dice tray
+' (rows ~9-22), the banner (rows 21-30), the D&D combat panel (rows 39-49) and the
+' HUD (row 50), so it stays painted through a whole fight in BOTH combat modes.
+' Pixel-art modes only; each half is skipped silently if its sprite is absent.
+SUB DrawCombatArt (nm AS STRING, sec AS INTEGER)
+    DIM mp AS STRING, lp AS STRING
+    IF opt_artstyle = 0 THEN EXIT SUB
+    mp = MonsterSprite$(nm)
+    lp = LocationSprite$(sec)
+    IF LEN(mp) > 0 THEN CombatArtBox mp, 1, 18, 4, 12, "-= " + _TRIM$(nm) + " =-", REDU
+    IF LEN(lp) > 0 THEN CombatArtBox lp, SW - 19, 18, 4, 12, RoomShortName$(sec), CYANU
+END SUB
+
+' Back-compat shim: old call sites that only had a monster name.
+SUB DrawMonsterArt (nm AS STRING)
+    DrawCombatArt nm, 0
 END SUB
