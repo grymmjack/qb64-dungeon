@@ -52,14 +52,21 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DIM AS INTEGER dbw, dbh, dbx, dby, dds, hf, smoothed
     REDIM r(1 TO 1) AS INTEGER
 
-    ' The AA'd dice live on CANVAS; _SQUAREPIXELS (crisp) upscales it nearest-neighbour,
-    ' which re-jaggies them (integer scaling ignores the smooth flag). Switch to a
-    ' bilinear STRETCH just for the roll -- that genuinely smooths the upscale -- then
-    ' ApplyDisplay restores the player's crisp mode, so the ANSI art stays crisp the rest
-    ' of the time. (The board stretches slightly to fill during the roll; the dice are the
-    ' focus, and they come out smooth.)
+    ' The AA'd dice live on CANVAS; _SQUAREPIXELS upscales it nearest-neighbour, which
+    ' re-jaggies them. We want a BILINEAR upscale for the roll but WITHOUT the aspect
+    ' stretch. _FULLSCREEN only re-applies the smooth flag when the base mode changes, so
+    ' bump the mode (_STRETCH) then set it straight back to _SQUAREPIXELS,_SMOOTH in the
+    ' same breath -- no frame is shown between, so no visible stretch, but the smoothing
+    ' now takes effect (keeping square pixels / correct aspect). ApplyDisplay restores the
+    ' player's crisp mode after the roll.
     smoothed = FALSE
-    IF opt_fullscreen THEN _FULLSCREEN _STRETCH, _SMOOTH: smoothed = -1
+    IF opt_fullscreen THEN
+        IF NOT opt_smooth THEN
+            _FULLSCREEN _STRETCH, _SMOOTH
+            _FULLSCREEN _SQUAREPIXELS, _SMOOTH
+            smoothed = -1
+        END IF
+    END IF
 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
