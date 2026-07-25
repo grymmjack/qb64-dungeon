@@ -92,6 +92,11 @@ DIM SHARED DICE3D_LAST_SIDES AS INTEGER '  die type rolled (100 = percentile)
 REDIM SHARED DICE3D_LAST_VALUE(0) AS INTEGER '   per-entry value (1-based)
 REDIM SHARED DICE3D_LAST_DROPPED(0) AS INTEGER '  per-entry dropped flag (1-based)
 
+'--- Optional supersample anti-aliasing: render the box buffer at N x the on-screen
+'    size, then smooth-downscale in dice3d_present. 0/1 = off. The caller sizes the
+'    box (BOX_W/H, DIE_SIZE, physics) at N x and sets BOX_X/Y to the on-screen origin.
+DIM SHARED DICE3D_SSDIV AS INTEGER
+
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames
 DIM SHARED DICE3D_SHOT_DIR AS STRING

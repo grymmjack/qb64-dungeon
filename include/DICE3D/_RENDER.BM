@@ -109,7 +109,18 @@ SUB dice3d_present (cfg AS DICE3D_CONFIG)
     NEXT
     IF cfg.BOX_SHOW_OUTLINE THEN LINE (0, 0)-(cfg.BOX_W - 1, cfg.BOX_H - 1), cfg.BOX_OUTLINE_KOLOR, B
     _DEST od
-    _PUTIMAGE (cfg.BOX_X, cfg.BOX_Y), DICE3D_BOXBUF, od
+    IF DICE3D_SSDIV > 1 THEN
+        '--- supersample AA: smooth-downscale the box buffer to 1/SSDIV via two
+        '    textured triangles (bilinear _SMOOTH), instead of a 1:1 nearest blit ---
+        DIM AS INTEGER sw, sh, dw, dh, dx, dy
+        sw = cfg.BOX_W: sh = cfg.BOX_H
+        dw = sw \ DICE3D_SSDIV: dh = sh \ DICE3D_SSDIV
+        dx = cfg.BOX_X: dy = cfg.BOX_Y
+        _MAPTRIANGLE (0, 0)-(0, sh - 1)-(sw - 1, sh - 1), DICE3D_BOXBUF TO(dx, dy)-(dx, dy + dh - 1)-(dx + dw - 1, dy + dh - 1), od, _SMOOTH
+        _MAPTRIANGLE (0, 0)-(sw - 1, sh - 1)-(sw - 1, 0), DICE3D_BOXBUF TO(dx, dy)-(dx + dw - 1, dy + dh - 1)-(dx + dw - 1, dy), od, _SMOOTH
+    ELSE
+        _PUTIMAGE (cfg.BOX_X, cfg.BOX_Y), DICE3D_BOXBUF, od
+    END IF
     _DISPLAY
 
     '--- optional frame capture (off unless DICE3D_SHOT_EVERY > 0) ---
