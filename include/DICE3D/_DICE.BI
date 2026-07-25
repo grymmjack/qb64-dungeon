@@ -115,6 +115,10 @@ DIM SHARED DICE3D_HW_CX AS SINGLE   ' GPU x of the tray centre (0 = screen centr
 DIM SHARED DICE3D_HW_CY AS SINGLE   ' GPU y of the tray centre (0 = screen centre; +up)
 DIM SHARED DICE3D_HW_PXK AS SINGLE  ' GPU units per box-pixel (maps die scatter positions)
 
+'--- Fallback sound: when SOUND_ENABLED but no SND_EDGE_H / SND_SETTLE_H file is given,
+'    the physics plays built-in tone beeps/boops at this volume (0..1). 0 = silent fallback.
+DIM SHARED DICE3D_SND_VOL AS SINGLE
+
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames
 DIM SHARED DICE3D_SHOT_DIR AS STRING

@@ -731,9 +731,9 @@ SUB RunSettings
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        IF opt_dice3d THEN                                      ' 3D dice: show the rendered set previews
-            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P
-            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M
+        IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
+            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M, MSET3D(dice3d_set_index%(20))
         ELSE                                                    ' font dice: the live 2x3 sample grid
             DrawDicePreview 100, " your dice"                   ' player dice on the right
             PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left

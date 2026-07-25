@@ -65,8 +65,14 @@ SUB dice3d_step (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
     IF di.PX > cfg.BOX_W - r THEN di.PX = cfg.BOX_W - r: di.VX = -di.VX * cfg.RESTITUTION: di.HIT_WALL = -1
     IF di.PY < r THEN di.PY = r: di.VY = -di.VY * cfg.RESTITUTION: di.HIT_WALL = -1
     IF di.PY > cfg.BOX_H - r THEN di.PY = cfg.BOX_H - r: di.VY = -di.VY * cfg.RESTITUTION: di.HIT_WALL = -1
-    IF di.HIT_WALL AND cfg.SOUND_ENABLED AND cfg.SND_EDGE_H <> 0 THEN
-        IF ABS(di.VX) + ABS(di.VY) > 1.5 THEN _SNDPLAYCOPY cfg.SND_EDGE_H
+    IF di.HIT_WALL AND cfg.SOUND_ENABLED THEN
+        IF ABS(di.VX) + ABS(di.VY) > 1.5 THEN
+            IF cfg.SND_EDGE_H <> 0 THEN
+                _SNDPLAYCOPY cfg.SND_EDGE_H
+            ELSEIF DICE3D_SND_VOL > 0 THEN
+                SOUND 620 + INT(RND * 660), 0.016, DICE3D_SND_VOL   ' beep! -- a wall-bounce click
+            END IF
+        END IF
     END IF
 
     '--- linear friction (stronger once it's on the floor) ---
@@ -111,7 +117,13 @@ SUB dice3d_step (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
         di.VX = di.VX * 0.8: di.VY = di.VY * 0.8
         IF ang < DICE3D_SETTLE_ANG AND spin < 1.5 AND di.PZ <= 0 THEN
             di.SETTLED = -1
-            IF cfg.SOUND_ENABLED AND cfg.SND_SETTLE_H <> 0 THEN _SNDPLAYCOPY cfg.SND_SETTLE_H
+            IF cfg.SOUND_ENABLED THEN
+                IF cfg.SND_SETTLE_H <> 0 THEN
+                    _SNDPLAYCOPY cfg.SND_SETTLE_H
+                ELSEIF DICE3D_SND_VOL > 0 THEN
+                    SOUND 300, 0.05, DICE3D_SND_VOL: SOUND 175, 0.07, DICE3D_SND_VOL   ' boop -- landed
+                END IF
+            END IF
         END IF
     END IF
 END SUB

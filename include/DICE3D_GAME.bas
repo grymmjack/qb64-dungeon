@@ -55,7 +55,7 @@ CONST DICE3D_HW_PXPERUNIT = 103.0
 
 FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
-    DIM AS INTEGER tw, th, tx, ty, hf
+    DIM AS INTEGER tw, th, tx, ty, hf, hbw, hbx
     DIM pxk AS SINGLE
     REDIM r(1 TO 1) AS INTEGER
 
@@ -69,14 +69,19 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     END IF
 
     ' The tray (a software box on CANVAS) -- the 3D dice render on the GL layer over it.
-    cfg.DIE_SIZE = 40                              ' die radius in box/screen px (~80px die)
-    tw = 150 + n * 90
-    IF tw < (LEN(hdr) + 4) * CW THEN tw = (LEN(hdr) + 4) * CW
+    ' The tray is sized to FIT THE DICE (compact); the header/caption gets its own, wider
+    ' box above it, so a long caption doesn't blow the tray up into a big empty box.
+    cfg.DIE_SIZE = 24                              ' die radius in box/screen px (small, ~font-sized)
+    tw = 96 + n * 58
     IF tw > SW * CW - 40 THEN tw = SW * CW - 40
-    th = 150
+    th = 82
     tx = (SW * CW - tw) \ 2
-    ty = 13 * CH
+    ty = 14 * CH
     cfg.BOX_W = tw: cfg.BOX_H = th                 ' physics tray (box pixels == screen pixels)
+    hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
+    IF hbw < tw THEN hbw = tw
+    IF hbw > SW * CW - 20 THEN hbw = SW * CW - 20
+    hbx = (SW * CW - hbw) \ 2
 
     ' Hardware (OpenGL) present: native-resolution, hardware-filtered = genuinely smooth,
     ' independent of the software-canvas fullscreen scaling.
@@ -90,16 +95,19 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     DICE3D_HW_CY = -((ty + th * 0.5) - SH * CH * 0.5) * pxk   ' shift up to the tray row
     DICE3D_UPRIGHT = -1                            ' show each die's result upright + readable
 
-    ' Sound: throw rattle now; per-bounce clacks + settle from optional assets/sfx files.
+    ' Sound: a throw rattle now, then per-bounce BEEPS + a settle BOOP straight from the
+    ' physics (tone fallback via DICE3D_SND_VOL) -- or real per-bounce clacks + settle thud
+    ' if you drop assets/sfx/dice_edge.* / dice_settle.* files in.
     cfg.SOUND_ENABLED = opt_sfx
     cfg.SND_EDGE_H = SfxHandle("dice_edge")
     cfg.SND_SETTLE_H = SfxHandle("dice_settle")
+    IF opt_sfx THEN DICE3D_SND_VOL = opt_sfxvol / 10 ELSE DICE3D_SND_VOL = 0
     Sfx "diceroll"
 
-    ' Draw the framed header + tray on CANVAS (software, crisp); the GL dice sit over it.
+    ' Draw the framed header (caption-width) + a compact tray on CANVAS (crisp); GL dice over.
     _DEST CANVAS: _FONT CH
-    LINE (tx, 10 * CH)-(tx + tw, 13 * CH), BOXBG, BF
-    LINE (tx, 10 * CH)-(tx + tw, 13 * CH), REDU, B
+    LINE (hbx, 10 * CH)-(hbx + hbw, 13 * CH), BOXBG, BF
+    LINE (hbx, 10 * CH)-(hbx + hbw, 13 * CH), REDU, B
     LINE (tx, ty)-(tx + tw, ty + th), BOXBG, BF
     LINE (tx, ty)-(tx + tw, ty + th), REDU, B
     COLOR YELLOWU, BOXBG: PrintCentered 11, hdr
@@ -125,44 +133,22 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
 END FUNCTION
 
 
-' -- SETTINGS preview: a static, readable d20 rendered from a set, cached as an image --
+' -- SETTINGS preview: the SAME hardware (OpenGL) render as a roll, drawn live each frame --
 
-' Render a d20 from `cfg` into a fresh 160x168 image (showing its '20' face upright).
-' The caller frees the returned handle. Clobbers the shared mesh/dice -- fine outside a roll.
-FUNCTION Make3DPreview& (cfg AS DICE3D_CONFIG)
-    DIM img AS LONG, atlas AS LONG, f AS INTEGER, od AS LONG
-    DIM AS INTEGER pw, ph, sw, sh
-    DIM pc AS DICE3D_CONFIG
-    pw = 160: ph = 168
-    od = _DEST
-    pc = cfg
-    sw = pw * DICE3D_SS: sh = ph * DICE3D_SS
-    pc.BOX_W = sw: pc.BOX_H = sh: pc.DIE_SIZE = 52 * DICE3D_SS
-    img = _NEWIMAGE(pw, ph, 32)
-    DICE3D_BOXBUF = _NEWIMAGE(sw, sh, 32)
-    dice3d_build 20
-    atlas = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0)
-    REDIM DICE3D_DICE(0 TO 0) AS DICE3D_DIE
-    DICE3D_DICE(0).SIDES = 20: DICE3D_DICE(0).ATLAS = atlas: DICE3D_DICE(0).FADE = 1
-    DICE3D_DICE(0).PX = sw / 2: DICE3D_DICE(0).PY = sh / 2: DICE3D_DICE(0).PZ = 0
-    DICE3D_DICE(0).VALUE = 20
-    f = DICE3D_VAL2FACE(20): IF f >= 0 AND f < DICE3D_NF THEN DICE3D_DICE(0).Q = DICE3D_FACE_Q(f)
-    _DEST DICE3D_BOXBUF: CLS , BLACK
-    dice3d_render_die DICE3D_DICE(0), pc
-    _DEST img: CLS , BLACK
-    _MAPTRIANGLE (0, 0)-(0, sh - 1)-(sw - 1, sh - 1), DICE3D_BOXBUF TO(0, 0)-(0, ph - 1)-(pw - 1, ph - 1), img, _SMOOTH
-    _MAPTRIANGLE (0, 0)-(sw - 1, sh - 1)-(sw - 1, 0), DICE3D_BOXBUF TO(0, 0)-(pw - 1, ph - 1)-(pw - 1, 0), img, _SMOOTH
-    _DEST od
-    _FREEIMAGE atlas: _FREEIMAGE DICE3D_BOXBUF
-    Make3DPreview& = img
-END FUNCTION
-
-' (Re)build the cached player + monster preview images from the loaded sets.
+' (Re)build the d20 mesh, a hardware atlas per side, and a posed die (showing 20 upright).
+' PREV3D_P / PREV3D_M now hold HARDWARE atlas handles (not preview images).
 SUB Build3DPreviews
+    DIM pc AS DICE3D_CONFIG, a AS LONG, f AS INTEGER
     Free3DPreviews
     IF NOT dice3d_ready THEN EXIT SUB
-    PREV3D_P = Make3DPreview&(DSET3D(dice3d_set_index%(20)))
-    PREV3D_M = Make3DPreview&(MSET3D(dice3d_set_index%(20)))
+    dice3d_build 20
+    pc = DSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96
+    a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_P = _COPYIMAGE(a, 33): _FREEIMAGE a
+    pc = MSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96
+    a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_M = _COPYIMAGE(a, 33): _FREEIMAGE a
+    REDIM DICE3D_DICE(0 TO 0) AS DICE3D_DIE
+    DICE3D_DICE(0).SIDES = 20: DICE3D_DICE(0).FADE = 1: DICE3D_DICE(0).VALUE = 20
+    f = DICE3D_VAL2FACE(20): IF f >= 0 AND f < DICE3D_NF THEN DICE3D_DICE(0).Q = DICE3D_FACE_Q(f)
 END SUB
 
 SUB Free3DPreviews
@@ -170,11 +156,27 @@ SUB Free3DPreviews
     IF PREV3D_M <> 0 THEN _FREEIMAGE PREV3D_M: PREV3D_M = 0
 END SUB
 
-' Blit a cached 3D preview at settings column gxc (mirrors DrawDicePreview's placement).
-SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, img AS LONG)
-    DIM AS INTEGER gx, gy
+' Render the cached posed d20 via the hardware path at settings column gxc, using the
+' side's hardware atlas + its set cfg (for the camera angle). Called each settings frame,
+' so the preview looks exactly like the smooth roll. DICE3D_HW is left off (we call the
+' hardware renderer directly, without the software-present branch).
+SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, atlas AS LONG, setcfg AS DICE3D_CONFIG)
+    DIM AS INTEGER gx, gy, scx, scy
+    DIM cfg AS DICE3D_CONFIG, pxk AS SINGLE
     gx = gxc * CW: gy = 15 * CH
     _DEST CANVAS: _FONT CH
     COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
-    IF img <> 0 THEN _PUTIMAGE (gx, gy), img, CANVAS
+    IF atlas = 0 THEN EXIT SUB
+    IF UBOUND(DICE3D_DICE) < LBOUND(DICE3D_DICE) THEN EXIT SUB
+    cfg = setcfg
+    cfg.BOX_W = 150: cfg.BOX_H = 150: cfg.DIE_SIZE = 42
+    scx = gx + 75: scy = gy + 60                    ' screen centre of this preview
+    pxk = 1.0 / DICE3D_HW_PXPERUNIT
+    DICE3D_HWATLAS = atlas
+    DICE3D_HW_Z = DICE3D_HW_ZBASE: DICE3D_HW_PXK = pxk
+    DICE3D_HW_S = cfg.DIE_SIZE * pxk
+    DICE3D_HW_CX = (scx - SW * CW * 0.5) * pxk
+    DICE3D_HW_CY = -(scy - SH * CH * 0.5) * pxk
+    DICE3D_DICE(0).PX = cfg.BOX_W * 0.5: DICE3D_DICE(0).PY = cfg.BOX_H * 0.5: DICE3D_DICE(0).PZ = 0
+    dice3d_render_die_hw DICE3D_DICE(0), cfg
 END SUB
