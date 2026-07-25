@@ -45,6 +45,7 @@ opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + doe
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
+opt_movedice = TRUE                           ' default boardgame move: roll 1d6 (FALSE = DUNGEON! "up to 5, your choice")
 opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
 opt_dicecolor = 3                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
@@ -146,7 +147,7 @@ FUNCTION PlayGame%
         StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
         RandomizeRooms                   ' give every detected room its own monster + treasure (+ the key room)
         LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
-        need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
+        StartTurnMove                    ' set turn 1's move budget (roll 1d6 / up-to-5 / free)
         loiter = 0                       ' fresh danger meter for lingering
         FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
         lvl_reached(1) = TRUE            ' you start on the 1st level
@@ -168,7 +169,11 @@ FUNCTION PlayGame%
     END IF
 
     cursor_erase: cursor_draw        ' clear the narration, reveal the board
-    IF opt_boardgame THEN hint = "[SPACE] roll  " ELSE hint = ""
+    IF opt_boardgame THEN
+        IF opt_movedice THEN hint = "[SPACE] roll  " ELSE hint = "[SPACE] end turn  "
+    ELSE
+        hint = ""
+    END IF
     IF didload THEN
         Banner "-- RESUMED --  " + _TRIM$(player_name) + " the " + class_name + " returns to the depths.", "[G] saves your progress anytime.   [ press any key ]"
     ELSE
@@ -222,8 +227,8 @@ FUNCTION PlayGame%
             Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"
             WaitKey
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
-            player_hp = player_maxhp: need_roll = TRUE: IF NOT opt_boardgame THEN need_roll = FALSE
-            steps_left = 0: loiter = 0
+            player_hp = player_maxhp: loiter = 0
+            StartTurnMove                    ' fresh move budget after reviving
             cursor_erase: cursor_draw: FadeInCurrent: DrawHUD: _DISPLAY
         END IF
 
@@ -237,8 +242,12 @@ FUNCTION PlayGame%
                 cursor_draw
             END IF
         ELSE
+            ' Up-to-5 movement (Boardgame + Move Style "up to 5"): SPACE ends your turn early --
+            ' you choose how far to go this turn, no die.
+            IF k = " " AND opt_boardgame AND opt_movedice = 0 THEN
+                EndPlayerTurn: cursor_erase: cursor_draw
             ' frozen by a frost bomb? each move attempt just melts a turn off the ice
-            IF IsMoveKey(k) AND frost_turns > 0 THEN
+            ELSEIF IsMoveKey(k) AND frost_turns > 0 THEN
                 frost_turns = frost_turns - 1
                 Sfx "bump"
                 Banner "You are frozen fast!", "The rime locks your limbs (" + _TRIM$(STR$(frost_turns)) + " turns of frost remain)."
@@ -430,8 +439,27 @@ FUNCTION HandleForfeit% ()
     LoadActivePlayer cur_player
     cursor_erase: cursor_draw
     AnnounceTurn cur_player
-    need_roll = TRUE
+    StartTurnMove
 END FUNCTION
+
+
+' Set the movement budget for a fresh turn, per the movement settings:
+'   free walk (Boardgame OFF)          -> no roll, no step limit
+'   Boardgame + Move Style "roll 1d6"  -> press SPACE to roll, then step that many (a house variant)
+'   Boardgame + Move Style "up to 5"   -> the DUNGEON! rule: start with MOVE_MAX steps, move up to
+'                                         them, and SPACE ends the turn early (you choose -- no die)
+SUB StartTurnMove
+    IF NOT opt_boardgame THEN
+        need_roll = FALSE: steps_left = 0
+    ELSEIF opt_movedice THEN
+        need_roll = TRUE: steps_left = 0
+    ELSE
+        need_roll = FALSE
+        steps_left = MOVE_MAX
+        IF item_boots THEN steps_left = steps_left + 2   ' Elf Boots add to the move
+        turn_num = turn_num + 1                           ' no roll to advance the count -- bump it here
+    END IF
+END SUB
 
 
 ' ESP Medallion: foresee the monster guarding a room and choose whether to enter.
@@ -853,7 +881,7 @@ SUB MonsterAttack (rm AS INTEGER)
             Banner mon + " ATTACK (" + _TRIM$(STR$(r)) + "): LIGHT WOUND!", "You drop " + _TRIM$(STR$(lost)) + " gold, retreat, and lose the turn.   [ press any key ]"
             CombatPause
             c.x = c.prev_x: c.y = c.prev_y
-            steps_left = 0: need_roll = TRUE
+            StartTurnMove
         CASE 7, 8                                ' STUNNED
             lost = 500: IF lost > gold THEN lost = gold
             gold = gold - lost

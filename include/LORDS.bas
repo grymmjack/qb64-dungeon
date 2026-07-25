@@ -298,6 +298,7 @@ SUB SaveSettings
     PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
     PRINT #f, "heroicstats " + _TRIM$(STR$(opt_heroicstats))
     PRINT #f, "boardgame " + _TRIM$(STR$(opt_boardgame))
+    PRINT #f, "movedice " + _TRIM$(STR$(opt_movedice))
     PRINT #f, "fov " + _TRIM$(STR$(opt_fov))
     PRINT #f, "players " + _TRIM$(STR$(num_players))
     PRINT #f, "dicecolor " + _TRIM$(STR$(opt_dicecolor))
@@ -348,6 +349,7 @@ SUB LoadSettings
                 CASE "oldschool": opt_oldschool = v
                 CASE "heroicstats": opt_heroicstats = v
                 CASE "boardgame": opt_boardgame = v
+                CASE "movedice": opt_movedice = v
                 CASE "fov": opt_fov = v
                 CASE "players": num_players = v
                 CASE "dicecolor": opt_dicecolor = v

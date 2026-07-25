@@ -523,7 +523,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 34
+    CONST NSET = 35
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -665,7 +665,8 @@ SUB RunSettings
                     opt_dicefont = opt_dicefont + 1
                     IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
                     Build3DPreviews
-                CASE 34: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 34: opt_movedice = NOT opt_movedice
+                CASE 35: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -771,6 +772,9 @@ SUB RunSettings
                 CASE 33
                     lbl = "  Dice Font": slider = TRUE
                     IF opt_dicefont >= 1 AND opt_dicefont <= DICEFONT_N THEN vtxt = _TRIM$(DICEFONT_NAME(opt_dicefont)) ELSE vtxt = "-"
+                CASE 34
+                    lbl = "Move Style"
+                    IF opt_movedice THEN vtxt = "roll 1d6" ELSE vtxt = "up to 5 (Dungeon!)"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -1109,6 +1113,9 @@ SUB DrawHUD
     ELSEIF gold >= target_gold AND has_key THEN
         COLOR GREENU, BLACK
         _PRINTSTRING ((SW - 23) * CW, 50 * CH), "RETURN TO START TO WIN!"
+    ELSEIF opt_boardgame AND opt_movedice = 0 AND steps_left > 0 THEN
+        COLOR YELLOWU, BLACK
+        _PRINTSTRING ((SW - 29) * CW, 50 * CH), "move up to " + _TRIM$(STR$(steps_left)) + "   [SPACE] end turn"
     END IF
     ' Keep the combat panel constant through a fight: every roll's cleanup ends with a
     ' DrawHUD, so repainting the panel here means it never vanishes behind a dice roll or
