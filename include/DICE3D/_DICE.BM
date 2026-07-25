@@ -90,6 +90,7 @@ SUB dice3d_run_loop (cfg AS DICE3D_CONFIG)
         IF TIMER - t0 > cfg.MAX_ROLL_SECS THEN EXIT DO
     LOOP UNTIL done
     FOR i = lo TO hi: dice3d_read_value DICE3D_DICE(i): NEXT '   guarantee values
+    IF DICE3D_UPRIGHT THEN dice3d_showcase cfg '  turn each die to show its result upright
 END SUB
 
 '==============================================================================

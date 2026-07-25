@@ -64,12 +64,24 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
 
-    ' On-SCREEN dice tray: wider when more dice are thrown so they don't jam.
-    dbw = 320 + (n - 1) * 100: IF dbw > SW * CW - 40 THEN dbw = SW * CW - 40
-    dbh = 300
+    ' On-screen dice sized to roughly match the 2D font dice (~56px across).
+    dds = 30                                        ' half-extent -> ~60px die
+
+    ' Caption / roll header (sizes the box so a long caption never spills).
+    IF LEN(_TRIM$(what)) > 0 THEN
+        hdr = "-= " + _TRIM$(what) + " =-"
+    ELSE
+        hdr = "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
+    END IF
+
+    ' Compact tray: just enough room for the dice to scatter, widened for more dice
+    ' and to fit the caption. Small footprint, like the old font-dice box.
+    dbw = 70 + n * 64
+    IF dbw < (LEN(hdr) + 4) * CW THEN dbw = (LEN(hdr) + 4) * CW
+    IF dbw > SW * CW - 40 THEN dbw = SW * CW - 40
+    dbh = 116
     dbx = (SW * CW - dbw) \ 2
     dby = 14 * CH
-    dds = cfg.DIE_SIZE: IF dds > 52 THEN dds = 52   ' on-screen half-extent, kept readable
 
     ' Render at SSx into the box buffer, then dice3d_present smooth-downscales to the
     ' on-screen rect (dbx,dby,dbw,dbh) -- crisp, anti-aliased dice.
@@ -77,17 +89,13 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     cfg.BOX_W = dbw * DICE3D_SS: cfg.BOX_H = dbh * DICE3D_SS
     cfg.DIE_SIZE = dds * DICE3D_SS
     DICE3D_SSDIV = DICE3D_SS
+    DICE3D_UPRIGHT = -1                             ' turn each die to show its result upright + readable
 
     ' The "roll box": a framed header above the tray (the box the font dice used to show).
-    IF LEN(_TRIM$(what)) > 0 THEN
-        hdr = "-= " + _TRIM$(what) + " =-"
-    ELSE
-        hdr = "-= rolling " + _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides)) + " =-"
-    END IF
     _DEST CANVAS: _FONT CH
-    LINE (dbx, 10 * CH)-(dbx + dbw, 13 * CH), BOXBG, BF
-    LINE (dbx, 10 * CH)-(dbx + dbw, 13 * CH), REDU, B
-    COLOR YELLOWU, BOXBG: PrintCentered 11, hdr
+    LINE (dbx, 11 * CH)-(dbx + dbw, 14 * CH), BOXBG, BF
+    LINE (dbx, 11 * CH)-(dbx + dbw, 14 * CH), REDU, B
+    COLOR YELLOWU, BOXBG: PrintCentered 12, hdr
     _DISPLAY
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))

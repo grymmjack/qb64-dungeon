@@ -97,6 +97,11 @@ REDIM SHARED DICE3D_LAST_DROPPED(0) AS INTEGER '  per-entry dropped flag (1-base
 '    box (BOX_W/H, DIE_SIZE, physics) at N x and sets BOX_X/Y to the on-screen origin.
 DIM SHARED DICE3D_SSDIV AS INTEGER
 
+'--- Optional readable-result showcase: after the physics settle, turn each die so its
+'    winning face is flat-on with the number UPRIGHT (physics can leave it sideways or
+'    upside-down). 0 = off (pure physics rest). Set by the caller before dice3d_roll.
+DIM SHARED DICE3D_UPRIGHT AS INTEGER
+
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames
 DIM SHARED DICE3D_SHOT_DIR AS STRING

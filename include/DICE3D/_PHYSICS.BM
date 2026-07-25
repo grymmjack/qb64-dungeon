@@ -133,6 +133,29 @@ SUB dice3d_read_value (di AS DICE3D_DIE)
 END SUB
 
 ''
+' Readable-result showcase (DICE3D_UPRIGHT): each die turns from its physics rest to
+' DICE3D_FACE_Q(winning face) -- the pose that shows that face flat-on with its number
+' upright -- over a short slerp, so the result is never left sideways or upside-down.
+' Runs after values are read (inside the roll loop, while the box buffer still exists).
+SUB dice3d_showcase (cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER i, f, lo, hi, fr
+    CONST NFR = 12
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    REDIM AS DICE3D_QUAT sq(lo TO hi)
+    FOR i = lo TO hi: sq(i) = DICE3D_DICE(i).Q: NEXT
+    FOR fr = 1 TO NFR
+        FOR i = lo TO hi
+            IF DICE3D_DICE(i).VALUE >= LBOUND(DICE3D_VAL2FACE) AND DICE3D_DICE(i).VALUE <= UBOUND(DICE3D_VAL2FACE) THEN
+                f = DICE3D_VAL2FACE(DICE3D_DICE(i).VALUE)
+                IF f >= 0 AND f < DICE3D_NF THEN dice3d_qslerp sq(i), DICE3D_FACE_Q(f), fr / NFR, DICE3D_DICE(i).Q
+            END IF
+        NEXT
+        dice3d_present cfg
+        IF cfg.FPS > 0 THEN _LIMIT cfg.FPS
+    NEXT fr
+END SUB
+
+''
 ' Push overlapping dice apart (top-down circle separation) and keep everyone
 ' inside the walls. Cheap O(n^2) - fine for a handful of dice.
 SUB dice3d_separate (cfg AS DICE3D_CONFIG)
