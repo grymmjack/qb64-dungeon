@@ -1227,7 +1227,7 @@ END SUB
 ' A single "voice" blip for the typewriter text window, at the Voice volume.
 SUB VoiceBlip (freq AS INTEGER)
     IF NOT opt_voice THEN EXIT SUB
-    SOUND freq, 0.03, opt_voicevol / 10
+    SOUND freq, 0.03, opt_voicevol / 10 * 0.4      ' per-glyph typewriter blip -- kept quiet vs the slider
 END SUB
 
 

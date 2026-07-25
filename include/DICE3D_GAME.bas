@@ -181,6 +181,8 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
 
     IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
     DICE3D_HW = 0
+    cursor_erase: cursor_draw                       ' wipe the dice box off the board so the combat
+    DrawHUD: _DISPLAY                                ' panel / "you still face..." prompt shows clean next
     Show3DRoll = dice3d_total%
 END FUNCTION
 
