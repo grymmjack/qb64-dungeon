@@ -259,3 +259,47 @@ Sounds:
     ✔ Add sound effect when breaking door (splintering crash) @done(26-07-23)
     ✔ Add sound effect for picking up treasure @done(26-07-23)
     ✔ Volume sliders: Music / SFX / Voice (0-100%) @done(26-07-23)
+
+Refinement backlog (from playtest 26-07-24):
+    ✔ Level Key hidden on a random DEEP level (never level 1); Crystal Ball pinpoints the room @done(26-07-24)
+    ✔ Default settings match the player's config (D&D, 4d6-drop, Sapphire, slow dice, slow combat, smooth) @done(26-07-24)
+    ☐ Wandering monsters from LINGERING (loiter meter): every few searches / long idle spawns a
+      random encounter of the CURRENT level. `loiter` global already added; reset per game.
+        ☐ Escalating ATMOSPHERIC HINTS before the encounter fires ("scuffling footsteps", "torchlight
+          wavers at a hiss", "goosebumps on your neck", ...). Two pools: subtle -> close, then the fight.
+    ☐ Dice PHYSICS: dice bounce/tumble around the box with inertia + wall bounce (rotation limited by
+      the font approach; do translation-bounce + face flicker, settle into a row).
+    ☐ LEGENDARY LORDS overhaul: record per-level progression (levels 1-9 reached), monsters killed and
+      gold earned PER LEVEL; select a lord to view their full character sheet. (Save format v2.)
+    ☐ Treasure/ITEM CARD drops per the DUNGEON! rules: verify the item deck + drop odds against the
+      manual (Magic Sword, Magic Bow/Arrow, Shield, Cloak, ESP Medallion, Crystal Ball, Elf Boots,
+      Teleport, Wizard spells, etc.) and their per-level frequency; expand TRE_ITEM beyond the current 5.
+    ~ To-hit is class base + attribute mod (STR fighters / INT wizard) -- e.g. Hero +7 = +4 class +3 STR;
+      shown by CombatDerivation$. Working as designed; revisit class base values if combat stays too easy.
+
+Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md):
+    ✔ FIX: monster markers landed on walls (L-shaped rooms) so combat never fired @done(26-07-24)
+    ✔ Healing potions: treasure 50% (1d8), level-clear cache (1d4 + 30% 1d8), [H] to quaff @done(26-07-24)
+    ✔ XP + D&D leveling: XP per kill; clearing a floor levels you up + rolls a hit die for HP @done(26-07-24)
+    ✔ Item progression: swords/armor always logged + each find one step stronger (capped) @done(26-07-24)
+    ✔ Crit/fumble effects ENGINE (data-driven EFFECTS.bas): crit cinematic + heal, player fumble,
+      monster natural-1 self-hit/lose-turn; SETTINGS "Crits & Fumbles" toggle @done(26-07-24)
+    ✔ Monster natural-1 hits itself / loses a turn; hero natural-20 double damage @done(26-07-24)
+    ✔ Curio chests after fights (20%), 25% trapped: poison darts / bomb / frost bomb / magic siren,
+      each with a CON/DEX/WIS saving throw; poison+fire DoT, frost no-move, siren +encounters @done(26-07-24)
+    ✔ Status effects tick per step + shown in the HUD @done(26-07-24)
+    ✔ HUD: turn/move count, character level, potion count, status readout, per-player DEATHS @done(26-07-24)
+    ✔ Hardcore idle mode (SETTINGS "Time Passes When Idle"); casual = idling safe @done(26-07-24)
+    ✔ Cleared levels safe; secret-door rooms are sanctuaries once cleared; lean wander loot @done(26-07-24)
+    ✔ Monsters hidden until their room is ENTERED (even FOV off); never drawn on level labels @done(26-07-24)
+    ✔ Loot recovery (SETTINGS toggle, default D&D on): death leaves loot in the room to reclaim @done(26-07-24)
+    ✔ ESP Medallion foresees the monster beyond a door ([Y] enter / [N] back off) @done(26-07-24)
+    ✔ Character creation: press-key-to-roll each stat + [A] auto; show class bonuses; random funny names @done(26-07-24)
+    ✔ Combat stats CSV log (dungeon-stats.csv) for difficulty analysis @done(26-07-24)
+    ✔ Save / load game (single slot, seed-reproduced) + [G] save + CONTINUE on entry @done(26-07-24)
+    ✔ [P] pause for bio breaks; death waits for a keypress before the blood transition @done(26-07-24)
+    ✔ Dice ROTATION: polyhedra spin via _MAPTRIANGLE (render die to scratch image, rotate-blit, ease
+      upright on settle). Verified via scratchpads/TEST-DICE-ROT.bas. @done(26-07-24)
+    ☐ Multiplayer save/load: serialize the PLAYERS() hot-seat array ([G] is solo-only for now).
+    ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in DUNGEON.BI).
+    ☐ Board legend art: add "$ = your dropped loot" to the baked .ans (art-side edit).

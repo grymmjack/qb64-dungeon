@@ -1,0 +1,94 @@
+# monster_events.txt -- what each MONSTER does in combat, so its text fits its biology
+# (a slime dissolves, a dragon breathes fire -- neither one "claws").
+# Format:  MONSTER | event | text     (fields trimmed; '#' = comment; blanks skipped)
+# events:  attack (it hits you)   miss (it misses)   crit (a devastating hit)
+#          fumble (it botches its attack)   death (it is slain)
+# key "*" = the default for any monster with no line of its own for that event, so you
+# only need specific lines where they matter. Up to a handful per (monster,event);
+# one is picked at random. Re-read at F5.
+#
+# Tokens: {player} {class} {mon} {dmg} {deaths} {level} {room} {treasure} {weapon}
+# --------------------------------------------------------------------------------------
+
+# ================= generic fallback for ANY monster =================
+* | attack | The {mon} strikes you for {dmg} damage.
+* | attack | The {mon} presses its attack and lands a blow for {dmg}.
+* | miss   | The {mon} lunges, but you weather the assault.
+* | miss   | You turn the {mon}'s attack aside.
+* | crit   | The {mon} catches you flush -- a savage blow for {dmg}!
+* | fumble | The {mon} overreaches and stumbles, its attack wasted.
+* | death  | The {mon} shudders and collapses, slain.
+* | death  | With a final spasm the {mon} falls still.
+
+# ================= level 1 =================
+GIANT RATS | attack | The rats swarm up your legs, biting and clawing for {dmg}.
+GIANT RATS | crit   | The pack surges over you in a biting frenzy -- {dmg} damage!
+GIANT RATS | death  | The rats scatter, squealing, leaving their dead behind.
+GIANT LIZARD | attack | The lizard's jaws clamp down for {dmg} damage.
+GIANT LIZARD | death  | The great lizard thrashes once and goes limp.
+GOBLINS | attack | A goblin darts in and jabs its rusty blade for {dmg}.
+GOBLINS | death  | The goblins break and flee into the dark.
+
+# ================= level 2-3 =================
+SKELETON | attack | The skeleton's bony claws rake you for {dmg}.
+SKELETON | attack | Fleshless fingers close on you, cold as the grave -- {dmg} damage.
+SKELETON | crit   | The skeleton's blade slips between your ribs for {dmg}!
+SKELETON | death  | The skeleton clatters apart into a heap of loose bones.
+GIANT SPIDER | attack | The spider's fangs sink in, venom burning, for {dmg}.
+GIANT SPIDER | miss   | The spider skitters back, mandibles clacking.
+GIANT SPIDER | death  | The spider curls its legs inward and goes still.
+GHOULS | attack | Rotting claws tear at you for {dmg}, and the stench alone sickens.
+GHOULS | death  | The ghoul slumps into the filth it crawled from.
+GARGOYLE | attack | The gargoyle's stone talons gouge you for {dmg}.
+GARGOYLE | death  | The gargoyle cracks and crumbles back into lifeless rock.
+
+# ================= level 4-5 =================
+GIANT SNAKE | attack | The serpent's fangs strike deep, pumping venom for {dmg}.
+GIANT SNAKE | attack | Coils tighten around you, crushing the breath out -- {dmg} damage.
+GIANT SNAKE | crit   | The snake constricts with terrible force for {dmg}!
+GIANT SNAKE | death  | The great serpent's coils go slack and slide to the floor.
+WEREWOLF | attack | The werewolf rakes you with its claws for {dmg}.
+WEREWOLF | crit   | The beast's jaws close on your shoulder and shake -- {dmg} damage!
+WEREWOLF | death  | The werewolf shudders, its form half-collapsing as it dies.
+OGRE | attack | The ogre's club smashes down on you for {dmg}.
+OGRE | death  | The ogre topples like a felled tree and lies still.
+
+# ================= level 6-7 =================
+MUMMY | attack | The mummy's wrappings brush you and rotting hands squeeze for {dmg}.
+MUMMY | death  | The mummy crumbles to dust and ancient bandages.
+TROLL | attack | The troll's talons rip into you for {dmg}.
+TROLL | death  | The troll collapses -- best not linger while it lies twitching.
+VAMPIRE | attack | The vampire's fangs find your throat and draw {dmg} of your life.
+VAMPIRE | crit   | The vampire drinks deep, draining {dmg} in a chilling rush!
+VAMPIRE | death  | The vampire hisses, withers, and crumbles to grey ash.
+GIANT | attack | The giant's fist hammers down and crushes you for {dmg}.
+GIANT | death  | The giant crashes to the ground, shaking the whole chamber.
+WITCH | attack | The witch spits a curse that sears you for {dmg}.
+WITCH | death  | The witch shrieks a final hex and collapses.
+GREEN SLIME | attack | The slime oozes over you; acid eats into flesh for {dmg}.
+GREEN SLIME | attack | A pseudopod of slime engulfs your arm, dissolving it for {dmg}.
+GREEN SLIME | miss   | The slime lunges but sloughs harmlessly off your gear.
+GREEN SLIME | crit   | The slime surges over you, acid searing for {dmg}!
+GREEN SLIME | death  | The slime bubbles, splits, and dissolves into inert muck.
+
+# ================= level 8-9 =================
+PURPLE WORM | attack | The worm's maw closes over you, crushing for {dmg}.
+PURPLE WORM | crit   | The worm nearly swallows you whole -- {dmg} damage!
+PURPLE WORM | death  | The worm heaves, shudders, and goes still across the floor.
+BLACK PUDDING | attack | The pudding flows over you; caustic ooze burns for {dmg}.
+BLACK PUDDING | attack | The pudding engulfs your leg, digesting it for {dmg}.
+BLACK PUDDING | miss   | You tear free of the pudding before it can close over you.
+BLACK PUDDING | crit   | The pudding smothers you, acid eating deep for {dmg}!
+BLACK PUDDING | death  | The pudding stops writhing and spreads into a dead, glistening pool.
+EVIL WIZARD | attack | The evil wizard hurls a bolt of dark magic for {dmg}.
+EVIL WIZARD | crit   | Black lightning erupts from the wizard's hands for {dmg}!
+EVIL WIZARD | death  | The evil wizard's spell collapses and he falls, robes smoking.
+RED DRAGON | attack | The red dragon rakes you with talons of iron for {dmg}.
+RED DRAGON | attack | The dragon looses a gout of roaring flame that sears you for {dmg}.
+RED DRAGON | crit   | The dragon engulfs you in a firestorm -- {dmg} damage!
+RED DRAGON | miss   | The dragon's flames wash past as you dive behind cover.
+RED DRAGON | death  | The red dragon rears, roars, and crashes down dead in its hoard.
+BLUE DRAGON | attack | The blue dragon's claws tear into you for {dmg}.
+BLUE DRAGON | attack | A crackling bolt of lightning arcs from the dragon for {dmg}.
+BLUE DRAGON | crit   | Lightning engulfs you in a blinding blast -- {dmg} damage!
+BLUE DRAGON | death  | The blue dragon convulses in a last crackle of sparks and falls.

@@ -1,0 +1,13 @@
+# forfeit.txt -- sad epitaphs shown on the grey FORFEIT screen (all lives spent).
+# One epitaph per line. Keep each under ~120 characters so it fits on one row.
+# Lines starting with # are ignored. Edit freely; the game re-reads this at launch.
+The dungeon claims another soul, and the dark closes over your name.
+No song will be sung for you, no cairn raised. Only the cold, and the silence.
+Your torch gutters out. The depths swallow the light, and then they swallow you.
+So ends another delve -- one more skeleton among the countless, forgotten ones.
+The gods look away. Your story is over, and no one remains to tell it.
+You wanted gold and glory. The dungeon gave you only a grave.
+Somewhere far above, the wind forgets your name. Down here, nothing remembers it at all.
+Your knees buckle. The stone is cold. This is where the story quietly stops.
+Braver souls have fallen here, and braver still will follow. You are simply another.
+The last of your strength drains into the dust. The dark does not even notice.

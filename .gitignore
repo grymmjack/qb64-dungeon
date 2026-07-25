@@ -31,3 +31,5 @@ scratchpads/shots/*.png
 # runtime hall-of-fame save
 dungeon-lords.dat
 dungeon-settings.dat
+dungeon-stats.csv
+dungeon-save.dat

@@ -1,0 +1,33 @@
+# treasures.txt -- the gold hoards. One treasure per line, pipe-delimited (fields trimmed).
+# Each level (1-9) has 3 treasure SLOTS; a slain room rolls one of them (unless a magic
+# item from items.txt has claimed that slot). Values get richer the deeper you delve.
+# Lines starting with # are comments; blank lines ignored. Re-read at launch (F5).
+#
+# lvl | slot | name            | gold
+1 | 1 | SILVER CUP       | 1000
+1 | 2 | SACK OF GOLD     | 1000
+1 | 3 | SILVER RING      | 2000
+2 | 1 | SILVER RING      | 2000
+2 | 2 | GOLD CUP         | 2500
+2 | 3 | GOLD RING        | 3000
+3 | 1 | GOLD RING        | 3000
+3 | 2 | GOLD CUP         | 2500
+3 | 3 | SILVER COFFER    | 4000
+4 | 1 | SILVER COFFER    | 4000
+4 | 2 | JADE IDOL        | 5000
+4 | 3 | HUGE EMERALD     | 5000
+5 | 1 | HUGE EMERALD     | 5000
+5 | 2 | JADE IDOL        | 5000
+5 | 3 | HUGE SAPPHIRE    | 6000
+6 | 1 | HUGE SAPPHIRE    | 6000
+6 | 2 | SILVER NECKLACE  | 7000
+6 | 3 | HUGE RUBY        | 8000
+7 | 1 | SILVER NECKLACE  | 7000
+7 | 2 | HUGE RUBY        | 8000
+7 | 3 | GOLD NECKLACE    | 9000
+8 | 1 | GOLD NECKLACE    | 9000
+8 | 2 | HUGE RUBY        | 8000
+8 | 3 | HUGE DIAMOND     | 10000
+9 | 1 | HUGE DIAMOND     | 10000
+9 | 2 | GOLD NECKLACE    | 9000
+9 | 3 | HUGE SAPPHIRE    | 6000

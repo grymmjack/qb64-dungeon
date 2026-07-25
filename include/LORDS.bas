@@ -2,36 +2,91 @@
 '  LORDS.bas -- persistent hall of fame + character load (dungeon-lords.dat)
 ' ============================================================================
 
-' Append a victorious champion to the hall-of-fame file.
+' Append a victorious champion to the hall of fame, v2 pipe-delimited record:
+'   name|class|gold|secs|deepest|k1..k9|g1..g9|STR INT WIS DEX CON CHA HP
+' The per-level chronicle + ability scores come straight from the run's globals.
 SUB SaveLord (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG)
-    DIM f AS INTEGER
+    DIM f AS INTEGER, i AS INTEGER, deep AS INTEGER, ks AS STRING, gs AS STRING, ab AS STRING
+    deep = 0
+    FOR i = 1 TO 9
+        IF lvl_reached(i) THEN deep = i
+    NEXT i
+    ks = "": gs = ""
+    FOR i = 1 TO 9
+        ks = ks + _TRIM$(STR$(lvl_kills(i))): IF i < 9 THEN ks = ks + " "
+        gs = gs + _TRIM$(STR$(lvl_gold(i))): IF i < 9 THEN gs = gs + " "
+    NEXT i
+    ab = _TRIM$(STR$(player_str)) + " " + _TRIM$(STR$(player_int)) + " " + _TRIM$(STR$(player_wis)) + " " + _TRIM$(STR$(player_dex)) + " " + _TRIM$(STR$(player_con)) + " " + _TRIM$(STR$(player_cha)) + " " + _TRIM$(STR$(player_maxhp))
     f = FREEFILE
     OPEN "dungeon-lords.dat" FOR APPEND AS #f
-    PRINT #f, CHR$(34); nm; CHR$(34); ","; CHR$(34); klass; CHR$(34); ","; gld; ","; secs
+    PRINT #f, nm + "|" + klass + "|" + _TRIM$(STR$(gld)) + "|" + _TRIM$(STR$(secs)) + "|" + _TRIM$(STR$(deep)) + "|" + ks + "|" + gs + "|" + ab
     CLOSE #f
 END SUB
 
 
-' Load the hall of fame into the passed arrays, sorted by gold (desc). Returns count.
+' Return the idx-th (1-based) `delim`-separated field of s ("" if out of range).
+FUNCTION NthField$ (s AS STRING, delim AS STRING, idx AS INTEGER)
+    DIM cur AS STRING, q AS INTEGER, i AS INTEGER
+    cur = s: i = 1
+    DO
+        q = INSTR(cur, delim)
+        IF q = 0 THEN
+            IF i = idx THEN NthField$ = cur
+            EXIT FUNCTION
+        END IF
+        IF i = idx THEN NthField$ = LEFT$(cur, q - 1): EXIT FUNCTION
+        cur = MID$(cur, q + LEN(delim)): i = i + 1
+    LOOP
+END FUNCTION
+
+
+' Load the hall of fame, sorted by gold (desc). Fills the base arrays and parks
+' each lord's raw v2 record in LORD_DETAIL for the chronicle screen. Tolerates the
+' old v1 CSV rows ("name","class",gold,secs) -- those just have no chronicle.
 FUNCTION ReadLords% (nm() AS STRING, klass() AS STRING, gld() AS LONG, secs() AS LONG)
-    DIM f AS INTEGER, n AS INTEGER, i AS INTEGER, j AS INTEGER
-    DIM tn AS STRING, tc AS STRING, tg AS LONG, ts AS LONG
+    DIM n AS INTEGER, i AS INTEGER, j AS INTEGER, ln AS STRING, whole AS STRING
+    DIM a AS INTEGER, b AS INTEGER, rest AS STRING, p AS LONG, nl AS LONG
     n = 0
     IF NOT _FILEEXISTS("dungeon-lords.dat") THEN ReadLords = 0: EXIT FUNCTION
-    f = FREEFILE
-    OPEN "dungeon-lords.dat" FOR INPUT AS #f
-    DO WHILE NOT EOF(f)
+    ' read the whole file and split on newlines ourselves -- dodges QB64's flaky
+    ' EOF/LINE INPUT interaction ("Input past end of file") on the last line.
+    whole = _READFILE$("dungeon-lords.dat")
+    p = 1
+    DO WHILE p <= LEN(whole)
         IF n >= UBOUND(nm) THEN EXIT DO
-        INPUT #f, tn, tc, tg, ts
-        n = n + 1
-        nm(n) = tn: klass(n) = tc: gld(n) = tg: secs(n) = ts
+        nl = INSTR(p, whole, CHR$(10))
+        IF nl = 0 THEN
+            ln = MID$(whole, p): p = LEN(whole) + 1
+        ELSE
+            ln = MID$(whole, p, nl - p): p = nl + 1
+        END IF
+        IF RIGHT$(ln, 1) = CHR$(13) THEN ln = LEFT$(ln, LEN(ln) - 1)   ' strip CR
+        IF LEN(_TRIM$(ln)) > 0 THEN
+            n = n + 1
+            IF INSTR(ln, "|") > 0 THEN                 ' v2 record
+                nm(n) = _TRIM$(NthField$(ln, "|", 1))
+                klass(n) = _TRIM$(NthField$(ln, "|", 2))
+                gld(n) = VAL(NthField$(ln, "|", 3))
+                secs(n) = VAL(NthField$(ln, "|", 4))
+                LORD_DETAIL(n) = ln
+            ELSE                                        ' v1 CSV: "name","class", gold , secs
+                a = INSTR(ln, CHR$(34)): b = INSTR(a + 1, ln, CHR$(34))
+                nm(n) = MID$(ln, a + 1, b - a - 1)
+                a = INSTR(b + 1, ln, CHR$(34)): b = INSTR(a + 1, ln, CHR$(34))
+                klass(n) = MID$(ln, a + 1, b - a - 1)
+                rest = MID$(ln, b + 1)                  ' " , gold , secs"
+                gld(n) = VAL(NthField$(rest, ",", 2))
+                secs(n) = VAL(NthField$(rest, ",", 3))
+                LORD_DETAIL(n) = ""
+            END IF
+        END IF
     LOOP
-    CLOSE #f
     FOR i = 1 TO n - 1
         FOR j = 1 TO n - i
             IF gld(j) < gld(j + 1) THEN
                 SWAP nm(j), nm(j + 1): SWAP klass(j), klass(j + 1)
                 SWAP gld(j), gld(j + 1): SWAP secs(j), secs(j + 1)
+                SWAP LORD_DETAIL(j), LORD_DETAIL(j + 1)
             END IF
         NEXT j
     NEXT i
@@ -41,7 +96,9 @@ END FUNCTION
 
 ' Pad a string on the right to width w (for simple table columns).
 FUNCTION PadR$ (s AS STRING, w AS INTEGER)
-    IF LEN(s) >= w THEN PadR$ = LEFT$(s, w) ELSE PadR$ = s + SPACE$(w - LEN(s))
+    ' fixed width w; when truncating a too-long value keep a trailing space so it
+    ' never butts up against the next column
+    IF LEN(s) >= w THEN PadR$ = LEFT$(s, w - 1) + " " ELSE PadR$ = s + SPACE$(w - LEN(s))
 END FUNCTION
 
 
@@ -61,26 +118,91 @@ FUNCTION ClassIndex% (nm AS STRING)
 END FUNCTION
 
 
-' LEGENDARY LORDS screen (menu option 4): the hall of fame.
+' The deepest level a lord reached, for the list ("--" for old v1 rows).
+FUNCTION DeepestLabel$ (detail AS STRING)
+    IF LEN(detail) = 0 THEN DeepestLabel$ = "--" ELSE DeepestLabel$ = Ordinal$(VAL(NthField$(detail, "|", 5)))
+END FUNCTION
+
+
+' LEGENDARY LORDS screen (menu option 4): the hall of fame -- now selectable, with
+' a per-level chronicle + character sheet behind [ENTER].
 SUB ShowLords
     DIM nm(1 TO 200) AS STRING, klass(1 TO 200) AS STRING, gld(1 TO 200) AS LONG, secs(1 TO 200) AS LONG
-    DIM n AS INTEGER, i AS INTEGER, y AS INTEGER
+    DIM n AS INTEGER, i AS INTEGER, y AS INTEGER, sel AS INTEGER, k AS STRING
     n = ReadLords(nm(), klass(), gld(), secs())
-    _DEST CANVAS: _FONT CH: CLS , BLACK
-    COLOR YELLOWU, BLACK: PrintCentered 5, "-=  L E G E N D A R Y   L O R D S  =-"
     IF n = 0 THEN
+        _DEST CANVAS: _FONT CH: CLS , BLACK
+        COLOR YELLOWU, BLACK: PrintCentered 5, "-=  L E G E N D A R Y   L O R D S  =-"
         COLOR GREY, BLACK: PrintCentered 20, "No champions yet -- be the first to escape the dungeon alive!"
-    ELSE
+        COLOR YELLOWU, BLACK: PrintCentered 46, "[ press any key ]"
+        _DISPLAY: WaitKey: EXIT SUB
+    END IF
+    sel = 1
+    DO
+        _LIMIT 60
+        k = NormKey$(UCASE$(INKEY$))
+        IF k = "W" THEN
+            sel = sel - 1: IF sel < 1 THEN sel = n
+            Sfx "select"
+        END IF
+        IF k = "S" THEN
+            sel = sel + 1: IF sel > n THEN sel = 1
+            Sfx "select"
+        END IF
+        IF k = CHR$(27) THEN EXIT SUB
+        IF k = CHR$(13) THEN
+            Sfx "select"
+            ShowLordDetail sel, nm(sel), klass(sel), gld(sel), secs(sel)
+        END IF
+        _DEST CANVAS: _FONT CH: CLS , BLACK
+        COLOR YELLOWU, BLACK: PrintCentered 4, "-=  L E G E N D A R Y   L O R D S  =-"
         COLOR CYANU, BLACK
-        _PRINTSTRING (34 * CW, 8 * CH), "#   " + PadR$("NAME", 16) + PadR$("CLASS", 12) + PadR$("GOLD", 8) + "TIME"
+        _PRINTSTRING (26 * CW, 7 * CH), "#   " + PadR$("NAME", 26) + PadR$("CLASS", 12) + PadR$("GOLD", 8) + PadR$("TIME", 8) + "DEEPEST"
         FOR i = 1 TO n
-            IF i > 14 THEN EXIT FOR
-            y = 9 + i
-            IF i = 1 THEN COLOR YELLOWU, BLACK ELSE COLOR WHITE, BLACK
-            _PRINTSTRING (34 * CW, y * CH), PadR$(_TRIM$(STR$(i)) + ".", 4) + PadR$(nm(i), 16) + PadR$(klass(i), 12) + PadR$(_TRIM$(STR$(gld(i))), 8) + MMSS$(secs(i))
+            IF i > 30 THEN EXIT FOR
+            y = 8 + i
+            IF i = sel THEN
+                COLOR WHITE, REDU
+            ELSEIF i = 1 THEN
+                COLOR YELLOWU, BLACK
+            ELSE
+                COLOR WHITE, BLACK
+            END IF
+            _PRINTSTRING (26 * CW, y * CH), PadR$(_TRIM$(STR$(i)) + ".", 4) + PadR$(nm(i), 26) + PadR$(klass(i), 12) + PadR$(_TRIM$(STR$(gld(i))), 8) + PadR$(MMSS$(secs(i)), 8) + DeepestLabel$(LORD_DETAIL(i))
+        NEXT i
+        COLOR CYANU, BLACK: PrintCentered 45, "[W/S] pick    [ENTER] view chronicle    [ESC] back"
+        _DISPLAY
+    LOOP
+END SUB
+
+
+' A single lord's chronicle: ability scores + a per-level table of kills and gold.
+SUB ShowLordDetail (idx AS INTEGER, nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG)
+    DIM detail AS STRING, i AS INTEGER, y AS INTEGER, deep AS INTEGER
+    DIM kk(1 TO 9) AS INTEGER, gg(1 TO 9) AS LONG, ab AS STRING, ks AS STRING, gs AS STRING
+    detail = LORD_DETAIL(idx)
+    _DEST CANVAS: _FONT CH: CLS , BLACK
+    LINE (20 * CW, 3 * CH)-(112 * CW, 48 * CH), BOXBG, BF
+    LINE (20 * CW, 3 * CH)-(112 * CW, 48 * CH), REDU, B
+    COLOR YELLOWU, BOXBG: PrintCentered 5, "-=  " + _TRIM$(nm) + " the " + _TRIM$(klass) + "  =-"
+    COLOR WHITE, BOXBG: PrintCentered 7, _TRIM$(STR$(gld)) + " gold escaped in " + MMSS$(secs)
+    IF LEN(detail) = 0 THEN
+        COLOR GREY, BOXBG: PrintCentered 24, "(an elder record -- no per-level chronicle was kept)"
+    ELSE
+        deep = VAL(NthField$(detail, "|", 5))
+        ks = NthField$(detail, "|", 6): gs = NthField$(detail, "|", 7): ab = NthField$(detail, "|", 8)
+        FOR i = 1 TO 9: kk(i) = VAL(NthField$(ks, " ", i)): gg(i) = VAL(NthField$(gs, " ", i)): NEXT i
+        COLOR CYANU, BOXBG
+        PrintCentered 9, "STR " + NthField$(ab, " ", 1) + "   INT " + NthField$(ab, " ", 2) + "   WIS " + NthField$(ab, " ", 3) + "   DEX " + NthField$(ab, " ", 4) + "   CON " + NthField$(ab, " ", 5) + "   CHA " + NthField$(ab, " ", 6) + "   HP " + NthField$(ab, " ", 7)
+        COLOR YELLOWU, BOXBG: PrintCentered 11, "delved to the " + Ordinal$(deep) + " level"
+        COLOR CYANU, BOXBG: _PRINTSTRING (44 * CW, 14 * CH), "LEVEL      KILLS       GOLD"
+        FOR i = 1 TO 9
+            y = 15 + (i - 1) * 2
+            IF i <= deep THEN COLOR WHITE, BOXBG ELSE COLOR GREY, BOXBG
+            _PRINTSTRING (44 * CW, y * CH), PadR$(Ordinal$(i), 10) + PadR$(_TRIM$(STR$(kk(i))), 12) + _TRIM$(STR$(gg(i)))
         NEXT i
     END IF
-    COLOR YELLOWU, BLACK: PrintCentered 46, "[ press any key ]"
+    COLOR YELLOWU, BOXBG: PrintCentered 46, "[ press any key ]"
     _DISPLAY
     WaitKey
 END SUB
@@ -146,7 +268,7 @@ FUNCTION EnterName$
                 IF LEN(nm) > 0 THEN nm = LEFT$(nm, LEN(nm) - 1)
             ELSEIF LEN(k) = 1 THEN
                 chcode = ASC(k)
-                IF chcode >= 32 AND chcode <= 126 AND LEN(nm) < 14 THEN nm = nm + k
+                IF chcode >= 32 AND chcode <= 126 AND LEN(nm) < 38 THEN nm = nm + k   ' 38 fits the long random names (PLAYER.name is 40)
             END IF
         END IF
     LOOP
@@ -183,6 +305,16 @@ SUB SaveSettings
     PRINT #f, "d6pips " + _TRIM$(STR$(opt_d6pips))
     PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
     PRINT #f, "smooth " + _TRIM$(STR$(opt_smooth))
+    PRINT #f, "combatspeed " + _TRIM$(STR$(opt_combatspeed))
+    PRINT #f, "msgdelay " + _TRIM$(STR$(opt_msgdelay))
+    PRINT #f, "hardcore " + _TRIM$(STR$(opt_hardcore))
+    PRINT #f, "critfumble " + _TRIM$(STR$(opt_critfumble))
+    PRINT #f, "lootrecovery " + _TRIM$(STR$(opt_lootrecovery))
+    PRINT #f, "maxdeaths " + _TRIM$(STR$(opt_maxdeaths))
+    PRINT #f, "mondicecolor " + _TRIM$(STR$(opt_mon_dicecolor))
+    PRINT #f, "mondicesolid " + _TRIM$(STR$(opt_mon_dicesolid))
+    PRINT #f, "mond6pips " + _TRIM$(STR$(opt_mon_d6pips))
+    PRINT #f, "mondicespeed " + _TRIM$(STR$(opt_mon_dicespeed))
     CLOSE #f
 END SUB
 
@@ -218,6 +350,16 @@ SUB LoadSettings
                 CASE "d6pips": opt_d6pips = v
                 CASE "dicespeed": opt_dicespeed = v
                 CASE "smooth": opt_smooth = v
+                CASE "combatspeed": opt_combatspeed = v
+                CASE "msgdelay": opt_msgdelay = v
+                CASE "hardcore": opt_hardcore = v
+                CASE "critfumble": opt_critfumble = v
+                CASE "lootrecovery": opt_lootrecovery = v
+                CASE "maxdeaths": opt_maxdeaths = v
+                CASE "mondicecolor": opt_mon_dicecolor = v
+                CASE "mondicesolid": opt_mon_dicesolid = v
+                CASE "mond6pips": opt_mon_d6pips = v
+                CASE "mondicespeed": opt_mon_dicespeed = v
             END SELECT
         END IF
     LOOP
@@ -225,10 +367,13 @@ SUB LoadSettings
     ' sanity clamps
     IF num_players < 1 THEN num_players = 1
     IF num_players > 4 THEN num_players = 4
+    IF opt_maxdeaths < 1 THEN opt_maxdeaths = 3
+    IF opt_maxdeaths > 9 THEN opt_maxdeaths = 9
     opt_musicvol = Clamp10(opt_musicvol)
     opt_sfxvol = Clamp10(opt_sfxvol)
     opt_voicevol = Clamp10(opt_voicevol)
     IF opt_dicecolor < 0 OR opt_dicecolor > 5 THEN opt_dicecolor = 1
     IF opt_dicespeed < 0 OR opt_dicespeed > 3 THEN opt_dicespeed = 1
+    IF opt_combatspeed < 0 OR opt_combatspeed > 3 THEN opt_combatspeed = 1
     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
 END SUB

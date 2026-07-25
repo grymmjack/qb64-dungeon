@@ -36,57 +36,13 @@ END SUB
 ' Values approximate the board game (exact card numbers live on the cards).
 
 SUB InitMonsterTables
-    ' --- monsters: name + the exact per-class 2d6 kill numbers from the cards ---
-    '     Mob lvl, slot, name, Hero, Elf, Superhero, Wizard   (13 = "-" can't kill barehanded)
-    Mob 1, 1, "GIANT RATS", 4, 5, 3, 3
-    Mob 1, 2, "GIANT LIZARD", 4, 5, 2, 5
-    Mob 1, 3, "GOBLINS", 4, 3, 2, 5
-    Mob 2, 1, "SKELETON", 4, 5, 3, 6
-    Mob 2, 2, "HOBGOBLINS", 5, 4, 3, 6
-    Mob 2, 3, "GIANT SPIDER", 6, 6, 4, 5
-    Mob 3, 1, "GHOULS", 6, 5, 4, 6
-    Mob 3, 2, "GARGOYLE", 6, 7, 5, 6
-    Mob 3, 3, "EVIL HERO", 7, 8, 5, 6
-    Mob 4, 1, "EVIL HERO", 7, 8, 5, 6
-    Mob 4, 2, "GIANT SNAKE", 8, 10, 6, 9
-    Mob 4, 3, "GHOULS", 6, 5, 4, 6
-    Mob 5, 1, "WEREWOLF", 9, 9, 7, 7
-    Mob 5, 2, "OGRE", 9, 8, 6, 8
-    Mob 5, 3, "GIANT SNAKE", 8, 10, 6, 9
-    Mob 6, 1, "MUMMY", 10, 11, 8, 8
-    Mob 6, 2, "TROLL", 10, 9, 8, 8
-    Mob 6, 3, "VAMPIRE", 10, 12, 8, 9
-    Mob 7, 1, "GIANT", 11, 10, 9, 10
-    Mob 7, 2, "WITCH", 11, 11, 9, 5
-    Mob 7, 3, "GREEN SLIME", 11, 13, 10, 11
-    Mob 8, 1, "PURPLE WORM", 11, 12, 10, 12
-    Mob 8, 2, "BLACK PUDDING", 12, 13, 12, 12
-    Mob 8, 3, "MUMMY", 10, 11, 8, 8
-    Mob 9, 1, "EVIL WIZARD", 12, 13, 11, 7
-    Mob 9, 2, "RED DRAGON", 13, 13, 11, 12
-    Mob 9, 3, "BLUE DRAGON", 12, 13, 10, 12
-
-    ' --- treasures: real card names + gold-piece values, richer the deeper you go ---
-    SetTre 1, "SILVER CUP", 1000, "SACK OF GOLD", 1000, "SILVER RING", 2000
-    SetTre 2, "SILVER RING", 2000, "GOLD CUP", 2500, "GOLD RING", 3000
-    SetTre 3, "GOLD RING", 3000, "GOLD CUP", 2500, "SILVER COFFER", 4000
-    SetTre 4, "SILVER COFFER", 4000, "JADE IDOL", 5000, "HUGE EMERALD", 5000
-    SetTre 5, "HUGE EMERALD", 5000, "JADE IDOL", 5000, "HUGE SAPPHIRE", 6000
-    SetTre 6, "HUGE SAPPHIRE", 6000, "SILVER NECKLACE", 7000, "HUGE RUBY", 8000
-    SetTre 7, "SILVER NECKLACE", 7000, "HUGE RUBY", 8000, "GOLD NECKLACE", 9000
-    SetTre 8, "GOLD NECKLACE", 9000, "HUGE RUBY", 8000, "HUGE DIAMOND", 10000
-    SetTre 9, "HUGE DIAMOND", 10000, "GOLD NECKLACE", 9000, "HUGE SAPPHIRE", 6000
-
-    ' special treasure cards seeded into the pools (real cards from the deck).
-    ' TRE_ITEM: 1=Sword+1 2=Sword+2 3=SecretDoorCard 4=ESP Medallion 5=Crystal Ball
-    TRE_NAME(2, 3) = "MAGIC SWORD +1": TRE_GOLD(2, 3) = 500: TRE_ITEM(2, 3) = 1
-    TRE_NAME(3, 3) = "ESP MEDALLION": TRE_GOLD(3, 3) = 500: TRE_ITEM(3, 3) = 4
-    TRE_NAME(4, 3) = "SECRET DOOR CARD": TRE_GOLD(4, 3) = 0: TRE_ITEM(4, 3) = 3
-    TRE_NAME(5, 3) = "CRYSTAL BALL": TRE_GOLD(5, 3) = 1000: TRE_ITEM(5, 3) = 5
-    TRE_NAME(6, 3) = "MAGIC SWORD +2": TRE_GOLD(6, 3) = 500: TRE_ITEM(6, 3) = 2
-
-    BOSS_NAME(1) = "RED DRAGON": BOSS_NAME(2) = "BLUE DRAGON"
-    BOSS_NAME(3) = "EVIL WIZARD": BOSS_NAME(4) = "BLACK PUDDING"
+    ' The bestiary, treasure pools, magic items and boss names now live in the
+    ' editable files under assets/data/ -- edit those and press F5. LoadTreasures
+    ' fills every slot; LoadItems then overrides slots that hold a magic-item card.
+    LoadMonsters
+    LoadTreasures
+    LoadItems
+    LoadBosses
 END SUB
 
 
@@ -106,6 +62,19 @@ SUB SetTre (lvl AS INTEGER, n1 AS STRING, g1 AS INTEGER, n2 AS STRING, g2 AS INT
 END SUB
 
 
+' Set one treasure slot (used by LoadTreasures reading assets/data/treasures.txt).
+SUB SetTreSlot (lvl AS INTEGER, slot AS INTEGER, nm AS STRING, gold AS INTEGER)
+    IF lvl < 1 OR lvl > 9 OR slot < 1 OR slot > 3 THEN EXIT SUB
+    TRE_NAME(lvl, slot) = nm: TRE_GOLD(lvl, slot) = gold: TRE_ITEM(lvl, slot) = 0
+END SUB
+
+
+' Seed a magic-item card into one treasure slot of a level (name, sell/gold value, item code).
+SUB SetItem (lvl AS INTEGER, slot AS INTEGER, nm AS STRING, gold AS INTEGER, code AS INTEGER)
+    TRE_NAME(lvl, slot) = nm: TRE_GOLD(lvl, slot) = gold: TRE_ITEM(lvl, slot) = code
+END SUB
+
+
 ' Roll fresh room contents: each level's room (sector) gets a random monster +
 ' treasure from that level's pool; one deep room becomes the boss lair.
 
@@ -121,7 +90,7 @@ SUB RandomizeRooms
     FOR r = 1 TO ROOM_N
         sec = ROOMS(r).sec
         ROOMS(r).monster_fought = FALSE: ROOMS(r).player_died = FALSE
-        ROOMS(r).looted = FALSE: ROOMS(r).is_boss = FALSE
+        ROOMS(r).looted = FALSE: ROOMS(r).is_boss = FALSE: ROOMS(r).seen = FALSE
         ROOMS(r).drop_gold = 0: ROOMS(r).drop_sword = 0
         ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
         IF r = startroom OR ROOMS(r).cells < MIN_ROOM THEN
@@ -150,7 +119,44 @@ SUB RandomizeRooms
         ROOMS(bossroom).mhp = 45 + sec * 3 + RollDie(10): ROOMS(bossroom).mhp_now = ROOMS(bossroom).mhp
         ROOMS(bossroom).mac = 19
     END IF
+
+    ' -- the LEVEL KEY: the prize of one random room on a DEEP level (never the
+    ' entrance level 1, never the boss), so winning requires descending. Its exact
+    ' room is pinpointed by the Crystal Ball; otherwise only its level is hinted.
+    DIM kcand(1 TO 400) AS INTEGER, nk AS INTEGER
+    key_room = 0: key_level = 0: nk = 0
+    FOR r = 1 TO ROOM_N
+        IF ROOMS(r).malive AND ROOMS(r).sec >= 2 AND NOT ROOMS(r).is_boss THEN nk = nk + 1: kcand(nk) = r
+    NEXT r
+    IF nk = 0 THEN                               ' fallback: any live monster room that isn't the boss
+        FOR r = 1 TO ROOM_N
+            IF ROOMS(r).malive AND NOT ROOMS(r).is_boss THEN nk = nk + 1: kcand(nk) = r
+        NEXT r
+    END IF
+    IF nk > 0 THEN
+        key_room = kcand(RollDie(nk))
+        key_level = ROOMS(key_room).sec
+        ROOMS(key_room).treasure_item = 6        ' 6 = Level Key (see ClaimTreasure)
+        ROOMS(key_room).treasure_name = "THE LEVEL KEY"
+    END IF
 END SUB
+
+
+' 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 4 -> "4th" ... (for the key-level hint).
+FUNCTION Ordinal$ (n AS INTEGER)
+    DIM suf AS STRING
+    SELECT CASE n MOD 100
+        CASE 11, 12, 13: suf = "th"
+        CASE ELSE
+            SELECT CASE n MOD 10
+                CASE 1: suf = "st"
+                CASE 2: suf = "nd"
+                CASE 3: suf = "rd"
+                CASE ELSE: suf = "th"
+            END SELECT
+    END SELECT
+    Ordinal$ = _TRIM$(STR$(n)) + suf
+END FUNCTION
 
 
 ' Authentic DUNGEON! win totals: Hero/Elf 10k, Superhero 20k, Wizard 30k.
@@ -161,22 +167,22 @@ SUB InitClasses
     CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 10000
     CLASSES(1).combat_bonus = 0: CLASSES(1).secret_bonus = 0
     CLASSES(1).blurb = "Solid fighter. Finds secret doors on a 1-2. Needs 10,000 gold."
-    CLASSES(1).hp = 24: CLASSES(1).tohit = 4: CLASSES(1).dmg = 8: CLASSES(1).ac = 15: CLASSES(1).hitdie = 10
+    CLASSES(1).hp = 24: CLASSES(1).tohit = 2: CLASSES(1).dmg = 8: CLASSES(1).ac = 15: CLASSES(1).hitdie = 10
 
     CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 10000
     CLASSES(2).combat_bonus = -1: CLASSES(2).secret_bonus = 2
     CLASSES(2).blurb = "Weakest fighter, but finds secret doors on a 1-4. Needs 10,000."
-    CLASSES(2).hp = 16: CLASSES(2).tohit = 3: CLASSES(2).dmg = 6: CLASSES(2).ac = 13: CLASSES(2).hitdie = 8
+    CLASSES(2).hp = 16: CLASSES(2).tohit = 1: CLASSES(2).dmg = 6: CLASSES(2).ac = 13: CLASSES(2).hitdie = 8
 
     CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 20000
     CLASSES(3).combat_bonus = 0: CLASSES(3).secret_bonus = 0
     CLASSES(3).blurb = "The deadliest warrior -- slays monsters on low rolls. Needs 20,000 gold."
-    CLASSES(3).hp = 32: CLASSES(3).tohit = 6: CLASSES(3).dmg = 10: CLASSES(3).ac = 17: CLASSES(3).hitdie = 12
+    CLASSES(3).hp = 32: CLASSES(3).tohit = 3: CLASSES(3).dmg = 10: CLASSES(3).ac = 17: CLASSES(3).hitdie = 12
 
     CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 30000
     CLASSES(4).combat_bonus = 0: CLASSES(4).secret_bonus = 1
     CLASSES(4).blurb = "Slays with spells; can't use Magic Swords. Needs 30,000 gold."
-    CLASSES(4).hp = 14: CLASSES(4).tohit = 5: CLASSES(4).dmg = 10: CLASSES(4).ac = 12: CLASSES(4).hitdie = 6
+    CLASSES(4).hp = 14: CLASSES(4).tohit = 2: CLASSES(4).dmg = 10: CLASSES(4).ac = 12: CLASSES(4).hitdie = 6
 END SUB
 
 

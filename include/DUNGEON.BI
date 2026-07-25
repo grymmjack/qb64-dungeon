@@ -9,6 +9,21 @@ CONST MENU_ENTER = 1, MENU_FLEE = 2
 CONST OUT_WIN = 1, OUT_LOSE = 2, OUT_FLEE = 3
 ' --- the entrance chamber (cell coords) ---
 CONST START_CX = 59, START_CY = 24
+' --- gameplay tuning (potions, encounters, XP) ---
+CONST POTION_SMALL_DIE = 4        ' Small Healing Potion heals 1d4
+CONST POTION_LARGE_DIE = 8        ' Large Healing Potion heals 1d8
+CONST TREASURE_POTION_PCT = 15    ' % chance a slain hoard also yields a (small) potion -- kept lean
+CONST LEVELCLEAR_LARGE_PCT = 30   ' % chance clearing a level also yields a Large potion
+CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter meter is full
+CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
+CONST WANDER_GOLD_DIV = 6         ' wandering-monster gold = level treasure / this (lean -- no farming)
+CONST XP_PER_KILL_LVL = 10        ' XP per slain monster = its dungeon level * this (+ boss bonus)
+CONST CHEST_PCT = 20              ' % chance a curio chest appears after a room fight
+CONST CHEST_TRAP_PCT = 25         ' % chance a curio chest is trapped
+CONST SIREN_ENCOUNTER_BOOST = 20  ' + to the wandering-encounter % while a magic siren wails
+CONST SIREN_MOVE_PCT = 15         ' % chance each step (while a siren wails) to draw an encounter
+CONST FLEE_FAIL_BASE = 15         ' % chance a flee attempt fails (monster drags you back) on level 1
+CONST FLEE_FAIL_STEP = 5          ' + this % per dungeon level deeper (level 9 = 15 + 8*5 = 55%)
 
 TYPE SECTOR
     start_x AS INTEGER
@@ -57,6 +72,7 @@ TYPE ROOM
     looted  AS INTEGER
     monster_fought AS INTEGER
     player_died AS INTEGER
+    seen    AS INTEGER        ' the player has entered this room -- only then is its monster drawn
     ' loot a fallen champion left here (multiplayer only -- recoverable by any player)
     drop_gold AS LONG
     drop_sword AS INTEGER
@@ -90,7 +106,7 @@ END TYPE
 ' player's state lives in the working globals -- see Load/SaveActivePlayer).
 TYPE PLAYER
     active   AS INTEGER         ' still in the game
-    name     AS STRING * 16     ' fixed-length: variable-length strings in a UDT array crash QB64
+    name     AS STRING * 40     ' fixed-length (variable-len in a UDT array crashes QB64); 40 fits long random names
     klass    AS INTEGER         ' class index 1..4
     gold     AS LONG
     goal     AS LONG
@@ -125,6 +141,59 @@ DIM SHARED SECTORS(1 TO 9) AS SECTOR
 ' individual room blocks (per-block encounters), detected from the board art
 DIM SHARED ROOMS(1 TO 400) AS ROOM, ROOM_N AS INTEGER
 DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
+DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
+DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
+DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING
+' -- room/combat flavor text (loaded from editable assets/flavor/*.txt; see FLAVOR.bas) --
+DIM SHARED REG_FLAV(1 TO 9, 1 TO 24) AS STRING, REG_N(1 TO 9) AS INTEGER   ' regular-room one-liners per level
+DIM SHARED SP_KEY(1 TO 30) AS STRING, SP_X(1 TO 30) AS INTEGER, SP_Y(1 TO 30) AS INTEGER, SP_N AS INTEGER
+DIM SHARED SP_FLAV(1 TO 30, 1 TO 8) AS STRING, SP_FN(1 TO 30) AS INTEGER   ' special (named) room deep flavor
+DIM SHARED MAXHIT(1 TO 30) AS STRING, MAXHIT_N AS INTEGER                  ' max-damage combat flavor
+DIM SHARED FORFEIT_FLAV(1 TO 30) AS STRING, FORFEIT_N AS INTEGER           ' sad epitaphs shown when a run is forfeited (all lives spent)
+DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
+
+' -- Crit/Fumble effects engine (data-driven; see InitEffects) --
+' kind: 0 flavor-only, 1 heal player, 2 extra dmg to foe, 3 self-damage, 4 lose turn, 5 drop gold
+TYPE FXROW
+    say  AS STRING * 96      ' template; tokens {weapon} {mon} {n} are substituted at show time
+    kind AS INTEGER
+    die  AS INTEGER          ' magnitude die for the mechanical effect (0 = none)
+END TYPE
+DIM SHARED CRITFX(1 TO 30) AS FXROW, NCRIT AS INTEGER      ' player critical-hit results
+DIM SHARED PFUMBLE(1 TO 30) AS FXROW, NPFUM AS INTEGER     ' player fumble results
+DIM SHARED MFUMBLE(1 TO 30) AS FXROW, NMFUM AS INTEGER     ' monster natural-1 fumble results
+
+' -- Curio-chest traps (data-driven; loaded from assets/data/traps.txt; see SpringTrap) --
+TYPE TRAPROW
+    kind AS INTEGER          ' mechanic: 1 poison, 2 bomb, 3 frost, 4 siren
+    name AS STRING * 20
+    save AS STRING * 4       ' CON / DEX / WIS
+    word AS STRING * 8       ' save verb: SAVE / DODGE
+    sfx  AS STRING * 8
+    die  AS INTEGER          ' magnitude die (damage or turns)
+    trig AS STRING * 72      ' trigger banner (line 1)
+    smsg AS STRING * 72      ' save-success banner (line 1)
+    ftit AS STRING * 56      ' failure banner title (line 1)
+    fbod AS STRING * 72      ' failure banner body (line 2); {n} = rolled magnitude
+END TYPE
+DIM SHARED TRAPS(1 TO 20) AS TRAPROW, NTRAP AS INTEGER
+
+' -- shared scratch buffer for the data-file loaders (see DATA.bas) --
+DIM SHARED DLINE(1 TO 600) AS STRING, DLINE_N AS INTEGER
+
+' -- per-monster / per-class combat event text (data-driven; see CTEXT.bas) --
+' Each row is one line for one (category, key, event). key "*" is the default used
+' when a specific monster/class has no line of its own for that event.
+TYPE EVTROW
+    cat  AS INTEGER          ' 1 = monster, 2 = player class
+    mkey AS STRING * 24      ' monster name / class name (UPPER), or "*"  (KEY is reserved)
+    evt  AS INTEGER          ' 1 attack, 2 miss, 3 crit, 4 fumble, 5 death
+    text AS STRING * 140     ' template; tokens like {mon} {dmg} {player} are filled at show time
+END TYPE
+DIM SHARED EVT(1 TO 1400) AS EVTROW, EVT_N AS INTEGER
+' flavor-context globals: combat sets these so Fill$ can resolve the {tokens}
+DIM SHARED FX_MON AS STRING, FX_DMG AS INTEGER, FX_LEVEL AS INTEGER
+DIM SHARED FX_ROOM AS STRING, FX_TREASURE AS STRING, FX_ITEM AS STRING
 DIM SHARED c AS CURSOR
 DIM SHARED AS LONG gold, target_gold
 DIM SHARED AS INTEGER turn_num, steps_left, need_roll
@@ -150,14 +219,39 @@ DIM SHARED item_sword AS INTEGER      ' Magic Sword combat bonus held (0/1/2)
 DIM SHARED item_secret_card AS INTEGER ' holds the Secret Door Card
 DIM SHARED item_esp AS INTEGER        ' ESP Medallion: peek the treasure a monster guards
 DIM SHARED item_crystal AS INTEGER    ' Crystal Ball: [V] scry every room's contents
+' expanded magic-item deck (see ClaimTreasure / InitMonsterTables)
+DIM SHARED item_armor AS INTEGER      ' best AC bonus from Shield/Armor/Cloak worn (0 if none)
+DIM SHARED item_bow AS INTEGER        ' Magic Bow: +2 to-hit (strike from range)
+DIM SHARED item_boots AS INTEGER      ' Elf Boots: +2 to the movement roll
+DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you back to START
+DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
+DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
+DIM SHARED combat_round AS INTEGER   ' current D&D combat round (shown on the combat panel)
+DIM SHARED bnr_l2 AS STRING, bnr_bx1 AS INTEGER, bnr_bx2 AS INTEGER   ' last Banner's prompt line + box, for the keypress flash
+' -- status effects from curio traps (tick down as turns pass; shown in the HUD) --
+DIM SHARED poison_turns AS INTEGER   ' poison darts: -1 HP per turn (damage over time)
+DIM SHARED fire_turns AS INTEGER     ' bomb fire: -1 HP per turn (damage over time)
+DIM SHARED frost_turns AS INTEGER    ' frost bomb: movement frozen this many turns
+DIM SHARED siren_turns AS INTEGER    ' magic siren: encounter chance raised while it wails
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
 ' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to
 ' the number tumbler). Each glyph IS a die face: 'A'+n draws the solid variant,
 ' 'a'+n the outline variant -- see DieGlyphCode / DrawFontDie.
 DIM SHARED DFONT(1 TO 20) AS LONG
+DIM SHARED DFROT AS LONG                          ' scratch image a die renders into, then rotate-blits (tumble spin)
+CONST DFROT_W = 160, DFROT_H = 200               ' scratch size (fits a d20 @56pt + headroom for the top vertex)
 DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (before modifiers) from DoRoll
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
+DIM SHARED key_level AS INTEGER                   ' which dungeon level (2..9) hides the Level Key this game
+DIM SHARED key_room AS INTEGER                    ' the ROOMS() index whose treasure IS the Level Key (Crystal Ball reveals it)
+DIM SHARED loiter AS INTEGER                      ' rising danger from lingering (search/idle); triggers wandering monsters
+' per-run chronicle for the Legendary Lords: what the champion did on each level
+DIM SHARED lvl_kills(1 TO 9) AS INTEGER           ' monsters slain per dungeon level this run
+DIM SHARED lvl_gold(1 TO 9) AS LONG               ' gold claimed per dungeon level this run
+DIM SHARED lvl_reached(1 TO 9) AS INTEGER         ' levels the champion set foot on this run
+DIM SHARED lvl_cleared(1 TO 9) AS INTEGER         ' levels fully cleared this run (reward + level-up once each)
+DIM SHARED LORD_DETAIL(1 TO 200) AS STRING        ' raw saved chronicle per loaded lord (parsed on the detail screen)
 ' Secret doors auto-detected from the board art (bright-blue tiles), hidden until searched.
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
 DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER
@@ -187,14 +281,34 @@ DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/B
 DIM SHARED opt_dicesolid AS INTEGER   ' TRUE: filled die body + contrasting number; FALSE: hollow outline
 DIM SHARED opt_d6pips AS INTEGER      ' TRUE: d6 rolls use the hand-drawn pip dice; FALSE: the numbered DPoly d6
 DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant (see DiceTiming)
+' -- a SEPARATE dice look for the MONSTER's rolls (same options; swapped in around monster rolls) --
+DIM SHARED opt_mon_dicecolor AS INTEGER, opt_mon_dicesolid AS INTEGER
+DIM SHARED opt_mon_d6pips AS INTEGER, opt_mon_dicespeed AS INTEGER
+DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INTEGER, sav_dicespeed AS INTEGER
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled (no dice shimmer)
+DIM SHARED opt_combatspeed AS INTEGER ' (legacy, kept for save compat) -- superseded by opt_msgdelay
+DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key
+DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle (no action) -> wandering monsters can find you
+DIM SHARED opt_critfumble AS INTEGER  ' TRUE: the crit/fumble effects engine runs (cinematic + bonus/penalty rolls)
+DIM SHARED opt_lootrecovery AS INTEGER ' TRUE: death leaves your loot in the room to reclaim (default in D&D mode)
+DIM SHARED opt_maxdeaths AS INTEGER    ' lives before permadeath: reach this many deaths and you forfeit (1..9, default 3)
+DIM SHARED player_out AS INTEGER       ' set TRUE the moment the active player uses up their last life (PlayGame ends the run)
+DIM SHARED run_seed AS DOUBLE          ' the RNG seed the current dungeon was built from (so save/load can reproduce it)
+DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 DIM SHARED player_hp AS INTEGER, player_maxhp AS INTEGER   ' D&D mode: adventurer hit points
 ' old-school 3d6 ability scores (rolled in CREATE A CHARACTER) + the stats derived from them
 DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
 DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
 DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
 DIM SHARED player_dmgdie AS INTEGER, player_dmgbonus AS INTEGER  ' weapon die + STR/INT damage mod
-DIM SHARED music_handle AS LONG                  ' currently-looping menu music (for live volume)
+DIM SHARED music_handle AS LONG                  ' currently-looping menu/level music (for live volume)
+' -- per-level in-game music (data-driven; assets/music/playlist.txt; see MUSIC.bas) --
+DIM SHARED MUSIC_FILE(1 TO 9) AS STRING          ' music file assigned to each dungeon level (in assets/music/)
+DIM SHARED music_level AS INTEGER                ' the level whose track is loaded right now (0 = none)
+DIM SHARED music_curfile AS STRING               ' the file currently loaded (so same-file levels don't restart it)
+' -- optional file-based sound effects (assets/sfx/<name>.ogg|mp3|wav|flac; see MUSIC.bas) --
+' If a file exists for an Sfx name it plays instead of the tone beeper; otherwise the beeper is used.
+DIM SHARED SFX_NAME(1 TO 48) AS STRING, SFX_HND(1 TO 48) AS LONG, SFX_N AS INTEGER
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter

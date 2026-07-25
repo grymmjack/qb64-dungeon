@@ -1,0 +1,9 @@
+# bosses.txt -- the boss lair picks one of these names at random each game.
+# One boss per line: slot (1-4) | name.  Lines starting with # are comments.
+# Re-read at launch (F5).
+#
+# slot | name
+1 | RED DRAGON
+2 | BLUE DRAGON
+3 | EVIL WIZARD
+4 | BLACK PUDDING

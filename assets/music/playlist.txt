@@ -1,0 +1,30 @@
+# playlist.txt -- which music plays on each dungeon level. Format:  level | filename
+# The file lives in assets/music/. Re-read at launch (F5); edit freely.
+#
+# _SNDOPEN reads trackers (.rad .mod .xm .s3m .it) AND .ogg / .mp3 / .wav / .flac,
+# so you can use any of those. For full-length music prefer .ogg or .mp3 -- a .wav
+# is uncompressed and can be very large. Drop your files in assets/music/ and point
+# a level at one here. Levels that share a filename won't restart the track as you
+# move between them; a level with no line here keeps whatever is already playing.
+#
+# level | file
+1 | everdark.rad
+2 | everdark.rad
+3 | everdark.rad
+4 | everdark.rad
+5 | everdark.rad
+6 | everdark.rad
+7 | everdark.rad
+8 | everdark.rad
+9 | everdark.rad
+#
+# ---- example of DIFFERENT music per level (drop these files in, then uncomment) ----
+# 1 | caverns.ogg
+# 2 | caverns.ogg
+# 3 | crypt.mp3
+# 4 | crypt.mp3
+# 5 | deeproads.ogg
+# 6 | deeproads.ogg
+# 7 | inferno.mp3
+# 8 | inferno.mp3
+# 9 | dragonlair.ogg

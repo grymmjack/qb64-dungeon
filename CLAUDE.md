@@ -174,6 +174,25 @@ Environment specifics that dictate this approach:
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.
 - **`assets/music/`** — `.rad` (Reality Adlib Tracker) tracks played via `_SNDOPEN`.
+- **`assets/data/`** — the editable **content database**: pipe-delimited `.txt` files
+  (`monsters` / `treasures` / `items` / `bosses` / `traps` / `effects`), loaded at launch by
+  **`include/DATA.bas`** into the same shared tables the old hard-coded `Init*` routines used
+  (via `Mob`/`SetTreSlot`/`SetItem`/`AddFX`, and `LoadTraps` for the `TRAPS()` array). Fields
+  are TRIMMED so columns can be space-padded; `#` = comment. `InitMonsterTables` and
+  `InitEffects` are now thin wrappers that call the `Load*` subs. Edit a file, press F5 — no
+  code change needed to rebalance. Trap *mechanics* (poison/bomb/frost/siren) stay in code,
+  keyed by each row's `kind`; everything else about a trap (name, save stat, dice, messages)
+  is data. Room/combat prose lives in the sibling **`assets/flavor/`** files: `regular`/
+  `special` room lines, `maxhit`, `forfeit` (see FLAVOR.bas), plus **per-monster and
+  per-class combat event text** — `monster_events.txt` / `class_events.txt` (`key | event |
+  text`, events attack/miss/crit/fumble/death, `key "*"` = default), loaded by **CTEXT.bas**
+  so each monster/class gets biology-appropriate hit/miss/crit/fumble/death lines. All flavor
+  supports `{mon} {player} {class} {dmg} {deaths} {level} {room} {treasure} {weapon}` tokens
+  via `Fill$`; combat sets the `FX_*` context globals before each line.
+
+[assets/README.md](assets/README.md) is the player/modder-facing map of every editable
+asset (data tables, flavor prose, music playlist, sound effects) with formats and the
+token list — keep it in sync when the asset formats change.
 
 [PLANS.todo](PLANS.todo) (todo.txt/@done format) is the roadmap and the source of truth
 for intended game rules (rooms, doors, dice, turns, cursor states).
