@@ -263,14 +263,15 @@ Sounds:
 Refinement backlog (from playtest 26-07-24):
     ✔ Level Key hidden on a random DEEP level (never level 1); Crystal Ball pinpoints the room @done(26-07-24)
     ✔ Default settings match the player's config (D&D, 4d6-drop, Sapphire, slow dice, slow combat, smooth) @done(26-07-24)
-    ☐ Wandering monsters from LINGERING (loiter meter): every few searches / long idle spawns a
-      random encounter of the CURRENT level. `loiter` global already added; reset per game.
-        ☐ Escalating ATMOSPHERIC HINTS before the encounter fires ("scuffling footsteps", "torchlight
-          wavers at a hiss", "goosebumps on your neck", ...). Two pools: subtle -> close, then the fight.
-    ☐ Dice PHYSICS: dice bounce/tumble around the box with inertia + wall bounce (rotation limited by
-      the font approach; do translation-bounce + face flicker, settle into a row).
-    ☐ LEGENDARY LORDS overhaul: record per-level progression (levels 1-9 reached), monsters killed and
-      gold earned PER LEVEL; select a lord to view their full character sheet. (Save format v2.)
+    ✔ Wandering monsters from LINGERING (loiter meter): searches / long idle spawn a random @done(26-07-24)
+      encounter of the CURRENT level. `loiter` global reset per game.
+        ✔ Escalating ATMOSPHERIC HINTS before the encounter fires (LoiterOmen$: subtle omens, @done(26-07-24)
+          then close, then the fight). Two pools: subtle -> close.
+    ✔ Dice PHYSICS: full 3D physics via the DICE3D module -- gravity, wall/floor bounce, tumbling @done(26-07-25)
+      rotation, and settle-into-a-row. Far exceeds the original font-approach plan (real polyhedra).
+    ~ LEGENDARY LORDS overhaul: per-level progression (levels 1-9 reached), monsters killed and gold
+      earned PER LEVEL are now CAPTURED in the v2 save (lvl_reached/lvl_kills/lvl_gold/lvl_cleared).
+      REMAINING: the viewer UI -- select a lord to see their full per-level character sheet.
     ☐ Treasure/ITEM CARD drops per the DUNGEON! rules: verify the item deck + drop odds against the
       manual (Magic Sword, Magic Bow/Arrow, Shield, Cloak, ESP Medallion, Crystal Ball, Elf Boots,
       Teleport, Wizard spells, etc.) and their per-level frequency; expand TRE_ITEM beyond the current 5.
@@ -302,4 +303,25 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       upright on settle). Verified via scratchpads/TEST-DICE-ROT.bas. @done(26-07-24)
     ☐ Multiplayer save/load: serialize the PLAYERS() hot-seat array ([G] is solo-only for now).
     ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in DUNGEON.BI).
-    ☐ Board legend art: add "$ = your dropped loot" to the baked .ans (art-side edit).
+    ☐ Board legend art: add "$ = recoverable treasure" and a "fallen-body = an adventurer died here"
+      marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
+
+3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2):
+    ✔ 3D polyhedral dice via the vendored DICE3D module; SETTINGS "Dice Style" (Font / 3D) @done(26-07-25)
+    ✔ OpenGL HARDWARE renderer -- native-res, hardware-filtered, smooth dice over crisp ANSI @done(26-07-25)
+      art (no software-scale jaggies, no aspect stretch); verified headless via Xvfb + x11grab
+    ✔ 10 rainbow dice SETS (data-driven) + per-player / per-monster selection, with a live @done(26-07-25)
+      SETTINGS preview using the same hardware render
+    ✔ Selectable numeral FONT (dicefonts.txt) + hi-res atlas; 1- and 2-digit faces same size @done(26-07-25)
+    ✔ Royal-purple tray, per-bounce beeps + settle boop, calmer tumble, longer settle hold @done(26-07-25)
+    ✔ Sum revealed beat-by-beat ("3 + 3 + 2 = 8") with the modifier; nat d20 (1/20) skips it @done(26-07-25)
+    ✔ 4d6-drop-lowest ability rolls on the 3D dice (module `dl` notation; lowest shrink-fades) @done(26-07-25)
+    ✔ FAIRNESS FIX: the die drew its value from the biased physics face (cube-sampled start @done(26-07-25)
+      orientation + tip-to-nearest settle). Now a uniform RNG value is drawn and the die is
+      posed to show it -- physics is pure animation (d20 mean 10.50, each face ~5.0%).
+    ✔ SAVE corruption fix: boolean level-arrays ran together as "-1-1-1-1" (STR$ has no leading @done(26-07-25)
+      space for negatives) and desynced the load, leaking save data into the champion's name.
+    ✔ Board MARKERS: a fallen-body glyph where an adventurer died and left loot; a $ for treasure @done(26-07-25)
+      left to recover (e.g. a curio left unopened). Both clear when the loot is claimed or lost.
+    ✔ Upstream DICE3D: ported the HW renderer + fairness + texture fixes back to the module and @done(26-07-25)
+      added a [G] software/hardware render toggle to DICE3D-TEST.BAS (grymmjack/qb64 PRs #1, #2).
