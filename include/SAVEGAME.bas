@@ -65,16 +65,19 @@ SUB SaveGame
     PRINT #f, poison_turns; fire_turns; frost_turns; siren_turns
     PRINT #f, c.x; c.y; c.prev_x; c.prev_y
     PRINT #f, moves_made; turn_num; steps_left; need_roll; loiter
+    ' NOTE: separate every value with a SPACE. STR$ of a negative has no leading space,
+    ' so `s + STR$(-1) + STR$(-1)` ran together as "-1-1" and desynced the token stream
+    ' (booleans are -1). Space-join keeps each value its own token.
     s = ""
-    FOR i = 1 TO 9: s = s + STR$(lvl_kills(i)): NEXT i: PRINT #f, s
+    FOR i = 1 TO 9: s = s + " " + _TRIM$(STR$(lvl_kills(i))): NEXT i: PRINT #f, s
     s = ""
-    FOR i = 1 TO 9: s = s + STR$(lvl_gold(i)): NEXT i: PRINT #f, s
+    FOR i = 1 TO 9: s = s + " " + _TRIM$(STR$(lvl_gold(i))): NEXT i: PRINT #f, s
     s = ""
-    FOR i = 1 TO 9: s = s + STR$(lvl_reached(i)): NEXT i: PRINT #f, s
+    FOR i = 1 TO 9: s = s + " " + _TRIM$(STR$(lvl_reached(i))): NEXT i: PRINT #f, s
     s = ""
-    FOR i = 1 TO 9: s = s + STR$(lvl_cleared(i)): NEXT i: PRINT #f, s
+    FOR i = 1 TO 9: s = s + " " + _TRIM$(STR$(lvl_cleared(i))): NEXT i: PRINT #f, s
     s = ""
-    FOR i = 1 TO 4: s = s + STR$(deaths(i)): NEXT i: PRINT #f, s
+    FOR i = 1 TO 4: s = s + " " + _TRIM$(STR$(deaths(i))): NEXT i: PRINT #f, s
     ' the champion name on its own line so spaces survive (read as a whole line marker)
     PRINT #f, "NAME " + _TRIM$(player_name)
     ' revealed secret doors + broken doors (index lists)
