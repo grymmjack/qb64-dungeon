@@ -146,6 +146,7 @@ END SUB
 SUB RollCharacter (pc AS INTEGER)
     DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
+    IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
     DO
         auto = FALSE
         FOR i = 1 TO 6
@@ -186,6 +187,38 @@ SUB RollCharacter (pc AS INTEGER)
         LOOP UNTIL k = "R" OR k = CHR$(13)
         Sfx "select"
     LOOP UNTIL k = CHR$(13)
+END SUB
+
+
+' -- OLD-SCHOOL (Dungeon! board game) character creation --
+' In TSR's Dungeon! you do NOT roll attributes -- you simply PICK a class (a pawn).
+' Confirm the class + name it; combat is a single 2d6 vs the monster's per-class number
+' (no STR/INT/etc., no HP, no AC). InitDefaultChar sets harmless baseline combat stats the
+' 2d6 path never reads, so the rest of the engine stays happy.
+SUB RollCharacterClassic (pc AS INTEGER)
+    DIM k AS STRING
+    InitDefaultChar pc
+    class_name = _TRIM$(CLASSES(pc).name)          ' keep the working globals in step with the pick
+    target_gold = CLASSES(pc).gold_goal
+    IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$
+    DO
+        DrawClassicCharGen pc
+        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+        IF k = "N" THEN player_name = RandomHeroName$
+    LOOP UNTIL k = CHR$(13)
+    Sfx "select"
+END SUB
+
+SUB DrawClassicCharGen (pc AS INTEGER)
+    _DEST CANVAS: CLS , BLACK: _FONT CH
+    COLOR YELLOWU, BLACK: PrintCentered 5, "-=  C H O O S E   Y O U R   A D V E N T U R E R  =-"
+    COLOR WHITE, BLACK: PrintCentered 8, "You are " + _TRIM$(player_name) + " the " + _TRIM$(CLASSES(pc).name)
+    COLOR CYANU, BLACK: PrintCentered 11, "Return to START with " + _TRIM$(STR$(CLASSES(pc).gold_goal)) + " gold to WIN."
+    COLOR GREENU, BLACK: PrintCentered 13, ClassSpecial$(pc)
+    COLOR GREY, BLACK
+    PrintCentered 16, "The old rules: no attributes, no hit points, no armour class."
+    PrintCentered 17, "Every fight is one roll of 2d6 against the monster's number for your class."
+    COLOR YELLOWU, BLACK: PrintCentered 21, "[N] new name         [ENTER] begin your quest"
 END SUB
 
 
@@ -840,12 +873,14 @@ SUB ShowCharSheet
     chline = "Champion:  " + who
     IF NOT opt_oldschool THEN chline = chline + "        Level " + _TRIM$(STR$(char_level)) + "    XP " + _TRIM$(STR$(char_xp))
     COLOR WHITE, BOXBG: PrintCentered 6, chline
-    COLOR CYANU, BOXBG
-    PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
     IF NOT opt_oldschool THEN
+        COLOR CYANU, BOXBG
+        PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
         COLOR GREENU, BOXBG
         PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword)
         COLOR GREY, BOXBG: PrintCentered 9, CombatDerivation$(player_class)   ' where those bonuses come from
+    ELSE
+        COLOR GREENU, BOXBG: PrintCentered 8, ClassSpecial$(player_class)     ' Dungeon!: just the class + its edge -- no stats, HP, or AC
     END IF
     ' wealth line
     COLOR YELLOWU, BOXBG

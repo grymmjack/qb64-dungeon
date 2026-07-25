@@ -884,8 +884,10 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
         CombatPause
     END IF
     IF lvl >= 1 AND lvl <= 9 THEN lvl_kills(lvl) = lvl_kills(lvl) + 1: lvl_reached(lvl) = TRUE
-    char_xp = char_xp + XP_PER_KILL_LVL * lvl              ' XP scales with the monster's depth
-    IF ROOMS(rm).is_boss THEN char_xp = char_xp + XP_PER_KILL_LVL * lvl   ' a boss is worth double
+    IF NOT opt_oldschool THEN                             ' Dungeon! has no XP and no levels -- D&D mode only
+        char_xp = char_xp + XP_PER_KILL_LVL * lvl          ' XP scales with the monster's depth
+        IF ROOMS(rm).is_boss THEN char_xp = char_xp + XP_PER_KILL_LVL * lvl   ' a boss is worth double
+    END IF
     IF opt_oldschool THEN
         slay = "You slay the " + mon + "!  (2d6 = " + _TRIM$(STR$(sm)) + ")"
     ELSE
@@ -894,13 +896,23 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     itm = ROOMS(rm).treasure_item
     DIM newp AS INTEGER
     SELECT CASE itm
-        CASE 1, 2                                ' Magic Sword -- every blade found is keener than the last
-            IF player_class = 4 THEN             ' a Wizard cannot use a Magic Sword
+        CASE 1, 2                                ' Magic Sword
+            IF player_class = 4 THEN             ' a Wizard cannot use a Magic Sword (rulebook: must return it)
                 gold = gold + 500
                 LogTreasure "Magic Sword (sold)", 500
                 line2 = "A " + tname + " -- a Wizard can't wield it; you sell it for 500 gold."
+            ELSEIF opt_oldschool THEN            ' Dungeon!: one Magic Sword (+1) at a time -- no upgrading
+                IF item_sword = 0 THEN
+                    item_sword = 1
+                    LogTreasure "Magic Sword", 500
+                    line2 = "You take up the " + tname + " -- +1 to your attack rolls, and it can slay even a '-' monster!"
+                ELSE
+                    gold = gold + 500
+                    LogTreasure "Magic Sword (sold)", 500
+                    line2 = "You already wield a Magic Sword (only one at a time) -- you sell this for 500 gold."
+                END IF
             ELSE
-                newp = itm                       ' a duplicate/weaker blade is reforged one step stronger
+                newp = itm                       ' D&D mode: a duplicate/weaker blade is reforged one step stronger
                 IF newp <= item_sword THEN newp = item_sword + 1
                 IF newp > 5 THEN newp = 5        ' +5 is the legendary cap
                 IF newp > item_sword THEN
@@ -913,40 +925,69 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     line2 = "Your blade is already legendary (+5) -- you sell this one for 1000 gold."
                 END IF
             END IF
-        CASE 3                                    ' Secret Door Card
-            item_secret_card = TRUE
-            LogTreasure "Secret Door Card", 0
-            line2 = "You find the SECRET DOOR CARD -- you now sense secret doors automatically!"
-        CASE 4                                    ' ESP Medallion
-            item_esp = TRUE
-            LogTreasure "ESP Medallion", 0
-            line2 = "You don the ESP MEDALLION -- you now foresee the monster beyond a door!"
-        CASE 5                                    ' Crystal Ball
-            item_crystal = TRUE
-            LogTreasure "Crystal Ball", 0
-            line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
+        CASE 3                                    ' Secret Door Card (its effect is binary -- one is enough)
+            IF opt_oldschool AND item_secret_card THEN
+                gold = gold + 250
+                LogTreasure "Secret Door Card (sold)", 250
+                line2 = "You already carry the Secret Door Card -- you sell this duplicate for 250 gold."
+            ELSE
+                item_secret_card = TRUE
+                LogTreasure "Secret Door Card", 0
+                line2 = "You find the SECRET DOOR CARD -- you now sense secret doors automatically!"
+            END IF
+        CASE 4                                    ' ESP Medallion (binary -- one is enough)
+            IF opt_oldschool AND item_esp THEN
+                gold = gold + 500
+                LogTreasure "ESP Medallion (sold)", 500
+                line2 = "You already wear an ESP Medallion -- you sell this one for 500 gold."
+            ELSE
+                item_esp = TRUE
+                LogTreasure "ESP Medallion", 0
+                line2 = "You don the ESP MEDALLION -- you now foresee the monster beyond a door!"
+            END IF
+        CASE 5                                    ' Crystal Ball (binary -- one is enough)
+            IF opt_oldschool AND item_crystal THEN
+                gold = gold + 1000
+                LogTreasure "Crystal Ball (sold)", 1000
+                line2 = "You already keep a Crystal Ball -- you sell this one for 1000 gold."
+            ELSE
+                item_crystal = TRUE
+                LogTreasure "Crystal Ball", 0
+                line2 = "You grasp the CRYSTAL BALL -- press [V] to scry the whole dungeon!"
+            END IF
         CASE 6                                    ' the LEVEL KEY (this game's key room)
             has_key = TRUE
             Sfx "key"
             gold = gold + ROOMS(rm).treasure
             IF ROOMS(rm).treasure > 0 THEN LogTreasure "Key Vault hoard", ROOMS(rm).treasure
             line2 = "You seize the LEVEL KEY! Now escape to the entrance with your gold to WIN."
-        CASE 7, 8                                 ' Shield / Magic Armor -- each set finer than the last
-            IF itm = 7 THEN acb = 2 ELSE acb = 3
-            newp = acb                            ' a duplicate/weaker set is reforged one step stronger
-            IF newp <= item_armor THEN newp = item_armor + 1
-            IF newp > 6 THEN newp = 6             ' +6 AC is the cap
-            IF newp > item_armor THEN
-                item_armor = newp
-                LogTreasure _TRIM$(tname) + " (+" + _TRIM$(STR$(item_armor)) + " AC)", 500 * item_armor
-                line2 = "You don the " + tname + " -- your Armor Class rises to " + _TRIM$(STR$(player_ac + item_armor)) + "!"
+        CASE 7, 8                                 ' Shield / Magic Armor -- an ARMOR CLASS item (D&D mode only)
+            IF opt_oldschool THEN                  ' Dungeon! has no Armor Class -- it's simply loot to sell
+                acb = 500 * lvl: IF acb < 500 THEN acb = 500
+                gold = gold + acb
+                LogTreasure _TRIM$(tname) + " (sold)", acb
+                line2 = "The " + tname + " is fine work -- but there's no armour class to raise here; you sell it for " + _TRIM$(STR$(acb)) + " gold."
             ELSE
-                gold = gold + 1000
-                LogTreasure "Armor (sold)", 1000
-                line2 = "Your armor is already peerless (+6 AC) -- you sell this for 1000 gold."
+                IF itm = 7 THEN acb = 2 ELSE acb = 3
+                newp = acb                        ' a duplicate/weaker set is reforged one step stronger
+                IF newp <= item_armor THEN newp = item_armor + 1
+                IF newp > 6 THEN newp = 6         ' +6 AC is the cap
+                IF newp > item_armor THEN
+                    item_armor = newp
+                    LogTreasure _TRIM$(tname) + " (+" + _TRIM$(STR$(item_armor)) + " AC)", 500 * item_armor
+                    line2 = "You don the " + tname + " -- your Armor Class rises to " + _TRIM$(STR$(player_ac + item_armor)) + "!"
+                ELSE
+                    gold = gold + 1000
+                    LogTreasure "Armor (sold)", 1000
+                    line2 = "Your armor is already peerless (+6 AC) -- you sell this for 1000 gold."
+                END IF
             END IF
-        CASE 9                                     ' Magic Bow (+2 to-hit, strikes from range)
-            IF NOT item_bow THEN
+        CASE 9                                     ' Magic Bow (+2 to-hit) -- a D&D-mode item
+            IF opt_oldschool THEN                   ' 2d6 combat has no to-hit bonus -- sell it
+                gold = gold + 500
+                LogTreasure _TRIM$(tname) + " (sold)", 500
+                line2 = "A fine " + tname + " -- but it lends no edge to a 2d6 fight; you sell it for 500 gold."
+            ELSEIF NOT item_bow THEN
                 item_bow = TRUE
                 LogTreasure "Magic Bow", 0
                 line2 = "You take up the " + tname + " -- +2 to hit, striking before they close!"
@@ -980,11 +1021,13 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
     ' slot rm > ROOM_N) never drop one -- that would make them farmable.
     IF rm <= ROOM_N THEN
-        IF RollDie(100) <= TREASURE_POTION_PCT THEN     ' occasional small potion in the hoard
-            item_potion_small = item_potion_small + 1
-            Sfx "treasure"
-            Banner "Among the spoils glints a SMALL HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d4).   [ press any key ]"
-            CombatPause
+        IF NOT opt_oldschool THEN                       ' Dungeon! has no hit points -- no healing potions
+            IF RollDie(100) <= TREASURE_POTION_PCT THEN ' occasional small potion in the hoard
+                item_potion_small = item_potion_small + 1
+                Sfx "treasure"
+                Banner "Among the spoils glints a SMALL HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d4).   [ press any key ]"
+                CombatPause
+            END IF
         END IF
         ' clearing every room of a level: a healing cache + (D&D) a level-up
         IF lvl >= 1 AND lvl <= 9 THEN
@@ -992,7 +1035,9 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 IF LevelFullyCleared(lvl) THEN GrantLevelClear lvl
             END IF
         END IF
-        CurioChest rm                       ' a curio chest may reveal itself after the fight
+        ' Curio chests spring HP-damaging traps and drop healing potions -- neither exists
+        ' in Dungeon!, so they're a D&D-mode feature only.
+        IF NOT opt_oldschool THEN CurioChest rm     ' a curio chest may reveal itself after the fight
     END IF
 END SUB
 
@@ -1029,15 +1074,17 @@ SUB GrantLevelClear (lvl AS INTEGER)
         Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
         CombatPause
     END IF
-    item_potion_small = item_potion_small + 1
-    got = "a SMALL HEALING POTION (1d4)"
-    IF RollDie(100) <= LEVELCLEAR_LARGE_PCT THEN
-        item_potion_large = item_potion_large + 1
-        got = got + " and a LARGE one (1d8)"
+    IF NOT opt_oldschool THEN                       ' no HP in Dungeon! -- no healing cache either
+        item_potion_small = item_potion_small + 1
+        got = "a SMALL HEALING POTION (1d4)"
+        IF RollDie(100) <= LEVELCLEAR_LARGE_PCT THEN
+            item_potion_large = item_potion_large + 1
+            got = got + " and a LARGE one (1d8)"
+        END IF
+        Sfx "treasure"
+        Banner "The cleared floor yields " + got + ".", "Press [H] in a fight to quaff a potion.   [ press any key ]"
+        CombatPause
     END IF
-    Sfx "treasure"
-    Banner "The cleared floor yields " + got + ".", "Press [H] in a fight to quaff a potion.   [ press any key ]"
-    CombatPause
 END SUB
 
 
