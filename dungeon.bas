@@ -522,10 +522,16 @@ FUNCTION DoCombat% (rm AS INTEGER)
     unbeatable = (target > 12)                ' "-" on the card: needs a stronger blade
     IF target < 2 THEN target = 2
 
-    IF ROOMS(rm).is_boss THEN lead = "The BOSS " + mon ELSE lead = "A " + mon
+    IF ROOMS(rm).is_boss THEN
+        lead = "The BOSS " + mon
+    ELSEIF MonPlural%(mon) THEN
+        lead = mon                                     ' "GIANT RATS guard...", no "A"
+    ELSE
+        lead = "A " + mon
+    END IF
     ' the treasure is face-down under the monster -- unless the ESP Medallion peeks it
-    whatguards = " guards the " + SECTORS(sec).label + "!"
-    IF item_esp THEN whatguards = " guards a " + _TRIM$(ROOMS(rm).treasure_name) + "!"
+    whatguards = " " + MonVerb$(mon, "guards", "guard") + " the " + SECTORS(sec).label + "!"
+    IF item_esp THEN whatguards = " " + MonVerb$(mon, "guards", "guard") + " a " + _TRIM$(ROOMS(rm).treasure_name) + "!"
     IF unbeatable THEN
         p2 = "Only a Magic Sword can harm it -- [ESC] FLEE"
     ELSE
@@ -545,13 +551,13 @@ FUNCTION DoCombat% (rm AS INTEGER)
         IF k = CHR$(27) THEN
             IF FleeFails(sec) THEN               ' the deeper you are, the likelier it grabs you
                 Sfx "bump"
-                Banner "The " + mon + " lunges and drags you back!", "You cannot flee!   [ press any key ]"
+                Banner "The " + mon + " " + MonVerb$(mon, "lunges and drags", "lunge and drag") + " you back!", "You cannot flee!   [ press any key ]"
                 CombatPause
                 Banner lead + whatguards, p2 + HealSuffix$   ' re-show the fight prompt
             ELSE
                 c.x = c.prev_x: c.y = c.prev_y  ' back out the way you came
                 StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "fled", 0, 0, 0
-                Banner "You slip away from the " + mon + ".", "It still guards the " + _TRIM$(SECTORS(sec).label) + " -- return to finish it.   [ press any key ]"
+                Banner "You slip away from the " + mon + ".", MonVerb$(mon, "It still guards", "They still guard") + " the " + _TRIM$(SECTORS(sec).label) + " -- return to finish " + MonVerb$(mon, "it", "them") + ".   [ press any key ]"
                 CombatPause
                 EXIT DO
             END IF
@@ -655,13 +661,13 @@ SUB DoCombatDnD (rm AS INTEGER)
         IF k = CHR$(27) THEN                     ' attempt to flee
             IF FleeFails(lvl) THEN               ' the deeper you are, the likelier it grabs you
                 Sfx "bump"
-                Banner "The " + mon + " lunges and drags you back!", "You cannot flee!   [ press any key ]"
+                Banner "The " + mon + " " + MonVerb$(mon, "lunges and drags", "lunge and drag") + " you back!", "You cannot flee!   [ press any key ]"
                 CombatPause
                 dirty = -1                       ' clear the banner, redraw the panel next loop
             ELSE
                 c.x = c.prev_x: c.y = c.prev_y   ' back out the way you came
                 StatLog sec, rm, mon, isboss, wander, "fled", rounds, tot_dealt, tot_taken
-                Banner "You slip away from the " + mon + ".", "It still guards the " + _TRIM$(SECTORS(sec).label) + " -- return to finish it.   [ press any key ]"
+                Banner "You slip away from the " + mon + ".", MonVerb$(mon, "It still guards", "They still guard") + " the " + _TRIM$(SECTORS(sec).label) + " -- return to finish " + MonVerb$(mon, "it", "them") + ".   [ press any key ]"
                 CombatPause
                 EXIT SUB
             END IF
@@ -725,7 +731,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             ELSE                                  ' miss
                 Sfx "miss"
                 FX_DMG = 0
-                EventBanner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", 2, class_name, 2, "The " + mon + " dodges your blow."
+                EventBanner "You MISS.  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", 2, class_name, 2, "The " + mon + " " + MonVerb$(mon, "dodges", "dodge") + " your blow."
                 CombatPause
             END IF
 
@@ -763,7 +769,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 FX_DMG = mdmg
-                EventBanner "** the " + mon + " CRITS you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
+                EventBanner "** the " + mon + " " + MonVerb$(mon, "CRITS", "CRIT") + " you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
                 CombatPause
             ELSEIF matk >= player_ac + item_armor THEN
                 PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
@@ -774,11 +780,11 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 FX_DMG = mdmg
-                EventBanner "The " + mon + " HITS you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
+                EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
                 CombatPause
             ELSE
                 FX_DMG = 0
-                EventBanner "The " + mon + " misses you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", 1, mon, 2, "You weather the assault."
+                EventBanner "The " + mon + " " + MonVerb$(mon, "misses", "miss") + " you.  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + ")", 1, mon, 2, "You weather the assault."
                 CombatPause
             END IF
 
@@ -828,7 +834,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     IF combat_round > 1 THEN                      ' between rounds -- the fight is on-going; prompt to act again
         PrintCentered by + 1, "You still face " + LCASE$(LEFT$(_TRIM$(lead), 1)) + MID$(_TRIM$(lead), 2) + " -- choose your action!"
     ELSE                                          ' first look -- the encounter opens
-        PrintCentered by + 1, _TRIM$(lead) + " blocks your path!"
+        PrintCentered by + 1, _TRIM$(lead) + " " + MonVerb$(mon, "blocks", "block") + " your path!"
     END IF
     COLOR CYANU, BOXBG: _PRINTSTRING ((bx + 2) * CW, (by + 1) * CH), "LEVEL" + STR$(ROOMS(rm).sec)
     COLOR REDU, BOXBG: _PRINTSTRING ((bx + bw - 12) * CW, (by + 1) * CH), "ROUND:" + STR$(combat_round)
@@ -914,7 +920,7 @@ SUB MonsterAttack (rm AS INTEGER)
             c.x = c.prev_x: c.y = c.prev_y
         CASE ELSE                                ' 9+ MISSED
             Sfx "bump"
-            Banner "The " + mon + " MISSES!  (" + _TRIM$(STR$(r)) + ")", "No harm done -- stand and fight again, or flee.   [ press any key ]"
+            Banner "The " + mon + " " + MonVerb$(mon, "MISSES", "MISS") + "!  (" + _TRIM$(STR$(r)) + ")", "No harm done -- stand and fight again, or flee.   [ press any key ]"
             CombatPause
             c.x = c.prev_x: c.y = c.prev_y
     END SELECT
@@ -931,7 +937,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     dfl = EventLine$(1, mon, 5)                            ' the monster's own death throes, if any
     IF LEN(dfl) > 0 THEN
         Sfx "treasure"
-        Banner "The " + mon + " is slain!", dfl + "   [ press any key ]"
+        Banner "The " + mon + " " + MonVerb$(mon, "is", "are") + " slain!", dfl + "   [ press any key ]"
         CombatPause
     END IF
     IF lvl >= 1 AND lvl <= 9 THEN lvl_kills(lvl) = lvl_kills(lvl) + 1: lvl_reached(lvl) = TRUE
@@ -1489,7 +1495,8 @@ SUB WanderEncounter
     ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
     c.prev_x = c.x: c.prev_y = c.y                ' fleeing a wanderer just leaves you put
     Sfx "trap"
-    Banner "A WANDERING " + _TRIM$(ROOMS(w).monster) + " bursts from the shadows!", "Your lingering has drawn it to you.   [ press any key ]"
+    DIM wm AS STRING: wm = _TRIM$(ROOMS(w).monster)
+    Banner MonVerb$(wm, "A WANDERING " + wm + " bursts", "WANDERING " + wm + " burst") + " from the shadows!", "Your lingering has drawn " + MonVerb$(wm, "it", "them") + " to you.   [ press any key ]"
     WaitKey
     res = DoCombat(w)
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY

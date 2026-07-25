@@ -38,6 +38,24 @@ FUNCTION PlayerRef$
     IF LEN(_TRIM$(player_name)) > 0 THEN PlayerRef$ = _TRIM$(player_name) ELSE PlayerRef$ = "you"
 END FUNCTION
 
+' TRUE if a monster name is grammatically PLURAL ("GIANT RATS", "GHOULS"): it ends
+' in S but not SS. Every singular monster in the roster ends in another letter, so
+' this cleanly separates the packs from the lone beasts.
+FUNCTION MonPlural% (nm AS STRING)
+    DIM s AS STRING
+    s = UCASE$(_TRIM$(nm))
+    MonPlural% = 0
+    IF LEN(s) >= 2 THEN
+        IF RIGHT$(s, 1) = "S" AND RIGHT$(s, 2) <> "SS" THEN MonPlural% = -1
+    END IF
+END FUNCTION
+
+' Subject-verb agreement for a monster name: pick the singular or plural verb form
+' ("The GIANT RATS ARE slain" vs "The SKELETON IS slain"). For hand-built code lines.
+FUNCTION MonVerb$ (nm AS STRING, sing AS STRING, plur AS STRING)
+    IF MonPlural%(nm) THEN MonVerb$ = plur ELSE MonVerb$ = sing
+END FUNCTION
+
 ' Substitute every {token} in a template from the current flavor context + globals.
 FUNCTION Fill$ (s AS STRING)
     DIM r AS STRING, dc AS INTEGER
@@ -53,6 +71,17 @@ FUNCTION Fill$ (s AS STRING)
     r = StrSubst$(r, "{treasure}", _TRIM$(FX_TREASURE))
     r = StrSubst$(r, "{item}", WeaponName$)
     r = StrSubst$(r, "{weapon}", WeaponName$)
+    ' grammar tokens -- resolve verb agreement for the monster (packs read plural):
+    '   lunge{s}  press{es}  {it}/{its}  {is}=is/are  {was}=was/were  {has}=has/have
+    IF MonPlural%(FX_MON) THEN
+        r = StrSubst$(r, "{s}", ""): r = StrSubst$(r, "{es}", "")
+        r = StrSubst$(r, "{is}", "are"): r = StrSubst$(r, "{was}", "were"): r = StrSubst$(r, "{has}", "have")
+        r = StrSubst$(r, "{its}", "their"): r = StrSubst$(r, "{it}", "they")
+    ELSE
+        r = StrSubst$(r, "{s}", "s"): r = StrSubst$(r, "{es}", "es")
+        r = StrSubst$(r, "{is}", "is"): r = StrSubst$(r, "{was}", "was"): r = StrSubst$(r, "{has}", "has")
+        r = StrSubst$(r, "{its}", "its"): r = StrSubst$(r, "{it}", "it")
+    END IF
     Fill$ = r
 END FUNCTION
 

@@ -8,17 +8,31 @@
 # one is picked at random. Re-read at F5.
 #
 # Tokens: {player} {class} {mon} {dmg} {deaths} {level} {room} {treasure} {weapon}
+# Grammar tokens (agree with singular vs PLURAL monsters like GIANT RATS / GHOULS):
+#   verb{s} verb{es}  ->  drop the ending in the plural (strike{s} = strikes / strike)
+#   {is}=is/are  {was}=was/were  {has}=has/have  {it}=it/they  {its}=its/their
 # --------------------------------------------------------------------------------------
 
 # ================= generic fallback for ANY monster =================
-* | attack | The {mon} strikes you for {dmg} damage.
-* | attack | The {mon} presses its attack and lands a blow for {dmg}.
-* | miss   | The {mon} lunges, but you weather the assault.
-* | miss   | You turn the {mon}'s attack aside.
-* | crit   | The {mon} catches you flush -- a savage blow for {dmg}!
-* | fumble | The {mon} overreaches and stumbles, its attack wasted.
-* | death  | The {mon} shudders and collapses, slain.
-* | death  | With a final spasm the {mon} falls still.
+# Grammar tokens keep these correct for singular AND plural monsters (GIANT RATS,
+# GHOULS...):  verb{s}/{es} drop their ending in the plural, {is}/{its}/{it} agree too.
+* | attack | The {mon} strike{s} you for {dmg} damage.
+* | attack | The {mon} press{es} {its} attack and land{s} a blow for {dmg}.
+* | miss   | The {mon} lunge{s}, but you weather the assault.
+* | miss   | The {mon} strike{s} wide -- you dance out of reach.
+* | miss   | You duck the blow aimed at your head.
+* | miss   | You twist aside as the {mon} lunge{s} past.
+* | miss   | The {mon} snap{s} at the empty air where you stood.
+* | miss   | You throw yourself clear of the {mon}.
+* | miss   | The {mon} overreach{es}; you slip beneath {its} guard.
+* | miss   | You parry the attack at the last instant.
+* | miss   | The {mon} misjudge{s} the distance and find{s} only air.
+* | miss   | You sidestep, and the attack whistles harmlessly past.
+* | miss   | The {mon} lash{es} out -- but you are already gone.
+* | crit   | The {mon} catch{es} you flush -- a savage blow for {dmg}!
+* | fumble | The {mon} overreach{es} and stumble{s}, {its} attack wasted.
+* | death  | The {mon} shudder{s} and collapse{s}, slain.
+* | death  | The {mon} fall{s} still at last.
 
 # ================= level 1 =================
 GIANT RATS | attack | The rats swarm up your legs, biting and clawing for {dmg}.
