@@ -328,6 +328,8 @@ FUNCTION PlayGame%
                             IF NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
                         END IF
                     END IF
+                    ' reclaim loose spoils left on the paths where a fall happened (rooms OR corridors)
+                    IF LooseAt%(c.x \ CW, c.y \ CH) > 0 THEN CollectLooseAt c.x \ CW, c.y \ CH
                     ' victory: enough gold, hold the Level Key, and back at the entrance
                     IF gold >= target_gold AND has_key THEN
                         IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN
@@ -625,7 +627,8 @@ SUB DoCombatDnD (rm AS INTEGER)
     lvl = sec                                   ' sector index doubles as dungeon level 1..9
     mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
     thb = player_tohit                          ' final to-hit incl. ability modifier
-    IF item_bow THEN thb = thb + 2              ' Magic Bow: strike harder from range
+    IF item_sword > 0 THEN thb = thb + item_sword   ' a Magic Sword +N sharpens the SWING as well as the wound (+N hit AND +N dmg)
+    IF item_bow THEN thb = thb + 2              ' Magic Bow: +2 to-hit, any class (ranged accuracy) -- stacks with the blade
     god_favor = GodsFavor                       ' desperate last-life spoils-rescue may earn a divine dice boost
     IF god_favor > 0 THEN thb = thb + god_favor
     IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
@@ -795,8 +798,12 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "lose"
                 IF vanished THEN
                     Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
-                ELSEIF opt_lootrecovery >= 1 AND NOT wander THEN
-                    Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
+                ELSEIF opt_lootrecovery >= 1 THEN
+                    IF wander THEN
+                        Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie where you fell -- return for revenge!   [ press any key ]"
+                    ELSE
+                        Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
+                    END IF
                 ELSE
                     Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
                 END IF
@@ -873,8 +880,12 @@ SUB MonsterAttack (rm AS INTEGER)
             Sfx "lose"
             IF vanished THEN
                 Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
-            ELSEIF opt_lootrecovery >= 1 AND rm <= ROOM_N THEN
-                Banner mon + " ATTACK (2): ADVENTURER KILLED!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(ROOMS(rm).sec).label) + " -- return for revenge!   [ press any key ]"
+            ELSEIF opt_lootrecovery >= 1 THEN
+                IF rm <= ROOM_N THEN
+                    Banner mon + " ATTACK (2): ADVENTURER KILLED!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(ROOMS(rm).sec).label) + " -- return for revenge!   [ press any key ]"
+                ELSE
+                    Banner mon + " ATTACK (2): ADVENTURER KILLED!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie where you fell -- return for revenge!   [ press any key ]"
+                END IF
             ELSE
                 Banner mon + " ATTACK (2): ADVENTURER KILLED!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, then crawl back to START.   [ press any key ]"
             END IF
@@ -965,31 +976,31 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     line2 = "Your blade is already legendary (+5) -- you sell this one for 1000 gold."
                 END IF
             END IF
-        CASE 3                                    ' Secret Door Card (its effect is binary -- one is enough)
-            IF opt_oldschool AND item_secret_card THEN
+        CASE 3                                    ' Secret Door Card (binary -- unique; a spare is pack loot)
+            IF item_secret_card THEN
                 gold = gold + 250
-                LogTreasure "Secret Door Card (sold)", 250
-                line2 = "You already carry the Secret Door Card -- you sell this duplicate for 250 gold."
+                LogTreasure "Secret Door Card (spare)", 250
+                line2 = "You already carry the Secret Door Card -- you shove the spare in your pack to sell in town (+250 gold)."
             ELSE
                 item_secret_card = TRUE
                 LogTreasure "Secret Door Card", 0
                 line2 = "You find the SECRET DOOR CARD -- you now sense secret doors automatically!"
             END IF
-        CASE 4                                    ' ESP Medallion (binary -- one is enough)
-            IF opt_oldschool AND item_esp THEN
+        CASE 4                                    ' ESP Medallion (binary -- unique; a spare is pack loot)
+            IF item_esp THEN
                 gold = gold + 500
-                LogTreasure "ESP Medallion (sold)", 500
-                line2 = "You already wear an ESP Medallion -- you sell this one for 500 gold."
+                LogTreasure "ESP Medallion (spare)", 500
+                line2 = "You already wear an ESP Medallion -- you stash the spare in your pack to sell in town (+500 gold)."
             ELSE
                 item_esp = TRUE
                 LogTreasure "ESP Medallion", 0
                 line2 = "You don the ESP MEDALLION -- you now foresee the monster beyond a door!"
             END IF
-        CASE 5                                    ' Crystal Ball (binary -- one is enough)
-            IF opt_oldschool AND item_crystal THEN
+        CASE 5                                    ' Crystal Ball (binary -- unique; a spare is pack loot)
+            IF item_crystal THEN
                 gold = gold + 1000
-                LogTreasure "Crystal Ball (sold)", 1000
-                line2 = "You already keep a Crystal Ball -- you sell this one for 1000 gold."
+                LogTreasure "Crystal Ball (spare)", 1000
+                line2 = "You already keep a Crystal Ball -- you tuck the spare in your pack to sell in town (+1000 gold)."
             ELSE
                 item_crystal = TRUE
                 LogTreasure "Crystal Ball", 0
@@ -1033,8 +1044,8 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 line2 = "You take up the " + tname + " -- +2 to hit, striking before they close!"
             ELSE
                 gold = gold + 500
-                LogTreasure "Magic Bow (sold)", 500
-                line2 = "Another " + tname + " -- you already carry one; +500 gold."
+                LogTreasure "Magic Bow (spare)", 500
+                line2 = "You already carry a " + tname + " -- you sling the spare in your pack to sell in town (+500 gold)."
             END IF
         CASE 10                                    ' Elf Boots (+2 to the movement roll)
             IF NOT item_boots THEN
@@ -1043,8 +1054,8 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 line2 = "You lace on the " + tname + " -- +2 to every movement roll!"
             ELSE
                 gold = gold + 500
-                LogTreasure "Elf Boots (sold)", 500
-                line2 = "Another pair of " + tname + " -- you already run swift; +500 gold."
+                LogTreasure "Elf Boots (spare)", 500
+                line2 = "You already run swift in your " + tname + " -- the spare pair goes in your pack to sell in town (+500 gold)."
             END IF
         CASE 11                                    ' Teleport Scroll (consumable, [T])
             item_teleport = item_teleport + 1
@@ -1062,10 +1073,16 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     ' slot rm > ROOM_N) never drop one -- that would make them farmable.
     IF rm <= ROOM_N THEN
         IF NOT opt_oldschool THEN                       ' Dungeon! has no hit points -- no healing potions
-            IF RollDie(100) <= TREASURE_POTION_PCT THEN ' occasional small potion in the hoard
-                item_potion_small = item_potion_small + 1
-                Sfx "treasure"
-                Banner "Among the spoils glints a SMALL HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d4).   [ press any key ]"
+            IF RollDie(100) <= TREASURE_POTION_PCT THEN ' occasional potion in the hoard
+                IF RollDie(100) <= TREASURE_LARGE_PCT THEN   ' now and then it's the good stuff
+                    item_potion_large = item_potion_large + 1
+                    Sfx "treasure"
+                    Banner "Among the spoils gleams a LARGE HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d8+1).   [ press any key ]"
+                ELSE
+                    item_potion_small = item_potion_small + 1
+                    Sfx "treasure"
+                    Banner "Among the spoils glints a SMALL HEALING POTION!", "Press [H] in a fight to quaff it (heals 1d4).   [ press any key ]"
+                END IF
                 CombatPause
             END IF
         END IF
@@ -1119,7 +1136,7 @@ SUB GrantLevelClear (lvl AS INTEGER)
         got = "a SMALL HEALING POTION (1d4)"
         IF RollDie(100) <= LEVELCLEAR_LARGE_PCT THEN
             item_potion_large = item_potion_large + 1
-            got = got + " and a LARGE one (1d8)"
+            got = got + " and a LARGE one (1d8+1)"
         END IF
         Sfx "treasure"
         Banner "The cleared floor yields " + got + ".", "Press [H] in a fight to quaff a potion.   [ press any key ]"
@@ -1155,7 +1172,7 @@ SUB UsePotion (silentIfNone AS INTEGER)
         heal = GameRoll(1, POTION_SMALL_DIE, 0, "SMALL HEALING POTION")
     ELSE
         item_potion_large = item_potion_large - 1
-        heal = GameRoll(1, POTION_LARGE_DIE, 0, "LARGE HEALING POTION")
+        heal = GameRoll(1, POTION_LARGE_DIE, POTION_LARGE_BONUS, "LARGE HEALING POTION")
     END IF
     IF heal < 1 THEN heal = 1
     player_hp = player_hp + heal
@@ -1195,16 +1212,21 @@ END SUB
 ' multiplayer the loot is left IN the room (rm) for any player to recover; solo it
 ' is simply lost (recovering your own would void the death penalty).
 SUB DropEverything (rm AS INTEGER)
-    ' With Loot Recovery on, the spoils are LEFT in the room to reclaim (solo:
-    ' trek back and re-clear it for revenge; multiplayer: any rival can grab it).
-    ' Wanderer deaths (scratch slot rm > ROOM_N) have no room to mark -- lost.
-    IF opt_lootrecovery >= 1 AND rm >= 1 AND rm <= ROOM_N THEN
-        IF opt_lootrecovery = 2 THEN ClearAllDrops   ' SOULS-LIKE: only your most recent death's spoils survive
-        ROOMS(rm).drop_gold = ROOMS(rm).drop_gold + gold
-        IF item_sword > ROOMS(rm).drop_sword THEN ROOMS(rm).drop_sword = item_sword
-        IF item_secret_card THEN ROOMS(rm).drop_secret = TRUE
-        IF item_esp THEN ROOMS(rm).drop_esp = TRUE
-        IF item_crystal THEN ROOMS(rm).drop_crystal = TRUE
+    ' With Loot Recovery on, the spoils are LEFT to reclaim (solo: trek back for
+    ' revenge; multiplayer: any rival can grab it). A ROOM death stashes them in the
+    ' room; a PATH/wander death (scratch slot rm > ROOM_N) has no room, so it drops a
+    ' LOOSE marker on the exact cell where you fell -- reclaimable all the same.
+    IF opt_lootrecovery >= 1 THEN
+        IF opt_lootrecovery = 2 THEN ClearAllDrops: ClearLooseDrops   ' SOULS-LIKE: only your most recent death's spoils survive
+        IF rm >= 1 AND rm <= ROOM_N THEN
+            ROOMS(rm).drop_gold = ROOMS(rm).drop_gold + gold
+            IF item_sword > ROOMS(rm).drop_sword THEN ROOMS(rm).drop_sword = item_sword
+            IF item_secret_card THEN ROOMS(rm).drop_secret = TRUE
+            IF item_esp THEN ROOMS(rm).drop_esp = TRUE
+            IF item_crystal THEN ROOMS(rm).drop_crystal = TRUE
+        ELSEIF gold > 0 OR item_sword > 0 OR item_secret_card OR item_esp OR item_crystal THEN
+            AddLooseDrop c.x \ CW, c.y \ CH          ' fell out on the paths -- spoils lie where you dropped
+        END IF
     END IF
     gold = 0
     item_sword = 0
@@ -1226,13 +1248,80 @@ SUB ClearAllDrops
 END SUB
 
 
-' TRUE if any room still holds a recoverable drop. Used at a SOULS-LIKE death to
-' tell "first fall (a hoard to return for)" from "fell again -- it's lost forever".
+' --- LOOSE DROPS: spoils left where a fall happened out on the open paths --------
+' A room death uses the room's own drop_* fields; a path/wander death has no room,
+' so it drops here, keyed to the exact board cell. Painted as a blood-red body by
+' DrawEntities and reclaimed by stepping onto the cell (checked in the move loop).
+
+' Record the player's current gold + magic at a board CELL. Merges into an existing
+' drop on the same cell; else takes a free slot, else overwrites the oldest.
+SUB AddLooseDrop (cx AS INTEGER, cy AS INTEGER)
+    DIM i AS INTEGER, slot AS INTEGER
+    slot = 0
+    FOR i = 1 TO UBOUND(LOOSE)                        ' reuse a drop already on this cell
+        IF LOOSE(i).active AND LOOSE(i).cx = cx THEN IF LOOSE(i).cy = cy THEN slot = i: EXIT FOR
+    NEXT
+    IF slot = 0 THEN
+        FOR i = 1 TO UBOUND(LOOSE)                    ' first free slot
+            IF NOT LOOSE(i).active THEN slot = i: EXIT FOR
+        NEXT
+    END IF
+    IF slot = 0 THEN slot = 1                         ' all full -- overwrite the oldest
+    LOOSE(slot).active = -1: LOOSE(slot).cx = cx: LOOSE(slot).cy = cy
+    LOOSE(slot).gold = LOOSE(slot).gold + gold
+    IF item_sword > LOOSE(slot).sword THEN LOOSE(slot).sword = item_sword
+    IF item_secret_card THEN LOOSE(slot).secret = -1
+    IF item_esp THEN LOOSE(slot).esp = -1
+    IF item_crystal THEN LOOSE(slot).crystal = -1
+END SUB
+
+' Index of an active loose drop on a cell (0 if none).
+FUNCTION LooseAt% (cx AS INTEGER, cy AS INTEGER)
+    DIM i AS INTEGER
+    LooseAt% = 0
+    FOR i = 1 TO UBOUND(LOOSE)
+        IF LOOSE(i).active AND LOOSE(i).cx = cx THEN IF LOOSE(i).cy = cy THEN LooseAt% = i: EXIT FUNCTION
+    NEXT
+END FUNCTION
+
+' Reclaim the loose drop on a cell (called when the player steps onto it).
+SUB CollectLooseAt (cx AS INTEGER, cy AS INTEGER)
+    DIM i AS INTEGER, got AS STRING
+    i = LooseAt%(cx, cy): IF i = 0 THEN EXIT SUB
+    got = ""
+    IF LOOSE(i).gold > 0 THEN gold = gold + LOOSE(i).gold: got = _TRIM$(STR$(LOOSE(i).gold)) + " gold"
+    IF LOOSE(i).sword > item_sword AND player_class <> 4 THEN item_sword = LOOSE(i).sword: got = got + "   a Magic Sword"
+    IF LOOSE(i).secret THEN item_secret_card = TRUE: got = got + "   a Secret Door Card"
+    IF LOOSE(i).esp THEN item_esp = TRUE: got = got + "   an ESP Medallion"
+    IF LOOSE(i).crystal THEN item_crystal = TRUE: got = got + "   a Crystal Ball"
+    LOOSE(i).active = 0: LOOSE(i).gold = 0: LOOSE(i).sword = 0
+    LOOSE(i).secret = 0: LOOSE(i).esp = 0: LOOSE(i).crystal = 0
+    Sfx "treasure"
+    Banner "You recover the spoils from where you fell.", _TRIM$(got) + "   [ press any key ]"
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+' Wipe every loose drop (SOULS-LIKE death forfeits an unreclaimed fall, like ClearAllDrops).
+SUB ClearLooseDrops
+    DIM i AS INTEGER
+    FOR i = 1 TO UBOUND(LOOSE)
+        LOOSE(i).active = 0: LOOSE(i).gold = 0: LOOSE(i).sword = 0
+        LOOSE(i).secret = 0: LOOSE(i).esp = 0: LOOSE(i).crystal = 0
+    NEXT
+END SUB
+
+
+' TRUE if any room OR loose cell still holds a recoverable drop. Used at a SOULS-LIKE
+' death to tell "first fall (a hoard to return for)" from "fell again -- lost forever".
 FUNCTION AnyDropExists% ()
     DIM r AS INTEGER
     AnyDropExists = 0
     FOR r = 1 TO ROOM_N
         IF HasDrop(r) THEN AnyDropExists = -1: EXIT FUNCTION
+    NEXT r
+    FOR r = 1 TO UBOUND(LOOSE)
+        IF LOOSE(r).active THEN AnyDropExists = -1: EXIT FUNCTION
     NEXT r
 END FUNCTION
 

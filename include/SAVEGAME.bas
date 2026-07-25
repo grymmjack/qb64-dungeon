@@ -94,6 +94,11 @@ SUB SaveGame
     FOR i = 1 TO ROOM_N
         PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal
     NEXT i
+    ' loose drops -- spoils left where a fall happened on the open paths
+    PRINT #f, "LOOSE "; UBOUND(LOOSE)
+    FOR i = 1 TO UBOUND(LOOSE)
+        PRINT #f, LOOSE(i).active; LOOSE(i).cx; LOOSE(i).cy; LOOSE(i).gold; LOOSE(i).sword; LOOSE(i).secret; LOOSE(i).esp; LOOSE(i).crystal
+    NEXT i
     CLOSE #f
 END SUB
 
@@ -209,6 +214,21 @@ SUB LoadGameApply
         ROOMS(i).drop_gold = NextL: ROOMS(i).drop_sword = NextI: ROOMS(i).drop_secret = NextI
         ROOMS(i).drop_esp = NextI: ROOMS(i).drop_crystal = NextI
     NEXT i
+
+    ' loose drops (spoils on the open paths). Older saves lack this section -- the tag
+    ' won't match, so they just load with no loose drops. Clear first either way.
+    FOR i = 1 TO UBOUND(LOOSE): LOOSE(i).active = 0: NEXT i
+    IF SVTOK_I <= SVTOK_N THEN
+        IF SVTOK(SVTOK_I) = "LOOSE" THEN
+            tag = NextTok$                            ' "LOOSE"
+            rn = NextI                                ' saved slot count
+            IF rn > UBOUND(LOOSE) THEN rn = UBOUND(LOOSE)
+            FOR i = 1 TO rn
+                LOOSE(i).active = NextI: LOOSE(i).cx = NextI: LOOSE(i).cy = NextI: LOOSE(i).gold = NextL
+                LOOSE(i).sword = NextI: LOOSE(i).secret = NextI: LOOSE(i).esp = NextI: LOOSE(i).crystal = NextI
+            NEXT i
+        END IF
+    END IF
 
     game_start = TIMER - el                          ' restore the elapsed run timer
     IF game_start > TIMER THEN game_start = TIMER

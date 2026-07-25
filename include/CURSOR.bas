@@ -109,6 +109,21 @@ SUB DrawEntities
             END IF
         END IF
     NEXT r
+    ' loose spoils out on the open paths (a fall in the corridors, no room to hold it):
+    ' the same blood-red body marker, keyed to the exact cell, FOV-aware.
+    FOR r = 1 TO UBOUND(LOOSE)
+        IF LOOSE(r).active THEN
+            gx = LOOSE(r).cx: gy = LOOSE(r).cy
+            IF gx >= 0 AND gy >= 0 AND gx <= 131 AND gy <= 60 THEN
+                vis = TRUE
+                IF opt_fov THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
+                IF vis THEN
+                    COLOR _RGB32(&HE0, &H33, &H33), BLACK
+                    _PRINTSTRING (gx * CW, gy * CH), CHR$(2)
+                END IF
+            END IF
+        END IF
+    NEXT r
 END SUB
 
 

@@ -88,6 +88,7 @@ SUB DoCurio (rm AS INTEGER)
     NEXT
     kd = _TRIM$(CURIOS(pick).kind)
     Sfx "treasure"
+    DrawCurioArt kd, _TRIM$(CURIOS(pick).nm)            ' pixel-art: the curio's prop, framed top-left (persists behind the banner)
     Banner _TRIM$(CURIOS(pick).prompt), CurioHint$(kd)
     SELECT CASE kd
         CASE "chest": CurioChest rm, sec
@@ -189,7 +190,15 @@ SUB CurioChest (rm AS INTEGER, sec AS INTEGER)
     IF rm >= 1 AND RollDie(100) <= CHEST_TRAP_PCT THEN SpringTrap rm
     g = (RollDie(4) + 1) * 100 * sec: gold = gold + g: LogTreasure "Curio Chest", g
     Sfx "treasure": Banner "The chest holds " + _TRIM$(STR$(g)) + " gold!", "[ press any key ]": WaitKey
-    IF RollDie(100) <= 30 THEN item_potion_small = item_potion_small + 1: Sfx "treasure": Banner "Tucked inside: a SMALL HEALING POTION!", "[ press any key ]": WaitKey
+    IF RollDie(100) <= 30 THEN                        ' the chest may also hide a healing potion
+        IF RollDie(100) <= TREASURE_LARGE_PCT THEN
+            item_potion_large = item_potion_large + 1: Sfx "treasure"
+            Banner "Tucked inside: a LARGE HEALING POTION!", "Heals 1d8+1 -- press [H] in a fight.   [ press any key ]": WaitKey
+        ELSE
+            item_potion_small = item_potion_small + 1: Sfx "treasure"
+            Banner "Tucked inside: a SMALL HEALING POTION!", "Heals 1d4 -- press [H] in a fight.   [ press any key ]": WaitKey
+        END IF
+    END IF
 END SUB
 
 ' FOUNTAIN: drink for a weighted outcome -- mostly good, sometimes foul.
@@ -199,8 +208,14 @@ SUB CurioFountain (sec AS INTEGER)
     Sfx "treasure": DramaticPause
     r = RollDie(100)
     IF r <= 45 THEN
-        n = CurioHeal%(RollDie(8) + 2): Sfx "treasure"
-        Banner "The water is cool and sweet -- vigour floods back!", "You heal " + _TRIM$(STR$(n)) + " HP.   [ press any key ]"
+        n = CurioHeal%(RollDie(8) + 2)
+        IF n > 0 THEN
+            Sfx "treasure"
+            Banner "The water is cool and sweet -- vigour floods back!", "You heal " + _TRIM$(STR$(n)) + " HP.   [ press any key ]"
+        ELSE                                          ' already at full vigour -- reward the drink instead of a hollow "heal 0"
+            n = RollDie(3) * 25 * sec: gold = gold + n: LogTreasure "coins in the fountain", n: Sfx "treasure"
+            Banner "The water is cool and sweet -- but you are already hale.", "You spot old coins on the basin floor: +" + _TRIM$(STR$(n)) + " gold.   [ press any key ]"
+        END IF
     ELSEIF r <= 68 THEN
         n = RollDie(4) * 50 * sec: gold = gold + n: LogTreasure "coins in the fountain", n
         Banner "Old coins glint on the basin floor -- you scoop them up!", "+" + _TRIM$(STR$(n)) + " gold.   [ press any key ]"
@@ -344,11 +359,29 @@ SUB CurioCache (sec AS INTEGER)
 END SUB
 
 ' MIMIC: the greedy trap -- open it and the "loot" bites back.
+' MIMIC: masquerades as an ordinary Curio Chest (see curios.txt -- same name, art
+' and prompt as a real chest). Opening it springs the trap: you fight the MIMIC
+' ITSELF, revealed only now (its own combat art shows via the events/ sprite).
+' Declining reads exactly like leaving a chest, so it gives nothing away.
 SUB CurioMimic (sec AS INTEGER)
-    IF NOT CurioChoose%("O") THEN Banner "Something in you says: don't. You back away slowly.", "[ press any key ]": WaitKey: EXIT SUB
+    DIM w AS INTEGER, res AS INTEGER
+    IF NOT CurioChoose%("O") THEN Banner "You leave the chest and move on.", "[ press any key ]": WaitKey: EXIT SUB
+    w = ROOM_N + 1: IF w > 400 THEN w = 400              ' a scratch combat slot, like a wanderer
+    ROOMS(w).sec = sec
+    ROOMS(w).monster = "MIMIC": ROOMS(w).mslot = 2       ' borrows a mid monster's 2d6 kill number
+    ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
+    ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
+    ROOMS(w).mhp = sec * 5 + RollDie(6) + 6: ROOMS(w).mhp_now = ROOMS(w).mhp   ' a beefy ambusher
+    ROOMS(w).mac = 11 + sec
+    ROOMS(w).treasure_name = "the mimic's hoard": ROOMS(w).treasure = (INT(RND * 4) + 3) * 100 * sec
+    ROOMS(w).treasure_item = 0
+    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
+    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    c.prev_x = c.x: c.prev_y = c.y                       ' no safe step-back from an ambush
     Sfx "bump"
-    Banner "The lid gapes wide -- rows of teeth! It's a MIMIC!", "It lunges before you can run!   [ press any key ]": WaitKey
-    WanderEncounter
+    Banner "The lid gapes wide -- rows of teeth! It's a MIMIC!", "The chest was alive all along -- it lunges!   [ press any key ]": WaitKey
+    res = DoCombat(w)
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
 
 

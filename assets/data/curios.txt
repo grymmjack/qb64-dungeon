@@ -18,4 +18,6 @@ corpse     | Fallen Adventurer | 11 | A long-dead ADVENTURER slumps against the 
 mushroom   | Glowing Mushrooms | 10 | A fairy-ring of luminous MUSHROOMS pulses with soft light.
 obelisk    | Rune Obelisk      |  8 | A rune-carved OBELISK thrums with old, buried power.
 cache      | Weapon Cache      |  8 | A half-buried WEAPON CACHE glints with oiled, unrusted steel.
-mimic      | Suspicious Chest  |  6 | Another chest sits invitingly here... is its lid faintly breathing?
+# the MIMIC masquerades as an ordinary Curio Chest -- name/art/prompt give NOTHING away;
+# it only reveals itself (and becomes a fight) when you open it.  Keep this looking like a chest.
+mimic      | Curio Chest       |  6 | A CURIO CHEST rests here, lid shut, half-sunk in the dust.

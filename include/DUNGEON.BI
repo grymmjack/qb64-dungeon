@@ -11,8 +11,10 @@ CONST OUT_WIN = 1, OUT_LOSE = 2, OUT_FLEE = 3
 CONST START_CX = 59, START_CY = 24
 ' --- gameplay tuning (potions, encounters, XP) ---
 CONST POTION_SMALL_DIE = 4        ' Small Healing Potion heals 1d4
-CONST POTION_LARGE_DIE = 8        ' Large Healing Potion heals 1d8
-CONST TREASURE_POTION_PCT = 15    ' % chance a slain hoard also yields a (small) potion -- kept lean
+CONST POTION_LARGE_DIE = 8        ' Large Healing Potion heals 1d8...
+CONST POTION_LARGE_BONUS = 1      ' ...+1  (Large potion heals 1d8+1)
+CONST TREASURE_POTION_PCT = 15    ' % chance a slain hoard also yields a potion -- kept lean
+CONST TREASURE_LARGE_PCT = 25     ' when a hoard potion drops, % chance it's the LARGE (1d8+1) kind
 CONST LEVELCLEAR_LARGE_PCT = 30   ' % chance clearing a level also yields a Large potion
 CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter meter is full
 CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
@@ -157,6 +159,21 @@ DIM SHARED BOARD_ANSI AS STRING
 DIM SHARED SECTORS(1 TO 9) AS SECTOR
 ' individual room blocks (per-block encounters), detected from the board art
 DIM SHARED ROOMS(1 TO 400) AS ROOM, ROOM_N AS INTEGER
+' Spoils left where an adventurer FELL on the open PATHS. A room death stashes loot in
+' the room's own drop_* fields (marker + reclaim already handled per-room); a path/wander
+' death has no room, so it drops HERE, keyed to the exact board cell -- painted as a body
+' marker and reclaimed by stepping onto that cell (see AddLooseDrop / CollectLooseAt).
+TYPE LOOSEDROP
+    active AS INTEGER
+    cx AS INTEGER
+    cy AS INTEGER
+    gold AS LONG
+    sword AS INTEGER
+    secret AS INTEGER
+    esp AS INTEGER
+    crystal AS INTEGER
+END TYPE
+DIM SHARED LOOSE(1 TO 16) AS LOOSEDROP
 DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
 DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)

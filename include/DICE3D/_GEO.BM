@@ -237,10 +237,12 @@ SUB dice3d_build (sides AS INTEGER)
             cen.X = cen.X + DICE3D_MV(fIdx(fbase + p)).X: cen.Y = cen.Y + DICE3D_MV(fIdx(fbase + p)).Y: cen.Z = cen.Z + DICE3D_MV(fIdx(fbase + p)).Z
         NEXT
         cen.X = cen.X / s: cen.Y = cen.Y / s: cen.Z = cen.Z / s
-        '--- face frame: b = the number's "up" axis. D10 kites aim it down the
-        '    kite's long axis (toward the sharp point) so the number sits
-        '    straight; other dice use the first edge so squares stay edge-flat. ---
-        IF sides = 10 THEN
+        '--- face frame: b = the number's "up" axis. D10 kites and the D4 triangle
+        '    aim it at the face's farthest VERTEX -- the kite's sharp point (number
+        '    sits straight), and the tetra's apex (so a settled D4 shows apex-UP, a
+        '    pyramid, instead of balanced upside-down on its point). Square-faced
+        '    dice use the first edge so their squares stay edge-flat. ---
+        IF sides = 10 OR sides = 4 THEN
             bp = 0: bd = -1
             FOR p = 0 TO s - 1
                 dice3d_vsub DICE3D_MV(fIdx(fbase + p)), cen, e0

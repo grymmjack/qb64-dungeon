@@ -71,6 +71,9 @@ FUNCTION MonsterSprite$ (nm AS STRING)
         p = "assets/pixel-art/monsters/" + cats(i) + "/" + sbase + ".png"
         IF _FILEEXISTS(p) THEN MonsterSprite$ = p: EXIT FUNCTION
     NEXT
+    ' fallback: a curio that turns INTO a fight (a MIMIC) uses its event-prop art
+    p = "assets/pixel-art/events/" + sbase + ".png"
+    IF _FILEEXISTS(p) THEN MonsterSprite$ = p
 END FUNCTION
 
 ' Path to a class portrait (1 Hero / 2 Elf / 3 Superhero / 4 Wizard). "" if none.
@@ -159,4 +162,38 @@ END SUB
 ' Back-compat shim: old call sites that only had a monster name.
 SUB DrawMonsterArt (nm AS STRING)
     DrawCombatArt nm, 0
+END SUB
+
+' Path to a curio's event sprite (assets/pixel-art/events). The curio `kind`
+' maps to a prop image; "" if there's no art for it.
+FUNCTION CurioSprite$ (kd AS STRING)
+    DIM nm AS STRING, p AS STRING
+    SELECT CASE _TRIM$(kd)
+        CASE "chest": nm = "curio-chest"
+        CASE "fountain": nm = "fountain"
+        CASE "shrine": nm = "shrine"
+        CASE "gamble": nm = "gamblers-altar"
+        CASE "peddler": nm = "hooded-peddler"
+        CASE "idol": nm = "idol"
+        CASE "corpse": nm = "fallen-adventurer"
+        CASE "mushroom": nm = "glowing-mushrooms"
+        CASE "obelisk": nm = "rune-obelisk"
+        CASE "cache": nm = "weapon-cache"
+        CASE "mimic": nm = "curio-chest"           ' DISGUISE: a mimic looks exactly like a chest until opened
+        CASE ELSE: nm = ""
+    END SELECT
+    IF nm = "" THEN CurioSprite$ = "": EXIT FUNCTION
+    p = "assets/pixel-art/events/" + nm + ".png"
+    IF _FILEEXISTS(p) THEN CurioSprite$ = p ELSE CurioSprite$ = ""
+END FUNCTION
+
+' Draw a curio's prop framed top-LEFT on CANVAS -- same clear zone as the combat
+' monster, so it persists behind the centre prompt banner. Gold frame marks it as
+' a curio (vs the red combat frame). Pixel-art modes only; silent if no sprite.
+SUB DrawCurioArt (kd AS STRING, caption AS STRING)
+    DIM p AS STRING
+    IF opt_artstyle = 0 THEN EXIT SUB
+    p = CurioSprite$(kd)
+    IF LEN(p) = 0 THEN EXIT SUB
+    CombatArtBox p, 1, 18, 4, 12, "-= " + _TRIM$(caption) + " =-", YELLOWU
 END SUB
