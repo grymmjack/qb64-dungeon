@@ -9,16 +9,37 @@ $INCLUDEONCE
 ' (the purple/green crystal set); a separate assets/data/diceset-monster.txt overrides
 ' the monster set if present. dice3d_ready gates 3D -- a missing/bad set falls back to
 ' the font dice so the game never breaks.
+' Read the dice-set manifest (assets/data/dicesets.txt): each line "display name | file".
+SUB LoadDiceManifest
+    DIM i AS INTEGER
+    DSET_COUNT = 0
+    ReadDataFile "assets/data/dicesets.txt"
+    FOR i = 1 TO DLINE_N
+        IF DSET_COUNT < UBOUND(DSET_NAME) THEN
+            DSET_COUNT = DSET_COUNT + 1
+            DSET_NAME(DSET_COUNT) = DField$(DLINE(i), 1)
+            DSET_FILE(DSET_COUNT) = DField$(DLINE(i), 2)
+        END IF
+    NEXT i
+END SUB
+
+' Load the player's and monster's chosen 3D dice sets (by manifest index). Falls back to
+' the single legacy assets/data/diceset.txt if the manifest is empty. dice3d_ready gates
+' 3D -- a missing/bad set means the game quietly uses the font dice instead.
 SUB LoadDiceSets
     DIM ok AS INTEGER
+    LoadDiceManifest
     dice3d_ready = FALSE
-    ok = dice3d_set_load%(DSET3D(), "assets/data/diceset.txt")
-    IF ok THEN dice3d_ready = -1
-    IF _FILEEXISTS("assets/data/diceset-monster.txt") THEN
-        ok = dice3d_set_load%(MSET3D(), "assets/data/diceset-monster.txt")
-    ELSEIF dice3d_ready THEN
-        ok = dice3d_set_load%(MSET3D(), "assets/data/diceset.txt")
+    IF DSET_COUNT <= 0 THEN
+        ok = dice3d_set_load%(DSET3D(), "assets/data/diceset.txt")
+        IF ok THEN dice3d_ready = -1: ok = dice3d_set_load%(MSET3D(), "assets/data/diceset.txt")
+        EXIT SUB
     END IF
+    IF opt_dice3d_set < 1 OR opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
+    IF opt_mon_dice3d_set < 1 OR opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
+    ok = dice3d_set_load%(DSET3D(), "assets/data/dicesets/" + _TRIM$(DSET_FILE(opt_dice3d_set)))
+    IF ok THEN dice3d_ready = -1
+    ok = dice3d_set_load%(MSET3D(), "assets/data/dicesets/" + _TRIM$(DSET_FILE(opt_mon_dice3d_set)))
 END SUB
 
 ' Roll n dice of `sides` sides as animated 3D dice and return the raw sum (no bonus --

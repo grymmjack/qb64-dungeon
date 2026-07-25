@@ -490,7 +490,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 31
+    CONST NSET = 33
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -550,6 +550,18 @@ SUB RunSettings
                     IF opt_mon_dicespeed < 0 THEN opt_mon_dicespeed = 3
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
                     Sfx "select"
+                CASE 30
+                    opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d: Sfx "select"
+                CASE 31
+                    opt_dice3d_set = opt_dice3d_set + delta
+                    IF opt_dice3d_set < 1 THEN opt_dice3d_set = DSET_COUNT
+                    IF opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
+                    LoadDiceSets: Sfx "select"
+                CASE 32
+                    opt_mon_dice3d_set = opt_mon_dice3d_set + delta
+                    IF opt_mon_dice3d_set < 1 THEN opt_mon_dice3d_set = DSET_COUNT
+                    IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
+                    LoadDiceSets: Sfx "select"
             END SELECT
         END IF
 
@@ -601,8 +613,16 @@ SUB RunSettings
                 CASE 29
                     opt_mon_dicespeed = opt_mon_dicespeed + 1
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
-                CASE 30: opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d   ' Font <-> 3D (both, for now)
-                CASE 31: SaveSettings: EXIT SUB
+                CASE 30: opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d   ' Font <-> 3D (both)
+                CASE 31
+                    opt_dice3d_set = opt_dice3d_set + 1
+                    IF opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
+                    LoadDiceSets
+                CASE 32
+                    opt_mon_dice3d_set = opt_mon_dice3d_set + 1
+                    IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
+                    LoadDiceSets
+                CASE 33: SaveSettings: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -699,6 +719,12 @@ SUB RunSettings
                 CASE 30
                     lbl = "Dice Style": slider = TRUE
                     IF opt_dice3d THEN vtxt = "3D dice" ELSE vtxt = "font dice (2D)"
+                CASE 31
+                    lbl = "  Player 3D Set": slider = TRUE
+                    IF opt_dice3d_set >= 1 AND opt_dice3d_set <= DSET_COUNT THEN vtxt = _TRIM$(DSET_NAME(opt_dice3d_set)) ELSE vtxt = "-"
+                CASE 32
+                    lbl = "  Monster 3D Set": slider = TRUE
+                    IF opt_mon_dice3d_set >= 1 AND opt_mon_dice3d_set <= DSET_COUNT THEN vtxt = _TRIM$(DSET_NAME(opt_mon_dice3d_set)) ELSE vtxt = "-"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

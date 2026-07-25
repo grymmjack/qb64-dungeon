@@ -1,0 +1,13 @@
+# dicesets.txt -- selectable 3D dice sets (player/monster pick one in SETTINGS).
+# One per line:  display name | file (in assets/data/dicesets/). Re-read at F5.
+# name          | file
+Ruby Solid    | 01-ruby.txt
+Amber Marble   | 02-amber.txt
+Citrine Solid    | 03-citrine.txt
+Emerald Crystal  | 04-emerald.txt
+Sapphire Crystal  | 05-sapphire.txt
+Amethyst Marble   | 06-amethyst.txt
+Rose Solid    | 07-rose.txt
+Obsidian Noise    | 08-obsidian.txt
+Bone Solid    | 09-bone.txt
+Aqua Crystal  | 10-aqua.txt

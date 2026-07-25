@@ -7,3 +7,5 @@ $INCLUDEONCE
 DIM SHARED DSET3D(0 TO 6) AS DICE3D_CONFIG   ' the player's 3D dice set
 DIM SHARED MSET3D(0 TO 6) AS DICE3D_CONFIG   ' the monster's 3D dice set
 DIM SHARED dice3d_ready AS INTEGER           ' TRUE once a set loaded OK (else 3D silently falls back to font dice)
+' the selectable dice-set manifest (assets/data/dicesets.txt): display name + file
+DIM SHARED DSET_NAME(1 TO 40) AS STRING, DSET_FILE(1 TO 40) AS STRING, DSET_COUNT AS INTEGER
