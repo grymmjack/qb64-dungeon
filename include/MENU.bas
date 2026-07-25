@@ -494,13 +494,14 @@ SUB RunSettings
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
+    Build3DPreviews                                 ' render the 3D dice previews once (rebuilt on set change)
     DO
         _LIMIT 60
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = NSET
         IF k = "S" THEN sel = sel + 1: IF sel > NSET THEN sel = 1
         IF k = "W" OR k = "S" THEN Sfx "select"
-        IF k = CHR$(27) THEN SaveSettings: EXIT SUB
+        IF k = CHR$(27) THEN SaveSettings: Free3DPreviews: EXIT SUB
 
         ' A/D adjusts the sliders: volumes (2/4/6), dice colour (10), speed (13), players (16)
         IF k = "A" OR k = "D" THEN
@@ -551,17 +552,17 @@ SUB RunSettings
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
                     Sfx "select"
                 CASE 30
-                    opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d: Sfx "select"
+                    opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d: Build3DPreviews: Sfx "select"
                 CASE 31
                     opt_dice3d_set = opt_dice3d_set + delta
                     IF opt_dice3d_set < 1 THEN opt_dice3d_set = DSET_COUNT
                     IF opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
-                    LoadDiceSets: Sfx "select"
+                    LoadDiceSets: Build3DPreviews: Sfx "select"
                 CASE 32
                     opt_mon_dice3d_set = opt_mon_dice3d_set + delta
                     IF opt_mon_dice3d_set < 1 THEN opt_mon_dice3d_set = DSET_COUNT
                     IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
-                    LoadDiceSets: Sfx "select"
+                    LoadDiceSets: Build3DPreviews: Sfx "select"
             END SELECT
         END IF
 
@@ -613,16 +614,16 @@ SUB RunSettings
                 CASE 29
                     opt_mon_dicespeed = opt_mon_dicespeed + 1
                     IF opt_mon_dicespeed > 3 THEN opt_mon_dicespeed = 0
-                CASE 30: opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d   ' Font <-> 3D (both)
+                CASE 30: opt_dice3d = NOT opt_dice3d: opt_mon_dice3d = opt_dice3d: Build3DPreviews
                 CASE 31
                     opt_dice3d_set = opt_dice3d_set + 1
                     IF opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
-                    LoadDiceSets
+                    LoadDiceSets: Build3DPreviews
                 CASE 32
                     opt_mon_dice3d_set = opt_mon_dice3d_set + 1
                     IF opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
-                    LoadDiceSets
-                CASE 33: SaveSettings: EXIT SUB
+                    LoadDiceSets: Build3DPreviews
+                CASE 33: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -730,8 +731,13 @@ SUB RunSettings
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
             IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
         NEXT i
-        DrawDicePreview 100, " your dice"                       ' player dice on the right
-        PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
+        IF opt_dice3d THEN                                      ' 3D dice: show the rendered set previews
+            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P
+            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M
+        ELSE                                                    ' font dice: the live 2x3 sample grid
+            DrawDicePreview 100, " your dice"                   ' player dice on the right
+            PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
+        END IF
         COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP

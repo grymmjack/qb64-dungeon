@@ -115,3 +115,58 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     IF smoothed THEN ApplyDisplay                  ' restore the player's crisp fullscreen
     Show3DRoll = dice3d_total%
 END FUNCTION
+
+
+' -- SETTINGS preview: a static, readable d20 rendered from a set, cached as an image --
+
+' Render a d20 from `cfg` into a fresh 160x168 image (showing its '20' face upright).
+' The caller frees the returned handle. Clobbers the shared mesh/dice -- fine outside a roll.
+FUNCTION Make3DPreview& (cfg AS DICE3D_CONFIG)
+    DIM img AS LONG, atlas AS LONG, f AS INTEGER, od AS LONG
+    DIM AS INTEGER pw, ph, sw, sh
+    DIM pc AS DICE3D_CONFIG
+    pw = 160: ph = 168
+    od = _DEST
+    pc = cfg
+    sw = pw * DICE3D_SS: sh = ph * DICE3D_SS
+    pc.BOX_W = sw: pc.BOX_H = sh: pc.DIE_SIZE = 52 * DICE3D_SS
+    img = _NEWIMAGE(pw, ph, 32)
+    DICE3D_BOXBUF = _NEWIMAGE(sw, sh, 32)
+    dice3d_build 20
+    atlas = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0)
+    REDIM DICE3D_DICE(0 TO 0) AS DICE3D_DIE
+    DICE3D_DICE(0).SIDES = 20: DICE3D_DICE(0).ATLAS = atlas: DICE3D_DICE(0).FADE = 1
+    DICE3D_DICE(0).PX = sw / 2: DICE3D_DICE(0).PY = sh / 2: DICE3D_DICE(0).PZ = 0
+    DICE3D_DICE(0).VALUE = 20
+    f = DICE3D_VAL2FACE(20): IF f >= 0 AND f < DICE3D_NF THEN DICE3D_DICE(0).Q = DICE3D_FACE_Q(f)
+    _DEST DICE3D_BOXBUF: CLS , BLACK
+    dice3d_render_die DICE3D_DICE(0), pc
+    _DEST img: CLS , BLACK
+    _MAPTRIANGLE (0, 0)-(0, sh - 1)-(sw - 1, sh - 1), DICE3D_BOXBUF TO(0, 0)-(0, ph - 1)-(pw - 1, ph - 1), img, _SMOOTH
+    _MAPTRIANGLE (0, 0)-(sw - 1, sh - 1)-(sw - 1, 0), DICE3D_BOXBUF TO(0, 0)-(pw - 1, ph - 1)-(pw - 1, 0), img, _SMOOTH
+    _DEST od
+    _FREEIMAGE atlas: _FREEIMAGE DICE3D_BOXBUF
+    Make3DPreview& = img
+END FUNCTION
+
+' (Re)build the cached player + monster preview images from the loaded sets.
+SUB Build3DPreviews
+    Free3DPreviews
+    IF NOT dice3d_ready THEN EXIT SUB
+    PREV3D_P = Make3DPreview&(DSET3D(dice3d_set_index%(20)))
+    PREV3D_M = Make3DPreview&(MSET3D(dice3d_set_index%(20)))
+END SUB
+
+SUB Free3DPreviews
+    IF PREV3D_P <> 0 THEN _FREEIMAGE PREV3D_P: PREV3D_P = 0
+    IF PREV3D_M <> 0 THEN _FREEIMAGE PREV3D_M: PREV3D_M = 0
+END SUB
+
+' Blit a cached 3D preview at settings column gxc (mirrors DrawDicePreview's placement).
+SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, img AS LONG)
+    DIM AS INTEGER gx, gy
+    gx = gxc * CW: gy = 15 * CH
+    _DEST CANVAS: _FONT CH
+    COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
+    IF img <> 0 THEN _PUTIMAGE (gx, gy), img, CANVAS
+END SUB
