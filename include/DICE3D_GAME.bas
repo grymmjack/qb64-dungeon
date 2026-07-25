@@ -101,14 +101,18 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     END IF
 
     ' The tray (a software box on CANVAS) -- the 3D dice render on the GL layer over it.
-    ' The tray is sized to FIT THE DICE (compact); the header/caption gets its own, wider
-    ' box above it, so a long caption doesn't blow the tray up into a big empty box.
-    cfg.DIE_SIZE = 24                              ' die radius in box/screen px (small, ~font-sized)
-    tw = 96 + n * 58
+    ' Roomy tray with its own wider caption header above; a royal-purple "dice box".
+    DIM boxviolet AS _UNSIGNED LONG, boxedge AS _UNSIGNED LONG
+    boxviolet = _RGB32(&H34, &H22, &H7A)           ' plush violet-blue royal purple
+    boxedge = _RGB32(&H8A, &H6C, &HF2)             ' lighter violet border
+    cfg.DIE_SIZE = 28                              ' die radius in box/screen px (small)
+    cfg.SPIN_STRENGTH = 7                          ' calmer tumble -- the default was frantic
+    cfg.THROW_STRENGTH = 8
+    tw = 150 + n * 84
     IF tw > SW * CW - 40 THEN tw = SW * CW - 40
-    th = 82
+    th = 132
     tx = (SW * CW - tw) \ 2
-    ty = 14 * CH
+    ty = 12 * CH
     cfg.BOX_W = tw: cfg.BOX_H = th                 ' physics tray (box pixels == screen pixels)
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
@@ -138,23 +142,37 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     SetDiceFont cfg                                 ' apply the chosen dice numeral font
     Sfx "diceroll"
 
-    ' Draw the framed header (caption-width) + a compact tray on CANVAS (crisp); GL dice over.
+    ' Draw the framed royal-purple header (caption-width) + the roomy tray on CANVAS (crisp).
     _DEST CANVAS: _FONT CH
-    LINE (hbx, 10 * CH)-(hbx + hbw, 13 * CH), BOXBG, BF
-    LINE (hbx, 10 * CH)-(hbx + hbw, 13 * CH), REDU, B
-    LINE (tx, ty)-(tx + tw, ty + th), BOXBG, BF
-    LINE (tx, ty)-(tx + tw, ty + th), REDU, B
-    COLOR YELLOWU, BOXBG: PrintCentered 11, hdr
+    LINE (hbx, 9 * CH)-(hbx + hbw, 12 * CH), boxviolet, BF
+    LINE (hbx, 9 * CH)-(hbx + hbw, 12 * CH), boxedge, B
+    LINE (tx, ty)-(tx + tw, ty + th), boxviolet, BF
+    LINE (tx, ty)-(tx + tw, ty + th), boxedge, B
+    COLOR YELLOWU, boxviolet: PrintCentered 10, hdr
     _DISPLAY
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     dice3d_roll notation, cfg, r()                 ' animates on the GL layer, returns settled
     IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"
 
-    ' Hold the settled dice a readable beat -- must keep RE-rendering the GL dice each frame
-    ' (the hardware layer is cleared every _DISPLAY), else they vanish. Any key skips it.
+    ' Show the roll as a sum under the tray (like the 2D dice: "3 + 3 = 6"), which persists.
+    DIM res AS STRING, ri AS INTEGER, rrow AS INTEGER
+    res = ""
+    FOR ri = 1 TO dice3d_count%
+        IF ri > 1 THEN res = res + " + "
+        res = res + _TRIM$(STR$(dice3d_value%(ri)))
+    NEXT
+    IF dice3d_count% > 1 THEN res = res + "  =  " + _TRIM$(STR$(dice3d_total%)) ELSE res = "=  " + res + "  ="
+    rrow = (ty + th) \ CH
+    _DEST CANVAS: _FONT CH
+    LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxviolet, BF
+    LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxedge, B
+    COLOR WHITE, boxviolet: PrintCentered rrow, res
+
+    ' Hold the settled dice a good long beat (re-render the GL dice each frame or they
+    ' vanish -- the hardware layer clears every _DISPLAY). Any key skips ahead.
     _KEYCLEAR
-    FOR hf = 1 TO 42
+    FOR hf = 1 TO 100
         _LIMIT 60
         dice3d_present_hw cfg
         IF INKEY$ <> "" THEN EXIT FOR

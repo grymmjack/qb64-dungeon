@@ -129,13 +129,22 @@ SUB dice3d_stamp_num (dst AS LONG, cx AS INTEGER, cy AS INTEGER, s AS STRING, h 
     DIM AS INTEGER tw, th, dw, dh
     od = _DEST: os = _SOURCE
     IF fontH <> 0 THEN
-        _DEST dst
-        oldf = _FONT: _FONT fontH
-        COLOR fg, _RGBA32(0, 0, 0, 0)
-        _PRINTMODE _KEEPBACKGROUND
-        tw = _PRINTWIDTH(s): th = _FONTHEIGHT
-        _PRINTSTRING (cx - tw \ 2, cy - th \ 2), s
+        '--- render the TTF at native size to a temp image, then scale it to the target
+        '    height h (so a custom font is sized by NUM_SCALE, exactly like the built-in
+        '    one -- not left at its raw _LOADFONT point size). ---
+        _DEST dst: oldf = _FONT: _FONT fontH
+        tw = _PRINTWIDTH(s): th = _FONTHEIGHT: _FONT oldf
+        IF tw < 1 THEN tw = 1
+        IF th < 1 THEN th = 1
+        tmp = _NEWIMAGE(tw, th, 32)
+        _DEST tmp: CLS , _RGBA32(0, 0, 0, 0)
+        _FONT fontH: COLOR fg, _RGBA32(0, 0, 0, 0): _PRINTMODE _KEEPBACKGROUND
+        _PRINTSTRING (0, 0), s
         _FONT oldf
+        dh = h: dw = (tw * dh) \ th
+        _DEST dst
+        _PUTIMAGE (cx - dw \ 2, cy - dh \ 2)-(cx + dw \ 2, cy + dh \ 2), tmp, dst
+        _FREEIMAGE tmp
         _DEST od: _SOURCE os
         EXIT SUB
     END IF
@@ -241,8 +250,8 @@ SUB dice3d_draw_d4_corners (img AS LONG, f AS INTEGER, ty AS INTEGER, cfg AS DIC
     DIM AS INTEGER c, hh
     DIM AS SINGLE cxp, cyp, tcx, tcy, inset
     tcx = DICE3D_TILE / 2: tcy = ty + DICE3D_TILE / 2
-    '--- size tracks the font setting (3 per face, so ~60% of a regular number) ---
-    IF cfg.FONT_PX >= 8 THEN hh = INT(cfg.FONT_PX * 0.62) ELSE hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.62)
+    '--- ~60% of a regular number (3 per face); sized by NUM_SCALE, font-independent ---
+    hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.62)
     IF hh < 8 THEN hh = 8
     inset = 0.46 '                       distance from the corner toward centre (bigger = further from the tip)
     FOR c = 0 TO 2
