@@ -10,7 +10,9 @@ sectors, collision) is driven by sampling the pixels of that rendered art rather
 separate tile data model.
 
 **Design basis: TSR's _Dungeon!_ board game (1975).** Treat its mechanics as the rules
-reference. Original: 6 levels (deeper = tougher monsters / richer treasure); classes with
+reference — [DUNGEON-RULES.md](DUNGEON-RULES.md) is the full plain-text rules summary (movement,
+combat, items, the Monster Attack Table) mapped to the code, and is what **Oldschool mode**
+(`opt_oldschool`) reproduces. Original: 6 levels (deeper = tougher monsters / richer treasure); classes with
 different treasure-to-win goals (Hero 10k GP, Elf 10k + 2× secret-door odds, Superhero
 20k, Wizard 30k with ranged/teleport magic); combat = move onto a monster and roll 2d6 vs
 the monster's number; treasure sits under the monster; win by returning to the start
