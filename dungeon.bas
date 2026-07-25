@@ -1176,7 +1176,9 @@ SUB CollectDrop (rm AS INTEGER)
     ROOMS(rm).drop_gold = 0: ROOMS(rm).drop_sword = 0
     ROOMS(rm).drop_secret = FALSE: ROOMS(rm).drop_esp = FALSE: ROOMS(rm).drop_crystal = FALSE
     Sfx "treasure"
-    IF num_players > 1 THEN
+    IF NOT ROOMS(rm).player_died THEN
+        Banner "You claim the treasure left waiting here.", _TRIM$(got) + "   [ press any key ]"   ' a curio left unopened, etc.
+    ELSEIF num_players > 1 THEN
         Banner "You recover a fallen rival's spoils!", _TRIM$(got) + "   [ press any key ]"
     ELSE
         Banner "You reclaim the spoils you dropped here -- revenge is sweet!", _TRIM$(got) + "   [ press any key ]"

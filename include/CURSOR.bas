@@ -70,10 +70,13 @@ END SUB
 
 
 ' Draw the board entities on top of the map: a monster glyph (§, red on cyan --
-' matching the legend) in every live-monster room, or a green $ where a fallen
-' rival left recoverable loot. Honours Field of View: with FOV off, every monster
-' shows (so you can plan / spot random spawns); with FOV on, only rooms you have
-' actually explored (LOS_SEEN) reveal their monster.
+' matching the legend) in every live-monster room; a blood-red ☻ body where an
+' adventurer fell and left spoils on the ground (player_died + a drop); or a green
+' $ where other recoverable treasure waits (e.g. a curio chest left unopened).
+' The body/$$ only show while the loot is actually there -- CollectDrop/ClearAllDrops
+' zero the drop, so the marker erases itself once the hoard is reclaimed or lost.
+' Honours Field of View: with FOV off, every monster shows (so you can plan / spot
+' random spawns); with FOV on, only rooms you have actually explored (LOS_SEEN) reveal.
 SUB DrawEntities
     DIM r AS INTEGER, gx AS INTEGER, gy AS INTEGER, vis AS INTEGER
     _DEST CANVAS
@@ -90,11 +93,17 @@ SUB DrawEntities
                 IF opt_fov THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
             END IF
             IF vis THEN
-                IF ROOMS(r).malive AND LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN
+                ' Body first: an adventurer who fell here left spoils on the ground, and
+                ' the monster that felled them is usually still alive -- so this must beat
+                ' the live-monster glyph, or a death room would just show its § again.
+                IF ROOMS(r).player_died AND HasDrop(r) THEN
+                    COLOR _RGB32(&HE0, &H33, &H33), BLACK                      ' ☻ a fallen adventurer's body, blood red -- loot on the ground
+                    _PRINTSTRING (gx * CW, gy * CH), CHR$(2)
+                ELSEIF ROOMS(r).malive AND LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN
                     COLOR _RGB32(&HFF, &H55, &H55), _RGB32(&H55, &HFF, &HFF)   ' § monster: red on cyan
                     _PRINTSTRING (gx * CW, gy * CH), CHR$(21)
                 ELSEIF HasDrop(r) THEN
-                    COLOR _RGB32(&H55, &HFF, &H55), BLACK                      ' $ recoverable loot: green
+                    COLOR _RGB32(&H55, &HFF, &H55), BLACK                      ' $ recoverable treasure (e.g. a curio left unopened): green
                     _PRINTSTRING (gx * CW, gy * CH), "$"
                 END IF
             END IF

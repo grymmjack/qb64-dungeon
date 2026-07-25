@@ -61,7 +61,17 @@ SUB CurioChest (rm AS INTEGER)
     DO
         _LIMIT 60: k = UCASE$(INKEY$)
         IF k = "O" OR k = CHR$(13) OR k = " " THEN EXIT DO
-        IF k = "L" OR k = CHR$(27) THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY: EXIT SUB
+        IF k = "L" OR k = CHR$(27) THEN
+            ' Leave it -- but stash its gold as a recoverable drop so a $ marks the
+            ' spot on the map; step back onto the room any time to claim it. (Silent
+            ' RND, not RollDie, so no die animates just for walking away.)
+            g = (INT(RND * 4) + 2) * 100 * sec
+            ROOMS(rm).drop_gold = ROOMS(rm).drop_gold + g
+            Banner "You leave the chest for now -- a $ marks it on the map.", "Come back for it whenever you like.   [ press any key ]"
+            WaitKey
+            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            EXIT SUB
+        END IF
         _DISPLAY
     LOOP
     Sfx "chest"                                     ' the lid creaks open...
