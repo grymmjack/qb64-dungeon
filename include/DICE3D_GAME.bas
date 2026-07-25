@@ -85,7 +85,7 @@ CONST DICE3D_SS = 2          ' (settings preview only) supersample the static pr
 CONST DICE3D_HW_ZBASE = -5.0
 CONST DICE3D_HW_PXPERUNIT = 103.0
 
-FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
+FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
     DIM AS INTEGER tw, th, tx, ty, hf, hbw, hbx
     DIM pxk AS SINGLE
@@ -106,8 +106,12 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     boxviolet = _RGB32(&H34, &H22, &H7A)           ' plush violet-blue royal purple
     boxedge = _RGB32(&H8A, &H6C, &HF2)             ' lighter violet border
     cfg.DIE_SIZE = 28                              ' die radius in box/screen px (small)
-    cfg.SPIN_STRENGTH = 7                          ' calmer tumble -- the default was frantic
-    cfg.THROW_STRENGTH = 8
+    ' A lively roll, not a frantic one and not a dead drop: 30 (module default) felt
+    ' frantic, 7 barely tumbled ("just drops and bounces once"). ~15 spin + a real
+    ' horizontal throw makes the dice skitter and wall-bounce like a genuine roll.
+    cfg.SPIN_STRENGTH = 15                          ' tumble speed (deg/frame magnitude)
+    cfg.THROW_STRENGTH = 13                         ' scatter velocity -- skitter across the tray
+    cfg.RESTITUTION = 0.62                          ' a couple extra bounces before settling (0.55 default)
     tw = 150 + n * 84
     IF tw > SW * CW - 40 THEN tw = SW * CW - 40
     th = 132
@@ -155,14 +159,22 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, what AS STRING)
     dice3d_roll notation, cfg, r()                 ' animates on the GL layer, returns settled
     IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"
 
-    ' Show the roll as a sum under the tray (like the 2D dice: "3 + 3 = 6"), which persists.
+    ' Show the roll as a sum under the tray (like the 2D dice: "3 + 3 = 6"), which
+    ' persists. The modifier rides along as one more addend -- "3 + 3 + 2  =  8" for
+    ' 2d6+2, "17 + 5  =  22" for 1d20+5 -- so the player sees their bonus applied.
     DIM res AS STRING, ri AS INTEGER, rrow AS INTEGER
     res = ""
     FOR ri = 1 TO dice3d_count%
         IF ri > 1 THEN res = res + " + "
         res = res + _TRIM$(STR$(dice3d_value%(ri)))
     NEXT
-    IF dice3d_count% > 1 THEN res = res + "  =  " + _TRIM$(STR$(dice3d_total%)) ELSE res = "=  " + res + "  ="
+    IF bonus > 0 THEN res = res + " + " + _TRIM$(STR$(bonus))
+    IF bonus < 0 THEN res = res + " - " + _TRIM$(STR$(-bonus))
+    IF dice3d_count% > 1 OR bonus <> 0 THEN
+        res = res + "  =  " + _TRIM$(STR$(dice3d_total% + bonus))
+    ELSE
+        res = "=  " + res + "  ="                    ' a lone die, no bonus: just frame the number
+    END IF
     rrow = (ty + th) \ CH
     _DEST CANVAS: _FONT CH
     LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxviolet, BF

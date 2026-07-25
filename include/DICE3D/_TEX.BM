@@ -295,8 +295,10 @@ FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mo
             ELSE
                 lab = DICE3D_FACE_LABEL(f)
             END IF
-            hh = INT(DICE3D_TILE * cfg.NUM_SCALE)
-            IF LEN(lab) >= 2 THEN hh = INT(hh * 0.72)
+            ' Size EVERY numeral to the two-digit height (the 0.72 that keeps "20"
+            ' inside the face), so a single "3" no longer towers over "20" -- the
+            ' player asked for 1- and 2-digit faces to read at the same size.
+            hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.72)
             dice3d_stamp_num img, DICE3D_TILE \ 2, ty + DICE3D_TILE \ 2, lab, hh, cfg.NUM_KOLOR, cfg.FONT_HANDLE
         END IF
     NEXT

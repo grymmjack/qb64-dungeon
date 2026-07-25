@@ -1536,7 +1536,7 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
             GameRoll = raw + bonus: last_raw = raw
         END IF
     ELSEIF opt_dice3d AND dice3d_ready THEN
-        t = Show3DRoll(n, sides, what)             ' animated 3D polyhedra (DICE3D module)
+        t = Show3DRoll(n, sides, bonus, what)      ' animated 3D polyhedra (DICE3D module); shows the bonus in its sum
         GameRoll = t + bonus: last_raw = t
     ELSEIF sides = 6 AND opt_d6pips THEN
         t = RollPips(n, FALSE, bonus, what)        ' every d6 roll shows the pip dice
