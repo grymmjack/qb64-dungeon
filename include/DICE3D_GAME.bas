@@ -171,7 +171,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     DIM ri AS INTEGER, rrow AS INTEGER, dropstr AS STRING, kept AS INTEGER
     DIM keptv(1 TO 8) AS INTEGER
     DIM beat(1 TO 16) AS STRING, nb AS INTEGER, acc AS STRING, tail AS STRING
-    DIM bi AS INTEGER, j AS INTEGER, skip AS INTEGER
+    DIM bi AS INTEGER, j AS INTEGER, skip AS INTEGER, natd20 AS INTEGER
     dropstr = "": kept = 0
     FOR ri = 1 TO dice3d_count%
         IF dice3d_dropped%(ri) THEN                  ' a 4d6-drop-lowest die that didn't count
@@ -184,10 +184,13 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     NEXT
     tail = "": IF LEN(dropstr) > 0 THEN tail = "   (drop " + dropstr + ")"
 
-    ' Each beat is an accumulated snapshot of the running sum.
+    ' Each beat is an accumulated snapshot of the running sum. But on a single d20
+    ' showing 1 or 20 the math is moot (nat-1 = fumble, nat-20 = crit, whatever the
+    ' modifier) -- show the face at once and skip the reveal, exactly like the 2D dice.
+    natd20 = (sides = 20 AND n = 1 AND (dice3d_total% = 1 OR dice3d_total% = 20))
     nb = 0: acc = ""
-    IF kept <= 1 AND bonus = 0 THEN
-        IF kept = 1 THEN acc = "=  " + _TRIM$(STR$(keptv(1))) + "  ="   ' a lone die -- nothing to add up
+    IF (kept <= 1 AND bonus = 0) OR natd20 THEN
+        IF kept >= 1 THEN acc = "=  " + _TRIM$(STR$(keptv(1))) + "  ="   ' lone die / nat 1 or 20 -- the face says it all
         nb = 1: beat(1) = acc + tail
     ELSE
         FOR ri = 1 TO kept
