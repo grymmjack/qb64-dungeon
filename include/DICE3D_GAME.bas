@@ -164,39 +164,68 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     dice3d_roll notation, cfg, r()                 ' animates on the GL layer, returns settled
     IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"
 
-    ' Show the roll as a sum under the tray (like the 2D dice: "3 + 3 = 6"), which
-    ' persists. The modifier rides along as one more addend -- "3 + 3 + 2  =  8" for
-    ' 2d6+2, "17 + 5  =  22" for 1d20+5 -- so the player sees their bonus applied.
-    DIM res AS STRING, ri AS INTEGER, rrow AS INTEGER, dropstr AS STRING, kept AS INTEGER
-    res = "": dropstr = "": kept = 0
+    ' Reveal the sum one beat at a time -- like the 2D font dice: each kept die appears
+    ' in turn ("3 ... + 3 ... + 2"), then the bonus, then "= total", a rising tick per
+    ' beat and a brighter ding on the total. This can't reuse RevealMath: the GL dice
+    ' must be re-rendered EVERY frame (the hardware layer clears on each _DISPLAY).
+    DIM ri AS INTEGER, rrow AS INTEGER, dropstr AS STRING, kept AS INTEGER
+    DIM keptv(1 TO 8) AS INTEGER
+    DIM beat(1 TO 16) AS STRING, nb AS INTEGER, acc AS STRING, tail AS STRING
+    DIM bi AS INTEGER, j AS INTEGER, skip AS INTEGER
+    dropstr = "": kept = 0
     FOR ri = 1 TO dice3d_count%
         IF dice3d_dropped%(ri) THEN                  ' a 4d6-drop-lowest die that didn't count
             IF LEN(dropstr) > 0 THEN dropstr = dropstr + " "
             dropstr = dropstr + _TRIM$(STR$(dice3d_value%(ri)))
         ELSE
-            IF LEN(res) > 0 THEN res = res + " + "
-            res = res + _TRIM$(STR$(dice3d_value%(ri)))
             kept = kept + 1
+            IF kept <= 8 THEN keptv(kept) = dice3d_value%(ri)
         END IF
     NEXT
-    IF bonus > 0 THEN res = res + " + " + _TRIM$(STR$(bonus))
-    IF bonus < 0 THEN res = res + " - " + _TRIM$(STR$(-bonus))
-    IF kept > 1 OR bonus <> 0 OR LEN(dropstr) > 0 THEN
-        res = res + "  =  " + _TRIM$(STR$(dice3d_total% + bonus))
+    tail = "": IF LEN(dropstr) > 0 THEN tail = "   (drop " + dropstr + ")"
+
+    ' Each beat is an accumulated snapshot of the running sum.
+    nb = 0: acc = ""
+    IF kept <= 1 AND bonus = 0 THEN
+        IF kept = 1 THEN acc = "=  " + _TRIM$(STR$(keptv(1))) + "  ="   ' a lone die -- nothing to add up
+        nb = 1: beat(1) = acc + tail
     ELSE
-        res = "=  " + res + "  ="                    ' a lone die, no bonus: just frame the number
+        FOR ri = 1 TO kept
+            IF ri = 1 THEN acc = _TRIM$(STR$(keptv(ri))) ELSE acc = acc + "  +  " + _TRIM$(STR$(keptv(ri)))
+            nb = nb + 1: beat(nb) = acc
+        NEXT
+        IF bonus > 0 THEN acc = acc + "  +  " + _TRIM$(STR$(bonus)): nb = nb + 1: beat(nb) = acc
+        IF bonus < 0 THEN acc = acc + "  -  " + _TRIM$(STR$(-bonus)): nb = nb + 1: beat(nb) = acc
+        acc = acc + "  =  " + _TRIM$(STR$(dice3d_total% + bonus)): nb = nb + 1: beat(nb) = acc + tail
     END IF
-    IF LEN(dropstr) > 0 THEN res = res + "   (drop " + dropstr + ")"
+
     rrow = (ty + th) \ CH
     _DEST CANVAS: _FONT CH
     LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxviolet, BF
     LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxedge, B
-    COLOR WHITE, boxviolet: PrintCentered rrow, res
 
-    ' Hold the settled dice a good long beat (re-render the GL dice each frame or they
-    ' vanish -- the hardware layer clears every _DISPLAY). Any key skips ahead.
+    skip = FALSE
     _KEYCLEAR
-    FOR hf = 1 TO 100
+    FOR bi = 1 TO nb
+        _DEST CANVAS: _FONT CH
+        LINE (tx + CW, rrow * CH)-(tx + tw - CW, (rrow + 2) * CH), boxviolet, BF   ' clear row (text re-centres each beat)
+        COLOR WHITE, boxviolet: PrintCentered rrow, beat(bi)
+        dice3d_present_hw cfg
+        IF opt_sfx THEN
+            IF bi = nb THEN Tone 1100, 0.15 ELSE Tone 440 + bi * 120, 0.06        ' rising ticks; bright ding on the total
+        END IF
+        IF NOT skip THEN
+            FOR j = 1 TO 18                                                       ' ~0.3s of suspense per beat
+                _LIMIT 60
+                dice3d_present_hw cfg
+                IF INKEY$ <> "" THEN skip = -1: EXIT FOR
+            NEXT j
+        END IF
+    NEXT bi
+
+    ' Hold on the fully-revealed result (still re-rendering the GL dice each frame).
+    _KEYCLEAR
+    FOR hf = 1 TO 70
         _LIMIT 60
         dice3d_present_hw cfg
         IF INKEY$ <> "" THEN EXIT FOR
