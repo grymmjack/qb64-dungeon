@@ -193,7 +193,16 @@ END SUB
 ''
 ' A random orientation quaternion.
 SUB dice3d_qrandom (r AS DICE3D_QUAT)
-    DIM ax AS DICE3D_VEC3
-    ax.X = RND * 2 - 1: ax.Y = RND * 2 - 1: ax.Z = RND * 2 - 1
-    dice3d_qaxisangle ax, RND * 6.2831853, r
+    '--- Shoemake's uniform random rotation: samples SO(3) evenly. The old version built a
+    '    quaternion from a CUBE-sampled axis (RND*2-1 per component) + a uniform angle, which
+    '    clusters orientations toward the cube diagonals and skews the settle toward LOW faces
+    '    (measured d20 mean ~10.13 vs 10.5). A uniform orientation makes the honest physics fair. ---
+    DIM AS SINGLE u1, u2, u3, s1, s2, tau
+    tau = 6.2831853
+    u1 = RND: u2 = RND: u3 = RND
+    s1 = SQR(1 - u1): s2 = SQR(u1)
+    r.X = s1 * SIN(tau * u2)
+    r.Y = s1 * COS(tau * u2)
+    r.Z = s2 * SIN(tau * u3)
+    r.W = s2 * COS(tau * u3)
 END SUB
