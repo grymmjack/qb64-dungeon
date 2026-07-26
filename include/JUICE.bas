@@ -143,7 +143,7 @@ SUB DrawWounds
     IF band < 0 THEN band = 0
     IF band > NVIG - 1 THEN band = NVIG - 1
     IF VIG(band) <> 0 THEN _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), VIG(band), CANVAS
-    a = INT(115 * wound * pulse)                       ' dried blood spatter -- visible but semi-transparent (sits UNDER the text now)
+    a = INT(200 * wound * pulse)                       ' dried blood spatter -- bold (sits UNDER the text, so it can be heavy)
     IF a > 6 THEN
         FOR i = 1 TO NBLOOD
             FillDisc BLOOD_X(i), BLOOD_Y(i), BLOOD_R(i), _RGB32(110, 8, 10, a)
