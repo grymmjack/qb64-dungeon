@@ -60,6 +60,7 @@ SUB dice3d_config_write (fh AS INTEGER, cfg AS DICE3D_CONFIG)
     dice3d_wr fh, "LIGHT_ENABLED", dice3d_ns$(cfg.LIGHT_ENABLED)
     dice3d_wr fh, "LIGHT_X", dice3d_ns$(cfg.LIGHT_X): dice3d_wr fh, "LIGHT_Y", dice3d_ns$(cfg.LIGHT_Y): dice3d_wr fh, "LIGHT_Z", dice3d_ns$(cfg.LIGHT_Z)
     dice3d_wr fh, "LIGHT_AMBIENT", dice3d_ns$(cfg.LIGHT_AMBIENT): dice3d_wr fh, "LIGHT_INTENSITY", dice3d_ns$(cfg.LIGHT_INTENSITY)
+    dice3d_wr fh, "LIGHT_KOLOR", dice3d_nl$(cfg.LIGHT_KOLOR)
     dice3d_wr fh, "WIRE_ENABLED", dice3d_ns$(cfg.WIRE_ENABLED)
     dice3d_wr fh, "WIRE_KOLOR", dice3d_nl$(cfg.WIRE_KOLOR): dice3d_wr fh, "WIRE_OPACITY", dice3d_ns$(cfg.WIRE_OPACITY)
     dice3d_wr fh, "D6_PIPS", dice3d_ns$(cfg.D6_PIPS): dice3d_wr fh, "PIP_STYLE", dice3d_ns$(cfg.PIP_STYLE)
@@ -109,6 +110,7 @@ SUB dice3d_config_apply (cfg AS DICE3D_CONFIG, k AS STRING, v AS STRING)
         CASE "LIGHT_Z": cfg.LIGHT_Z = n
         CASE "LIGHT_AMBIENT": cfg.LIGHT_AMBIENT = n
         CASE "LIGHT_INTENSITY": cfg.LIGHT_INTENSITY = n
+        CASE "LIGHT_KOLOR": cfg.LIGHT_KOLOR = c
         CASE "WIRE_ENABLED": cfg.WIRE_ENABLED = n
         CASE "WIRE_KOLOR": cfg.WIRE_KOLOR = c
         CASE "WIRE_OPACITY": cfg.WIRE_OPACITY = n

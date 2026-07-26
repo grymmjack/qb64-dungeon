@@ -60,6 +60,7 @@ SUB dice3d_light_defaults (cfg AS DICE3D_CONFIG)
     cfg.LIGHT_ENABLED = -1
     cfg.LIGHT_X = -0.3: cfg.LIGHT_Y = 0.8: cfg.LIGHT_Z = 0.55 '  overhead, slightly front-left
     cfg.LIGHT_AMBIENT = 0.5: cfg.LIGHT_INTENSITY = 0.8
+    cfg.LIGHT_KOLOR = _RGB32(255, 255, 255) '                   white = neutral (pure brightness)
 END SUB
 
 ''

@@ -267,7 +267,8 @@ END SUB
 ' mode: 0 = labels as-is, 1 = tens ("00".."90" from value*10).
 FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mode AS INTEGER)
     DIM AS LONG img, od, tmp
-    DIM AS INTEGER f, ty, hh, fv, cell, lv, dA
+    DIM AS INTEGER f, ty, hh, fv, cell, lv, dA, lr, lg, lb, maxc, minc, wA
+    DIM AS SINGLE satf, t01
     DIM AS STRING lab
     od = _DEST
     '--- NLEV brightness COLUMNS per face for directional light (opaque, GL-safe): column 0 is
@@ -275,6 +276,14 @@ FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mo
     '    one-tile scratch because _PUTIMAGE cannot copy an image onto ITSELF (illegal call). ---
     img = _NEWIMAGE(DICE3D_TILE * DICE3D_LIGHT_NLEV, DICE3D_TILE * DICE3D_NF, 32)
     tmp = _NEWIMAGE(DICE3D_TILE, DICE3D_TILE, 32)
+    '--- light colour: wash the lit columns toward LIGHT_KOLOR, scaled by its SATURATION so a
+    '    white/grey light stays neutral (pure brightness) and a hue tints the lit faces. ---
+    lr = _RED32(cfg.LIGHT_KOLOR): lg = _GREEN32(cfg.LIGHT_KOLOR): lb = _BLUE32(cfg.LIGHT_KOLOR)
+    maxc = lr: IF lg > maxc THEN maxc = lg
+    IF lb > maxc THEN maxc = lb
+    minc = lr: IF lg < minc THEN minc = lg
+    IF lb < minc THEN minc = lb
+    IF maxc > 0 THEN satf = (maxc - minc) / maxc ELSE satf = 0
     _DEST img
     CLS , _RGBA32(0, 0, 0, 0)
     FOR f = 0 TO DICE3D_NF - 1
@@ -311,10 +320,13 @@ FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mo
         '    numerals. Via tmp because _PUTIMAGE image-onto-itself is an illegal call. ---
         _DEST tmp: CLS , _RGBA32(0, 0, 0, 0): _DEST img
         _PUTIMAGE (0, 0)-(DICE3D_TILE - 1, DICE3D_TILE - 1), img, tmp, (0, ty)-(DICE3D_TILE - 1, ty + DICE3D_TILE - 1)
-        FOR lv = 1 TO DICE3D_LIGHT_NLEV - 1
-            _PUTIMAGE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), tmp, img, (0, 0)-(DICE3D_TILE - 1, DICE3D_TILE - 1)
-            dA = INT(lv / (DICE3D_LIGHT_NLEV - 1) * DICE3D_LIGHT_MAXDARK * 255)
-            LINE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), _RGBA32(0, 0, 0, dA), BF
+        FOR lv = 0 TO DICE3D_LIGHT_NLEV - 1
+            IF lv > 0 THEN _PUTIMAGE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), tmp, img, (0, 0)-(DICE3D_TILE - 1, DICE3D_TILE - 1)
+            t01 = lv / (DICE3D_LIGHT_NLEV - 1)
+            wA = INT((1 - t01) * satf * DICE3D_LIGHT_TINT * 255) '   colour wash, strongest on the lit column
+            IF wA > 0 THEN LINE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), _RGBA32(lr, lg, lb, wA), BF
+            dA = INT(t01 * DICE3D_LIGHT_MAXDARK * 255) '             shadow darkening, deepest on the far column
+            IF dA > 0 THEN LINE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), _RGBA32(0, 0, 0, dA), BF
         NEXT
     NEXT
     _DEST od

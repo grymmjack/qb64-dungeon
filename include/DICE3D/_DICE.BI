@@ -119,6 +119,7 @@ DIM SHARED DICE3D_HL_SW AS LONG     ' software white sheen tile (software render
 '    semi-transparent tile is uploaded via _COPYIMAGE(,33) (they render invisible).
 CONST DICE3D_LIGHT_NLEV = 6
 CONST DICE3D_LIGHT_MAXDARK = .62
+CONST DICE3D_LIGHT_TINT = .55 '     max colour wash on the most-lit column (scaled by LIGHT_KOLOR saturation)
 DIM SHARED DICE3D_HW_S AS SINGLE    ' GPU units per model unit (die on-screen size)
 DIM SHARED DICE3D_HW_Z AS SINGLE    ' base view depth (negative; ~-5)
 DIM SHARED DICE3D_HW_CX AS SINGLE   ' GPU x of the tray centre (0 = screen centre)

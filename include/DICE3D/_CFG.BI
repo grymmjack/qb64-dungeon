@@ -75,6 +75,9 @@ TYPE DICE3D_CONFIG
     LIGHT_Z AS SINGLE '                  +Z = from the camera side
     LIGHT_AMBIENT AS SINGLE '            0..1 min brightness for faces facing away
     LIGHT_INTENSITY AS SINGLE '          0..1 shading strength (darkening amount)
+    LIGHT_KOLOR AS _UNSIGNED LONG '      light colour: lit faces wash toward it (white = neutral).
+    '                                    Tint scales with the colour's saturation, so white/grey
+    '                                    stay pure brightness; a hue (torch, moonlight) tints.
     '--- wireframe overlay -----------------------------------------------------
     WIRE_ENABLED AS INTEGER
     WIRE_KOLOR AS _UNSIGNED LONG
