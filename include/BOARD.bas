@@ -135,6 +135,105 @@ SUB DrawTombstones
 END SUB
 
 
+' Openness of a cell: how many of the surrounding 5x5 cells are walkable (CellKind 1).
+' Chambers are wide-open (approaching 25); corridors are thin (~10). _SOURCE = FULL_BOARD.
+FUNCTION CellOpen% (cx AS INTEGER, cy AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, cnt AS INTEGER
+    FOR dy = -2 TO 2
+        FOR dx = -2 TO 2
+            nx = cx + dx: ny = cy + dy
+            IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
+                IF CellKind(nx, ny) = 1 THEN cnt = cnt + 1
+            END IF
+        NEXT
+    NEXT
+    CellOpen% = cnt
+END FUNCTION
+
+' Try to enqueue a chamber cell (walkable + open enough + unassigned) into the BFS.
+SUB ChamberTry (x AS INTEGER, y AS INTEGER, cid AS INTEGER, openmin AS INTEGER, tail AS INTEGER)
+    IF x < 0 OR x > 131 OR y < 0 OR y > 60 THEN EXIT SUB
+    IF CHAMBERAT(x, y) <> 0 THEN EXIT SUB
+    IF tail > 8000 THEN EXIT SUB
+    IF CellKind(x, y) <> 1 THEN EXIT SUB
+    IF CellOpen%(x, y) < openmin THEN EXIT SUB
+    CHAMBERAT(x, y) = cid: QX(tail) = x: QY(tail) = y: tail = tail + 1
+END SUB
+
+' Flood the wide-open region from a seed cell -> chamber cid; record size + centre.
+SUB FloodChamber (sx AS INTEGER, sy AS INTEGER, cid AS INTEGER, openmin AS INTEGER)
+    DIM head AS INTEGER, tail AS INTEGER, x AS INTEGER, y AS INTEGER
+    DIM minx AS INTEGER, maxx AS INTEGER, miny AS INTEGER, maxy AS INTEGER
+    head = 0: QX(0) = sx: QY(0) = sy: CHAMBERAT(sx, sy) = cid: tail = 1
+    minx = sx: maxx = sx: miny = sy: maxy = sy
+    DO WHILE head < tail
+        x = QX(head): y = QY(head): head = head + 1
+        IF x < minx THEN minx = x
+        IF x > maxx THEN maxx = x
+        IF y < miny THEN miny = y
+        IF y > maxy THEN maxy = y
+        ChamberTry x + 1, y, cid, openmin, tail
+        ChamberTry x - 1, y, cid, openmin, tail
+        ChamberTry x, y + 1, cid, openmin, tail
+        ChamberTry x, y - 1, cid, openmin, tail
+    LOOP
+    CHM_CELLS(cid) = tail
+    CHM_CX(cid) = (minx + maxx) \ 2: CHM_CY(cid) = (miny + maxy) \ 2
+END SUB
+
+' Detect the named CHAMBERS -- the large yellow spaces -- by flooding the wide-open area
+' near each chamber label (so thin corridors are excluded). Call AFTER FULL_BOARD is
+' painted. Approach A: openness heuristic, no board recolouring.
+SUB DetectChambers
+    DIM i AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, j AS INTEGER, skp AS INTEGER
+    DIM sx AS INTEGER, sy AS INTEGER, oldsrc AS LONG, seedmin AS INTEGER, floodmin AS INTEGER
+    REDIM made(1 TO 40) AS INTEGER   ' which labels actually seeded a chamber (for multi-word skip)
+    seedmin = 18: floodmin = 18      ' wide-open cells only -- keeps chambers off the thin corridors
+    FOR ny = 0 TO 60: FOR nx = 0 TO 131: CHAMBERAT(nx, ny) = 0: NEXT: NEXT
+    NCHAMBER = 0
+    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    FOR i = 1 TO LBL_N
+        '--- skip a second word of a multi-word chamber name: if an adjacent EARLIER label
+        '    already seeded a chamber, this word belongs to it (THE+CRYPT, TORTURE+CHAMBER) ---
+        skp = 0
+        FOR j = 1 TO i - 1
+            IF made(j) THEN
+                IF ABS(LBL_X(i) - LBL_X(j)) <= 2 AND ABS(LBL_Y(i) - LBL_Y(j)) <= 2 THEN skp = -1: EXIT FOR
+            END IF
+        NEXT
+        IF NOT skp THEN
+        '--- find an open, unassigned seed near this label (labels sit top-left of a chamber) ---
+        sx = -1
+        FOR dy = -1 TO 8
+            FOR dx = -3 TO 10
+                nx = LBL_X(i) + dx: ny = LBL_Y(i) + dy
+                IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
+                    IF CHAMBERAT(nx, ny) = 0 AND CellKind(nx, ny) = 1 THEN
+                        IF CellOpen%(nx, ny) >= seedmin THEN sx = nx: sy = ny
+                    END IF
+                END IF
+                IF sx >= 0 THEN EXIT FOR
+            NEXT
+            IF sx >= 0 THEN EXIT FOR
+        NEXT
+        IF sx >= 0 AND NCHAMBER < MAXCHAMBER THEN
+            NCHAMBER = NCHAMBER + 1
+            FloodChamber sx, sy, NCHAMBER, floodmin
+            CHM_NAME(NCHAMBER) = _TRIM$(LBL_T(i))
+            CHM_SEC(NCHAMBER) = SECTOR.get_by_xy(sx * CW, sy * CH)
+            IF CHM_CELLS(NCHAMBER) < 8 THEN            ' a stray (label on a corridor / tiny pocket) -- drop it
+                FOR dy = 0 TO 60: FOR dx = 0 TO 131: IF CHAMBERAT(dx, dy) = NCHAMBER THEN CHAMBERAT(dx, dy) = 0
+                NEXT: NEXT
+                NCHAMBER = NCHAMBER - 1
+            ELSE
+                made(i) = -1                           ' this label kept a chamber (blocks its 2nd word)
+            END IF
+        END IF
+        END IF
+    NEXT i
+    _SOURCE oldsrc
+END SUB
+
 SUB DetectRooms
     DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER
     DIM oldsrc AS LONG
@@ -291,6 +390,7 @@ SUB InitFog
     DetectDoors                          ' regular (brown) doors -> DOOR arrays
     MarkStrongDoors                      ' re-roll which ones are reinforced this game
     DetectRooms                          ' flood-fill the coloured room blocks -> ROOMS / ROOMAT
+    DetectChambers                       ' flood the large yellow named CHAMBERS (openness heuristic)
 
     ' 1) BFS the public area from START (doors are treated as walls)
     _SOURCE FULL_BOARD

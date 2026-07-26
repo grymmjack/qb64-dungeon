@@ -93,6 +93,25 @@ LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (as
 player_class = 1                 ' default HERO until the player creates a character
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
+'--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---
+IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
+    DIM AS INTEGER ddx, ddy, ddc
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    DetectRooms
+    DetectChambers
+    _DEST CANVAS: _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
+    FOR ddy = 0 TO 60
+        FOR ddx = 0 TO 131
+            IF CHAMBERAT(ddx, ddy) > 0 THEN LINE (ddx * CW, ddy * CH)-(ddx * CW + CW - 1, ddy * CH + CH - 1), _RGB32(255, 0, 255, 120), BF
+        NEXT
+    NEXT
+    FOR ddc = 1 TO NCHAMBER
+        COLOR _RGB32(&HFF, &HFF, &H00), _RGB32(0, 0, 0): _PRINTSTRING (CHM_CX(ddc) * CW, CHM_CY(ddc) * CH), _TRIM$(STR$(ddc)) + " " + _TRIM$(CHM_NAME(ddc)) + " (" + _TRIM$(STR$(CHM_CELLS(ddc))) + ")"
+    NEXT
+    _SAVEIMAGE "chamberdump.png", CANVAS
+    SYSTEM
+END IF
+
 ' ---------------------------------------------------------------- state machine
 DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
 game_state = ST_INTRO
