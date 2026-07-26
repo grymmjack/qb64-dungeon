@@ -111,31 +111,35 @@ FUNCTION LabelInRoom% (si AS INTEGER, rm AS INTEGER)
     NEXT ddy
 END FUNCTION
 
-' Bind each named-room label to its NEAREST detected room, once the board's rooms
-' exist (called at the end of RandomizeRooms). Labels sit on a room's top edge, so a
-' fixed window frequently misses the floor -- a spiral out to the closest real room
-' cell is geometry-independent and reliable. SP_ROOM(si) = that room (0 = none near).
+' Bind each named-room label to ITS chamber, once the board's rooms exist (called at
+' the end of RandomizeRooms). A label sits on the path just outside its chamber, often
+' with small side rooms just as close -- so "nearest room cell" picked the wrong one and
+' the crawl fired in a side room. Instead, tally the room cells in a window around the
+' label and take the DOMINANT room: the big chamber the label names wins over a small
+' neighbour that merely sits closer. SP_ROOM(si) = that room (0 = none found).
 SUB BindSpecialRooms
-    DIM si AS INTEGER, rad AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, rm AS INTEGER
+    DIM si AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, rm AS INTEGER, r AS INTEGER
+    DIM tally(1 TO 400) AS INTEGER, best AS INTEGER, bestn AS INTEGER, secOf AS INTEGER
     FOR si = 1 TO SP_N
-        SP_ROOM(si) = 0
-        rad = 0
-        DO
-            FOR dy = -rad TO rad
-                FOR dx = -rad TO rad
-                    IF ABS(dx) = rad OR ABS(dy) = rad THEN         ' only the new ring at this radius
-                        nx = SP_X(si) + dx: ny = SP_Y(si) + dy
-                        IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
-                            rm = ROOMAT(nx, ny)
-                            IF rm > 0 THEN IF ROOMS(rm).cells >= 4 THEN SP_ROOM(si) = rm
-                        END IF
+        secOf = SECTOR.get_by_xy(SP_X(si) * CW, SP_Y(si) * CH)   ' the label's own LEVEL -- stay on it
+        FOR r = 1 TO ROOM_N: tally(r) = 0: NEXT
+        ' window biased right + down: labels sit at the top-left of their chamber
+        FOR dy = -3 TO 11
+            FOR dx = -7 TO 13
+                nx = SP_X(si) + dx: ny = SP_Y(si) + dy
+                IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
+                    rm = ROOMAT(nx, ny)
+                    IF rm >= 1 AND rm <= ROOM_N THEN
+                        IF ROOMS(rm).cells >= 4 THEN IF secOf = 0 OR ROOMS(rm).sec = secOf THEN tally(rm) = tally(rm) + 1
                     END IF
-                    IF SP_ROOM(si) > 0 THEN EXIT FOR
-                NEXT dx
-                IF SP_ROOM(si) > 0 THEN EXIT FOR
-            NEXT dy
-            rad = rad + 1
-        LOOP UNTIL SP_ROOM(si) > 0 OR rad > 8
+                END IF
+            NEXT
+        NEXT
+        best = 0: bestn = 0
+        FOR r = 1 TO ROOM_N
+            IF tally(r) > bestn THEN bestn = tally(r): best = r
+        NEXT
+        SP_ROOM(si) = best
     NEXT si
 END SUB
 
