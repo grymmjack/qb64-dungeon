@@ -152,29 +152,14 @@ END SUB
 SUB dice3d_showcase (cfg AS DICE3D_CONFIG)
     DIM AS INTEGER i, f, lo, hi, fr
     CONST NFR = 12
-    DIM axisX AS DICE3D_VEC3, rxt AS DICE3D_QUAT, tgtq AS DICE3D_QUAT
     lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
-    ' FACE_Q turns the winning face flat to a straight-ahead (+Z) camera. Fine for
-    ' cubes/polyhedra, but a TETRAHEDRON then throws its opposite vertex to the bottom
-    ' of a down-tilted view -- it looks like an inverted pyramid. Pre-rotating the pose
-    ' by the camera tilt about X seats that face flat to the ACTUAL tilted camera, so
-    ' the d4 rests apex-up. (Only tetra dice need it; every other die is unchanged.)
-    axisX.X = 1: axisX.Y = 0: axisX.Z = 0
-    dice3d_qaxisangle axisX, cfg.CAM_TILT * 0.0174532925, rxt
     REDIM AS DICE3D_QUAT sq(lo TO hi)
     FOR i = lo TO hi: sq(i) = DICE3D_DICE(i).Q: NEXT
     FOR fr = 1 TO NFR
         FOR i = lo TO hi
             IF DICE3D_DICE(i).VALUE >= LBOUND(DICE3D_VAL2FACE) AND DICE3D_DICE(i).VALUE <= UBOUND(DICE3D_VAL2FACE) THEN
                 f = DICE3D_VAL2FACE(DICE3D_DICE(i).VALUE)
-                IF f >= 0 AND f < DICE3D_NF THEN
-                    IF DICE3D_DICE(i).SIDES = 4 THEN
-                        dice3d_qmul rxt, DICE3D_FACE_Q(f), tgtq   ' tetra: seat the face flat to the tilted camera (apex up)
-                    ELSE
-                        tgtq = DICE3D_FACE_Q(f)
-                    END IF
-                    dice3d_qslerp sq(i), tgtq, fr / NFR, DICE3D_DICE(i).Q
-                END IF
+                IF f >= 0 AND f < DICE3D_NF THEN dice3d_qslerp sq(i), DICE3D_FACE_Q(f), fr / NFR, DICE3D_DICE(i).Q
             END IF
         NEXT
         dice3d_present cfg

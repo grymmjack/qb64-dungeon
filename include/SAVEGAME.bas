@@ -53,7 +53,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN "dungeon-save.dat" FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 2"
+    PRINT #f, "DUNGEONSAVE 3"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -92,7 +92,7 @@ SUB SaveGame
     ' per-room mutable state
     PRINT #f, "ROOMS "; ROOM_N
     FOR i = 1 TO ROOM_N
-        PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal
+        PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal; ROOMS(i).mhp
     NEXT i
     ' loose drops -- spoils left where a fall happened on the open paths
     PRINT #f, "LOOSE "; UBOUND(LOOSE)
@@ -142,12 +142,12 @@ END FUNCTION
 ' board rebuild, so SD/DB/ROOMS are read AFTER StartBoard/RandomizeRooms.
 ' Assumes the caller (PlayGame) enters the loop afterwards.
 SUB LoadGameApply
-    DIM i AS INTEGER, rn AS INTEGER, el AS DOUBLE, tag AS STRING, nm AS STRING
+    DIM i AS INTEGER, rn AS INTEGER, el AS DOUBLE, tag AS STRING, nm AS STRING, sver AS INTEGER
     DIM scx AS INTEGER, scy AS INTEGER, spx AS INTEGER, spy AS INTEGER
 
     TokLoad "dungeon-save.dat"
     tag = NextTok$                                  ' "DUNGEONSAVE"
-    i = NextI                                       ' version
+    sver = NextI                                    ' save format version (3 = per-room mhp is stored, not reproduced)
     run_seed = VAL(NextTok$)
     num_players = NextI: cur_player = NextI
     IF num_players < 1 THEN num_players = 1
@@ -213,6 +213,14 @@ SUB LoadGameApply
         ROOMS(i).monster_fought = NextI: ROOMS(i).player_died = NextI: ROOMS(i).seen = NextI
         ROOMS(i).drop_gold = NextL: ROOMS(i).drop_sword = NextI: ROOMS(i).drop_secret = NextI
         ROOMS(i).drop_esp = NextI: ROOMS(i).drop_crystal = NextI
+        ' v3+: mhp is STORED, not reproduced -- RandomizeRooms' RNG can shift between builds,
+        ' which desynced the re-rolled mhp from the saved mhp_now (monsters showing 20/15 etc.)
+        IF sver >= 3 THEN ROOMS(i).mhp = NextL
+    NEXT i
+    ' Safety net for older saves (and any residual desync): a monster can never have more
+    ' current HP than its maximum -- clamp so the panel can't read "20/15".
+    FOR i = 1 TO ROOM_N
+        IF ROOMS(i).mhp_now > ROOMS(i).mhp THEN ROOMS(i).mhp_now = ROOMS(i).mhp
     NEXT i
 
     ' loose drops (spoils on the open paths). Older saves lack this section -- the tag
