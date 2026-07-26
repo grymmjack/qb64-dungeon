@@ -5,8 +5,8 @@
 ' Append a victorious champion to the hall of fame, v2 pipe-delimited record:
 '   name|class|gold|secs|deepest|k1..k9|g1..g9|STR INT WIS DEX CON CHA HP
 ' The per-level chronicle + ability scores come straight from the run's globals.
-SUB SaveLord (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG)
-    DIM f AS INTEGER, i AS INTEGER, deep AS INTEGER, ks AS STRING, gs AS STRING, ab AS STRING
+SUB SaveLord (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG, mapid AS LONG)
+    DIM f AS INTEGER, i AS INTEGER, deep AS INTEGER, ks AS STRING, gs AS STRING, ab AS STRING, evs AS STRING, e0 AS INTEGER
     deep = 0
     FOR i = 1 TO 9
         IF lvl_reached(i) THEN deep = i
@@ -17,9 +17,14 @@ SUB SaveLord (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG)
         gs = gs + _TRIM$(STR$(lvl_gold(i))): IF i < 9 THEN gs = gs + " "
     NEXT i
     ab = _TRIM$(STR$(player_str)) + " " + _TRIM$(STR$(player_int)) + " " + _TRIM$(STR$(player_wis)) + " " + _TRIM$(STR$(player_dex)) + " " + _TRIM$(STR$(player_con)) + " " + _TRIM$(STR$(player_cha)) + " " + _TRIM$(STR$(player_maxhp))
+    ' v3 adds: mapid (its snapshot PNG) + the event log (last ~180 events, joined by ~~)
+    e0 = EVLOG_N - 180: IF e0 < 1 THEN e0 = 1
+    evs = ""
+    FOR i = e0 TO EVLOG_N: evs = evs + EVLOG(i): IF i < EVLOG_N THEN evs = evs + " ~~ "
+    NEXT
     f = FREEFILE
     OPEN "dungeon-lords.dat" FOR APPEND AS #f
-    PRINT #f, nm + "|" + klass + "|" + _TRIM$(STR$(gld)) + "|" + _TRIM$(STR$(secs)) + "|" + _TRIM$(STR$(deep)) + "|" + ks + "|" + gs + "|" + ab
+    PRINT #f, nm + "|" + klass + "|" + _TRIM$(STR$(gld)) + "|" + _TRIM$(STR$(secs)) + "|" + _TRIM$(STR$(deep)) + "|" + ks + "|" + gs + "|" + ab + "|" + _TRIM$(STR$(mapid)) + "|" + evs
     CLOSE #f
 END SUB
 
@@ -176,33 +181,117 @@ SUB ShowLords
 END SUB
 
 
-' A single lord's chronicle: ability scores + a per-level table of kills and gold.
+' A single lord's chronicle: ability scores + a per-level table of kills and gold,
+' with hotkeys to the persisted event log ([E]) and the map at escape ([M]) when the
+' record carries them (v3+).
 SUB ShowLordDetail (idx AS INTEGER, nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG)
     DIM detail AS STRING, i AS INTEGER, y AS INTEGER, deep AS INTEGER
     DIM kk(1 TO 9) AS INTEGER, gg(1 TO 9) AS LONG, ab AS STRING, ks AS STRING, gs AS STRING
+    DIM k AS STRING, mapkey AS STRING, evfield AS STRING, hasmap AS INTEGER, hasev AS INTEGER, foot AS STRING, handled AS INTEGER
     detail = LORD_DETAIL(idx)
+    mapkey = _TRIM$(NthField$(detail, "|", 9))
+    evfield = NthField$(detail, "|", 10)
+    hasmap = 0: IF LEN(mapkey) > 0 THEN IF _FILEEXISTS("dungeon-lords-map-" + mapkey + ".png") THEN hasmap = -1
+    hasev = 0: IF LEN(_TRIM$(evfield)) > 0 THEN hasev = -1
+    DO
+        _DEST CANVAS: _FONT CH: CLS , BLACK
+        LINE (20 * CW, 3 * CH)-(112 * CW, 48 * CH), BOXBG, BF
+        LINE (20 * CW, 3 * CH)-(112 * CW, 48 * CH), REDU, B
+        COLOR YELLOWU, BOXBG: PrintCentered 5, "-=  " + _TRIM$(nm) + " the " + _TRIM$(klass) + "  =-"
+        COLOR WHITE, BOXBG: PrintCentered 7, _TRIM$(STR$(gld)) + " gold escaped in " + MMSS$(secs)
+        IF LEN(detail) = 0 THEN
+            COLOR GREY, BOXBG: PrintCentered 24, "(an elder record -- no per-level chronicle was kept)"
+        ELSE
+            deep = VAL(NthField$(detail, "|", 5))
+            ks = NthField$(detail, "|", 6): gs = NthField$(detail, "|", 7): ab = NthField$(detail, "|", 8)
+            FOR i = 1 TO 9: kk(i) = VAL(NthField$(ks, " ", i)): gg(i) = VAL(NthField$(gs, " ", i)): NEXT i
+            COLOR CYANU, BOXBG
+            PrintCentered 9, "STR " + NthField$(ab, " ", 1) + "   INT " + NthField$(ab, " ", 2) + "   WIS " + NthField$(ab, " ", 3) + "   DEX " + NthField$(ab, " ", 4) + "   CON " + NthField$(ab, " ", 5) + "   CHA " + NthField$(ab, " ", 6) + "   HP " + NthField$(ab, " ", 7)
+            COLOR YELLOWU, BOXBG: PrintCentered 11, "delved to the " + Ordinal$(deep) + " level"
+            COLOR CYANU, BOXBG: _PRINTSTRING (44 * CW, 14 * CH), "LEVEL      KILLS       GOLD"
+            FOR i = 1 TO 9
+                y = 15 + (i - 1) * 2
+                IF i <= deep THEN COLOR WHITE, BOXBG ELSE COLOR GREY, BOXBG
+                _PRINTSTRING (44 * CW, y * CH), PadR$(Ordinal$(i), 10) + PadR$(_TRIM$(STR$(kk(i))), 12) + _TRIM$(STR$(gg(i)))
+            NEXT i
+        END IF
+        foot = ""
+        IF hasev THEN foot = foot + "[E] chronicle log     "
+        IF hasmap THEN foot = foot + "[M] map at escape     "
+        foot = foot + "[ESC] back"
+        COLOR YELLOWU, BOXBG: PrintCentered 46, foot
+        _DISPLAY
+        k = ""
+        DO
+            k = NormKey$(UCASE$(INKEY$)): _LIMIT 60
+        LOOP WHILE k = ""
+        handled = 0
+        IF k = "E" AND hasev THEN ShowLordLog nm, evfield: handled = -1
+        IF k = "M" AND hasmap THEN ShowLordMap nm, mapkey: handled = -1
+        IF NOT handled THEN EXIT DO
+    LOOP
+END SUB
+
+
+' Scrollable replay of a lord's persisted event log (events joined by " ~~ " in the record).
+SUB ShowLordLog (nm AS STRING, evfield AS STRING)
+    DIM n AS INTEGER, i AS INTEGER, top AS INTEGER, per AS INTEGER, y AS INTEGER, k AS STRING, cur AS STRING, q AS INTEGER
+    REDIM ev(1 TO 400) AS STRING
+    '--- split the " ~~ "-joined field back into individual lines ---
+    n = 0: cur = evfield
+    DO
+        q = INSTR(cur, " ~~ ")
+        n = n + 1: IF n > 400 THEN n = 400: EXIT DO
+        IF q = 0 THEN ev(n) = cur: EXIT DO
+        ev(n) = LEFT$(cur, q - 1): cur = MID$(cur, q + 4)
+    LOOP
+    per = 36: top = 1
+    DO
+        _DEST CANVAS: _FONT CH: CLS , BLACK
+        COLOR YELLOWU, BLACK: PrintCentered 3, "-=  " + _TRIM$(nm) + " -- Chronicle Log  =-"
+        FOR i = 0 TO per - 1
+            IF top + i > n THEN EXIT FOR
+            y = 6 + i
+            COLOR GREY, BLACK: _PRINTSTRING (10 * CW, y * CH), PadR$(_TRIM$(STR$(top + i)) + ".", 5)
+            COLOR WHITE, BLACK: _PRINTSTRING (15 * CW, y * CH), ev(top + i)
+        NEXT
+        COLOR CYANU, BLACK: PrintCentered 46, "[W/S] [PgUp/PgDn] scroll     [ESC] back      (" + _TRIM$(STR$(top)) + "-" + _TRIM$(STR$(top + per - 1)) + " of " + _TRIM$(STR$(n)) + ")"
+        _DISPLAY
+        k = ""
+        DO
+            k = NormKey$(UCASE$(INKEY$)): _LIMIT 60
+        LOOP WHILE k = ""
+        IF k = CHR$(27) THEN EXIT SUB
+        IF k = "W" THEN top = top - 1
+        IF k = "S" THEN top = top + 1
+        IF k = "NE" THEN top = top - per        ' PgUp (NormKey$ maps it to NE)
+        IF k = "SE" THEN top = top + per        ' PgDn (NormKey$ maps it to SE)
+        IF top > n - per + 1 THEN top = n - per + 1
+        IF top < 1 THEN top = 1
+    LOOP
+END SUB
+
+
+' Show a lord's map-at-escape PNG snapshot, scaled to fit the screen.
+SUB ShowLordMap (nm AS STRING, mapkey AS STRING)
+    DIM img AS LONG, iw AS INTEGER, ih AS INTEGER, dw AS INTEGER, dh AS INTEGER
+    DIM sc AS SINGLE, ox AS INTEGER, oy AS INTEGER
+    img = _LOADIMAGE("dungeon-lords-map-" + mapkey + ".png", 32)
     _DEST CANVAS: _FONT CH: CLS , BLACK
-    LINE (20 * CW, 3 * CH)-(112 * CW, 48 * CH), BOXBG, BF
-    LINE (20 * CW, 3 * CH)-(112 * CW, 48 * CH), REDU, B
-    COLOR YELLOWU, BOXBG: PrintCentered 5, "-=  " + _TRIM$(nm) + " the " + _TRIM$(klass) + "  =-"
-    COLOR WHITE, BOXBG: PrintCentered 7, _TRIM$(STR$(gld)) + " gold escaped in " + MMSS$(secs)
-    IF LEN(detail) = 0 THEN
-        COLOR GREY, BOXBG: PrintCentered 24, "(an elder record -- no per-level chronicle was kept)"
+    IF img >= -1 THEN                              ' load failed
+        COLOR GREY, BLACK: PrintCentered 24, "(the map for this record could not be found)"
     ELSE
-        deep = VAL(NthField$(detail, "|", 5))
-        ks = NthField$(detail, "|", 6): gs = NthField$(detail, "|", 7): ab = NthField$(detail, "|", 8)
-        FOR i = 1 TO 9: kk(i) = VAL(NthField$(ks, " ", i)): gg(i) = VAL(NthField$(gs, " ", i)): NEXT i
-        COLOR CYANU, BOXBG
-        PrintCentered 9, "STR " + NthField$(ab, " ", 1) + "   INT " + NthField$(ab, " ", 2) + "   WIS " + NthField$(ab, " ", 3) + "   DEX " + NthField$(ab, " ", 4) + "   CON " + NthField$(ab, " ", 5) + "   CHA " + NthField$(ab, " ", 6) + "   HP " + NthField$(ab, " ", 7)
-        COLOR YELLOWU, BOXBG: PrintCentered 11, "delved to the " + Ordinal$(deep) + " level"
-        COLOR CYANU, BOXBG: _PRINTSTRING (44 * CW, 14 * CH), "LEVEL      KILLS       GOLD"
-        FOR i = 1 TO 9
-            y = 15 + (i - 1) * 2
-            IF i <= deep THEN COLOR WHITE, BOXBG ELSE COLOR GREY, BOXBG
-            _PRINTSTRING (44 * CW, y * CH), PadR$(Ordinal$(i), 10) + PadR$(_TRIM$(STR$(kk(i))), 12) + _TRIM$(STR$(gg(i)))
-        NEXT i
+        iw = _WIDTH(img): ih = _HEIGHT(img)
+        '--- fit within the screen leaving a title row + a footer row ---
+        sc = (SW * CW) / iw
+        IF ih * sc > (SH - 4) * CH THEN sc = ((SH - 4) * CH) / ih
+        dw = INT(iw * sc): dh = INT(ih * sc)
+        ox = (SW * CW - dw) \ 2: oy = 2 * CH + ((SH - 4) * CH - dh) \ 2
+        _PUTIMAGE (ox, oy)-(ox + dw - 1, oy + dh - 1), img, CANVAS
+        _FREEIMAGE img
+        COLOR YELLOWU, BLACK: PrintCentered 1, "-=  " + _TRIM$(nm) + " -- Map at Escape  =-"
     END IF
-    COLOR YELLOWU, BOXBG: PrintCentered 46, "[ press any key ]"
+    COLOR CYANU, BLACK: PrintCentered 49, "[ press any key ]"
     _DISPLAY
     WaitKey
 END SUB

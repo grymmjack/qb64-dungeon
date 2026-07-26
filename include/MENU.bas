@@ -1088,13 +1088,19 @@ END SUB
 ' found also yields the Level Key.
 
 SUB ShowEnd (win AS INTEGER)
-    DIM nm AS STRING, el AS LONG
+    DIM nm AS STRING, el AS LONG, mapid AS LONG
     IF win THEN
         Sfx "win"
+        el = TIMER - game_start: IF el < 0 THEN el = el + 86400
+        '--- snapshot the final board (explored state, labels, final position) BEFORE the
+        '    name-entry screen overdraws it, keyed to a deterministic per-lord map id ---
+        cursor_erase: cursor_draw
+        mapid = ABS(gold) * 97 + el * 13 + player_str * 7 + player_dex * 3 + LEN(class_name) * 101
+        IF mapid < 0 THEN mapid = -mapid
+        _SAVEIMAGE "dungeon-lords-map-" + _TRIM$(STR$(mapid)) + ".png", CANVAS
         nm = EnterName$                         ' victory + name entry
         player_name = nm
-        el = TIMER - game_start: IF el < 0 THEN el = el + 86400
-        SaveLord nm, class_name, gold, el       ' enshrine in the Legendary Lords
+        SaveLord nm, class_name, gold, el, mapid ' enshrine in the Legendary Lords
         _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR GREENU, BLACK: PrintCentered 20, "V I C T O R Y"
         COLOR WHITE, BLACK: PrintCentered 23, nm + " the " + class_name + " escapes with " + _TRIM$(STR$(gold)) + " gold!"
