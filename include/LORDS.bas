@@ -310,6 +310,7 @@ SUB SaveSettings
     PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
     PRINT #f, "dicelight " + _TRIM$(STR$(opt_dicelight))
     PRINT #f, "diceround " + _TRIM$(STR$(opt_diceround))
+    PRINT #f, "bloodstrength " + _TRIM$(STR$(opt_bloodstrength))
     PRINT #f, "smooth " + _TRIM$(STR$(opt_smooth))
     PRINT #f, "combatspeed " + _TRIM$(STR$(opt_combatspeed))
     PRINT #f, "msgdelay " + _TRIM$(STR$(opt_msgdelay))
@@ -366,6 +367,7 @@ SUB LoadSettings
                 CASE "dicespeed": opt_dicespeed = v
                 CASE "dicelight": opt_dicelight = v
                 CASE "diceround": opt_diceround = v
+                CASE "bloodstrength": opt_bloodstrength = v
                 CASE "smooth": opt_smooth = v
                 CASE "combatspeed": opt_combatspeed = v
                 CASE "msgdelay": opt_msgdelay = v
@@ -398,6 +400,7 @@ SUB LoadSettings
     IF opt_dicespeed < 0 OR opt_dicespeed > 3 THEN opt_dicespeed = 1
     IF opt_dicelight < 0 OR opt_dicelight > 3 THEN opt_dicelight = 2
     IF opt_diceround < 0 OR opt_diceround > 10 THEN opt_diceround = 6
+    IF opt_bloodstrength < 0 OR opt_bloodstrength > 10 THEN opt_bloodstrength = 10
     IF opt_combatspeed < 0 OR opt_combatspeed > 3 THEN opt_combatspeed = 1
     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
 END SUB

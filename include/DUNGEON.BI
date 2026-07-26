@@ -343,6 +343,8 @@ CONST NBLOOD = 40                      ' fixed blood-grime spatter spots (near-d
 DIM SHARED BLOOD_X(1 TO NBLOOD) AS INTEGER, BLOOD_Y(1 TO NBLOOD) AS INTEGER, BLOOD_R(1 TO NBLOOD) AS INTEGER
 CONST NVIG = 10                        ' pre-baked soft RADIAL vignette overlays (a HP-ramp; stretched per frame)
 DIM SHARED VIG(0 TO NVIG - 1) AS LONG
+CONST BLOOD_ALPHA_MAX = 200            ' near-death blood-grime opacity at full strength (SETTINGS "Blood" scales it)
+DIM SHARED opt_bloodstrength AS INTEGER ' SETTINGS "Blood": near-death blood-grime intensity 0 (none) .. 10 (max)
 
 ' Configurable UI fonts (assets/data/ui-fonts.txt -> LoadUIFonts): a _LOADFONT handle per UI
 ' region, 0 = keep the built-in 8x16 grid font (CH). Apply with UIFontOn h / UIFontOff.

@@ -533,7 +533,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 40
+    CONST NSET = 41
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -621,6 +621,11 @@ SUB RunSettings
                     IF opt_diceround < 0 THEN opt_diceround = 10
                     IF opt_diceround > 10 THEN opt_diceround = 0
                     Build3DPreviews: Sfx "select"
+                CASE 40
+                    opt_bloodstrength = opt_bloodstrength + delta
+                    IF opt_bloodstrength < 0 THEN opt_bloodstrength = 10
+                    IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -697,7 +702,10 @@ SUB RunSettings
                     opt_diceround = opt_diceround + 1
                     IF opt_diceround > 10 THEN opt_diceround = 0
                     Build3DPreviews
-                CASE 40: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 40
+                    opt_bloodstrength = opt_bloodstrength + 1
+                    IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
+                CASE 41: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -830,6 +838,9 @@ SUB RunSettings
                 CASE 39
                     lbl = "  Dice Round": slider = TRUE
                     IF opt_diceround <= 0 THEN vtxt = "sharp" ELSE vtxt = _TRIM$(STR$(opt_diceround)) + " / 10"
+                CASE 40
+                    lbl = "Blood": slider = TRUE
+                    IF opt_bloodstrength <= 0 THEN vtxt = "none" ELSE vtxt = _TRIM$(STR$(opt_bloodstrength)) + " / 10"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
