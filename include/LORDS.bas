@@ -215,7 +215,7 @@ SUB ShowLordDetail (idx AS INTEGER, nm AS STRING, klass AS STRING, gld AS LONG, 
                 _PRINTSTRING (44 * CW, y * CH), PadR$(Ordinal$(i), 10) + PadR$(_TRIM$(STR$(kk(i))), 12) + _TRIM$(STR$(gg(i)))
             NEXT i
         END IF
-        foot = ""
+        foot = "[C] character sheet     "
         IF hasev THEN foot = foot + "[E] chronicle log     "
         IF hasmap THEN foot = foot + "[M] map at escape     "
         foot = foot + "[ESC] back"
@@ -226,6 +226,7 @@ SUB ShowLordDetail (idx AS INTEGER, nm AS STRING, klass AS STRING, gld AS LONG, 
             k = NormKey$(UCASE$(INKEY$)): _LIMIT 60
         LOOP WHILE k = ""
         handled = 0
+        IF k = "C" THEN ShowLordSheet nm, klass, gld, secs, detail: handled = -1
         IF k = "E" AND hasev THEN ShowLordLog nm, evfield: handled = -1
         IF k = "M" AND hasmap THEN ShowLordMap nm, mapkey: handled = -1
         IF NOT handled THEN EXIT DO
@@ -295,6 +296,55 @@ SUB ShowLordMap (nm AS STRING, mapkey AS STRING)
     _DISPLAY
     WaitKey
 END SUB
+
+
+' A lord's CHARACTER SHEET ([C] from the detail screen): class portrait + ability
+' scores with modifiers + the derived combat baseline + the class goal, reconstructed
+' from the stored record.
+SUB ShowLordSheet (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG, detail AS STRING)
+    DIM pc AS INTEGER, ab AS STRING, deep AS INTEGER, csp AS STRING, ddrew AS INTEGER
+    DIM hp AS INTEGER, dxm AS INTEGER
+    pc = ClassIndex%(klass)
+    deep = 0: IF LEN(detail) > 0 THEN deep = VAL(NthField$(detail, "|", 5))
+    _DEST CANVAS: _FONT CH: CLS , BLACK
+    LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
+    LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    IF opt_artstyle > 0 THEN                                       ' class portrait, top-right
+        csp = ClassSprite$(pc)
+        IF LEN(csp) > 0 THEN
+            IF _FILEEXISTS(csp) THEN
+                LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), _RGB32(&H10, &H08, &H10), BF
+                LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), REDU, B
+                ddrew = DrawSpriteFit%(csp, 92 * CW, 5 * CH, 16 * CW, 16 * CH)
+            END IF
+        END IF
+    END IF
+    COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  C H A R A C T E R   S H E E T  =-"
+    COLOR WHITE, BOXBG: PrintCentered 6, _TRIM$(nm) + " the " + _TRIM$(klass)
+    COLOR YELLOWU, BOXBG: PrintCentered 7, _TRIM$(STR$(gld)) + " gold escaped in " + MMSS$(secs) + "   --   delved to the " + Ordinal$(deep) + " level"
+    IF LEN(detail) = 0 THEN
+        COLOR GREY, BOXBG: PrintCentered 22, "(an elder record -- no ability scores were kept)"
+    ELSE
+        ab = NthField$(detail, "|", 8)
+        hp = VAL(NthField$(ab, " ", 7))
+        dxm = AbilMod%(VAL(NthField$(ab, " ", 4)))
+        COLOR CYANU, BOXBG
+        PrintCentered 10, "STR " + AbLine$(ab, 1) + "      INT " + AbLine$(ab, 2) + "      WIS " + AbLine$(ab, 3)
+        PrintCentered 12, "DEX " + AbLine$(ab, 4) + "      CON " + AbLine$(ab, 5) + "      CHA " + AbLine$(ab, 6)
+        COLOR GREENU, BOXBG: PrintCentered 15, "HP " + _TRIM$(STR$(hp)) + "         AC " + _TRIM$(STR$(10 + dxm)) + " (base, unarmoured)"
+        COLOR GREY, BOXBG: PrintCentered 17, ClassSpecial$(pc)
+        COLOR YELLOWU, BOXBG: PrintCentered 19, "Class goal: " + _TRIM$(STR$(CLASSES(pc).gold_goal)) + " gold to win"
+    END IF
+    COLOR YELLOWU, BOXBG: PrintCentered 46, "[ press any key ]"
+    _DISPLAY: WaitKey
+END SUB
+
+' "13 (+1)" -- an ability score with its modifier, from the space-joined ability string.
+FUNCTION AbLine$ (ab AS STRING, idx AS INTEGER)
+    DIM v AS INTEGER
+    v = VAL(NthField$(ab, " ", idx))
+    AbLine$ = _TRIM$(STR$(v)) + " (" + ModStr$(AbilMod%(v)) + ")"
+END FUNCTION
 
 
 ' LOAD A CHARACTER screen (menu option 3): pick a past champion to play as.
