@@ -405,6 +405,7 @@ FUNCTION MdColor~& (knd AS INTEGER, styb AS INTEGER, lnkb AS INTEGER, hovid AS I
         EXIT FUNCTION
     END IF
     IF styb = 2 THEN MdColor~& = _RGB32(130, 235, 130): EXIT FUNCTION   ' `code`
+    IF styb = 3 THEN MdColor~& = _RGB32(90, 140, 180): EXIT FUNCTION    ' table borders/rules
     IF styb = 1 THEN MdColor~& = _RGB32(255, 255, 255): EXIT FUNCTION   ' **bold**
     SELECT CASE knd
         CASE 1: MdColor~& = _RGB32(255, 220, 80)      ' # heading
@@ -519,6 +520,67 @@ SUB MdHit (x1() AS INTEGER, x2() AS INTEGER, yr() AS INTEGER, uu() AS INTEGER, n
     LINE (c1 * CW, (r + 1) * CH - 2)-((c2 + 1) * CW - 1, (r + 1) * CH - 2), ul
 END SUB
 
+' TRUE if a table cell is a separator cell (only dashes / colons / spaces, at least one dash).
+FUNCTION IsDashes% (s AS STRING)
+    DIM i AS INTEGER, c AS STRING, hasdash AS INTEGER
+    IF LEN(_TRIM$(s)) = 0 THEN IsDashes% = 0: EXIT FUNCTION
+    hasdash = 0
+    FOR i = 1 TO LEN(s)
+        c = MID$(s, i, 1)
+        IF c = "-" THEN hasdash = -1 ELSE IF c <> ":" AND c <> " " THEN IsDashes% = 0: EXIT FUNCTION
+    NEXT
+    IsDashes% = hasdash
+END FUNCTION
+
+' Render a buffered block of markdown table rows (each "| a | b |") as aligned columns:
+' cells padded to the widest in their column, joined by " | " borders, with the |---|
+' separator row drawn as a --+-- rule and the header row bolded. Emits ready-to-draw
+' attributed display lines into the doc arrays.
+SUB EmitTable (tbl() AS STRING, ntbl AS INTEGER, url() AS STRING, nurl AS INTEGER, vis() AS STRING, sty() AS STRING, lnk() AS STRING, kind() AS INTEGER, n AS INTEGER)
+    CONST MAXC = 8
+    DIM r AS INTEGER, c AS INTEGER, ncols AS INTEGER, raw AS STRING, part AS STRING, p2 AS INTEGER
+    DIM tv AS STRING, ts AS STRING, tl AS STRING, lv AS STRING, ls AS STRING, ll AS STRING, pad AS INTEGER
+    REDIM cvis(1 TO ntbl, 1 TO MAXC) AS STRING, csty(1 TO ntbl, 1 TO MAXC) AS STRING, clnk(1 TO ntbl, 1 TO MAXC) AS STRING
+    REDIM ncell(1 TO ntbl) AS INTEGER, issep(1 TO ntbl) AS INTEGER, colw(1 TO MAXC) AS INTEGER
+    ncols = 0
+    FOR r = 1 TO ntbl                                     ' split every row into attributed cells
+        raw = _TRIM$(tbl(r))
+        IF LEFT$(raw, 1) = "|" THEN raw = MID$(raw, 2)
+        IF RIGHT$(raw, 1) = "|" THEN raw = LEFT$(raw, LEN(raw) - 1)
+        issep(r) = -1: c = 0
+        DO
+            p2 = INSTR(raw, "|")
+            IF p2 = 0 THEN part = raw ELSE part = LEFT$(raw, p2 - 1)
+            c = c + 1: IF c > MAXC THEN c = MAXC: EXIT DO
+            IF NOT IsDashes%(part) THEN issep(r) = 0
+            MdInline _TRIM$(part), tv, ts, tl, url(), nurl
+            cvis(r, c) = tv: csty(r, c) = ts: clnk(r, c) = tl
+            IF LEN(tv) > colw(c) THEN colw(c) = LEN(tv)
+            IF p2 = 0 THEN EXIT DO
+            raw = MID$(raw, p2 + 1)
+        LOOP
+        ncell(r) = c: IF c > ncols THEN ncols = c
+    NEXT r
+    FOR r = 1 TO ntbl                                     ' build each display line
+        lv = "  ": ls = STRING$(2, CHR$(0)): ll = STRING$(2, CHR$(0))   ' small indent
+        IF issep(r) THEN
+            FOR c = 1 TO ncols
+                IF c > 1 THEN lv = lv + CHR$(196) + CHR$(197) + CHR$(196): ls = ls + STRING$(3, CHR$(3)): ll = ll + STRING$(3, CHR$(0))
+                lv = lv + STRING$(colw(c), CHR$(196)): ls = ls + STRING$(colw(c), CHR$(3)): ll = ll + STRING$(colw(c), CHR$(0))
+            NEXT
+        ELSE
+            FOR c = 1 TO ncols
+                IF c > 1 THEN lv = lv + " " + CHR$(179) + " ": ls = ls + CHR$(0) + CHR$(3) + CHR$(0): ll = ll + STRING$(3, CHR$(0))
+                tv = cvis(r, c): ts = csty(r, c): tl = clnk(r, c)
+                IF r = 1 THEN ts = STRING$(LEN(tv), CHR$(1))   ' header row: bold every cell
+                pad = colw(c) - LEN(tv): IF pad < 0 THEN pad = 0
+                lv = lv + tv + SPACE$(pad): ls = ls + ts + STRING$(pad, CHR$(0)): ll = ll + tl + STRING$(pad, CHR$(0))
+            NEXT
+        END IF
+        IF n < UBOUND(vis) THEN n = n + 1: vis(n) = lv: sty(n) = ls: lnk(n) = ll: kind(n) = 0
+    NEXT r
+END SUB
+
 SUB ShowRules
     DIM whole AS STRING, rest AS STRING, one AS STRING, content AS STRING, p AS LONG
     DIM kblk AS INTEGER, W AS INTEGER, per AS INTEGER, top AS INTEGER, leftcol AS INTEGER, toprow AS INTEGER
@@ -531,13 +593,14 @@ SUB ShowRules
     DIM styb AS INTEGER, lnkb AS INTEGER, runcol AS _UNSIGNED LONG, cc AS _UNSIGNED LONG, runstr AS STRING
     DIM k AS STRING, ext AS INTEGER, mx AS INTEGER, my AS INTEGER, mcx AS INTEGER, mcy AS INTEGER
     DIM prevdown AS INTEGER, wheel AS INTEGER, statusmsg AS STRING, statustimer AS INTEGER
+    REDIM tbl(1 TO 120) AS STRING: DIM ntbl AS INTEGER
     W = 116: leftcol = 6: toprow = 5: per = 40
 
     whole = ""
     IF _FILEEXISTS("DUNGEON-RULES.md") THEN whole = _READFILE$("DUNGEON-RULES.md")
     IF LEN(whole) = 0 THEN whole = "# Rules" + CHR$(10) + "The rules scroll is missing (DUNGEON-RULES.md)."
     '--- parse the whole document into wrapped, attributed display lines ---
-    n = 0: nurl = 0: rest = whole
+    n = 0: nurl = 0: ntbl = 0: rest = whole
     DO WHILE LEN(rest) > 0
         IF n >= UBOUND(vis) - 4 THEN EXIT DO
         p = INSTR(rest, CHR$(10))
@@ -545,13 +608,19 @@ SUB ShowRules
         IF RIGHT$(one, 1) = CHR$(13) THEN one = LEFT$(one, LEN(one) - 1)
         one = Utf8ToAscii$(one)
         kblk = MdBlock%(one, content)
-        IF kblk = 5 THEN
-            n = n + 1: vis(n) = "": sty(n) = "": lnk(n) = "": knd(n) = 5
+        IF kblk = 6 THEN                                   ' a table row -- buffer it for aligned layout
+            IF ntbl < UBOUND(tbl) THEN ntbl = ntbl + 1: tbl(ntbl) = content
         ELSE
-            MdInline content, tvis, tsty, tlnk, url(), nurl
-            WrapEmit tvis, tsty, tlnk, kblk, vis(), sty(), lnk(), knd(), n, W
+            IF ntbl > 0 THEN EmitTable tbl(), ntbl, url(), nurl, vis(), sty(), lnk(), knd(), n: ntbl = 0
+            IF kblk = 5 THEN
+                n = n + 1: vis(n) = "": sty(n) = "": lnk(n) = "": knd(n) = 5
+            ELSE
+                MdInline content, tvis, tsty, tlnk, url(), nurl
+                WrapEmit tvis, tsty, tlnk, kblk, vis(), sty(), lnk(), knd(), n, W
+            END IF
         END IF
     LOOP
+    IF ntbl > 0 THEN EmitTable tbl(), ntbl, url(), nurl, vis(), sty(), lnk(), knd(), n   ' flush a trailing table
 
     top = 1: prevdown = 0: statustimer = 0: nhit = 0
     DO
