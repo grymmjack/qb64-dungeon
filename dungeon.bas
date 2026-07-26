@@ -375,6 +375,7 @@ FUNCTION PlayGame%
             END IF
         END IF
 
+        IF dbg_on THEN cursor_erase: cursor_draw   ' redraw the board each frame so the debug crosshair can't ghost
         DrawHUD
         IF dbg_on THEN DrawDebug
         _DISPLAY
