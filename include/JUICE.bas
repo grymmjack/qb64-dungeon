@@ -105,9 +105,9 @@ SUB DrawWounds
     pulse = 1
     IF hpFrac < 0.25 THEN pulse = 0.6 + 0.4 * ((SIN(TIMER * 4.5) + 1) / 2)   ' a quickening heartbeat near death
     _DEST CANVAS
-    band = INT(50 + 150 * wound)                     ' how far the darkness reaches inward
+    band = INT(40 + 90 * wound)                       ' how far the darkness reaches inward (kept near the rim)
     FOR i = 0 TO band STEP 2
-        a = INT(150 * wound * pulse * (band - i) / band)
+        a = INT(95 * wound * pulse * (band - i) / band)   ' lighter, so the map/labels stay readable beneath
         IF a > 3 THEN
             LINE (0, i)-(SW * CW, i), _RGB32(0, 0, 0, a)
             LINE (0, SH * CH - 1 - i)-(SW * CW, SH * CH - 1 - i), _RGB32(0, 0, 0, a)
@@ -115,7 +115,7 @@ SUB DrawWounds
             LINE (SW * CW - 1 - i, 0)-(SW * CW - 1 - i, SH * CH), _RGB32(0, 0, 0, a)
         END IF
     NEXT
-    a = INT(150 * wound * pulse)                      ' dried blood spattered round the frame
+    a = INT(60 * wound * pulse)                        ' dried blood spattered round the frame -- semi-transparent
     IF a > 6 THEN
         FOR i = 1 TO NBLOOD
             FillDisc BLOOD_X(i), BLOOD_Y(i), BLOOD_R(i), _RGB32(110, 8, 10, a)
