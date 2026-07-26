@@ -467,7 +467,7 @@ SUB MdInline (raw AS STRING, vis AS STRING, sty AS STRING, lnk AS STRING, url() 
             ELSE
                 EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
             END IF
-        ELSEIF c = "<" AND (MID$(raw, i, 6) = "<http:" OR MID$(raw, i, 7) = "<https") THEN
+        ELSEIF c = "<" AND MID$(raw, i, 5) = "<http" THEN   ' <http://...> or <https://...> autolink
             j = INSTR(i, raw, ">")
             IF j > 0 THEN
                 u = MID$(raw, i + 1, j - i - 1): id = AddURL%(u, url(), nurl)
@@ -571,7 +571,7 @@ SUB ShowRules
         IF ext = 80 THEN top = top + 1
         IF ext = 73 THEN top = top - per
         IF ext = 81 THEN top = top + per
-        IF wheel <> 0 THEN top = top - wheel * 3
+        IF wheel <> 0 THEN top = top + wheel * 3   ' natural direction (wheel up scrolls up)
         IF _MOUSEBUTTON(1) THEN
             IF NOT prevdown AND hovid > 0 THEN
                 MdOpenURL url(hovid): statusmsg = "Opening: " + url(hovid): statustimer = 150: Sfx "select"
