@@ -679,6 +679,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF item_potion_small + item_potion_large > 0 THEN
                 UsePotion FALSE
                 acted = -1
+                cursor_erase: cursor_draw: DrawHUD: _DISPLAY   ' show the healed HP bar at once, before the monster swings
             END IF
             dirty = -1
         ELSEIF k = " " THEN
