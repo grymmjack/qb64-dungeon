@@ -192,9 +192,11 @@ SUB DrawFlexStats (pc AS INTEGER, sc() AS INTEGER, cur AS INTEGER, moving AS INT
         END IF
         PrintCentered y, "   " + arrow + row + "   "
     NEXT i
-    IF pc = 4 THEN atkm = AbilMod(sc(2)) ELSE atkm = AbilMod(sc(1))
+    DIM statn AS STRING
+    IF pc = 4 THEN atkm = AbilMod(sc(2)): statn = "INT" ELSE atkm = AbilMod(sc(1)): statn = "STR"
     pac = CLASSES(pc).ac + AbilMod(sc(4)): pth = CLASSES(pc).tohit + atkm
-    COLOR GREENU, BLACK: PrintCentered 22, "AC " + _TRIM$(STR$(pac)) + "     To-Hit " + ModStr$(pth) + "     Damage 1d" + _TRIM$(STR$(CLASSES(pc).dmg)) + " " + ModStr$(atkm) + "     CON->HP " + ModStr$(AbilMod(sc(5)))
+    COLOR GREENU, BLACK: PrintCentered 20, "AC " + _TRIM$(STR$(pac)) + "  (" + _TRIM$(STR$(CLASSES(pc).ac)) + " class " + ModStr$(AbilMod(sc(4))) + " DEX)      To-Hit " + ModStr$(pth) + "  (" + ModStr$(CLASSES(pc).tohit) + " class " + ModStr$(atkm) + " " + statn + ")"
+    COLOR GREY, BLACK: PrintCentered 21, "Damage 1d" + _TRIM$(STR$(CLASSES(pc).dmg)) + " " + ModStr$(atkm) + " " + statn + "      HP bonus " + ModStr$(AbilMod(sc(5))) + " x3 (CON)      -- every +2 in a stat = +1 modifier --"
     COLOR CYANU, BLACK: PrintCentered 24, info
     COLOR YELLOWU, BLACK
     IF mode = 2 THEN

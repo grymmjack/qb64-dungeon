@@ -364,49 +364,271 @@ SUB ShowTreasury
     ChronicleClose
 END SUB
 
-' RULES -- a paged reader of DUNGEON-RULES.md.
+' ============================================================================
+'  MARKDOWN reader -- renders DUNGEON-RULES.md with real formatting: coloured
+'  headings, **bold**, `code`, - bullets, --- rules, and CLICKABLE links
+'  ([text](url) and <url>). Each raw line is parsed into three parallel strings --
+'  vis (the visible text), sty (a per-char style byte: 0 normal / 1 bold / 2 code),
+'  and lnk (a per-char link id, 0 = none) -- then word-wrapped carrying all three,
+'  so styling survives wrapping. Links are hit-tested against the mouse each frame.
+' ============================================================================
+
+' Open a URL in the system browser (Linux xdg-open; the game targets Linux).
+SUB MdOpenURL (url AS STRING)
+    DIM u AS STRING: u = _TRIM$(url)
+    IF LEN(u) = 0 THEN EXIT SUB
+    SHELL _DONTWAIT "xdg-open " + CHR$(34) + u + CHR$(34)
+END SUB
+
+' Style byte for the current inline state (code beats bold if somehow both).
+FUNCTION StyOf% (bold AS INTEGER, code AS INTEGER)
+    IF code THEN StyOf% = 2: EXIT FUNCTION
+    IF bold THEN StyOf% = 1: EXIT FUNCTION
+    StyOf% = 0
+END FUNCTION
+
+' Register a link URL, returning its id (1-based). Caps at the array bound.
+FUNCTION AddURL% (u AS STRING, url() AS STRING, nurl AS INTEGER)
+    IF nurl >= UBOUND(url) THEN AddURL% = 0: EXIT FUNCTION
+    nurl = nurl + 1: url(nurl) = _TRIM$(u): AddURL% = nurl
+END FUNCTION
+
+' Append one char to the three parallel attribute strings.
+SUB EmitCh (vis AS STRING, sty AS STRING, lnk AS STRING, ch AS STRING, styb AS INTEGER, lnkid AS INTEGER)
+    vis = vis + ch: sty = sty + CHR$(styb): lnk = lnk + CHR$(lnkid)
+END SUB
+
+' Colour for a character given its block kind + style byte + whether it's the hovered link.
+FUNCTION MdColor~& (knd AS INTEGER, styb AS INTEGER, lnkb AS INTEGER, hovid AS INTEGER)
+    IF lnkb > 0 THEN
+        IF lnkb = hovid THEN MdColor~& = _RGB32(255, 255, 130) ELSE MdColor~& = _RGB32(120, 200, 255)
+        EXIT FUNCTION
+    END IF
+    IF styb = 2 THEN MdColor~& = _RGB32(130, 235, 130): EXIT FUNCTION   ' `code`
+    IF styb = 1 THEN MdColor~& = _RGB32(255, 255, 255): EXIT FUNCTION   ' **bold**
+    SELECT CASE knd
+        CASE 1: MdColor~& = _RGB32(255, 220, 80)      ' # heading
+        CASE 2: MdColor~& = _RGB32(120, 220, 255)     ' ## heading
+        CASE 3: MdColor~& = _RGB32(150, 235, 150)     ' ### heading
+        CASE 8: MdColor~& = _RGB32(170, 170, 190)     ' > quote
+        CASE ELSE: MdColor~& = _RGB32(210, 205, 190)  ' body
+    END SELECT
+END FUNCTION
+
+' Classify one raw line -> block kind, and set `content` to the marker-stripped text.
+' kinds: 1-3 heading, 4 list, 5 rule, 6 table, 7 blank, 8 quote, 0 normal.
+FUNCTION MdBlock% (raw AS STRING, content AS STRING)
+    DIM t AS STRING, tt AS STRING, h AS INTEGER, ii AS INTEGER, allh AS INTEGER
+    t = raw: tt = _TRIM$(t)
+    IF LEN(tt) = 0 THEN content = "": MdBlock% = 7: EXIT FUNCTION
+    IF LEN(tt) >= 3 THEN                                  ' horizontal rule (all dashes)
+        allh = -1
+        FOR ii = 1 TO LEN(tt): IF MID$(tt, ii, 1) <> "-" THEN allh = 0
+        NEXT
+        IF allh THEN content = "": MdBlock% = 5: EXIT FUNCTION
+    END IF
+    IF LEFT$(t, 1) = "#" THEN                             ' heading
+        h = 0
+        DO WHILE MID$(t, h + 1, 1) = "#": h = h + 1: LOOP
+        content = _TRIM$(MID$(t, h + 1)): IF h > 3 THEN h = 3
+        MdBlock% = h: EXIT FUNCTION
+    END IF
+    IF LEFT$(t, 2) = "- " OR LEFT$(t, 2) = "* " THEN content = _TRIM$(MID$(t, 3)): MdBlock% = 4: EXIT FUNCTION
+    IF LEFT$(tt, 1) = "|" THEN content = tt: MdBlock% = 6: EXIT FUNCTION
+    IF LEFT$(t, 2) = "> " THEN content = _TRIM$(MID$(t, 3)): MdBlock% = 8: EXIT FUNCTION
+    content = t: MdBlock% = 0
+END FUNCTION
+
+' Parse inline markdown of `raw` into the three parallel attribute strings, collecting
+' link URLs. Handles **bold**, `code`, [text](url), and <url> autolinks.
+SUB MdInline (raw AS STRING, vis AS STRING, sty AS STRING, lnk AS STRING, url() AS STRING, nurl AS INTEGER)
+    DIM i AS INTEGER, n AS INTEGER, c AS STRING, c2 AS STRING, bold AS INTEGER, code AS INTEGER
+    DIM j AS INTEGER, k2 AS INTEGER, txt AS STRING, u AS STRING, id AS INTEGER, m AS INTEGER
+    vis = "": sty = "": lnk = "": bold = 0: code = 0
+    n = LEN(raw): i = 1
+    DO WHILE i <= n
+        c = MID$(raw, i, 1): c2 = MID$(raw, i + 1, 1)
+        IF c = "*" AND c2 = "*" THEN
+            bold = NOT bold: i = i + 2
+        ELSEIF c = "`" THEN
+            code = NOT code: i = i + 1
+        ELSEIF c = "[" THEN
+            j = INSTR(i, raw, "]")
+            IF j > 0 AND MID$(raw, j + 1, 1) = "(" THEN
+                k2 = INSTR(j + 2, raw, ")")
+                IF k2 > 0 THEN
+                    txt = MID$(raw, i + 1, j - i - 1): u = MID$(raw, j + 2, k2 - j - 2)
+                    id = AddURL%(u, url(), nurl)
+                    FOR m = 1 TO LEN(txt): EmitCh vis, sty, lnk, MID$(txt, m, 1), 0, id: NEXT
+                    i = k2 + 1
+                ELSE
+                    EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+                END IF
+            ELSE
+                EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+            END IF
+        ELSEIF c = "<" AND (MID$(raw, i, 6) = "<http:" OR MID$(raw, i, 7) = "<https") THEN
+            j = INSTR(i, raw, ">")
+            IF j > 0 THEN
+                u = MID$(raw, i + 1, j - i - 1): id = AddURL%(u, url(), nurl)
+                FOR m = 1 TO LEN(u): EmitCh vis, sty, lnk, MID$(u, m, 1), 0, id: NEXT
+                i = j + 1
+            ELSE
+                EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+            END IF
+        ELSE
+            EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+        END IF
+    LOOP
+END SUB
+
+' Word-wrap the attribute triplet to width W, appending each display line (with its
+' block kind) to the doc arrays. A blank input still emits one line (spacing).
+SUB WrapEmit (tvis AS STRING, tsty AS STRING, tlnk AS STRING, knd AS INTEGER, vis() AS STRING, sty() AS STRING, lnk() AS STRING, kind() AS INTEGER, n AS INTEGER, W AS INTEGER)
+    DIM cut AS INTEGER, ii AS INTEGER
+    IF LEN(tvis) = 0 THEN
+        IF n < UBOUND(vis) THEN n = n + 1: vis(n) = "": sty(n) = "": lnk(n) = "": kind(n) = knd
+        EXIT SUB
+    END IF
+    DO WHILE LEN(tvis) > 0
+        IF n >= UBOUND(vis) THEN EXIT SUB
+        IF knd = 6 OR LEN(tvis) <= W THEN                 ' don't wrap table rows
+            cut = LEN(tvis)
+        ELSE
+            cut = 0
+            FOR ii = W TO 1 STEP -1
+                IF MID$(tvis, ii, 1) = " " THEN cut = ii: EXIT FOR
+            NEXT
+            IF cut = 0 THEN cut = W
+        END IF
+        n = n + 1
+        vis(n) = LEFT$(tvis, cut): sty(n) = LEFT$(tsty, cut): lnk(n) = LEFT$(tlnk, cut): kind(n) = knd
+        tvis = MID$(tvis, cut + 1): tsty = MID$(tsty, cut + 1): tlnk = MID$(tlnk, cut + 1)
+        IF LEN(tvis) > 0 THEN
+            IF LEFT$(tvis, 1) = " " THEN tvis = MID$(tvis, 2): tsty = MID$(tsty, 2): tlnk = MID$(tlnk, 2)
+        END IF
+    LOOP
+END SUB
+
+' Record a clickable link rect (cell cols c1..c2 on row r -> url id uid) + underline it.
+SUB MdHit (x1() AS INTEGER, x2() AS INTEGER, yr() AS INTEGER, uu() AS INTEGER, nh AS INTEGER, c1 AS INTEGER, c2 AS INTEGER, r AS INTEGER, uid AS INTEGER, hovid AS INTEGER)
+    IF nh >= UBOUND(x1) THEN EXIT SUB
+    nh = nh + 1: x1(nh) = c1: x2(nh) = c2: yr(nh) = r: uu(nh) = uid
+    DIM ul AS _UNSIGNED LONG
+    IF uid = hovid THEN ul = _RGB32(255, 255, 130) ELSE ul = _RGB32(120, 200, 255)
+    LINE (c1 * CW, (r + 1) * CH - 2)-((c2 + 1) * CW - 1, (r + 1) * CH - 2), ul
+END SUB
+
 SUB ShowRules
-    DIM whole AS STRING, per AS INTEGER, top AS INTEGER, i AS INTEGER, y AS INTEGER, k AS STRING, ext AS INTEGER
-    REDIM ln(1 TO 4000) AS STRING
-    DIM n AS INTEGER, p AS INTEGER, rest AS STRING, one AS STRING
+    DIM whole AS STRING, rest AS STRING, one AS STRING, content AS STRING, p AS LONG
+    DIM kblk AS INTEGER, W AS INTEGER, per AS INTEGER, top AS INTEGER, leftcol AS INTEGER, toprow AS INTEGER
+    REDIM vis(1 TO 6000) AS STRING, sty(1 TO 6000) AS STRING, lnk(1 TO 6000) AS STRING, knd(1 TO 6000) AS INTEGER
+    REDIM url(1 TO 400) AS STRING
+    REDIM hx1(1 TO 400) AS INTEGER, hx2(1 TO 400) AS INTEGER, hy(1 TO 400) AS INTEGER, hu(1 TO 400) AS INTEGER
+    DIM n AS INTEGER, nurl AS INTEGER, tvis AS STRING, tsty AS STRING, tlnk AS STRING
+    DIM nhit AS INTEGER, hovid AS INTEGER, i AS INTEGER, j AS INTEGER, row AS INTEGER, dl AS INTEGER
+    DIM yy AS INTEGER, basecol AS INTEGER, runStartIdx AS INTEGER, curlnk AS INTEGER, linkStartCol AS INTEGER
+    DIM styb AS INTEGER, lnkb AS INTEGER, runcol AS _UNSIGNED LONG, cc AS _UNSIGNED LONG, runstr AS STRING
+    DIM k AS STRING, ext AS INTEGER, mx AS INTEGER, my AS INTEGER, mcx AS INTEGER, mcy AS INTEGER
+    DIM prevdown AS INTEGER, wheel AS INTEGER, statusmsg AS STRING, statustimer AS INTEGER
+    W = 116: leftcol = 6: toprow = 5: per = 40
+
+    whole = ""
     IF _FILEEXISTS("DUNGEON-RULES.md") THEN whole = _READFILE$("DUNGEON-RULES.md")
-    IF LEN(whole) = 0 THEN whole = "The rules scroll is missing (DUNGEON-RULES.md)."
-    '--- split into lines, strip a little markdown, wrap long lines to ~110 cols ---
-    n = 0: rest = whole
+    IF LEN(whole) = 0 THEN whole = "# Rules" + CHR$(10) + "The rules scroll is missing (DUNGEON-RULES.md)."
+    '--- parse the whole document into wrapped, attributed display lines ---
+    n = 0: nurl = 0: rest = whole
     DO WHILE LEN(rest) > 0
+        IF n >= UBOUND(vis) - 4 THEN EXIT DO
         p = INSTR(rest, CHR$(10))
         IF p = 0 THEN one = rest: rest = "" ELSE one = LEFT$(rest, p - 1): rest = MID$(rest, p + 1)
-        one = RulesStrip$(one)
-        DO
-            IF n >= UBOUND(ln) THEN EXIT DO
-            n = n + 1
-            IF LEN(one) <= 112 THEN ln(n) = one: one = "" ELSE ln(n) = LEFT$(one, 112): one = MID$(one, 113)
-            IF LEN(one) = 0 THEN EXIT DO
-        LOOP
+        IF RIGHT$(one, 1) = CHR$(13) THEN one = LEFT$(one, LEN(one) - 1)
+        one = Utf8ToAscii$(one)
+        kblk = MdBlock%(one, content)
+        IF kblk = 5 THEN
+            n = n + 1: vis(n) = "": sty(n) = "": lnk(n) = "": knd(n) = 5
+        ELSE
+            MdInline content, tvis, tsty, tlnk, url(), nurl
+            WrapEmit tvis, tsty, tlnk, kblk, vis(), sty(), lnk(), knd(), n, W
+        END IF
     LOOP
-    per = 38: top = 1
+
+    top = 1: prevdown = 0: statustimer = 0: nhit = 0
     DO
-        ChroniclePanel 6, 3, 126, 47, "R U L E S   O F   T H E   D U N G E O N"
-        FOR i = 0 TO per - 1
-            IF top + i <= n THEN
-                y = 6 + i: COLOR WHITE, BOXBG: _PRINTSTRING (9 * CW, y * CH), ln(top + i)
-            END IF
+        _LIMIT 60
+        '--- mouse: hover-test against last frame's link rects ---
+        wheel = 0
+        DO WHILE _MOUSEINPUT: wheel = wheel + _MOUSEWHEEL: LOOP
+        mx = _MOUSEX: my = _MOUSEY: mcx = mx \ CW: mcy = my \ CH
+        hovid = 0
+        FOR i = 1 TO nhit
+            IF mcy = hy(i) AND mcx >= hx1(i) AND mcx <= hx2(i) THEN hovid = hu(i): EXIT FOR
         NEXT
-        COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] scroll   [PgUp/PgDn] page   [ESC] back   (" + EvNum$(top) + "/" + EvNum$(n) + ")"
-        _DISPLAY
-        k = "": ext = 0
-        DO
-            k = INKEY$: IF LEN(k) = 2 THEN ext = ASC(RIGHT$(k, 1))
-            IF k <> "" THEN EXIT DO
-            _LIMIT 60
-        LOOP
+        '--- input ---
+        k = INKEY$: ext = 0: IF LEN(k) = 2 THEN ext = ASC(RIGHT$(k, 1))
         IF k = CHR$(27) THEN EXIT DO
         IF ext = 72 THEN top = top - 1
         IF ext = 80 THEN top = top + 1
         IF ext = 73 THEN top = top - per
         IF ext = 81 THEN top = top + per
+        IF wheel <> 0 THEN top = top - wheel * 3
+        IF _MOUSEBUTTON(1) THEN
+            IF NOT prevdown AND hovid > 0 THEN
+                MdOpenURL url(hovid): statusmsg = "Opening: " + url(hovid): statustimer = 150: Sfx "select"
+            END IF
+            prevdown = -1
+        ELSE
+            prevdown = 0
+        END IF
         IF top > n - per + 1 THEN top = n - per + 1
         IF top < 1 THEN top = 1
+
+        '--- render ---
+        _DEST CANVAS: _FONT CH
+        LINE (4 * CW, 2 * CH)-(128 * CW, 48 * CH), BOXBG, BF
+        LINE (4 * CW, 2 * CH)-(128 * CW, 48 * CH), CYANU, B
+        COLOR YELLOWU, BOXBG: PrintCentered 3, "-=  R U L E S   O F   T H E   D U N G E O N  =-"
+        IF mcy >= 0 AND mcy <= 60 AND hovid > 0 THEN
+            ' (cursor over a link -- the underline/colour already highlights it)
+        END IF
+        nhit = 0
+        FOR row = 0 TO per - 1
+            dl = top + row
+            IF dl > n THEN EXIT FOR
+            yy = toprow + row
+            IF knd(dl) = 5 THEN
+                LINE (leftcol * CW, yy * CH + CH \ 2)-(124 * CW, yy * CH + CH \ 2), GREY
+            ELSE
+                basecol = leftcol
+                IF knd(dl) = 4 THEN COLOR YELLOWU, BOXBG: _PRINTSTRING (leftcol * CW, yy * CH), CHR$(249): basecol = leftcol + 2
+                runstr = "": runStartIdx = 1: curlnk = 0: linkStartCol = 0
+                FOR j = 1 TO LEN(vis(dl))
+                    styb = ASC(MID$(sty(dl), j, 1)): lnkb = ASC(MID$(lnk(dl), j, 1))
+                    cc = MdColor~&(knd(dl), styb, lnkb, hovid)
+                    IF j = 1 THEN runcol = cc
+                    IF cc <> runcol THEN
+                        COLOR runcol, BOXBG: _PRINTSTRING ((basecol + runStartIdx - 1) * CW, yy * CH), runstr
+                        runstr = "": runStartIdx = j: runcol = cc
+                    END IF
+                    runstr = runstr + MID$(vis(dl), j, 1)
+                    IF lnkb <> curlnk THEN
+                        IF curlnk > 0 THEN MdHit hx1(), hx2(), hy(), hu(), nhit, linkStartCol, basecol + j - 2, yy, curlnk, hovid
+                        IF lnkb > 0 THEN linkStartCol = basecol + j - 1
+                        curlnk = lnkb
+                    END IF
+                NEXT j
+                IF LEN(runstr) > 0 THEN COLOR runcol, BOXBG: _PRINTSTRING ((basecol + runStartIdx - 1) * CW, yy * CH), runstr
+                IF curlnk > 0 THEN MdHit hx1(), hx2(), hy(), hu(), nhit, linkStartCol, basecol + LEN(vis(dl)) - 1, yy, curlnk, hovid
+            END IF
+        NEXT row
+
+        IF statustimer > 0 THEN
+            COLOR GREENU, BOXBG: PrintCentered 46, LEFT$(_TRIM$(statusmsg), 116)
+            statustimer = statustimer - 1
+        ELSE
+            COLOR YELLOWU, BOXBG: PrintCentered 46, "[Up/Dn] scroll   [wheel/PgUp/PgDn] page   click a link to open   [ESC] back   (" + EvNum$(top) + "/" + EvNum$(n) + ")"
+        END IF
+        _DISPLAY
     LOOP
     ChronicleClose
 END SUB
