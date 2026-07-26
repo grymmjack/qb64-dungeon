@@ -659,7 +659,7 @@ SUB DoCombatDnD (rm AS INTEGER)
         ' Once an action's banners are done, wipe the message/dice area and redraw
         ' the board so ONLY the combat panel shows -- makes it obvious it's your turn.
         IF dirty THEN cursor_erase: cursor_draw: dirty = 0
-        DrawCombatPanel rm, mon, lead
+        DrawHUD                              ' row-50 stats + the panel (via combat_active hook); the board redraw above wipes the HUD line otherwise
         k = INKEY$
         acted = 0: did_attack = 0
         IF k = CHR$(27) THEN                     ' attempt to flee

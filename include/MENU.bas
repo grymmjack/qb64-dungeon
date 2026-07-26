@@ -1157,8 +1157,9 @@ SUB DrawHUD
     ' Keep the combat panel constant through a fight: every roll's cleanup ends with a
     ' DrawHUD, so repainting the panel here means it never vanishes behind a dice roll or
     ' a result banner (the HUD line is row 50, the panel rows 39-49 -- no overlap).
-    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead
-    DrawWounds                              ' near-death vignette + blood grime, over everything (no-op above half HP)
+    ' In combat the panel draws its own near-death vignette (+ _DISPLAY); on the board
+    ' there's no panel, so draw the wounds overlay here. (Avoids a double-darken.)
+    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead ELSE DrawWounds
 END SUB
 
 
