@@ -374,15 +374,16 @@ END SUB
 SUB dice3d_bevel_fill (t AS INTEGER, ivn AS INTEGER, nf AS INTEGER, baseNV AS INTEGER, bevAmt AS SINGLE, insetIdx() AS INTEGER, bodyU() AS SINGLE, bodyV() AS SINGLE)
     DIM AS INTEGER f1, f2, c1, c1n, c2, va, vb, done2, i1a, i1b, i2a, i2b, k, nseg
     DIM AS INTEGER vtx, rn, capF, ci
-    DIM AS SINGLE tt, bulge, rr, ln0
-    DIM AS DICE3D_VEC3 la, lb
+    DIM AS SINGLE tt, w0, w1, w2
     REDIM ringA(0 TO DICE3D_BEVEL_SEG) AS INTEGER, ringB(0 TO DICE3D_BEVEL_SEG) AS INTEGER
     REDIM ring(0 TO 15) AS INTEGER
     nseg = DICE3D_BEVEL_SEG
-    bulge = bevAmt * 0.95 '             how far the arc's middle bows outward toward the old sharp edge
-    '--- BEVEL ARCS: each edge (va->vb on f1) has a reverse twin (vb->va on f2). Build SEG+1 rings
-    '    from F1's inset edge (k=0) to F2's inset edge (k=nseg); intermediate rings bow outward
-    '    (radially) so the strip curves into a soft round instead of one flat chamfer. ---
+    '--- BEVEL ARCS (bullnose roll-over): each edge (va->vb on f1) has a reverse twin (vb->va on
+    '    f2). Build SEG+1 rings from F1's inset edge (k=0) to F2's inset edge (k=nseg). Each
+    '    intermediate ring is a quadratic Bezier bowing toward the ORIGINAL vertex -- a smooth
+    '    convex round. A Bezier stays inside the hull of its 3 controls (all on/inside the
+    '    circumsphere), so the round can NEVER poke out past the die surface (unlike a radial
+    '    bulge, which overshot the sphere and made flaps). ---
     FOR f1 = 0 TO nf - 1
         FOR c1 = 0 TO DICE3D_FVN(f1) - 1
             c1n = (c1 + 1) MOD DICE3D_FVN(f1)
@@ -397,19 +398,16 @@ SUB dice3d_bevel_fill (t AS INTEGER, ivn AS INTEGER, nf AS INTEGER, baseNV AS IN
                         ringA(nseg) = i2a: ringB(nseg) = i2b
                         FOR k = 1 TO nseg - 1
                             tt = k / nseg
-                            la.X = DICE3D_MV(i1a).X * (1 - tt) + DICE3D_MV(i2a).X * tt
-                            la.Y = DICE3D_MV(i1a).Y * (1 - tt) + DICE3D_MV(i2a).Y * tt
-                            la.Z = DICE3D_MV(i1a).Z * (1 - tt) + DICE3D_MV(i2a).Z * tt
-                            ln0 = SQR(la.X * la.X + la.Y * la.Y + la.Z * la.Z): IF ln0 < 0.0001 THEN ln0 = 1
-                            rr = 1 + bulge * SIN(3.14159265# * tt) / ln0 '   push the middle out toward the sphere
-                            DICE3D_MV(ivn).X = la.X * rr: DICE3D_MV(ivn).Y = la.Y * rr: DICE3D_MV(ivn).Z = la.Z * rr
+                            w0 = (1 - tt) * (1 - tt): w1 = 2 * (1 - tt) * tt: w2 = tt * tt
+                            '--- va-end ring: Bezier i1a -> vertex va -> i2a (rolls over the edge near va) ---
+                            DICE3D_MV(ivn).X = w0 * DICE3D_MV(i1a).X + w1 * DICE3D_MV(va).X + w2 * DICE3D_MV(i2a).X
+                            DICE3D_MV(ivn).Y = w0 * DICE3D_MV(i1a).Y + w1 * DICE3D_MV(va).Y + w2 * DICE3D_MV(i2a).Y
+                            DICE3D_MV(ivn).Z = w0 * DICE3D_MV(i1a).Z + w1 * DICE3D_MV(va).Z + w2 * DICE3D_MV(i2a).Z
                             ringA(k) = ivn: ivn = ivn + 1
-                            lb.X = DICE3D_MV(i1b).X * (1 - tt) + DICE3D_MV(i2b).X * tt
-                            lb.Y = DICE3D_MV(i1b).Y * (1 - tt) + DICE3D_MV(i2b).Y * tt
-                            lb.Z = DICE3D_MV(i1b).Z * (1 - tt) + DICE3D_MV(i2b).Z * tt
-                            ln0 = SQR(lb.X * lb.X + lb.Y * lb.Y + lb.Z * lb.Z): IF ln0 < 0.0001 THEN ln0 = 1
-                            rr = 1 + bulge * SIN(3.14159265# * tt) / ln0
-                            DICE3D_MV(ivn).X = lb.X * rr: DICE3D_MV(ivn).Y = lb.Y * rr: DICE3D_MV(ivn).Z = lb.Z * rr
+                            '--- vb-end ring: Bezier i1b -> vertex vb -> i2b ---
+                            DICE3D_MV(ivn).X = w0 * DICE3D_MV(i1b).X + w1 * DICE3D_MV(vb).X + w2 * DICE3D_MV(i2b).X
+                            DICE3D_MV(ivn).Y = w0 * DICE3D_MV(i1b).Y + w1 * DICE3D_MV(vb).Y + w2 * DICE3D_MV(i2b).Y
+                            DICE3D_MV(ivn).Z = w0 * DICE3D_MV(i1b).Z + w1 * DICE3D_MV(vb).Z + w2 * DICE3D_MV(i2b).Z
                             ringB(k) = ivn: ivn = ivn + 1
                         NEXT
                         FOR k = 0 TO nseg - 1 '   two tris per ring-to-ring strip
