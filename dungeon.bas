@@ -183,7 +183,7 @@ FUNCTION PlayGame%
 
     cursor_erase: cursor_draw        ' clear the narration, reveal the board
     IF opt_boardgame THEN
-        IF opt_movedice THEN hint = "[SPACE] roll  " ELSE hint = "[SPACE] end turn  "
+        hint = "[SPACE] end turn  "
     ELSE
         hint = ""
     END IF
@@ -258,9 +258,9 @@ FUNCTION PlayGame%
                 cursor_draw
             END IF
         ELSE
-            ' Up-to-5 movement (Boardgame + Move Style "up to 5"): SPACE ends your turn early --
-            ' you choose how far to go this turn, no die.
-            IF k = " " AND opt_boardgame AND opt_movedice = 0 THEN
+            ' Up-to-5 movement (Boardgame): SPACE ends your turn early -- you choose how far to
+            ' go this turn (up to 5 spaces), no die.
+            IF k = " " AND opt_boardgame THEN
                 EndPlayerTurn: cursor_erase: cursor_draw
             ' frozen by a frost bomb? each move attempt just melts a turn off the ice
             ELSEIF IsMoveKey(k) AND frost_turns > 0 THEN
@@ -472,14 +472,12 @@ END FUNCTION
 
 ' Set the movement budget for a fresh turn, per the movement settings:
 '   free walk (Boardgame OFF)          -> no roll, no step limit
-'   Boardgame + Move Style "roll 1d6"  -> press SPACE to roll, then step that many (a house variant)
-'   Boardgame + Move Style "up to 5"   -> the DUNGEON! rule: start with MOVE_MAX steps, move up to
-'                                         them, and SPACE ends the turn early (you choose -- no die)
+'   Boardgame ON  -> the DUNGEON! rule: start each turn with MOVE_MAX (5) steps, move up to them,
+'                    and SPACE ends the turn early (you choose how far -- there is no movement die)
+'   Boardgame OFF -> free walk (single-player computer-game style)
 SUB StartTurnMove
     IF NOT opt_boardgame THEN
         need_roll = FALSE: steps_left = 0
-    ELSEIF opt_movedice THEN
-        need_roll = TRUE: steps_left = 0
     ELSE
         need_roll = FALSE
         steps_left = MOVE_MAX

@@ -664,7 +664,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 42
+    CONST NSET = 41
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -757,7 +757,7 @@ SUB RunSettings
                     IF opt_bloodstrength < 0 THEN opt_bloodstrength = 10
                     IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
                     Sfx "select"
-                CASE 41
+                CASE 34
                     opt_flexstats = opt_flexstats + delta
                     IF opt_flexstats < 0 THEN opt_flexstats = 2
                     IF opt_flexstats > 2 THEN opt_flexstats = 0
@@ -826,7 +826,7 @@ SUB RunSettings
                     opt_dicefont = opt_dicefont + 1
                     IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
                     Build3DPreviews
-                CASE 34: opt_movedice = NOT opt_movedice
+                CASE 34: opt_flexstats = opt_flexstats + 1: IF opt_flexstats > 2 THEN opt_flexstats = 0
                 CASE 35
                     opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
                 CASE 36: opt_gestures = NOT opt_gestures
@@ -841,9 +841,7 @@ SUB RunSettings
                 CASE 40
                     opt_bloodstrength = opt_bloodstrength + 1
                     IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
-                CASE 41
-                    opt_flexstats = opt_flexstats + 1: IF opt_flexstats > 2 THEN opt_flexstats = 0
-                CASE 42: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 41: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -950,8 +948,12 @@ SUB RunSettings
                     lbl = "  Dice Font": slider = TRUE
                     IF opt_dicefont >= 1 AND opt_dicefont <= DICEFONT_N THEN vtxt = _TRIM$(DICEFONT_NAME(opt_dicefont)) ELSE vtxt = "-"
                 CASE 34
-                    lbl = "Move Style"
-                    IF opt_movedice THEN vtxt = "roll 1d6" ELSE vtxt = "up to 5 (Dungeon!)"
+                    lbl = "Flexible Stats"
+                    SELECT CASE opt_flexstats
+                        CASE 1: vtxt = "assign roll"
+                        CASE 2: vtxt = "point buy"
+                        CASE ELSE: vtxt = "off (rolled)"
+                    END SELECT
                 CASE 35
                     lbl = "Art Style"
                     SELECT CASE opt_artstyle
@@ -979,13 +981,6 @@ SUB RunSettings
                 CASE 40
                     lbl = "Blood": slider = TRUE
                     IF opt_bloodstrength <= 0 THEN vtxt = "none" ELSE vtxt = _TRIM$(STR$(opt_bloodstrength)) + " / 10"
-                CASE 41
-                    lbl = "Flexible Stats"
-                    SELECT CASE opt_flexstats
-                        CASE 1: vtxt = "assign roll"
-                        CASE 2: vtxt = "point buy"
-                        CASE ELSE: vtxt = "off (rolled)"
-                    END SELECT
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -1342,7 +1337,7 @@ SUB DrawHUD
     ELSEIF gold >= target_gold AND has_key THEN
         COLOR GREENU, BLACK
         _PRINTSTRING ((SW - 23) * CW, 50 * CH), "RETURN TO START TO WIN!"
-    ELSEIF opt_boardgame AND opt_movedice = 0 AND steps_left > 0 THEN
+    ELSEIF opt_boardgame AND steps_left > 0 THEN
         COLOR YELLOWU, BLACK
         _PRINTSTRING ((SW - 29) * CW, 50 * CH), "move up to " + _TRIM$(STR$(steps_left)) + "   [SPACE] end turn"
     END IF

@@ -581,6 +581,54 @@ SUB EmitTable (tbl() AS STRING, ntbl AS INTEGER, url() AS STRING, nurl AS INTEGE
     NEXT r
 END SUB
 
+' Generate a markdown "your game, right now" section from the live SETTINGS, so the
+' rules screen reflects how THIS run is actually configured (mode, movement, FOV, etc.).
+FUNCTION RulesConfigBlock$ ()
+    DIM s AS STRING, nl AS STRING, cb AS STRING
+    nl = CHR$(10)
+    s = "# Your game, right now" + nl + nl
+    s = s + "How this run is configured -- change any of it in SETTINGS." + nl + nl
+    s = s + "| Setting | Value |" + nl + "|---|---|" + nl
+    IF opt_oldschool THEN
+        s = s + "| Mode | Classic Dungeon! (Oldschool) |" + nl
+        s = s + "| Combat | one 2d6 roll vs the monster's number -- no HP or AC |" + nl
+    ELSE
+        s = s + "| Mode | D&D (Newschool) |" + nl
+        s = s + "| Combat | multi-round: d20 + to-hit vs AC, with HP & damage dice |" + nl
+    END IF
+    IF opt_boardgame THEN
+        s = s + "| Movement | up to 5 spaces per turn, your choice (Dungeon!) |" + nl
+    ELSE
+        s = s + "| Movement | free walk (computer-game style) |" + nl
+    END IF
+    IF opt_fov THEN s = s + "| Field of View | on -- line of sight only |" + nl ELSE s = s + "| Field of View | off -- whole map visible |" + nl
+    IF NOT opt_oldschool THEN
+        IF opt_heroicstats THEN cb = "4d6 drop-lowest" ELSE cb = "straight 3d6"
+        IF opt_flexstats = 1 THEN
+            cb = cb + " + assign where you want"
+        ELSEIF opt_flexstats = 2 THEN
+            cb = "point-buy (spend up from 3, max 18)"
+        END IF
+        s = s + "| Character build | " + cb + " |" + nl
+    END IF
+    SELECT CASE opt_lootrecovery
+        CASE 0: s = s + "| Loot on death | lost forever |" + nl
+        CASE 2: s = s + "| Loot on death | souls-like -- one chance to reclaim |" + nl
+        CASE ELSE: s = s + "| Loot on death | reclaim it (trek back and kill for it) |" + nl
+    END SELECT
+    IF NOT opt_oldschool THEN
+        s = s + "| Lives | " + _TRIM$(STR$(opt_maxdeaths)) + " before the run is forfeit |" + nl
+        IF opt_gestures THEN s = s + "| Action gestures | on -- time the bar for second-wind / crit |" + nl ELSE s = s + "| Action gestures | off |" + nl
+        IF opt_critfumble THEN s = s + "| Crits & fumbles | cinematic |" + nl ELSE s = s + "| Crits & fumbles | plain |" + nl
+        IF opt_juice THEN s = s + "| Screen effects | on -- shake + blood + poison |" + nl ELSE s = s + "| Screen effects | off |" + nl
+    END IF
+    IF opt_hardcore THEN s = s + "| Idle danger | hardcore -- time passes while idle |" + nl ELSE s = s + "| Idle danger | casual -- idling is safe |" + nl
+    IF opt_realdice THEN s = s + "| Dice | you roll real dice and type the result |" + nl ELSE s = s + "| Dice | the computer rolls |" + nl
+    IF num_players > 1 THEN s = s + "| Players | " + _TRIM$(STR$(num_players)) + " (hot-seat) |" + nl ELSE s = s + "| Players | 1 (solo) |" + nl
+    s = s + nl + "---" + nl + nl
+    RulesConfigBlock$ = s
+END FUNCTION
+
 SUB ShowRules
     DIM whole AS STRING, rest AS STRING, one AS STRING, content AS STRING, p AS LONG
     DIM kblk AS INTEGER, W AS INTEGER, per AS INTEGER, top AS INTEGER, leftcol AS INTEGER, toprow AS INTEGER
@@ -596,9 +644,11 @@ SUB ShowRules
     REDIM tbl(1 TO 120) AS STRING: DIM ntbl AS INTEGER
     W = 116: leftcol = 6: toprow = 5: per = 40
 
-    whole = ""
-    IF _FILEEXISTS("DUNGEON-RULES.md") THEN whole = _READFILE$("DUNGEON-RULES.md")
-    IF LEN(whole) = 0 THEN whole = "# Rules" + CHR$(10) + "The rules scroll is missing (DUNGEON-RULES.md)."
+    DIM rulesfile AS STRING
+    IF opt_oldschool THEN rulesfile = "DUNGEON-RULES.md" ELSE rulesfile = "DND-RULES.md"
+    whole = RulesConfigBlock$                             ' live "your game" section first
+    IF _FILEEXISTS(rulesfile) THEN whole = whole + _READFILE$(rulesfile)
+    IF LEN(_TRIM$(whole)) = 0 THEN whole = "# Rules" + CHR$(10) + "The rules scroll (" + rulesfile + ") is missing."
     '--- parse the whole document into wrapped, attributed display lines ---
     n = 0: nurl = 0: ntbl = 0: rest = whole
     DO WHILE LEN(rest) > 0

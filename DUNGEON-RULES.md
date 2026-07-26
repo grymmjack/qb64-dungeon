@@ -52,11 +52,11 @@ chamber (you must fight the monster there). You may move 0 to stay and fight or 
 At the very start of the game the dice are rolled once, only to decide **turn order** (highest
 first, then clockwise).
 
-**→ in this game:** the faithful rule is a SETTINGS option, **Move Style → "up to 5 (Dungeon!)"**
-(`opt_movedice = FALSE`). `StartTurnMove` gives each turn `MOVE_MAX` (5) steps; you move up to
-them and press `[SPACE]` to end the turn early. Stepping into a monster room ends the turn as in
-the board game. The alternative **"roll 1d6"** style is a common house variant, kept as the
-default. (Turn order isn't modelled — solo/hot-seat play just cycles seats.)
+**→ in this game:** with **Boardgame** on (SETTINGS), `StartTurnMove` gives each turn
+`MOVE_MAX` (5) steps; you move up to them and press `[SPACE]` to end the turn early — the
+faithful "up to 5, no die" rule. Stepping into a monster room ends the turn as in the board
+game. With **Boardgame off** (single-player only) you free-walk, computer-game style. There is
+no roll-to-move option. (Turn order isn't modelled — solo/hot-seat play just cycles seats.)
 
 ## 3. Fighting — one 2d6 roll vs. the monster's per-class number
 
