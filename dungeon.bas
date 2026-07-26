@@ -1121,7 +1121,11 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     IF itm >= 1 AND itm <= 11 THEN haulitem = tname: g_items_looted = g_items_looted + 1
     IF itm = 0 THEN RecordTreasure tname, ROOMS(rm).treasure
     RecordKill lvl, rm, mon, sm, gold - goldbefore, haulitem
-    PopArt tname, _TRIM$(tname)                            ' flash the treasure/item art you just claimed
+    IF itm = 6 THEN                                        ' THE LEVEL KEY -- make the win-item unmissable
+        PopArt "Level Key", "*  THE LEVEL KEY -- NOW ESCAPE!  *"
+    ELSE
+        PopArt tname, _TRIM$(tname)                        ' flash the treasure/item art you just claimed
+    END IF
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
