@@ -64,8 +64,9 @@ SUB cursor_erase
     ELSE
         _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), CANVAS_COPY, CANVAS, (0, 0)-(SW * CW - 1, SH * CH - 1)
     END IF
-    DrawWounds                                     ' near-death blood/vignette: on the MAP, UNDER the labels/tokens/HUD/panel
-    render_room_labels
+    render_room_labels                             ' labels are part of the MAP...
+    DrawWounds                                     ' ...so the near-death blood/vignette dims them too (they don't "hover").
+    '                                                Tokens (cursor_draw) + HUD/combat panel (DrawHUD) draw AFTER, on top.
 END SUB
 
 

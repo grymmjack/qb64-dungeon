@@ -1278,8 +1278,10 @@ END SUB
 ' UIFontOff restores the built-in 8x16 grid font (handle CH). Always pair them.
 SUB UIFontOn (h AS LONG)
     IF h <> 0 THEN _FONT h ELSE _FONT CH
+    _DONTBLEND                                     ' hard-edged glyphs (no antialias fringe) -- crisper pixel fonts
 END SUB
 SUB UIFontOff
+    _BLEND                                         ' restore normal blending (the vignette + sprites need it)
     _FONT CH
 END SUB
 
