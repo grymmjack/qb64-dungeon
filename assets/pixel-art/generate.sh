@@ -42,12 +42,16 @@ echo "-> $total asset(s) across ${#UP[@]} node(s): ${UP[*]}"
 gen_one() {  # $1 = manifest index, $2 = node name
   local i="$1" node="$2" dir="$ROOT/${folders[$i]}" nm="${names[$i]}"
   mkdir -p "$dir"
-  if ls "$dir/${nm}"_*.png >/dev/null 2>&1; then echo "  skip ${folders[$i]}/${nm}"; return; fi
+  # resume off the CLEAN file (the raw pixelmon temp is deleted after each render)
+  if [ -f "$dir/${nm}.png" ]; then echo "  skip ${folders[$i]}/${nm}"; return; fi
   echo "  [$node] ${folders[$i]}/${nm}  <- ${prompts[$i]:0:52}..."
   if "$PIXELMON" "${prompts[$i]}" --style "${styles[$i]}" --size "${sizes[$i]}" --transparent \
         --server "$node" --output-to "$dir" --name "$nm" --create-dirs >/dev/null 2>&1; then
     local produced; produced="$(ls -t "$dir/${nm}"_*.png 2>/dev/null | head -1)"
-    [ -n "$produced" ] && cp -f "$produced" "$dir/${nm}.png"   # clean name for the game to load
+    if [ -n "$produced" ]; then
+      cp -f "$produced" "$dir/${nm}.png"   # clean name for the game to load
+      rm -f "$dir/${nm}"_*.png             # tidy up the raw pixelmon temp(s) -- keeps assets/ clean
+    fi
   else
     echo "  FAILED ${nm} on $node"
   fi
