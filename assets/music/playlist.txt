@@ -8,9 +8,9 @@
 # move between them; a level with no line here keeps whatever is already playing.
 #
 # level | file
-1 | level1.wav
-2 | everdark.rad
-3 | everdark.rad
+1 | level2.ogg
+2 | level1.wav
+3 | start.wav
 4 | everdark.rad
 5 | start.wav
 6 | everdark.rad

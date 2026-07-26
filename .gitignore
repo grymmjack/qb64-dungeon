@@ -34,6 +34,9 @@ dungeon-lords-map-*.png
 dungeon-settings.dat
 dungeon-stats.csv
 dungeon-save.dat*
-assets/music/bitwig/level1/.bitwig-project
-assets/music/bitwig/level1/level1.bwproject
-assets/music/bitwig/level1/auto-backups/level1/level1 \[2026-07-26 113846].bwproject
+# big lossless render kept locally; the game/playlist uses the .ogg
+assets/music/level2.wav
+# Bitwig project files ARE tracked, but its extensionless marker is caught by the
+# top "* / !*.*" rule -- unignore it so the project folder is complete
+!assets/music/bitwig/**/.bitwig-project
+
