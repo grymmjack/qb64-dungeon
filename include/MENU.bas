@@ -533,7 +533,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 36
+    CONST NSET = 37
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -678,7 +678,8 @@ SUB RunSettings
                 CASE 34: opt_movedice = NOT opt_movedice
                 CASE 35
                     opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
-                CASE 36: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 36: opt_gestures = NOT opt_gestures
+                CASE 37: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -794,6 +795,9 @@ SUB RunSettings
                         CASE 2: vtxt = "Hybrid (ANSI + pixel)"
                         CASE ELSE: vtxt = "ANSI"
                     END SELECT
+                CASE 36
+                    lbl = "Action Gestures"
+                    IF opt_gestures THEN vtxt = "on (timing bar)" ELSE vtxt = "off (dice only)"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

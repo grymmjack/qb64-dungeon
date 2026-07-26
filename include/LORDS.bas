@@ -300,6 +300,7 @@ SUB SaveSettings
     PRINT #f, "boardgame " + _TRIM$(STR$(opt_boardgame))
     PRINT #f, "movedice " + _TRIM$(STR$(opt_movedice))
     PRINT #f, "artstyle " + _TRIM$(STR$(opt_artstyle))
+    PRINT #f, "gestures " + _TRIM$(STR$(opt_gestures))
     PRINT #f, "fov " + _TRIM$(STR$(opt_fov))
     PRINT #f, "players " + _TRIM$(STR$(num_players))
     PRINT #f, "dicecolor " + _TRIM$(STR$(opt_dicecolor))
@@ -352,6 +353,7 @@ SUB LoadSettings
                 CASE "boardgame": opt_boardgame = v
                 CASE "movedice": opt_movedice = v
                 CASE "artstyle": opt_artstyle = v
+                CASE "gestures": opt_gestures = v
                 CASE "fov": opt_fov = v
                 CASE "players": num_players = v
                 CASE "dicecolor": opt_dicecolor = v

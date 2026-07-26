@@ -332,6 +332,8 @@ DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INT
 ' Push/PopMonsterDice swap opt_dice3d and set dice3d_use_mon so a roll knows which set to draw.
 DIM SHARED opt_dice3d AS INTEGER, opt_mon_dice3d AS INTEGER, sav_dice3d AS INTEGER, dice3d_use_mon AS INTEGER
 DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 default; char-gen pushes it clear of the stat sheet)
+DIM SHARED opt_gestures AS INTEGER     ' SETTINGS "Action Gestures": timing-bar mini-game for the second-wind + crit flourish (D&D mode)
+DIM SHARED gauge_quality AS SINGLE     ' 0..1 closeness to dead-centre on the last gesture lock
 ' which set (1-based index into the dicesets.txt manifest) the player / monster roll
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)

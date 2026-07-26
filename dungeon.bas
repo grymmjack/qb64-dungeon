@@ -57,6 +57,7 @@ opt_artstyle = 2                              ' default: Hybrid -- ANSI board + 
 opt_combatspeed = 0                           ' (legacy) superseded by opt_msgdelay
 opt_msgdelay = 2                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
 opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
+opt_gestures = FALSE                          ' default off: Action Gestures (timing-bar second-wind + crit flourish, D&D mode)
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
@@ -624,7 +625,7 @@ END FUNCTION
 SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING, cdf AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
-    DIM AS INTEGER tot_dealt, tot_taken, wander, vanished, god_favor, acted, did_attack
+    DIM AS INTEGER tot_dealt, tot_taken, wander, vanished, god_favor, acted, did_attack, saved
     DIM lost AS LONG
     wander = (rm > ROOM_N)                       ' TRUE for a wandering-monster scratch slot
     sec = ROOMS(rm).sec
@@ -686,6 +687,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
                 dmg = GameRoll(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
+                IF opt_gestures THEN dmg = dmg + CritFlourish(mon, sec)   ' Action Gestures: time the gauge for +0/1/2 bonus dice
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
@@ -789,33 +791,41 @@ SUB DoCombatDnD (rm AS INTEGER)
             END IF
 
             IF player_hp <= 0 THEN                ' downed
-                player_hp = 0
-                ROOMS(rm).player_died = TRUE
-                IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
-                DrawCombatPanel rm, mon, lead
-                FX_MON = mon: FX_DMG = mdmg        ' your class's own death cry, if it has one
-                cdf = EventLine$(2, class_name, 5)
-                IF LEN(cdf) > 0 THEN Banner "YOU ARE SLAIN!", cdf + "   [ press any key ]": WaitKey
-                lost = gold
-                vanished = FALSE                  ' SOULS-LIKE: dying again forfeits a hoard you never reclaimed
-                IF opt_lootrecovery = 2 THEN vanished = AnyDropExists
-                StatLog sec, rm, mon, isboss, wander, "died", rounds, tot_dealt, tot_taken
-                DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
-                Sfx "lose"
-                IF vanished THEN
-                    Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
-                ELSEIF opt_lootrecovery >= 1 THEN
-                    IF wander THEN
-                        Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie where you fell -- return for revenge!   [ press any key ]"
-                    ELSE
-                        Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
-                    END IF
+                ' Action Gestures: one clutch attempt to rise. Nail the crit zone and you
+                ' claw back with 1d6 HP in place -- keep your gold, no life spent, fight on.
+                saved = 0
+                IF opt_gestures THEN saved = SecondWind%(mon, sec)
+                IF saved THEN
+                    dirty = -1                    ' rose where you stand; the fight continues
                 ELSE
-                    Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
+                    player_hp = 0
+                    ROOMS(rm).player_died = TRUE
+                    IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
+                    DrawCombatPanel rm, mon, lead
+                    FX_MON = mon: FX_DMG = mdmg        ' your class's own death cry, if it has one
+                    cdf = EventLine$(2, class_name, 5)
+                    IF LEN(cdf) > 0 THEN Banner "YOU ARE SLAIN!", cdf + "   [ press any key ]": WaitKey
+                    lost = gold
+                    vanished = FALSE                  ' SOULS-LIKE: dying again forfeits a hoard you never reclaimed
+                    IF opt_lootrecovery = 2 THEN vanished = AnyDropExists
+                    StatLog sec, rm, mon, isboss, wander, "died", rounds, tot_dealt, tot_taken
+                    DropEverything rm                 ' drop gold AND the special cards (in the room, MP)
+                    Sfx "lose"
+                    IF vanished THEN
+                        Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
+                    ELSEIF opt_lootrecovery >= 1 THEN
+                        IF wander THEN
+                            Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie where you fell -- return for revenge!   [ press any key ]"
+                        ELSE
+                            Banner "YOU ARE DOWNED by the " + mon + "!", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie in the " + _TRIM$(SECTORS(sec).label) + " -- return for revenge!   [ press any key ]"
+                        END IF
+                    ELSE
+                        Banner "YOU ARE DOWNED by the " + mon + "!", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic, dragged back to START.   [ press any key ]"
+                    END IF
+                    WaitKey                           ' let the death sink in before the transition
+                    ReviveOrForfeit rm                ' blood (or grey forfeit) -> revive with a rally, or end the run
+                    EXIT SUB
                 END IF
-                WaitKey                           ' let the death sink in before the transition
-                ReviveOrForfeit rm                ' blood (or grey forfeit) -> revive with a rally, or end the run
-                EXIT SUB
             END IF
         END IF
         _DISPLAY
@@ -1515,6 +1525,7 @@ END SUB
 '$INCLUDE:'include/EFFECTS.bas'
 '$INCLUDE:'include/CURIO.bas'
 '$INCLUDE:'include/SPRITES.bas'
+'$INCLUDE:'include/GESTURE.bas'
 '$INCLUDE:'include/STATS.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'
