@@ -109,7 +109,9 @@ SUB RandomizeRooms
             ROOMS(r).malive = TRUE
             ROOMS(r).treasure_name = TRE_NAME(sec, t): ROOMS(r).treasure = TRE_GOLD(sec, t)
             ROOMS(r).treasure_item = TRE_ITEM(sec, t)
-            ROOMS(r).mhp = sec * 4 + RollDie(6) + 2: ROOMS(r).mhp_now = ROOMS(r).mhp
+            ' hit-dice HP: a level-scaled range, not a fixed value. min = sec*4+1, and the
+            ' die grows with depth (L1 rolls a d6, L9 a d22), so deeper monsters vary more.
+            ROOMS(r).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(r).mhp_now = ROOMS(r).mhp
             ROOMS(r).mac = 9 + sec
             IF sec >= 6 THEN ndeep = ndeep + 1: deeproom(ndeep) = r
         END IF

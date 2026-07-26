@@ -1511,7 +1511,7 @@ SUB WanderEncounter
     ROOMS(w).monster = MON_NAME(sec, m): ROOMS(w).mslot = m
     ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
     ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
-    ROOMS(w).mhp = sec * 4 + RollDie(6) + 2: ROOMS(w).mhp_now = ROOMS(w).mhp
+    ROOMS(w).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(w).mhp_now = ROOMS(w).mhp   ' hit-dice range, same as room monsters
     ROOMS(w).mac = 9 + sec
     t = RollDie(3)
     ' wanderers carry only scraps -- you can't farm them for a quick win (WANDER_GOLD_DIV keeps it lean)
