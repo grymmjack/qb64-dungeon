@@ -799,4 +799,22 @@ SUB DrawDebug
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
     _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn
+    '--- OFFSET DIAGNOSTIC overlay: the 9 sector rects drawn with the EXACT SECTOR.get_by_xy
+    '    math ((start-1)*cell), the hard-coded label anchor cells (magenta +), and the START
+    '    cell (white box). Compare against the coloured art underneath:
+    '      * a rect edge sitting one cell off the chamber colour = the 1-based/0-based (-1) shift
+    '      * a whole chamber's rect/label off its colour = a drifted InitSectors/InitLabels table
+    DIM sx2 AS INTEGER, sy2 AS INTEGER, ex2 AS INTEGER, ey2 AS INTEGER, lxp AS INTEGER, lyp AS INTEGER
+    FOR i = 1 TO 9
+        sx2 = (SECTORS(i).start_x - 1) * CW: sy2 = (SECTORS(i).start_y - 1) * CH
+        ex2 = (SECTORS(i).end_x - 1) * CW: ey2 = (SECTORS(i).end_y - 1) * CH
+        LINE (sx2, sy2)-(ex2, ey2), SECTORS(i).kolor, B
+        COLOR SECTORS(i).kolor, BLACK: _PRINTSTRING (sx2 + 2, sy2 + 1), "S" + _TRIM$(STR$(i))
+    NEXT i
+    FOR i = 1 TO LBL_N
+        lxp = LBL_X(i) * CW: lyp = LBL_Y(i) * CH + CH \ 2
+        LINE (lxp - 3, lyp)-(lxp + 3, lyp), _RGB32(&HFF, &H00, &HFF)
+        LINE (lxp + CW \ 2, lyp - 3)-(lxp + CW \ 2, lyp + 3), _RGB32(&HFF, &H00, &HFF)
+    NEXT i
+    LINE (START_CX * CW, START_CY * CH)-(START_CX * CW + CW - 1, START_CY * CH + CH - 1), WHITE, B
 END SUB

@@ -1018,6 +1018,7 @@ SUB ScryView
         cursor_erase: cursor_draw: DrawHUD: _DISPLAY
         EXIT SUB
     END IF
+    PopArt "Crystal Ball", "CRYSTAL BALL"                 ' show the orb as you gaze into it
     DIM r AS INTEGER, rtot(1 TO 9) AS INTEGER, rclr(1 TO 9) AS INTEGER, gleft(1 TO 9) AS LONG
     FOR i = 1 TO 9: rtot(i) = 0: rclr(i) = 0: gleft(i) = 0: NEXT i
     FOR r = 1 TO ROOM_N

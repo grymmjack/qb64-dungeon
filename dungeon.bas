@@ -238,6 +238,7 @@ FUNCTION PlayGame%
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1
             Sfx "key"
+            PopArt "Teleport Scroll", "TELEPORT SCROLL"       ' show the scroll art as you use it
             Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"
             WaitKey
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
@@ -712,7 +713,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 RecordCrit mon, dmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
-                IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.8, 0    ' you land a crit -- a meaty thump
+                IF opt_juice THEN CritBoom dmg    ' BOOM: the huge damage number drops in with a volcanic shake
                 IF opt_critfumble THEN
                     DoCrit rm, mon, WeaponName$, dmg    ' cinematic: smash-saying -> pause -> bonus event
                     DrawCombatPanel rm, mon, lead
@@ -1120,6 +1121,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     IF itm >= 1 AND itm <= 11 THEN haulitem = tname: g_items_looted = g_items_looted + 1
     IF itm = 0 THEN RecordTreasure tname, ROOMS(rm).treasure
     RecordKill lvl, rm, mon, sm, gold - goldbefore, haulitem
+    PopArt tname, _TRIM$(tname)                            ' flash the treasure/item art you just claimed
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch

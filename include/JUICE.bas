@@ -274,6 +274,62 @@ SUB DrawWounds
     END IF
 END SUB
 
+' CRIT BOOM -- the money shot. A HUGE damage number plummets from above, SLAMS into
+' the upper-centre with a thump + a molten flash, and the whole frame erupts in a
+' volcanic screen-shake that lingers and decays. Called on a player critical hit.
+SUB CritBoom (dmg AS INTEGER)
+    IF NOT opt_juice THEN EXIT SUB
+    IF FX_BUF = 0 THEN EXIT SUB
+    DIM s AS STRING, i AS INTEGER, dx AS INTEGER, dy AS INTEGER
+    DIM numimg AS LONG, nw AS INTEGER, nh AS INTEGER, frames AS INTEGER, cxp AS INTEGER
+    DIM t AS SINGLE, tImp AS SINGLE, dropT AS SINGLE, settleT AS SINGLE
+    DIM yTop AS SINGLE, yLand AS SINGLE, yNow AS SINGLE, sc AS SINGLE, mag AS SINGLE
+    DIM ox AS SINGLE, oy AS SINGLE, dw AS INTEGER, dh AS INTEGER, a AS INTEGER, thumped AS INTEGER
+    s = _TRIM$(STR$(dmg))
+    '--- pre-render the number once with a heavy dark outline, then stretch it huge ---
+    nw = LEN(s) * CW + 8: nh = CH + 8
+    numimg = _NEWIMAGE(nw, nh, 32)
+    _DEST numimg: CLS , _RGBA32(0, 0, 0, 0): _FONT CH
+    FOR dy = -2 TO 2
+        FOR dx = -2 TO 2
+            IF dx <> 0 OR dy <> 0 THEN COLOR _RGB32(25, 5, 0), _RGBA32(0, 0, 0, 0): _PRINTSTRING (4 + dx, 4 + dy), s
+        NEXT
+    NEXT
+    COLOR _RGB32(255, 205, 45), _RGBA32(0, 0, 0, 0): _PRINTSTRING (4, 4), s
+    _DEST CANVAS
+    _PUTIMAGE (0, 0), CANVAS, FX_BUF                    ' snapshot the drained-panel frame
+    frames = 42: tImp = 0.4
+    cxp = SW * CW \ 2: yTop = -nh * 8: yLand = SH * CH * 0.42: thumped = 0
+    FOR i = 0 TO frames
+        t = i / frames
+        settleT = 0
+        IF t <= tImp THEN
+            dropT = t / tImp
+            yNow = yTop + (yLand - yTop) * (dropT * dropT)    ' accelerate downward
+            sc = 3 + 8 * dropT                                 ' rush toward the camera
+            mag = 5 + 26 * dropT                               ' shake builds as it falls
+        ELSE
+            settleT = (t - tImp) / (1 - tImp)
+            yNow = yLand
+            sc = 11 + 3 * COS(settleT * 9) * (1 - settleT)     ' overshoot bounce, settling to 11
+            mag = 34 * EXP(-3 * settleT)                       ' VOLCANIC: erupts, then decays
+            IF NOT thumped THEN Sfx "boom": thumped = -1       ' the THUMP on landing
+        END IF
+        _DEST CANVAS: CLS , BLACK
+        ox = (RND * 2 - 1) * mag: oy = (RND * 2 - 1) * mag
+        _PUTIMAGE (ox, oy), FX_BUF, CANVAS                     ' the jittered board + panel
+        IF settleT > 0 AND settleT < 0.35 THEN                 ' molten flash right at impact
+            a = INT(150 * (1 - settleT / 0.35))
+            LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(255, 120, 30, a), BF
+        END IF
+        dw = INT(nw * sc): dh = INT(nh * sc)
+        _PUTIMAGE (cxp - dw \ 2, INT(yNow) - dh \ 2)-(cxp + dw \ 2, INT(yNow) + dh \ 2), numimg, CANVAS
+        _DISPLAY: _LIMIT 60
+    NEXT
+    _DEST CANVAS: CLS , BLACK: _PUTIMAGE (0, 0), FX_BUF, CANVAS ' leave a clean frame for the caller
+    _FREEIMAGE numimg
+END SUB
+
 ' Damage -> shake magnitude. Small taps barely nudge; big blows really lurch.
 FUNCTION ShakeMag! (dmg AS INTEGER)
     DIM m AS SINGLE

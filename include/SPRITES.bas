@@ -192,6 +192,42 @@ END FUNCTION
 ' Draw one framed art box with a caption bar, anchored to a character-cell rect.
 ' Cols/rows are cells; the art is fit inside and the caption centred in a bar just
 ' above the frame. Drawn on CANVAS (persists behind the GL dice / banners).
+' Pop a framed piece of item/treasure ART into the middle of the screen for a beat
+' (a quick scale-in, then a skippable hold), then restore the frame underneath. Shown
+' when you USE an item or FIND treasure. Resolves art via TreasureSprite$; silent if
+' the player turned pixel art off or nothing fits.
+SUB PopArt (nm AS STRING, caption AS STRING)
+    DIM sp AS STRING, buf AS LONG, i AS INTEGER, sc AS SINGLE, k AS STRING, junk AS INTEGER
+    DIM bw AS INTEGER, bh AS INTEGER, cxp AS INTEGER, cyp AS INTEGER, dw AS INTEGER, dh AS INTEGER, bx AS INTEGER, by AS INTEGER
+    IF opt_artstyle = 0 THEN EXIT SUB
+    sp = TreasureSprite$(nm): IF LEN(sp) = 0 THEN EXIT SUB
+    buf = _NEWIMAGE(SW * CW, SH * CH, 32): _PUTIMAGE (0, 0), CANVAS, buf
+    bw = 24 * CW: bh = 16 * CH
+    cxp = SW * CW \ 2: cyp = SH * CH \ 2 - CH
+    _DEST CANVAS
+    FOR i = 1 TO 8                                       ' quick scale-in pop (0.5 -> 1.0)
+        sc = 0.5 + 0.5 * (i / 8)
+        dw = INT(bw * sc): dh = INT(bh * sc): bx = cxp - dw \ 2: by = cyp - dh \ 2
+        _PUTIMAGE (0, 0), buf, CANVAS
+        LINE (bx, by)-(bx + dw, by + dh), BOXBG, BF
+        LINE (bx, by)-(bx + dw, by + dh), YELLOWU, B
+        junk = DrawSpriteFit%(sp, bx + CW, by + CH, dw - 2 * CW, dh - 3 * CH)
+        _DISPLAY: _LIMIT 60
+    NEXT
+    dw = bw: dh = bh: bx = cxp - dw \ 2: by = cyp - dh \ 2   ' settled frame + caption
+    _PUTIMAGE (0, 0), buf, CANVAS
+    LINE (bx, by)-(bx + dw, by + dh), BOXBG, BF
+    LINE (bx, by)-(bx + dw, by + dh), YELLOWU, B
+    junk = DrawSpriteFit%(sp, bx + CW, by + CH, dw - 2 * CW, dh - 3 * CH)
+    _FONT CH: COLOR YELLOWU, BOXBG
+    _PRINTSTRING (cxp - (LEN(caption) * CW) \ 2, by + dh - CH - 4), caption
+    _DISPLAY
+    FOR i = 1 TO 42: _LIMIT 60: k = INKEY$: IF k <> "" THEN EXIT FOR
+    NEXT
+    _PUTIMAGE (0, 0), buf, CANVAS: _DISPLAY
+    _FREEIMAGE buf
+END SUB
+
 SUB CombatArtBox (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER, caption AS STRING, edge AS _UNSIGNED LONG)
     DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
     DIM capx AS INTEGER, capy AS INTEGER, cap AS STRING
