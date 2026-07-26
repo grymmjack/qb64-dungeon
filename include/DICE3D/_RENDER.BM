@@ -105,7 +105,7 @@ FUNCTION dice3d_hl_image& ()
     DIM soft AS LONG, hw AS LONG, od AS LONG
     soft = _NEWIMAGE(8, 8, 32)
     od = _DEST: _DEST soft
-    LINE (0, 0)-(7, 7), _RGBA32(255, 248, 205, 75), BF
+    LINE (0, 0)-(7, 7), _RGBA32(255, 236, 140, 150), BF
     _DEST od
     hw = _COPYIMAGE(soft, 33)
     _FREEIMAGE soft
@@ -182,7 +182,7 @@ SUB dice3d_render_die (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
                 IF DICE3D_HL_SW = 0 THEN
                     DICE3D_HL_SW = _NEWIMAGE(8, 8, 32)
                     DIM od2 AS LONG: od2 = _DEST: _DEST DICE3D_HL_SW
-                    LINE (0, 0)-(7, 7), _RGBA32(255, 248, 205, 75), BF
+                    LINE (0, 0)-(7, 7), _RGBA32(255, 236, 140, 150), BF
                     _DEST od2
                 END IF
                 FOR i = 0 TO DICE3D_NT - 1
