@@ -643,7 +643,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     IF item_bow THEN thb = thb + 2              ' Magic Bow: +2 to-hit, any class (ranged accuracy) -- stacks with the blade
     god_favor = GodsFavor                       ' desperate last-life spoils-rescue may earn a divine dice boost
     IF god_favor > 0 THEN thb = thb + god_favor
-    IF ROOMS(rm).mhp_now <= 0 THEN ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight
+    ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight: monster recovers to full between encounters (ROUND 1 always opens at 100%)
     rounds = 0: combat_round = 1
     IF isboss THEN lead = "The BOSS " + mon ELSE lead = "The " + mon
     FX_MON = mon: FX_LEVEL = sec: FX_ROOM = _TRIM$(SECTORS(sec).label)   ' flavor context for {tokens}
