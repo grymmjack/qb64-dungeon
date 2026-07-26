@@ -264,8 +264,9 @@ SUB Build3DPreviews
     DIM pc AS DICE3D_CONFIG, a AS LONG, f AS INTEGER
     Free3DPreviews
     IF NOT dice3d_ready THEN EXIT SUB
-    dice3d_build 20
     pc = DSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
+    DICE3D_BEVEL = pc.BEVEL * 0.18   ' geometric edge-round for the preview d20
+    dice3d_build 20
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_P = _COPYIMAGE(a, 33): _FREEIMAGE a
     pc = MSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_M = _COPYIMAGE(a, 33): _FREEIMAGE a

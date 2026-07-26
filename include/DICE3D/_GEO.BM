@@ -214,13 +214,34 @@ SUB dice3d_build (sides AS INTEGER)
     REDIM DICE3D_VAL2FACE(0 TO sides) AS INTEGER
     REDIM DICE3D_FVN(0 TO nf - 1) AS INTEGER
     REDIM DICE3D_FVIDX(0 TO nf - 1, 0 TO 7) AS INTEGER
-    DICE3D_NT = ntop - 2 * nf '           each face -> (verts-2) triangles; sum = ntop-2*nf
+
+    '--- geometric bevel: inset each numbered face + fill the frame with real bevel/cap
+    '    geometry (DICE3D_BEVEL > 0). 0 = the original sharp mesh. ---
+    DIM bevAmt AS SINGLE, bev AS INTEGER, ntNum AS INTEGER, baseNV AS INTEGER, ivn AS INTEGER
+    bevAmt = DICE3D_BEVEL
+    IF bevAmt < 0 THEN bevAmt = 0
+    IF bevAmt > 0.35 THEN bevAmt = 0.35
+    bev = (bevAmt > 0.005)
+    baseNV = DICE3D_NV
+    ntNum = ntop - 2 * nf '               numbered-face triangles (both modes)
+    IF bev THEN
+        '  + one bevel quad (2 tris) per edge (ntop/2 edges) + sum(valence-2) cap tris per vertex
+        DICE3D_NT = ntNum + ntop + (ntop - 2 * baseNV)
+        REDIM _PRESERVE DICE3D_MV(0 TO baseNV + ntop - 1) AS DICE3D_VEC3 '  append 1 inset vert per face-corner
+        DICE3D_NV = baseNV + ntop '       so the renderer's per-vertex arrays cover the inset verts
+    ELSE
+        DICE3D_NT = ntNum
+    END IF
     REDIM DICE3D_TA(0 TO DICE3D_NT - 1) AS INTEGER
     REDIM DICE3D_TB(0 TO DICE3D_NT - 1) AS INTEGER
     REDIM DICE3D_TC(0 TO DICE3D_NT - 1) AS INTEGER
     REDIM DICE3D_TUX(0 TO DICE3D_NT - 1, 0 TO 2) AS SINGLE
     REDIM DICE3D_TUY(0 TO DICE3D_NT - 1, 0 TO 2) AS SINGLE
     REDIM DICE3D_TFACE(0 TO DICE3D_NT - 1) AS INTEGER
+    REDIM insetIdx(0 TO nf - 1, 0 TO 7) AS INTEGER '   (face,corner) -> inset vertex index
+    REDIM insetOrig(0 TO baseNV + ntop) AS INTEGER '   inset vertex -> its original vertex
+    REDIM bodyU(0 TO nf - 1) AS SINGLE, bodyV(0 TO nf - 1) AS SINGLE '  a body-colour atlas point per face
+    ivn = baseNV
 
     t = 0
     FOR f = 0 TO nf - 1
@@ -273,34 +294,147 @@ SUB dice3d_build (sides AS INTEGER)
             ux(p) = DICE3D_TILE / 2 + uu(p) * sc
             uy(p) = f * DICE3D_TILE + DICE3D_TILE / 2 - vv(p) * sc
         NEXT
-        '--- fan triangulate ---
-        FOR p = 1 TO s - 2
-            DICE3D_TA(t) = fIdx(fbase): DICE3D_TB(t) = fIdx(fbase + p): DICE3D_TC(t) = fIdx(fbase + p + 1)
-            DICE3D_TUX(t, 0) = ux(0): DICE3D_TUY(t, 0) = uy(0)
-            DICE3D_TUX(t, 1) = ux(p): DICE3D_TUY(t, 1) = uy(p)
-            DICE3D_TUX(t, 2) = ux(p + 1): DICE3D_TUY(t, 2) = uy(p + 1)
-            DICE3D_TFACE(t) = f
-            t = t + 1
-        NEXT
+        bodyU(f) = DICE3D_TILE * 0.13: bodyV(f) = f * DICE3D_TILE + DICE3D_TILE * 0.13 '  body-colour texel
+
+        IF bev THEN
+            '--- inset vertices (toward the centroid, in the face plane) ---
+            FOR p = 0 TO s - 1
+                DICE3D_MV(ivn).X = cen.X + (DICE3D_MV(fIdx(fbase + p)).X - cen.X) * (1 - bevAmt)
+                DICE3D_MV(ivn).Y = cen.Y + (DICE3D_MV(fIdx(fbase + p)).Y - cen.Y) * (1 - bevAmt)
+                DICE3D_MV(ivn).Z = cen.Z + (DICE3D_MV(fIdx(fbase + p)).Z - cen.Z) * (1 - bevAmt)
+                insetIdx(f, p) = ivn: insetOrig(ivn) = fIdx(fbase + p): ivn = ivn + 1
+            NEXT
+            '--- fan the inset (numbered) face; UVs unchanged so the number still fills it ---
+            FOR p = 1 TO s - 2
+                DICE3D_TA(t) = insetIdx(f, 0): DICE3D_TB(t) = insetIdx(f, p): DICE3D_TC(t) = insetIdx(f, p + 1)
+                DICE3D_TUX(t, 0) = ux(0): DICE3D_TUY(t, 0) = uy(0)
+                DICE3D_TUX(t, 1) = ux(p): DICE3D_TUY(t, 1) = uy(p)
+                DICE3D_TUX(t, 2) = ux(p + 1): DICE3D_TUY(t, 2) = uy(p + 1)
+                DICE3D_TFACE(t) = f
+                t = t + 1
+            NEXT
+        ELSE
+            '--- sharp: fan the original face ---
+            FOR p = 1 TO s - 2
+                DICE3D_TA(t) = fIdx(fbase): DICE3D_TB(t) = fIdx(fbase + p): DICE3D_TC(t) = fIdx(fbase + p + 1)
+                DICE3D_TUX(t, 0) = ux(0): DICE3D_TUY(t, 0) = uy(0)
+                DICE3D_TUX(t, 1) = ux(p): DICE3D_TUY(t, 1) = uy(p)
+                DICE3D_TUX(t, 2) = ux(p + 1): DICE3D_TUY(t, 2) = uy(p + 1)
+                DICE3D_TFACE(t) = f
+                t = t + 1
+            NEXT
+        END IF
     NEXT
 
-    '--- D4 top-read: at each corner (a vertex) stamp the value of the face
-    '    OPPOSITE that vertex, so the three faces meeting at the up-apex all
-    '    show the same number = the base (down) face's value ---
+    IF bev THEN dice3d_bevel_fill t, nf, baseNV, insetIdx(), insetOrig(), bodyU(), bodyV()
+
+    '--- D4 top-read: at each corner (a vertex) stamp the value of the face OPPOSITE that
+    '    vertex, so the three faces meeting at the up-apex all show the same number = the
+    '    base (down) face's value. Only the numbered-face tris (0..ntNum-1) carry corners. ---
     REDIM DICE3D_CORNERVAL(0 TO DICE3D_NT - 1, 0 TO 2) AS INTEGER
     IF sides = 4 THEN
-        DIM AS INTEGER corner, vtx, tt
-        FOR t = 0 TO DICE3D_NT - 1
+        DIM AS INTEGER corner, vtx, ov, g2, pp, gotv
+        FOR t = 0 TO ntNum - 1
             FOR corner = 0 TO 2
                 IF corner = 0 THEN vtx = DICE3D_TA(t) ELSE IF corner = 1 THEN vtx = DICE3D_TB(t) ELSE vtx = DICE3D_TC(t)
-                FOR tt = 0 TO DICE3D_NT - 1
-                    IF DICE3D_TA(tt) <> vtx AND DICE3D_TB(tt) <> vtx AND DICE3D_TC(tt) <> vtx THEN
-                        DICE3D_CORNERVAL(t, corner) = DICE3D_FACE_VAL(tt): EXIT FOR
-                    END IF
+                ov = vtx: IF bev AND vtx >= baseNV THEN ov = insetOrig(vtx)
+                FOR g2 = 0 TO nf - 1 '        the one face that does NOT contain ov is opposite it
+                    gotv = 0
+                    FOR pp = 0 TO DICE3D_FVN(g2) - 1
+                        IF DICE3D_FVIDX(g2, pp) = ov THEN gotv = -1: EXIT FOR
+                    NEXT
+                    IF gotv = 0 THEN DICE3D_CORNERVAL(t, corner) = DICE3D_FACE_VAL(g2): EXIT FOR
                 NEXT
             NEXT
         NEXT
     END IF
+END SUB
+
+''
+' Append one flat-shaded triangle (a single body-colour texel, so it reads as solid body at
+' face `faceid`'s brightness/tint) and advance the triangle counter.
+SUB dice3d_addtri (t AS INTEGER, a AS INTEGER, b AS INTEGER, c AS INTEGER, u AS SINGLE, v AS SINGLE, faceid AS INTEGER)
+    DICE3D_TA(t) = a: DICE3D_TB(t) = b: DICE3D_TC(t) = c
+    DICE3D_TUX(t, 0) = u: DICE3D_TUY(t, 0) = v
+    DICE3D_TUX(t, 1) = u: DICE3D_TUY(t, 1) = v
+    DICE3D_TUX(t, 2) = u: DICE3D_TUY(t, 2) = v
+    DICE3D_TFACE(t) = faceid
+    t = t + 1
+END SUB
+
+''
+' Fill the bevel frame left by inset faces: one bevel quad per shared edge (bridging the two
+' faces' inset edges across the old sharp edge) + one cap polygon per original vertex (the ring
+' of inset verts around it). Flat body-colour, lit at an adjacent face's level (bevels are thin).
+' No back-face culling in the renderer, so winding is free -- caps only need angular ordering.
+SUB dice3d_bevel_fill (t AS INTEGER, nf AS INTEGER, baseNV AS INTEGER, insetIdx() AS INTEGER, insetOrig() AS INTEGER, bodyU() AS SINGLE, bodyV() AS SINGLE)
+    DIM AS INTEGER f1, f2, c1, c1n, c2, va, vb, done2, i1a, i1b, i2a, i2b
+    DIM AS INTEGER vtx, rn, capF, ci
+    REDIM ring(0 TO 15) AS INTEGER
+    '--- BEVEL STRIPS: each edge (va->vb on f1) has a reverse twin (vb->va on some f2) ---
+    FOR f1 = 0 TO nf - 1
+        FOR c1 = 0 TO DICE3D_FVN(f1) - 1
+            c1n = (c1 + 1) MOD DICE3D_FVN(f1)
+            va = DICE3D_FVIDX(f1, c1): vb = DICE3D_FVIDX(f1, c1n)
+            done2 = 0
+            FOR f2 = f1 + 1 TO nf - 1 '     f2 > f1 so each edge is beveled once
+                FOR c2 = 0 TO DICE3D_FVN(f2) - 1
+                    IF DICE3D_FVIDX(f2, c2) = vb AND DICE3D_FVIDX(f2, (c2 + 1) MOD DICE3D_FVN(f2)) = va THEN
+                        i1a = insetIdx(f1, c1): i1b = insetIdx(f1, c1n)
+                        i2b = insetIdx(f2, c2): i2a = insetIdx(f2, (c2 + 1) MOD DICE3D_FVN(f2))
+                        dice3d_addtri t, i1a, i1b, i2b, bodyU(f1), bodyV(f1), f1
+                        dice3d_addtri t, i1a, i2b, i2a, bodyU(f1), bodyV(f1), f1
+                        done2 = -1: EXIT FOR
+                    END IF
+                NEXT
+                IF done2 THEN EXIT FOR
+            NEXT
+        NEXT
+    NEXT
+    '--- VERTEX CAPS: cap the ring of inset verts that surround each original vertex ---
+    FOR vtx = 0 TO baseNV - 1
+        rn = 0: capF = 0
+        FOR f1 = 0 TO nf - 1
+            FOR c1 = 0 TO DICE3D_FVN(f1) - 1
+                IF DICE3D_FVIDX(f1, c1) = vtx THEN
+                    IF rn <= UBOUND(ring) THEN ring(rn) = insetIdx(f1, c1): IF rn = 0 THEN capF = f1
+                    rn = rn + 1
+                END IF
+            NEXT
+        NEXT
+        IF rn >= 3 THEN
+            dice3d_order_cap ring(), rn, vtx
+            FOR ci = 1 TO rn - 2
+                dice3d_addtri t, ring(0), ring(ci), ring(ci + 1), bodyU(capF), bodyV(capF), capF
+            NEXT
+        END IF
+    NEXT
+END SUB
+
+''
+' Order a vertex cap's inset-vert ring CCW around the original vertex (angle in the plane
+' perpendicular to the vertex direction) so the fan triangulation doesn't self-intersect.
+SUB dice3d_order_cap (ring() AS INTEGER, rn AS INTEGER, vidx AS INTEGER)
+    DIM AS DICE3D_VEC3 nrm, ta2, bb2, rel, up
+    DIM AS SINGLE ang(0 TO 15), tf
+    DIM AS INTEGER i, j, tmp
+    nrm = DICE3D_MV(vidx): dice3d_vnorm nrm, nrm '   vertex direction ~ outward normal
+    up.X = 0: up.Y = 0: up.Z = 1
+    IF ABS(nrm.Z) > 0.9 THEN up.X = 1: up.Y = 0: up.Z = 0
+    dice3d_vcross nrm, up, ta2: dice3d_vnorm ta2, ta2
+    dice3d_vcross nrm, ta2, bb2
+    FOR i = 0 TO rn - 1
+        dice3d_vsub DICE3D_MV(ring(i)), DICE3D_MV(vidx), rel
+        ang(i) = _ATAN2(dice3d_vdot(rel, bb2), dice3d_vdot(rel, ta2))
+    NEXT
+    FOR i = 0 TO rn - 2 '                  bubble sort by angle
+        FOR j = 0 TO rn - 2 - i
+            IF ang(j) > ang(j + 1) THEN
+                tmp = ring(j): ring(j) = ring(j + 1): ring(j + 1) = tmp
+                tf = ang(j): ang(j) = ang(j + 1): ang(j + 1) = tf
+            END IF
+        NEXT
+    NEXT
 END SUB
 
 ''

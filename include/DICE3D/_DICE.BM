@@ -289,6 +289,7 @@ SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
 
     DICE3D_FRAME = 0
     DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
+    DICE3D_BEVEL = cfg.BEVEL * 0.18   ' cfg.BEVEL 0..1 -> geometric edge-round inset fraction
     dice3d_build sides
     DIM adie AS SINGLE: adie = cfg.DIE_SIZE
     IF DICE3D_ATLAS_DIE > 0 THEN cfg.DIE_SIZE = DICE3D_ATLAS_DIE   ' bake a hi-res atlas (numbers stay sharp)
@@ -351,6 +352,7 @@ SUB dice3d_roll_pct (cnt AS INTEGER, cfg AS DICE3D_CONFIG, results() AS INTEGER)
 
     DICE3D_FRAME = 0
     DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
+    DICE3D_BEVEL = cfg.BEVEL * 0.18   ' geometric edge-round (percentile d10 pair)
     dice3d_build 10
     atlasHi = dice3d_make_atlas&(cfg, cfg.PCT_HI_KOLOR, 1) '  tens 00..90
     atlasLo = dice3d_make_atlas&(cfg, cfg.PCT_LO_KOLOR, 0) '  units 0..9

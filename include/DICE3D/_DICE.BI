@@ -135,6 +135,12 @@ DIM SHARED DICE3D_SND_VOL AS SINGLE
 '    atlas so numbers stay sharp). 0 = bake at the config's DIE_SIZE.
 DIM SHARED DICE3D_ATLAS_DIE AS SINGLE
 
+'--- Geometric edge bevel (rounded dice): 0 = sharp polyhedron (original mesh). > 0 insets each
+'    numbered face toward its centroid by this fraction and fills the frame with real bevel-strip
+'    + vertex-cap geometry, so the EDGES are physically chamfered (not a texture trick). Set by
+'    the caller before dice3d_build (it rebuilds the mesh). ~0.12-0.22 reads as a nice round. ---
+DIM SHARED DICE3D_BEVEL AS SINGLE
+
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames
 DIM SHARED DICE3D_SHOT_DIR AS STRING
