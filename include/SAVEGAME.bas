@@ -53,7 +53,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN "dungeon-save.dat" FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 2"
+    PRINT #f, "DUNGEONSAVE 3"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -61,7 +61,7 @@ SUB SaveGame
     PRINT #f, char_level; " "; char_xp; " "; player_hp; " "; player_maxhp
     PRINT #f, player_str; player_int; player_wis; player_dex; player_con; player_cha
     PRINT #f, player_tohit; player_ac; player_dmgdie; player_dmgbonus
-    PRINT #f, item_sword; item_secret_card; item_esp; item_crystal; item_armor; item_bow; item_boots; item_teleport; item_potion_small; item_potion_large
+    PRINT #f, item_sword; item_secret_card; item_esp; item_crystal; item_armor; item_bow; item_boots; item_teleport; item_potion_small; item_potion_large; item_shield
     PRINT #f, poison_turns; fire_turns; frost_turns; siren_turns
     PRINT #f, c.x; c.y; c.prev_x; c.prev_y
     PRINT #f, moves_made; turn_num; steps_left; need_roll; loiter
@@ -92,7 +92,12 @@ SUB SaveGame
     ' per-room mutable state
     PRINT #f, "ROOMS "; ROOM_N
     FOR i = 1 TO ROOM_N
-        PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal
+        PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal; ROOMS(i).mhp
+    NEXT i
+    ' loose drops -- spoils left where a fall happened on the open paths
+    PRINT #f, "LOOSE "; UBOUND(LOOSE)
+    FOR i = 1 TO UBOUND(LOOSE)
+        PRINT #f, LOOSE(i).active; LOOSE(i).cx; LOOSE(i).cy; LOOSE(i).gold; LOOSE(i).sword; LOOSE(i).secret; LOOSE(i).esp; LOOSE(i).crystal
     NEXT i
     CLOSE #f
 END SUB
@@ -137,12 +142,12 @@ END FUNCTION
 ' board rebuild, so SD/DB/ROOMS are read AFTER StartBoard/RandomizeRooms.
 ' Assumes the caller (PlayGame) enters the loop afterwards.
 SUB LoadGameApply
-    DIM i AS INTEGER, rn AS INTEGER, el AS DOUBLE, tag AS STRING, nm AS STRING
+    DIM i AS INTEGER, rn AS INTEGER, el AS DOUBLE, tag AS STRING, nm AS STRING, sver AS INTEGER
     DIM scx AS INTEGER, scy AS INTEGER, spx AS INTEGER, spy AS INTEGER
 
     TokLoad "dungeon-save.dat"
     tag = NextTok$                                  ' "DUNGEONSAVE"
-    i = NextI                                       ' version
+    sver = NextI                                    ' save format version (3 = per-room mhp is stored, not reproduced)
     run_seed = VAL(NextTok$)
     num_players = NextI: cur_player = NextI
     IF num_players < 1 THEN num_players = 1
@@ -154,6 +159,7 @@ SUB LoadGameApply
     item_sword = NextI: item_secret_card = NextI: item_esp = NextI: item_crystal = NextI
     item_armor = NextI: item_bow = NextI: item_boots = NextI: item_teleport = NextI
     item_potion_small = NextI: item_potion_large = NextI
+    IF sver >= 3 THEN item_shield = NextI            ' shield is its own slot as of v3 (old saves had it folded into item_armor)
     poison_turns = NextI: fire_turns = NextI: frost_turns = NextI: siren_turns = NextI
     scx = NextI: scy = NextI: spx = NextI: spy = NextI       ' restored AFTER StartBoard (which resets it)
     moves_made = NextI: turn_num = NextI: steps_left = NextI: need_roll = NextI: loiter = NextI
@@ -208,7 +214,30 @@ SUB LoadGameApply
         ROOMS(i).monster_fought = NextI: ROOMS(i).player_died = NextI: ROOMS(i).seen = NextI
         ROOMS(i).drop_gold = NextL: ROOMS(i).drop_sword = NextI: ROOMS(i).drop_secret = NextI
         ROOMS(i).drop_esp = NextI: ROOMS(i).drop_crystal = NextI
+        ' v3+: mhp is STORED, not reproduced -- RandomizeRooms' RNG can shift between builds,
+        ' which desynced the re-rolled mhp from the saved mhp_now (monsters showing 20/15 etc.)
+        IF sver >= 3 THEN ROOMS(i).mhp = NextL
     NEXT i
+    ' Safety net for older saves (and any residual desync): a monster can never have more
+    ' current HP than its maximum -- clamp so the panel can't read "20/15".
+    FOR i = 1 TO ROOM_N
+        IF ROOMS(i).mhp_now > ROOMS(i).mhp THEN ROOMS(i).mhp_now = ROOMS(i).mhp
+    NEXT i
+
+    ' loose drops (spoils on the open paths). Older saves lack this section -- the tag
+    ' won't match, so they just load with no loose drops. Clear first either way.
+    FOR i = 1 TO UBOUND(LOOSE): LOOSE(i).active = 0: NEXT i
+    IF SVTOK_I <= SVTOK_N THEN
+        IF SVTOK(SVTOK_I) = "LOOSE" THEN
+            tag = NextTok$                            ' "LOOSE"
+            rn = NextI                                ' saved slot count
+            IF rn > UBOUND(LOOSE) THEN rn = UBOUND(LOOSE)
+            FOR i = 1 TO rn
+                LOOSE(i).active = NextI: LOOSE(i).cx = NextI: LOOSE(i).cy = NextI: LOOSE(i).gold = NextL
+                LOOSE(i).sword = NextI: LOOSE(i).secret = NextI: LOOSE(i).esp = NextI: LOOSE(i).crystal = NextI
+            NEXT i
+        END IF
+    END IF
 
     game_start = TIMER - el                          ' restore the elapsed run timer
     IF game_start > TIMER THEN game_start = TIMER

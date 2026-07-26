@@ -13,7 +13,7 @@
 * | miss   | Your blow whistles past the {mon}.
 * | crit   | A perfect strike tears into the {mon}!
 * | fumble | You overreach and stumble past the {mon}.
-* | death  | The {mon} lands the final blow. Darkness takes you.
+* | death  | The {mon} land{s} the final blow. Darkness takes you.
 
 # ---- HERO: a bold warrior, sword and shield ----
 HERO | attack | You hew into the {mon} with {weapon}, biting deep for {dmg}.

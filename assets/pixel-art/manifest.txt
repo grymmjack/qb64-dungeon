@@ -1,0 +1,100 @@
+# PIXEL-ART ASSET MANIFEST  --  folder | name | style | size | prompt
+#
+# Every art node from the game UI mindmap, with a best-effort pixel-art prompt.
+# Driven by ~/pixelmon (SDXL + pixel-art LoRA). Run: assets/pixel-art/generate.sh
+# `style` is a pixelmon styles.json key; `folder` mirrors the mindmap hierarchy.
+# Edit a prompt and re-run just that folder. `#` = comment.
+#
+# ---------------------------------------------------------------- MONSTERS · HUMANOIDS
+monsters/humanoids | evil-wizard   | darkest | 128 | an evil sorcerer in tattered black robes, glowing eyes, crackling dark magic swirling around one raised hand, gaunt and menacing, single character
+monsters/humanoids | evil-hero     | darkest | 128 | a fallen knight in blackened corrupted plate armor, cruel notched sword, torn red cape, dark heroic villain, single character
+monsters/humanoids | vetch         | darkest | 128 | a wretched hunched hooded cultist creature, sickly grey skin, clutching a rusty curved dagger, single character
+monsters/humanoids | witch         | darkest | 128 | a cackling old hag witch in a tall pointed hat, warty green-tinted skin, holding a bubbling green potion, single character
+# ---------------------------------------------------------------- MONSTERS · ANIMALS
+monsters/animals   | giant-rat     | darkest | 128 | a monstrous dungeon rat, matted mangy fur, long yellow fangs, naked whiplike tail, glowing red eyes, single creature
+monsters/animals   | giant-lizard  | darkest | 128 | a huge scaly dungeon lizard, sharp clawed feet, forked flicking tongue, mottled green hide, single creature
+monsters/animals   | giant-spider  | darkest | 128 | an enormous black spider, eight hairy legs, dripping venom fangs, cluster of glinting red eyes, single creature
+monsters/animals   | giant-snake   | darkest | 128 | a massive coiled serpent, glistening green scales, flared hood, venomous fangs bared, single creature
+# ---------------------------------------------------------------- MONSTERS · INSECTS
+monsters/insects   | purple-worm   | darkest | 128 | a colossal purple burrowing worm, thick segmented body, gaping circular maw ringed with jagged teeth, single creature
+# ---------------------------------------------------------------- MONSTERS · MISC
+monsters/misc      | green-slime   | darkest | 128 | a quivering translucent green ooze slime, bubbling acid, a dissolving bone suspended inside, single creature
+monsters/misc      | black-pudding | darkest | 128 | a shapeless oily black gelatinous blob, glistening acidic sheen, engulfing the stone floor, single creature
+# ---------------------------------------------------------------- MONSTERS · BEASTS
+monsters/beasts    | red-dragon    | darkest | 128 | a fearsome red dragon, spread leathery wings, breathing a gout of fire, horned crested head, single creature
+monsters/beasts    | blue-dragon   | darkest | 128 | a sleek blue dragon, crackling lightning breath, sharp spined back, icy blue scales, single creature
+monsters/beasts    | gargoyle      | darkest | 128 | a crouching stone gargoyle with bat wings and curled horns, cracked grey stone skin, fanged snarl, single creature
+monsters/beasts    | ogre          | darkest | 128 | a hulking brute ogre, warty grey-green skin, huge knotted wooden club, tusked underbite, single creature
+monsters/beasts    | hobgoblin     | darkest | 128 | a burly hobgoblin warrior, orange-red skin, spiked leather armor, jagged notched scimitar, single creature
+monsters/beasts    | goblin        | darkest | 128 | a small wiry green goblin, big pointed ears, crooked rusty dagger, wicked toothy grin, single creature
+monsters/beasts    | kobold        | darkest | 128 | a little scaly reptilian kobold, ratlike snout, small horns, clutching a short spear, single creature
+monsters/beasts    | troll         | darkest | 128 | a lanky green troll, long raking claws, warty regenerating hide, hunched and hungry, single creature
+monsters/beasts    | werewolf      | darkest | 128 | a savage werewolf mid-howl, bristling grey fur, elongated fangs and claws, muscular, single creature
+monsters/beasts    | giant         | darkest | 128 | a towering humanoid giant in ragged furs, a massive stone-headed club over one shoulder, brutish face, single creature
+# ---------------------------------------------------------------- MONSTERS · UNDEAD
+monsters/undead    | skeleton      | darkest | 128 | an animated skeleton warrior, yellowed bones, rusted sword and dented shield, empty eye sockets, single creature
+monsters/undead    | ghoul         | darkest | 128 | a gaunt grey ghoul, sunken hollow eyes, clawed rotting hands, ragged hanging flesh, feral crouch, single creature
+monsters/undead    | mummy         | darkest | 128 | a bandaged mummy, trailing tattered grey wrappings, faint glowing eyes, arms outstretched, single creature
+monsters/undead    | vampire       | darkest | 128 | an aristocratic vampire in a high-collared black cape, pale skin, red eyes, bared fangs, single character
+# ---------------------------------------------------------------- ITEMS
+items | magic-sword-1    | item | 128 | a glowing enchanted longsword with a faint blue aura, ornate crossguard, single item icon, centered
+items | magic-sword-2    | item | 128 | a legendary flaming longsword with a golden runed hilt, radiant fire, single item icon, centered
+items | key-medallion    | item | 128 | an ornate golden dungeon level key with a skull-shaped bow on a chain, single item icon, centered
+items | shield           | item | 128 | a round steel shield with a heraldic crest and iron rivets, battle-worn, single item icon, centered
+items | secret-door-card | item | 128 | an old parchment card marked with a glowing arcane secret-door rune, single item icon, centered
+items | elf-boots        | item | 128 | a pair of soft green leather elven boots with silver buckles, single item icon, centered
+items | crystal-ball     | item | 128 | a glowing crystal ball on a small dark ornate stand, swirling mist inside, single item icon, centered
+items | magic-bow        | item | 128 | an elegant enchanted longbow with a glowing green bowstring and carved limbs, single item icon, centered
+items | teleport-scroll  | item | 128 | a rolled parchment scroll bound in ribbon with a glowing blue teleport sigil, single item icon, centered
+items | magic-armor      | item | 128 | a gleaming enchanted breastplate of plate armor with a faint golden aura, single item icon, centered
+items | esp-medallion    | item | 128 | a mystic amulet with a glowing violet eye gem on a fine chain, single item icon, centered
+# ---------------------------------------------------------------- TREASURES
+treasures | jeweled-cup      | item | 128 | an ornate golden goblet encrusted with red and blue gemstones, single treasure icon, centered
+treasures | sack-of-gold     | item | 128 | a bulging leather sack overflowing with gold coins, tied with rope, single treasure icon, centered
+treasures | silver-ring      | item | 128 | a polished silver ring set with a small blue gem, single treasure icon, centered
+treasures | gold-cup         | item | 128 | a shining solid gold chalice with ornate handles, single treasure icon, centered
+treasures | gold-ring        | item | 128 | a gleaming engraved gold band ring, single treasure icon, centered
+treasures | silver-coins     | item | 128 | a small glinting stack of silver coins, single treasure icon, centered
+treasures | jade-idol        | item | 128 | a small carved green jade idol of an ancient grinning god, single treasure icon, centered
+treasures | ruby-necklace    | item | 128 | a gold necklace strung with glowing red rubies, single treasure icon, centered
+treasures | silver-necklace  | item | 128 | a delicate silver chain necklace with a teardrop pendant, single treasure icon, centered
+treasures | ruby-ring        | item | 128 | a gold ring set with a large brilliant red ruby, single treasure icon, centered
+treasures | gold-necklace    | item | 128 | a heavy gold chain necklace with a round medallion, single treasure icon, centered
+treasures | ruby-earring     | item | 128 | a pair of dangling gold earrings set with red ruby gems, single treasure icon, centered
+# ---------------------------------------------------------------- MARKERS
+markers | gravestone   | dark | 128 | a weathered mossy stone grave headstone on a dungeon floor, single object icon, centered
+markers | lost-cache   | dark | 128 | a small scattered pile of dropped belongings and a fallen torch on a stone floor, single object icon
+markers | cursed-rune  | dark | 128 | a glowing purple cursed rune circle etched into the dungeon floor, ominous, single object icon
+markers | player-body  | dark | 128 | a fallen adventurer's slumped corpse on the dungeon floor beside a dropped sword, single object icon
+# ---------------------------------------------------------------- EVENTS · CURIOS
+events | curio-chest       | darkest | 128 | a half-buried closed wooden treasure chest with iron bands, in dungeon rubble, single object
+events | fountain          | darkest | 128 | a still round stone dungeon fountain with dark glimmering water, moss-covered rim, single object
+events | shrine            | darkest | 128 | a moss-grown stone shrine to a forgotten god with a small idol and guttering candles, single object
+events | gamblers-altar    | darkest | 128 | a sinister skull-carved stone altar with a pair of bone dice on top, faint eerie glow, single object
+events | hooded-peddler    | darkest | 128 | a mysterious hooded merchant holding open a tray of wares, face lost in shadow, single character
+events | idol              | darkest | 128 | a leering jewelled stone idol in an alcove, one large glowing ruby eye, ancient, single object
+events | fallen-adventurer | darkest | 128 | a long-dead adventurer slumped against a stone wall with an intact backpack, skeletal, single object
+events | glowing-mushrooms | darkest | 128 | a fairy ring of luminous softly glowing mushrooms on a dark dungeon floor, single object
+events | rune-obelisk      | darkest | 128 | a tall rune-carved stone obelisk thrumming with arcane power, glowing blue glyphs, single object
+events | weapon-cache      | darkest | 128 | a half-buried cache of oiled swords and armor pieces glinting in the dirt, single object
+events | mimic             | darkest | 128 | a monstrous mimic disguised as a chest with a gaping toothy maw and a lolling tongue, lunging, single creature
+events | pit               | darkest | 128 | a dark yawning pit trap in a cracked dungeon floor, jagged edges, blackness below, single object
+# ---------------------------------------------------------------- CLASSES · PORTRAITS
+classes | hero      | portrait | 128 | portrait of a stout brave human hero knight in polished armor, determined jaw, dungeon adventurer
+classes | elf       | portrait | 128 | portrait of a nimble keen-eyed elf ranger with pointed ears and a green hood, dungeon adventurer
+classes | superhero | portrait | 128 | portrait of a mighty muscular champion warrior in gleaming heroic armor, bold and fearless
+classes | wizard    | portrait | 128 | portrait of a wise old wizard with a long white beard, tall pointed hat, and an arcane staff
+# ---------------------------------------------------------------- SPECIAL ROOMS
+rooms | main-gallery      | dosrpg | 192 | a grand torchlit dungeon entrance hall with stone arches and pillars, top-down rpg room tile
+rooms | armory            | dosrpg | 192 | a dungeon armory lined with weapon racks and armor stands, top-down rpg room tile
+rooms | kitchen           | dosrpg | 192 | a grimy dungeon kitchen with a stone hearth, hanging cauldron, and meat, top-down rpg room tile
+rooms | barracks          | dosrpg | 192 | a dungeon barracks with rows of wooden bunks and footlockers, top-down rpg room tile
+rooms | stone-room        | dosrpg | 192 | a bare cracked stone dungeon chamber with rubble and a single torch, top-down rpg room tile
+rooms | torture-chamber   | dosrpg | 192 | a grim dungeon torture chamber with a rack, hanging chains, and bloodstains, top-down rpg room tile
+rooms | kings-library     | dosrpg | 192 | a dusty royal library with tall bookshelves and a reading lectern, top-down rpg room tile
+rooms | kings-treasure    | dosrpg | 192 | a royal treasure vault piled with gold coins and chests, top-down rpg room tile
+rooms | wizards-lab       | dosrpg | 192 | an arcane wizard laboratory with bubbling potion vials and open spellbooks, top-down rpg room tile
+rooms | wizards-treasure  | dosrpg | 192 | a wizard hoard of glowing magical artifacts and gems on pedestals, top-down rpg room tile
+rooms | queens-armor      | dosrpg | 192 | an elegant royal armory with ornate queens plate armor on stands, top-down rpg room tile
+rooms | queens-treasure   | dosrpg | 192 | a queens jewel vault of necklaces, crowns, and gemstones, top-down rpg room tile
+rooms | the-crypt         | dosrpg | 192 | a shadowy dungeon crypt with stone sarcophagi and thick cobwebs, top-down rpg room tile

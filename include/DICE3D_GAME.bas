@@ -41,6 +41,18 @@ SUB SetDiceFont (cfg AS DICE3D_CONFIG)
     END IF
 END SUB
 
+' Override a config's directional light from the SETTINGS "Dice Light" level (opt_dicelight).
+' The light DIRECTION comes from the set/default (already seeded); this only sets the on/off
+' + strength, so the player can tune shading in-game without editing set files.
+SUB ApplyDiceLight (cfg AS DICE3D_CONFIG)
+    SELECT CASE opt_dicelight
+        CASE 0: cfg.LIGHT_ENABLED = 0                                          ' flat (no shading)
+        CASE 1: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.62: cfg.LIGHT_INTENSITY = 0.5 ' soft
+        CASE 3: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.38: cfg.LIGHT_INTENSITY = 1.0 ' strong
+        CASE ELSE: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.5: cfg.LIGHT_INTENSITY = 0.8 ' normal
+    END SELECT
+END SUB
+
 ' Read the dice-set manifest (assets/data/dicesets.txt): each line "display name | file".
 SUB LoadDiceManifest
     DIM i AS INTEGER
@@ -97,6 +109,8 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
+    ApplyDiceLight cfg                              ' SETTINGS "Dice Light" overrides the set's LIGHT_*
+    cfg.BEVEL = opt_diceround / 10                  ' SETTINGS "Dice Round" drives the edge roundness
 
     IF LEN(_TRIM$(what)) > 0 THEN
         hdr = "-= " + _TRIM$(what) + " =-"
@@ -120,7 +134,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     IF tw > SW * CW - 40 THEN tw = SW * CW - 40
     th = 132
     tx = (SW * CW - tw) \ 2
-    ty = 12 * CH
+    ty = (12 + DICE3D_YOFF) * CH                    ' DICE3D_YOFF shifts the whole tray down (char-gen clears the stat sheet)
     cfg.BOX_W = tw: cfg.BOX_H = th                 ' physics tray (box pixels == screen pixels)
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
@@ -152,11 +166,11 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     ' Draw the framed royal-purple header (caption-width) + the roomy tray on CANVAS (crisp).
     _DEST CANVAS: _FONT CH
-    LINE (hbx, 9 * CH)-(hbx + hbw, 12 * CH), boxviolet, BF
-    LINE (hbx, 9 * CH)-(hbx + hbw, 12 * CH), boxedge, B
+    LINE (hbx, (9 + DICE3D_YOFF) * CH)-(hbx + hbw, (12 + DICE3D_YOFF) * CH), boxviolet, BF
+    LINE (hbx, (9 + DICE3D_YOFF) * CH)-(hbx + hbw, (12 + DICE3D_YOFF) * CH), boxedge, B
     LINE (tx, ty)-(tx + tw, ty + th), boxviolet, BF
     LINE (tx, ty)-(tx + tw, ty + th), boxedge, B
-    COLOR YELLOWU, boxviolet: PrintCentered 10, hdr
+    COLOR YELLOWU, boxviolet: PrintCentered 10 + DICE3D_YOFF, hdr
     _DISPLAY
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
@@ -251,8 +265,10 @@ SUB Build3DPreviews
     DIM pc AS DICE3D_CONFIG, a AS LONG, f AS INTEGER
     Free3DPreviews
     IF NOT dice3d_ready THEN EXIT SUB
-    dice3d_build 20
     pc = DSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
+    pc.BEVEL = opt_diceround / 10    ' SETTINGS "Dice Round" drives the preview roundness
+    DICE3D_BEVEL = pc.BEVEL * 0.18   ' geometric edge-round for the preview d20
+    dice3d_build 20
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_P = _COPYIMAGE(a, 33): _FREEIMAGE a
     pc = MSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_M = _COPYIMAGE(a, 33): _FREEIMAGE a
@@ -279,6 +295,7 @@ SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, atlas AS LONG, setcfg AS
     IF atlas = 0 THEN EXIT SUB
     IF UBOUND(DICE3D_DICE) < LBOUND(DICE3D_DICE) THEN EXIT SUB
     cfg = setcfg
+    ApplyDiceLight cfg                              ' preview reflects the SETTINGS "Dice Light" level
     cfg.BOX_W = 150: cfg.BOX_H = 150: cfg.DIE_SIZE = 42
     scx = gx + 75: scy = gy + 60                    ' screen centre of this preview
     pxk = 1.0 / DICE3D_HW_PXPERUNIT

@@ -64,6 +64,20 @@ TYPE DICE3D_CONFIG
     TEX_OPACITY AS SINGLE '              marble/noise pattern strength vs flat body 0..1
     MARBLE_KOLOR AS _UNSIGNED LONG '     marble vein colour
     CRYSTAL_ALPHA AS SINGLE '            crystal transparency 0..1
+    '--- directional (top) light -----------------------------------------------
+    '   Shades each face by how much it faces the light (Lambert), so top-facing
+    '   surfaces catch light and the die gains real 3D form. The light is in VIEW
+    '   space (fixed to the top of the screen), so it reads as an overhead light
+    '   whatever the camera yaw/tilt. Direction points FROM a surface TO the light.
+    LIGHT_ENABLED AS INTEGER '           TRUE = apply directional shading
+    LIGHT_X AS SINGLE '                  light direction (auto-normalised)
+    LIGHT_Y AS SINGLE '                  +Y = from the top of the screen
+    LIGHT_Z AS SINGLE '                  +Z = from the camera side
+    LIGHT_AMBIENT AS SINGLE '            0..1 min brightness for faces facing away
+    LIGHT_INTENSITY AS SINGLE '          0..1 shading strength (darkening amount)
+    LIGHT_KOLOR AS _UNSIGNED LONG '      light colour: lit faces wash toward it (white = neutral).
+    '                                    Tint scales with the colour's saturation, so white/grey
+    '                                    stay pure brightness; a hue (torch, moonlight) tints.
     '--- wireframe overlay -----------------------------------------------------
     WIRE_ENABLED AS INTEGER
     WIRE_KOLOR AS _UNSIGNED LONG

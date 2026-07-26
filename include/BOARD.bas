@@ -3,17 +3,21 @@
 ' ============================================================================
 
 SUB DoSearch
-    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER
+    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER, thresh AS INTEGER
     DIM found_any AS INTEGER, near_hidden AS INTEGER
     ccx = c.x \ CW: ccy = c.y \ CH
-    roll = DoRoll(1, CLASSES(player_class).secret_bonus, "SEARCHING for secret doors")
-    IF item_secret_card THEN roll = 99          ' the Secret Door Card never fails
+    ' DUNGEON! convention: roll LOW to find a secret door -- Hero on 1-2, Elf on 1-4
+    ' (double odds), Wizard on 1-3. secret_bonus widens the winning band by that much.
+    roll = DoRoll(1, 0, "SEARCHING for secret doors")   ' a raw d6, shown honestly
+    thresh = 2 + CLASSES(player_class).secret_bonus
+    IF item_secret_card THEN thresh = 6          ' the Secret Door Card never fails (any roll finds)
     found_any = FALSE: near_hidden = FALSE
+    g_secret_tries = g_secret_tries + 1              ' chronicle: count searches toward the next find
     FOR i = 1 TO SD_N
         IF NOT SD_FOUND(i) THEN
             IF ABS(SD_X(i) - ccx) <= 2 AND ABS(SD_Y(i) - ccy) <= 2 THEN
                 near_hidden = TRUE
-                IF roll >= 5 THEN
+                IF roll <= thresh THEN
                     SD_FOUND(i) = TRUE
                     RevealRegionFromDoor i    ' reveal door + the area it connects to
                     found_any = TRUE
@@ -23,6 +27,8 @@ SUB DoSearch
     NEXT
 
     IF found_any THEN
+        RecordSecret SECTOR.get_by_xy(c.x, c.y), ROOMAT(ccx, ccy), g_secret_tries
+        g_secret_tries = 0
         Sfx "secret"
         Banner "A SECRET DOOR grinds open before you!", "A hidden passage is revealed -- explore what it hides.   [ press any key ]"
     ELSEIF near_hidden THEN
@@ -106,15 +112,18 @@ END SUB
 ' board shows at a glance which rooms are cleared. (Rendered onto CANVAS after a
 ' fresh board blit, so it rides along with cursor_draw.)
 SUB DrawTombstones
-    DIM r AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM r AS INTEGER, px AS INTEGER, py AS INTEGER, gx AS INTEGER, gy AS INTEGER
     DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
     grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
     _DEST CANVAS
     ' Headstones only. Loot markers (the fallen-body ☻ and the recoverable-$ glyph)
     ' are drawn by DrawEntities, which runs after this and matches the board legend.
+    ' Sit the grave on the SAME label-avoiding cell the § monster used (EntityDrawX/Y),
+    ' so the headstone lands exactly where the monster stood -- never off under a label.
     FOR r = 1 TO ROOM_N
-        IF VIS(ROOMS(r).cx, ROOMS(r).cy) AND (NOT opt_fov OR LOS_SEEN(ROOMS(r).cx, ROOMS(r).cy)) THEN
-            px = ROOMS(r).cx * CW: py = ROOMS(r).cy * CH
+        gx = EntityDrawX(r): gy = EntityDrawY(r)
+        IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
+            px = gx * CW: py = gy * CH
             IF ROOMS(r).monster_fought AND NOT ROOMS(r).malive THEN
                 LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF     ' stone body
                 LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF          ' rounded top
@@ -657,7 +666,9 @@ END FUNCTION
 SUB PutLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING, fg AS _UNSIGNED LONG)
     IF opt_fov THEN IF LOS_SEEN(cx, cy) = 0 THEN EXIT SUB
     COLOR fg, YELLOW
+    UIFontOn UIF_LABEL                              ' configurable room-label font
     _PRINTSTRING (cx * CW, cy * CH), txt
+    UIFontOff
 END SUB
 
 ' The board's room labels live in one data table (LBL_*), used both to render them

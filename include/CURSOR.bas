@@ -64,7 +64,9 @@ SUB cursor_erase
     ELSE
         _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), CANVAS_COPY, CANVAS, (0, 0)-(SW * CW - 1, SH * CH - 1)
     END IF
-    render_room_labels
+    render_room_labels                             ' labels are part of the MAP...
+    DrawWounds                                     ' ...so the near-death blood/vignette dims them too (they don't "hover").
+    '                                                Tokens (cursor_draw) + HUD/combat panel (DrawHUD) draw AFTER, on top.
 END SUB
 
 
@@ -105,6 +107,21 @@ SUB DrawEntities
                 ELSEIF HasDrop(r) THEN
                     COLOR _RGB32(&H55, &HFF, &H55), BLACK                      ' $ recoverable treasure (e.g. a curio left unopened): green
                     _PRINTSTRING (gx * CW, gy * CH), "$"
+                END IF
+            END IF
+        END IF
+    NEXT r
+    ' loose spoils out on the open paths (a fall in the corridors, no room to hold it):
+    ' the same blood-red body marker, keyed to the exact cell, FOV-aware.
+    FOR r = 1 TO UBOUND(LOOSE)
+        IF LOOSE(r).active THEN
+            gx = LOOSE(r).cx: gy = LOOSE(r).cy
+            IF gx >= 0 AND gy >= 0 AND gx <= 131 AND gy <= 60 THEN
+                vis = TRUE
+                IF opt_fov THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
+                IF vis THEN
+                    COLOR _RGB32(&HE0, &H33, &H33), BLACK
+                    _PRINTSTRING (gx * CW, gy * CH), CHR$(2)
                 END IF
             END IF
         END IF

@@ -82,8 +82,9 @@ SUB RandomizeRooms
     ' EVERY detected room gets its own monster + treasure from its level's pool.
     ' (Call DetectRooms first -- done in StartBoard/InitFog -- so ROOMS is populated.)
     DIM r AS INTEGER, sec AS INTEGER, m AS INTEGER, t AS INTEGER, startroom AS INTEGER
-    DIM bossroom AS INTEGER, ndeep AS INTEGER
+    DIM bossroom AS INTEGER, ndeep AS INTEGER, sl AS INTEGER
     DIM deeproom(1 TO 400) AS INTEGER
+    DIM used(1 TO 9, 1 TO 3) AS INTEGER         ' D&D variety: how often each level's monster has been placed
     CONST MIN_ROOM = 4                          ' blocks smaller than this are labels, not rooms
     startroom = ROOMAT(START_CX, START_CY)      ' the entrance chamber stays safe
     ndeep = 0
@@ -97,12 +98,20 @@ SUB RandomizeRooms
             ROOMS(r).monster = "": ROOMS(r).malive = FALSE
             ROOMS(r).treasure = 0: ROOMS(r).treasure_name = "": ROOMS(r).treasure_item = 0
         ELSE
-            m = RollDie(3): t = RollDie(3)
-            ROOMS(r).monster = MON_NAME(sec, m): ROOMS(r).mslot = m
+            t = RollDie(3)
+            IF opt_oldschool THEN
+                m = RollDie(3)                          ' faithful Dungeon!: this level's own 3 monsters only
+                ROOMS(r).monster = MON_NAME(sec, m): ROOMS(r).mslot = m
+            ELSE
+                PickVariedMonster sec, used(), sl, m    ' D&D: widen the roster + spread it so no monster dominates
+                ROOMS(r).monster = MON_NAME(sl, m): ROOMS(r).mslot = m
+            END IF
             ROOMS(r).malive = TRUE
             ROOMS(r).treasure_name = TRE_NAME(sec, t): ROOMS(r).treasure = TRE_GOLD(sec, t)
             ROOMS(r).treasure_item = TRE_ITEM(sec, t)
-            ROOMS(r).mhp = sec * 4 + RollDie(6) + 2: ROOMS(r).mhp_now = ROOMS(r).mhp
+            ' hit-dice HP: a level-scaled range, not a fixed value. min = sec*4+1, and the
+            ' die grows with depth (L1 rolls a d6, L9 a d22), so deeper monsters vary more.
+            ROOMS(r).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(r).mhp_now = ROOMS(r).mhp
             ROOMS(r).mac = 9 + sec
             IF sec >= 6 THEN ndeep = ndeep + 1: deeproom(ndeep) = r
         END IF
@@ -139,6 +148,41 @@ SUB RandomizeRooms
         ROOMS(key_room).treasure_item = 6        ' 6 = Level Key (see ClaimTreasure)
         ROOMS(key_room).treasure_name = "THE LEVEL KEY"
     END IF
+    BindSpecialRooms                             ' tie each named-room label to its nearest detected room (flavor crawl + art)
+END SUB
+
+
+' D&D-mode monster variety. Difficulty in D&D comes from level-scaled HP/AC, not the
+' 2d6 card number, so the monster NAME is free to vary -- unlike Oldschool, which must
+' keep name and kill-number in lockstep. Draws mostly from THIS level, occasionally one
+' level away (an off-level face), and prefers the least-used slot so a floor doesn't turn
+' into "all goblins". slOut/mOut return the chosen level + slot (index into MON_NAME).
+SUB PickVariedMonster (sec AS INTEGER, used() AS INTEGER, slOut AS INTEGER, mOut AS INTEGER)
+    DIM sl AS INTEGER, s AS INTEGER, best AS INTEGER, bestu AS INTEGER, ties AS INTEGER, pick AS INTEGER
+    sl = sec
+    IF RollDie(100) <= 30 THEN                    ' 30%: reach one level away for variety
+        IF RollDie(2) = 1 THEN sl = sec - 1 ELSE sl = sec + 1
+        IF sl < 1 THEN sl = 1
+        IF sl > 9 THEN sl = 9
+    END IF
+    ' least-used of that level's 3 slots, random tie-break, so usage spreads evenly
+    bestu = 32767
+    FOR s = 1 TO 3
+        IF used(sl, s) < bestu THEN bestu = used(sl, s)
+    NEXT
+    ties = 0
+    FOR s = 1 TO 3
+        IF used(sl, s) = bestu THEN ties = ties + 1
+    NEXT
+    pick = RollDie(ties): ties = 0: best = 1
+    FOR s = 1 TO 3
+        IF used(sl, s) = bestu THEN
+            ties = ties + 1
+            IF ties = pick THEN best = s: EXIT FOR
+        END IF
+    NEXT
+    used(sl, best) = used(sl, best) + 1
+    slOut = sl: mOut = best
 END SUB
 
 

@@ -127,13 +127,13 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
         COLOR CYANU, BLACK
         PrintCentered 26, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
         COLOR GREY, BLACK: PrintCentered 28, CombatDerivation$(pc)   ' where those bonuses come from
-        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll hero     [N] new name     [ENTER] keep this one"
+        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll     [N] new name     [ENTER] keep this one     [ESC] back to menu"
     ELSE
         COLOR CYANU, BLACK
         IF rolled < 6 THEN
-            PrintCentered 44, "[ press a key ] roll " + nm(rolled + 1) + "        [A] auto-roll the rest        [N] new name"
+            PrintCentered 44, "[ press a key ] roll " + nm(rolled + 1) + "      [A] auto-roll the rest      [N] new name      [ESC] back"
         ELSE
-            PrintCentered 44, "[ press a key ] roll your HIT POINTS        [A] auto"
+            PrintCentered 44, "[ press a key ] roll your HIT POINTS      [A] auto      [ESC] back"
         END IF
     END IF
     _DISPLAY
@@ -144,18 +144,24 @@ END SUB
 ' class hit die, derive the D&D combat stats, and let the player re-roll.
 ' Honours Real Dice (each 3d6 becomes a PromptRoll when that setting is on).
 SUB RollCharacter (pc AS INTEGER)
-    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER
+    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
+    IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
+    DICE3D_YOFF = 14                                ' drop the 3D dice tray below the stat sheet so the scores stay visible
+    stay_auto = FALSE                               ' once [A] is pressed it stays on through every re-roll
     DO
-        auto = FALSE
+        auto = stay_auto
         FOR i = 1 TO 6
             DrawCharGen pc, sc(), i - 1, 0             ' show sheet + the prompt to roll this ability
             IF NOT auto THEN                           ' the player presses a key to roll each stat...
                 DO
                     _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
                     IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), i - 1, 0: k = ""
+                    IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' one ESC aborts back to the menu
                 LOOP UNTIL k <> ""
-                IF k = "A" THEN auto = -1: Sfx "select"  ' ...or [A] to auto-roll the rest
+                IF k = "A" THEN auto = -1: stay_auto = -1: Sfx "select"  ' ...or [A] to auto-roll the rest (and every re-roll after)
+            ELSE
+                IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB  ' ESC bails out mid auto-roll too
             END IF
             sc(i) = RollAbility                        ' 3d6 or 4d6-drop-low per the Stat-Roll setting
         NEXT i
@@ -167,7 +173,10 @@ SUB RollCharacter (pc AS INTEGER)
             DO
                 _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
                 IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, 0: k = ""
+                IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
             LOOP UNTIL k <> ""
+        ELSE
+            IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
         END IF
         hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
         player_maxhp = hproll + 3 * AbilMod(player_con)
@@ -183,9 +192,43 @@ SUB RollCharacter (pc AS INTEGER)
         DO
             _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
             IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, -1: k = ""
+            IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' ESC from the final prompt bails too
         LOOP UNTIL k = "R" OR k = CHR$(13)
         Sfx "select"
     LOOP UNTIL k = CHR$(13)
+    DICE3D_YOFF = 0                                ' restore the normal dice position for combat / movement
+END SUB
+
+
+' -- OLD-SCHOOL (Dungeon! board game) character creation --
+' In TSR's Dungeon! you do NOT roll attributes -- you simply PICK a class (a pawn).
+' Confirm the class + name it; combat is a single 2d6 vs the monster's per-class number
+' (no STR/INT/etc., no HP, no AC). InitDefaultChar sets harmless baseline combat stats the
+' 2d6 path never reads, so the rest of the engine stays happy.
+SUB RollCharacterClassic (pc AS INTEGER)
+    DIM k AS STRING
+    InitDefaultChar pc
+    class_name = _TRIM$(CLASSES(pc).name)          ' keep the working globals in step with the pick
+    target_gold = CLASSES(pc).gold_goal
+    IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$
+    DO
+        DrawClassicCharGen pc
+        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+        IF k = "N" THEN player_name = RandomHeroName$
+    LOOP UNTIL k = CHR$(13)
+    Sfx "select"
+END SUB
+
+SUB DrawClassicCharGen (pc AS INTEGER)
+    _DEST CANVAS: CLS , BLACK: _FONT CH
+    COLOR YELLOWU, BLACK: PrintCentered 5, "-=  C H O O S E   Y O U R   A D V E N T U R E R  =-"
+    COLOR WHITE, BLACK: PrintCentered 8, "You are " + _TRIM$(player_name) + " the " + _TRIM$(CLASSES(pc).name)
+    COLOR CYANU, BLACK: PrintCentered 11, "Return to START with " + _TRIM$(STR$(CLASSES(pc).gold_goal)) + " gold to WIN."
+    COLOR GREENU, BLACK: PrintCentered 13, ClassSpecial$(pc)
+    COLOR GREY, BLACK
+    PrintCentered 16, "The old rules: no attributes, no hit points, no armour class."
+    PrintCentered 17, "Every fight is one roll of 2d6 against the monster's number for your class."
+    COLOR YELLOWU, BLACK: PrintCentered 21, "[N] new name         [ENTER] begin your quest"
 END SUB
 
 
@@ -430,6 +473,7 @@ FUNCTION RunMenu%
             Banner "OLD SCHOOL !", "Classic Dungeon! 2d6 combat   +   full map (no Field of View)"
             _DELAY 0.9
         END IF
+        IF k = "R" THEN Sfx "select": ShowRules                    ' read the rules of the dungeon
 
         ' torch-flicker the walls now and then
         t = t + 1
@@ -452,7 +496,7 @@ FUNCTION RunMenu%
         DIM cmb AS STRING, fv AS STRING
         IF opt_oldschool THEN cmb = "2d6" ELSE cmb = "D&D"
         IF opt_fov THEN fv = "on" ELSE fv = "off"
-        COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School      (Combat " + cmb + "   FOV " + fv + ")"
+        COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School   [R] Rules      (Combat " + cmb + "   FOV " + fv + ")"
         _DISPLAY
         IF firstframe THEN FadeInCurrent: firstframe = 0   ' fade the menu in on the first frame
     LOOP
@@ -490,7 +534,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 34
+    CONST NSET = 41
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -568,6 +612,21 @@ SUB RunSettings
                     IF opt_dicefont < 1 THEN opt_dicefont = DICEFONT_N
                     IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
                     Build3DPreviews: Sfx "select"
+                CASE 38
+                    opt_dicelight = opt_dicelight + delta
+                    IF opt_dicelight < 0 THEN opt_dicelight = 3
+                    IF opt_dicelight > 3 THEN opt_dicelight = 0
+                    Sfx "select"
+                CASE 39
+                    opt_diceround = opt_diceround + delta
+                    IF opt_diceround < 0 THEN opt_diceround = 10
+                    IF opt_diceround > 10 THEN opt_diceround = 0
+                    Build3DPreviews: Sfx "select"
+                CASE 40
+                    opt_bloodstrength = opt_bloodstrength + delta
+                    IF opt_bloodstrength < 0 THEN opt_bloodstrength = 10
+                    IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -632,7 +691,22 @@ SUB RunSettings
                     opt_dicefont = opt_dicefont + 1
                     IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
                     Build3DPreviews
-                CASE 34: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 34: opt_movedice = NOT opt_movedice
+                CASE 35
+                    opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
+                CASE 36: opt_gestures = NOT opt_gestures
+                CASE 37: opt_juice = NOT opt_juice
+                CASE 38
+                    opt_dicelight = opt_dicelight + 1
+                    IF opt_dicelight > 3 THEN opt_dicelight = 0
+                CASE 39
+                    opt_diceround = opt_diceround + 1
+                    IF opt_diceround > 10 THEN opt_diceround = 0
+                    Build3DPreviews
+                CASE 40
+                    opt_bloodstrength = opt_bloodstrength + 1
+                    IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
+                CASE 41: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -738,6 +812,36 @@ SUB RunSettings
                 CASE 33
                     lbl = "  Dice Font": slider = TRUE
                     IF opt_dicefont >= 1 AND opt_dicefont <= DICEFONT_N THEN vtxt = _TRIM$(DICEFONT_NAME(opt_dicefont)) ELSE vtxt = "-"
+                CASE 34
+                    lbl = "Move Style"
+                    IF opt_movedice THEN vtxt = "roll 1d6" ELSE vtxt = "up to 5 (Dungeon!)"
+                CASE 35
+                    lbl = "Art Style"
+                    SELECT CASE opt_artstyle
+                        CASE 1: vtxt = "Pixel Art"
+                        CASE 2: vtxt = "Hybrid (ANSI + pixel)"
+                        CASE ELSE: vtxt = "ANSI"
+                    END SELECT
+                CASE 36
+                    lbl = "Action Gestures"
+                    IF opt_gestures THEN vtxt = "on (timing bar)" ELSE vtxt = "off (dice only)"
+                CASE 37
+                    lbl = "Screen Effects"
+                    IF opt_juice THEN vtxt = "on (shake + blood)" ELSE vtxt = "off"
+                CASE 38
+                    lbl = "  Dice Light": slider = TRUE
+                    SELECT CASE opt_dicelight
+                        CASE 0: vtxt = "off (flat)"
+                        CASE 1: vtxt = "soft"
+                        CASE 3: vtxt = "strong"
+                        CASE ELSE: vtxt = "normal"
+                    END SELECT
+                CASE 39
+                    lbl = "  Dice Round": slider = TRUE
+                    IF opt_diceround <= 0 THEN vtxt = "sharp" ELSE vtxt = _TRIM$(STR$(opt_diceround)) + " / 10"
+                CASE 40
+                    lbl = "Blood": slider = TRUE
+                    IF opt_bloodstrength <= 0 THEN vtxt = "none" ELSE vtxt = _TRIM$(STR$(opt_bloodstrength)) + " / 10"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -828,11 +932,21 @@ END FUNCTION
 SUB ShowCharSheet
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, nshow AS INTEGER, inv AS STRING, ln AS STRING
     DIM who AS STRING, effac AS INTEGER, efth AS INTEGER
-    effac = player_ac + item_armor                     ' AC + worn armor/shield
+    effac = player_ac + item_armor + item_shield                     ' AC + worn armor/shield
     efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    ' pixel-art class portrait, top-right of the sheet (Hybrid/Pixel modes, if it exists)
+    IF opt_artstyle > 0 THEN
+        DIM csp AS STRING, ddrew AS INTEGER
+        csp = ClassSprite$(player_class)
+        IF LEN(csp) > 0 AND _FILEEXISTS(csp) THEN
+            LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), _RGB32(&H10, &H08, &H10), BF
+            LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), REDU, B
+            ddrew = DrawSpriteFit%(csp, 92 * CW, 5 * CH, 16 * CW, 16 * CH)
+        END IF
+    END IF
     who = _TRIM$(player_name) + " the " + class_name
     IF _TRIM$(player_name) = "" THEN who = class_name
     COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  C H A R A C T E R  =-"
@@ -840,12 +954,14 @@ SUB ShowCharSheet
     chline = "Champion:  " + who
     IF NOT opt_oldschool THEN chline = chline + "        Level " + _TRIM$(STR$(char_level)) + "    XP " + _TRIM$(STR$(char_xp))
     COLOR WHITE, BOXBG: PrintCentered 6, chline
-    COLOR CYANU, BOXBG
-    PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
     IF NOT opt_oldschool THEN
+        COLOR CYANU, BOXBG
+        PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
         COLOR GREENU, BOXBG
         PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword)
         COLOR GREY, BOXBG: PrintCentered 9, CombatDerivation$(player_class)   ' where those bonuses come from
+    ELSE
+        COLOR GREENU, BOXBG: PrintCentered 8, ClassSpecial$(player_class)     ' Dungeon!: just the class + its edge -- no stats, HP, or AC
     END IF
     ' wealth line
     COLOR YELLOWU, BOXBG
@@ -856,8 +972,9 @@ SUB ShowCharSheet
     inv = ""
     IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
     IF item_armor > 0 THEN inv = inv + "Armor +" + _TRIM$(STR$(item_armor)) + " AC    "
+    IF item_shield > 0 THEN inv = inv + "Shield +" + _TRIM$(STR$(item_shield)) + " AC    "
     IF item_bow THEN inv = inv + "Magic Bow (+2 hit)    "
-    IF item_boots THEN inv = inv + "Elf Boots (+2 move)    "
+    IF item_boots THEN inv = inv + "Elf Boots (+2 move, easy flee)    "
     IF item_teleport > 0 THEN inv = inv + "Teleport x" + _TRIM$(STR$(item_teleport)) + " [T]    "
     IF item_potion_small > 0 THEN inv = inv + "Sm Potion x" + _TRIM$(STR$(item_potion_small)) + " [H]    "
     IF item_potion_large > 0 THEN inv = inv + "Lg Potion x" + _TRIM$(STR$(item_potion_large)) + " [H]    "
@@ -972,13 +1089,19 @@ END SUB
 ' found also yields the Level Key.
 
 SUB ShowEnd (win AS INTEGER)
-    DIM nm AS STRING, el AS LONG
+    DIM nm AS STRING, el AS LONG, mapid AS LONG
     IF win THEN
         Sfx "win"
+        el = TIMER - game_start: IF el < 0 THEN el = el + 86400
+        '--- snapshot the final board (explored state, labels, final position) BEFORE the
+        '    name-entry screen overdraws it, keyed to a deterministic per-lord map id ---
+        cursor_erase: cursor_draw
+        mapid = ABS(gold) * 97 + el * 13 + player_str * 7 + player_dex * 3 + LEN(class_name) * 101
+        IF mapid < 0 THEN mapid = -mapid
+        _SAVEIMAGE "dungeon-lords-map-" + _TRIM$(STR$(mapid)) + ".png", CANVAS
         nm = EnterName$                         ' victory + name entry
         player_name = nm
-        el = TIMER - game_start: IF el < 0 THEN el = el + 86400
-        SaveLord nm, class_name, gold, el       ' enshrine in the Legendary Lords
+        SaveLord nm, class_name, gold, el, mapid ' enshrine in the Legendary Lords
         _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR GREENU, BLACK: PrintCentered 20, "V I C T O R Y"
         COLOR WHITE, BLACK: PrintCentered 23, nm + " the " + class_name + " escapes with " + _TRIM$(STR$(gold)) + " gold!"
@@ -1074,22 +1197,28 @@ SUB DrawHUD
     ELSEIF gold >= target_gold AND has_key THEN
         COLOR GREENU, BLACK
         _PRINTSTRING ((SW - 23) * CW, 50 * CH), "RETURN TO START TO WIN!"
+    ELSEIF opt_boardgame AND opt_movedice = 0 AND steps_left > 0 THEN
+        COLOR YELLOWU, BLACK
+        _PRINTSTRING ((SW - 29) * CW, 50 * CH), "move up to " + _TRIM$(STR$(steps_left)) + "   [SPACE] end turn"
     END IF
     ' Keep the combat panel constant through a fight: every roll's cleanup ends with a
     ' DrawHUD, so repainting the panel here means it never vanishes behind a dice roll or
     ' a result banner (the HUD line is row 50, the panel rows 39-49 -- no overlap).
-    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead
+    ' In combat the panel draws its own near-death vignette (+ _DISPLAY); on the board
+    ' there's no panel, so draw the wounds overlay here. (Avoids a double-darken.)
+    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead   ' wounds now drawn in cursor_erase, under everything
 END SUB
 
 
 
 SUB Banner (l1 AS STRING, l2 AS STRING)
-    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER
+    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER, pw AS INTEGER
     _DEST CANVAS
-    ' auto-size the box to the widest line (min = the classic 96 cols, capped to
-    ' the screen) so long lines never spill past the border
-    w = LEN(l1): IF LEN(l2) > w THEN w = LEN(l2)
-    w = w + 6
+    UIFontOn UIF_MSG                               ' configurable message/narration font
+    ' auto-size the box to the widest line's PIXEL width (so a proportional font never spills
+    ' past the border), converted to cells + padding; min = the classic 96 cols, capped to screen
+    pw = _PRINTWIDTH(l1): IF _PRINTWIDTH(l2) > pw THEN pw = _PRINTWIDTH(l2)
+    w = (pw \ CW) + 6
     IF w < 96 THEN w = 96
     IF w > 130 THEN w = 130
     bx1 = (SW - w) \ 2: bx2 = bx1 + w
@@ -1097,6 +1226,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), REDU, B
     COLOR WHITE, BOXBG: PrintCentered 24, l1
     COLOR YELLOWU, BOXBG: PrintCentered 27, l2
+    UIFontOff
     bnr_l2 = l2: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
     _DISPLAY
 END SUB
@@ -1104,10 +1234,62 @@ END SUB
 
 
 SUB PrintCentered (row AS INTEGER, t AS STRING)
-    DIM x AS INTEGER
-    x = (SW - LEN(t)) \ 2
-    IF x < 0 THEN x = 0
-    _PRINTSTRING (x * CW, row * CH), t
+    DIM px AS INTEGER
+    '--- centre by PIXEL width so it works with a proportional UI font too; for the built-in
+    '    8x16 grid font _PRINTWIDTH = LEN*8, so grid text lands exactly where it always did ---
+    px = (SW * CW - _PRINTWIDTH(t)) \ 2
+    IF px < 0 THEN px = 0
+    _PRINTSTRING (px, row * CH), t
+END SUB
+
+' Load the per-region UI fonts from assets/data/ui-fonts.txt into the UIF_* handles.
+' region | fontfile (in assets/fonts/ui/) | size ; blank file or size 0 = built-in grid font.
+SUB LoadUIFonts
+    DIM f AS INTEGER, ln AS STRING, p1 AS INTEGER, p2 AS INTEGER
+    DIM region AS STRING, file AS STRING, sz AS INTEGER, h AS LONG, path AS STRING
+    IF _FILEEXISTS("assets/data/ui-fonts.txt") = 0 THEN EXIT SUB
+    f = FREEFILE
+    OPEN "assets/data/ui-fonts.txt" FOR INPUT AS #f
+    DO WHILE NOT EOF(f)
+        LINE INPUT #f, ln
+        ln = _TRIM$(ln)
+        IF ln <> "" AND LEFT$(ln, 1) <> "#" THEN
+            p1 = INSTR(ln, "|"): p2 = INSTR(p1 + 1, ln, "|")
+            IF p1 > 0 AND p2 > 0 THEN
+                region = LCASE$(_TRIM$(LEFT$(ln, p1 - 1)))
+                file = _TRIM$(MID$(ln, p1 + 1, p2 - p1 - 1))
+                sz = VAL(_TRIM$(MID$(ln, p2 + 1)))
+                h = 0
+                IF LEN(file) > 0 AND sz > 0 THEN
+                    path = "assets/fonts/ui/" + file
+                    '--- combat/hud carry bars + aligned columns, so force MONOSPACE (even cells);
+                    '    prose regions (label/message/menu) stay proportional for a natural flow ---
+                    DIM style AS STRING
+                    IF region = "combat" OR region = "hud" THEN style = "MONOSPACE" ELSE style = ""
+                    IF _FILEEXISTS(path) THEN h = _LOADFONT(path, sz, style)
+                END IF
+                SELECT CASE region
+                    CASE "label": UIF_LABEL = h
+                    CASE "message": UIF_MSG = h
+                    CASE "combat": UIF_COMBAT = h
+                    CASE "menu": UIF_MENU = h
+                    CASE "hud": UIF_HUD = h
+                END SELECT
+            END IF
+        END IF
+    LOOP
+    CLOSE #f
+END SUB
+
+' Wrap a block of text drawing: UIFontOn sets a region font (0 = keep the grid font),
+' UIFontOff restores the built-in 8x16 grid font (handle CH). Always pair them.
+SUB UIFontOn (h AS LONG)
+    IF h <> 0 THEN _FONT h ELSE _FONT CH
+    _DONTBLEND                                     ' hard-edged glyphs (no antialias fringe) -- crisper pixel fonts
+END SUB
+SUB UIFontOff
+    _BLEND                                         ' restore normal blending (the vignette + sprites need it)
+    _FONT CH
 END SUB
 
 

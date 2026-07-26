@@ -111,14 +111,46 @@ FUNCTION LabelInRoom% (si AS INTEGER, rm AS INTEGER)
     NEXT ddy
 END FUNCTION
 
-' First-entry atmosphere for room rm: a named room gets a deep windowed
-' description; an ordinary room a one-line typewriter subtitle for its level.
+' Bind each named-room label to ITS chamber, once the board's rooms exist (called at
+' the end of RandomizeRooms). A label sits on the path just outside its chamber, often
+' with small side rooms just as close -- so "nearest room cell" picked the wrong one and
+' the crawl fired in a side room. Instead, tally the room cells in a window around the
+' label and take the DOMINANT room: the big chamber the label names wins over a small
+' neighbour that merely sits closer. SP_ROOM(si) = that room (0 = none found).
+SUB BindSpecialRooms
+    DIM si AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, rm AS INTEGER, r AS INTEGER
+    DIM tally(1 TO 400) AS INTEGER, best AS INTEGER, bestn AS INTEGER, secOf AS INTEGER
+    FOR si = 1 TO SP_N
+        secOf = SECTOR.get_by_xy(SP_X(si) * CW, SP_Y(si) * CH)   ' the label's own LEVEL -- stay on it
+        FOR r = 1 TO ROOM_N: tally(r) = 0: NEXT
+        ' window biased right + down: labels sit at the top-left of their chamber
+        FOR dy = -3 TO 11
+            FOR dx = -7 TO 13
+                nx = SP_X(si) + dx: ny = SP_Y(si) + dy
+                IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
+                    rm = ROOMAT(nx, ny)
+                    IF rm >= 1 AND rm <= ROOM_N THEN
+                        IF ROOMS(rm).cells >= 4 THEN IF secOf = 0 OR ROOMS(rm).sec = secOf THEN tally(rm) = tally(rm) + 1
+                    END IF
+                END IF
+            NEXT
+        NEXT
+        best = 0: bestn = 0
+        FOR r = 1 TO ROOM_N
+            IF tally(r) > bestn THEN bestn = tally(r): best = r
+        NEXT
+        SP_ROOM(si) = best
+    NEXT si
+END SUB
+
+' First-entry atmosphere for room rm: a named room gets a deep windowed description
+' (with its location art, if any); an ordinary room a one-line typewriter subtitle.
 SUB RoomFlavor (rm AS INTEGER)
     DIM i AS INTEGER, si AS INTEGER, lvl AS INTEGER, deep AS INTEGER
     IF rm < 1 OR rm > ROOM_N THEN EXIT SUB
     si = 0
     FOR i = 1 TO SP_N
-        IF LabelInRoom(i, rm) THEN si = i: EXIT FOR
+        IF SP_ROOM(i) = rm THEN si = i: EXIT FOR       ' this room was bound to a named label
     NEXT i
     ' NOTE: BASIC's AND does not short-circuit -- SP_FN(si) must be read INSIDE
     ' IF si > 0, never as "si > 0 AND SP_FN(si)" (that indexes SP_FN(0) -> crash).
@@ -126,7 +158,7 @@ SUB RoomFlavor (rm AS INTEGER)
     IF si > 0 THEN IF SP_FN(si) > 0 THEN deep = -1
     IF deep THEN
         Sfx "key"                                          ' a chime marks a named/special room
-        ScrollText _TRIM$(SP_KEY(si)), SP_FLAV(si, RollDie(SP_FN(si)))
+        ScrollTextArt _TRIM$(SP_KEY(si)), SP_FLAV(si, RollDie(SP_FN(si))), SpecialSprite$(SP_KEY(si))
         cursor_erase: cursor_draw: DrawHUD: _DISPLAY
     ELSE
         lvl = ROOMS(rm).sec: IF lvl < 1 OR lvl > 9 THEN lvl = 1

@@ -151,5 +151,5 @@ SUB EndPlayerTurn
         cursor_erase: cursor_draw
         AnnounceTurn cur_player
     END IF
-    need_roll = TRUE
+    StartTurnMove
 END SUB

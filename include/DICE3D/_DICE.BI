@@ -109,6 +109,17 @@ DIM SHARED DICE3D_UPRIGHT AS INTEGER
 '    software box-buffer renderer. present() branches on this.
 DIM SHARED DICE3D_HW AS INTEGER
 DIM SHARED DICE3D_HWATLAS AS LONG   ' hardware (_COPYIMAGE ,33) atlas; built lazily, freed by the caller
+DIM SHARED DICE3D_HL AS LONG        ' hardware white sheen tile for the read-face highlight (built lazily)
+DIM SHARED DICE3D_HL_SW AS LONG     ' software white sheen tile (software render path)
+
+'--- Directional-light shading: baked into the atlas as opaque brightness COLUMNS (see
+'    dice3d_make_atlas). Column 0 = full bright, column NLEV-1 = darkest (MAXDARK black over
+'    it). The renderer picks a per-face level and offsets the source U by level*DICE3D_TILE.
+'    Opaque pixels only -- NO translucent overlays, which some GL drivers drop when a
+'    semi-transparent tile is uploaded via _COPYIMAGE(,33) (they render invisible).
+CONST DICE3D_LIGHT_NLEV = 12 '      brightness columns (finer = smoother gradient across a rounded bevel)
+CONST DICE3D_LIGHT_MAXDARK = .62
+CONST DICE3D_LIGHT_TINT = .55 '     max colour wash on the most-lit column (scaled by LIGHT_KOLOR saturation)
 DIM SHARED DICE3D_HW_S AS SINGLE    ' GPU units per model unit (die on-screen size)
 DIM SHARED DICE3D_HW_Z AS SINGLE    ' base view depth (negative; ~-5)
 DIM SHARED DICE3D_HW_CX AS SINGLE   ' GPU x of the tray centre (0 = screen centre)
@@ -123,6 +134,12 @@ DIM SHARED DICE3D_SND_VOL AS SINGLE
 '    if the die renders smaller (e.g. hardware dice render small but want a crisp hi-res
 '    atlas so numbers stay sharp). 0 = bake at the config's DIE_SIZE.
 DIM SHARED DICE3D_ATLAS_DIE AS SINGLE
+
+'--- Geometric edge bevel (rounded dice): 0 = sharp polyhedron (original mesh). > 0 insets each
+'    numbered face toward its centroid by this fraction and fills the frame with real bevel-strip
+'    + vertex-cap geometry, so the EDGES are physically chamfered (not a texture trick). Set by
+'    the caller before dice3d_build (it rebuilds the mesh). ~0.12-0.22 reads as a nice round. ---
+DIM SHARED DICE3D_BEVEL AS SINGLE
 
 '--- Optional frame capture (debugging / recording; 0 = off) -------------------
 DIM SHARED DICE3D_SHOT_EVERY AS INTEGER '  save box buffer every N frames

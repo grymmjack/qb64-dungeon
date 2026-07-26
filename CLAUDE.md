@@ -10,7 +10,9 @@ sectors, collision) is driven by sampling the pixels of that rendered art rather
 separate tile data model.
 
 **Design basis: TSR's _Dungeon!_ board game (1975).** Treat its mechanics as the rules
-reference. Original: 6 levels (deeper = tougher monsters / richer treasure); classes with
+reference — [DUNGEON-RULES.md](DUNGEON-RULES.md) is the full plain-text rules summary (movement,
+combat, items, the Monster Attack Table) mapped to the code, and is what **Oldschool mode**
+(`opt_oldschool`) reproduces. Original: 6 levels (deeper = tougher monsters / richer treasure); classes with
 different treasure-to-win goals (Hero 10k GP, Elf 10k + 2× secret-door odds, Superhero
 20k, Wizard 30k with ranged/teleport magic); combat = move onto a monster and roll 2d6 vs
 the monster's number; treasure sits under the monster; win by returning to the start
@@ -78,9 +80,10 @@ Environment specifics that dictate this approach:
   bottom-`'$INCLUDE`'d modules: **`include/SECTOR.bas`** (sector geometry + monster/treasure/
   class data + `RandomizeRooms`), **`include/BOARD.bas`** (board render, fog-of-war, secret
   doors, pixel-colour collision), **`include/CURSOR.bas`** (movement + draw/erase), and
-  **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound), and
+  **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound),
   **`include/LORDS.bas`** (persistent hall of fame + LOAD A CHARACTER, saved to the git-ignored
-  `dungeon-lords.dat`). QB64 resolves
+  `dungeon-lords.dat`), and **`include/CHRONICLE.bas`** (the in-game **Game Menu** `[M]` reference
+  suite). QB64 resolves
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
   the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
@@ -143,6 +146,32 @@ Environment specifics that dictate this approach:
   room's contents). A `[C]` character sheet (`ShowCharSheet`) lists class, gold, key, and
   items. All events route through the `Sfx` dispatcher. Build/run from the repo root (asset
   paths are `assets/...`, not `../assets/...`).
+- **Chronicle / Game Menu (`[M]`)** (`include/CHRONICLE.bas`). A per-run journal + reference
+  suite: `GameMenu` opens **Character Sheet / Game Summary / Event Log / Bestiary / Treasury /
+  Rules / Controls / Resume**. All counters live in `DUNGEON.BI` (`g_rooms_explored`,
+  `g_monsters_slain`, `g_crits`, …, the `BEAST_*`/`TRE_*` tallies, and the `EVLOG()` single-line
+  event log); `ChronicleReset` zeroes them each run **and seeds the Bestiary with the full 27-monster
+  roster** (so unmet monsters still list at 0). Gameplay feeds them through `Record*` hooks —
+  `RecordEnterRoom`/`RecordEncounter`/`RecordKill`/`RecordFled`/`RecordDeath`/`RecordLootRescue`/
+  `RecordTreasure`/`RecordItem`/`RecordSecret`/`RecordWander`/`RecordCrit`/`RecordFumble`/
+  `RecordLevelDone` — placed at the matching moments in `DoCombat`/`DoCombatDnD`/`ClaimTreasure`/
+  `DropEverything`/`CollectDrop`/`WanderEncounter`/`DoSearch`/the play loop. **Gotcha:** `DoCombat`
+  already calls `RecordEncounter` for every fight (rooms AND wander slots), so `RecordWander` must
+  NOT re-bump `BEAST_ENC` or wanderers double-count. **Curios/traps** feed the chronicle too:
+  `CurioGain` (CURIO.bas's gains route through it instead of bare `LogTreasure`) does
+  `LogTreasure` + `RecordTreasure` + `LogEvent`, and `RecordCurio`/`RecordTrap` log the encounter
+  and the save outcome — so curio spoils show in the **Treasury** and everything shows in the
+  **Event Log**. The Treasury (`ShowTreasury`) is a Bestiary-style lightbar with a framed treasure
+  IMAGE per row via `TreasureSprite$`/`TreBase$` (SPRITES.bas): normalise the name (drop
+  `(+1)`/`(spare)` qualifiers, keep plurals), try `assets/pixel-art/treasures/` then `items/`, then
+  keyword fallbacks (`InStrAny%`) for gems/cups/coffers/coins/gear. `ShowRules` reads
+  `DUNGEON-RULES.md`, folds its typographic UTF-8 to ASCII (`Utf8ToAscii$`/`SubstAll$` — the CP437
+  grid font renders each UTF-8 byte as a separate DOS glyph otherwise), strips `**`/`` ` `` markdown,
+  and is also reachable from the title screen via `[R]`. The **Lords of Legend** screen (`include/LORDS.bas`,
+  `ShowLordDetail`) now carries a **v3** record (`…|ab|mapid|events`): `ShowEnd` snapshots the final
+  board to `dungeon-lords-map-<mapid>.png` before name-entry, and `SaveLord` persists that id + the
+  last ~180 events (joined by `" ~~ "`); the detail view adds `[E]` chronicle log (`ShowLordLog`) and
+  `[M]` map-at-escape (`ShowLordMap`) beside the existing ability/per-level character sheet.
 - **Line-of-sight fog-of-war** (SETTINGS **Line of Sight**, `opt_fov`, default off). Separate
   from the secret-door fog: `LOS_LIT` (in sight now) + `LOS_SEEN` (ever explored) masks.
   `ComputeFOV` casts Bresenham rays (`CastRay`) from the player out to a radius, each stopping
@@ -189,6 +218,18 @@ Environment specifics that dictate this approach:
   so each monster/class gets biology-appropriate hit/miss/crit/fumble/death lines. All flavor
   supports `{mon} {player} {class} {dmg} {deaths} {level} {room} {treasure} {weapon}` tokens
   via `Fill$`; combat sets the `FX_*` context globals before each line.
+- **Configurable UI fonts** — `assets/data/ui-fonts.txt` (`region | fontfile | size`) maps UI
+  regions to TrueType fonts in `assets/fonts/ui/`, loaded by `LoadUIFonts` into `UIF_*` handles
+  (0 = the built-in 8×16 grid font, handle `CH`). Wrap a draw block with `UIFontOn h` /
+  `UIFontOff` (restores `CH`). Applied to room labels (`PutLabel`), the combat panel
+  (`DrawCombatPanel`, loaded MONOSPACE so HP bars stay even), and message banners (`Banner`).
+  `PrintCentered` centres by `_PRINTWIDTH` (pixel-accurate for proportional fonts; unchanged for
+  the grid font, where `_PRINTWIDTH` = `LEN*8`). The board ANSI art itself stays the fixed grid.
+- **Near-death juice layering** (`include/JUICE.bas`): the blood/vignette (`DrawWounds`) is drawn
+  in `cursor_erase` right after the board art and **before** `render_room_labels`, so labels /
+  tokens / HUD / combat panel all render on top (board → blood → text). The vignette is a soft
+  RADIAL gaussian: `InitVignette` pre-bakes `NVIG` low-res overlays (a near-death ramp) once, and
+  `DrawWounds` stretch-blits the level-appropriate one each frame (`VIG()`).
 
 [assets/README.md](assets/README.md) is the player/modder-facing map of every editable
 asset (data tables, flavor prose, music playlist, sound effects) with formats and the
@@ -263,6 +304,27 @@ character `Q` printed in the d20 font:
   (the one place the three `_FULLSCREEN` sites route through): on = `_FULLSCREEN _SQUAREPIXELS,
   _SMOOTH` (bilinear — soft, and it makes the tumbling dice shimmer); off = `_FULLSCREEN
   _SQUAREPIXELS` (crisp pixel-doubling, which suits the ANSI/text art and kills the shimmer).
+- **3D dice top-light** (the DICE3D `LIGHT_*` config fields): a view-space Lambert directional
+  light shades each face by `ambient + (1-ambient)*max(0, N·L)` so top-facing surfaces catch
+  light and the dice read as solid 3D (and the **d4's apex** — its read point — is lit, which the
+  read-face sheen can't do since a d4's value face is its hidden base). `_MAPTRIANGLE` can't tint
+  a texture, and translucent overlays are unreliable (some GL drivers drop a semi-transparent
+  `_COPYIMAGE(,33)` tile to invisible — the first attempt showed nothing on the reporter's GPU).
+  So the shading is baked **into the atlas as opaque brightness COLUMNS**: `dice3d_make_atlas`
+  lays out `DICE3D_LIGHT_NLEV` copies of each face tile left→right, column 0 full-bright and each
+  next column darker (opaque black over it, up to `DICE3D_LIGHT_MAXDARK`); the renderers compute a
+  per-face level (`dice3d_shade_level`) and add `level*DICE3D_TILE` to the source U — opaque
+  sampling, identical on the software and hardware paths, GL-safe. (The 12px UV `MARGIN` keeps the
+  face polygon off the column seams, so `_SMOOTH` never bleeds between brightness columns. Copy
+  column 0 through a scratch tile — `_PUTIMAGE` image-onto-itself is an illegal call.) The
+  set-loader seeds on-defaults so sets predating the keys still light up. The SETTINGS **Dice
+  Light** slider (`opt_dicelight` 0 Off/1 Soft/2 Normal/3 Strong) drives `ApplyDiceLight`, which
+  overrides `LIGHT_ENABLED`/`AMBIENT`/`INTENSITY` per roll and per preview (direction stays from
+  the set); those map to which columns get sampled, so toggling needs no atlas rebake.
+  **d4 read pose:** a d4 is a **top-read** tetra —
+  the value is on the hidden base and repeats at the top apex, so `dice3d_showcase` seats the
+  value face DOWN with `Rx(90 + CAM_TILT - 4) * FACE_Q(f)` (NOT `FACE_Q(f)` alone, which would
+  point it at the camera and misread). The game renders the d4 at `CAM_TILT=85`, other dice at 21.5.
 
 ## QB64PE conventions in this codebase
 

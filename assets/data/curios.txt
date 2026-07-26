@@ -1,0 +1,23 @@
+# CURIO EVENTS  --  kind | name | weight | discovery prompt
+#
+# A curio is a small surprise found after clearing a room (CHEST_PCT) or, more rarely,
+# out on the paths while exploring.  `kind` is the mechanic (lives in code, CURIO.bas);
+# name / weight / prompt are data -- edit them and press F5.  Higher weight = more common.
+# Remove a line to drop that curio from the deck; add a line to re-use a kind with new text.
+#
+# NOTE: curios use HP / potions / status, so they are a D&D-mode feature (Oldschool skips them).
+#
+# kind     | name              | weight | prompt
+chest      | Curio Chest       | 20 | A CURIO CHEST sits half-buried in the rubble!
+fountain   | Wishing Fountain  | 12 | A still FOUNTAIN glimmers with dark, waiting water.
+shrine     | Forgotten Shrine  | 10 | A moss-grown SHRINE to some forgotten god broods in the gloom.
+gamble     | Gambler's Altar   |  9 | A skull-carved ALTAR hums -- bone dice sit frozen mid-throw upon it.
+peddler    | Hooded Peddler    |  9 | A HOODED PEDDLER melts out of the shadows, wares held open.
+idol       | Cursed Idol       |  9 | A leering IDOL squats in an alcove, one eye a fat, winking ruby.
+corpse     | Fallen Adventurer | 11 | A long-dead ADVENTURER slumps against the wall, pack still intact.
+mushroom   | Glowing Mushrooms | 10 | A fairy-ring of luminous MUSHROOMS pulses with soft light.
+obelisk    | Rune Obelisk      |  8 | A rune-carved OBELISK thrums with old, buried power.
+cache      | Weapon Cache      |  8 | A half-buried WEAPON CACHE glints with oiled, unrusted steel.
+# the MIMIC masquerades as an ordinary Curio Chest -- name/art/prompt give NOTHING away;
+# it only reveals itself (and becomes a fight) when you open it.  Keep this looking like a chest.
+mimic      | Curio Chest       |  6 | A CURIO CHEST rests here, lid shut, half-sunk in the dust.

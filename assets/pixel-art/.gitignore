@@ -1,0 +1,2 @@
+# raw pixelmon outputs -- the game loads the clean <name>.png copies, which we commit
+*_sprite_*.png
