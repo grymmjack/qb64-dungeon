@@ -157,8 +157,17 @@ Environment specifics that dictate this approach:
   `RecordLevelDone` — placed at the matching moments in `DoCombat`/`DoCombatDnD`/`ClaimTreasure`/
   `DropEverything`/`CollectDrop`/`WanderEncounter`/`DoSearch`/the play loop. **Gotcha:** `DoCombat`
   already calls `RecordEncounter` for every fight (rooms AND wander slots), so `RecordWander` must
-  NOT re-bump `BEAST_ENC` or wanderers double-count. `ShowRules` reads `DUNGEON-RULES.md` and is also
-  reachable from the title screen via `[R]`. The **Lords of Legend** screen (`include/LORDS.bas`,
+  NOT re-bump `BEAST_ENC` or wanderers double-count. **Curios/traps** feed the chronicle too:
+  `CurioGain` (CURIO.bas's gains route through it instead of bare `LogTreasure`) does
+  `LogTreasure` + `RecordTreasure` + `LogEvent`, and `RecordCurio`/`RecordTrap` log the encounter
+  and the save outcome — so curio spoils show in the **Treasury** and everything shows in the
+  **Event Log**. The Treasury (`ShowTreasury`) is a Bestiary-style lightbar with a framed treasure
+  IMAGE per row via `TreasureSprite$`/`TreBase$` (SPRITES.bas): normalise the name (drop
+  `(+1)`/`(spare)` qualifiers, keep plurals), try `assets/pixel-art/treasures/` then `items/`, then
+  keyword fallbacks (`InStrAny%`) for gems/cups/coffers/coins/gear. `ShowRules` reads
+  `DUNGEON-RULES.md`, folds its typographic UTF-8 to ASCII (`Utf8ToAscii$`/`SubstAll$` — the CP437
+  grid font renders each UTF-8 byte as a separate DOS glyph otherwise), strips `**`/`` ` `` markdown,
+  and is also reachable from the title screen via `[R]`. The **Lords of Legend** screen (`include/LORDS.bas`,
   `ShowLordDetail`) now carries a **v3** record (`…|ab|mapid|events`): `ShowEnd` snapshots the final
   board to `dungeon-lords-map-<mapid>.png` before name-entry, and `SaveLord` persists that id + the
   last ~180 events (joined by `" ~~ "`); the detail view adds `[E]` chronicle log (`ShowLordLog`) and
