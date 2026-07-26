@@ -17,7 +17,7 @@ $INCLUDEONCE
 
 CONST DICE3D_TILE = 128
 CONST DICE3D_MARGIN = 12
-CONST DICE3D_BEVEL_SEG = 3 '        bevel arc segments per edge (>1 = soft rounded, not a flat chamfer)
+CONST DICE3D_BEVEL_SEG = 5 '        bevel arc segments per edge (more = smoother round)
 
 ''
 ' Fill DICE3D_MV / DICE3D_NV with a die's vertices, normalized to circumradius 1.

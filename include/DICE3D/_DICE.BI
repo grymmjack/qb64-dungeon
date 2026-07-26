@@ -117,7 +117,7 @@ DIM SHARED DICE3D_HL_SW AS LONG     ' software white sheen tile (software render
 '    it). The renderer picks a per-face level and offsets the source U by level*DICE3D_TILE.
 '    Opaque pixels only -- NO translucent overlays, which some GL drivers drop when a
 '    semi-transparent tile is uploaded via _COPYIMAGE(,33) (they render invisible).
-CONST DICE3D_LIGHT_NLEV = 6
+CONST DICE3D_LIGHT_NLEV = 12 '      brightness columns (finer = smoother gradient across a rounded bevel)
 CONST DICE3D_LIGHT_MAXDARK = .62
 CONST DICE3D_LIGHT_TINT = .55 '     max colour wash on the most-lit column (scaled by LIGHT_KOLOR saturation)
 DIM SHARED DICE3D_HW_S AS SINGLE    ' GPU units per model unit (die on-screen size)
