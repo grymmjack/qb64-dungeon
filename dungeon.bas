@@ -314,6 +314,7 @@ FUNCTION PlayGame%
                         IF sec >= 1 THEN
                             IF NOT ROOMS(sec).seen THEN
                                 ROOMS(sec).seen = TRUE     ' entering reveals this room's monster on the board
+                                RecordEnterRoom            ' chronicle: rooms explored
                                 RoomFlavor sec             ' first-entry atmosphere (special or level one-liner)
                             END IF
                             ' a monster guards this room's treasure?
@@ -1164,6 +1165,7 @@ END FUNCTION
 SUB GrantLevelClear (lvl AS INTEGER)
     DIM hpgain AS INTEGER, got AS STRING
     lvl_cleared(lvl) = TRUE
+    RecordLevelDone lvl                             ' chronicle: levels completed
     Sfx "win"
     Banner "The " + Ordinal$(lvl) + " level is CLEARED!", "Every lair on this floor lies empty -- it is a safe haven now.   [ press any key ]"
     CombatPause
