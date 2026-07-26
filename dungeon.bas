@@ -196,8 +196,9 @@ FUNCTION PlayGame%
     DrawHUD: _DISPLAY
 
     DIM startlvl AS INTEGER                        ' start this level's music before the first step
-    music_level = 0: music_curfile = ""
+    StopLevelMusic                                 ' kill any leftover track (last run/menu) so it can't linger if the start sector has none
     startlvl = SECTOR.get_by_xy(c.x, c.y): IF startlvl < 1 THEN startlvl = 1
+    IF LEN(_TRIM$(MUSIC_FILE(startlvl))) = 0 THEN startlvl = 1   ' start sector has no track -> fall back to level 1's
     PlayLevelMusic startlvl
 
     DO
@@ -1193,6 +1194,11 @@ SUB UsePotion (silentIfNone AS INTEGER)
             Banner "You have no healing potions.", "Slay monsters and clear floors to find them.   [ press any key ]"
             WaitKey
         END IF
+        EXIT SUB
+    END IF
+    IF player_hp >= player_maxhp THEN               ' already full -- don't waste a potion
+        Banner "The darkness chills your exposed skin and you reach for a swig of your potion,", "but realize before drinking that you are fully healthy -- you put it away for later.   [ press any key ]"
+        WaitKey
         EXIT SUB
     END IF
     which = 0

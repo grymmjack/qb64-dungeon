@@ -90,6 +90,7 @@ SUB DoCurio (rm AS INTEGER)
     NEXT
     kd = _TRIM$(CURIOS(pick).kind)
     Sfx "treasure"
+    cursor_erase: cursor_draw: DrawHUD                  ' fresh board + row-50 status line UNDER the curio art/banner (was hidden during the interaction)
     DrawCurioArt kd, _TRIM$(CURIOS(pick).nm)            ' pixel-art: the curio's prop, framed top-left (persists behind the banner)
     Banner _TRIM$(CURIOS(pick).prompt), CurioHint$(kd)
     SELECT CASE kd
