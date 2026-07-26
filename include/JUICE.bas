@@ -48,7 +48,13 @@ SUB InitJuice
             CASE 2: BLOOD_X(i) = INT(RND * SW * CW * 0.18): BLOOD_Y(i) = INT(RND * SH * CH)
             CASE ELSE: BLOOD_X(i) = SW * CW - INT(RND * SW * CW * 0.18): BLOOD_Y(i) = INT(RND * SH * CH)
         END SELECT
-        BLOOD_R(i) = INT(RND * 9) + 3
+        BLOOD_R(i) = INT(RND * 12) + 4
+    NEXT
+    '--- drips run down from the top edge: a random x, length, and thickness each ---
+    FOR i = 1 TO NDRIP
+        DRIP_X(i) = INT(RND * (SW * CW - 8)) + 4
+        DRIP_LEN(i) = INT(RND * (SH * CH * 0.5)) + INT(SH * CH * 0.06)
+        DRIP_W(i) = INT(RND * 3) + 2
     NEXT
 END SUB
 
@@ -63,8 +69,8 @@ SUB InitVignette
     vw = 200: vh = 154 '                low-res; the vignette is low-frequency so the stretch is invisible
     cx = vw / 2: cy = vh / 2: maxD = SQR(cx * cx + cy * cy)
     FOR lv = 0 TO NVIG - 1
-        inner = 0.58 - 0.46 * (lv / (NVIG - 1)) '   clear centre shrinks as the wound deepens
-        maxA = 60 + 150 * (lv / (NVIG - 1)) '        edge darkness grows
+        inner = 0.60 - 0.50 * (lv / (NVIG - 1)) '   clear centre 0.60 -> 0.10: closes in tight near death
+        maxA = 90 + 145 * (lv / (NVIG - 1)) '        edge darkness 90 -> 235: heavier, more obvious
         VIG(lv) = _NEWIMAGE(vw, vh, 32)
         m = _MEMIMAGE(VIG(lv))
         FOR y = 0 TO vh - 1
@@ -147,6 +153,11 @@ SUB DrawWounds
     IF a > 6 THEN
         FOR i = 1 TO NBLOOD
             FillDisc BLOOD_X(i), BLOOD_Y(i), BLOOD_R(i), _RGB32(110, 8, 10, a)
+        NEXT
+        '--- drips run down from the top edge: a dark streak with a brighter drop at the tip ---
+        FOR i = 1 TO NDRIP
+            LINE (DRIP_X(i) - DRIP_W(i) \ 2, 0)-(DRIP_X(i) + DRIP_W(i) \ 2, DRIP_LEN(i)), _RGB32(95, 6, 8, a), BF
+            FillDisc DRIP_X(i), DRIP_LEN(i), DRIP_W(i) + 2, _RGB32(140, 14, 16, a)
         NEXT
     END IF
 END SUB

@@ -339,12 +339,14 @@ DIM SHARED opt_gestures AS INTEGER     ' SETTINGS "Action Gestures": timing-bar 
 DIM SHARED gauge_quality AS SINGLE     ' 0..1 closeness to dead-centre on the last gesture lock
 DIM SHARED opt_juice AS INTEGER        ' SETTINGS "Screen Effects": hit-shake, blood/poison splatter, near-death vignette
 DIM SHARED FX_BUF AS LONG              ' offscreen snapshot buffer for the screen-shake blit
-CONST NBLOOD = 40                      ' fixed blood-grime spatter spots (near-death overlay)
+CONST NBLOOD = 64                      ' fixed blood-grime spatter spots (near-death overlay)
 DIM SHARED BLOOD_X(1 TO NBLOOD) AS INTEGER, BLOOD_Y(1 TO NBLOOD) AS INTEGER, BLOOD_R(1 TO NBLOOD) AS INTEGER
 CONST NVIG = 10                        ' pre-baked soft RADIAL vignette overlays (a HP-ramp; stretched per frame)
 DIM SHARED VIG(0 TO NVIG - 1) AS LONG
 CONST BLOOD_ALPHA_MAX = 200            ' near-death blood-grime opacity at full strength (SETTINGS "Blood" scales it)
 DIM SHARED opt_bloodstrength AS INTEGER ' SETTINGS "Blood": near-death blood-grime intensity 0 (none) .. 10 (max)
+CONST NDRIP = 16                       ' blood drips running down from the top edge (near-death overlay)
+DIM SHARED DRIP_X(1 TO NDRIP) AS INTEGER, DRIP_LEN(1 TO NDRIP) AS INTEGER, DRIP_W(1 TO NDRIP) AS INTEGER
 
 ' Configurable UI fonts (assets/data/ui-fonts.txt -> LoadUIFonts): a _LOADFONT handle per UI
 ' region, 0 = keep the built-in 8x16 grid font (CH). Apply with UIFontOn h / UIFontOff.
