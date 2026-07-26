@@ -1188,7 +1188,7 @@ SUB DrawHUD
     ' a result banner (the HUD line is row 50, the panel rows 39-49 -- no overlap).
     ' In combat the panel draws its own near-death vignette (+ _DISPLAY); on the board
     ' there's no panel, so draw the wounds overlay here. (Avoids a double-darken.)
-    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead ELSE DrawWounds
+    IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead   ' wounds now drawn in cursor_erase, under everything
 END SUB
 
 

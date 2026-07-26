@@ -870,7 +870,6 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
         PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     END IF
     DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
-    DrawWounds                                  ' near-death vignette + blood grime (no-op above half HP)
     _DISPLAY
 END SUB
 

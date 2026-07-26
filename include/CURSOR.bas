@@ -64,6 +64,7 @@ SUB cursor_erase
     ELSE
         _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), CANVAS_COPY, CANVAS, (0, 0)-(SW * CW - 1, SH * CH - 1)
     END IF
+    DrawWounds                                     ' near-death blood/vignette: on the MAP, UNDER the labels/tokens/HUD/panel
     render_room_labels
 END SUB
 
