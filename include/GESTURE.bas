@@ -20,7 +20,7 @@ CONST GESTURE_FUSE = 1.7          ' seconds on the countdown -- tight: about one
 ' Run the timing gauge. title/prompt frame it; depth (1-9) narrows the zones. Returns
 ' the zone locked: 2 crit, 1 hit, 0 miss, -1 fuse expired (no lock). Sets gauge_quality
 ' (0..1 = closeness to dead-centre) for callers that want to reward precision.
-FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, depth AS INTEGER)
+FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth AS INTEGER)
     DIM phase AS SINGLE, p AS SINGLE, d AS SINGLE, spd AS SINGLE, df AS SINGLE
     DIM critHW AS SINGLE, hitHW AS SINGLE, t0 AS SINGLE, fuseLeft AS SINGLE
     DIM k AS STRING, z AS INTEGER, locked AS INTEGER, lockP AS SINGLE, fl AS SINGLE
@@ -38,7 +38,7 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, depth AS INTEGER)
         IF fuseLeft <= 0 THEN GaugeLock% = -1: EXIT FUNCTION
         phase = phase + spd
         p = (SIN(phase) + 1) / 2
-        DrawGauge title, prompt, p, critHW, hitHW, fuseLeft / GESTURE_FUSE
+        DrawGauge title, prompt, swMode, p, critHW, hitHW, fuseLeft / GESTURE_FUSE
         _DISPLAY
         _LIMIT 60
         k = INKEY$
@@ -62,7 +62,7 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, depth AS INTEGER)
             END IF
             fl = TIMER
             DO
-                DrawGauge title, GaugeResult$(z), p, critHW, hitHW, fuseLeft / GESTURE_FUSE
+                DrawGauge title, GaugeResult$(z, swMode), swMode, p, critHW, hitHW, fuseLeft / GESTURE_FUSE
                 DrawGaugeLock p, z
                 _DISPLAY: _LIMIT 60
             LOOP UNTIL TIMER - fl >= 0.6
@@ -72,17 +72,21 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, depth AS INTEGER)
     LOOP
 END FUNCTION
 
-FUNCTION GaugeResult$ (z AS INTEGER)
-    SELECT CASE z
-        CASE 2: GaugeResult$ = "** CRIT! **"
-        CASE 1: GaugeResult$ = "-- HIT --"
-        CASE ELSE: GaugeResult$ = "MISS"
-    END SELECT
+FUNCTION GaugeResult$ (z AS INTEGER, swMode AS INTEGER)
+    IF swMode THEN                                ' SECOND WIND: purple = rise, anything else = you fall
+        IF z = 2 THEN GaugeResult$ = "** RISE! **" ELSE GaugeResult$ = "TOO SLOW..."
+    ELSE
+        SELECT CASE z
+            CASE 2: GaugeResult$ = "** CRIT! **"
+            CASE 1: GaugeResult$ = "-- HIT --"
+            CASE ELSE: GaugeResult$ = "MISS"
+        END SELECT
+    END IF
 END FUNCTION
 
 ' Paint the gauge: a framed panel with the fuse bar, the layered zones (dark miss /
 ' green hit / purple crit), the sweeping marker, and the caption/labels.
-SUB DrawGauge (title AS STRING, prompt AS STRING, p AS SINGLE, critHW AS SINGLE, hitHW AS SINGLE, fuseFrac AS SINGLE)
+SUB DrawGauge (title AS STRING, prompt AS STRING, swMode AS INTEGER, p AS SINGLE, critHW AS SINGLE, hitHW AS SINGLE, fuseFrac AS SINGLE)
     DIM bx AS INTEGER, bw AS INTEGER, by AS INTEGER, bh AS INTEGER
     DIM gx AS INTEGER, gw AS INTEGER, gy AS INTEGER, gh AS INTEGER, mxp AS INTEGER
     DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG
@@ -98,13 +102,15 @@ SUB DrawGauge (title AS STRING, prompt AS STRING, p AS SINGLE, critHW AS SINGLE,
     LINE (fx, (by + 5) * CH)-(fx + INT(fw * fuseFrac), (by + 6) * CH - 4), fcol, BF
     ' the gauge bar with layered zones
     gx = (bx + 6) * CW: gw = (bw - 12) * CW: gy = (by + 11) * CH: gh = 3 * CH
-    LINE (gx, gy)-(gx + gw, gy + gh), _RGB32(&H33, &H3B, &H33), BF                                  ' dark = miss
-    LINE (gx + INT((0.5 - hitHW) * gw), gy)-(gx + INT((0.5 + hitHW) * gw), gy + gh), _RGB32(&H2E, &HA0, &H55), BF   ' green = hit
-    LINE (gx + INT((0.5 - critHW) * gw), gy)-(gx + INT((0.5 + critHW) * gw), gy + gh), _RGB32(&HA6, &H66, &HCE), BF ' purple = crit
+    LINE (gx, gy)-(gx + gw, gy + gh), _RGB32(&H33, &H3B, &H33), BF                                  ' dark = miss/fall
+    IF swMode = 0 THEN LINE (gx + INT((0.5 - hitHW) * gw), gy)-(gx + INT((0.5 + hitHW) * gw), gy + gh), _RGB32(&H2E, &HA0, &H55), BF   ' green = hit (crit flourish only)
+    LINE (gx + INT((0.5 - critHW) * gw), gy)-(gx + INT((0.5 + critHW) * gw), gy + gh), _RGB32(&HA6, &H66, &HCE), BF ' purple = crit / second wind
     ' the sweeping marker
     mxp = gx + INT(p * gw)
     LINE (mxp - 1, gy - 8)-(mxp + 2, gy + gh + 8), _RGB32(&HF0, &HEC, &HD0), BF
-    COLOR GREY, BOXBG: PrintCentered by + 16, "purple = crit     green = hit     dark = miss"
+    DIM leg AS STRING
+    IF swMode THEN leg = "purple = SECOND WIND" ELSE leg = "purple = +2 dice     green = +1     dark = +0"
+    COLOR GREY, BOXBG: PrintCentered by + 16, leg
     COLOR CYANU, BOXBG: PrintCentered by + 18, prompt
 END SUB
 
@@ -124,7 +130,7 @@ END SUB
 ' rise (player_hp is set); the caller then simply keeps fighting.
 FUNCTION SecondWind% (mon AS STRING, depth AS INTEGER)
     DIM z AS INTEGER, hp AS INTEGER
-    z = GaugeLock%("FIGHT FOR YOUR LIFE", "SPACE in the PURPLE to rise -- one chance!", depth)
+    z = GaugeLock%("FIGHT FOR YOUR LIFE", "SPACE in the PURPLE to rise -- one chance!", -1, depth)
     IF z = 2 THEN
         hp = RollDie(6): player_hp = hp
         Sfx "levelup"
@@ -141,7 +147,7 @@ END FUNCTION
 ' Real Dice / 3D dice all apply). Returns the extra damage to add to the crit.
 FUNCTION CritFlourish% (mon AS STRING, depth AS INTEGER)
     DIM z AS INTEGER, xn AS INTEGER
-    z = GaugeLock%("CRITICAL FLOURISH!", "SPACE to land the follow-through", depth)
+    z = GaugeLock%("CRITICAL FLOURISH!", "SPACE to land the follow-through", 0, depth)
     xn = 0
     IF z = 2 THEN xn = 2
     IF z = 1 THEN xn = 1
