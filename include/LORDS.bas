@@ -273,22 +273,21 @@ SUB ShowLordLog (nm AS STRING, evfield AS STRING)
 END SUB
 
 
-' Show a lord's map-at-escape PNG snapshot, scaled to fit the screen.
+' Show a lord's map-at-escape PNG snapshot. The map is saved at the full screen
+' resolution, so blit it 1:1 (no scaling) -- a fractional _PUTIMAGE stretch is
+' nearest-neighbour and drops rows/cols unevenly ("crunched" text/lines). The title
+' and footer just overlay the map's outer frame (their black text-cells cover almost
+' nothing). If a record's map is some other size, centre it 1:1 rather than distort.
 SUB ShowLordMap (nm AS STRING, mapkey AS STRING)
-    DIM img AS LONG, iw AS INTEGER, ih AS INTEGER, dw AS INTEGER, dh AS INTEGER
-    DIM sc AS SINGLE, ox AS INTEGER, oy AS INTEGER
+    DIM img AS LONG, iw AS INTEGER, ih AS INTEGER, ox AS INTEGER, oy AS INTEGER
     img = _LOADIMAGE("dungeon-lords-map-" + mapkey + ".png", 32)
     _DEST CANVAS: _FONT CH: CLS , BLACK
-    IF img >= -1 THEN                              ' load failed
+    IF img >= -1 THEN                              ' load failed (-1); valid handles are < -1
         COLOR GREY, BLACK: PrintCentered 24, "(the map for this record could not be found)"
     ELSE
         iw = _WIDTH(img): ih = _HEIGHT(img)
-        '--- fit within the screen leaving a title row + a footer row ---
-        sc = (SW * CW) / iw
-        IF ih * sc > (SH - 4) * CH THEN sc = ((SH - 4) * CH) / ih
-        dw = INT(iw * sc): dh = INT(ih * sc)
-        ox = (SW * CW - dw) \ 2: oy = 2 * CH + ((SH - 4) * CH - dh) \ 2
-        _PUTIMAGE (ox, oy)-(ox + dw - 1, oy + dh - 1), img, CANVAS
+        ox = (SW * CW - iw) \ 2: oy = (SH * CH - ih) \ 2   ' centre; 0,0 when it's screen-sized
+        _PUTIMAGE (ox, oy), img, CANVAS                    ' 1:1 -- crisp, no crunch
         _FREEIMAGE img
         COLOR YELLOWU, BLACK: PrintCentered 1, "-=  " + _TRIM$(nm) + " -- Map at Escape  =-"
     END IF
