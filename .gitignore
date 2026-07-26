@@ -36,9 +36,14 @@ dungeon-stats.csv
 dungeon-save.dat*
 # big lossless render kept locally; the game/playlist uses the .ogg
 assets/music/level2.wav
-# physical rulebook scans -- OCR'd to manuals/*.txt (committed); keep the big scans local
+# physical rulebook + card scans -- OCR'd to manuals/*.txt (committed); keep the big scans local
 Game Manual.pdf
 Introductory Game.pdf
+Monster Cards.pdf
+Treasure Cards.pdf
+Spell Cards.pdf
+Grave and Number.pdf
+BOARD.png
 # Bitwig project files ARE tracked, but its extensionless marker is caught by the
 # top "* / !*.*" rule -- unignore it so the project folder is complete
 !assets/music/bitwig/**/.bitwig-project

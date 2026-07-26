@@ -1,0 +1,53 @@
+DUNGEON!  --  TREASURE CARDS (values, transcribed from "Treasure Cards.pdf")
+
+The deck is 80 cards: many "Sack of Gold" cards of assorted value plus the named gems
+and the special (magic) cards. Values below are the gold printed on each card.
+
+====================================================================
+1st LEVEL
+  Sack of Gold ...... 250 GP
+  Sack of Gold ...... 500 GP
+  Sack of Gold ...... 750 GP
+  Sack of Gold ...... 1,000 GP
+  Magic Sword (+1/+2) ... "Enables bearer to add to combat rolls."  500 GP
+  Secret Door Card ...... "Enables bearer to move through any secret doors on any level."
+
+2nd LEVEL
+  Silver Cup ........ 1,000 GP
+  Silver Ring ....... 2,000 GP
+
+3rd LEVEL
+  Gold Cup .......... 2,500 GP
+  Gold Ring ......... 3,000 GP
+
+4th LEVEL
+  Silver Coffer ..... 4,000 GP
+  Jade Idol ......... 5,000 GP
+  Huge Emerald ...... 5,000 GP
+  Crystal Ball ...... "If not moving or attacking, bearer may check any monster and
+                       treasure (see rules)."  1,000 GP
+
+5th LEVEL
+  Huge Sapphire ..... 6,000 GP
+  Huge Ruby ......... 8,000 GP
+  ESP Medallion ..... "Enables bearer to check Monster Card before fighting (see rules)."  1,500 GP
+
+(higher-value gems seen in the scan)
+  Gold Necklace ..... 9,000 GP
+
+====================================================================
+Cross-check vs assets/data/treasures.txt (classic values):
+  EVERY named treasure the game uses already matches the card value exactly --
+  Silver Cup 1000, Silver Ring 2000, Gold Cup 2500, Gold Ring 3000, Silver Coffer 4000,
+  Jade Idol 5000, Huge Emerald 5000, Huge Sapphire 6000, Huge Ruby 8000, Gold Necklace 9000.
+  (Silver Necklace 7000 / Huge Diamond 10000 are the game's own additions for its extra
+  deep levels; not on the physical cards.)
+
+Differences (left as-is unless we choose to change them):
+  * Sack of Gold: the real deck has FOUR values (250/500/750/1000); the game uses a flat
+    1000. Could add the 250/500/750 variants for authenticity.
+  * The game places treasures ~one level "richer" than the cards (real 1st level = 250-1000
+    sacks; game 1st level = 1000-2000 named gems). This is part of the 9-level expansion.
+  * Magic Sword sells for 500 GP, ESP Medallion 1500 GP, Crystal Ball 1000 GP -- the game
+    already sells a spare Magic Sword for 500; ESP/Crystal gold values could feed the
+    "sell the duplicate" path.

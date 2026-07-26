@@ -1,0 +1,56 @@
+DUNGEON!  --  MONSTER CARDS (kill numbers, transcribed from "Monster Cards.pdf")
+
+Each card lists the 2d6 number you must MEET OR BEAT to slay the monster, per attacker.
+"--" = cannot be slain by that attacker (needs a Magic Sword, or the right spell/melee).
+Columns: Lightning Bolt | Fire Ball | Wizard | Superhero | Hero | Elf
+(The game only uses the four melee columns -- Hero/Elf/Superhero/Wizard; a "--" there = 13.)
+
+====================================================================
+1st LEVEL
+  Giant Rats     Lightning 7   Fire Ball 2   Wizard 6   Superhero 3   Hero 4   Elf 5
+  Hobgoblins     Lightning 3   Fire Ball 3   Wizard 6   Superhero 3   Hero 4   Elf 5
+  Goblins        Lightning 6   Fire Ball 2   Wizard 5   Superhero 2   Hero 4   Elf 3
+  Skeleton       Lightning 2   Fire Ball 2   Wizard 6   Superhero 3   Hero 4   Elf 5
+  Giant Lizard   Lightning 2   Fire Ball 2   Wizard 5   Superhero 2   Hero 4   Elf 5
+
+2nd LEVEL
+  Ghouls         Lightning 3   Fire Ball 3   Wizard 6   Superhero 4   Hero 6   Elf 5
+  Giant Spider   Lightning 3   Fire Ball 3   Wizard 5   Superhero 4   Hero 6   Elf 6
+  Evil Hero      Lightning 4   Fire Ball 5   Wizard 6   Superhero 5   Hero 7   Elf 8
+
+3rd LEVEL
+  Werewolf       Lightning 9   Fire Ball 8   Wizard 7   Superhero 7   Hero 9   Elf 9
+  Ogre           Lightning 5   Fire Ball 4   Wizard 5   Superhero 6   Hero 9   Elf 8
+  Giant Snake    Lightning 5   Fire Ball 6   Wizard 9   Superhero 6   Hero 8   Elf 10
+  Gargoyle       Lightning 4   Fire Ball --  Wizard 6   Superhero 5   Hero 6   Elf 7
+  Mummy          Lightning --  Fire Ball 3   Wizard 8   Superhero 8   Hero 10  Elf 11
+  (TRAP! -- Slide to a Chamber one level deeper.)
+
+4th LEVEL
+  Giant          Lightning 9   Fire Ball 6   Wizard 10  Superhero 9   Hero 11  Elf 10
+  Green Slime    Lightning 6   Fire Ball --  Wizard 11  Superhero 10  Hero 11  Elf 12
+  Troll          Lightning --  Fire Ball 7   Wizard 8   Superhero 8   Hero 10  Elf 9
+
+5th LEVEL
+  Black Pudding  Lightning --  Fire Ball 5   Wizard 12  Superhero 12  Hero 12  Elf --
+  Purple Worm    Lightning 6   Fire Ball 8   Wizard 12  Superhero 10  Hero 11  Elf 12
+  Witch          Lightning 10  Fire Ball 10  Wizard 5   Superhero 9   Hero 11  Elf 11
+  Vampire        Lightning 10  Fire Ball 10  Wizard 9   Superhero 8   Hero 10  Elf 12
+
+6th LEVEL
+  Evil Wizard    Lightning 11  Fire Ball 11  Wizard 7   Superhero 11  Hero 12  Elf --
+  Blue Dragon    Lightning --  Fire Ball 7   Wizard 12  Superhero 10  Hero 12  Elf --
+  Red Dragon     Lightning 8   Fire Ball --  Wizard 12  Superhero 11  Hero --  Elf --
+
+====================================================================
+Notes for classic (Oldschool) mode, in assets/data/monsters.txt
+(fields: lvl | slot | name | HERO | ELF | SUP | WIZ ; "--" -> 13):
+  These melee numbers were cross-checked against monsters.txt. Corrections applied:
+    Giant Rats : Wizard 3 -> 6
+    Hobgoblins : Hero/Elf were swapped (5/4) -> 4/5
+    Ogre       : Wizard 8 -> 5
+    Green Slime: Elf 13 (dash) -> 12  (an Elf CAN slay Green Slime on a 12)
+  Everything else already matched the cards. The game spreads these ~27 monsters
+  across its 9 expanded levels; the deep monsters (Purple Worm, Black Pudding, the
+  Wizard/Dragons) sit on levels 7-9. The Lightning/Fire Ball columns aren't used yet
+  (Wizard spells unimplemented).
