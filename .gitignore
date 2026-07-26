@@ -30,6 +30,7 @@ scratchpads/shots/*.png
 .claude/
 # runtime hall-of-fame save
 dungeon-lords.dat
+dungeon-lords-map-*.png
 dungeon-settings.dat
 dungeon-stats.csv
 dungeon-save.dat*

@@ -80,9 +80,10 @@ Environment specifics that dictate this approach:
   bottom-`'$INCLUDE`'d modules: **`include/SECTOR.bas`** (sector geometry + monster/treasure/
   class data + `RandomizeRooms`), **`include/BOARD.bas`** (board render, fog-of-war, secret
   doors, pixel-colour collision), **`include/CURSOR.bas`** (movement + draw/erase), and
-  **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound), and
+  **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound),
   **`include/LORDS.bas`** (persistent hall of fame + LOAD A CHARACTER, saved to the git-ignored
-  `dungeon-lords.dat`). QB64 resolves
+  `dungeon-lords.dat`), and **`include/CHRONICLE.bas`** (the in-game **Game Menu** `[M]` reference
+  suite). QB64 resolves
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
   the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
@@ -145,6 +146,23 @@ Environment specifics that dictate this approach:
   room's contents). A `[C]` character sheet (`ShowCharSheet`) lists class, gold, key, and
   items. All events route through the `Sfx` dispatcher. Build/run from the repo root (asset
   paths are `assets/...`, not `../assets/...`).
+- **Chronicle / Game Menu (`[M]`)** (`include/CHRONICLE.bas`). A per-run journal + reference
+  suite: `GameMenu` opens **Character Sheet / Game Summary / Event Log / Bestiary / Treasury /
+  Rules / Controls / Resume**. All counters live in `DUNGEON.BI` (`g_rooms_explored`,
+  `g_monsters_slain`, `g_crits`, …, the `BEAST_*`/`TRE_*` tallies, and the `EVLOG()` single-line
+  event log); `ChronicleReset` zeroes them each run **and seeds the Bestiary with the full 27-monster
+  roster** (so unmet monsters still list at 0). Gameplay feeds them through `Record*` hooks —
+  `RecordEnterRoom`/`RecordEncounter`/`RecordKill`/`RecordFled`/`RecordDeath`/`RecordLootRescue`/
+  `RecordTreasure`/`RecordItem`/`RecordSecret`/`RecordWander`/`RecordCrit`/`RecordFumble`/
+  `RecordLevelDone` — placed at the matching moments in `DoCombat`/`DoCombatDnD`/`ClaimTreasure`/
+  `DropEverything`/`CollectDrop`/`WanderEncounter`/`DoSearch`/the play loop. **Gotcha:** `DoCombat`
+  already calls `RecordEncounter` for every fight (rooms AND wander slots), so `RecordWander` must
+  NOT re-bump `BEAST_ENC` or wanderers double-count. `ShowRules` reads `DUNGEON-RULES.md` and is also
+  reachable from the title screen via `[R]`. The **Lords of Legend** screen (`include/LORDS.bas`,
+  `ShowLordDetail`) now carries a **v3** record (`…|ab|mapid|events`): `ShowEnd` snapshots the final
+  board to `dungeon-lords-map-<mapid>.png` before name-entry, and `SaveLord` persists that id + the
+  last ~180 events (joined by `" ~~ "`); the detail view adds `[E]` chronicle log (`ShowLordLog`) and
+  `[M]` map-at-escape (`ShowLordMap`) beside the existing ability/per-level character sheet.
 - **Line-of-sight fog-of-war** (SETTINGS **Line of Sight**, `opt_fov`, default off). Separate
   from the secret-door fog: `LOS_LIT` (in sight now) + `LOS_SEEN` (ever explored) masks.
   `ComputeFOV` casts Bresenham rays (`CastRay`) from the player out to a radius, each stopping
