@@ -313,23 +313,55 @@ FUNCTION BeastHaunts$ (nm AS STRING)
     BeastHaunts$ = _TRIM$(s)
 END FUNCTION
 
-' TREASURY -- what you've recovered this run.
+' TREASURY -- what you've recovered this run. A browsable catalogue (like the
+' Bestiary): a lightbar list on the left, a framed treasure IMAGE + tallies on the right.
 SUB ShowTreasury
-    DIM i AS INTEGER, y AS INTEGER
-    ChroniclePanel 16, 4, 116, 46, "T R E A S U R Y"
+    DIM sel AS INTEGER, i AS INTEGER, y AS INTEGER, k AS STRING, sp AS STRING
     IF TRE_STAT_N = 0 THEN
+        ChroniclePanel 16, 4, 116, 46, "T R E A S U R Y"
         COLOR GREY, BOXBG: PrintCentered 24, "No treasure recovered yet. The hoard awaits."
-    ELSE
-        COLOR CYANU, BOXBG: _PRINTSTRING (22 * CW, 7 * CH), PadR$("TREASURE", 34) + PadR$("FOUND", 8) + "GP EACH"
-        FOR i = 1 TO TRE_STAT_N
-            y = 9 + (i - 1)
-            IF y > 43 THEN EXIT FOR
-            COLOR WHITE, BOXBG: _PRINTSTRING (22 * CW, y * CH), PadR$(_TRIM$(TRE_STATNAME(i)), 34) + PadR$(EvNum$(TRE_FOUND(i)), 8) + EvNum$(TRE_GP(i))
-        NEXT
+        COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
+        _DISPLAY: WaitKey: ChronicleClose: EXIT SUB
     END IF
-    COLOR GREENU, BOXBG: PrintCentered 44, "Total recovered: " + EvNum$(g_gold_found) + " GP across " + EvNum$(g_treasures_found) + " finds"
-    COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
-    _DISPLAY: WaitKey: ChronicleClose
+    sel = 1
+    DO
+        _DEST CANVAS: LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
+        LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), YELLOWU, B
+        COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  T R E A S U R Y  =-"
+        '--- list (left) ---
+        FOR i = 1 TO TRE_STAT_N
+            y = 7 + (i - 1)
+            IF y > 43 THEN EXIT FOR
+            IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREENU, BOXBG
+            _PRINTSTRING (7 * CW, y * CH), PadR$("  " + _TRIM$(TRE_STATNAME(i)), 26)
+        NEXT
+        '--- detail panel (right) ---
+        IF sel >= 1 AND sel <= TRE_STAT_N THEN
+            sp = TreasureSprite$(TRE_STATNAME(sel))
+            IF LEN(sp) > 0 AND opt_artstyle <> 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(TRE_STATNAME(sel)) + " =-", YELLOWU
+            y = 26
+            COLOR CYANU, BOXBG: _PRINTSTRING (36 * CW, y * CH), _TRIM$(TRE_STATNAME(sel))
+            y = y + 3
+            BeastRow y, "Times found", TRE_FOUND(sel): y = y + 2
+            COLOR CYANU, BOXBG: _PRINTSTRING (36 * CW, y * CH), PadR$("GP each", 22)
+            COLOR WHITE, BOXBG: _PRINTSTRING (60 * CW, y * CH), EvNum$(TRE_GP(sel))
+        END IF
+        COLOR GREENU, BOXBG: PrintCentered 44, "Total: " + EvNum$(g_gold_found) + " GP across " + EvNum$(g_treasures_found) + " finds"
+        COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] browse   [ESC] back"
+        _DISPLAY
+        k = ""
+        DO
+            k = NormKey$(UCASE$(INKEY$))
+            IF k <> "" THEN EXIT DO
+            _LIMIT 60
+        LOOP
+        IF k = CHR$(27) THEN EXIT DO
+        IF k = "W" THEN sel = sel - 1
+        IF k = "S" THEN sel = sel + 1
+        IF sel < 1 THEN sel = TRE_STAT_N
+        IF sel > TRE_STAT_N THEN sel = 1
+    LOOP
+    ChronicleClose
 END SUB
 
 ' RULES -- a paged reader of DUNGEON-RULES.md.

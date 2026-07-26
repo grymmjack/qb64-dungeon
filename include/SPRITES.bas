@@ -76,6 +76,74 @@ FUNCTION MonsterSprite$ (nm AS STRING)
     IF _FILEEXISTS(p) THEN MonsterSprite$ = p
 END FUNCTION
 
+' Filename base for a TREASURE/ITEM name: lowercase, drop any "(...)" qualifier
+' (e.g. "Magic Sword (+1)" / "Elf Boots (spare)"), spaces & slashes -> '-'. Unlike
+' SpriteBase$ this does NOT strip a trailing 's', because the treasure art is plural
+' (silver-coins.png).
+FUNCTION TreBase$ (nm AS STRING)
+    DIM s AS STRING, o AS STRING, i AS INTEGER, c AS STRING, depth AS INTEGER
+    s = LCASE$(_TRIM$(nm))
+    o = "": depth = 0
+    FOR i = 1 TO LEN(s)
+        c = MID$(s, i, 1)
+        IF c = "(" THEN depth = depth + 1
+        IF depth = 0 THEN
+            IF c = " " OR c = "/" OR c = "'" OR c = "+" THEN c = "-"
+            o = o + c
+        END IF
+        IF c = ")" THEN depth = depth - 1
+    NEXT
+    DO WHILE INSTR(o, "--") > 0: o = StrSubst$(o, "--", "-"): LOOP   ' collapse runs
+    DO WHILE RIGHT$(o, 1) = "-": o = LEFT$(o, LEN(o) - 1): LOOP
+    DO WHILE LEFT$(o, 1) = "-": o = MID$(o, 2): LOOP
+    TreBase$ = o
+END FUNCTION
+
+' Path to a treasure/item image for the Treasury, "" if nothing fits. Tries an exact
+' filename in treasures/ then items/, then keyword fallbacks so every hoard, gem, and
+' curio spoil (incl. names with no dedicated art -- HUGE RUBY, coins in the fountain)
+' still gets a representative picture.
+FUNCTION TreasureSprite$ (nm AS STRING)
+    DIM tb AS STRING, u AS STRING, p AS STRING, fb AS STRING
+    tb = TreBase$(nm)
+    p = "assets/pixel-art/treasures/" + tb + ".png": IF _FILEEXISTS(p) THEN TreasureSprite$ = p: EXIT FUNCTION
+    p = "assets/pixel-art/items/" + tb + ".png": IF _FILEEXISTS(p) THEN TreasureSprite$ = p: EXIT FUNCTION
+    '--- keyword fallbacks (checked most-specific first) ---
+    u = " " + UCASE$(_TRIM$(nm)) + " "
+    fb = ""
+    IF InStrAny%(u, "SWORD BLADE") THEN fb = "items/magic-sword-1"
+    IF fb = "" AND InStrAny%(u, "RUBY") THEN fb = "treasures/ruby-ring"
+    IF fb = "" AND InStrAny%(u, "EMERALD SAPPHIRE DIAMOND GEM JEWEL CRYSTAL") THEN fb = "treasures/ruby-necklace"
+    IF fb = "" AND InStrAny%(u, "NECKLACE PENDANT AMULET") THEN fb = "treasures/gold-necklace"
+    IF fb = "" AND InStrAny%(u, "RING EARRING") THEN fb = "treasures/gold-ring"
+    IF fb = "" AND InStrAny%(u, "CUP GOBLET CHALICE") THEN fb = "treasures/gold-cup"
+    IF fb = "" AND InStrAny%(u, "IDOL STATUE") THEN fb = "treasures/jade-idol"
+    IF fb = "" AND InStrAny%(u, "SCROLL") THEN fb = "items/teleport-scroll"
+    IF fb = "" AND InStrAny%(u, "BOW") THEN fb = "items/magic-bow"
+    IF fb = "" AND InStrAny%(u, "ARMOR ARMOUR MAIL PLATE") THEN fb = "items/magic-armor"
+    IF fb = "" AND InStrAny%(u, "SHIELD") THEN fb = "items/shield"
+    IF fb = "" AND InStrAny%(u, "BOOT") THEN fb = "items/elf-boots"
+    IF fb = "" AND InStrAny%(u, "ESP MEDALLION") THEN fb = "items/esp-medallion"
+    IF fb = "" AND InStrAny%(u, "CRYSTAL BALL ORB") THEN fb = "items/crystal-ball"
+    IF fb = "" AND InStrAny%(u, "KEY") THEN fb = "items/key-medallion"
+    IF fb = "" AND InStrAny%(u, "COIN SILVER") THEN fb = "treasures/silver-coins"
+    IF fb = "" THEN fb = "treasures/sack-of-gold"                    ' gold, chest, coffer, sack -> a hoard
+    p = "assets/pixel-art/" + fb + ".png"
+    IF _FILEEXISTS(p) THEN TreasureSprite$ = p ELSE TreasureSprite$ = ""
+END FUNCTION
+
+' TRUE if any space-separated word of `words` occurs in `hay` (hay pre-padded/uppercased).
+FUNCTION InStrAny% (hay AS STRING, words AS STRING)
+    DIM rest AS STRING, w AS STRING, sp AS INTEGER
+    rest = _TRIM$(words)
+    DO WHILE LEN(rest) > 0
+        sp = INSTR(rest, " ")
+        IF sp = 0 THEN w = rest: rest = "" ELSE w = LEFT$(rest, sp - 1): rest = _TRIM$(MID$(rest, sp + 1))
+        IF LEN(w) > 0 THEN IF INSTR(hay, w) > 0 THEN InStrAny% = -1: EXIT FUNCTION
+    LOOP
+    InStrAny% = 0
+END FUNCTION
+
 ' Path to a class portrait (1 Hero / 2 Elf / 3 Superhero / 4 Wizard). "" if none.
 FUNCTION ClassSprite$ (pc AS INTEGER)
     DIM nm AS STRING
