@@ -265,6 +265,19 @@ character `Q` printed in the d20 font:
   (the one place the three `_FULLSCREEN` sites route through): on = `_FULLSCREEN _SQUAREPIXELS,
   _SMOOTH` (bilinear — soft, and it makes the tumbling dice shimmer); off = `_FULLSCREEN
   _SQUAREPIXELS` (crisp pixel-doubling, which suits the ANSI/text art and kills the shimmer).
+- **3D dice top-light** (the DICE3D `LIGHT_*` config fields): a view-space Lambert directional
+  light shades each face by `ambient + (1-ambient)*max(0, N·L)` so top-facing surfaces catch
+  light and the dice read as solid 3D (and the **d4's apex** — its read point — is lit, which the
+  read-face sheen can't do since a d4's value face is its hidden base). Rendered as a per-face
+  translucent-black overlay because `_MAPTRIANGLE` can't tint a texture: the software path
+  re-alphas one tile with `_SETALPHA`, the hardware path picks from a prebaked alpha ramp
+  (`_SETALPHA` is invalid on GL textures). The set-loader seeds on-defaults so sets predating the
+  keys still light up. The SETTINGS **Dice Light** slider (`opt_dicelight` 0 Off/1 Soft/2 Normal/3
+  Strong) drives `ApplyDiceLight`, which overrides `LIGHT_ENABLED`/`AMBIENT`/`INTENSITY` per roll
+  and per preview (direction stays from the set). **d4 read pose:** a d4 is a **top-read** tetra —
+  the value is on the hidden base and repeats at the top apex, so `dice3d_showcase` seats the
+  value face DOWN with `Rx(90 + CAM_TILT - 4) * FACE_Q(f)` (NOT `FACE_Q(f)` alone, which would
+  point it at the camera and misread). The game renders the d4 at `CAM_TILT=85`, other dice at 21.5.
 
 ## QB64PE conventions in this codebase
 

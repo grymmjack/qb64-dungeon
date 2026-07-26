@@ -325,6 +325,7 @@ DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/B
 DIM SHARED opt_dicesolid AS INTEGER   ' TRUE: filled die body + contrasting number; FALSE: hollow outline
 DIM SHARED opt_d6pips AS INTEGER      ' TRUE: d6 rolls use the hand-drawn pip dice; FALSE: the numbered DPoly d6
 DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant (see DiceTiming)
+DIM SHARED opt_dicelight AS INTEGER   ' 3D dice top-light: 0 Off, 1 Soft, 2 Normal, 3 Strong (ApplyDiceLight)
 ' -- a SEPARATE dice look for the MONSTER's rolls (same options; swapped in around monster rolls) --
 DIM SHARED opt_mon_dicecolor AS INTEGER, opt_mon_dicesolid AS INTEGER
 DIM SHARED opt_mon_d6pips AS INTEGER, opt_mon_dicespeed AS INTEGER

@@ -41,6 +41,18 @@ SUB SetDiceFont (cfg AS DICE3D_CONFIG)
     END IF
 END SUB
 
+' Override a config's directional light from the SETTINGS "Dice Light" level (opt_dicelight).
+' The light DIRECTION comes from the set/default (already seeded); this only sets the on/off
+' + strength, so the player can tune shading in-game without editing set files.
+SUB ApplyDiceLight (cfg AS DICE3D_CONFIG)
+    SELECT CASE opt_dicelight
+        CASE 0: cfg.LIGHT_ENABLED = 0                                          ' flat (no shading)
+        CASE 1: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.62: cfg.LIGHT_INTENSITY = 0.5 ' soft
+        CASE 3: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.38: cfg.LIGHT_INTENSITY = 1.0 ' strong
+        CASE ELSE: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.5: cfg.LIGHT_INTENSITY = 0.8 ' normal
+    END SELECT
+END SUB
+
 ' Read the dice-set manifest (assets/data/dicesets.txt): each line "display name | file".
 SUB LoadDiceManifest
     DIM i AS INTEGER
@@ -97,6 +109,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
+    ApplyDiceLight cfg                              ' SETTINGS "Dice Light" overrides the set's LIGHT_*
 
     IF LEN(_TRIM$(what)) > 0 THEN
         hdr = "-= " + _TRIM$(what) + " =-"
@@ -279,6 +292,7 @@ SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, atlas AS LONG, setcfg AS
     IF atlas = 0 THEN EXIT SUB
     IF UBOUND(DICE3D_DICE) < LBOUND(DICE3D_DICE) THEN EXIT SUB
     cfg = setcfg
+    ApplyDiceLight cfg                              ' preview reflects the SETTINGS "Dice Light" level
     cfg.BOX_W = 150: cfg.BOX_H = 150: cfg.DIE_SIZE = 42
     scx = gx + 75: scy = gy + 60                    ' screen centre of this preview
     pxk = 1.0 / DICE3D_HW_PXPERUNIT

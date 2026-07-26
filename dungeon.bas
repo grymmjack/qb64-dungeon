@@ -52,6 +52,7 @@ opt_dicecolor = 3                             ' dice palette: 0 Bone 1 Blood 2 E
 opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
 opt_d6pips = FALSE                            ' d6 rolls use the font's numbered die (on = hand-drawn pips)
 opt_dicespeed = 0                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
+opt_dicelight = 2                             ' 3D dice top-light: 0 Off, 1 Soft, 2 Normal, 3 Strong
 opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
 opt_artstyle = 2                              ' default: Hybrid -- ANSI board + pixel-art portraits where they exist
 opt_combatspeed = 0                           ' (legacy) superseded by opt_msgdelay

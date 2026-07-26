@@ -533,7 +533,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 38
+    CONST NSET = 39
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -611,6 +611,11 @@ SUB RunSettings
                     IF opt_dicefont < 1 THEN opt_dicefont = DICEFONT_N
                     IF opt_dicefont > DICEFONT_N THEN opt_dicefont = 1
                     Build3DPreviews: Sfx "select"
+                CASE 38
+                    opt_dicelight = opt_dicelight + delta
+                    IF opt_dicelight < 0 THEN opt_dicelight = 3
+                    IF opt_dicelight > 3 THEN opt_dicelight = 0
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -680,7 +685,10 @@ SUB RunSettings
                     opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
                 CASE 36: opt_gestures = NOT opt_gestures
                 CASE 37: opt_juice = NOT opt_juice
-                CASE 38: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 38
+                    opt_dicelight = opt_dicelight + 1
+                    IF opt_dicelight > 3 THEN opt_dicelight = 0
+                CASE 39: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -802,6 +810,14 @@ SUB RunSettings
                 CASE 37
                     lbl = "Screen Effects"
                     IF opt_juice THEN vtxt = "on (shake + blood)" ELSE vtxt = "off"
+                CASE 38
+                    lbl = "  Dice Light": slider = TRUE
+                    SELECT CASE opt_dicelight
+                        CASE 0: vtxt = "off (flat)"
+                        CASE 1: vtxt = "soft"
+                        CASE 3: vtxt = "strong"
+                        CASE ELSE: vtxt = "normal"
+                    END SELECT
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
