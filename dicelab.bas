@@ -24,7 +24,7 @@ DICE3D_HW = 0                          ' force the software render path
 DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
 dice3d_build sides
 DIM atlas AS LONG
-atlas = dice3d_make_atlas&(cfg, cfg.BODY_KOLOR, 0)
+cfg.BODY_KOLOR = _RGB32(150, 40, 48): atlas = dice3d_make_atlas&(cfg, cfg.BODY_KOLOR, 0)
 
 REDIM DICE3D_DICE(0 TO 0) AS DICE3D_DIE
 DICE3D_DICE(0).SIDES = sides
@@ -34,25 +34,24 @@ DICE3D_DICE(0).PX = cfg.BOX_W / 2
 DICE3D_DICE(0).PY = cfg.BOX_H / 2
 DICE3D_DICE(0).PZ = 0
 
-' Sweep NEGATIVE Rx (tips the value face UP toward the readable top) for value 2.
-DIM f AS INTEGER, i AS INTEGER, ang AS SINGLE
-DIM axisX AS DICE3D_VEC3, rx AS DICE3D_QUAT, qc AS DICE3D_QUAT
-axisX.X = 1: axisX.Y = 0: axisX.Z = 0
-f = DICE3D_VAL2FACE(2)
-DICE3D_DICE(0).VALUE = 2
-DIM angs(0 TO 5) AS SINGLE
-angs(0) = -30: angs(1) = -50: angs(2) = -60: angs(3) = -70: angs(4) = -90: angs(5) = -110
-FOR i = 0 TO 5
-    ang = angs(i) * 0.0174532925
-    dice3d_qaxisangle axisX, ang, rx
-    dice3d_qmul rx, DICE3D_FACE_Q(f), qc
-    DICE3D_DICE(0).Q = qc
-    _DEST DICE3D_BOXBUF: CLS , _RGB32(52, 34, 122)
-    dice3d_render_die DICE3D_DICE(0), cfg
-    _DEST 0
-    _PUTIMAGE (i * TILE, 30), DICE3D_BOXBUF, 0
-    COLOR _RGB32(255, 240, 150), _RGB32(52, 34, 122)
-    _PRINTSTRING (i * TILE + 8, 8), "Rx=" + _TRIM$(STR$(INT(angs(i)))) + " val2"
+' Render the showcase pose for several values -- the read (winning) face should carry a
+' warm sheen from the read-face highlight, the others not.
+DIM f AS INTEGER, i AS INTEGER, v AS INTEGER
+DIM vals(0 TO 3) AS INTEGER
+vals(0) = 1: vals(1) = 2: vals(2) = sides - 1: vals(3) = sides
+FOR i = 0 TO 3
+    v = vals(i)
+    IF v >= 1 AND v <= sides THEN
+        f = DICE3D_VAL2FACE(v)
+        DICE3D_DICE(0).VALUE = v
+        DICE3D_DICE(0).Q = DICE3D_FACE_Q(f)
+        _DEST DICE3D_BOXBUF: CLS , _RGB32(52, 34, 122)
+        dice3d_render_die DICE3D_DICE(0), cfg
+        _DEST 0
+        _PUTIMAGE (i * TILE, 30), DICE3D_BOXBUF, 0
+        COLOR _RGB32(255, 240, 150), _RGB32(52, 34, 122)
+        _PRINTSTRING (i * TILE + 20, 8), "value =" + STR$(v)
+    END IF
 NEXT
 _DISPLAY
 _SAVEIMAGE "dicelab.png"

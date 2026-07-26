@@ -75,7 +75,42 @@ SUB dice3d_render_die_hw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
         a = DICE3D_TA(t): b = DICE3D_TB(t): cc = DICE3D_TC(t)
         _MAPTRIANGLE (DICE3D_TUX(t, 0), DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1), DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2), DICE3D_TUY(t, 2)), DICE3D_HWATLAS TO(X(a), Y(a), Z(a))-(X(b), Y(b), Z(b))-(X(cc), Y(cc), Z(cc)), , _SMOOTH
     NEXT
+
+    ' --- read-face highlight: a warm sheen on the winning face so the value it shows is
+    '     obvious (light catching the face that's read). Only when it faces the camera. ---
+    IF di.VALUE >= LBOUND(DICE3D_VAL2FACE) AND di.VALUE <= UBOUND(DICE3D_VAL2FACE) THEN
+        DIM wf AS INTEGER, wnn AS DICE3D_VEC3, nzz AS SINGLE, nz AS SINGLE
+        wf = DICE3D_VAL2FACE(di.VALUE)
+        IF wf >= 0 AND wf < DICE3D_NF THEN
+            dice3d_qrot di.Q, DICE3D_FACE_N(wf), wnn
+            nzz = -wnn.X * sinY + wnn.Z * cosY
+            nz = nzz * cosT - wnn.Y * sinT
+            IF nz > 0.05 THEN
+                IF DICE3D_HL = 0 THEN DICE3D_HL = dice3d_hl_image&
+                FOR i = 0 TO DICE3D_NT - 1
+                    t = ord(i)
+                    IF DICE3D_TFACE(t) = wf THEN
+                        a = DICE3D_TA(t): b = DICE3D_TB(t): cc = DICE3D_TC(t)
+                        _MAPTRIANGLE (0, 0)-(0, 7)-(7, 7), DICE3D_HL TO(X(a), Y(a), Z(a))-(X(b), Y(b), Z(b))-(X(cc), Y(cc), Z(cc)), , _SMOOTH
+                    END IF
+                NEXT
+            END IF
+        END IF
+    END IF
 END SUB
+
+' An 8x8 warm-white tile with baked alpha, copied to a hardware image, for the read-face
+' sheen (_SETALPHA is invalid on hardware textures, so the alpha is baked in first).
+FUNCTION dice3d_hl_image& ()
+    DIM soft AS LONG, hw AS LONG, od AS LONG
+    soft = _NEWIMAGE(8, 8, 32)
+    od = _DEST: _DEST soft
+    LINE (0, 0)-(7, 7), _RGBA32(255, 248, 205, 75), BF
+    _DEST od
+    hw = _COPYIMAGE(soft, 33)
+    _FREEIMAGE soft
+    dice3d_hl_image& = hw
+END FUNCTION
 
 
 SUB dice3d_render_die (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
@@ -135,6 +170,31 @@ SUB dice3d_render_die (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
         _MAPTRIANGLE (DICE3D_TUX(t, 0), DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1), DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2), DICE3D_TUY(t, 2)), di.ATLAS TO(xs(a), ys(a))-(xs(b), ys(b))-(xs(c), ys(c)), DICE3D_BOXBUF, _SMOOTH
     NEXT
     IF di.FADE < 1 THEN _SETALPHA 255, , di.ATLAS
+
+    '--- read-face highlight: warm sheen on the winning face (matches the hardware path) ---
+    IF di.VALUE >= LBOUND(DICE3D_VAL2FACE) AND di.VALUE <= UBOUND(DICE3D_VAL2FACE) AND di.FADE > 0 THEN
+        DIM hlf AS INTEGER, hnn AS DICE3D_VEC3, hnz AS SINGLE
+        hlf = DICE3D_VAL2FACE(di.VALUE)
+        IF hlf >= 0 AND hlf < DICE3D_NF THEN
+            dice3d_qrot di.Q, DICE3D_FACE_N(hlf), hnn
+            hnz = (-hnn.X * sinY + hnn.Z * cosY) * cosT - hnn.Y * sinT
+            IF hnz > 0.05 THEN
+                IF DICE3D_HL_SW = 0 THEN
+                    DICE3D_HL_SW = _NEWIMAGE(8, 8, 32)
+                    DIM od2 AS LONG: od2 = _DEST: _DEST DICE3D_HL_SW
+                    LINE (0, 0)-(7, 7), _RGBA32(255, 248, 205, 75), BF
+                    _DEST od2
+                END IF
+                FOR i = 0 TO DICE3D_NT - 1
+                    t = ord(i)
+                    IF DICE3D_TFACE(t) = hlf THEN
+                        a = DICE3D_TA(t): b = DICE3D_TB(t): c = DICE3D_TC(t)
+                        _MAPTRIANGLE (0, 0)-(0, 7)-(7, 7), DICE3D_HL_SW TO(xs(a), ys(a))-(xs(b), ys(b))-(xs(c), ys(c)), DICE3D_BOXBUF, _SMOOTH
+                    END IF
+                NEXT
+            END IF
+        END IF
+    END IF
 
     '--- wireframe overlay: outline each front-facing face polygon ---
     IF cfg.WIRE_ENABLED AND di.FADE > 0 THEN

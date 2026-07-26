@@ -109,6 +109,8 @@ DIM SHARED DICE3D_UPRIGHT AS INTEGER
 '    software box-buffer renderer. present() branches on this.
 DIM SHARED DICE3D_HW AS INTEGER
 DIM SHARED DICE3D_HWATLAS AS LONG   ' hardware (_COPYIMAGE ,33) atlas; built lazily, freed by the caller
+DIM SHARED DICE3D_HL AS LONG        ' hardware white sheen tile for the read-face highlight (built lazily)
+DIM SHARED DICE3D_HL_SW AS LONG     ' software white sheen tile (software render path)
 DIM SHARED DICE3D_HW_S AS SINGLE    ' GPU units per model unit (die on-screen size)
 DIM SHARED DICE3D_HW_Z AS SINGLE    ' base view depth (negative; ~-5)
 DIM SHARED DICE3D_HW_CX AS SINGLE   ' GPU x of the tray centre (0 = screen centre)
