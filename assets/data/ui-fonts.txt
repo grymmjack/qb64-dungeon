@@ -11,8 +11,8 @@
 # Fonts you dropped in assets/fonts/ui/: alagard, dungeon-mode, Gold Box Games,
 # the-settlers, PCPaintEnglishLarge/Small, PetMe64, Apple2Forever80, ATARCC.
 
-label   | alagard.ttf         | 16
-message | dungeon-mode.ttf    | 16
+label   | alagard.ttf         | 11
+message | dungeon-mode.ttf    | 12
 combat  | Gold Box Games.ttf  | 16
 menu    | the-settlers.ttf    | 18
 hud     |                     | 0
