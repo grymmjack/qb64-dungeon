@@ -111,8 +111,10 @@ SUB dice3d_fill_tile (tx AS INTEGER, ty AS INTEGER, cfg AS DICE3D_CONFIG, bodyKo
         CASE ELSE '                        solid
             LINE (tx, ty)-(tx + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), _RGBA32(_RED32(bodyKol), _GREEN32(bodyKol), _BLUE32(bodyKol), baseA), BF
     END SELECT
-    '--- bevel: darken toward the edges (fake rounded chamfer) ---
-    IF cfg.BEVEL > 0.01 THEN
+    '--- fake bevel: darken toward the edges (painted chamfer). SKIP it when the mesh is
+    '    geometrically beveled (DICE3D_BEVEL > 0): otherwise the darkened face edge meets the
+    '    clean rounded strip in a hard seam. With it off, the flat face flows into the round. ---
+    IF cfg.BEVEL > 0.01 AND DICE3D_BEVEL <= 0.005 THEN
         bw = INT(cfg.BEVEL * DICE3D_TILE * 0.34)
         FOR d = 0 TO bw - 1
             aa = 150 * (1 - d / bw)
