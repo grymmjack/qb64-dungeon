@@ -8,9 +8,12 @@
 '  * DrawWounds -- a persistent near-death overlay: a soft dark VIGNETTE that
 '    closes in from the edges (and PULSES near death) plus dried BLOOD grime
 '    spattered round the frame, both intensifying as HP drops.
+'  * DrawPoison -- a persistent POISON overlay while poison_turns > 0: sickly-green
+'    veins/branches creeping in from the rim (pre-baked once, like the blood grime),
+'    slime pools, and ooze drips, throbbing with a slow queasy pulse.
 '
-'  All gated by opt_juice (D&D mode; oldschool has no HP). Snapshot/vignette read
-'  the screen surface, so nothing changes when the toggle is off.
+'  All gated by opt_juice. Snapshot/vignette/poison read the screen surface, so
+'  nothing changes when the toggle is off.
 ' ============================================================================
 
 ' Fill a solid disc (a blood/poison blob) at (cx,cy).
@@ -55,6 +58,115 @@ SUB InitJuice
         DRIP_X(i) = INT(RND * (SW * CW - 8)) + 4
         DRIP_LEN(i) = INT(RND * (SH * CH * 0.5)) + INT(SH * CH * 0.06)
         DRIP_W(i) = INT(RND * 3) + 2
+    NEXT
+    InitPoison
+END SUB
+
+' Grow the fixed poison-vein pattern (tendrils creeping in from the edges, each with a
+' couple of child branches) + slime pools + ooze drips. RND is used ONCE here so the
+' pattern is stable frame-to-frame (like the blood grime); DrawPoison just fades it in.
+SUB InitPoison
+    DIM AS INTEGER v, s, nb, b, i, edge, tseg, bseg
+    DIM AS SINGLE vx, vy, va, ln, bx, by, ba
+    VEIN_N = 0
+    FOR v = 1 TO NVEIN
+        edge = INT(RND * 4)
+        SELECT CASE edge                              ' anchor on a rim, aim inward
+            CASE 0: vx = INT(RND * SW * CW): vy = 0: va = 1.5708
+            CASE 1: vx = INT(RND * SW * CW): vy = SH * CH: va = -1.5708
+            CASE 2: vx = 0: vy = INT(RND * SH * CH): va = 0
+            CASE ELSE: vx = SW * CW: vy = INT(RND * SH * CH): va = 3.14159
+        END SELECT
+        va = va + (RND * 2 - 1) * 0.5
+        ln = 14 + RND * 10
+        tseg = 5 + INT(RND * 4)
+        FOR s = 1 TO tseg                             ' the trunk, wandering inward
+            AddVein vx, vy, vx + COS(va) * ln, vy + SIN(va) * ln, 0
+            vx = vx + COS(va) * ln: vy = vy + SIN(va) * ln
+            va = va + (RND * 2 - 1) * 0.6
+            IF RND < 0.6 THEN                         ' spawn a child branch off this joint
+                ba = va + (RND * 2 - 1) * 1.0: bx = vx: by = vy
+                bseg = 2 + INT(RND * 3)
+                FOR b = 1 TO bseg
+                    AddVein bx, by, bx + COS(ba) * ln * 0.72, by + SIN(ba) * ln * 0.72, 1
+                    bx = bx + COS(ba) * ln * 0.72: by = by + SIN(ba) * ln * 0.72
+                    ba = ba + (RND * 2 - 1) * 0.7
+                NEXT
+            END IF
+        NEXT
+    NEXT
+    '--- slime blobs: biased to the bottom + the two sides (it pools + runs down) ---
+    FOR i = 1 TO NSLIME
+        edge = INT(RND * 3)
+        SELECT CASE edge
+            CASE 0: SLIME_X(i) = INT(RND * SW * CW): SLIME_Y(i) = SH * CH - INT(RND * SH * CH * 0.30)
+            CASE 1: SLIME_X(i) = INT(RND * SW * CW * 0.16): SLIME_Y(i) = INT(RND * SH * CH)
+            CASE ELSE: SLIME_X(i) = SW * CW - INT(RND * SW * CW * 0.16): SLIME_Y(i) = INT(RND * SH * CH)
+        END SELECT
+        SLIME_R(i) = INT(RND * 14) + 5
+    NEXT
+    '--- ooze drips from the top edge: fatter + longer than blood (gooier) ---
+    FOR i = 1 TO NOOZE
+        OOZE_X(i) = INT(RND * (SW * CW - 10)) + 5
+        OOZE_LEN(i) = INT(RND * (SH * CH * 0.55)) + INT(SH * CH * 0.08)
+        OOZE_W(i) = INT(RND * 4) + 3
+    NEXT
+END SUB
+
+' Append one poison-vein segment (gen 0 = trunk, 1 = branch) if room remains.
+SUB AddVein (x1 AS SINGLE, y1 AS SINGLE, x2 AS SINGLE, y2 AS SINGLE, gen AS INTEGER)
+    IF VEIN_N >= NVEINSEG THEN EXIT SUB
+    VEIN_N = VEIN_N + 1
+    VEIN_X1(VEIN_N) = INT(x1): VEIN_Y1(VEIN_N) = INT(y1)
+    VEIN_X2(VEIN_N) = INT(x2): VEIN_Y2(VEIN_N) = INT(y2)
+    VEIN_GEN(VEIN_N) = gen
+END SUB
+
+' The persistent POISON overlay -- drawn every frame while poison_turns > 0, right
+' after DrawWounds (board -> blood -> poison -> text). A sickly-green rim, veins
+' creeping inward, slime pools, and ooze drips, all throbbing with a slow queasy pulse
+' that deepens the longer the poison lingers. Sits UNDER the labels/HUD like the blood.
+SUB DrawPoison
+    IF NOT opt_juice THEN EXIT SUB
+    IF poison_turns <= 0 THEN EXIT SUB
+    DIM AS INTEGER i, aV, aSl, aO, aE, aW
+    DIM AS SINGLE p, pulse
+    p = poison_turns / 8: IF p > 1 THEN p = 1
+    IF p < 0.4 THEN p = 0.4                            ' always clearly sick while poisoned
+    pulse = 0.6 + 0.4 * ((SIN(TIMER * 2.1) + 1) / 2)   ' slow nauseous throb
+    _DEST CANVAS
+    '--- a faint overall sickly cast + a green rim fading inward ---
+    aW = INT(20 * p * pulse)
+    IF aW > 0 THEN LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(35, 120, 25, aW), BF
+    FOR i = 0 TO 33 STEP 3
+        aE = INT((95 * p * pulse) * (1 - i / 33))
+        IF aE > 0 THEN LINE (i, i)-(SW * CW - 1 - i, SH * CH - 1 - i), _RGB32(45, 140, 35, aE), B
+    NEXT
+    '--- the veins (trunks thicker + darker with a nodule at each tip; branches thin) ---
+    aV = INT(195 * p * pulse)
+    FOR i = 1 TO VEIN_N
+        IF VEIN_GEN(i) = 0 THEN                         ' trunk: 3px, brighter, nodule at the tip
+            LINE (VEIN_X1(i), VEIN_Y1(i) - 1)-(VEIN_X2(i), VEIN_Y2(i) - 1), _RGB32(50, 130, 38, INT(aV * 0.7))
+            LINE (VEIN_X1(i), VEIN_Y1(i))-(VEIN_X2(i), VEIN_Y2(i)), _RGB32(85, 185, 60, aV)
+            LINE (VEIN_X1(i), VEIN_Y1(i) + 1)-(VEIN_X2(i), VEIN_Y2(i) + 1), _RGB32(50, 130, 38, aV)
+            FillDisc VEIN_X2(i), VEIN_Y2(i), 3, _RGB32(80, 175, 55, aV)
+        ELSE                                            ' branch: 2px, bright sickly green
+            LINE (VEIN_X1(i), VEIN_Y1(i))-(VEIN_X2(i), VEIN_Y2(i)), _RGB32(115, 205, 80, aV)
+            LINE (VEIN_X1(i), VEIN_Y1(i) + 1)-(VEIN_X2(i), VEIN_Y2(i) + 1), _RGB32(70, 150, 48, INT(aV * 0.7))
+            FillDisc VEIN_X2(i), VEIN_Y2(i), 2, _RGB32(120, 210, 85, INT(aV * 0.9))
+        END IF
+    NEXT
+    '--- slime blobs with a brighter sheen on top (wet look) ---
+    aSl = INT(150 * p * pulse)
+    FOR i = 1 TO NSLIME
+        FillDisc SLIME_X(i), SLIME_Y(i), SLIME_R(i), _RGB32(70, 175, 55, aSl)
+        FillDisc SLIME_X(i), SLIME_Y(i) - SLIME_R(i) \ 3, SLIME_R(i) \ 2, _RGB32(130, 215, 95, INT(aSl * 0.65))
+    NEXT
+    '--- ooze drips: a green streak with a fat droplet at the tip ---
+    aO = INT(165 * p * pulse)
+    FOR i = 1 TO NOOZE
+        LINE (OOZE_X(i) - OOZE_W(i) \ 2, 0)-(OOZE_X(i) + OOZE_W(i) \ 2, OOZE_LEN(i)), _RGB32(55, 150, 42, aO), BF
+        FillDisc OOZE_X(i), OOZE_LEN(i), OOZE_W(i) + 2, _RGB32(95, 195, 70, aO)
     NEXT
 END SUB
 

@@ -347,6 +347,17 @@ CONST BLOOD_ALPHA_MAX = 200            ' near-death blood-grime opacity at full 
 DIM SHARED opt_bloodstrength AS INTEGER ' SETTINGS "Blood": near-death blood-grime intensity 0 (none) .. 10 (max)
 CONST NDRIP = 16                       ' blood drips running down from the top edge (near-death overlay)
 DIM SHARED DRIP_X(1 TO NDRIP) AS INTEGER, DRIP_LEN(1 TO NDRIP) AS INTEGER, DRIP_W(1 TO NDRIP) AS INTEGER
+' --- POISON overlay (persistent while poison_turns > 0): sickly-green veins creeping in
+'     from the edges + slime pools + green ooze drips, pre-baked once like the blood grime ---
+CONST NVEIN = 22                       ' poison vein/branch trunks (grown inward from the rim)
+CONST NVEINSEG = 240                   ' pre-baked vein line segments (trunks + child branches)
+DIM SHARED VEIN_X1(1 TO NVEINSEG) AS INTEGER, VEIN_Y1(1 TO NVEINSEG) AS INTEGER
+DIM SHARED VEIN_X2(1 TO NVEINSEG) AS INTEGER, VEIN_Y2(1 TO NVEINSEG) AS INTEGER
+DIM SHARED VEIN_GEN(1 TO NVEINSEG) AS INTEGER, VEIN_N AS INTEGER
+CONST NSLIME = 48                      ' green slime blobs pooling around the frame
+DIM SHARED SLIME_X(1 TO NSLIME) AS INTEGER, SLIME_Y(1 TO NSLIME) AS INTEGER, SLIME_R(1 TO NSLIME) AS INTEGER
+CONST NOOZE = 14                       ' green ooze drips running down from the top edge
+DIM SHARED OOZE_X(1 TO NOOZE) AS INTEGER, OOZE_LEN(1 TO NOOZE) AS INTEGER, OOZE_W(1 TO NOOZE) AS INTEGER
 
 ' Configurable UI fonts (assets/data/ui-fonts.txt -> LoadUIFonts): a _LOADFONT handle per UI
 ' region, 0 = keep the built-in 8x16 grid font (CH). Apply with UIFontOn h / UIFontOff.

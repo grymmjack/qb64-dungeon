@@ -66,6 +66,7 @@ SUB cursor_erase
     END IF
     render_room_labels                             ' labels are part of the MAP...
     DrawWounds                                     ' ...so the near-death blood/vignette dims them too (they don't "hover").
+    DrawPoison                                      ' sickly-green veins/slime while poisoned (board -> blood -> poison -> text)
     '                                                Tokens (cursor_draw) + HUD/combat panel (DrawHUD) draw AFTER, on top.
 END SUB
 
