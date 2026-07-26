@@ -39,6 +39,7 @@ END SUB
 SUB InitJuice
     DIM i AS INTEGER, edge AS INTEGER
     FX_BUF = _NEWIMAGE(SW * CW, SH * CH, 32)
+    InitVignette
     FOR i = 1 TO NBLOOD
         edge = INT(RND * 4)
         SELECT CASE edge
@@ -48,6 +49,37 @@ SUB InitJuice
             CASE ELSE: BLOOD_X(i) = SW * CW - INT(RND * SW * CW * 0.18): BLOOD_Y(i) = INT(RND * SH * CH)
         END SELECT
         BLOOD_R(i) = INT(RND * 9) + 3
+    NEXT
+END SUB
+
+' Pre-bake NVIG soft RADIAL vignette overlays (black with a smooth distance-from-centre alpha
+' falloff -- a gaussian-ish "closing darkness"), a low-res ramp from faint+wide to dark+tight.
+' DrawWounds picks one by near-death level each frame and stretch-blits it (cheap + smooth),
+' instead of the old rectangular edge bands. Baked once at startup via _MEM for speed.
+SUB InitVignette
+    DIM AS INTEGER lv, x, y, aa, vw, vh
+    DIM AS SINGLE inner, maxA, cx, cy, maxD, nd, tt
+    DIM AS _MEM m
+    vw = 200: vh = 154 '                low-res; the vignette is low-frequency so the stretch is invisible
+    cx = vw / 2: cy = vh / 2: maxD = SQR(cx * cx + cy * cy)
+    FOR lv = 0 TO NVIG - 1
+        inner = 0.58 - 0.46 * (lv / (NVIG - 1)) '   clear centre shrinks as the wound deepens
+        maxA = 60 + 150 * (lv / (NVIG - 1)) '        edge darkness grows
+        VIG(lv) = _NEWIMAGE(vw, vh, 32)
+        m = _MEMIMAGE(VIG(lv))
+        FOR y = 0 TO vh - 1
+            FOR x = 0 TO vw - 1
+                nd = SQR((x - cx) * (x - cx) + (y - cy) * (y - cy)) / maxD
+                aa = 0
+                IF nd > inner THEN
+                    tt = (nd - inner) / (1 - inner): IF tt > 1 THEN tt = 1
+                    aa = INT((tt ^ 1.6) * maxA) '   ^1.6 = soft gaussian-ish ramp
+                    IF aa > 255 THEN aa = 255
+                END IF
+                _MEMPUT m, m.OFFSET + (y * vw + x) * 4, _RGBA32(0, 0, 0, aa) AS _UNSIGNED LONG
+            NEXT
+        NEXT
+        _MEMFREE m
     NEXT
 END SUB
 
@@ -105,16 +137,12 @@ SUB DrawWounds
     pulse = 1
     IF hpFrac < 0.25 THEN pulse = 0.6 + 0.4 * ((SIN(TIMER * 4.5) + 1) / 2)   ' a quickening heartbeat near death
     _DEST CANVAS
-    band = INT(40 + 90 * wound)                       ' how far the darkness reaches inward (kept near the rim)
-    FOR i = 0 TO band STEP 2
-        a = INT(95 * wound * pulse * (band - i) / band)   ' lighter, so the map/labels stay readable beneath
-        IF a > 3 THEN
-            LINE (0, i)-(SW * CW, i), _RGB32(0, 0, 0, a)
-            LINE (0, SH * CH - 1 - i)-(SW * CW, SH * CH - 1 - i), _RGB32(0, 0, 0, a)
-            LINE (i, 0)-(i, SH * CH), _RGB32(0, 0, 0, a)
-            LINE (SW * CW - 1 - i, 0)-(SW * CW - 1 - i, SH * CH), _RGB32(0, 0, 0, a)
-        END IF
-    NEXT
+    '--- soft RADIAL vignette: pick the near-death level and stretch-blit the pre-baked gaussian
+    '    overlay (smooth "closing darkness" from the rim, replacing the old rectangular bands) ---
+    band = INT(wound * pulse * (NVIG - 1) + 0.5)
+    IF band < 0 THEN band = 0
+    IF band > NVIG - 1 THEN band = NVIG - 1
+    IF VIG(band) <> 0 THEN _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), VIG(band), CANVAS
     a = INT(60 * wound * pulse)                        ' dried blood spattered round the frame -- semi-transparent
     IF a > 6 THEN
         FOR i = 1 TO NBLOOD

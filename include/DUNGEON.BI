@@ -341,6 +341,8 @@ DIM SHARED opt_juice AS INTEGER        ' SETTINGS "Screen Effects": hit-shake, b
 DIM SHARED FX_BUF AS LONG              ' offscreen snapshot buffer for the screen-shake blit
 CONST NBLOOD = 40                      ' fixed blood-grime spatter spots (near-death overlay)
 DIM SHARED BLOOD_X(1 TO NBLOOD) AS INTEGER, BLOOD_Y(1 TO NBLOOD) AS INTEGER, BLOOD_R(1 TO NBLOOD) AS INTEGER
+CONST NVIG = 10                        ' pre-baked soft RADIAL vignette overlays (a HP-ramp; stretched per frame)
+DIM SHARED VIG(0 TO NVIG - 1) AS LONG
 ' which set (1-based index into the dicesets.txt manifest) the player / monster roll
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)
