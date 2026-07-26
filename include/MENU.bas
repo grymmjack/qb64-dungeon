@@ -377,7 +377,7 @@ END SUB
 SUB ShowIntro
     DIM ansi AS STRING, mus AS LONG, k AS STRING, frames AS INTEGER
     ansi = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
-    mus = _SNDOPEN("assets/music/vr-theme.rad")
+    mus = _SNDOPEN(ResolveMusic$("vr-theme"))       ' best-quality file for this name (pack-aware)
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDPLAY mus
     _DEST CANVAS: _FONT CH: CLS , BLACK
@@ -421,7 +421,7 @@ FUNCTION RunMenu%
     _DEST iRight: _FONT CH: ANSI_Print (rw(1))
     _DEST iBlock: _FONT CH: ANSI_Print (bl(1))
 
-    mus = _SNDOPEN("assets/music/everdark.rad")
+    mus = _SNDOPEN(ResolveMusic$("everdark"))       ' best-quality file for this name (pack-aware)
     music_handle = mus
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDLOOP mus

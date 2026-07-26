@@ -1,30 +1,34 @@
-# playlist.txt -- which music plays on each dungeon level. Format:  level | filename
+# playlist.txt -- which music plays on each dungeon level. Format:  level | name
 # The file lives in assets/music/. Re-read at launch (F5); edit freely.
 #
-# _SNDOPEN reads trackers (.rad .mod .xm .s3m .it) AND .ogg / .mp3 / .wav / .flac,
-# so you can use any of those. For full-length music prefer .ogg or .mp3 -- a .wav
-# is uncompressed and can be very large. Drop your files in assets/music/ and point
-# a level at one here. Levels that share a filename won't restart the track as you
-# move between them; a level with no line here keeps whatever is already playing.
+# Give a BARE NAME (no extension). The game plays the HIGHEST-quality file that
+# exists for that name, following a worst -> best ladder:
 #
-# level | file
-1 | level2.ogg
-2 | level1.wav
-3 | start.wav
-4 | everdark.rad
-5 | start.wav
-6 | everdark.rad
-7 | everdark.rad
-8 | everdark.rad
-9 | everdark.rad
+#     .mid -> .rad -> .s3m / .mod / .xm / .it -> .ogg / .mp3 -> .flac -> .wav
 #
-# ---- example of DIFFERENT music per level (drop these files in, then uncomment) ----
-# 1 | caverns.ogg
-# 2 | caverns.ogg
-# 3 | crypt.mp3
-# 4 | crypt.mp3
-# 5 | deeproads.ogg
-# 6 | deeproads.ogg
-# 7 | inferno.mp3
-# 8 | inferno.mp3
-# 9 | dragonlair.ogg
+# So ship a tiny .mid/.rad and a downloadable "music pack" of .ogg/.wav upgrades it
+# in place -- just drop the better file in assets/music/ with the same name. A name
+# with no file on disk plays nothing; a level with no line keeps whatever's playing;
+# levels that share a name won't restart the track as you move between them.
+#
+# level | name
+1 | level2
+2 | level1
+3 | start
+4 | everdark
+5 | start
+6 | everdark
+7 | everdark
+8 | everdark
+9 | everdark
+#
+# ---- example of DIFFERENT music per level (drop the files in, then uncomment) ----
+# 1 | caverns
+# 2 | caverns
+# 3 | crypt
+# 4 | crypt
+# 5 | deeproads
+# 6 | deeproads
+# 7 | inferno
+# 8 | inferno
+# 9 | dragonlair

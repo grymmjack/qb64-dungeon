@@ -1,14 +1,19 @@
 ' ============================================================================
-'  MUSIC.bas -- per-level in-game music (data-driven)
+'  MUSIC.bas -- per-level in-game music (data-driven, quality-laddered)
 '
-'  assets/music/playlist.txt maps each dungeon level (1-9) to a music file in
-'  assets/music/. As you cross into a new level the track switches; levels that
-'  share a file don't restart it, and a level with no entry keeps whatever's
-'  playing. Edit the playlist (and drop in files) + F5 -- no code change.
+'  assets/music/playlist.txt maps each dungeon level (1-9) to a track by BARE NAME
+'  (no extension). ResolveMusic$ then plays the HIGHEST-quality file that exists for
+'  that name on disk, following a worst -> best ladder:
 '
-'  _SNDOPEN reads .rad/.mod/.xm/.s3m/.it (trackers) AND .ogg / .mp3 / .wav / .flac,
-'  so any of those work as a track. For music-length audio prefer .ogg or .mp3
-'  (a .wav is uncompressed and can be huge). Format: level | filename  ('#' comment).
+'      .mid -> .rad -> .s3m / .mod / .xm / .it -> .ogg / .mp3 -> .flac -> .wav
+'
+'  So the repo can ship tiny .mid/.rad tracks and a downloadable "music pack" of
+'  .ogg/.wav files upgrades them in place -- just drop the better file into
+'  assets/music/ (same base name), no playlist or code change. Nothing on disk for a
+'  name -> silence. As you cross into a new level the track switches; levels sharing a
+'  name don't restart it, and a level with no playlist line keeps whatever's playing.
+'  (An entry that still carries an extension, e.g. "everdark.rad", also resolves --
+'  the extension is stripped first, then the ladder picks the best available.)
 ' ============================================================================
 
 SUB LoadPlaylist
@@ -32,19 +37,45 @@ SUB PlayLevelMusic (lv AS INTEGER)
     fn = _TRIM$(MUSIC_FILE(lv))
     IF LEN(fn) = 0 THEN EXIT SUB                    ' no track assigned for this level -> keep current
     music_level = lv
-    IF fn = music_curfile THEN EXIT SUB            ' this file is already playing -> nothing to do
-    ' the track really changed: stop the old one and start the new
+    IF fn = music_curfile THEN EXIT SUB            ' this entry already resolved/playing -> nothing to do
+    ' the entry changed: stop the old track and resolve the best file for the new name
     IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
-    music_curfile = ""
-    path = "assets/music/" + fn
-    IF _FILEEXISTS(path) = 0 THEN EXIT SUB          ' missing file -> silence rather than a crash
+    music_curfile = fn                              ' remember the ENTRY so we don't re-resolve every step
+    path = ResolveMusic$(fn)                        ' bare name -> best-quality file on disk ("" = none)
+    IF LEN(path) = 0 THEN EXIT SUB                  ' nothing on disk for this name -> silence
     music_handle = _SNDOPEN(path)
     IF music_handle > 0 THEN
-        music_curfile = fn
         _SNDVOL music_handle, opt_musicvol / 10
         _SNDLOOP music_handle
     END IF
 END SUB
+
+' Resolve a BARE track name to the highest-quality file that exists for it, per the
+' worst -> best ladder (.mid .rad | .s3m .mod .xm .it | .ogg .mp3 | .flac .wav): the
+' rightmost existing file wins, so higher-fidelity "packs" dropped into assets/music/
+' override the shipped low-fi track with no other change. "" if none exists (silence).
+' Any extension already on the name is stripped first, so old-style entries still work.
+FUNCTION ResolveMusic$ (nm AS STRING)
+    DIM exts(1 TO 10) AS STRING, i AS INTEGER, b AS STRING, chosen AS STRING, p AS STRING
+    exts(1) = ".mid": exts(2) = ".rad"
+    exts(3) = ".s3m": exts(4) = ".mod": exts(5) = ".xm": exts(6) = ".it"
+    exts(7) = ".ogg": exts(8) = ".mp3"
+    exts(9) = ".flac": exts(10) = ".wav"
+    b = _TRIM$(nm)
+    ' strip a trailing known extension (so "everdark.rad" resolves by its base name)
+    FOR i = 1 TO 10
+        IF LEN(b) > LEN(exts(i)) THEN
+            IF LCASE$(RIGHT$(b, LEN(exts(i)))) = exts(i) THEN b = LEFT$(b, LEN(b) - LEN(exts(i))): EXIT FOR
+        END IF
+    NEXT
+    ' keep the last (highest-quality) file that exists
+    chosen = ""
+    FOR i = 1 TO 10
+        p = "assets/music/" + b + exts(i)
+        IF _FILEEXISTS(p) THEN chosen = p
+    NEXT
+    ResolveMusic$ = chosen
+END FUNCTION
 
 ' Stop and release the in-game track (called when a run ends, before the menu music).
 SUB StopLevelMusic
