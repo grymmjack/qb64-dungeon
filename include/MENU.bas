@@ -533,7 +533,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 39
+    CONST NSET = 40
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -616,6 +616,11 @@ SUB RunSettings
                     IF opt_dicelight < 0 THEN opt_dicelight = 3
                     IF opt_dicelight > 3 THEN opt_dicelight = 0
                     Sfx "select"
+                CASE 39
+                    opt_diceround = opt_diceround + delta
+                    IF opt_diceround < 0 THEN opt_diceround = 10
+                    IF opt_diceround > 10 THEN opt_diceround = 0
+                    Build3DPreviews: Sfx "select"
             END SELECT
         END IF
 
@@ -688,7 +693,11 @@ SUB RunSettings
                 CASE 38
                     opt_dicelight = opt_dicelight + 1
                     IF opt_dicelight > 3 THEN opt_dicelight = 0
-                CASE 39: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 39
+                    opt_diceround = opt_diceround + 1
+                    IF opt_diceround > 10 THEN opt_diceround = 0
+                    Build3DPreviews
+                CASE 40: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -818,6 +827,9 @@ SUB RunSettings
                         CASE 3: vtxt = "strong"
                         CASE ELSE: vtxt = "normal"
                     END SELECT
+                CASE 39
+                    lbl = "  Dice Round": slider = TRUE
+                    IF opt_diceround <= 0 THEN vtxt = "sharp" ELSE vtxt = _TRIM$(STR$(opt_diceround)) + " / 10"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

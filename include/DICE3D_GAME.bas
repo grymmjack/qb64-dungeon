@@ -110,6 +110,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     idx = dice3d_set_index%(sides): IF idx < 0 THEN idx = 0
     IF dice3d_use_mon THEN cfg = MSET3D(idx) ELSE cfg = DSET3D(idx)
     ApplyDiceLight cfg                              ' SETTINGS "Dice Light" overrides the set's LIGHT_*
+    cfg.BEVEL = opt_diceround / 10                  ' SETTINGS "Dice Round" drives the edge roundness
 
     IF LEN(_TRIM$(what)) > 0 THEN
         hdr = "-= " + _TRIM$(what) + " =-"
@@ -265,6 +266,7 @@ SUB Build3DPreviews
     Free3DPreviews
     IF NOT dice3d_ready THEN EXIT SUB
     pc = DSET3D(dice3d_set_index%(20)): pc.DIE_SIZE = 96: SetDiceFont pc
+    pc.BEVEL = opt_diceround / 10    ' SETTINGS "Dice Round" drives the preview roundness
     DICE3D_BEVEL = pc.BEVEL * 0.18   ' geometric edge-round for the preview d20
     dice3d_build 20
     a = dice3d_make_atlas&(pc, pc.BODY_KOLOR, 0): PREV3D_P = _COPYIMAGE(a, 33): _FREEIMAGE a
