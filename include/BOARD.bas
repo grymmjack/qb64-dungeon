@@ -190,7 +190,8 @@ SUB DetectChambers
     REDIM made(1 TO 40) AS INTEGER   ' which labels actually seeded a chamber (for multi-word skip)
     seedmin = 18: floodmin = 18      ' wide-open cells only -- keeps chambers off the thin corridors
     FOR ny = 0 TO 60: FOR nx = 0 TO 131: CHAMBERAT(nx, ny) = 0: NEXT: NEXT
-    NCHAMBER = 0
+    FOR i = 1 TO MAXCHAMBER: CHM_DEAD(i) = 0: NEXT
+    NCHAMBER = 0: cur_chamber = 0
     oldsrc = _SOURCE: _SOURCE FULL_BOARD
     FOR i = 1 TO LBL_N
         '--- skip a second word of a multi-word chamber name: if an adjacent EARLIER label
@@ -227,11 +228,61 @@ SUB DetectChambers
                 NCHAMBER = NCHAMBER - 1
             ELSE
                 made(i) = -1                           ' this label kept a chamber (blocks its 2nd word)
+                PickChamberGraves NCHAMBER              ' 3 spread cells for its eventual monster graves
             END IF
         END IF
         END IF
     NEXT i
     _SOURCE oldsrc
+END SUB
+
+' Choose up to 3 well-separated cells inside a chamber (Manhattan distance >= 4 apart) to
+' seat its 3 monster graves. Falls back to the chamber centre if the spread can't be met.
+SUB PickChamberGraves (cid AS INTEGER)
+    DIM x AS INTEGER, y AS INTEGER, n AS INTEGER
+    CHM_GX(cid, 1) = -1: CHM_GX(cid, 2) = -1: CHM_GX(cid, 3) = -1
+    n = 0
+    FOR y = 0 TO 60
+        FOR x = 0 TO 131
+            IF CHAMBERAT(x, y) = cid THEN
+                IF n = 0 THEN
+                    CHM_GX(cid, 1) = x: CHM_GY(cid, 1) = y: n = 1
+                ELSEIF n = 1 THEN
+                    IF ABS(x - CHM_GX(cid, 1)) + ABS(y - CHM_GY(cid, 1)) >= 4 THEN CHM_GX(cid, 2) = x: CHM_GY(cid, 2) = y: n = 2
+                ELSEIF n = 2 THEN
+                    IF ABS(x - CHM_GX(cid, 1)) + ABS(y - CHM_GY(cid, 1)) >= 4 THEN
+                        IF ABS(x - CHM_GX(cid, 2)) + ABS(y - CHM_GY(cid, 2)) >= 4 THEN CHM_GX(cid, 3) = x: CHM_GY(cid, 3) = y: n = 3
+                    END IF
+                END IF
+            END IF
+        NEXT x
+        IF n >= 3 THEN EXIT FOR
+    NEXT y
+    FOR n = 1 TO 3                                          ' any slot never filled -> the centre
+        IF CHM_GX(cid, n) < 0 THEN CHM_GX(cid, n) = CHM_CX(cid): CHM_GY(cid, n) = CHM_CY(cid)
+    NEXT
+END SUB
+
+' Grey headstones for chamber monsters slain -- one per grave (up to CHM_DEAD, max 3).
+SUB DrawChamberGraves
+    DIM cid AS INTEGER, k AS INTEGER, gx AS INTEGER, gy AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
+    grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
+    _DEST CANVAS
+    FOR cid = 1 TO NCHAMBER
+        IF CHM_DEAD(cid) > 0 AND CHAMBERAT(START_CX, START_CY) <> cid THEN
+            FOR k = 1 TO CHM_DEAD(cid)
+                gx = CHM_GX(cid, k): gy = CHM_GY(cid, k)
+                IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
+                    px = gx * CW: py = gy * CH
+                    LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF   ' stone body
+                    LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF        ' rounded top
+                    LINE (px + CW \ 2, py + 6)-(px + CW \ 2, py + CH - 3), dark   ' cross (vertical)
+                    LINE (px + 2, py + 9)-(px + CW - 3, py + 9), dark             ' cross (horizontal)
+                END IF
+            NEXT k
+        END IF
+    NEXT cid
 END SUB
 
 SUB DetectRooms
@@ -843,6 +894,13 @@ FUNCTION YN$ (b AS INTEGER)
 END FUNCTION
 
 
+' graves so far at a cell, or 0 if it isn't a chamber cell (guards the 0 index)
+FUNCTION ChamberDeadAt% (cx AS INTEGER, cy AS INTEGER)
+    DIM id AS INTEGER
+    id = CHAMBERAT(cx, cy)
+    IF id >= 1 AND id <= NCHAMBER THEN ChamberDeadAt% = CHM_DEAD(id) ELSE ChamberDeadAt% = 0
+END FUNCTION
+
 SUB DrawDebug
     DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER, i AS INTEGER
     DIM onpath AS INTEGER, inroom AS INTEGER, ondoor AS INTEGER, onsecret AS INTEGER, nearsd AS INTEGER
@@ -898,7 +956,7 @@ SUB DrawDebug
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
-    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn
+    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy)))
     '--- OFFSET DIAGNOSTIC overlay: the 9 sector rects drawn with the EXACT SECTOR.get_by_xy
     '    math ((start-1)*cell), the hard-coded label anchor cells (magenta +), and the START
     '    cell (white box). Compare against the coloured art underneath:
@@ -917,4 +975,18 @@ SUB DrawDebug
         LINE (lxp + CW \ 2, lyp - 3)-(lxp + CW \ 2, lyp + 3), _RGB32(&HFF, &H00, &HFF)
     NEXT i
     LINE (START_CX * CW, START_CY * CH)-(START_CX * CW + CW - 1, START_CY * CH + CH - 1), WHITE, B
+    '--- CHAMBER trigger overlay: every cell that fires a chamber encounter (CHAMBERAT > 0),
+    '    tinted translucent so the art shows through. MAGENTA = still spawning monsters,
+    '    GREEN = cleared (3 graves). NOTE: the + crosses above are label SEEDS, not this.
+    '    (local is 'cham', never 'ch' -- 'ch' would shadow the shared font-height CH.)
+    DIM chx AS INTEGER, chy AS INTEGER, cham AS INTEGER, tint AS _UNSIGNED LONG
+    FOR chy = 0 TO 60
+        FOR chx = 0 TO 131
+            cham = CHAMBERAT(chx, chy)
+            IF cham > 0 THEN
+                IF CHM_DEAD(cham) >= 3 THEN tint = _RGBA32(&H00, &HFF, &H00, 55) ELSE tint = _RGBA32(&HFF, &H00, &HFF, 70)
+                LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), tint, BF
+            END IF
+        NEXT chx
+    NEXT chy
 END SUB

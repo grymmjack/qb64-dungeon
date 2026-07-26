@@ -361,6 +361,19 @@ FUNCTION PlayGame%
                             IF NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
                         END IF
                     END IF
+                    ' CHAMBERS: stepping into a fresh (uncleared) chamber wakes ONE of its 3 monsters;
+                    ' leave and re-enter for the next until three graves stand. Fire only on ENTRY
+                    ' (cur_chamber transition) and never on a coloured room block (rooms handle their own).
+                    DIM chnow AS INTEGER
+                    chnow = CHAMBERAT(c.x \ CW, c.y \ CH)
+                    IF ROOMAT(c.x \ CW, c.y \ CH) <> 0 THEN chnow = 0
+                    IF chnow <> cur_chamber THEN
+                        cur_chamber = chnow
+                        IF chnow > 0 THEN
+                            ChamberEncounter chnow
+                            IF opt_boardgame THEN steps_left = 0     ' a chamber fight ends your turn
+                        END IF
+                    END IF
                     ' reclaim loose spoils left on the paths where a fall happened (rooms OR corridors)
                     IF LooseAt%(c.x \ CW, c.y \ CH) > 0 THEN CollectLooseAt c.x \ CW, c.y \ CH
                     ' victory: enough gold, hold the Level Key, and back at the entrance
@@ -1007,6 +1020,13 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
         slay = "You slay the " + mon + "!  (felled in " + _TRIM$(STR$(sm)) + " rounds)"
     END IF
     itm = ROOMS(rm).treasure_item
+    IF ROOMS(rm).is_chamber THEN                           ' a CHAMBER monster guards NO treasure (board-game rule)
+        RecordKill lvl, rm, mon, sm, 0, ""                 ' the kill still counts (bestiary + the grave)
+        Sfx "treasure"
+        Banner slay, "The chamber holds no treasure -- only more monsters.   [ press any key ]"
+        CombatPause
+        EXIT SUB
+    END IF
     DIM newp AS INTEGER
     SELECT CASE itm
         CASE 1, 2                                ' Magic Sword
@@ -1582,6 +1602,44 @@ SUB WanderEncounter
     Banner MonVerb$(wm, "A WANDERING " + wm + " bursts", "WANDERING " + wm + " burst") + " from the shadows!", "Your lingering has drawn " + MonVerb$(wm, "it", "them") + " to you.   [ press any key ]"
     WaitKey
     res = DoCombat(w)
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+' A CHAMBER (the big named halls) holds THREE monsters and NO treasure. Each time the
+' player steps into an uncleared chamber, ONE fresh monster of that level rises to fight;
+' leave and re-enter for the next, until three graves stand (CHM_DEAD = 3). The Main
+' Gallery / entrance is always safe. Uses a scratch ROOMS() slot (never mapped in ROOMAT,
+' so it can't be walked into), fought with the normal combat code; treasure suppressed via
+' the is_chamber flag in ClaimTreasure.
+SUB ChamberEncounter (cid AS INTEGER)
+    DIM AS INTEGER sec, w, m, res
+    DIM mon AS STRING
+    IF cid < 1 OR cid > NCHAMBER THEN EXIT SUB
+    IF CHAMBERAT(START_CX, START_CY) = cid THEN EXIT SUB   ' the Main Gallery / entrance never spawns
+    IF CHM_DEAD(cid) >= 3 THEN EXIT SUB                    ' three graves already -- the chamber is cleared
+    sec = CHM_SEC(cid): IF sec < 1 THEN sec = 1
+    w = ROOM_N + 2: IF w > 400 THEN w = 400                ' scratch slot (WanderEncounter uses ROOM_N+1)
+    m = RollDie(3): mon = _TRIM$(MON_NAME(sec, m))
+    ROOMS(w).sec = sec: ROOMS(w).monster = mon: ROOMS(w).mslot = m
+    ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
+    ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
+    ROOMS(w).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(w).mhp_now = ROOMS(w).mhp
+    ROOMS(w).mac = 9 + sec
+    ROOMS(w).treasure = 0: ROOMS(w).treasure_item = 0: ROOMS(w).treasure_name = ""
+    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
+    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    ROOMS(w).is_chamber = TRUE                             ' tells ClaimTreasure to grant no treasure
+    Sfx "trap"
+    Banner MonVerb$(mon, "A " + mon + " stalks", mon + " stalk") + " the " + _TRIM$(CHM_NAME(cid)) + "!", "Chamber monster " + _TRIM$(STR$(CHM_DEAD(cid) + 1)) + " of 3 -- it guards no treasure.   [ press any key ]"
+    WaitKey
+    res = DoCombat(w)
+    IF NOT ROOMS(w).malive THEN CHM_DEAD(cid) = CHM_DEAD(cid) + 1   ' slain -> one more grave (up to 3)
+    ROOMS(w).is_chamber = FALSE
+    IF CHM_DEAD(cid) >= 3 THEN
+        Sfx "levelup"
+        Banner "The " + _TRIM$(CHM_NAME(cid)) + " is cleared!", "Three graves mark your victory here.   [ press any key ]"
+        WaitKey
+    END IF
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
 

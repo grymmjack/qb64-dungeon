@@ -91,6 +91,7 @@ TYPE ROOM
     looted  AS INTEGER
     monster_fought AS INTEGER
     player_died AS INTEGER
+    is_chamber AS INTEGER     ' a scratch CHAMBER encounter (3 monsters, no treasure)
     seen    AS INTEGER        ' the player has entered this room -- only then is its monster drawn
     ' loot a fallen champion left here (multiplayer only -- recoverable by any player)
     drop_gold AS LONG
@@ -181,6 +182,10 @@ DIM SHARED NCHAMBER AS INTEGER
 DIM SHARED CHM_CX(1 TO MAXCHAMBER) AS INTEGER, CHM_CY(1 TO MAXCHAMBER) AS INTEGER
 DIM SHARED CHM_CELLS(1 TO MAXCHAMBER) AS INTEGER, CHM_SEC(1 TO MAXCHAMBER) AS INTEGER
 DIM SHARED CHM_NAME(1 TO MAXCHAMBER) AS STRING
+DIM SHARED CHM_DEAD(1 TO MAXCHAMBER) AS INTEGER   ' graves so far (0..3); 3 = chamber cleared
+DIM SHARED cur_chamber AS INTEGER                 ' chamber the player is currently inside (0 = none)
+DIM SHARED CHM_GX(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER   ' 3 spread grave cells per chamber
+DIM SHARED CHM_GY(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER
 DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING

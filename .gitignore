@@ -48,3 +48,4 @@ BOARD.png
 # top "* / !*.*" rule -- unignore it so the project folder is complete
 !assets/music/bitwig/**/.bitwig-project
 
+chamberdump.png

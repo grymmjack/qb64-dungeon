@@ -168,6 +168,7 @@ SUB cursor_draw
     DIM p AS INTEGER
     _DEST CANVAS
     DrawTombstones                       ' grey headstones on cleared rooms
+    DrawChamberGraves                    ' grey headstones for chamber monsters slain
     DrawEntities                         ' monster glyphs + recoverable loot (FOV-aware)
     ' other hot-seat players' tokens -- drawn as their NUMBER (white on their colour)
     IF num_players > 1 THEN
