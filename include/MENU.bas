@@ -101,7 +101,7 @@ END FUNCTION
 
 
 SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTEGER)
-    DIM i AS INTEGER, y AS INTEGER, nm(1 TO 6) AS STRING, row AS STRING
+    DIM i AS INTEGER, y AS INTEGER, nm(1 TO 6) AS STRING, row AS STRING, fp AS STRING
     nm(1) = "STR": nm(2) = "INT": nm(3) = "WIS": nm(4) = "DEX": nm(5) = "CON": nm(6) = "CHA"
     _DEST CANVAS: CLS , BLACK
     COLOR YELLOWU, BLACK: PrintCentered 2, "C R E A T E   A   C H A R A C T E R"
@@ -127,11 +127,16 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
         COLOR CYANU, BLACK
         PrintCentered 26, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
         COLOR GREY, BLACK: PrintCentered 28, CombatDerivation$(pc)   ' where those bonuses come from
-        COLOR YELLOWU, BLACK: PrintCentered 44, "[R] re-roll     [N] new name     [ENTER] keep this one     [ESC] back to menu"
+        fp = "[R] re-roll     [N] new name     "
+        IF opt_flexstats = 1 THEN fp = fp + "[C] assign scores     "   ' rearrange the rolled scores
+        fp = fp + "[ENTER] keep     [ESC] back"
+        COLOR YELLOWU, BLACK: PrintCentered 44, fp
     ELSE
         COLOR CYANU, BLACK
         IF rolled < 6 THEN
-            PrintCentered 44, "[ press a key ] roll " + nm(rolled + 1) + "      [A] auto-roll the rest      [N] new name      [ESC] back"
+            fp = "[ press a key ] roll " + nm(rolled + 1) + "      [A] auto-roll the rest      [N] new name      [ESC] back"
+            IF rolled = 0 AND opt_flexstats = 2 THEN fp = "[P] point distribution      " + fp   ' build stats instead of rolling
+            PrintCentered 44, fp
         ELSE
             PrintCentered 44, "[ press a key ] roll your HIT POINTS      [A] auto      [ESC] back"
         END IF
@@ -143,14 +148,123 @@ END SUB
 ' The full generation flow: roll 3d6 for six abilities, roll hit points on the
 ' class hit die, derive the D&D combat stats, and let the player re-roll.
 ' Honours Real Dice (each 3d6 becomes a PromptRoll when that setting is on).
+' Name of ability i (1..6 -> STR/INT/WIS/DEX/CON/CHA).
+FUNCTION StatName$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: StatName$ = "STR"
+        CASE 2: StatName$ = "INT"
+        CASE 3: StatName$ = "WIS"
+        CASE 4: StatName$ = "DEX"
+        CASE 5: StatName$ = "CON"
+        CASE ELSE: StatName$ = "CHA"
+    END SELECT
+END FUNCTION
+
+' Re-derive the D&D combat stats from the current ability globals (STR/INT/DEX) + class.
+SUB DeriveFromStats (pc AS INTEGER)
+    DIM atkmod AS INTEGER
+    IF pc = 4 THEN atkmod = AbilMod(player_int) ELSE atkmod = AbilMod(player_str)   ' Wizard swings with INT
+    player_tohit = CLASSES(pc).tohit + atkmod
+    player_dmgdie = CLASSES(pc).dmg
+    player_dmgbonus = atkmod
+    player_ac = CLASSES(pc).ac + AbilMod(player_dex)
+END SUB
+
+' Shared editor screen for the two flexible-stats modes. mode 2 = point distribution,
+' 1 = assign/swap. cur = cursor row; moving = a picked-up row (assign; 0 = none).
+' info = the pool/status line. Shows a LIVE combat preview computed off sc().
+SUB DrawFlexStats (pc AS INTEGER, sc() AS INTEGER, cur AS INTEGER, moving AS INTEGER, mode AS INTEGER, info AS STRING)
+    DIM i AS INTEGER, y AS INTEGER, arrow AS STRING, row AS STRING, atkm AS INTEGER, pac AS INTEGER, pth AS INTEGER
+    _DEST CANVAS: _FONT CH: CLS , BLACK
+    COLOR YELLOWU, BLACK
+    IF mode = 2 THEN PrintCentered 2, "P O I N T   D I S T R I B U T I O N" ELSE PrintCentered 2, "A S S I G N   Y O U R   S C O R E S"
+    COLOR WHITE, BLACK: PrintCentered 4, "Name:  " + _TRIM$(player_name) + "         Class:  " + _TRIM$(CLASSES(pc).name)
+    FOR i = 1 TO 6
+        y = 8 + (i - 1) * 2
+        row = StatName$(i) + "   " + RIGHT$("  " + _TRIM$(STR$(sc(i))), 2) + "   (" + ModStr$(AbilMod(sc(i))) + ")"
+        arrow = "  ": IF i = cur THEN arrow = "> "
+        IF i = moving THEN
+            COLOR BLACK, YELLOWU                       ' the score you picked up
+        ELSEIF i = cur THEN
+            COLOR WHITE, REDU                          ' the cursor
+        ELSE
+            COLOR WHITE, BLACK
+        END IF
+        PrintCentered y, "   " + arrow + row + "   "
+    NEXT i
+    IF pc = 4 THEN atkm = AbilMod(sc(2)) ELSE atkm = AbilMod(sc(1))
+    pac = CLASSES(pc).ac + AbilMod(sc(4)): pth = CLASSES(pc).tohit + atkm
+    COLOR GREENU, BLACK: PrintCentered 22, "AC " + _TRIM$(STR$(pac)) + "     To-Hit " + ModStr$(pth) + "     Damage 1d" + _TRIM$(STR$(CLASSES(pc).dmg)) + " " + ModStr$(atkm) + "     CON->HP " + ModStr$(AbilMod(sc(5)))
+    COLOR CYANU, BLACK: PrintCentered 24, info
+    COLOR YELLOWU, BLACK
+    IF mode = 2 THEN
+        PrintCentered 44, "[Up/Dn] pick stat     [Left] -1     [Right] +1     [ENTER] done     [ESC] cancel"
+    ELSE
+        PrintCentered 44, "[Up/Dn] move     [SPACE] pick up / drop (swap)     [ENTER] done     [ESC] cancel"
+    END IF
+    _DISPLAY
+END SUB
+
+' POINT DISTRIBUTION: every score starts at the floor (3); spend a pool up (max 18 each)
+' so the six total 72. Returns TRUE (kept) / FALSE (cancelled).
+FUNCTION PointBuyStats% (pc AS INTEGER, sc() AS INTEGER)
+    DIM cur AS INTEGER, i AS INTEGER, pool AS INTEGER, used AS INTEGER, k AS STRING
+    FOR i = 1 TO 6: sc(i) = 3: NEXT
+    cur = 1
+    DO
+        used = 0: FOR i = 1 TO 6: used = used + sc(i): NEXT
+        pool = 72 - used
+        DrawFlexStats pc, sc(), cur, 0, 2, "POINTS LEFT: " + _TRIM$(STR$(pool)) + "     (each score 3 - 18)"
+        k = "": DO: k = NormKey$(UCASE$(INKEY$)): _LIMIT 60: LOOP WHILE k = ""
+        SELECT CASE k
+            CASE "W": cur = cur - 1: IF cur < 1 THEN cur = 6
+            CASE "S": cur = cur + 1: IF cur > 6 THEN cur = 1
+            CASE "A": IF sc(cur) > 3 THEN sc(cur) = sc(cur) - 1: Sfx "select"
+            CASE "D": IF sc(cur) < 18 AND pool > 0 THEN sc(cur) = sc(cur) + 1: Sfx "select"
+            CASE CHR$(13): PointBuyStats% = -1: EXIT FUNCTION
+            CASE CHR$(27): PointBuyStats% = 0: EXIT FUNCTION
+        END SELECT
+    LOOP
+END FUNCTION
+
+' ASSIGN ROLL: rearrange the rolled scores. [SPACE] picks up the cursor's score; move
+' to another row and [SPACE] again swaps them. Returns TRUE (kept) / FALSE (cancelled).
+FUNCTION AssignStats% (pc AS INTEGER, sc() AS INTEGER)
+    DIM cur AS INTEGER, moving AS INTEGER, k AS STRING, tmp AS INTEGER, msg AS STRING
+    cur = 1: moving = 0
+    DO
+        IF moving = 0 THEN
+            msg = "Move to a score and press [SPACE] to pick it up."
+        ELSE
+            msg = "MOVING " + StatName$(moving) + " " + _TRIM$(STR$(sc(moving))) + "   --   [SPACE] swaps it with " + StatName$(cur) + " " + _TRIM$(STR$(sc(cur)))
+        END IF
+        DrawFlexStats pc, sc(), cur, moving, 1, msg
+        k = "": DO: k = NormKey$(UCASE$(INKEY$)): _LIMIT 60: LOOP WHILE k = ""
+        SELECT CASE k
+            CASE "W": cur = cur - 1: IF cur < 1 THEN cur = 6
+            CASE "S": cur = cur + 1: IF cur > 6 THEN cur = 1
+            CASE " "
+                IF moving = 0 THEN
+                    moving = cur: Sfx "select"
+                ELSE
+                    tmp = sc(moving): sc(moving) = sc(cur): sc(cur) = tmp
+                    moving = 0: Sfx "treasure"
+                END IF
+            CASE CHR$(13): AssignStats% = -1: EXIT FUNCTION
+            CASE CHR$(27): AssignStats% = 0: EXIT FUNCTION
+        END SELECT
+    LOOP
+END FUNCTION
+
 SUB RollCharacter (pc AS INTEGER)
-    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER
+    DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER, usedpoint AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
     IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
     DICE3D_YOFF = 14                                ' drop the 3D dice tray below the stat sheet so the scores stay visible
     stay_auto = FALSE                               ' once [A] is pressed it stays on through every re-roll
     DO
         auto = stay_auto
+        usedpoint = FALSE
         FOR i = 1 TO 6
             DrawCharGen pc, sc(), i - 1, 0             ' show sheet + the prompt to roll this ability
             IF NOT auto THEN                           ' the player presses a key to roll each stat...
@@ -158,11 +272,19 @@ SUB RollCharacter (pc AS INTEGER)
                     _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
                     IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), i - 1, 0: k = ""
                     IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' one ESC aborts back to the menu
+                    IF i = 1 AND opt_flexstats = 2 AND k = "P" THEN   ' point distribution instead of rolling
+                        IF PointBuyStats%(pc, sc()) THEN
+                            usedpoint = -1: k = CHR$(13)
+                        ELSE
+                            k = ""                    ' cancelled point-buy -> keep prompting to roll
+                        END IF
+                    END IF
                 LOOP UNTIL k <> ""
                 IF k = "A" THEN auto = -1: stay_auto = -1: Sfx "select"  ' ...or [A] to auto-roll the rest (and every re-roll after)
             ELSE
                 IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB  ' ESC bails out mid auto-roll too
             END IF
+            IF usedpoint THEN EXIT FOR                 ' point-buy set all six -- skip the dice
             sc(i) = RollAbility                        ' 3d6 or 4d6-drop-low per the Stat-Roll setting
         NEXT i
         player_str = sc(1): player_int = sc(2): player_wis = sc(3)
@@ -182,16 +304,22 @@ SUB RollCharacter (pc AS INTEGER)
         player_maxhp = hproll + 3 * AbilMod(player_con)
         IF player_maxhp < 3 THEN player_maxhp = 3
         player_hp = player_maxhp
-        ' Wizards strike with INT (spells); everyone else with STR
-        IF pc = 4 THEN atkmod = AbilMod(player_int) ELSE atkmod = AbilMod(player_str)
-        player_tohit = CLASSES(pc).tohit + atkmod
-        player_dmgdie = CLASSES(pc).dmg
-        player_dmgbonus = atkmod
-        player_ac = CLASSES(pc).ac + AbilMod(player_dex)
+        DeriveFromStats pc                             ' to-hit / AC / damage from the ability scores
         DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt
         DO
             _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
             IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, -1: k = ""
+            IF k = "C" AND opt_flexstats = 1 THEN         ' rearrange the rolled scores
+                IF AssignStats%(pc, sc()) THEN
+                    player_str = sc(1): player_int = sc(2): player_wis = sc(3)
+                    player_dex = sc(4): player_con = sc(5): player_cha = sc(6)
+                    player_maxhp = hproll + 3 * AbilMod(player_con)   ' HP dice fixed; CON bonus re-derives
+                    IF player_maxhp < 3 THEN player_maxhp = 3
+                    player_hp = player_maxhp
+                    DeriveFromStats pc
+                END IF
+                DrawCharGen pc, sc(), 6, -1: k = ""
+            END IF
             IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' ESC from the final prompt bails too
         LOOP UNTIL k = "R" OR k = CHR$(13)
         Sfx "select"
@@ -534,7 +662,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 41
+    CONST NSET = 42
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -627,6 +755,11 @@ SUB RunSettings
                     IF opt_bloodstrength < 0 THEN opt_bloodstrength = 10
                     IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
                     Sfx "select"
+                CASE 41
+                    opt_flexstats = opt_flexstats + delta
+                    IF opt_flexstats < 0 THEN opt_flexstats = 2
+                    IF opt_flexstats > 2 THEN opt_flexstats = 0
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -706,7 +839,9 @@ SUB RunSettings
                 CASE 40
                     opt_bloodstrength = opt_bloodstrength + 1
                     IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
-                CASE 41: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 41
+                    opt_flexstats = opt_flexstats + 1: IF opt_flexstats > 2 THEN opt_flexstats = 0
+                CASE 42: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -842,6 +977,13 @@ SUB RunSettings
                 CASE 40
                     lbl = "Blood": slider = TRUE
                     IF opt_bloodstrength <= 0 THEN vtxt = "none" ELSE vtxt = _TRIM$(STR$(opt_bloodstrength)) + " / 10"
+                CASE 41
+                    lbl = "Flexible Stats"
+                    SELECT CASE opt_flexstats
+                        CASE 1: vtxt = "assign roll"
+                        CASE 2: vtxt = "point buy"
+                        CASE ELSE: vtxt = "off (rolled)"
+                    END SELECT
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

@@ -435,6 +435,7 @@ SUB SaveSettings
     PRINT #f, "dicemath " + _TRIM$(STR$(opt_dicemath))
     PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
     PRINT #f, "heroicstats " + _TRIM$(STR$(opt_heroicstats))
+    PRINT #f, "flexstats " + _TRIM$(STR$(opt_flexstats))
     PRINT #f, "boardgame " + _TRIM$(STR$(opt_boardgame))
     PRINT #f, "movedice " + _TRIM$(STR$(opt_movedice))
     PRINT #f, "artstyle " + _TRIM$(STR$(opt_artstyle))
@@ -492,6 +493,7 @@ SUB LoadSettings
                 CASE "dicemath": opt_dicemath = v
                 CASE "oldschool": opt_oldschool = v
                 CASE "heroicstats": opt_heroicstats = v
+                CASE "flexstats": opt_flexstats = v
                 CASE "boardgame": opt_boardgame = v
                 CASE "movedice": opt_movedice = v
                 CASE "artstyle": opt_artstyle = v

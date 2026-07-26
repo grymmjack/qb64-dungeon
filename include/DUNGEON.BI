@@ -316,6 +316,7 @@ DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and
 DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
 DIM SHARED opt_oldschool AS INTEGER   ' TRUE: Dungeon! 2d6-vs-target combat; FALSE: D&D d20/HP combat
 DIM SHARED opt_heroicstats AS INTEGER ' TRUE: roll abilities 4d6-drop-lowest; FALSE: straight 3d6
+DIM SHARED opt_flexstats AS INTEGER   ' 0 = OFF (rolled order), 1 = Assign roll (swap), 2 = Point distribution
 DIM SHARED opt_boardgame AS INTEGER   ' TRUE: roll dice + step-limited turns; FALSE: free "computer game" movement
 DIM SHARED opt_movedice AS INTEGER    ' Boardgame move style: TRUE = roll 1d6 (house variant); FALSE = up to MOVE_MAX, your choice (the DUNGEON! rule)
 CONST MOVE_MAX = 5                     ' DUNGEON!: a player moves up to 5 spaces per turn, their choice -- no movement die

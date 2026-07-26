@@ -44,6 +44,7 @@ opt_musicvol = 5: opt_sfxvol = 5: opt_voicevol = 6   ' 0..10 volume sliders
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
+opt_flexstats = 0                             ' character build: 0 OFF (rolled) / 1 Assign roll / 2 Point distribution
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 opt_movedice = TRUE                           ' default boardgame move: roll 1d6 (FALSE = DUNGEON! "up to 5, your choice")
 opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
