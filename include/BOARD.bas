@@ -112,15 +112,18 @@ END SUB
 ' board shows at a glance which rooms are cleared. (Rendered onto CANVAS after a
 ' fresh board blit, so it rides along with cursor_draw.)
 SUB DrawTombstones
-    DIM r AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM r AS INTEGER, px AS INTEGER, py AS INTEGER, gx AS INTEGER, gy AS INTEGER
     DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
     grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
     _DEST CANVAS
     ' Headstones only. Loot markers (the fallen-body ☻ and the recoverable-$ glyph)
     ' are drawn by DrawEntities, which runs after this and matches the board legend.
+    ' Sit the grave on the SAME label-avoiding cell the § monster used (EntityDrawX/Y),
+    ' so the headstone lands exactly where the monster stood -- never off under a label.
     FOR r = 1 TO ROOM_N
-        IF VIS(ROOMS(r).cx, ROOMS(r).cy) AND (NOT opt_fov OR LOS_SEEN(ROOMS(r).cx, ROOMS(r).cy)) THEN
-            px = ROOMS(r).cx * CW: py = ROOMS(r).cy * CH
+        gx = EntityDrawX(r): gy = EntityDrawY(r)
+        IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
+            px = gx * CW: py = gy * CH
             IF ROOMS(r).monster_fought AND NOT ROOMS(r).malive THEN
                 LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF     ' stone body
                 LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF          ' rounded top

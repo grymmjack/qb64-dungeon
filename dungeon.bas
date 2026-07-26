@@ -571,6 +571,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
             ELSE
                 c.x = c.prev_x: c.y = c.prev_y  ' back out the way you came
                 StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "fled", 0, 0, 0
+                RecordFled mon
                 Banner "You slip away from the " + mon + ".", MonVerb$(mon, "It still guards", "They still guard") + " the " + _TRIM$(SECTORS(sec).label) + " -- return to finish " + MonVerb$(mon, "it", "them") + ".   [ press any key ]"
                 CombatPause
                 EXIT DO
@@ -586,6 +587,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
             IF last_raw = 12 THEN
                 ' natural 12 -- CRITICAL HIT, always slays
                 ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
+                RecordCrit mon, 0
                 Sfx "crit"
                 IF opt_critfumble THEN
                     DoCrit rm, mon, WeaponName$, 0     ' cinematic + a heroic heal on the killing blow
@@ -598,6 +600,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 EXIT DO
             ELSEIF last_raw = 2 THEN
                 ' natural 2 -- CRITICAL FUMBLE
+                RecordFumble mon, 0
                 IF opt_critfumble THEN
                     DoFumble rm, mon, WeaponName$
                 ELSE
@@ -681,6 +684,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             ELSE
                 c.x = c.prev_x: c.y = c.prev_y   ' back out the way you came
                 StatLog sec, rm, mon, isboss, wander, "fled", rounds, tot_dealt, tot_taken
+                RecordFled mon
                 Banner "You slip away from the " + mon + ".", MonVerb$(mon, "It still guards", "They still guard") + " the " + _TRIM$(SECTORS(sec).label) + " -- return to finish " + MonVerb$(mon, "it", "them") + ".   [ press any key ]"
                 CombatPause
                 EXIT SUB
@@ -705,6 +709,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
+                RecordCrit mon, dmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.8, 0    ' you land a crit -- a meaty thump
@@ -717,6 +722,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     CombatPause
                 END IF
             ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss (and maybe a mishap)
+                RecordFumble mon, rounds
                 IF opt_critfumble THEN
                     DoFumble rm, mon, WeaponName$
                     DrawCombatPanel rm, mon, lead
@@ -1415,6 +1421,7 @@ SUB CollectDrop (rm AS INTEGER)
     IF ROOMS(rm).drop_crystal THEN item_crystal = TRUE: got = got + "   a Crystal Ball"
     ROOMS(rm).drop_gold = 0: ROOMS(rm).drop_sword = 0
     ROOMS(rm).drop_secret = FALSE: ROOMS(rm).drop_esp = FALSE: ROOMS(rm).drop_crystal = FALSE
+    IF ROOMS(rm).player_died THEN RecordLootRescue _TRIM$(ROOMS(rm).monster)   ' chronicle: hoard reclaimed after a death
     Sfx "treasure"
     IF NOT ROOMS(rm).player_died THEN
         Banner "You claim the treasure left waiting here.", _TRIM$(got) + "   [ press any key ]"   ' a curio left unopened, etc.
@@ -1546,6 +1553,7 @@ SUB WanderEncounter
     c.prev_x = c.x: c.prev_y = c.y                ' fleeing a wanderer just leaves you put
     Sfx "trap"
     DIM wm AS STRING: wm = _TRIM$(ROOMS(w).monster)
+    RecordWander wm, sec                          ' chronicle: wandering ambush
     Banner MonVerb$(wm, "A WANDERING " + wm + " bursts", "WANDERING " + wm + " burst") + " from the shadows!", "Your lingering has drawn " + MonVerb$(wm, "it", "them") + " to you.   [ press any key ]"
     WaitKey
     res = DoCombat(w)

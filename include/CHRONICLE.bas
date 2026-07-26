@@ -114,19 +114,27 @@ SUB RecordSecret (lv AS INTEGER, rm AS INTEGER, attempts AS INTEGER)
 END SUB
 
 SUB RecordWander (mon AS STRING, lv AS INTEGER)
+    ' the BEAST_ENC tally is bumped by RecordEncounter inside DoCombat -- don't double-count here
     g_wander_enc = g_wander_enc + 1
-    DIM i AS INTEGER: i = BeastIdx%(mon): IF i > 0 THEN BEAST_ENC(i) = BEAST_ENC(i) + 1
     LogEvent _TRIM$(player_name) + " was ambushed by a wandering " + _TRIM$(mon) + " in L" + EvNum$(lv)
 END SUB
 
 SUB RecordCrit (mon AS STRING, dmg AS INTEGER)
     g_crits = g_crits + 1
-    LogEvent _TRIM$(player_name) + " CRITICALLY hit " + _TRIM$(mon) + " for " + EvNum$(dmg) + " damage"
+    IF dmg > 0 THEN
+        LogEvent _TRIM$(player_name) + " CRITICALLY hit " + _TRIM$(mon) + " for " + EvNum$(dmg) + " damage"
+    ELSE
+        LogEvent _TRIM$(player_name) + " CRITICALLY slew " + _TRIM$(mon) + " in one blow"
+    END IF
 END SUB
 
 SUB RecordFumble (mon AS STRING, rno AS INTEGER)
     g_fumbles = g_fumbles + 1
-    LogEvent _TRIM$(player_name) + " FUMBLED against " + _TRIM$(mon) + " in round " + EvNum$(rno)
+    IF rno > 0 THEN
+        LogEvent _TRIM$(player_name) + " FUMBLED against " + _TRIM$(mon) + " in round " + EvNum$(rno)
+    ELSE
+        LogEvent _TRIM$(player_name) + " FUMBLED against " + _TRIM$(mon)
+    END IF
 END SUB
 
 SUB RecordLevelDone (lv AS INTEGER)
