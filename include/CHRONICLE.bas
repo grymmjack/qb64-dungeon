@@ -353,10 +353,41 @@ SUB ShowRules
 END SUB
 FUNCTION RulesStrip$ (s AS STRING)
     DIM t AS STRING
-    t = s
+    t = Utf8ToAscii$(s)                                    ' typographic UTF-8 -> ASCII (the grid font is CP437)
     DO WHILE LEFT$(t, 1) = "#": t = MID$(t, 2): LOOP        ' drop leading heading hashes
-    ' strip a couple of markdown markers so it reads as plain prose
+    t = SubstAll$(t, "**", "")                             ' drop **bold** and `code` markdown so it reads as plain prose
+    t = SubstAll$(t, "`", "")
     RulesStrip$ = _TRIM$(t)
+END FUNCTION
+
+' Replace every occurrence of `finds` in `s` with `repl` (QB64 has no built-in).
+FUNCTION SubstAll$ (s AS STRING, finds AS STRING, repl AS STRING)
+    DIM acc AS STRING, rest AS STRING, p AS LONG
+    IF LEN(finds) = 0 THEN SubstAll$ = s: EXIT FUNCTION
+    rest = s: acc = ""
+    DO
+        p = INSTR(rest, finds)
+        IF p = 0 THEN acc = acc + rest: EXIT DO
+        acc = acc + LEFT$(rest, p - 1) + repl
+        rest = MID$(rest, p + LEN(finds))
+    LOOP
+    SubstAll$ = acc
+END FUNCTION
+
+' Fold the typographic UTF-8 characters that appear in DUNGEON-RULES.md down to
+' plain ASCII, so the CP437 grid font (which renders each UTF-8 byte as its own DOS
+' glyph -- the 3 bytes of an em-dash become 3 garbage glyphs) shows clean punctuation
+' instead of mojibake. Only the five sequences the file actually uses; sequences are
+' built via CHR$ so the source stays pure ASCII.
+FUNCTION Utf8ToAscii$ (s AS STRING)
+    DIM t AS STRING
+    t = s
+    t = SubstAll$(t, CHR$(226) + CHR$(128) + CHR$(148), "--")   ' U+2014 em dash
+    t = SubstAll$(t, CHR$(226) + CHR$(128) + CHR$(147), "-")    ' U+2013 en dash
+    t = SubstAll$(t, CHR$(226) + CHR$(134) + CHR$(146), "->")   ' U+2192 rightwards arrow
+    t = SubstAll$(t, CHR$(226) + CHR$(128) + CHR$(166), "...")  ' U+2026 ellipsis
+    t = SubstAll$(t, CHR$(194) + CHR$(169), "(c)")              ' U+00A9 copyright
+    Utf8ToAscii$ = t
 END FUNCTION
 
 ' ---------------------------------------------------------------------------
