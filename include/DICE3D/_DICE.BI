@@ -112,13 +112,13 @@ DIM SHARED DICE3D_HWATLAS AS LONG   ' hardware (_COPYIMAGE ,33) atlas; built laz
 DIM SHARED DICE3D_HL AS LONG        ' hardware white sheen tile for the read-face highlight (built lazily)
 DIM SHARED DICE3D_HL_SW AS LONG     ' software white sheen tile (software render path)
 
-'--- Directional-light shading tiles (built lazily) ----------------------------
-'    Software path varies one black tile's alpha per face (_SETALPHA); hardware
-'    textures reject _SETALPHA, so a ramp of fixed-alpha black tiles is prebaked.
-CONST DICE3D_SHADE_LEVELS = 16
-DIM SHARED DICE3D_SHADE_SW AS LONG  ' software black shade tile (alpha set per face)
-REDIM SHARED DICE3D_SHADE_HW(0) AS LONG ' hardware black shade-tile ramp (0=clear .. N=opaque)
-DIM SHARED DICE3D_SHADE_HW_READY AS INTEGER
+'--- Directional-light shading: baked into the atlas as opaque brightness COLUMNS (see
+'    dice3d_make_atlas). Column 0 = full bright, column NLEV-1 = darkest (MAXDARK black over
+'    it). The renderer picks a per-face level and offsets the source U by level*DICE3D_TILE.
+'    Opaque pixels only -- NO translucent overlays, which some GL drivers drop when a
+'    semi-transparent tile is uploaded via _COPYIMAGE(,33) (they render invisible).
+CONST DICE3D_LIGHT_NLEV = 6
+CONST DICE3D_LIGHT_MAXDARK = .62
 DIM SHARED DICE3D_HW_S AS SINGLE    ' GPU units per model unit (die on-screen size)
 DIM SHARED DICE3D_HW_Z AS SINGLE    ' base view depth (negative; ~-5)
 DIM SHARED DICE3D_HW_CX AS SINGLE   ' GPU x of the tray centre (0 = screen centre)

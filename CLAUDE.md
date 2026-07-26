@@ -268,13 +268,21 @@ character `Q` printed in the d20 font:
 - **3D dice top-light** (the DICE3D `LIGHT_*` config fields): a view-space Lambert directional
   light shades each face by `ambient + (1-ambient)*max(0, N·L)` so top-facing surfaces catch
   light and the dice read as solid 3D (and the **d4's apex** — its read point — is lit, which the
-  read-face sheen can't do since a d4's value face is its hidden base). Rendered as a per-face
-  translucent-black overlay because `_MAPTRIANGLE` can't tint a texture: the software path
-  re-alphas one tile with `_SETALPHA`, the hardware path picks from a prebaked alpha ramp
-  (`_SETALPHA` is invalid on GL textures). The set-loader seeds on-defaults so sets predating the
-  keys still light up. The SETTINGS **Dice Light** slider (`opt_dicelight` 0 Off/1 Soft/2 Normal/3
-  Strong) drives `ApplyDiceLight`, which overrides `LIGHT_ENABLED`/`AMBIENT`/`INTENSITY` per roll
-  and per preview (direction stays from the set). **d4 read pose:** a d4 is a **top-read** tetra —
+  read-face sheen can't do since a d4's value face is its hidden base). `_MAPTRIANGLE` can't tint
+  a texture, and translucent overlays are unreliable (some GL drivers drop a semi-transparent
+  `_COPYIMAGE(,33)` tile to invisible — the first attempt showed nothing on the reporter's GPU).
+  So the shading is baked **into the atlas as opaque brightness COLUMNS**: `dice3d_make_atlas`
+  lays out `DICE3D_LIGHT_NLEV` copies of each face tile left→right, column 0 full-bright and each
+  next column darker (opaque black over it, up to `DICE3D_LIGHT_MAXDARK`); the renderers compute a
+  per-face level (`dice3d_shade_level`) and add `level*DICE3D_TILE` to the source U — opaque
+  sampling, identical on the software and hardware paths, GL-safe. (The 12px UV `MARGIN` keeps the
+  face polygon off the column seams, so `_SMOOTH` never bleeds between brightness columns. Copy
+  column 0 through a scratch tile — `_PUTIMAGE` image-onto-itself is an illegal call.) The
+  set-loader seeds on-defaults so sets predating the keys still light up. The SETTINGS **Dice
+  Light** slider (`opt_dicelight` 0 Off/1 Soft/2 Normal/3 Strong) drives `ApplyDiceLight`, which
+  overrides `LIGHT_ENABLED`/`AMBIENT`/`INTENSITY` per roll and per preview (direction stays from
+  the set); those map to which columns get sampled, so toggling needs no atlas rebake.
+  **d4 read pose:** a d4 is a **top-read** tetra —
   the value is on the hidden base and repeats at the top apex, so `dice3d_showcase` seats the
   value face DOWN with `Rx(90 + CAM_TILT - 4) * FACE_Q(f)` (NOT `FACE_Q(f)` alone, which would
   point it at the camera and misread). The game renders the d4 at `CAM_TILT=85`, other dice at 21.5.

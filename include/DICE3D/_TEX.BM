@@ -266,11 +266,15 @@ END SUB
 ' Build the face atlas for the current mesh (one TILE cell per face).
 ' mode: 0 = labels as-is, 1 = tens ("00".."90" from value*10).
 FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mode AS INTEGER)
-    DIM AS LONG img, od
-    DIM AS INTEGER f, ty, hh, fv, cell
+    DIM AS LONG img, od, tmp
+    DIM AS INTEGER f, ty, hh, fv, cell, lv, dA
     DIM AS STRING lab
     od = _DEST
-    img = _NEWIMAGE(DICE3D_TILE, DICE3D_TILE * DICE3D_NF, 32)
+    '--- NLEV brightness COLUMNS per face for directional light (opaque, GL-safe): column 0 is
+    '    full bright (drawn below), columns 1..NLEV-1 are darker copies baked here. tmp is a
+    '    one-tile scratch because _PUTIMAGE cannot copy an image onto ITSELF (illegal call). ---
+    img = _NEWIMAGE(DICE3D_TILE * DICE3D_LIGHT_NLEV, DICE3D_TILE * DICE3D_NF, 32)
+    tmp = _NEWIMAGE(DICE3D_TILE, DICE3D_TILE, 32)
     _DEST img
     CLS , _RGBA32(0, 0, 0, 0)
     FOR f = 0 TO DICE3D_NF - 1
@@ -301,7 +305,19 @@ FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mo
             hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.72)
             dice3d_stamp_num img, DICE3D_TILE \ 2, ty + DICE3D_TILE \ 2, lab, hh, cfg.NUM_KOLOR, cfg.FONT_HANDLE
         END IF
+        '--- bake the darker brightness columns: copy the finished bright tile (column 0) out to
+        '    tmp, then blit tmp into each column and lay opaque black over it. Solid tiles stay
+        '    alpha 255 (a darker but fully opaque copy), so the GPU samples them like the
+        '    numerals. Via tmp because _PUTIMAGE image-onto-itself is an illegal call. ---
+        _DEST tmp: CLS , _RGBA32(0, 0, 0, 0): _DEST img
+        _PUTIMAGE (0, 0)-(DICE3D_TILE - 1, DICE3D_TILE - 1), img, tmp, (0, ty)-(DICE3D_TILE - 1, ty + DICE3D_TILE - 1)
+        FOR lv = 1 TO DICE3D_LIGHT_NLEV - 1
+            _PUTIMAGE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), tmp, img, (0, 0)-(DICE3D_TILE - 1, DICE3D_TILE - 1)
+            dA = INT(lv / (DICE3D_LIGHT_NLEV - 1) * DICE3D_LIGHT_MAXDARK * 255)
+            LINE (lv * DICE3D_TILE, ty)-(lv * DICE3D_TILE + DICE3D_TILE - 1, ty + DICE3D_TILE - 1), _RGBA32(0, 0, 0, dA), BF
+        NEXT
     NEXT
     _DEST od
+    _FREEIMAGE tmp
     dice3d_make_atlas& = img
 END FUNCTION
