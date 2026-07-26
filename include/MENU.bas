@@ -1194,12 +1194,13 @@ END SUB
 
 
 SUB Banner (l1 AS STRING, l2 AS STRING)
-    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER
+    DIM w AS INTEGER, bx1 AS INTEGER, bx2 AS INTEGER, pw AS INTEGER
     _DEST CANVAS
-    ' auto-size the box to the widest line (min = the classic 96 cols, capped to
-    ' the screen) so long lines never spill past the border
-    w = LEN(l1): IF LEN(l2) > w THEN w = LEN(l2)
-    w = w + 6
+    UIFontOn UIF_MSG                               ' configurable message/narration font
+    ' auto-size the box to the widest line's PIXEL width (so a proportional font never spills
+    ' past the border), converted to cells + padding; min = the classic 96 cols, capped to screen
+    pw = _PRINTWIDTH(l1): IF _PRINTWIDTH(l2) > pw THEN pw = _PRINTWIDTH(l2)
+    w = (pw \ CW) + 6
     IF w < 96 THEN w = 96
     IF w > 130 THEN w = 130
     bx1 = (SW - w) \ 2: bx2 = bx1 + w
@@ -1207,6 +1208,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), REDU, B
     COLOR WHITE, BOXBG: PrintCentered 24, l1
     COLOR YELLOWU, BOXBG: PrintCentered 27, l2
+    UIFontOff
     bnr_l2 = l2: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
     _DISPLAY
 END SUB
@@ -1214,10 +1216,60 @@ END SUB
 
 
 SUB PrintCentered (row AS INTEGER, t AS STRING)
-    DIM x AS INTEGER
-    x = (SW - LEN(t)) \ 2
-    IF x < 0 THEN x = 0
-    _PRINTSTRING (x * CW, row * CH), t
+    DIM px AS INTEGER
+    '--- centre by PIXEL width so it works with a proportional UI font too; for the built-in
+    '    8x16 grid font _PRINTWIDTH = LEN*8, so grid text lands exactly where it always did ---
+    px = (SW * CW - _PRINTWIDTH(t)) \ 2
+    IF px < 0 THEN px = 0
+    _PRINTSTRING (px, row * CH), t
+END SUB
+
+' Load the per-region UI fonts from assets/data/ui-fonts.txt into the UIF_* handles.
+' region | fontfile (in assets/fonts/ui/) | size ; blank file or size 0 = built-in grid font.
+SUB LoadUIFonts
+    DIM f AS INTEGER, ln AS STRING, p1 AS INTEGER, p2 AS INTEGER
+    DIM region AS STRING, file AS STRING, sz AS INTEGER, h AS LONG, path AS STRING
+    IF _FILEEXISTS("assets/data/ui-fonts.txt") = 0 THEN EXIT SUB
+    f = FREEFILE
+    OPEN "assets/data/ui-fonts.txt" FOR INPUT AS #f
+    DO WHILE NOT EOF(f)
+        LINE INPUT #f, ln
+        ln = _TRIM$(ln)
+        IF ln <> "" AND LEFT$(ln, 1) <> "#" THEN
+            p1 = INSTR(ln, "|"): p2 = INSTR(p1 + 1, ln, "|")
+            IF p1 > 0 AND p2 > 0 THEN
+                region = LCASE$(_TRIM$(LEFT$(ln, p1 - 1)))
+                file = _TRIM$(MID$(ln, p1 + 1, p2 - p1 - 1))
+                sz = VAL(_TRIM$(MID$(ln, p2 + 1)))
+                h = 0
+                IF LEN(file) > 0 AND sz > 0 THEN
+                    path = "assets/fonts/ui/" + file
+                    '--- combat/hud carry bars + aligned columns, so force MONOSPACE (even cells);
+                    '    prose regions (label/message/menu) stay proportional for a natural flow ---
+                    DIM style AS STRING
+                    IF region = "combat" OR region = "hud" THEN style = "MONOSPACE" ELSE style = ""
+                    IF _FILEEXISTS(path) THEN h = _LOADFONT(path, sz, style)
+                END IF
+                SELECT CASE region
+                    CASE "label": UIF_LABEL = h
+                    CASE "message": UIF_MSG = h
+                    CASE "combat": UIF_COMBAT = h
+                    CASE "menu": UIF_MENU = h
+                    CASE "hud": UIF_HUD = h
+                END SELECT
+            END IF
+        END IF
+    LOOP
+    CLOSE #f
+END SUB
+
+' Wrap a block of text drawing: UIFontOn sets a region font (0 = keep the grid font),
+' UIFontOff restores the built-in 8x16 grid font (handle CH). Always pair them.
+SUB UIFontOn (h AS LONG)
+    IF h <> 0 THEN _FONT h ELSE _FONT CH
+END SUB
+SUB UIFontOff
+    _FONT CH
 END SUB
 
 

@@ -1,0 +1,18 @@
+# UI FONTS -- map a UI region to a TrueType font (in assets/fonts/ui/) + pixel size.
+# Edit a row, press F5. A blank/missing file (or size 0) = that region keeps the
+# built-in 8x16 grid font. Format:  region | fontfile | size    ( # = comment )
+#
+# regions:  label   = room labels on the map
+#           message = narration / banners / dialog prose
+#           combat  = the combat panel (HP bars, prompts)
+#           menu    = intro + main menu + SETTINGS titles
+#           hud     = the bottom status bar
+#
+# Fonts you dropped in assets/fonts/ui/: alagard, dungeon-mode, Gold Box Games,
+# the-settlers, PCPaintEnglishLarge/Small, PetMe64, Apple2Forever80, ATARCC.
+
+label   | alagard.ttf         | 16
+message | dungeon-mode.ttf    | 16
+combat  | Gold Box Games.ttf  | 16
+menu    | the-settlers.ttf    | 18
+hud     |                     | 0

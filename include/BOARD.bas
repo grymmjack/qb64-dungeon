@@ -660,7 +660,9 @@ END FUNCTION
 SUB PutLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING, fg AS _UNSIGNED LONG)
     IF opt_fov THEN IF LOS_SEEN(cx, cy) = 0 THEN EXIT SUB
     COLOR fg, YELLOW
+    UIFontOn UIF_LABEL                              ' configurable room-label font
     _PRINTSTRING (cx * CW, cy * CH), txt
+    UIFontOff
 END SUB
 
 ' The board's room labels live in one data table (LBL_*), used both to render them

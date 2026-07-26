@@ -343,6 +343,10 @@ CONST NBLOOD = 40                      ' fixed blood-grime spatter spots (near-d
 DIM SHARED BLOOD_X(1 TO NBLOOD) AS INTEGER, BLOOD_Y(1 TO NBLOOD) AS INTEGER, BLOOD_R(1 TO NBLOOD) AS INTEGER
 CONST NVIG = 10                        ' pre-baked soft RADIAL vignette overlays (a HP-ramp; stretched per frame)
 DIM SHARED VIG(0 TO NVIG - 1) AS LONG
+
+' Configurable UI fonts (assets/data/ui-fonts.txt -> LoadUIFonts): a _LOADFONT handle per UI
+' region, 0 = keep the built-in 8x16 grid font (CH). Apply with UIFontOn h / UIFontOff.
+DIM SHARED UIF_LABEL AS LONG, UIF_MSG AS LONG, UIF_COMBAT AS LONG, UIF_MENU AS LONG, UIF_HUD AS LONG
 ' which set (1-based index into the dicesets.txt manifest) the player / monster roll
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)

@@ -77,6 +77,7 @@ InitClasses
 InitMonsterTables
 InitDice
 InitJuice                        ' build the screen-shake buffer + the near-death blood-grime pattern
+LoadUIFonts                      ' per-region TTF UI fonts (assets/data/ui-fonts.txt)
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
@@ -851,6 +852,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     _DEST CANVAS
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    UIFontOn UIF_COMBAT                          ' configurable combat font (loaded MONOSPACE so the HP bars stay even)
     COLOR YELLOWU, BOXBG
     IF combat_round > 1 THEN                      ' between rounds -- the fight is on-going; prompt to act again
         PrintCentered by + 1, "You still face " + LCASE$(LEFT$(_TRIM$(lead), 1)) + MID$(_TRIM$(lead), 2) + " -- choose your action!"
@@ -869,6 +871,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     ELSE
         PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     END IF
+    UIFontOff                                   ' restore the grid font before the pixel-art + present
     DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
     _DISPLAY
 END SUB
