@@ -933,7 +933,7 @@ SUB ShowCharSheet
     IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
     IF item_armor > 0 THEN inv = inv + "Armor +" + _TRIM$(STR$(item_armor)) + " AC    "
     IF item_bow THEN inv = inv + "Magic Bow (+2 hit)    "
-    IF item_boots THEN inv = inv + "Elf Boots (+2 move)    "
+    IF item_boots THEN inv = inv + "Elf Boots (+2 move, easy flee)    "
     IF item_teleport > 0 THEN inv = inv + "Teleport x" + _TRIM$(STR$(item_teleport)) + " [T]    "
     IF item_potion_small > 0 THEN inv = inv + "Sm Potion x" + _TRIM$(STR$(item_potion_small)) + " [H]    "
     IF item_potion_large > 0 THEN inv = inv + "Lg Potion x" + _TRIM$(STR$(item_potion_large)) + " [H]    "

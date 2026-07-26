@@ -164,7 +164,7 @@ SUB GrantCurioItem (sec AS INTEGER, got AS STRING)
             item_armor = item_armor + 2: IF item_armor > 6 THEN item_armor = 6
             got = "Magic Armor (+" + _TRIM$(STR$(item_armor)) + " AC)": LogTreasure "Magic Armor", 0
         CASE 3: item_bow = TRUE: got = "a Magic Bow (+2 hit)": LogTreasure "Magic Bow", 0
-        CASE 4: item_boots = TRUE: got = "Elf Boots (+2 move)": LogTreasure "Elf Boots", 0
+        CASE 4: item_boots = TRUE: got = "Elf Boots (+2 move, easy flee)": LogTreasure "Elf Boots", 0
         CASE 5: item_esp = TRUE: got = "an ESP Medallion": LogTreasure "ESP Medallion", 0
         CASE 6: item_crystal = TRUE: got = "a Crystal Ball": LogTreasure "Crystal Ball", 0
         CASE 7: item_potion_small = item_potion_small + 1: got = "a Healing Potion": LogTreasure "Healing Potion", 0

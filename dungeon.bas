@@ -360,6 +360,7 @@ FUNCTION FleeFails% (lvl AS INTEGER)
     DIM pct AS INTEGER, dl AS INTEGER
     dl = lvl: IF dl < 1 THEN dl = 1
     pct = FLEE_FAIL_BASE + (dl - 1) * FLEE_FAIL_STEP
+    IF item_boots THEN pct = pct - 25            ' Elf Boots: nimble feet slip away far more reliably (useful even in free-move)
     IF pct < 0 THEN pct = 0
     IF pct > 95 THEN pct = 95
     FleeFails = (RollDie(100) <= pct)
@@ -1076,7 +1077,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             IF NOT item_boots THEN
                 item_boots = TRUE
                 LogTreasure "Elf Boots", 0
-                line2 = "You lace on the " + tname + " -- +2 to every movement roll!"
+                line2 = "You lace on the " + tname + " -- +2 to movement, and you slip away from fights far more easily!"
             ELSE
                 gold = gold + 500
                 LogTreasure "Elf Boots (spare)", 500
