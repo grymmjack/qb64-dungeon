@@ -387,7 +387,7 @@ DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move
 DIM SHARED g_rooms_explored AS INTEGER, g_monsters_slain AS INTEGER, g_treasures_found AS INTEGER
 DIM SHARED g_items_looted AS INTEGER, g_levels_completed AS INTEGER, g_secrets_found AS INTEGER
 DIM SHARED g_crits AS INTEGER, g_fumbles AS INTEGER, g_wander_enc AS INTEGER, g_run_deaths AS INTEGER
-DIM SHARED g_gold_found AS LONG
+DIM SHARED g_gold_found AS LONG, g_secret_tries AS INTEGER
 CONST MAXEVLOG = 600
 REDIM SHARED EVLOG(1 TO MAXEVLOG) AS STRING
 DIM SHARED EVLOG_N AS INTEGER

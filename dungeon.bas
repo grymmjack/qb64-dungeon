@@ -512,6 +512,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
     sec = ROOMS(rm).sec                            ' the room's dungeon level (label + kill numbers)
     mon = _TRIM$(ROOMS(rm).monster)
     ROOMS(rm).monster_fought = TRUE
+    RecordEncounter mon                            ' bestiary: # times faced
     IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
         combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm
@@ -1107,6 +1108,11 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             line2 = "You claim the " + tname + " -- " + _TRIM$(STR$(ROOMS(rm).treasure)) + " GOLD!"
     END SELECT
     IF lvl >= 1 AND lvl <= 9 THEN lvl_gold(lvl) = lvl_gold(lvl) + (gold - goldbefore)
+    '--- chronicle the kill + its haul for the Game Menu screens ---
+    DIM haulitem AS STRING
+    IF itm >= 1 AND itm <= 11 THEN haulitem = tname: g_items_looted = g_items_looted + 1
+    IF itm = 0 THEN RecordTreasure tname, ROOMS(rm).treasure
+    RecordKill lvl, rm, mon, sm, gold - goldbefore, haulitem
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
@@ -1273,6 +1279,9 @@ SUB DropEverything (rm AS INTEGER)
             AddLooseDrop c.x \ CW, c.y \ CH          ' fell out on the paths -- spoils lie where you dropped
         END IF
     END IF
+    DIM dlvl AS INTEGER                              ' chronicle the death (Game Menu / Event Log)
+    IF rm >= 1 AND rm <= ROOM_N THEN dlvl = ROOMS(rm).sec ELSE dlvl = SECTOR.get_by_xy(c.x, c.y)
+    RecordDeath dlvl, rm, combat_mon, combat_round, gold
     gold = 0
     item_sword = 0
     item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE

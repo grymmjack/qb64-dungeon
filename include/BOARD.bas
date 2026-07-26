@@ -12,6 +12,7 @@ SUB DoSearch
     thresh = 2 + CLASSES(player_class).secret_bonus
     IF item_secret_card THEN thresh = 6          ' the Secret Door Card never fails (any roll finds)
     found_any = FALSE: near_hidden = FALSE
+    g_secret_tries = g_secret_tries + 1              ' chronicle: count searches toward the next find
     FOR i = 1 TO SD_N
         IF NOT SD_FOUND(i) THEN
             IF ABS(SD_X(i) - ccx) <= 2 AND ABS(SD_Y(i) - ccy) <= 2 THEN
@@ -26,6 +27,8 @@ SUB DoSearch
     NEXT
 
     IF found_any THEN
+        RecordSecret SECTOR.get_by_xy(c.x, c.y), ROOMAT(ccx, ccy), g_secret_tries
+        g_secret_tries = 0
         Sfx "secret"
         Banner "A SECRET DOOR grinds open before you!", "A hidden passage is revealed -- explore what it hides.   [ press any key ]"
     ELSEIF near_hidden THEN
