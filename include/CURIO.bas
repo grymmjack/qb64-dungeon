@@ -89,6 +89,7 @@ SUB DoCurio (rm AS INTEGER)
         IF r <= 0 THEN pick = i: EXIT FOR
     NEXT
     kd = _TRIM$(CURIOS(pick).kind)
+    RecordCurio _TRIM$(CURIOS(pick).nm)                 ' chronicle: a curio appeared
     Sfx "treasure"
     cursor_erase: cursor_draw: DrawHUD                  ' fresh board + row-50 status line UNDER the curio art/banner (was hidden during the interaction)
     DrawCurioArt kd, _TRIM$(CURIOS(pick).nm)            ' pixel-art: the curio's prop, framed top-left (persists behind the banner)
@@ -160,19 +161,19 @@ SUB GrantCurioItem (sec AS INTEGER, got AS STRING)
     n = n + 1: opt(n) = 8                               ' a teleport scroll -- always on offer
     pick = opt(RollDie(n))
     SELECT CASE pick
-        CASE 1: item_sword = item_sword + 1: got = "a Magic Sword (+" + _TRIM$(STR$(item_sword)) + ")": LogTreasure "Magic Sword", 0
+        CASE 1: item_sword = item_sword + 1: got = "a Magic Sword (+" + _TRIM$(STR$(item_sword)) + ")": CurioGain "Magic Sword", 0
         CASE 2
             IF item_armor < 3 THEN
-                item_armor = 3: got = "Magic Armor (+3 AC)": LogTreasure "Magic Armor", 0
+                item_armor = 3: got = "Magic Armor (+3 AC)": CurioGain "Magic Armor", 0
             ELSE
-                item_shield = 2: got = "a Shield (+2 AC)": LogTreasure "Shield", 0
+                item_shield = 2: got = "a Shield (+2 AC)": CurioGain "Shield", 0
             END IF
-        CASE 3: item_bow = TRUE: got = "a Magic Bow (+2 hit)": LogTreasure "Magic Bow", 0
-        CASE 4: item_boots = TRUE: got = "Elf Boots (+2 move, easy flee)": LogTreasure "Elf Boots", 0
-        CASE 5: item_esp = TRUE: got = "an ESP Medallion": LogTreasure "ESP Medallion", 0
-        CASE 6: item_crystal = TRUE: got = "a Crystal Ball": LogTreasure "Crystal Ball", 0
-        CASE 7: item_potion_small = item_potion_small + 1: got = "a Healing Potion": LogTreasure "Healing Potion", 0
-        CASE 8: item_teleport = item_teleport + 1: got = "a Teleport Scroll": LogTreasure "Teleport Scroll", 0
+        CASE 3: item_bow = TRUE: got = "a Magic Bow (+2 hit)": CurioGain "Magic Bow", 0
+        CASE 4: item_boots = TRUE: got = "Elf Boots (+2 move, easy flee)": CurioGain "Elf Boots", 0
+        CASE 5: item_esp = TRUE: got = "an ESP Medallion": CurioGain "ESP Medallion", 0
+        CASE 6: item_crystal = TRUE: got = "a Crystal Ball": CurioGain "Crystal Ball", 0
+        CASE 7: item_potion_small = item_potion_small + 1: got = "a Healing Potion": CurioGain "Healing Potion", 0
+        CASE 8: item_teleport = item_teleport + 1: got = "a Teleport Scroll": CurioGain "Teleport Scroll", 0
     END SELECT
 END SUB
 
@@ -194,7 +195,7 @@ SUB CurioChest (rm AS INTEGER, sec AS INTEGER)
     END IF
     Sfx "chest": DramaticPause
     IF rm >= 1 AND RollDie(100) <= CHEST_TRAP_PCT THEN SpringTrap rm
-    g = (RollDie(4) + 1) * 100 * sec: gold = gold + g: LogTreasure "Curio Chest", g
+    g = (RollDie(4) + 1) * 100 * sec: gold = gold + g: CurioGain "Curio Chest", g
     Sfx "treasure": Banner "The chest holds " + _TRIM$(STR$(g)) + " gold!", "[ press any key ]": WaitKey
     IF RollDie(100) <= 30 THEN                        ' the chest may also hide a healing potion
         IF RollDie(100) <= TREASURE_LARGE_PCT THEN
@@ -219,11 +220,11 @@ SUB CurioFountain (sec AS INTEGER)
             Sfx "treasure"
             Banner "The water is cool and sweet -- vigour floods back!", "You heal " + _TRIM$(STR$(n)) + " HP.   [ press any key ]"
         ELSE                                          ' already at full vigour -- reward the drink instead of a hollow "heal 0"
-            n = RollDie(3) * 25 * sec: gold = gold + n: LogTreasure "coins in the fountain", n: Sfx "treasure"
+            n = RollDie(3) * 25 * sec: gold = gold + n: CurioGain "coins in the fountain", n: Sfx "treasure"
             Banner "The water is cool and sweet -- but you are already hale.", "You spot old coins on the basin floor: +" + _TRIM$(STR$(n)) + " gold.   [ press any key ]"
         END IF
     ELSEIF r <= 68 THEN
-        n = RollDie(4) * 50 * sec: gold = gold + n: LogTreasure "coins in the fountain", n
+        n = RollDie(4) * 50 * sec: gold = gold + n: CurioGain "coins in the fountain", n
         Banner "Old coins glint on the basin floor -- you scoop them up!", "+" + _TRIM$(STR$(n)) + " gold.   [ press any key ]"
     ELSEIF r <= 85 THEN
         Banner "The water is brackish and flat.", "Nothing happens.   [ press any key ]"
@@ -259,7 +260,7 @@ SUB CurioGamble (sec AS INTEGER)
     IF NOT CurioChoose%("W") THEN Banner "You leave the bone dice unthrown.", "[ press any key ]": WaitKey: EXIT SUB
     r = GameRoll(2, 6, 0, "the ALTAR's wager -- 7+ doubles " + _TRIM$(STR$(bet)) + " gold")
     IF r >= 7 THEN
-        gold = gold + bet: LogTreasure "altar winnings", bet: Sfx "levelup"
+        gold = gold + bet: CurioGain "altar winnings", bet: Sfx "levelup"
         Banner "The bones come up " + _TRIM$(STR$(r)) + " -- the altar DOUBLES your stake!", "+" + _TRIM$(STR$(bet)) + " gold.   [ press any key ]"
     ELSE
         gold = gold - bet: Sfx "lose"
@@ -284,7 +285,7 @@ END SUB
 SUB CurioIdol (sec AS INTEGER)
     DIM g AS LONG, r AS INTEGER
     IF NOT CurioChoose%("P") THEN Banner "You leave the idol's ruby eye winking in the dark.", "[ press any key ]": WaitKey: EXIT SUB
-    g = (RollDie(6) + 3) * 100 * sec: gold = gold + g: LogTreasure "the idol's ruby eye", g: Sfx "treasure"
+    g = (RollDie(6) + 3) * 100 * sec: gold = gold + g: CurioGain "the idol's ruby eye", g: Sfx "treasure"
     Banner "You pry the fat ruby free -- " + _TRIM$(STR$(g)) + " gold of gem!", "But the idol's gaze goes dark...   [ press any key ]": WaitKey
     r = RollDie(100)
     IF r <= 45 THEN
@@ -304,7 +305,7 @@ SUB CurioCorpse (rm AS INTEGER, sec AS INTEGER)
     IF NOT CurioChoose%("S") THEN Banner "You leave the dead delver to their rest.", "[ press any key ]": WaitKey: EXIT SUB
     Sfx "chest": DramaticPause
     IF rm >= 1 AND RollDie(100) <= 20 THEN SpringTrap rm
-    g = (RollDie(4) + 1) * 75 * sec: gold = gold + g: LogTreasure "a dead adventurer's purse", g: Sfx "treasure"
+    g = (RollDie(4) + 1) * 75 * sec: gold = gold + g: CurioGain "a dead adventurer's purse", g: Sfx "treasure"
     Banner "Their purse still holds " + _TRIM$(STR$(g)) + " gold.", "[ press any key ]": WaitKey
     IF RollDie(100) <= 40 THEN
         GrantCurioItem sec, got
@@ -413,7 +414,10 @@ SUB SpringTrap (rm AS INTEGER)
     Sfx _TRIM$(TRAPS(tt).sfx)
     Banner _TRIM$(TRAPS(tt).trig), "Roll to " + tword + "!"
     CombatPause
-    IF SaveThrow(amod, tname + " (" + tsave + ")") THEN
+    DIM svd AS INTEGER
+    svd = SaveThrow(amod, tname + " (" + tsave + ")")
+    RecordTrap tname, svd                           ' chronicle: trap sprung (saved or not)
+    IF svd THEN
         Banner _TRIM$(TRAPS(tt).smsg), tword + "D!   [ press any key ]"
     ELSE
         SELECT CASE TRAPS(tt).kind

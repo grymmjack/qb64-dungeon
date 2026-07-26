@@ -142,6 +142,33 @@ SUB RecordLevelDone (lv AS INTEGER)
     LogEvent _TRIM$(player_name) + " cleared every room on Level " + EvNum$(lv)
 END SUB
 
+' A curio / random-event gain: feed the per-player manifest (LogTreasure, as before)
+' AND the chronicle Treasury tally + the Event Log, so curio spoils show up in the
+' Game Menu screens like combat loot does.
+SUB CurioGain (nm AS STRING, g AS LONG)
+    LogTreasure nm, g
+    RecordTreasure nm, g
+    IF g > 0 THEN
+        LogEvent _TRIM$(player_name) + " found " + _TRIM$(nm) + " (" + EvNum$(g) + " GP)"
+    ELSE
+        LogEvent _TRIM$(player_name) + " found " + _TRIM$(nm)
+    END IF
+END SUB
+
+' A curio appeared (the prop kind, e.g. "fountain"/"chest"); note it in the log.
+SUB RecordCurio (nm AS STRING)
+    LogEvent _TRIM$(player_name) + " came upon a " + _TRIM$(nm)
+END SUB
+
+' A trap sprung -- lv/rm for context, saved TRUE if the save throw succeeded.
+SUB RecordTrap (nm AS STRING, saved AS INTEGER)
+    IF saved THEN
+        LogEvent _TRIM$(player_name) + " evaded a " + _TRIM$(nm)
+    ELSE
+        LogEvent _TRIM$(player_name) + " was caught by a " + _TRIM$(nm)
+    END IF
+END SUB
+
 ' ---------------------------------------------------------------------------
 '  VIEWERS
 ' ---------------------------------------------------------------------------
