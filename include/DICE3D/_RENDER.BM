@@ -71,14 +71,12 @@ SUB dice3d_render_die_hw (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
         LOOP
         ord(j + 1) = ti
     NEXT
-    '--- directional light: per-face brightness-column level (view-space Lambert) ---
-    IF cfg.LIGHT_ENABLED THEN
-        FOR fi = 0 TO DICE3D_NF - 1: shlev(fi) = dice3d_shade_level%(di, cfg, fi, cosT, sinT, cosY, sinY): NEXT
-    END IF
+    '--- directional light: per-TRIANGLE brightness-column level (view-space Lambert) so bevel
+    '    arcs shade with a smooth gradient across each rounded edge ---
     FOR i = 0 TO DICE3D_NT - 1
         t = ord(i)
         a = DICE3D_TA(t): b = DICE3D_TB(t): cc = DICE3D_TC(t)
-        uoff = shlev(DICE3D_TFACE(t)) * DICE3D_TILE '   sample the face's darker atlas column
+        uoff = dice3d_tri_shade_level%(di, cfg, a, b, cc, cosT, sinT, cosY, sinY) * DICE3D_TILE
         _MAPTRIANGLE (DICE3D_TUX(t, 0) + uoff, DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1) + uoff, DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2) + uoff, DICE3D_TUY(t, 2)), DICE3D_HWATLAS TO(X(a), Y(a), Z(a))-(X(b), Y(b), Z(b))-(X(cc), Y(cc), Z(cc)), , _SMOOTH
     NEXT
 
@@ -118,16 +116,26 @@ FUNCTION dice3d_hl_image& ()
     dice3d_hl_image& = hw
 END FUNCTION
 
-' View-space Lambert shade for face f -> an atlas brightness-COLUMN level (0 = full bright,
-' NLEV-1 = darkest). Darker the more the face turns AWAY from the light. The light (cfg.LIGHT_*)
-' is transformed the same way as vertex normals (yaw then tilt) so it stays fixed to the top of
-' the screen -- an overhead light -- regardless of camera orbit. di.FADE dims it with the die.
-FUNCTION dice3d_shade_level% (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG, f AS INTEGER, cosT AS SINGLE, sinT AS SINGLE, cosY AS SINGLE, sinY AS SINGLE)
-    DIM wn AS DICE3D_VEC3
-    DIM AS SINGLE nx, ny, nz, nz0, d, dark, lx, ly, lz, ll
+' View-space Lambert shade for ONE TRIANGLE (its own geometric normal) -> an atlas brightness-
+' COLUMN level (0 = full bright, NLEV-1 = darkest). Per-triangle (not per-face) so the subdivided
+' bevel arcs each catch light at their own angle -> a smooth gradient across a rounded edge. The
+' light (cfg.LIGHT_*) is transformed like the normals (yaw then tilt) so it stays fixed overhead.
+FUNCTION dice3d_tri_shade_level% (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG, a AS INTEGER, b AS INTEGER, c AS INTEGER, cosT AS SINGLE, sinT AS SINGLE, cosY AS SINGLE, sinY AS SINGLE)
+    DIM AS DICE3D_VEC3 e1, e2, nrm, wn
+    DIM AS SINGLE nx, ny, nz, nz0, d, dark, lx, ly, lz, ll, cxx, cyy, czz
     DIM lev AS INTEGER
-    IF cfg.LIGHT_ENABLED = 0 THEN dice3d_shade_level% = 0: EXIT FUNCTION
-    dice3d_qrot di.Q, DICE3D_FACE_N(f), wn
+    IF cfg.LIGHT_ENABLED = 0 THEN dice3d_tri_shade_level% = 0: EXIT FUNCTION
+    dice3d_vsub DICE3D_MV(b), DICE3D_MV(a), e1
+    dice3d_vsub DICE3D_MV(c), DICE3D_MV(a), e2
+    dice3d_vcross e1, e2, nrm
+    IF dice3d_vlen(nrm) < 0.00001 THEN dice3d_tri_shade_level% = 0: EXIT FUNCTION
+    dice3d_vnorm nrm, nrm
+    '--- die is centred at the origin, so flip any inward-facing normal outward ---
+    cxx = (DICE3D_MV(a).X + DICE3D_MV(b).X + DICE3D_MV(c).X) / 3
+    cyy = (DICE3D_MV(a).Y + DICE3D_MV(b).Y + DICE3D_MV(c).Y) / 3
+    czz = (DICE3D_MV(a).Z + DICE3D_MV(b).Z + DICE3D_MV(c).Z) / 3
+    IF nrm.X * cxx + nrm.Y * cyy + nrm.Z * czz < 0 THEN nrm.X = -nrm.X: nrm.Y = -nrm.Y: nrm.Z = -nrm.Z
+    dice3d_qrot di.Q, nrm, wn
     nx = wn.X * cosY + wn.Z * sinY
     nz0 = -wn.X * sinY + wn.Z * cosY
     ny = wn.Y * cosT + nz0 * sinT
@@ -136,13 +144,11 @@ FUNCTION dice3d_shade_level% (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG, f AS INTEG
     ll = SQR(lx * lx + ly * ly + lz * lz): IF ll < 0.0001 THEN ll = 1
     d = (nx * lx + ny * ly + nz * lz) / ll
     IF d < 0 THEN d = 0
-    '--- displayed darkening = (1-ambient)(1-d)*intensity, mapped onto the baked column ramp
-    '    (column L darkens by L/(NLEV-1)*MAXDARK), then faded with the die. ---
     dark = (1 - cfg.LIGHT_AMBIENT) * (1 - d) * cfg.LIGHT_INTENSITY * di.FADE
     lev = INT(dark / DICE3D_LIGHT_MAXDARK * (DICE3D_LIGHT_NLEV - 1) + 0.5)
     IF lev < 0 THEN lev = 0
     IF lev > DICE3D_LIGHT_NLEV - 1 THEN lev = DICE3D_LIGHT_NLEV - 1
-    dice3d_shade_level% = lev
+    dice3d_tri_shade_level% = lev
 END FUNCTION
 
 
@@ -196,17 +202,13 @@ SUB dice3d_render_die (di AS DICE3D_DIE, cfg AS DICE3D_CONFIG)
         ord(j + 1) = ti
     NEXT
 
-    '--- directional light: per-face brightness-column level (view-space Lambert) ---
-    IF cfg.LIGHT_ENABLED THEN
-        FOR fi = 0 TO DICE3D_NF - 1: shlev(fi) = dice3d_shade_level%(di, cfg, fi, cosT, sinT, cosY, sinY): NEXT
-    END IF
-
     '--- FADE < 1 dims the whole die via the atlas alpha (drop FX) ---
     IF di.FADE < 1 THEN _SETALPHA INT(di.FADE * 255), , di.ATLAS
+    '--- per-TRIANGLE brightness-column level (smooth gradient across rounded bevel arcs) ---
     FOR i = 0 TO DICE3D_NT - 1
         t = ord(i)
         a = DICE3D_TA(t): b = DICE3D_TB(t): c = DICE3D_TC(t)
-        uoff = shlev(DICE3D_TFACE(t)) * DICE3D_TILE '   sample the face's darker atlas column
+        uoff = dice3d_tri_shade_level%(di, cfg, a, b, c, cosT, sinT, cosY, sinY) * DICE3D_TILE
         _MAPTRIANGLE (DICE3D_TUX(t, 0) + uoff, DICE3D_TUY(t, 0))-(DICE3D_TUX(t, 1) + uoff, DICE3D_TUY(t, 1))-(DICE3D_TUX(t, 2) + uoff, DICE3D_TUY(t, 2)), di.ATLAS TO(xs(a), ys(a))-(xs(b), ys(b))-(xs(c), ys(c)), DICE3D_BOXBUF, _SMOOTH
     NEXT
     IF di.FADE < 1 THEN _SETALPHA 255, , di.ATLAS

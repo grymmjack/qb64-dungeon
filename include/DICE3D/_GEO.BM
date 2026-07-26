@@ -17,6 +17,7 @@ $INCLUDEONCE
 
 CONST DICE3D_TILE = 128
 CONST DICE3D_MARGIN = 12
+CONST DICE3D_BEVEL_SEG = 3 '        bevel arc segments per edge (>1 = soft rounded, not a flat chamfer)
 
 ''
 ' Fill DICE3D_MV / DICE3D_NV with a die's vertices, normalized to circumradius 1.
@@ -225,10 +226,10 @@ SUB dice3d_build (sides AS INTEGER)
     baseNV = DICE3D_NV
     ntNum = ntop - 2 * nf '               numbered-face triangles (both modes)
     IF bev THEN
-        '  + one bevel quad (2 tris) per edge (ntop/2 edges) + sum(valence-2) cap tris per vertex
-        DICE3D_NT = ntNum + ntop + (ntop - 2 * baseNV)
-        REDIM _PRESERVE DICE3D_MV(0 TO baseNV + ntop - 1) AS DICE3D_VEC3 '  append 1 inset vert per face-corner
-        DICE3D_NV = baseNV + ntop '       so the renderer's per-vertex arrays cover the inset verts
+        '  + SEG bevel quads (2 tris each) per edge (ntop/2 edges) + sum(valence-2) cap tris/vertex
+        DICE3D_NT = ntNum + ntop * DICE3D_BEVEL_SEG + (ntop - 2 * baseNV)
+        '  inset verts (ntop) + arc verts (ntop*(SEG-1)) = ntop*SEG new verts total
+        REDIM _PRESERVE DICE3D_MV(0 TO baseNV + ntop * DICE3D_BEVEL_SEG - 1) AS DICE3D_VEC3
     ELSE
         DICE3D_NT = ntNum
     END IF
@@ -326,7 +327,10 @@ SUB dice3d_build (sides AS INTEGER)
         END IF
     NEXT
 
-    IF bev THEN dice3d_bevel_fill t, nf, baseNV, insetIdx(), insetOrig(), bodyU(), bodyV()
+    IF bev THEN
+        dice3d_bevel_fill t, ivn, nf, baseNV, bevAmt, insetIdx(), bodyU(), bodyV()
+        DICE3D_NV = ivn '                 inset + arc verts are now all appended
+    END IF
 
     '--- D4 top-read: at each corner (a vertex) stamp the value of the face OPPOSITE that
     '    vertex, so the three faces meeting at the up-apex all show the same number = the
@@ -367,11 +371,18 @@ END SUB
 ' faces' inset edges across the old sharp edge) + one cap polygon per original vertex (the ring
 ' of inset verts around it). Flat body-colour, lit at an adjacent face's level (bevels are thin).
 ' No back-face culling in the renderer, so winding is free -- caps only need angular ordering.
-SUB dice3d_bevel_fill (t AS INTEGER, nf AS INTEGER, baseNV AS INTEGER, insetIdx() AS INTEGER, insetOrig() AS INTEGER, bodyU() AS SINGLE, bodyV() AS SINGLE)
-    DIM AS INTEGER f1, f2, c1, c1n, c2, va, vb, done2, i1a, i1b, i2a, i2b
+SUB dice3d_bevel_fill (t AS INTEGER, ivn AS INTEGER, nf AS INTEGER, baseNV AS INTEGER, bevAmt AS SINGLE, insetIdx() AS INTEGER, bodyU() AS SINGLE, bodyV() AS SINGLE)
+    DIM AS INTEGER f1, f2, c1, c1n, c2, va, vb, done2, i1a, i1b, i2a, i2b, k, nseg
     DIM AS INTEGER vtx, rn, capF, ci
+    DIM AS SINGLE tt, bulge, rr, ln0
+    DIM AS DICE3D_VEC3 la, lb
+    REDIM ringA(0 TO DICE3D_BEVEL_SEG) AS INTEGER, ringB(0 TO DICE3D_BEVEL_SEG) AS INTEGER
     REDIM ring(0 TO 15) AS INTEGER
-    '--- BEVEL STRIPS: each edge (va->vb on f1) has a reverse twin (vb->va on some f2) ---
+    nseg = DICE3D_BEVEL_SEG
+    bulge = bevAmt * 0.95 '             how far the arc's middle bows outward toward the old sharp edge
+    '--- BEVEL ARCS: each edge (va->vb on f1) has a reverse twin (vb->va on f2). Build SEG+1 rings
+    '    from F1's inset edge (k=0) to F2's inset edge (k=nseg); intermediate rings bow outward
+    '    (radially) so the strip curves into a soft round instead of one flat chamfer. ---
     FOR f1 = 0 TO nf - 1
         FOR c1 = 0 TO DICE3D_FVN(f1) - 1
             c1n = (c1 + 1) MOD DICE3D_FVN(f1)
@@ -382,8 +393,29 @@ SUB dice3d_bevel_fill (t AS INTEGER, nf AS INTEGER, baseNV AS INTEGER, insetIdx(
                     IF DICE3D_FVIDX(f2, c2) = vb AND DICE3D_FVIDX(f2, (c2 + 1) MOD DICE3D_FVN(f2)) = va THEN
                         i1a = insetIdx(f1, c1): i1b = insetIdx(f1, c1n)
                         i2b = insetIdx(f2, c2): i2a = insetIdx(f2, (c2 + 1) MOD DICE3D_FVN(f2))
-                        dice3d_addtri t, i1a, i1b, i2b, bodyU(f1), bodyV(f1), f1
-                        dice3d_addtri t, i1a, i2b, i2a, bodyU(f1), bodyV(f1), f1
+                        ringA(0) = i1a: ringB(0) = i1b
+                        ringA(nseg) = i2a: ringB(nseg) = i2b
+                        FOR k = 1 TO nseg - 1
+                            tt = k / nseg
+                            la.X = DICE3D_MV(i1a).X * (1 - tt) + DICE3D_MV(i2a).X * tt
+                            la.Y = DICE3D_MV(i1a).Y * (1 - tt) + DICE3D_MV(i2a).Y * tt
+                            la.Z = DICE3D_MV(i1a).Z * (1 - tt) + DICE3D_MV(i2a).Z * tt
+                            ln0 = SQR(la.X * la.X + la.Y * la.Y + la.Z * la.Z): IF ln0 < 0.0001 THEN ln0 = 1
+                            rr = 1 + bulge * SIN(3.14159265# * tt) / ln0 '   push the middle out toward the sphere
+                            DICE3D_MV(ivn).X = la.X * rr: DICE3D_MV(ivn).Y = la.Y * rr: DICE3D_MV(ivn).Z = la.Z * rr
+                            ringA(k) = ivn: ivn = ivn + 1
+                            lb.X = DICE3D_MV(i1b).X * (1 - tt) + DICE3D_MV(i2b).X * tt
+                            lb.Y = DICE3D_MV(i1b).Y * (1 - tt) + DICE3D_MV(i2b).Y * tt
+                            lb.Z = DICE3D_MV(i1b).Z * (1 - tt) + DICE3D_MV(i2b).Z * tt
+                            ln0 = SQR(lb.X * lb.X + lb.Y * lb.Y + lb.Z * lb.Z): IF ln0 < 0.0001 THEN ln0 = 1
+                            rr = 1 + bulge * SIN(3.14159265# * tt) / ln0
+                            DICE3D_MV(ivn).X = lb.X * rr: DICE3D_MV(ivn).Y = lb.Y * rr: DICE3D_MV(ivn).Z = lb.Z * rr
+                            ringB(k) = ivn: ivn = ivn + 1
+                        NEXT
+                        FOR k = 0 TO nseg - 1 '   two tris per ring-to-ring strip
+                            dice3d_addtri t, ringA(k), ringB(k), ringB(k + 1), bodyU(f1), bodyV(f1), f1
+                            dice3d_addtri t, ringA(k), ringB(k + 1), ringA(k + 1), bodyU(f1), bodyV(f1), f1
+                        NEXT
                         done2 = -1: EXIT FOR
                     END IF
                 NEXT
@@ -391,7 +423,7 @@ SUB dice3d_bevel_fill (t AS INTEGER, nf AS INTEGER, baseNV AS INTEGER, insetIdx(
             NEXT
         NEXT
     NEXT
-    '--- VERTEX CAPS: cap the ring of inset verts that surround each original vertex ---
+    '--- VERTEX CAPS: cap the ring of inset verts around each original vertex (flat; small) ---
     FOR vtx = 0 TO baseNV - 1
         rn = 0: capF = 0
         FOR f1 = 0 TO nf - 1
