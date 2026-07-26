@@ -40,7 +40,7 @@ _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
-opt_musicvol = 7: opt_sfxvol = 8: opt_voicevol = 6   ' 0..10 volume sliders
+opt_musicvol = 5: opt_sfxvol = 5: opt_voicevol = 6   ' 0..10 volume sliders
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
@@ -50,25 +50,25 @@ opt_fov = FALSE                               ' default off: whole map visible (
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
 opt_dicecolor = 3                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
 opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
-opt_d6pips = FALSE                            ' d6 rolls use the font's numbered die (on = hand-drawn pips)
-opt_dicespeed = 0                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
-opt_dicelight = 2                             ' 3D dice top-light: 0 Off, 1 Soft, 2 Normal, 3 Strong
-opt_diceround = 6                             ' 3D dice edge roundness 0 (sharp) .. 10 (very round)
+opt_d6pips = TRUE                             ' d6 rolls: TRUE = hand-drawn pips (default), FALSE = the font's numbered die
+opt_dicespeed = 2                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
+opt_dicelight = 3                             ' 3D dice top-light: 0 Off, 1 Soft, 2 Normal, 3 Strong
+opt_diceround = 5                             ' 3D dice edge roundness 0 (sharp) .. 10 (very round)
 opt_bloodstrength = 10                        ' near-death blood-grime intensity 0 (none) .. 10 (max)
 opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
 opt_artstyle = 2                              ' default: Hybrid -- ANSI board + pixel-art portraits where they exist
-opt_combatspeed = 0                           ' (legacy) superseded by opt_msgdelay
-opt_msgdelay = 2                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
-opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
-opt_gestures = FALSE                          ' default off: Action Gestures (timing-bar second-wind + crit flourish, D&D mode)
+opt_combatspeed = 1                           ' (legacy) superseded by opt_msgdelay
+opt_msgdelay = 3                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
+opt_hardcore = TRUE                           ' default on: time passes while idle (off = idling is safe)
+opt_gestures = TRUE                           ' default on: Action Gestures (timing-bar second-wind + crit flourish, D&D mode)
 opt_juice = TRUE                              ' default on: Screen Effects (hit-shake, blood/poison splatter, near-death vignette)
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
-opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
-opt_dice3d = FALSE: opt_mon_dice3d = FALSE    ' dice render: FALSE = font/pip dice (default), TRUE = 3D dice
-opt_dice3d_set = 5: opt_mon_dice3d_set = 1    ' default 3D sets: player Sapphire, monster Ruby (overridden by save)
-opt_dicefont = 1                              ' default dice numeral font: built-in (overridden by save)
-IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 1   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
+opt_mon_dicesolid = TRUE: opt_mon_d6pips = TRUE: opt_mon_dicespeed = 1
+opt_dice3d = TRUE: opt_mon_dice3d = TRUE      ' dice render: TRUE = 3D dice (default), FALSE = font/pip dice
+opt_dice3d_set = 6: opt_mon_dice3d_set = 8    ' default 3D dice sets (overridden by save)
+opt_dicefont = 4                              ' default dice numeral font index (overridden by save)
+IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
