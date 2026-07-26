@@ -191,6 +191,18 @@ Environment specifics that dictate this approach:
   so each monster/class gets biology-appropriate hit/miss/crit/fumble/death lines. All flavor
   supports `{mon} {player} {class} {dmg} {deaths} {level} {room} {treasure} {weapon}` tokens
   via `Fill$`; combat sets the `FX_*` context globals before each line.
+- **Configurable UI fonts** — `assets/data/ui-fonts.txt` (`region | fontfile | size`) maps UI
+  regions to TrueType fonts in `assets/fonts/ui/`, loaded by `LoadUIFonts` into `UIF_*` handles
+  (0 = the built-in 8×16 grid font, handle `CH`). Wrap a draw block with `UIFontOn h` /
+  `UIFontOff` (restores `CH`). Applied to room labels (`PutLabel`), the combat panel
+  (`DrawCombatPanel`, loaded MONOSPACE so HP bars stay even), and message banners (`Banner`).
+  `PrintCentered` centres by `_PRINTWIDTH` (pixel-accurate for proportional fonts; unchanged for
+  the grid font, where `_PRINTWIDTH` = `LEN*8`). The board ANSI art itself stays the fixed grid.
+- **Near-death juice layering** (`include/JUICE.bas`): the blood/vignette (`DrawWounds`) is drawn
+  in `cursor_erase` right after the board art and **before** `render_room_labels`, so labels /
+  tokens / HUD / combat panel all render on top (board → blood → text). The vignette is a soft
+  RADIAL gaussian: `InitVignette` pre-bakes `NVIG` low-res overlays (a near-death ramp) once, and
+  `DrawWounds` stretch-blits the level-appropriate one each frame (`VIG()`).
 
 [assets/README.md](assets/README.md) is the player/modder-facing map of every editable
 asset (data tables, flavor prose, music playlist, sound effects) with formats and the

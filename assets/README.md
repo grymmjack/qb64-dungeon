@@ -81,6 +81,18 @@ variants per (key, event) as you like; one is chosen at random.
 
 ---
 
+## `assets/fonts/ui/` + `assets/data/ui-fonts.txt` — UI fonts  (loaded by `LoadUIFonts`)
+
+- Drop TrueType (`.ttf`/`.otf`) fonts in **`assets/fonts/ui/`**, then map UI regions to them in
+  **`ui-fonts.txt`**: `region | fontfile | size`. A blank file or size `0` keeps the built-in
+  8×16 grid font for that region.
+- Regions: **`label`** (room names on the map), **`message`** (narration / banners),
+  **`combat`** (the combat panel — loaded MONOSPACE so HP bars stay even), **`menu`** (titles),
+  **`hud`** (bottom status bar). `combat`/`hud` are forced monospace; the rest are proportional.
+- Edit a row, press F5 — no code change to restyle a region.
+
+---
+
 ## `assets/sfx/` — optional real sound effects  (loaded by `include/MUSIC.bas`)
 
 Drop `<name>.ogg` (or `.mp3`/`.wav`/`.flac`) named after an effect and it plays **instead
