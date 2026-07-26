@@ -473,6 +473,7 @@ FUNCTION RunMenu%
             Banner "OLD SCHOOL !", "Classic Dungeon! 2d6 combat   +   full map (no Field of View)"
             _DELAY 0.9
         END IF
+        IF k = "R" THEN Sfx "select": ShowRules                    ' read the rules of the dungeon
 
         ' torch-flicker the walls now and then
         t = t + 1
@@ -495,7 +496,7 @@ FUNCTION RunMenu%
         DIM cmb AS STRING, fv AS STRING
         IF opt_oldschool THEN cmb = "2d6" ELSE cmb = "D&D"
         IF opt_fov THEN fv = "on" ELSE fv = "off"
-        COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School      (Combat " + cmb + "   FOV " + fv + ")"
+        COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School   [R] Rules      (Combat " + cmb + "   FOV " + fv + ")"
         _DISPLAY
         IF firstframe THEN FadeInCurrent: firstframe = 0   ' fade the menu in on the first frame
     LOOP
