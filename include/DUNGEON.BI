@@ -381,3 +381,23 @@ DIM SHARED SFX_NAME(1 TO 48) AS STRING, SFX_HND(1 TO 48) AS LONG, SFX_N AS INTEG
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter
+
+' ---- CHRONICLE: per-run stats + a single-line event log (Game Summary / Event Log / Bestiary
+'      / Treasury / Lords viewers). Reset by ChronicleReset at the start of each run. ----
+DIM SHARED g_rooms_explored AS INTEGER, g_monsters_slain AS INTEGER, g_treasures_found AS INTEGER
+DIM SHARED g_items_looted AS INTEGER, g_levels_completed AS INTEGER, g_secrets_found AS INTEGER
+DIM SHARED g_crits AS INTEGER, g_fumbles AS INTEGER, g_wander_enc AS INTEGER, g_run_deaths AS INTEGER
+DIM SHARED g_gold_found AS LONG
+CONST MAXEVLOG = 600
+REDIM SHARED EVLOG(1 TO MAXEVLOG) AS STRING
+DIM SHARED EVLOG_N AS INTEGER
+' per-monster + per-treasure tallies for the Bestiary / Treasury (indexed by a name list)
+CONST MAXBEAST = 48, MAXTRE = 64
+REDIM SHARED BEAST_NAME(1 TO MAXBEAST) AS STRING
+REDIM SHARED BEAST_ENC(1 TO MAXBEAST) AS INTEGER, BEAST_SLAIN(1 TO MAXBEAST) AS INTEGER
+REDIM SHARED BEAST_FLED(1 TO MAXBEAST) AS INTEGER, BEAST_KILLEDBY(1 TO MAXBEAST) AS INTEGER
+REDIM SHARED BEAST_LOOTED(1 TO MAXBEAST) AS INTEGER
+DIM SHARED BEAST_N AS INTEGER
+REDIM SHARED TRE_STATNAME(1 TO MAXTRE) AS STRING
+REDIM SHARED TRE_FOUND(1 TO MAXTRE) AS INTEGER, TRE_GP(1 TO MAXTRE) AS LONG
+DIM SHARED TRE_STAT_N AS INTEGER

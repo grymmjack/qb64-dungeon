@@ -150,6 +150,7 @@ FUNCTION PlayGame%
     IF NOT didload THEN
         SetupPlayers                     ' build every player (multiplayer: class + 3d6 roll-up + name each)
         game_start = TIMER               ' start the run timer
+        ChronicleReset                   ' fresh event log + per-run stats for the Game Menu screens
         moves_made = 0: turn_num = 0: steps_left = 0
         cur_player = 1
         run_seed = INT(RND * 2000000000) + 1   ' seed this dungeon so save/load can reproduce it exactly
@@ -231,6 +232,7 @@ FUNCTION PlayGame%
         IF k = "P" THEN PauseGame: idle_ticks = 0
         IF k = "G" AND num_players = 1 THEN SaveAndToast: idle_ticks = 0
         IF k = "?" OR k = "/" THEN ShowKeys
+        IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
         IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
@@ -1555,6 +1557,7 @@ END SUB
 '$INCLUDE:'include/GESTURE.bas'
 '$INCLUDE:'include/JUICE.bas'
 '$INCLUDE:'include/STATS.bas'
+'$INCLUDE:'include/CHRONICLE.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'
 '$INCLUDE:'include/CTEXT.bas'
