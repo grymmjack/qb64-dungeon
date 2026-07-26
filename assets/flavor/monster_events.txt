@@ -30,9 +30,20 @@
 * | miss   | You sidestep, and the attack whistles harmlessly past.
 * | miss   | The {mon} lash{es} out -- but you are already gone.
 * | crit   | The {mon} catch{es} you flush -- a savage blow for {dmg}!
-* | fumble | The {mon} overreach{es} and stumble{s}, {its} attack wasted.
+* | fumble | The {mon} lash{es} out wildly and {its} attack finds only stone.
+* | fumble | The {mon} misjudge{s} the strike -- the blow goes wide and wasted.
 * | death  | The {mon} shudder{s} and collapse{s}, slain.
 * | death  | The {mon} fall{s} still at last.
+
+# --- biology-appropriate fumbles (no stumbling/legs where there are none) ---
+GIANT SNAKE | fumble | The snake strikes and misses, recoiling into a tight, hissing coil.
+GREEN SLIME | fumble | The slime lunges wide and splatters uselessly against the wall.
+BLACK PUDDING | fumble | The pudding surges past and slaps wetly against the stone.
+PURPLE WORM | fumble | The worm's maw snaps shut on empty air, jarring the whole floor.
+RED DRAGON | fumble | The dragon's claws rake only stone, striking a shower of sparks.
+BLUE DRAGON | fumble | The dragon's strike goes wide and gouges a furrow in the wall.
+GREEN SLIME | crit   | The slime engulfs you whole; acid sears everywhere at once for {dmg}!
+BLACK PUDDING | fumble | You slither free as the pudding overreaches and flattens itself.
 
 # ================= level 1 =================
 GIANT RATS | attack | The rats swarm up your legs, biting and clawing for {dmg}.

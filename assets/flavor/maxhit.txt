@@ -2,10 +2,10 @@
 # hit line) whenever you roll the MAXIMUM on your damage die, even without a crit.
 # {mon} and {weapon} are substituted. Edit freely; lines starting with # ignored.
 
-A perfect blow -- {weapon} bites to the bone and the {mon} staggers!
+A perfect blow -- {weapon} bites deep and the {mon} reels from the hit!
 You put your whole weight behind it; the {mon} folds around {weapon}.
 The strike lands clean and deep -- the {mon} shrieks and reels away.
-Bone splinters as {weapon} slams home. The {mon} will feel that one.
+{weapon} slams home with a sickening force. The {mon} will feel that one.
 You find the gap in its guard and drive {weapon} through it savagely.
 A crushing, textbook hit -- the {mon} sags, spraying dark blood.
 {weapon} connects with a sickening crunch; the {mon} nearly buckles.
