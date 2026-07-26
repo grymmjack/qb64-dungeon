@@ -3,8 +3,8 @@
 This is our own plain-text summary of the **TSR _Dungeon!_ board game** (David R. Megarry,
 1975; revised 1980/81), written to document exactly which rules this game's **Oldschool mode**
 (`opt_oldschool`) reproduces and where it deviates. It is a mechanics reference in our own
-words — not a transcription. The official rulebook is a scanned-image PDF (no extractable
-text), so this file fills that gap for contributors.
+words — not a transcription. Faithful OCR transcriptions of the physical rulebooks live in
+[`manuals/`](manuals/) (`Game Manual.txt`, `Introductory Game.txt`) — checked against those.
 
 Every rule below is tagged **→ in this game** with the function / setting that implements it,
 so the doc doubles as a map between the board game and the code.
@@ -31,9 +31,12 @@ special ability.
 | **Elf** | 10,000 | weakest | finds secret doors on a d6 of **1–4** (others 1–2) |
 | **Hero** | 10,000 | modest | the baseline all-rounder |
 | **Superhero** | 20,000 | strongest | brute force against the deep levels |
-| **Wizard** | 30,000 | weak in melee | casts **spells**; **cannot use a Magic Sword** |
+| **Wizard** | 30,000 | good fighter | casts **spells**; **cannot use a Magic Sword** |
 
-The Basic game uses only Elf and Hero; the Expert game adds Superhero and Wizard.
+The rulebook calls wizards "good fighters, but not the best" — on many cards their kill number
+equals the Superhero's (e.g. the Troll: Superhero 8, Wizard 8, Hero 10), so they are **not** weak
+in melee; their real edge is spells. The **Introductory Game** uses only Elf and Hero (levels
+1–4); the full game adds Superhero and Wizard.
 
 **→ in this game:** you pick a class in `SelectClass`; Oldschool mode routes to
 `RollCharacterClassic` (no dice), which only names the champion. Class data lives in
@@ -74,28 +77,52 @@ a Magic Sword lowers the number you need (`target = need - item_sword`); "—" m
 
 ## 4. When you miss — the Monster Attack Table (2d6)
 
-Miss the kill roll and the monster strikes back — roll 2d6:
+Miss the kill roll and the monster strikes back — roll 2d6 on the rulebook's **Monster Attack
+Table** (verbatim from `manuals/Game Manual.txt`):
 
-| 2d6 | Result | Effect |
-|---|---|---|
-| **2** | Adventurer killed! | Drop **all** treasure. Back to Start. (You are **not** eliminated — restart with any pawn.) |
-| **3** | Serious wound | Drop **half** your treasure. Back to Start. |
-| **4–6** | Light wound | Drop **one** treasure. Retreat to the nearest empty corridor. Lose a turn. |
-| **7–8** | Stunned | Drop **one** treasure. |
-| **9+** | Missed | No effect — stand and fight again, or flee. |
+| 2d6 | Result |
+|---|---|
+| **2** | **Adventurer killed!** Drop **all** treasures. (May re-enter the game as a weaker class.) |
+| **3** | **Wounded!** Drop **all** treasures; back to Start; lose next turn. |
+| **4–5** | Retreat **two** spaces; drop **one** treasure; lose next turn. |
+| **6** | Retreat **one** space; drop **one** treasure. |
+| **7** | No effect; next turn may leave the space or attack. |
+| **8** | Retreat **one** space; drop **one** treasure. |
+| **9–10** | Retreat **two** spaces; drop **one** treasure; lose next turn. |
+| **11** | No effect; next turn may leave the space or attack. |
+| **12** | **Wounded!** Drop **all** treasures; back to Start; lose next turn. |
 
-Death costs only treasure and board position; nobody is knocked out of the game.
+The table is symmetric around 7 **except** that a **2 kills** while a **12 only wounds**. "Killed"
+removes the pawn (the player to your left blindly returns two of your treasures to the piles; you
+may re-enter next turn at Start as a **weaker** class — a dead Wizard comes back Superhero/Hero/Elf,
+never Wizard). "Wounded" sends you to Start and costs **all** your treasure, but not the pawn. No
+result ever ends the game outright.
 
-**→ in this game:** `MonsterAttack`. Because the game tracks a gold total rather than individual
-treasure cards, "drop N treasures" is adapted to dropping gold (all / half / a fixed amount).
+**→ in this game:** `MonsterAttack` uses a **simplified, gold-based adaptation** — the game tracks
+one gold total, not individual treasure cards:
+
+| 2d6 | Game result |
+|---|---|
+| 2 | Killed — drop all gold + items, back to START (revive; not eliminated) |
+| 3 | Serious wound — drop **half** your gold, back to START |
+| 4–6 | Light wound — drop 1000 gold, retreat, lose the turn |
+| 7–8 | Stunned — drop 500 gold |
+| 9–12 | Missed — no effect |
+
+**Fidelity gap:** the game is gentler than the printed table — a **12** is harmless here but a
+catastrophic *Wounded* in the real game; a **3** costs half your gold instead of all; and **9–11**
+never wound. Making Oldschool combat honour the printed 9-outcome table exactly is a one-function
+change to `MonsterAttack`, kept as a future faithfulness pass.
 
 ## 5. Treasure & magic items
 
 Kill a **room** monster and draw one treasure card from that level's pile (plus grab any
 treasures other players dropped there). Most cards are just a **gold value**. The magic cards:
 
-- **Magic Sword** — +1 to your kill rolls (Expert: +1 or +2), and it can slay a "—" monster.
-  **A player uses only one at a time.** Wizards can't use it at all.
+- **Magic Sword** — adds to your kill rolls and can slay a "—" monster (a +1 sword kills a "—"
+  monster on a 12, a +2 sword on 11+). It's **+1 or +2**, set by a 2d6 roll when found (deeper =
+  likelier +2: 1st level 12=+2, 6th level 7+=+2; the Intro Game is +1 only). **A player uses only
+  one at a time.** Wizards can't use it at all.
 - **Secret Door Card** — you find every secret door automatically (no roll).
 - **ESP Medallion** — look at a room's monster before you enter.
 - **Crystal Ball** — look into any room from afar (its monster and treasure).

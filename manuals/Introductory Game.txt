@@ -1,0 +1,173 @@
+DUNGEON!  --  INTRODUCTORY GAME
+(C) 1980, 1981, TSR Hobbies, Inc., All Rights Reserved.
+
+[OCR transcription of the physical Introductory Game booklet (2 pages), for
+ reference. Transcribed from "Introductory Game.pdf".]
+
+========================================================================
+This Introductory Game contains all the basic information needed to play DUNGEON!
+Fantasy Board Game. It allows new players to set up and begin play in a few minutes
+without needing to read the more detailed rulebook. Once the players are familiar with
+the basic rules, they will find it much easier to read and understand the complete rules.
+
+PREPARE TO PLAY:
+Lay the game board out on a table. Separate the cards into Monster and Treasure piles
+according to their color and "Level". Put the Spell Cards back into the box; they will not
+be used in the Introductory Game. Also put the fifth and sixth level Monster and Treasure
+Cards away. They will not be used either.
+Study the game board. The game board is divided into nine parts. Each part is labelled as one
+of the six levels of a dungeon, with the third, fourth, and fifth levels having north and
+south parts. The dungeon levels are the underground floors of a cellar beneath an old castle.
+The first level is the floor closest to the surface, and the sixth level is the floor deepest
+underground. The rectangular rooms of each dungeon level are the same color as the cards of
+that level. The various parts of the board are --
+  The narrow yellow paths are Corridors, divided into spaces by black lines to look like stone
+  slabs. The spaces in the corridors with rounded ends are Stairs, which connect one level of
+  the dungeon with another. The very large, yellow spaces which have names in them are Chambers.
+  Chambers are on the same dungeon level as the Rooms which surround them. Monsters are found in
+  Chambers.
+  The colored rectangles are Rooms. All of the rooms on the same level are the same color. Each
+  Room has one or more doors by which the Room may be entered. The brown bars are normal Doors,
+  while the white dashed lines are Secret Doors. Rooms have a Monster in each, but they also
+  contain a Treasure.
+This game also has Dead Monster counters, the small markers with graves drawn on them. These are
+used to mark spaces where a Monster has been killed. There are also counters with numbers written
+on them. These counters are used to mark a Room or Chamber that has cards in it. Separate the
+counters into two piles. The game is now ready to play.
+
+OBJECT OF THE GAME:
+Up to 4 people may play the Introductory Game. Each player chooses either a green or blue playing
+piece. The green pieces are ELVES and the blue pieces are HEROES, two types of Dungeon Adventurers.
+Heroes fight a little better than Elves do, but Elves have a better chance to find Secret Doors.
+The object of the game is for each player to acquire treasure. The players move their pieces about
+the board entering the various rooms to slay the evil Monsters found there and take their Treasures.
+To win the game, a player must gather enough Treasure Cards whose total value equals 10,000 gold
+pieces and then return to Start with the treasure.
+In the Introductory Game the players should only move their Dungeon Adventurers through dungeon
+levels 1 through 4. Dungeon levels 5 and 6 have monsters which are too tough for Elves and Heroes
+to slay. Monsters met on the deeper dungeon levels are harder to slay than those met on the upper
+levels. However, Treasures found on the deeper dungeon levels are worth much more. Players must
+decide whether they will take the risk of fighting tougher monsters for more valuable treasure, or
+fight the easier monsters and take a lot of time to gather enough treasure to win.
+
+HOW TO START:
+First, shuffle each pile of cards and place the piles face down next to the board. Each player should
+place his or her playing piece on the Start space in the center of the board and then roll the two
+dice. If there is a tie on the dice roll, the players who tie should roll the dice again until one
+gets a higher roll. The player with the highest score moves first, followed by the player on his or
+her left. Play then continues clockwise around the table.
+
+ORDER OF PLAY:
+MOVEMENT: Each player may move his or her piece up to 5 spaces each turn. Players may move less than 5
+spaces or not move at all if they wish. Corridor spaces, Stair spaces, Rooms and Chambers each count as
+one space. The dice are not rolled for movement.
+Players may choose to move their pieces in any direction and may change direction at any time. No more
+than one playing piece may be on any one space at the same time, except in Chambers. Players may move
+their pieces over another player's piece, but if a piece would end its move on the same space as
+another player's Dungeon Adventurer, then the first player must stop one space short of the other piece.
+Any number of playing pieces can be in a Chamber at the same time.
+When a player's Dungeon Adventurer moves into a space which has a Monster in it, he or she must stop for
+that turn and fight the Monster. Only Chambers and Rooms have monsters in them.
+Doors and Secret Doors: Doors do not count as spaces, but a door may not be opened unless the player can
+move enough spaces to move his or her piece through the door that turn. Normal Doors may be opened any
+time a player can move his or her piece through them to the space beyond. However, Secret Doors are
+hidden and must be found before they may be opened. To find a Secret Door, the playing piece must be next
+to the door and the player must roll one die. If the player's Dungeon Adventurer is a Hero, a roll of 1 or
+2 is needed; Elves need to roll a 1, 2, 3, or 4 to find a Secret Door. If an attempt to find a Secret Door
+fails, the player may not move through the door and may not move any further that turn. Each Dungeon
+Adventurer must be rolled for separately to see if he or she finds the Secret Door before that piece may
+be moved through the door. Once a player finds a Secret Door, that door is no longer secret to him or her
+and should be treated as a normal Door for that player for the rest of the game.
+
+DRAWING A MONSTER CARD: Every Room has one monster and one treasure, and every Chamber has three monsters
+and no treasure. There are no Monsters in the Main Gallery on the first level; they have been scared away.
+Whenever a Dungeon Adventurer enters a Room or Chamber, the player should draw one Monster Card from the
+monster pile of the same dungeon level, unless the space is "empty" or there is a card already in the space.
+Whenever a monster is killed a Dead Monster counter is placed in the space where the monster was killed. One
+Dead Monster counter in a Room means that the Room is "empty". Since Chambers have three monsters, every time
+a Dungeon Adventurer enters a Chamber another Monster Card should be drawn until there are 3 Dead Monster
+counters in the Chamber and the Chamber is then "empty".
+
+COMBAT: Any time a player moves his or her piece into a space where there is a Monster, the player's Dungeon
+Adventurer must fight the monster. The player should draw a Monster Card and look at its face. On the right
+side of the card is a table and the player should look next to the name of his or her Dungeon Adventurer type
+to find the number needed to slay the monster. The player must roll on two dice. To win, he or she must roll
+a number equal to or greater than the number given on the card. Thus, if a Hero needs a 5 to slay a Hobgoblin,
+a roll of 5 or better would kill the monster.
+When the monster is killed, a Dead Monster counter is placed in the space and the Monster Card is discarded.
+Once all of the cards in a monster pile have been drawn, the discard pile should be turned over and shuffled
+to be reused.
+If the monster is not slain by a player during his or her turn, then the monster gets to attack the player's
+Dungeon Adventurer. The player must roll the two dice and look at the MONSTER ATTACK table below to see what
+happens.
+
+------------------------------------------------------------------------
+MONSTER ATTACK
+  Dice Roll   Result
+      2       Adventurer killed! Drop all Treasures.
+      3       Wounded! Drop all Treasures; place piece at Start and lose next turn.
+     4-5      Retreat two spaces; drop one Treasure; lose next turn.
+      6       Retreat one space; drop one Treasure.
+      7       No effect; next turn may leave space or attack monster.
+      8       Retreat one space; drop one Treasure.
+     9-10     Retreat two spaces; drop one Treasure; lose next turn.
+     11       No effect; next turn may leave space or attack monster.
+     12       Wounded! Drop all Treasures; place piece at Start and lose next turn.
+------------------------------------------------------------------------
+
+Adventurer killed! The adventurer is dead and the player is out of the game. The player to the left should
+shut his or her eyes and draw two of the dead adventurer's Treasure Cards. These are returned to their
+treasure piles and shuffled in. The rest of the player's Treasure Cards are placed face down beside the board
+and marked which space the cards are in (see Drop Treasure, below).
+Wounded! The player must return his or her Dungeon Adventurer directly to Start to be cured, and loses a turn.
+The player must lose all treasures the same way an adventurer who is killed does.
+Retreat! The player must move his or her piece backwards in the direction it came from the number of spaces
+given. The player should not move his or her piece back into a space where there is a Monster if there is
+another way to move. However, if there is no other way to move and the player has to retreat the piece into a
+space with a monster, the Dungeon Adventurer must fight the monster right away in that turn. Any results are
+added onto the first monster's attack, including losing additional turns.
+Drop Treasure! The player may choose what Treasure to drop. Place the Treasure Card beneath the Monster which
+attacked the adventurer and place this stack face down near the board. The player should take two Stack counters
+with the same number on them, such as two counters with the number 9 on them, and place one on the stack of
+cards and the other in the space where the Monster was fought. These cards are now in that space. Do not draw
+another Monster Card if there is already a Stack Counter in a space.
+Lose next turn! The player has lost a turn. Tip the piece over on its side. The next turn the player should just
+stand the piece back up, but may not move or fight that turn.
+Note: If the Monster is not guarding any treasures stolen from players, the player should discard the Monster
+Card once he or she stops attacking the Monster and moves away.
+
+DRAWING TREASURE CARDS: When a player slays a monster in a Room, that player may then draw one Treasure Card from
+that dungeon level. The player may also pick up any other treasures dropped by players and those which the monster
+was guarding.
+Treasure Cards have a value printed on the bottom of the card. The player should add up the value of all of his or
+her treasures every time a new Treasure is drawn. If the total value of the treasures is 10,000 gold pieces or more,
+the player should try to return to Start by the safest path, to win the game.
+
+SPECIAL MONSTER CARDS: A few of the Monster Cards are Traps. If a player draws a Trap, he or she will not have to
+fight a monster, but must do what the Trap card says.
+  Cage! Lose 1-6 Turns: The player must roll one die. The number rolled is the number of turns the player has lost.
+  Once the player has lost those turns, one Treasure Card is drawn if in a Room.
+  Slide! Dropped to a Chamber One Level Deeper: If the player was in a Room when the Trap was drawn, he or she should
+  first draw one Treasure Card from that level. The player must move his or her piece one level deeper than the level
+  on which the Trap was drawn, to any Chamber the player chooses. If there is a monster in the Chamber, then the
+  adventurer must fight the monster that turn.
+
+Special Treasure Cards:
+  Secret Door Card: When this card is held, the player need not roll a die to find Secret Doors, but treats Secret
+  Doors as normal Doors. If this treasure is lost, all Secret Doors moved through before it was lost continue to be
+  treated as normal Doors for that player.
+  Magic Swords: When one of these cards is held, the player may add +1 to his or her dice roll when trying to slay
+  monsters. Only one Magic Sword may be used at a time by a player.
+  ESP Medallion: This card allows the player holding it to move to the entrance of a Room or Chamber and look at the
+  Monster Card in that space before deciding whether or not to attack it. If the player does not choose to attack, the
+  Monster Card is discarded.
+  Crystal Ball: This card allows the player holding it to look at the Monster and Treasure Card in any Room, no matter
+  where the player's piece is on the board. The player's Dungeon Adventurer may not move or fight on the turn he or she
+  uses the Crystal Ball. When the Crystal Ball is used the player draws both cards, and after looking at them, places
+  the cards face down beside the board with a Stack counter on the space and another in the proper room. The cards
+  remain there until any Dungeon Adventurer enters the space and attacks the Monster or until the player holding the
+  Crystal Ball tries to "see" into another space (at which point they are discarded).
+
+WINNING THE GAME:
+The first player to return to Start, the Main Staircase, with enough treasure whose total value is equal to or greater
+than 10,000 gold pieces wins the game!

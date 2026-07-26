@@ -1,0 +1,446 @@
+DUNGEON!  (TM)  -- Fantasy Board Game
+by David R. Megarry
+(C) 1975, 1980, 1981, TSR Hobbies, Inc., All Rights Reserved.
+Product 1010.
+
+[OCR transcription of the physical rulebook (6 pages), for reference/accuracy
+ checking against DUNGEON-RULES.md. Transcribed from "Game Manual.pdf".]
+
+========================================================================
+GAME PARTS:
+Your copy of DUNGEON! Fantasy Board Game should contain the following parts:
+  Game board
+  Cards (61 Monsters, 80 Treasures, and 24 Spells)
+  Counters (110 Dead Monster counters and 15 pairs of numbered Stack counters)
+  2 Dice
+  8 Pawns (Blue, green, red and white; 2 each)
+If this is the first time you are playing DUNGEON!, you should read and play the
+attached Introductory Game first.
+
+OBJECT OF THE GAME:
+Each type of Dungeon Adventurer needs a different amount of treasure to win. Each
+player tries to gather Treasure Cards. When a player gathers enough Treasure Cards
+of a total value equal to or greater than the amount needed for the player's Dungeon
+Adventurer, the player must then return with the treasure to Start. The first player
+to carry enough treasure to Start wins.
+
+NUMBER OF PLAYERS:
+Two to eight people may play. However, if someone else cannot be found to play the
+game, it is possible to play the game by oneself.
+
+THE GAME BOARD:
+The game board shows the six levels of a dungeon which lies beneath a large, haunted
+castle. The dungeon is entered by moving down a main staircase (Start) which leads to
+the first level of the dungeon, the level closest to the surface. From the first level
+the Dungeon Adventurer may move down other stairs to the second, third and fourth
+levels, and so on, each of these levels deeper underground than the last one. The most
+dangerous monsters live on the deepest levels, but the most valuable treasures are also
+found there.
+
+The dungeon game board is divided into several types of areas:
+  -- The narrow yellow stone paths are Corridors.
+  -- The series of corridor spaces with rounded ends are Stairs.
+  -- The very large, yellow spaces are Chambers: each chamber has a name written in it.
+     Chambers are on the same dungeon level as the rooms which surround them.
+  -- The large colored rectangles are Rooms: all of the rooms on the same level are
+     colored the same; for example, the first level rooms are all colored gold.
+  -- Corridors, chambers and rooms are bounded by gray Walls, which cannot be moved
+     through, except at doors or secret doors.
+  -- The brown bars in the walls are Doors.
+  -- The white dashed lines in the walls are Secret Doors.
+
+SETTING UP THE GAME:
+Lay the game board out in the center of a table. Separate the cards and sort them into
+piles of Monster cards and Treasure cards by the colors and dungeon level on the back
+of the cards. There should be two piles for each dungeon level, a total of six Monster
+card piles and six Treasure card piles. Shuffle each pile of cards and place them face
+down near the board.
+There are also 24 Wizard's Spell cards which should be separated and placed in a pile,
+but these cards do not need to be shuffled because wizards are allowed to pick their own
+Spells. (See the section on WIZARD SPELLS following.)
+Now separate the Dead Monster counters (the counters with graves on them) from the pairs
+of numbered Stack Marker counters and place the piles near the board. The game is now
+ready to play!
+
+TYPES OF DUNGEON ADVENTURERS:
+Each player will select one of the following Dungeon Adventurer types to play in the game.
+A different colored pawn or playing piece is used to represent each Dungeon Adventurer type.
+There may never be more of one type of adventurer than there are pawns of that color. Each
+adventurer type has different abilities and needs different amounts of treasure to win.
+Elves and Heroes are the weakest fighters, but they do not need a lot of treasure to win,
+and therefore do not have to fight the really tough and dangerous monsters. Superheroes and
+Wizards are better fighters, but need more treasure to win and must fight the more dangerous
+monsters.
+
+  Elf: Green pawns are elves. Elves are the weakest fighters of the Dungeon Adventurers and
+  they should stay on dungeon levels 1-3 (the gold, green and orange rooms) to be safe. They
+  may try deeper dungeon levels if they want, but they may meet monsters that they cannot
+  fight. Elves have a better chance to open Secret Doors than other adventurers do, finding
+  and opening a Secret Door on a roll of 1-4 on a single die. An elf needs a total treasure
+  value of 10,000 gold pieces to win.
+
+  Hero: Blue pawns are heroes. Heroes are slightly better fighters than elves and should stay
+  on dungeon levels 1-4 (the gold, green, orange and purple rooms) to be safe. If a hero tries
+  to fight monsters on the fifth or sixth level, he or she may meet a monster that is too tough
+  to fight. A hero also needs a total treasure value of 10,000 gold pieces to win.
+
+  Superhero: Red pawns are superheroes. Superheroes are the most powerful fighters and they
+  should try to get the more valuable treasures on dungeon levels 3-5 (the orange, purple, and
+  red rooms). They may try to gain treasures from the upper levels (levels 1 and 2), but the
+  treasures there are small in value. They may also try level 6, but the monsters on level 6
+  are tough to defeat, even for a superhero. A superhero needs a total treasure value of 20,000
+  gold pieces to win.
+
+  Wizard: White pawns are wizards. Wizards are good fighters, but not the best fighters. They
+  fight most of the monsters almost as well as a Hero, as well as a Superhero. Wizards may NOT
+  use Magic Swords (a special treasure). A wizard's real strength is the ability to use Spells,
+  which in most cases makes it easier to defeat a monster. Because wizards are so powerful, they
+  should search dungeon levels 4-6 (the purple, red and blue rooms) for the most valuable
+  treasures. They may try the upper dungeon levels, but though the monsters there are easy to
+  defeat, the treasures are not valuable enough to be worth the time. A wizard must work hard to
+  get enough treasure, because he or she needs a total treasure value of 30,000 gold pieces to
+  win.
+
+PLAYING ORDER:
+To see who will move first, each player should roll the two dice. If there is a tie, the players
+who tie should roll the dice again until one gets a higher roll. The player with the highest score
+moves first, followed by the player to his or her left. Play continues clockwise around the board.
+This playing order remains the same throughout the game.
+To begin the game, the player who moves first chooses a Dungeon Adventurer pawn and places it at
+Start. The next player chooses a Dungeon Adventurer from the remaining pawns and places it at Start,
+until all of the players have chosen a pawn. Now the first player may begin by moving his pawn.
+
+SEQUENCE OF PLAY:
+Each player should complete the following actions in the order given, during his or her turn:
+  1. MOVE
+  2. CHOOSE ATTACK or SPELL (if a Monster is met)
+  3. DRAW MONSTER CARD
+  4. PLAYER'S ATTACK (Roll 2 dice.)
+  5. MONSTER'S ATTACK (Roll 2 dice if player fails to slay monster.)
+  6. DRAW TREASURE CARD (If monster is slain.)
+Once a player completes all of these actions during his or her turn, the player to the left then
+takes his or her turn.
+
+HOW TO WIN:
+A player wins the game when he or she returns to Start at the Main Staircase and has gathered enough
+Treasure to win based on the Dungeon Adventurer type being played. Be careful not to let the other
+players know how much treasure you have. The total value in gold pieces needed to win is:
+  Gold Piece Value      Dungeon Adventurer
+      10,000            ELF or HERO
+      20,000            SUPERHERO
+      30,000            WIZARD
+
+MOVEMENT:
+Each player may move his or her pawn up to FIVE spaces each turn. Corridor spaces, Stair spaces,
+Chambers and Rooms each count as one space. A player may move less than five spaces, or not at all,
+if he or she so wishes. Movement from Start to the Main Gallery on the first level counts as one
+space of movement.
+Note: Do NOT roll the dice to move; all Dungeon Adventurers always move at the same rate of up to
+five spaces each turn.
+Players may move their pieces in any direction and may change direction at any time. No more than
+one playing piece may be on any one space at the same time, except in Chambers. Players may move
+their pieces over another player's piece, but if a piece would end its move on the same space as
+another player's Dungeon Adventurer, then the moving player must stop one space short of the other
+piece. Any number of playing pieces can be in a Chamber at the same time.
+A door does not count as a space, but a door may not be opened unless the player is able to move his
+or her piece through the door that turn.
+If a player moves his or her piece into a Room or Chamber in which there is a Monster, he or she may
+not move the pawn any further that turn and must fight the Monster. However, if a player starts a
+turn with his or her piece in a space with a Monster may leave that space during the turn or attempt
+to kill the Monster. If the Dungeon Adventurer stays in that space for the turn, the Monster must be
+fought at the end of the turn.
+A player always chooses the direction his or her pawn moves, except when retreating from a Monster
+after combat.
+
+SECRET DOORS:
+In order to move through a Secret Door a Dungeon Adventurer must first find the Secret Door. The
+Secret Door may not be found unless the player is able to move his or her piece through the door that
+turn.
+To find a Secret Door a player moves his piece next to the Secret Door and then rolls one die. If a 1
+or 2 is rolled, then the Secret Door has been found, the door may be opened, and then the player may
+move his or her piece the rest of its movement spaces. If the Secret Door is not found, the player may
+not move through the door and may not move any further that turn.
+An Elf will find a Secret Door if a 1, 2, 3, or 4 is rolled on one die. If a player has the special
+treasure, Secret Door card, he or she should treat the Secret Door as a normal Door, and does not need
+to roll a die to find it.
+A player may try to find a Secret Door for as many turns as he or she wants. If a player finds and moves
+through a Secret Door, that Secret Door is no longer secret to him or her, and should be treated as a
+normal Door for that player for the rest of the game. A Secret Door may not be moved through by any
+other player's piece, except those who have found it.
+
+COMBAT:
+In order to gain enough treasure to win, the Dungeon Adventurer will need to fight the monsters which
+guard them. Every Room has one Monster and one Treasure of the dungeon level it is on, plus any
+treasures which have been dropped by players during combat in that Room. Chambers do not have any
+Treasure in them, except for treasure dropped by players during combat. However, Chambers do have a
+total of three Monsters in their space. These three Monsters are not fought all at once: another
+Monster card is drawn each time someone enters or ends a turn in the Chamber, until there are three
+dead monsters in the Chamber. There can never be more than one living Monster in a Chamber or a Room
+at a single time. There are no Monsters in the Main Gallery on the first level; they are frightened
+away by the fresh air and sunlight.
+Combat will occur whenever a player moves his or her Dungeon Adventurer into a Room or Chamber in
+which there is a Monster. In order to fight the Monster, a player must say he or she is entering a Room
+or Chamber and attacking. Once a player attacks a Monster, he or she may not move any more that turn,
+except to retreat. If a Dungeon Adventurer has a choice of Rooms or Chambers which may be entered to
+fight monsters, the player must first say which one he or she will enter, before drawing a Monster Card.
+Wizards may choose to either use a Spell or fight a Monster. However, a wizard must decide whether to
+fight or use a Spell, and which Spell to use, before drawing a Monster Card. A player may not change his
+or her mind once the Monster Card has been drawn, until the next turn.
+
+Drawing a Monster Card:
+When a Dungeon Adventurer enters a Room or Chamber, a Monster Card must be drawn from the monster pile
+of the level the player's pawn is on. The card will be the same color as the rooms of the dungeon level.
+A card should not be drawn if a Monster Card has already been chosen for a Room or Chamber and is still
+in the space. Also, a card does not need to be drawn if there is one Dead Monster counter in a Room or
+three Dead Monster counters in a Chamber; this means the Room or Chamber is empty and will remain empty
+for the rest of the game.
+
+Player's Attack:
+Once a Monster Card has been drawn, the player should turn it over and look at its face. Each Monster
+Card has the name of a Monster on it and a picture of that Monster. On the right side of the card is a
+table which shows the number needed on the roll of two dice to slay that Monster. Numbers are listed for
+each of the Dungeon Adventurer types and for the Spells (Fire Ball and Lightning Bolt). A dash (--)
+after one of the names shows that the attacker cannot normally slay that Monster.
+To fight a Monster, the player should look at the number on the card shown next to his or her Dungeon
+Adventurer type and roll two dice. If the dice score is equal to or greater than the number shown on the
+Monster Card, the Monster has been killed.
+  For example: Kevin, the Hero, enters a Room on the fourth level and draws the following Monster Card:
+      Troll
+      Lightning . --
+      Fire Ball . . 7
+      Wizard . . . 8
+      Superhero . 8
+      Hero . . . . 10
+      Elf . . . . . . 9
+  He looks on the card next to the Dungeon Adventurer HERO and finds the number 10. If Kevin rolls a 10,
+  11, or 12 on two dice, he will slay the Monster. If he rolls 9 or less, he will fail.
+When a Monster is killed, a Dead Monster counter should be placed in the Room or Chamber in which the
+Monster was found. The Monster Card should then be placed in a discard pile beside the monster pile from
+which it was drawn. Once all of the cards of one pile have been placed in a discard pile, turn the discard
+pile over and reshuffle the cards to use again.
+If a Monster in a Room is slain, the player should then draw one Treasure from the treasure pile of that
+dungeon level. Any other treasures which were dropped by players and guarded by the Monster may also be
+picked up.
+Once the Monster in a Room is killed and the Monster's Treasure taken, or once all three Monsters in a
+Chamber are killed, the space becomes empty and no new Monsters or Treasures will be found in that space
+for the rest of the game.
+However, if the player rolls less than the number shown on the Monster Card, then the Monster has not
+been killed and it is now the Monster's turn to attack!
+
+Monster's Attack:
+A monster which is not slain by a player during his or her attack will attack that player's Dungeon
+Adventurer if the piece is in the same space as the monster. The player should roll two dice and look at
+the MONSTER ATTACK table below to see what happens.
+
+------------------------------------------------------------------------
+MONSTER ATTACK
+  Dice Roll   Result
+      2       Adventurer killed! Drop all Treasures. (May re-enter game; see rules.)
+      3       Wounded! Drop all Treasures; place pawn at Start and lose next turn.
+     4-5      Retreat two spaces; drop one Treasure; lose next turn.
+      6       Retreat one space; drop one Treasure.
+      7       No effect; next turn may leave space or attack.
+      8       Retreat one space; drop one Treasure.
+     9-10     Retreat two spaces; drop one Treasure; lose next turn.
+     11       No effect; next turn may leave space or attack.
+     12       Wounded! Drop all Treasures; place pawn at Start and lose next turn.
+------------------------------------------------------------------------
+
+Explanations of Monster Attacks:
+Adventurer killed! The player's Dungeon Adventurer is killed by the monster and taken off the board. All
+of the player's treasures are lost. The player to the left must shut his or her eyes and draw two of the
+dead adventurer's Treasure Cards. These cards should be reshuffled into the treasure piles of the correct
+dungeon levels. The rest of the player's Treasure Cards are placed beneath the Monster Card to guard them
+(see Drop Treasure below).
+If an adventurer dies, the player may re-enter the game by beginning a new Dungeon Adventurer at Start. If
+the player chooses to re-enter the game, he or she first loses one turn. The player must then choose a
+Dungeon Adventurer type weaker than his or her original one. Thus, if a player began as a Wizard and that
+adventurer died, he or she could re-enter the game as a Superhero, Hero or Elf, but not as another Wizard.
+A player who started as an Elf may return as an Elf. If there are no pawns of a weaker adventurer type left
+to use, the player is out of the game. When a player re-enters as a new adventurer, all Secret Doors are
+once again secret to that player.
+
+Wounded! The player's Dungeon Adventurer is hurt by the Monster and must return to Start to be healed.
+However, the player must leave all of his or her Treasures behind. The player to the left of the wounded
+player should shut his or her eyes and draw two of the wounded player's Treasure Cards. These cards should
+be reshuffled into the treasure piles of the correct dungeon levels. The rest of the player's Treasure
+Cards are placed beneath the Monster Card to guard them (see Drop Treasure below).
+
+Retreat! The player must move his or her piece backwards in the direction it came from, moving the number
+of spaces given. The player may not move less than or more than the number of spaces given, unless the
+movement would put the piece on the same space as another player's piece. If this is the case, the pawn
+stops one space before the other piece. The player should not move his or her piece into a space with a
+Monster in it if there is any other way to move, even if this means that the player is not moving backwards
+as told to. If the player cannot retreat to a space without a Monster in it, then he or she must move into
+the space with a Monster and fight the Monster right away. A Wizard may not use spells when retreating. When
+the second Monster attacks, the player must follow the new instructions to finish his or her turn. The new
+Monster's attack will add on to the first Monster's attack. Thus, if the first attack says "Retreat two
+spaces; drop one Treasure; lose next turn" and the second Monster's attack says the same thing, then the
+player must retreat two more spaces, drop one more Treasure, and lose two turns.
+
+Drop Treasure! The player must lose as many Treasures as told to. The player is always allowed to choose
+which Treasure he or she wants to drop, and it is usually smart to drop the least valuable Treasure. The
+player should put the Treasure Cards beneath the Monster Card which attacked him or her and place that stack
+of cards on the table near the board. The player should then take two Stack counters with the same number on
+them (for example, two counters with a number 3 on them) and place one on top of the stack of cards and the
+other in the space where the Monster is. This way, when someone enters the same Room or Chamber, he or she
+will already know what is in that space by looking at the stack of cards with the same number as the counter
+in the space. Never draw a Monster Card if there is already a Stack counter in the space.
+
+Lose next turn! The player should tip his or her piece over to show that it has lost a turn. On the next turn
+the player should just stand the piece up, but may not move or fight that turn.
+
+NOTE: If the Monster is not guarding any Treasures stolen from players, the player should discard the Monster
+Card once he or she stops attacking the Monster and moves away.
+
+SPECIAL MONSTER CARDS:
+A few of the Monster Cards are Traps. If a player draws a Trap, he or she will not have to fight a monster,
+but must do what the Trap card says:
+  Cage! Lose 1-6 Turns: If this Trap is drawn, a cage has fallen on the Dungeon Adventurer, trapping him or
+  her. The player must roll one die to find out how many turns are lost before the adventurer can escape from
+  the Trap. Once the adventurer has escaped from the Trap, the player may draw one Treasure, if in a Room, and
+  then may leave this space.
+  Slide! Dropped to a Chamber One Level Deeper: If this Trap is drawn, the Dungeon Adventurer has fallen
+  through a trapdoor and onto a slide which drops him or her to the next deeper level. If the player's piece is
+  in a Room when the Trap was drawn, he or she should first draw one Treasure Card from that level. Then the
+  player must move his or her piece to any Chamber one level deeper than the level on which the Trap was drawn.
+  The player may choose which of the Chambers on that level to move his or her piece to. If there is a Monster
+  there, the player must fight it that turn, just as if the adventurer had moved his or her piece into that
+  Chamber normally.
+
+WIZARD SPELLS:
+Wizards are not the most powerful fighters, but they are able to use magic Spells once per turn. This makes
+them the strongest Dungeon Adventurer type in the game. A wizard is sometimes even a better fighter than
+certain magical monsters than a superhero, because wizards know the weaknesses of those monsters. However,
+because wizards use Spells, they may not use Magic Swords. If a wizard draws a Magic Sword, a second Treasure
+Card should be drawn and the Magic Sword should be returned to the treasure pile and shuffled in.
+Before the game begins each player who has chosen a Wizard piece should roll one die and add 6 to the number
+rolled, for a total of 7 to 12 (6+1 to 6+6). This is the total number of spells that the wizard may carry
+during the game at any one time. The wizard may never carry more than this number of spells, but may carry
+less.
+Each wizard may choose the spells he or she wants to carry from the pile of Spell Cards. If there is more
+than one wizard in a game, those two players should roll one die each. The player who rolls the highest score
+then chooses one Spell Card first. Next the other player chooses a Spell Card, and then the first player
+chooses another card, and so on, until both wizards have chosen the total number of spells they may carry.
+Any extra cards left are put into a discard pile beside the board.
+When a wizard wishes to use one of his or her spells during a turn, the player chooses one of the Spell Cards
+in his or her hand and places it on the board in the space where it is being used. At the end of the turn the
+player should put the used Spell Card in the discard pile by the board. A wizard must choose his or her spell
+before drawing a Monster Card.
+If a wizard wants to attack a Monster with a Spell, he or she must be able to move into the Room or Chamber on
+his or her turn, just as if the wizard was going to fight the Monster. However, the player only moves the
+playing piece to the door of the Room or to one space before the Chamber and then uses the Spell. If the
+wizard kills the Monster with a spell, then he or she moves the playing piece into the monster's space at the
+end of the turn and may pick up any treasure found there. If the Monster is not killed, it does not get to
+attack the Dungeon Adventurer, because he or she is not in the same space. In either case the Spell Card used
+is placed in the discard pile at the end of the turn.
+
+Spell Types:
+There are three different types of spells from which a player may choose:
+  Fire Ball -- This spell may be used to attack a Monster from the entrance of a Room or Chamber, and the
+  Monster will not be able to attack the player's pawn. Some monsters are hurt more easily with a Fire Ball
+  than a Lightning Bolt, and there are some monsters that cannot be killed by a Fire Ball (these are marked
+  with a dash, "--").
+  Lightning Bolt -- This spell may be used to attack a Monster without entering its space and letting it
+  attack the Dungeon Adventurer. Some monsters are more easily hurt with a Lightning Bolt than with a Fire
+  Ball, and there are some monsters that cannot be killed by a Lightning Bolt (these are marked on the Monster
+  Card with a dash, "--").
+  Teleport -- This spell is used for taking shortcuts in the dungeon. It may not be used to attack monsters, so
+  this spell only affects the wizard using it. This spell may only be used in Chambers, and is used before
+  combat. This spell lets the player pick up his or her piece from the Chamber it is in and put it in any other
+  Chamber on the same dungeon level or in a Chamber on the dungeon level just above or below the level the
+  wizard started the turn on. A wizard just moves his or her piece into a Chamber, plays a Teleport card, and
+  moves the piece to the Chamber of the player's choice. A wizard does not have to fight any Monster in the
+  Chamber where the piece came from, but he or she must fight any Monster met in the Chamber teleported to. A
+  wizard may not use a Spell to attack a Monster in the Chamber he or she has teleported to.
+
+Regaining Spells:
+Wizards may get more spells once they have used up some of the spells they were carrying. To get more spells,
+the wizard should first return to Start, where wizards store their very heavy magic books. Then, for each turn
+the piece stays on Start, the player may choose one Spell Card from the Spell pile. The Wizard may not take
+more spells than he or she started the game with, but he or she may take different spells, such as more Fire
+Balls and no more Teleports, if the player wants.
+
+TREASURES:
+When a player slays a monster in a room (not a chamber), that player may then draw a Treasure Card. The
+Treasure Card is drawn from the Treasure Pile that is the same dungeon level as the room. The card will be the
+same color as the room. The player does not have to show anyone else the Treasure Card unless it is a Special
+Treasure and the adventurer uses it during the game.
+Each Treasure Card has a treasure value printed on the bottom of the card. Each time a player draws a treasure,
+the player should add up all of the treasure values of the treasures he or she has, to see if the total is
+enough to win the game by returning to Start.
+When the Monster Attack result says "Drop a Treasure", the player may choose which Treasure Card to drop.
+Usually this should be the card that has the lowest treasure value.
+
+SPECIAL TREASURE CARDS:
+  Secret Door Card: This card represents a magic wand which finds Secret Doors, and allows the player with this
+  card to move through them as if they were normal Doors. No die roll is necessary to find a Secret Door when
+  this card is held. Even if this treasure is lost, all Secret Doors passed through before it was lost should be
+  treated as normal doors by the player for the rest of the game.
+
+  Magic Sword: A Magic Sword is an enchanted weapon. When one of these cards is held, the player adds +1 (or +2)
+  to his or her dice roll when trying to slay monsters. Only one Magic Sword at a time may be used by a player.
+  When a Magic Sword is found on a certain level of the dungeon, the player finding it must immediately roll two
+  dice to determine the strength of its enchantment:
+                        +1                +2
+    Found on 1st Level  Roll of 2 to 11   Roll of 12
+    Found on 2nd Level  Roll of 2 to 9    Roll of 10 to 12
+    Found on 4th Level  Roll of 2 to 8    Roll of 9 to 12
+    Found on 6th Level  Roll of 2 to 6    Roll of 7 to 12
+  When a Magic Sword is used in any attack upon a monster, the +1 or +2 is added to the normal attack dice roll
+  of the player. Thus, if a player normally needs to roll an 8 or better to slay a Monster, a roll of only 7 or
+  better would be needed with a +1 sword (since 7 + 1 = 8), or a roll of only 6 or better would be needed with a
+  +2 sword (since 6 + 2 = 8).
+  Magic Swords also allow combat against Monsters which normally could not be fought by a certain type of Dungeon
+  Adventurer (those shown on the card with a dash, "--", next to their name of Dungeon Adventurer). When these
+  Monsters are fought, a dice roll of 12 (for +1 swords) or 11 or better (for +2 swords) will kill them.
+  Note: Magic Swords also have a value in gold pieces and should be counted in the treasure total.
+  Wizards may not use Magic Swords. If a wizard should draw a Magic Sword, the player should draw a second
+  Treasure Card and then discard the Magic Sword and shuffle it back into the treasure pile.
+
+  ESP Medallion: The ESP Medallion enables its owner to look at a Monster Card before having to fight it. When a
+  player holding an ESP Medallion moves next to a Door behind which a Monster lurks, or one space away from a
+  Chamber which contains a Monster, the player can look at that one Monster Card without showing anyone else. The
+  player may then choose to attack, use a spell, or decide not to attack. If the player does not attack, then the
+  turn is ended and the Monster Card is discarded.
+
+  Crystal Ball: The Crystal Ball enables its owner to "see" into any Room of his or her choice, one at a time. The
+  player's Dungeon Adventurer may not move on the turn he or she uses a Crystal Ball. Instead, the player chooses a
+  Room and draws both a Monster and Treasure Card for that level, views them without showing others, and places
+  them face down near the game board, using the numbered Stack Markers to mark their location. They remain there
+  until encountered by any Dungeon Adventurer (where they are handled normally), or until the player holding the
+  Crystal Ball attempts to "see" into another room (at which time they are discarded).
+
+PLAYING SOLO:
+DUNGEON! Fantasy Board Game can easily be played solitaire in many different ways.
+One way to play alone is to play against a time limit. The player is trying to win before his or her time runs
+out. A timer should be set for 30 minutes, to begin with, and the player should try to win before the 30 minutes
+is up. After that, when the player becomes good at the game, he or she should shorten the time to 25, 20 or 15
+minutes.
+Another way to play is to search for a certain treasure in the lower levels of the dungeon. The player can either
+play against time or until his or her Dungeon Adventurer has died twice.
+A third way to play solo is to draw a 6th level Monster Card, and place it face down beside the board. Then a pawn
+is chosen to represent this monster and placed in a room on the 6th level. The monster will move after the player,
+moving five spaces a turn, and always taking the shortest path towards the player's pawn. The monster treats all
+Secret Doors as normal Doors. This Monster will not attack or be attacked by other monsters. The player must
+attempt to win the game before the monster catches and kills the Dungeon Adventurer. If the monster is killed, its
+card should be shuffled in with the rest of the 6th level monsters and another card drawn which starts in a room on
+the 6th level and chases the player.
+
+CLEANING UP:
+When the game ends, each player should help pick up the cards and place them back in the proper piles. Each pile
+should then have only cards that are all the same color in it. Treasure Cards and Monster Cards of the same color
+should be kept separate. Each pile of cards should be shuffled and a rubber band should be wrapped around it so
+that all the cards don't get mixed up into one big mess. The game will then be ready to play the next time, because
+each pile of cards is already sorted out and shuffled.
+
+CREDITS:
+  Design: David R. Megarry
+  Development: Gary Gygax
+  Revised by: Harold Johnson
+  Revision Assistance: Gary Gygax, Allen Hammack, Kevin Hendryx
+  Editor: Harold Johnson
+  Editing: Brian Blume, Mike Carr, Allen Hammack, Evan Robinson, Lawrence Schick
+  Box Cover: Jim Roslof
+  Gameboard Revision: Jim Roslof
+  Card Art: David S. LaForce, Jim Roslof
