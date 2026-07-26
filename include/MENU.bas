@@ -533,7 +533,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 37
+    CONST NSET = 38
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -679,7 +679,8 @@ SUB RunSettings
                 CASE 35
                     opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
                 CASE 36: opt_gestures = NOT opt_gestures
-                CASE 37: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 37: opt_juice = NOT opt_juice
+                CASE 38: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -798,6 +799,9 @@ SUB RunSettings
                 CASE 36
                     lbl = "Action Gestures"
                     IF opt_gestures THEN vtxt = "on (timing bar)" ELSE vtxt = "off (dice only)"
+                CASE 37
+                    lbl = "Screen Effects"
+                    IF opt_juice THEN vtxt = "on (shake + blood)" ELSE vtxt = "off"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -1154,6 +1158,7 @@ SUB DrawHUD
     ' DrawHUD, so repainting the panel here means it never vanishes behind a dice roll or
     ' a result banner (the HUD line is row 50, the panel rows 39-49 -- no overlap).
     IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead
+    DrawWounds                              ' near-death vignette + blood grime, over everything (no-op above half HP)
 END SUB
 
 

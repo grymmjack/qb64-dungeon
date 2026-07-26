@@ -58,6 +58,7 @@ opt_combatspeed = 0                           ' (legacy) superseded by opt_msgde
 opt_msgdelay = 2                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
 opt_hardcore = FALSE                          ' default casual: idling is safe (on = time passes while idle)
 opt_gestures = FALSE                          ' default off: Action Gestures (timing-bar second-wind + crit flourish, D&D mode)
+opt_juice = TRUE                              ' default on: Screen Effects (hit-shake, blood/poison splatter, near-death vignette)
 opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
 opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
 opt_mon_dicesolid = TRUE: opt_mon_d6pips = FALSE: opt_mon_dicespeed = 0
@@ -73,6 +74,7 @@ InitSectors
 InitClasses
 InitMonsterTables
 InitDice
+InitJuice                        ' build the screen-shake buffer + the near-death blood-grime pattern
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
@@ -122,6 +124,7 @@ _DELAY 0.5
 _FREEIMAGE CANVAS
 _FREEIMAGE CANVAS_COPY
 _FREEIMAGE FULL_BOARD
+IF FX_BUF <> 0 THEN _FREEIMAGE FX_BUF
 SYSTEM
 
 ' ============================================================================
@@ -693,6 +696,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_dealt = tot_dealt + dmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
+                IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.8, 0    ' you land a crit -- a meaty thump
                 IF opt_critfumble THEN
                     DoCrit rm, mon, WeaponName$, dmg    ' cinematic: smash-saying -> pause -> bonus event
                     DrawCombatPanel rm, mon, lead
@@ -719,6 +723,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_dealt = tot_dealt + dmg
                 Sfx "hit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
+                IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.45, 0   ' a lighter thump when you connect
                 FX_DMG = dmg
                 EventBanner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", 2, class_name, 1, "You deal " + _TRIM$(STR$(dmg)) + " damage."
                 CombatPause
@@ -770,6 +775,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_taken = tot_taken + mdmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
+                IF opt_juice THEN ImpactFX ShakeMag(mdmg) * 1.25, 0   ' a brutal crit really rattles the frame
                 FX_DMG = mdmg
                 EventBanner "** the " + mon + " " + MonVerb$(mon, "CRITS", "CRIT") + " you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
                 CombatPause
@@ -781,6 +787,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_taken = tot_taken + mdmg
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
+                IF opt_juice THEN ImpactFX ShakeMag(mdmg), 0         ' you take a hit -- the frame lurches
                 FX_DMG = mdmg
                 EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
                 CombatPause
@@ -859,6 +866,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
         PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
     END IF
     DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
+    DrawWounds                                  ' near-death vignette + blood grime (no-op above half HP)
     _DISPLAY
 END SUB
 
@@ -1526,6 +1534,7 @@ END SUB
 '$INCLUDE:'include/CURIO.bas'
 '$INCLUDE:'include/SPRITES.bas'
 '$INCLUDE:'include/GESTURE.bas'
+'$INCLUDE:'include/JUICE.bas'
 '$INCLUDE:'include/STATS.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'

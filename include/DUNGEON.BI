@@ -334,6 +334,10 @@ DIM SHARED opt_dice3d AS INTEGER, opt_mon_dice3d AS INTEGER, sav_dice3d AS INTEG
 DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 default; char-gen pushes it clear of the stat sheet)
 DIM SHARED opt_gestures AS INTEGER     ' SETTINGS "Action Gestures": timing-bar mini-game for the second-wind + crit flourish (D&D mode)
 DIM SHARED gauge_quality AS SINGLE     ' 0..1 closeness to dead-centre on the last gesture lock
+DIM SHARED opt_juice AS INTEGER        ' SETTINGS "Screen Effects": hit-shake, blood/poison splatter, near-death vignette
+DIM SHARED FX_BUF AS LONG              ' offscreen snapshot buffer for the screen-shake blit
+CONST NBLOOD = 40                      ' fixed blood-grime spatter spots (near-death overlay)
+DIM SHARED BLOOD_X(1 TO NBLOOD) AS INTEGER, BLOOD_Y(1 TO NBLOOD) AS INTEGER, BLOOD_R(1 TO NBLOOD) AS INTEGER
 ' which set (1-based index into the dicesets.txt manifest) the player / monster roll
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)
