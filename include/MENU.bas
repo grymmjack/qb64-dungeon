@@ -892,7 +892,7 @@ END FUNCTION
 SUB ShowCharSheet
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, nshow AS INTEGER, inv AS STRING, ln AS STRING
     DIM who AS STRING, effac AS INTEGER, efth AS INTEGER
-    effac = player_ac + item_armor                     ' AC + worn armor/shield
+    effac = player_ac + item_armor + item_shield                     ' AC + worn armor/shield
     efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
@@ -932,6 +932,7 @@ SUB ShowCharSheet
     inv = ""
     IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
     IF item_armor > 0 THEN inv = inv + "Armor +" + _TRIM$(STR$(item_armor)) + " AC    "
+    IF item_shield > 0 THEN inv = inv + "Shield +" + _TRIM$(STR$(item_shield)) + " AC    "
     IF item_bow THEN inv = inv + "Magic Bow (+2 hit)    "
     IF item_boots THEN inv = inv + "Elf Boots (+2 move, easy flee)    "
     IF item_teleport > 0 THEN inv = inv + "Teleport x" + _TRIM$(STR$(item_teleport)) + " [T]    "

@@ -150,7 +150,7 @@ SUB GrantCurioItem (sec AS INTEGER, got AS STRING)
     DIM opt(1 TO 8) AS INTEGER, n AS INTEGER, pick AS INTEGER
     n = 0
     IF player_class <> 4 AND item_sword < 2 THEN n = n + 1: opt(n) = 1
-    IF item_armor < 4 THEN n = n + 1: opt(n) = 2
+    IF item_armor < 3 OR item_shield < 2 THEN n = n + 1: opt(n) = 2
     IF item_bow = 0 THEN n = n + 1: opt(n) = 3
     IF item_boots = 0 THEN n = n + 1: opt(n) = 4
     IF item_esp = 0 THEN n = n + 1: opt(n) = 5
@@ -161,8 +161,11 @@ SUB GrantCurioItem (sec AS INTEGER, got AS STRING)
     SELECT CASE pick
         CASE 1: item_sword = item_sword + 1: got = "a Magic Sword (+" + _TRIM$(STR$(item_sword)) + ")": LogTreasure "Magic Sword", 0
         CASE 2
-            item_armor = item_armor + 2: IF item_armor > 6 THEN item_armor = 6
-            got = "Magic Armor (+" + _TRIM$(STR$(item_armor)) + " AC)": LogTreasure "Magic Armor", 0
+            IF item_armor < 3 THEN
+                item_armor = 3: got = "Magic Armor (+3 AC)": LogTreasure "Magic Armor", 0
+            ELSE
+                item_shield = 2: got = "a Shield (+2 AC)": LogTreasure "Shield", 0
+            END IF
         CASE 3: item_bow = TRUE: got = "a Magic Bow (+2 hit)": LogTreasure "Magic Bow", 0
         CASE 4: item_boots = TRUE: got = "Elf Boots (+2 move, easy flee)": LogTreasure "Elf Boots", 0
         CASE 5: item_esp = TRUE: got = "an ESP Medallion": LogTreasure "ESP Medallion", 0

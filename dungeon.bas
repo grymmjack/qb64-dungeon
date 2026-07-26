@@ -160,7 +160,7 @@ FUNCTION PlayGame%
         lvl_reached(1) = TRUE            ' you start on the 1st level
         char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
         item_potion_small = 0: item_potion_large = 0
-        item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0   ' newer items aren't in PLAYER type -- clear them so nothing leaks between games
+        item_armor = 0: item_shield = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0   ' newer items aren't in PLAYER type -- clear them so nothing leaks between games
         poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
         deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
         player_out = FALSE                                                  ' nobody has forfeited yet
@@ -781,7 +781,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 FX_DMG = mdmg
                 EventBanner "** the " + mon + " " + MonVerb$(mon, "CRITS", "CRIT") + " you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
                 CombatPause
-            ELSEIF matk >= player_ac + item_armor THEN
+            ELSEIF matk >= player_ac + item_armor + item_shield THEN
                 PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
                 IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
@@ -791,7 +791,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg), 0         ' you take a hit -- the frame lurches
                 FX_DMG = mdmg
-                EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
+                EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
                 CombatPause
             ELSE
                 FX_DMG = 0
@@ -860,7 +860,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     COLOR REDU, BOXBG
     PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
     COLOR GREENU, BOXBG
-    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac + item_armor))
+    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac + item_armor + item_shield))
     COLOR CYANU, BOXBG
     IF item_potion_small > 0 OR item_potion_large > 0 THEN
         PrintCentered by + 8, "[SPACE] attack    [H] potion (" + _TRIM$(STR$(item_potion_small + item_potion_large)) + ")    [ESC] flee"
@@ -1044,19 +1044,25 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 gold = gold + acb
                 LogTreasure _TRIM$(tname) + " (sold)", acb
                 line2 = "The " + tname + " is fine work -- but there's no armour class to raise here; you sell it for " + _TRIM$(STR$(acb)) + " gold."
-            ELSE
-                IF itm = 7 THEN acb = 2 ELSE acb = 3
-                newp = acb                        ' a duplicate/weaker set is reforged one step stronger
-                IF newp <= item_armor THEN newp = item_armor + 1
-                IF newp > 6 THEN newp = 6         ' +6 AC is the cap
-                IF newp > item_armor THEN
-                    item_armor = newp
-                    LogTreasure _TRIM$(tname) + " (+" + _TRIM$(STR$(item_armor)) + " AC)", 500 * item_armor
-                    line2 = "You don the " + tname + " -- your Armor Class rises to " + _TRIM$(STR$(player_ac + item_armor)) + "!"
+            ELSEIF itm = 7 THEN                   ' a SHIELD -- its own slot (adds to body armor)
+                IF item_shield < 2 THEN
+                    item_shield = 2
+                    LogTreasure _TRIM$(tname) + " (+2 AC)", 1000
+                    line2 = "You take up the " + tname + " -- +2 AC (now " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")."
                 ELSE
-                    gold = gold + 1000
-                    LogTreasure "Armor (sold)", 1000
-                    line2 = "Your armor is already peerless (+6 AC) -- you sell this for 1000 gold."
+                    gold = gold + 500
+                    LogTreasure "Shield (spare)", 500
+                    line2 = "You already carry a shield -- you sling the spare in your pack to sell in town (+500 gold)."
+                END IF
+            ELSE                                  ' BODY ARMOR -- its own slot
+                IF item_armor < 3 THEN
+                    item_armor = 3
+                    LogTreasure _TRIM$(tname) + " (+3 AC)", 1500
+                    line2 = "You don the " + tname + " -- +3 AC (now " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")."
+                ELSE
+                    gold = gold + 750
+                    LogTreasure "Armor (spare)", 750
+                    line2 = "You already wear good armor -- the spare set goes in your pack to sell in town (+750 gold)."
                 END IF
             END IF
         CASE 9                                     ' Magic Bow (+2 to-hit) -- a D&D-mode item
@@ -1257,7 +1263,7 @@ SUB DropEverything (rm AS INTEGER)
     gold = 0
     item_sword = 0
     item_secret_card = FALSE: item_esp = FALSE: item_crystal = FALSE
-    item_armor = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0
+    item_armor = 0: item_shield = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0
     item_potion_small = 0: item_potion_large = 0
     IF cur_player >= 1 AND cur_player <= 4 THEN LOOT_N(cur_player) = 0   ' the treasure log goes too
 END SUB

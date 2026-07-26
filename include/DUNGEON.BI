@@ -255,7 +255,8 @@ DIM SHARED item_secret_card AS INTEGER ' holds the Secret Door Card
 DIM SHARED item_esp AS INTEGER        ' ESP Medallion: peek the treasure a monster guards
 DIM SHARED item_crystal AS INTEGER    ' Crystal Ball: [V] scry every room's contents
 ' expanded magic-item deck (see ClaimTreasure / InitMonsterTables)
-DIM SHARED item_armor AS INTEGER      ' best AC bonus from Shield/Armor/Cloak worn (0 if none)
+DIM SHARED item_armor AS INTEGER      ' AC bonus from BODY ARMOR worn (0 if none)
+DIM SHARED item_shield AS INTEGER     ' AC bonus from a SHIELD (separate slot; adds to armor)
 DIM SHARED item_bow AS INTEGER        ' Magic Bow: +2 to-hit (strike from range)
 DIM SHARED item_boots AS INTEGER      ' Elf Boots: +2 to the movement roll
 DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you back to START
