@@ -36,6 +36,7 @@ SUB dice3d_config_defaults (cfg AS DICE3D_CONFIG)
     cfg.TEX_OPACITY = 1
     cfg.MARBLE_KOLOR = _RGB32(90, 90, 105)
     cfg.CRYSTAL_ALPHA = 0.72
+    dice3d_light_defaults cfg
     cfg.WIRE_ENABLED = 0
     cfg.WIRE_KOLOR = _RGB32(0, 0, 0)
     cfg.WIRE_OPACITY = 0.5
@@ -49,6 +50,16 @@ SUB dice3d_config_defaults (cfg AS DICE3D_CONFIG)
     cfg.MAX_ROLL_SECS = 6
     cfg.GRAVITY = 0.9: cfg.RESTITUTION = 0.55: cfg.FRICTION = 0.95
     cfg.SPIN_STRENGTH = 30: cfg.THROW_STRENGTH = 7
+END SUB
+
+''
+' Directional (top) light defaults. Shared by dice3d_config_defaults and the set loader, so
+' dice sets authored before the LIGHT_* keys existed still light up (the loader seeds these,
+' then any LIGHT_* keys in the file override).
+SUB dice3d_light_defaults (cfg AS DICE3D_CONFIG)
+    cfg.LIGHT_ENABLED = -1
+    cfg.LIGHT_X = -0.3: cfg.LIGHT_Y = 0.8: cfg.LIGHT_Z = 0.55 '  overhead, slightly front-left
+    cfg.LIGHT_AMBIENT = 0.5: cfg.LIGHT_INTENSITY = 0.8
 END SUB
 
 ''

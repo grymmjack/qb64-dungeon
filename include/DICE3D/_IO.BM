@@ -57,6 +57,9 @@ SUB dice3d_config_write (fh AS INTEGER, cfg AS DICE3D_CONFIG)
     dice3d_wr fh, "NUM_SCALE", dice3d_ns$(cfg.NUM_SCALE): dice3d_wr fh, "FONT_PX", dice3d_ns$(cfg.FONT_PX)
     dice3d_wr fh, "BODY_ALPHA", dice3d_ns$(cfg.BODY_ALPHA): dice3d_wr fh, "TEX_OPACITY", dice3d_ns$(cfg.TEX_OPACITY)
     dice3d_wr fh, "MARBLE_KOLOR", dice3d_nl$(cfg.MARBLE_KOLOR): dice3d_wr fh, "CRYSTAL_ALPHA", dice3d_ns$(cfg.CRYSTAL_ALPHA)
+    dice3d_wr fh, "LIGHT_ENABLED", dice3d_ns$(cfg.LIGHT_ENABLED)
+    dice3d_wr fh, "LIGHT_X", dice3d_ns$(cfg.LIGHT_X): dice3d_wr fh, "LIGHT_Y", dice3d_ns$(cfg.LIGHT_Y): dice3d_wr fh, "LIGHT_Z", dice3d_ns$(cfg.LIGHT_Z)
+    dice3d_wr fh, "LIGHT_AMBIENT", dice3d_ns$(cfg.LIGHT_AMBIENT): dice3d_wr fh, "LIGHT_INTENSITY", dice3d_ns$(cfg.LIGHT_INTENSITY)
     dice3d_wr fh, "WIRE_ENABLED", dice3d_ns$(cfg.WIRE_ENABLED)
     dice3d_wr fh, "WIRE_KOLOR", dice3d_nl$(cfg.WIRE_KOLOR): dice3d_wr fh, "WIRE_OPACITY", dice3d_ns$(cfg.WIRE_OPACITY)
     dice3d_wr fh, "D6_PIPS", dice3d_ns$(cfg.D6_PIPS): dice3d_wr fh, "PIP_STYLE", dice3d_ns$(cfg.PIP_STYLE)
@@ -100,6 +103,12 @@ SUB dice3d_config_apply (cfg AS DICE3D_CONFIG, k AS STRING, v AS STRING)
         CASE "TEX_OPACITY": cfg.TEX_OPACITY = n
         CASE "MARBLE_KOLOR": cfg.MARBLE_KOLOR = c
         CASE "CRYSTAL_ALPHA": cfg.CRYSTAL_ALPHA = n
+        CASE "LIGHT_ENABLED": cfg.LIGHT_ENABLED = n
+        CASE "LIGHT_X": cfg.LIGHT_X = n
+        CASE "LIGHT_Y": cfg.LIGHT_Y = n
+        CASE "LIGHT_Z": cfg.LIGHT_Z = n
+        CASE "LIGHT_AMBIENT": cfg.LIGHT_AMBIENT = n
+        CASE "LIGHT_INTENSITY": cfg.LIGHT_INTENSITY = n
         CASE "WIRE_ENABLED": cfg.WIRE_ENABLED = n
         CASE "WIRE_KOLOR": cfg.WIRE_KOLOR = c
         CASE "WIRE_OPACITY": cfg.WIRE_OPACITY = n
@@ -173,6 +182,9 @@ FUNCTION dice3d_set_load% (cset() AS DICE3D_CONFIG, file AS STRING)
     DIM AS STRING ln, k, v, sec
     IF _FILEEXISTS(file) = 0 THEN dice3d_set_load% = 0: EXIT FUNCTION
     lo = LBOUND(cset): cur = -1
+    '--- seed light defaults for every section so sets authored before the LIGHT_* keys
+    '    existed still light up; any LIGHT_* lines in the file then override below ---
+    FOR i = 0 TO 6: dice3d_light_defaults cset(lo + i): NEXT
     fh = FREEFILE
     OPEN file FOR INPUT AS #fh
     DO UNTIL EOF(fh)
