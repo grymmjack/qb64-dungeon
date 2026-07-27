@@ -223,15 +223,20 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
     END IF
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
     InitFog                                   ' floods SECRET() (mask file not present yet)
-    DIM mgf AS INTEGER, mgy AS INTEGER, mgx AS INTEGER, mgs AS STRING, sauce AS STRING, eofc AS STRING
-    mgs = CHR$(27) + "[35m"                    ' magenta foreground for every secret block
+    DIM mgf AS INTEGER, mgy AS INTEGER, mgx AS INTEGER, mgs AS STRING, sauce AS STRING, eofc AS STRING, mglast AS INTEGER
+    mgs = "": mglast = -999
     FOR mgy = 0 TO SH - 2                      ' 50 board rows (row 50 = HUD line, never secret)
         FOR mgx = 0 TO SW - 1
-            IF SECRET(mgx, mgy) THEN mgs = mgs + CHR$(219) ELSE mgs = mgs + " "
+            DIM mgsec AS INTEGER
+            mgsec = (SECRET(mgx, mgy) <> 0)    ' magenta BACKGROUND for secret, black for public (bg+space fills the cell)
+            IF mgsec <> mglast THEN
+                IF mgsec THEN mgs = mgs + CHR$(27) + "[45m" ELSE mgs = mgs + CHR$(27) + "[0m"
+                mglast = mgsec
+            END IF
+            mgs = mgs + " "
         NEXT mgx
-        mgs = mgs + CHR$(13) + CHR$(10)
+        mgs = mgs + CHR$(27) + "[0m" + CHR$(13) + CHR$(10): mglast = -999
     NEXT mgy
-    mgs = mgs + CHR$(27) + "[0m"               ' reset the SGR at the end
     ' --- SAUCE record (128 bytes) so ANSI editors read the 132x50 dims + IBM VGA font
     '     (layout per ~/git/img2ans include/SAUCE/SAUCE.BI) ---
     sauce = "SAUCE" + "00"
@@ -273,10 +278,10 @@ IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
         FOR smx = 0 TO SW - 1
             smid = SECTOR.get_by_xy(smx * CW, smy * CH)
             IF smid <> smlast THEN
-                IF smid = 0 THEN sms = sms + CHR$(27) + "[0m" ELSE sms = sms + CHR$(27) + "[" + SGRForColor$(SECTORS(smid).kolor) + "m"
+                IF smid = 0 THEN sms = sms + CHR$(27) + "[0m" ELSE sms = sms + CHR$(27) + "[" + SGRBgForColor$(SECTORS(smid).kolor) + "m"
                 smlast = smid
             END IF
-            IF smid = 0 THEN sms = sms + " " ELSE sms = sms + CHR$(219)
+            sms = sms + " "                       ' bg colour fills the whole cell (no block-glyph gap)
         NEXT smx
         sms = sms + CHR$(27) + "[0m" + CHR$(13) + CHR$(10): smlast = -999
     NEXT smy

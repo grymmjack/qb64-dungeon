@@ -75,6 +75,15 @@ FUNCTION SGRForColor$ (col AS _UNSIGNED LONG)
     END SELECT
 END FUNCTION
 
+' Same palette -> ANSI BACKGROUND SGR (iCE colors: blink bit 5 = bright bg). A bg+space
+' cell fills the WHOLE 8x16 cell solidly (no block-glyph sliver), matching how the masks
+' are hand-painted -- and the vendored ANSIPrint renders 5;4x as a bright background.
+FUNCTION SGRBgForColor$ (col AS _UNSIGNED LONG)
+    DIM f AS INTEGER
+    f = VAL(SGRForColor$(col))
+    IF f >= 90 THEN SGRBgForColor$ = "5;" + _TRIM$(STR$(f - 90 + 40)) ELSE SGRBgForColor$ = _TRIM$(STR$(f + 10))
+END FUNCTION
+
 ' Build a 128-byte SAUCE record (Character/ANSi, IBM VGA font) for an ANSI of cols x rows,
 ' where datalen = the byte length of the art before the 0x1A EOF marker.
 FUNCTION SauceRecord$ (title AS STRING, cols AS INTEGER, rows AS INTEGER, datalen AS LONG)
