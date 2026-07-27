@@ -1218,32 +1218,33 @@ END SUB
 
 ' [?] Controls: the single source of truth for key bindings, rendered as a table.
 SUB ShowKeys
-    DIM ky(1 TO 14) AS STRING, ds(1 TO 14) AS STRING, n AS INTEGER, i AS INTEGER, y AS INTEGER
+    DIM ky(1 TO 16) AS STRING, ds(1 TO 16) AS STRING, n AS INTEGER, i AS INTEGER, y AS INTEGER
     ky(1) = "WASD / Arrows": ds(1) = "Move up / left / down / right"
     ky(2) = "Numpad 7 9 1 3": ds(2) = "Move diagonally (NW/NE/SW/SE)"
-    ky(3) = "SPACE": ds(3) = "Roll movement dice / Attack"
+    ky(3) = "SPACE": ds(3) = "End turn (boardgame) / Attack"
     ky(4) = "F": ds(4) = "Search for secret doors"
     ky(5) = "C": ds(5) = "Character sheet"
-    ky(6) = "V": ds(6) = "Scry the dungeon (Crystal Ball)"
-    ky(7) = "T": ds(7) = "Read a Teleport Scroll -> START"
-    ky(8) = "?": ds(8) = "This controls list"
-    ky(9) = "~  or  `": ds(9) = "Toggle the debug overlay"
-    ky(10) = "ESC": ds(10) = "Flee combat / quit to menu"
-    ky(11) = "R": ds(11) = "Re-roll (during character creation)"
-    ky(12) = "H": ds(12) = "Quaff a healing potion"
-    ky(13) = "P": ds(13) = "Pause the game (bio break)"
-    ky(14) = "G": ds(14) = "Save game (solo; CONTINUE on entry)"
-    n = 14
+    ky(6) = "M": ds(6) = "Game Menu (log, bestiary, treasury, rules)"
+    ky(7) = "V": ds(7) = "Scry the dungeon (Crystal Ball)"
+    ky(8) = "T": ds(8) = "Read a Teleport Scroll -> START"
+    ky(9) = "?": ds(9) = "This controls list"
+    ky(10) = "~  or  `": ds(10) = "Toggle the debug overlay"
+    ky(11) = "ESC": ds(11) = "Flee combat / quit to menu"
+    ky(12) = "R": ds(12) = "Re-roll (during character creation)"
+    ky(13) = "H": ds(13) = "Quaff a healing potion"
+    ky(14) = "P": ds(14) = "Pause the game (bio break)"
+    ky(15) = "G": ds(15) = "Save game (solo; CONTINUE on entry)"
+    n = 15
     _DEST CANVAS
-    LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), BOXBG, BF
-    LINE (22 * CW, 7 * CH)-(110 * CW, 44 * CH), CYANU, B
+    LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), BOXBG, BF
+    LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), CYANU, B
     COLOR YELLOWU, BOXBG: PrintCentered 9, "-=  C O N T R O L S  =-"
     FOR i = 1 TO n
         y = 13 + (i - 1) * 2
         COLOR GREENU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$(ky(i), 16)
         COLOR WHITE, BOXBG: _PRINTSTRING (48 * CW, y * CH), ds(i)
     NEXT i
-    COLOR YELLOWU, BOXBG: PrintCentered 42, "[ press any key ]"
+    COLOR YELLOWU, BOXBG: PrintCentered 44, "[ press any key ]"
     _DISPLAY
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
