@@ -336,6 +336,7 @@ DIM SHARED LOS_LIT(0 TO 131, 0 TO 60) AS _BYTE, LOS_SEEN(0 TO 131, 0 TO 60) AS _
 DIM SHARED fov_cx AS INTEGER, fov_cy AS INTEGER   ' last position FOV was computed from
 DIM SHARED DOORCELL(0 TO 131, 0 TO 60) AS _BYTE   ' 1 = a secret-door cell
 DIM SHARED SECRET(0 TO 131, 0 TO 60) AS _BYTE     ' 1 = fogged (door-connected sealed cell)
+DIM SHARED FOGHIDE(0 TO 131, 0 TO 60) AS _BYTE    ' 1 = force-blacked stray speck (fog-hide.txt; [~] tints it)
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 ' settings (toggled from the SETTINGS menu) + the run timer
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER

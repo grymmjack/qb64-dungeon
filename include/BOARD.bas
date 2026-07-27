@@ -551,6 +551,8 @@ END SUB
 ' flood can't reach (isolated non-black cells the secret-room hiding leaves behind). Only
 ' the cells you list are touched -- read them from the [~] debug overlay's "cell X,Y".
 SUB LoadFogHide
+    DIM fcx AS INTEGER, fcy AS INTEGER
+    FOR fcy = 0 TO 60: FOR fcx = 0 TO 131: FOGHIDE(fcx, fcy) = 0: NEXT: NEXT   ' fresh each build (for the [~] overlay)
     IF NOT _FILEEXISTS("assets/data/fog-hide.txt") THEN EXIT SUB
     DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
     DIM hx AS INTEGER, hy AS INTEGER
@@ -565,6 +567,7 @@ SUB LoadFogHide
         IF LEN(ln) > 0 AND INSTR(ln, ",") > 0 THEN
             hx = VAL(NthField$(ln, ",", 1)): hy = VAL(NthField$(ln, ",", 2))
             IF hx >= 0 AND hx <= SW - 1 AND hy >= 0 AND hy <= SH - 1 THEN
+                FOGHIDE(hx, hy) = 1                          ' remember it for the [~] debug overlay
                 _DEST CANVAS_COPY: LINE (hx * CW, hy * CH)-(hx * CW + CW - 1, hy * CH + CH - 1), BLACK, BF
                 _DEST CANVAS: LINE (hx * CW, hy * CH)-(hx * CW + CW - 1, hy * CH + CH - 1), BLACK, BF
             END IF
@@ -1042,7 +1045,7 @@ SUB DrawDebug
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
-    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy)))
+    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy))) + " fh:" + YN$(FOGHIDE(mcx, mcy))
     '--- OFFSET DIAGNOSTIC overlay: the 9 sector rects drawn with the EXACT SECTOR.get_by_xy
     '    math ((start-1)*cell), the hard-coded label anchor cells (magenta +), and the START
     '    cell (white box). Compare against the coloured art underneath:
@@ -1072,6 +1075,9 @@ SUB DrawDebug
             IF cham > 0 THEN
                 IF CHM_DEAD(cham) >= 3 THEN tint = _RGBA32(&H00, &HFF, &H00, 55) ELSE tint = _RGBA32(&HFF, &H00, &HFF, 70)
                 LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), tint, BF
+            END IF
+            IF FOGHIDE(chx, chy) THEN                        ' ORANGE = a cell force-blacked by fog-hide.txt
+                LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), _RGBA32(&HFF, &HA0, &H00, 150), BF
             END IF
         NEXT chx
     NEXT chy
