@@ -1217,19 +1217,31 @@ SUB DrawDebug
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
-    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy))) + " fh:" + YN$(FOGHIDE(mcx, mcy)) + MaskHoverInfo$(mcx, mcy)
-    '--- OFFSET DIAGNOSTIC overlay: the 9 sector rects drawn with the EXACT SECTOR.get_by_xy
-    '    math ((start-1)*cell), the hard-coded label anchor cells (magenta +), and the START
-    '    cell (white box). Compare against the coloured art underneath:
-    '      * a rect edge sitting one cell off the chamber colour = the 1-based/0-based (-1) shift
-    '      * a whole chamber's rect/label off its colour = a drifted InitSectors/InitLabels table
+    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy))) + " sec:" + _TRIM$(STR$(SECTOR.get_by_xy(mcx * CW, mcy * CH))) + " fh:" + YN$(FOGHIDE(mcx, mcy)) + MaskHoverInfo$(mcx, mcy)
+    '--- SECTOR overlay. With a sector mask (SECTORMASK_ON) each cell is tinted by its
+    '    level colour, read straight from SECTORAT (0-based cells -- SAME coords as the
+    '    mouse readout / chambers / mask, no unique -1 offset). Without a mask it falls
+    '    back to drawing the sectors.txt rects (which ARE 1-based, hence the -1 there).
     DIM sx2 AS INTEGER, sy2 AS INTEGER, ex2 AS INTEGER, ey2 AS INTEGER, lxp AS INTEGER, lyp AS INTEGER
-    FOR i = 1 TO 9
-        sx2 = (SECTORS(i).start_x - 1) * CW: sy2 = (SECTORS(i).start_y - 1) * CH
-        ex2 = (SECTORS(i).end_x - 1) * CW: ey2 = (SECTORS(i).end_y - 1) * CH
-        LINE (sx2, sy2)-(ex2, ey2), SECTORS(i).kolor, B
-        COLOR SECTORS(i).kolor, BLACK: _PRINTSTRING (sx2 + 2, sy2 + 1), "S" + _TRIM$(STR$(i))
-    NEXT i
+    DIM scx AS INTEGER, scy AS INTEGER, sid AS INTEGER, sk AS _UNSIGNED LONG
+    IF SECTORMASK_ON THEN
+        FOR scy = 0 TO SH - 1
+            FOR scx = 0 TO SW - 1
+                sid = SECTORAT(scx, scy)
+                IF sid > 0 THEN
+                    sk = SECTORS(sid).kolor
+                    LINE (scx * CW, scy * CH)-(scx * CW + CW - 1, scy * CH + CH - 1), _RGBA32(_RED32(sk), _GREEN32(sk), _BLUE32(sk), 60), BF
+                END IF
+            NEXT scx
+        NEXT scy
+    ELSE
+        FOR i = 1 TO 9
+            sx2 = (SECTORS(i).start_x - 1) * CW: sy2 = (SECTORS(i).start_y - 1) * CH
+            ex2 = (SECTORS(i).end_x - 1) * CW: ey2 = (SECTORS(i).end_y - 1) * CH
+            LINE (sx2, sy2)-(ex2, ey2), SECTORS(i).kolor, B
+            COLOR SECTORS(i).kolor, BLACK: _PRINTSTRING (sx2 + 2, sy2 + 1), "S" + _TRIM$(STR$(i))
+        NEXT i
+    END IF
     FOR i = 1 TO LBL_N
         lxp = LBL_X(i) * CW: lyp = LBL_Y(i) * CH + CH \ 2
         LINE (lxp - 3, lyp)-(lxp + 3, lyp), _RGB32(&HFF, &H00, &HFF)

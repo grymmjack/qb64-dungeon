@@ -13,6 +13,42 @@
 '  blank lines are ignored.
 ' ============================================================================
 
+' Standard 16-colour VGA/CGA RGB -> ANSI foreground SGR code string (aixterm bright 90-97).
+' Used to emit .ans starter masks whose colours ANSI_Print renders back to the exact palette.
+FUNCTION SGRForColor$ (col AS _UNSIGNED LONG)
+    SELECT CASE col
+        CASE _RGB32(&H00, &H00, &H00): SGRForColor$ = "30"
+        CASE _RGB32(&HAA, &H00, &H00): SGRForColor$ = "31"
+        CASE _RGB32(&H00, &HAA, &H00): SGRForColor$ = "32"
+        CASE _RGB32(&HAA, &H55, &H00): SGRForColor$ = "33"
+        CASE _RGB32(&H00, &H00, &HAA): SGRForColor$ = "34"
+        CASE _RGB32(&HAA, &H00, &HAA): SGRForColor$ = "35"
+        CASE _RGB32(&H00, &HAA, &HAA): SGRForColor$ = "36"
+        CASE _RGB32(&HAA, &HAA, &HAA): SGRForColor$ = "37"
+        CASE _RGB32(&H55, &H55, &H55): SGRForColor$ = "90"
+        CASE _RGB32(&HFF, &H55, &H55): SGRForColor$ = "91"
+        CASE _RGB32(&H55, &HFF, &H55): SGRForColor$ = "92"
+        CASE _RGB32(&HFF, &HFF, &H55): SGRForColor$ = "93"
+        CASE _RGB32(&H55, &H55, &HFF): SGRForColor$ = "94"
+        CASE _RGB32(&HFF, &H55, &HFF): SGRForColor$ = "95"
+        CASE _RGB32(&H55, &HFF, &HFF): SGRForColor$ = "96"
+        CASE ELSE: SGRForColor$ = "97"
+    END SELECT
+END FUNCTION
+
+' Build a 128-byte SAUCE record (Character/ANSi, IBM VGA font) for an ANSI of cols x rows,
+' where datalen = the byte length of the art before the 0x1A EOF marker.
+FUNCTION SauceRecord$ (title AS STRING, cols AS INTEGER, rows AS INTEGER, datalen AS LONG)
+    DIM s AS STRING
+    s = "SAUCE" + "00"
+    s = s + PadR$(title, 35) + PadR$("grymmjack", 20) + PadR$("", 20)
+    s = s + MID$(DATE$, 7, 4) + MID$(DATE$, 1, 2) + MID$(DATE$, 4, 2)   ' Date CCYYMMDD
+    s = s + MKL$(datalen) + CHR$(1) + CHR$(1)                            ' FileSize, DataType Char, FileType ANSi
+    s = s + MKI$(cols) + MKI$(rows) + MKI$(0) + MKI$(0)                  ' TInfo1..4
+    s = s + CHR$(0) + CHR$(0) + "IBM VGA" + STRING$(15, 0)               ' Comments, TFlags, font
+    SauceRecord$ = s
+END FUNCTION
+
 ' Parse a "RRGGBB" (or "#RRGGBB") hex colour string to _RGB32. Black on a bad value.
 FUNCTION HexRGB~& (h AS STRING)
     DIM s AS STRING

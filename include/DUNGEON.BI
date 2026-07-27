@@ -342,6 +342,8 @@ DIM SHARED MASK_ON AS INTEGER                     ' TRUE = fog driven by the han
 DIM SHARED DOOR_REGION(1 TO 500) AS INTEGER       ' which mask region each secret door opens
 DIM SHARED MASKLVL(0 TO 255) AS INTEGER           ' nesting depth per region (1 = opened from public, 2 = secret-in-secret, ...)
 DIM SHARED MASKCOL(0 TO 131, 0 TO 60) AS _UNSIGNED LONG   ' sampled mask colour per cell (region flood)
+DIM SHARED SECTORAT(0 TO 131, 0 TO 60) AS _BYTE   ' sector/level id per cell, from the sector mask (0 = none)
+DIM SHARED SECTORMASK_ON AS INTEGER               ' TRUE = geometry from board-...-sector-mask.ans, not the rects
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 ' settings (toggled from the SETTINGS menu) + the run timer
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER

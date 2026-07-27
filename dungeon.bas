@@ -159,7 +159,12 @@ IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
     fdunmap = 0
     FOR fdx = 1 TO SD_N: IF DOOR_REGION(fdx) <= 0 THEN fdunmap = fdunmap + 1
     NEXT
+    DIM fdsat AS LONG
+    fdsat = 0
+    FOR fdy = 0 TO SH - 1: FOR fdx = 0 TO SW - 1: IF SECTORAT(fdx, fdy) > 0 THEN fdsat = fdsat + 1
+    NEXT: NEXT
     fdf = FREEFILE: OPEN "fogdump.txt" FOR OUTPUT AS #fdf
+    PRINT #fdf, "SECTORMASK_ON= " + _TRIM$(STR$(SECTORMASK_ON)) + "   sector cells = " + _TRIM$(STR$(fdsat))
     PRINT #fdf, "MASK_ON      = " + _TRIM$(STR$(MASK_ON))
     PRINT #fdf, "secret cells = " + _TRIM$(STR$(fdsec))
     PRINT #fdf, "regions      = " + _TRIM$(STR$(fdreg))
@@ -211,6 +216,37 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
     PUT #mgf, , eofc
     PUT #mgf, , sauce
     CLOSE #mgf
+    SYSTEM
+END IF
+
+'--- dev: `dungeon.run sectorgen` writes a STARTER sector-mask .ans from the rects (each
+'    cell filled with its level's colour). Delete the file first to regenerate; then
+'    hand-refine it to your art in an ANSI editor. (Named SECTORGEN, not SECTORMASKGEN,
+'    so it doesn't contain the substring "MASKGEN" and trigger the secret-mask maskgen.) ---
+IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
+    SECTORMASK_ON = FALSE                       ' force get_by_xy to use the sectors.txt RECTS
+    DIM smf AS INTEGER, smy AS INTEGER, smx AS INTEGER, sms AS STRING, smid AS INTEGER, smlast AS INTEGER, smeof AS STRING
+    sms = "": smlast = -999
+    FOR smy = 0 TO SH - 2
+        FOR smx = 0 TO SW - 1
+            smid = SECTOR.get_by_xy(smx * CW, smy * CH)
+            IF smid <> smlast THEN
+                IF smid = 0 THEN sms = sms + CHR$(27) + "[0m" ELSE sms = sms + CHR$(27) + "[" + SGRForColor$(SECTORS(smid).kolor) + "m"
+                smlast = smid
+            END IF
+            IF smid = 0 THEN sms = sms + " " ELSE sms = sms + CHR$(219)
+        NEXT smx
+        sms = sms + CHR$(27) + "[0m" + CHR$(13) + CHR$(10): smlast = -999
+    NEXT smy
+    smeof = CHR$(26)
+    DIM smsauce AS STRING
+    smsauce = SauceRecord$("DUNGEON! sector mask", SW, SH - 1, LEN(sms))
+    smf = FREEFILE
+    OPEN "assets/ansi/board-132x50-sector-mask.ans" FOR BINARY AS #smf
+    PUT #smf, 1, sms
+    PUT #smf, , smeof
+    PUT #smf, , smsauce
+    CLOSE #smf
     SYSTEM
 END IF
 

@@ -5,8 +5,46 @@
 ' Sector geometry + colours now live in assets/data/sectors.txt -- edit + F5, no
 ' code change. Thin wrapper over LoadSectors (matches InitMonsterTables' pattern).
 SUB InitSectors
-    LoadSectors
+    LoadSectors                          ' id / label / colour (+ fallback rects) from the data file
+    LoadSectorMask                       ' optional: geometry painted per-cell in assets/ansi/board-132x50-sector-mask.ans
 END SUB
+
+' Load the SECTOR MASK: a same-size ANSI where each cell is painted its level's colour
+' (the sectors.txt colour). Fills SECTORAT(cx,cy) = sector id by matching each cell's colour
+' to a sector's kolor -- so a level can be ANY shape, and geometry needs no coordinates.
+' When present it drives SECTOR.get_by_xy; absent, the code falls back to the sectors.txt rects.
+SUB LoadSectorMask
+    DIM x AS INTEGER, y AS INTEGER
+    FOR y = 0 TO 60: FOR x = 0 TO 131: SECTORAT(x, y) = 0: NEXT: NEXT
+    SECTORMASK_ON = FALSE
+    IF NOT _FILEEXISTS("assets/ansi/board-132x50-sector-mask.ans") THEN EXIT SUB
+    DIM mb AS STRING, mimg AS LONG, olddest AS LONG, oldsrc AS LONG, cnt AS INTEGER
+    mb = _READFILE$("assets/ansi/board-132x50-sector-mask.ans")
+    IF LEN(mb) = 0 THEN EXIT SUB
+    mimg = _NEWIMAGE(SW * CW, SH * CH, 32)
+    olddest = _DEST: _DEST mimg: _FONT CH: CLS , BLACK
+    ANSI_Print (mb)
+    _DEST olddest
+    oldsrc = _SOURCE: _SOURCE mimg
+    cnt = 0
+    FOR y = 0 TO SH - 1
+        FOR x = 0 TO SW - 1
+            SECTORAT(x, y) = SectorByColor%(MaskSample~&(x, y))
+            IF SECTORAT(x, y) > 0 THEN cnt = cnt + 1
+        NEXT x
+    NEXT y
+    _SOURCE oldsrc: _FREEIMAGE mimg
+    IF cnt > 0 THEN SECTORMASK_ON = -1
+END SUB
+
+' Which sector (1-9) a colour belongs to (exact match to a sector's kolor). 0 = none.
+FUNCTION SectorByColor% (col AS _UNSIGNED LONG)
+    DIM id AS INTEGER
+    SectorByColor = 0
+    FOR id = 1 TO 9
+        IF col = SECTORS(id).kolor THEN SectorByColor = id: EXIT FUNCTION
+    NEXT id
+END FUNCTION
 
 SUB LoadSectors
     DIM i AS INTEGER, id AS INTEGER
@@ -230,6 +268,12 @@ FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
     DIM i AS INTEGER
     DIM s AS SECTOR
     DIM AS INTEGER sx, ex, sy, ey
+    IF SECTORMASK_ON THEN                          ' sector mask: a straight per-cell lookup (0-based, no -1)
+        DIM cx AS INTEGER, cy AS INTEGER
+        cx = x \ CW: cy = y \ CH
+        IF cx >= 0 AND cx <= 131 AND cy >= 0 AND cy <= 60 THEN SECTOR.get_by_xy = SECTORAT(cx, cy) ELSE SECTOR.get_by_xy = 0
+        EXIT FUNCTION
+    END IF
     FOR i = 1 TO 9
         s = SECTORS(i)
         sx = (s.start_x - 1) * CW
