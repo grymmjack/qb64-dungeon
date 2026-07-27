@@ -74,7 +74,7 @@ opt_maxdeaths = 3                             ' lives before permadeath: reach 3
 opt_solomode = 0: opt_solomins = 30           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 30 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
-BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
+BOARD_ANSI = LoadFile$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
 InitMonsterTables
@@ -98,6 +98,7 @@ InitDefaultChar 1                ' baseline stats so D&D combat works even witho
 IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     DIM AS INTEGER ddx, ddy, ddc
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    DetectSecretDoors
     DetectRooms
     DetectChambers
     _DEST CANVAS: _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
@@ -113,6 +114,7 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     '--- also dump each chamber's bounding box (cells) as text, for seeding chambers.txt ---
     DIM ddf AS INTEGER, ddi AS INTEGER, ddminx AS INTEGER, ddminy AS INTEGER, ddmaxx AS INTEGER, ddmaxy AS INTEGER
     ddf = FREEFILE: OPEN "chamberdump.txt" FOR OUTPUT AS #ddf
+    PRINT #ddf, "# secret doors detected: " + _TRIM$(STR$(SD_N)) + " | rooms: " + _TRIM$(STR$(ROOM_N)) + " | chambers: " + _TRIM$(STR$(NCHAMBER))
     FOR ddi = 1 TO NCHAMBER
         ddminx = 999: ddminy = 999: ddmaxx = -1: ddmaxy = -1
         FOR ddy = 0 TO 60
