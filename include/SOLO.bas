@@ -112,21 +112,21 @@ FUNCTION HunterAdvance%
     DIM dx8(0 TO 7) AS INTEGER, dy8(0 TO 7) AS INTEGER
     dx8(0) = 1: dx8(1) = -1: dx8(2) = 0: dx8(3) = 0: dx8(4) = 1: dx8(5) = 1: dx8(6) = -1: dx8(7) = -1
     dy8(0) = 0: dy8(1) = 0: dy8(2) = 1: dy8(3) = -1: dy8(4) = 1: dy8(5) = -1: dy8(6) = 1: dy8(7) = -1
-    REDIM qx(0 TO 8192) AS INTEGER, qy(0 TO 8192) AS INTEGER
+    REDIM hqx(0 TO 8192) AS INTEGER, hqy(0 TO 8192) AS INTEGER   ' local BFS queue (NOT the shared static QX/QY -> avoids "Duplicate definition")
 
     px = c.x \ CW: py = c.y \ CH
     oldsrc = _SOURCE: _SOURCE FULL_BOARD            ' path over FULL_BOARD -> secret doors are passable
     FOR y = 0 TO 60: FOR x = 0 TO 131: HDIST(x, y) = -1: NEXT: NEXT
-    HDIST(px, py) = 0: qx(0) = px: qy(0) = py: hd = 0: tl = 1
+    HDIST(px, py) = 0: hqx(0) = px: hqy(0) = py: hd = 0: tl = 1
     DO WHILE hd < tl
-        cxx = qx(hd): cyy = qy(hd): hd = hd + 1
+        cxx = hqx(hd): cyy = hqy(hd): hd = hd + 1
         FOR d = 0 TO 3                              ' 4-way flood builds the distance field
             nx = cxx + dx8(d): ny = cyy + dy8(d)
             IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
                 IF HDIST(nx, ny) = -1 THEN
                     IF CellKind(nx, ny) >= 1 THEN
                         HDIST(nx, ny) = HDIST(cxx, cyy) + 1
-                        IF tl <= 8191 THEN qx(tl) = nx: qy(tl) = ny: tl = tl + 1
+                        IF tl <= 8191 THEN hqx(tl) = nx: hqy(tl) = ny: tl = tl + 1
                     END IF
                 END IF
             END IF
