@@ -18,3 +18,16 @@
 #  (Empty = nothing hidden. Add lines, press F5. Safe: only listed cells change,
 #   and reveal never brings them back.)
 # ============================================================================
+
+# CRYPT
+61,4
+62,4
+63,4
+64,4
+65,4
+66,4
+
+# TORTURE CHAMBER
+35,40
+38,40
+29,44
