@@ -133,6 +133,14 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     SYSTEM
 END IF
 
+'--- dev: `dungeon.run fogdump` composes the fogged board (secret rooms + specks blacked) ---
+IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    InitFog
+    _SAVEIMAGE "fogdump.png", CANVAS
+    SYSTEM
+END IF
+
 ' ---------------------------------------------------------------- state machine
 DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
 game_state = ST_INTRO
