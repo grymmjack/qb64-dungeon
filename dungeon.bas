@@ -86,7 +86,11 @@ IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
-opt_musicvol = 5: opt_sfxvol = 5: opt_voicevol = 6   ' 0..10 volume sliders
+opt_musicvol = 5: opt_sfxvol = 7: opt_voicevol = 9   ' 0..10 volume sliders
+opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/sfx/); "" = flat main dir
+opt_musicpack = ""                                   ' default music = flat main dir
+opt_narration = TRUE: opt_narrationpack = "soundmon-darkscary"   ' default: narration ON, dark/scary voice pack
+opt_artpack = ""                                     ' default pixel-art = flat main dir
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
