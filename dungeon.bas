@@ -41,6 +41,8 @@ IF wanthelp THEN
     PRINT PipeCol$("                no file = check both board masks. Read-only.")
     PRINT PipeCol$("  |10ansifix|07 |14<f>|07   rewrite a mask ANSI clean (strip CR/LF blanks, reset SGR); backs up to <f>.bak")
     PRINT PipeCol$("  |10audiomanifest|07 dump |14path | prompt-or-text|07 for every sfx/music/narration asset (feed the AI generators)")
+    PRINT PipeCol$("  |10imagemanifest|07 dump |14path | prompt|07 for every entity as pixel-art (.png) AND ansi-art (.ans)")
+    PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi/*-mask.ans|07, then rebuild (F5).")
@@ -347,6 +349,14 @@ END IF
 '    will look for (computed from the loaded data), so the audio generators know what to make. ---
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN
     DumpAudioManifest
+    SYSTEM
+END IF
+IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN     ' pixel-art + ansi-art of every entity
+    DumpImageManifest
+    SYSTEM
+END IF
+IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN        ' decorative ANSI UI chrome
+    DumpUiManifest
     SYSTEM
 END IF
 

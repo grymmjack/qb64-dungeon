@@ -347,3 +347,94 @@ SUB ScrollTextArt (title AS STRING, body AS STRING, sprPath AS STRING)
     END IF
     ScrollTextVO title, body, "room." + NarrSlug$(title)   ' narratable per named room (room.the-crypt, ...)
 END SUB
+
+
+' ============================================================================
+'  ART MANIFESTS  (`dungeon.run imagemanifest` / `uimanifest`) -- like the audio
+'  manifest, but for VISUAL assets: every path the engine looks for + a generation
+'  prompt, so pixelmon / an ANSI generator can self-serve.
+' ============================================================================
+
+' A readable name from a slug ("gold-necklace" -> "gold necklace").
+FUNCTION UnSlug$ (s AS STRING)
+    DIM i AS INTEGER, o AS STRING, c AS STRING
+    FOR i = 1 TO LEN(s): c = MID$(s, i, 1): IF c = "-" THEN c = " "
+        o = o + c
+    NEXT
+    UnSlug$ = o
+END FUNCTION
+
+' Emit both the pixel-art (.png) and ansi-art (.ans) line for one entity, deduped by
+' cat/slug via `seen`. `nm` = readable name, `kd` = a short "what it is" phrase.
+SUB PutArtBoth (cat AS STRING, slug AS STRING, nm AS STRING, kd AS STRING, seen AS STRING)
+    DIM keyp AS STRING
+    IF LEN(slug) = 0 THEN EXIT SUB
+    keyp = cat + "/" + slug
+    IF INSTR(seen, " " + keyp + " ") > 0 THEN EXIT SUB
+    seen = seen + keyp + " "
+    PRINT "pixel-art/" + keyp + ".png | pixel-art sprite of " + nm + ", " + kd + ", dark-fantasy dungeon crawler, transparent background, centered, crisp pixels"
+    PRINT "ansi-art/" + keyp + ".ans | ANSI text-mode art of " + nm + ", " + kd + ", CP437 block characters, 16-colour DOS palette, on black"
+END SUB
+
+' `dungeon.run imagemanifest` -- pixel-art AND ansi-art paths + prompts for every game entity,
+' computed from the loaded tables with the SAME slug rules the engine loads by.
+SUB DumpImageManifest
+    DIM lvl AS INTEGER, sl AS INTEGER, i AS INTEGER, nm AS STRING, seen AS STRING, lst AS STRING, p AS INTEGER, w AS STRING
+    _DEST _CONSOLE
+    PRINT "# DUNGEON! image manifest  (path | prompt)  -- pixel art AND ansi art, same entities."
+    PRINT "# grep '^pixel-art/' for pixelmon (.png) ; '^ansi-art/' for the ANSI generator (.ans)."
+    PRINT "# monster sprites go UNDER a category subfolder: humanoids|animals|insects|misc|beasts|undead."
+    PRINT
+    seen = " "
+    PRINT "# --- monsters ---"
+    FOR lvl = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(MON_NAME(lvl, sl)): IF LEN(nm) > 0 THEN PutArtBoth "monsters", SpriteBase$(nm), LCASE$(nm), "a dungeon monster", seen
+        NEXT sl
+    NEXT lvl
+    FOR i = 1 TO 4: nm = _TRIM$(BOSS_NAME(i)): IF LEN(nm) > 0 THEN PutArtBoth "monsters", SpriteBase$(nm), LCASE$(nm), "a fearsome boss monster", seen
+    NEXT i
+    PRINT
+    PRINT "# --- treasures & items ---"
+    FOR lvl = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(TRE_NAME(lvl, sl))
+            IF LEN(nm) > 0 THEN
+                IF TRE_ITEM(lvl, sl) > 0 THEN PutArtBoth "items", TreBase$(nm), LCASE$(nm), "a magic item", seen ELSE PutArtBoth "treasures", TreBase$(nm), LCASE$(nm), "a treasure", seen
+            END IF
+        NEXT sl
+    NEXT lvl
+    PRINT
+    PRINT "# --- classes ---"
+    PutArtBoth "classes", "hero", "a heroic warrior", "a fantasy hero character portrait", seen
+    PutArtBoth "classes", "elf", "an elf ranger", "a fantasy elf character portrait", seen
+    PutArtBoth "classes", "superhero", "a mighty superhero warrior", "a fantasy champion character portrait", seen
+    PutArtBoth "classes", "wizard", "a robed wizard", "a fantasy wizard character portrait", seen
+    PRINT
+    PRINT "# --- rooms (location scenes) ---"
+    lst = "main-gallery barracks armory stone-room store-room torture-chamber kitchen wizards-lab wizards-treasure kings-library kings-treasure queens-armor queens-treasure the-crypt ": p = 1
+    FOR i = 1 TO LEN(lst)
+        IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "rooms", w, "the " + UnSlug$(w), "a dungeon location scene, wide establishing shot", seen
+    NEXT i
+    PRINT
+    PRINT "# --- events (curio props) ---"
+    lst = "curio-chest fountain shrine gamblers-altar hooded-peddler idol fallen-adventurer glowing-mushrooms rune-obelisk weapon-cache ": p = 1
+    FOR i = 1 TO LEN(lst)
+        IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "events", w, "a " + UnSlug$(w), "a dungeon curio prop", seen
+    NEXT i
+END SUB
+
+' `dungeon.run uimanifest` -- the decorative UI chrome in assets/ansi/ (logos, menu pieces).
+' The board and *-mask .ans are FUNCTIONAL collision/data maps and are deliberately excluded.
+SUB DumpUiManifest
+    DIM i AS INTEGER
+    _DEST _CONSOLE
+    PRINT "# DUNGEON! UI manifest  (path | prompt)  -- decorative ANSI chrome in assets/ansi/."
+    PRINT "# EXCLUDED on purpose: board-*.ans and *-mask.ans are functional collision/data maps."
+    PRINT
+    PRINT "ansi/vermin-radioactive-logo.ans | ANSI logo art for a studio splash, 'VERMIN RADIOACTIVE', dark and glitchy, CP437, 16-colour"
+    PRINT "ansi/dungeon-menu-logo.ans | ANSI title logo reading 'DUNGEON', heavy stone-carved letters, torch-lit, CP437 block art, 16-colour"
+    FOR i = 1 TO 4: PRINT "ansi/dungeon-menu-left-wall-" + LTRIM$(STR$(i)) + ".ans | ANSI dungeon wall border panel (left side), stone bricks and torches, vertical, CP437, 16-colour": NEXT i
+    FOR i = 1 TO 4: PRINT "ansi/dungeon-menu-right-wall-" + LTRIM$(STR$(i)) + ".ans | ANSI dungeon wall border panel (right side), stone bricks and torches, vertical, CP437, 16-colour": NEXT i
+    FOR i = 1 TO 6: PRINT "ansi/dungeon-menu-block-" + LTRIM$(STR$(i)) + ".ans | ANSI menu panel / plaque background for a menu item, carved stone, CP437, 16-colour": NEXT i
+END SUB
