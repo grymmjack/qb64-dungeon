@@ -20,6 +20,12 @@ Keys currently spoken by the game:
 
   win.title       the victory banner  ("V I C T O R Y")
   lose.title      the death banner    ("Y O U   D I E D")
+  intro.descent   the game-open TEXT CRAWL ("THE DESCENT"). When a file exists the
+                  spoken line plays OVER the crawl and the per-glyph blips go quiet
+                  (the voice covers it); absent -> the crawl blips as before. The
+                  on-screen wording is dynamic (your name, gold, key level), so this
+                  is an atmospheric read, not a word-for-word match -- write it as a
+                  general narration of the descent.
 
 ...and any other key in strings.txt becomes speakable the moment you add
 `Narrate "<key>"` at its display site (win.subtitle, lose.subtitle, end.return,

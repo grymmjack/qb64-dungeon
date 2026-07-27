@@ -1651,10 +1651,16 @@ END SUB
 ' Scrolling text window: type `body` out one character at a time (word-wrapped)
 ' inside a framed box, blipping the voice per glyph.  A keypress fast-forwards
 ' the reveal; another dismisses it.  Great for lore / narration.
-SUB ScrollText (title AS STRING, body AS STRING)
-    DIM AS INTEGER bx, by, bw, bh, i, maxcols, skip, ln, p, nl
+' Text crawl with optional NARRATION. If narration is on and a voice file exists for narrkey,
+' the spoken line plays and the per-glyph blips are SUPPRESSED (the voice covers the crawl);
+' otherwise it blips per glyph as before. ScrollText (below) is the no-narration wrapper.
+SUB ScrollTextVO (title AS STRING, body AS STRING, narrkey AS STRING)
+    DIM AS INTEGER bx, by, bw, bh, i, maxcols, skip, ln, p, nl, narrating
     DIM word AS STRING, acc AS STRING, wrapped AS STRING, c1 AS STRING, k AS STRING
     DIM shown AS STRING, piece AS STRING
+    narrating = 0
+    IF opt_narration AND LEN(narrkey) > 0 THEN IF LEN(NarratePath$(narrkey)) > 0 THEN narrating = -1
+    IF narrating THEN Narrate narrkey               ' the spoken crawl -- one line, over the typing
     bx = 20: by = 12: bw = 92: bh = 26
     maxcols = bw - 8
     ' greedy word-wrap into `wrapped` with CHR$(10) line breaks
@@ -1697,7 +1703,7 @@ SUB ScrollText (title AS STRING, body AS STRING)
         LOOP
         COLOR CYANU, BOXBG: PrintCentered by + bh - 2, "[ any key to continue ]"
         _DISPLAY
-        IF c1 <> CHR$(10) AND c1 <> " " THEN VoiceBlip 380 + (ASC(c1) MOD 12) * 40
+        IF NOT narrating THEN IF c1 <> CHR$(10) AND c1 <> " " THEN VoiceBlip 380 + (ASC(c1) MOD 12) * 40
         IF NOT skip THEN
             k = INKEY$
             IF k <> "" THEN skip = TRUE
@@ -1707,6 +1713,12 @@ SUB ScrollText (title AS STRING, body AS STRING)
     ' hold on the fully-revealed text
     _KEYCLEAR
     DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    IF narrating THEN NarrateStop                   ' cut the voice when the crawl is dismissed
+END SUB
+
+' No-narration text crawl (per-glyph voice blips only) -- the plain entry point.
+SUB ScrollText (title AS STRING, body AS STRING)
+    ScrollTextVO title, body, ""
 END SUB
 
 
