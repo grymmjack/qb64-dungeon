@@ -113,24 +113,23 @@ END SUB
 '  Sfx plays copies so rapid effects overlap. Honors the SFX Vol slider.
 ' ----------------------------------------------------------------------------
 SUB InitSfxFiles
+    DIM lst AS STRING, i AS INTEGER, p AS INTEGER, nm AS STRING
     SFX_N = 0
-    RegisterSfx "move": RegisterSfx "bump": RegisterSfx "door": RegisterSfx "strongdoor"
-    RegisterSfx "breakdoor": RegisterSfx "secret": RegisterSfx "secretpass": RegisterSfx "key"
-    RegisterSfx "idle": RegisterSfx "treasure": RegisterSfx "trap": RegisterSfx "hit"
-    RegisterSfx "miss": RegisterSfx "crit": RegisterSfx "fumble": RegisterSfx "search"
-    RegisterSfx "win": RegisterSfx "lose": RegisterSfx "saveok": RegisterSfx "savebad"
-    RegisterSfx "chest": RegisterSfx "boom": RegisterSfx "hiss": RegisterSfx "fizzle"
-    RegisterSfx "alarm": RegisterSfx "select": RegisterSfx "levelup"
-    RegisterSfx "voice"                                 ' optional per-glyph text-crawl blip (else the PC-speaker tone)
-    RegisterSfx "diceroll": RegisterSfx "diceland"      ' 3D-dice throw / land cues
-    RegisterSfx "dice_edge": RegisterSfx "dice_settle"  ' optional per-bounce clack + settle for the 3D dice
-    RegisterSfx "dice-math-1": RegisterSfx "dice-math-2" ' summing the roll: 1 = the "x + y", 2 = the "= z"
-    RegisterSfx "monster-pain": RegisterSfx "player-pain": RegisterSfx "death"  ' combat cries
-    RegisterSfx "monster-death": RegisterSfx "maxhit"    ' a monster is slain / a MAX-damage crushing blow
-    RegisterSfx "heartbeat": RegisterSfx "curio"         ' near-death heartbeat / a curio appears
-    RegisterSfx "poison-proc": RegisterSfx "frost-proc"  ' status ticks (poison bite / frost bite)
-    RegisterSfx "teleport": RegisterSfx "fireball": RegisterSfx "lightning-bolt"  ' spells / scroll
+    lst = SfxNameList$ + " ": p = 1                     ' one source of truth (also dumped by `audiomanifest`)
+    FOR i = 1 TO LEN(lst)
+        IF MID$(lst, i, 1) = " " THEN
+            nm = _TRIM$(MID$(lst, p, i - p))
+            IF LEN(nm) > 0 THEN RegisterSfx nm
+            p = i + 1
+        END IF
+    NEXT i
 END SUB
+
+' The full roster of themeable effect names, space-separated. InitSfxFiles registers each
+' (loads a file if one exists, else the beeper covers it); `audiomanifest` dumps them.
+FUNCTION SfxNameList$
+    SfxNameList$ = "move bump door strongdoor breakdoor secret secretpass key idle treasure trap hit miss crit fumble search win lose saveok savebad chest boom hiss fizzle alarm select levelup voice diceroll diceland dice_edge dice_settle dice-math-1 dice-math-2 monster-pain player-pain death monster-death maxhit heartbeat curio poison-proc frost-proc teleport fireball lightning-bolt"
+END FUNCTION
 
 ' Load the sound file for effect nm into the SFX map (silent if none exists). Honours the
 ' selected SFX PACK: try assets/sfx/<pack>/<nm>.<ext> first, then fall back to the flat
@@ -346,6 +345,8 @@ FUNCTION NarrSlug$ (s AS STRING)
         c = LCASE$(MID$(s, i, 1))
         IF (c >= "a" AND c <= "z") OR (c >= "0" AND c <= "9") THEN
             r = r + c: dash = 0
+        ELSEIF c = "'" THEN
+            ' drop apostrophes so KING'S -> kings (no stray dash)
         ELSEIF LEN(r) > 0 AND NOT dash THEN
             r = r + "-": dash = -1
         END IF
@@ -421,3 +422,45 @@ FUNCTION CombatCueName$ (lvl AS INTEGER, isboss AS INTEGER)
         CombatCueName$ = "combat-low"
     END IF
 END FUNCTION
+
+' `dungeon.run audiomanifest` -- print every audio file the engine will look for (relative to
+' assets/, before the .ogg|mp3|wav|flac extension). Computed from the LOADED data + the real
+' NarrSlug$, so it's always in sync with the code -- pipe it to your generators to fill the gaps.
+SUB DumpAudioManifest
+    DIM i AS INTEGER, lvl AS INTEGER, lst AS STRING, p AS INTEGER, nm AS STRING, seen AS STRING
+    _DEST _CONSOLE
+    PRINT "# DUNGEON! audio manifest  (paths under assets/ ; add .ogg/.mp3/.wav/.flac ; a pack subfolder overrides)"
+    PRINT
+    PRINT "# --- SFX (assets/sfx/[pack]/) ---"
+    lst = SfxNameList$ + " ": p = 1
+    FOR i = 1 TO LEN(lst)
+        IF MID$(lst, i, 1) = " " THEN nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(nm) > 0 THEN PRINT "sfx/" + nm
+    NEXT i
+    PRINT
+    PRINT "# --- MUSIC (assets/music/[pack]/) ---"
+    seen = " "
+    FOR lvl = 1 TO 9                                    ' per-level tracks (unique bare names)
+        nm = _TRIM$(MUSIC_FILE(lvl))
+        IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm: seen = seen + nm + " "
+    NEXT lvl
+    PRINT "music/vr-theme"                              ' intro
+    PRINT "music/everdark"                              ' menu
+    PRINT "music/victory"
+    PRINT "music/lose"
+    PRINT "music/combat-low"
+    PRINT "music/combat-high"
+    PRINT "music/combat-intense"
+    PRINT
+    PRINT "# --- NARRATION (assets/narration/[pack]/) ---"
+    PRINT "narration/intro.descent"
+    PRINT "narration/win.title"
+    PRINT "narration/win.subtitle"
+    PRINT "narration/lose.title"
+    PRINT "narration/lose.subtitle"
+    FOR lvl = 1 TO 9                                    ' ambient one-liners: one per regular.txt line
+        FOR i = 1 TO REG_N(lvl): PRINT "narration/regular." + LTRIM$(STR$(lvl)) + "." + LTRIM$(STR$(i)): NEXT i
+    NEXT lvl
+    FOR i = 1 TO SP_N: PRINT "narration/room." + NarrSlug$(_TRIM$(SP_KEY(i))): NEXT i        ' named rooms
+    FOR i = 1 TO CHM_FLAV_N: PRINT "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))): NEXT i  ' chambers
+    FOR i = 1 TO NCURIO: PRINT "narration/curio." + _TRIM$(CURIOS(i).kind): NEXT i           ' curios
+END SUB

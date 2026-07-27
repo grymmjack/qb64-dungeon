@@ -33,9 +33,13 @@ crawl is narrated, its per-glyph blips fall silent so the voice carries it):
   curio.<kind>         a curio appears -- <kind> is chest / fountain / shrine / gamble /
                        peddler / idol / corpse / mushroom / obelisk / cache / mimic ...
 
-  SLUG rule: lowercase, letters+digits kept, every other run becomes one "-"
-  (apostrophes/spaces dropped). The dynamic wording on screen (names, gold) can't be
-  matched word-for-word, so write these as ATMOSPHERIC reads, not transcripts.
+  SLUG rule: lowercase, letters+digits kept, apostrophes dropped, every other run
+  becomes one "-" (KING'S LIBRARY -> kings-library). The dynamic wording on screen
+  (names, gold) can't be matched word-for-word, so write these as ATMOSPHERIC reads.
+
+TIP: run  `dungeon.run audiomanifest`  for the EXACT, always-current list of every
+sfx / music / narration file the engine looks for (computed from the loaded data) --
+pipe it to your generators to fill in whatever's missing.
 
 ...and any other key in strings.txt becomes speakable the moment you add
 `Narrate "<key>"` at its display site (win.subtitle, lose.subtitle, end.return,
