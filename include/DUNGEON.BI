@@ -214,6 +214,7 @@ DIM SHARED SP_FLAV(1 TO 30, 1 TO 8) AS STRING, SP_FN(1 TO 30) AS INTEGER   ' spe
 DIM SHARED SP_ROOM(1 TO 30) AS INTEGER   ' each named label bound to its nearest detected room (BindSpecialRooms)
 DIM SHARED MAXHIT(1 TO 30) AS STRING, MAXHIT_N AS INTEGER                  ' max-damage combat flavor
 DIM SHARED FORFEIT_FLAV(1 TO 30) AS STRING, FORFEIT_N AS INTEGER           ' sad epitaphs shown when a run is forfeited (all lives spent)
+DIM SHARED CHM_FLAV_NAME(1 TO 32) AS STRING, CHM_FLAV_TXT(1 TO 32) AS STRING, CHM_FLAV_N AS INTEGER   ' per-chamber descriptions (assets/flavor/chambers.txt)
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
 
 ' -- Crit/Fumble effects engine (data-driven; see InitEffects) --

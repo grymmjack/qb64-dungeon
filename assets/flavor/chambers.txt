@@ -1,0 +1,19 @@
+# chambers.txt -- a one-line description spoken/shown when you enter a named CHAMBER
+# (the big halls: 3 monsters, no treasure). Format:  NAME | description
+# The NAME must match the chamber name in assets/data/chambers.txt (case-insensitive).
+# Narration key per chamber is chamber.<slug>, e.g. THE CRYPT -> chamber.the-crypt.
+# Edit freely; re-read at launch (F5). A chamber with no line here uses a generic intro.
+#
+# NAME             | description
+ARMORY            | Racks of rusted blades and dented shields line the walls; something moves among the steel.
+THE CRYPT         | Cold stone caskets brood in the dark, their lids ajar. The air is thick with grave-dust.
+WIZ'S LAB         | Cracked alembics and half-burnt sigils cover the benches; the very air tastes of spent magic.
+WIZ'S TREASURE    | Arcane wards flicker over hoarded relics -- and their jealous, unsleeping guardians.
+KITCHEN           | Rotted haunches hang from black hooks; the cold hearth still reeks of old smoke and worse.
+GUARD ROOM        | Overturned stools and a scarred table -- the watch was here, and never truly left.
+STORE ROOM        | Toppled crates and split barrels spill their ruin across the floor. Things nest in the dark.
+TORTURE CHAMBER   | Chains and iron maidens rust in the gloom; the walls remember every scream.
+QUEEN'S ANNEX     | Faded tapestries and a shattered mirror -- the Queen's retreat, long since defiled.
+QUEEN'S TREASURE  | The Queen's jewels glint behind a veil of cobwebs, watched by whatever slew her servants.
+KING'S LIBRARY    | Shelves of mouldering tomes rise into shadow; something turns the pages when you look away.
+KING'S TREASURE   | The King's hoard gleams beyond the threshold -- and so do the eyes that guard it.

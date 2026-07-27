@@ -307,8 +307,13 @@ Environment specifics that dictate this approach:
   pack type (`assets/narration/`, `opt_narration`/`opt_narrationpack`, one SETTINGS row cycling
   *off → (main) → packs* via `CycleNarration`): spoken audio named after a **`strings.txt` key**
   (`Narrate "win.title"` plays `assets/narration/[pack]/win.title.<ext>`), load-on-demand, one line
-  at a time, volume off Voice Vol — silent if absent (the typewriter blips still cover it). Hooked
-  at the win/lose end screen; add `Narrate "<key>"` at any other `Say$` site to voice it.
+  at a time, volume off Voice Vol — silent if absent (the typewriter blips still cover it). **Any
+  narratable text is hooked** via `HasNarration%`/`NarrateStop` + a stable key: end screens
+  (`win.title`/`lose.title`), the intro crawl (`intro.descent`), ambient one-liners (`FlavorLineVO`,
+  `regular.<lvl>.<idx>`), named rooms (`ScrollTextArt`→`room.<slug>`), chambers
+  (`chamber.<slug>`, description from **`assets/flavor/chambers.txt`** via `ChamberDesc$`), and curios
+  (`curio.<kind>`). `NarrSlug$` normalises a name to a key; when a crawl is narrated its per-glyph
+  blips are muted so the voice carries it. Add `Narrate "<key>"` at any other text site to voice it.
   **Music CUES** (`PlayCue`/`EndCue`, `music_cue_active`): non-level tracks that temporarily override
   the level music — `victory`/`lose` (one screen) and `combat-low`/`combat-high`/`combat-intense`
   (`CombatCueName$` by level/boss, looped through a D&D fight, `EndCue` restores the level track).

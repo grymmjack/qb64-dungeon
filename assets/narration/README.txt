@@ -16,16 +16,26 @@ one before it), so a large narration set costs no startup memory. Volume follows
 the VOICE VOL slider in SETTINGS; turn narration on/off with the SETTINGS
 "Narration" row.
 
-Keys currently spoken by the game:
+Keys the game speaks (drop a matching <key>.<ext> here and it plays; whenever a text
+crawl is narrated, its per-glyph blips fall silent so the voice carries it):
 
-  win.title       the victory banner  ("V I C T O R Y")
-  lose.title      the death banner    ("Y O U   D I E D")
-  intro.descent   the game-open TEXT CRAWL ("THE DESCENT"). When a file exists the
-                  spoken line plays OVER the crawl and the per-glyph blips go quiet
-                  (the voice covers it); absent -> the crawl blips as before. The
-                  on-screen wording is dynamic (your name, gold, key level), so this
-                  is an atmospheric read, not a word-for-word match -- write it as a
-                  general narration of the descent.
+  win.title            the victory banner  ("V I C T O R Y")
+  lose.title           the death banner    ("Y O U   D I E D")
+  intro.descent        the game-open crawl ("THE DESCENT")
+  regular.<lvl>.<n>    an ambient one-liner at the top of the screen -- <lvl> = dungeon
+                       level 1-9, <n> = the line's index in assets/flavor/regular.txt
+                       (line 1 = regular.1.1, ...). One file per line if you want them all.
+  room.<slug>          entering a named/special room -- slug of the room name, e.g.
+                       "THE CRYPT" -> room.the-crypt, "KING'S LIBRARY" -> room.kings-library
+  chamber.<slug>       entering a big named CHAMBER (first monster only) -- e.g.
+                       chamber.armory, chamber.torture-chamber. The shown description
+                       lives in assets/flavor/chambers.txt; write the voice to match its mood.
+  curio.<kind>         a curio appears -- <kind> is chest / fountain / shrine / gamble /
+                       peddler / idol / corpse / mushroom / obelisk / cache / mimic ...
+
+  SLUG rule: lowercase, letters+digits kept, every other run becomes one "-"
+  (apostrophes/spaces dropped). The dynamic wording on screen (names, gold) can't be
+  matched word-for-word, so write these as ATMOSPHERIC reads, not transcripts.
 
 ...and any other key in strings.txt becomes speakable the moment you add
 `Narrate "<key>"` at its display site (win.subtitle, lose.subtitle, end.return,

@@ -126,6 +126,8 @@ SUB InitSfxFiles
     RegisterSfx "dice_edge": RegisterSfx "dice_settle"  ' optional per-bounce clack + settle for the 3D dice
     RegisterSfx "dice-math-1": RegisterSfx "dice-math-2" ' summing the roll: 1 = the "x + y", 2 = the "= z"
     RegisterSfx "monster-pain": RegisterSfx "player-pain": RegisterSfx "death"  ' combat cries
+    RegisterSfx "monster-death": RegisterSfx "maxhit"    ' a monster is slain / a MAX-damage crushing blow
+    RegisterSfx "heartbeat": RegisterSfx "curio"         ' near-death heartbeat / a curio appears
     RegisterSfx "poison-proc": RegisterSfx "frost-proc"  ' status ticks (poison bite / frost bite)
     RegisterSfx "teleport": RegisterSfx "fireball": RegisterSfx "lightning-bolt"  ' spells / scroll
 END SUB
@@ -325,6 +327,32 @@ SUB Narrate (nkey AS STRING)
     narr_handle = _SNDOPEN(p)
     IF narr_handle > 0 THEN _SNDVOL narr_handle, opt_voicevol / 10: _SNDPLAY narr_handle
 END SUB
+
+' TRUE if narration is on AND a voice file exists for this key -- callers use it to decide
+' whether to Narrate + mute the per-glyph blips (the spoken line covers the text crawl).
+FUNCTION HasNarration% (nkey AS STRING)
+    HasNarration = 0
+    IF NOT opt_narration THEN EXIT FUNCTION
+    IF LEN(nkey) = 0 THEN EXIT FUNCTION
+    IF LEN(NarratePath$(nkey)) > 0 THEN HasNarration = -1
+END FUNCTION
+
+' Filesystem-safe narration slug: lowercase, [a-z0-9] kept, every other run -> one "-".
+' "KING'S LIBRARY" -> "kings-library", "THE CRYPT" -> "the-crypt". Used to key narration
+' files after room / chamber / curio names (e.g. Narrate "chamber." + NarrSlug$(name)).
+FUNCTION NarrSlug$ (s AS STRING)
+    DIM i AS INTEGER, c AS STRING, r AS STRING, dash AS INTEGER
+    FOR i = 1 TO LEN(s)
+        c = LCASE$(MID$(s, i, 1))
+        IF (c >= "a" AND c <= "z") OR (c >= "0" AND c <= "9") THEN
+            r = r + c: dash = 0
+        ELSEIF LEN(r) > 0 AND NOT dash THEN
+            r = r + "-": dash = -1
+        END IF
+    NEXT i
+    IF LEN(r) > 0 THEN IF RIGHT$(r, 1) = "-" THEN r = LEFT$(r, LEN(r) - 1)
+    NarrSlug$ = r
+END FUNCTION
 
 ' Cycle the narration setting: OFF -> (main) -> pack1 .. packN -> OFF. One SETTINGS row
 ' does both the on/off and the pack pick. Reloads nothing (narration is load-on-demand).

@@ -1613,6 +1613,10 @@ SUB Sfx (kind AS STRING)
         CASE "teleport": Tone 600, 0.04: Tone 900, 0.04: Tone 1300, 0.05: Tone 1800, 0.1   ' scroll whisks you away
         CASE "fireball": Tone 200, 0.05: Tone 300, 0.05: Tone 150, 0.13                     ' spell: fire
         CASE "lightning-bolt": Tone 1800, 0.02: Tone 1400, 0.03: Tone 900, 0.05: Tone 300, 0.1  ' spell: lightning
+        CASE "monster-death": Tone 300, 0.05: Tone 200, 0.06: Tone 120, 0.22                ' a monster falls
+        CASE "maxhit": Tone 700, 0.04: Tone 500, 0.05: Tone 260, 0.16                       ' a crushing MAX-damage blow
+        CASE "heartbeat": Tone 90, 0.09: Tone 70, 0.13                                      ' near-death: a low double-thud
+        CASE "curio": Tone 620, 0.05: Tone 780, 0.05: Tone 990, 0.1                         ' a curio reveals itself
     END SELECT
 END SUB
 

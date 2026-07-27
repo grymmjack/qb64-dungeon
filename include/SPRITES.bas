@@ -345,5 +345,5 @@ SUB ScrollTextArt (title AS STRING, body AS STRING, sprPath AS STRING)
             drew = DrawSpriteFit%(sprPath, bx, by, bw, bh)
         END IF
     END IF
-    ScrollText title, body
+    ScrollTextVO title, body, "room." + NarrSlug$(title)   ' narratable per named room (room.the-crypt, ...)
 END SUB

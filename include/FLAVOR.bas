@@ -34,7 +34,32 @@ SUB InitFlavor
     ParseFlavorFile "assets/flavor/special.txt", 2
     ParseFlavorFile "assets/flavor/maxhit.txt", 3
     ParseFlavorFile "assets/flavor/forfeit.txt", 4
+    LoadChamberFlavor
 END SUB
+
+' Load the per-chamber descriptions (assets/flavor/chambers.txt: NAME | description).
+SUB LoadChamberFlavor
+    DIM i AS INTEGER
+    CHM_FLAV_N = 0
+    ReadDataFile "assets/flavor/chambers.txt"
+    FOR i = 1 TO DLINE_N
+        IF CHM_FLAV_N < UBOUND(CHM_FLAV_NAME) THEN
+            CHM_FLAV_N = CHM_FLAV_N + 1
+            CHM_FLAV_NAME(CHM_FLAV_N) = UCASE$(_TRIM$(DField$(DLINE(i), 1)))
+            CHM_FLAV_TXT(CHM_FLAV_N) = DField$(DLINE(i), 2)
+        END IF
+    NEXT i
+END SUB
+
+' The description for a chamber name (case-insensitive), or "" if none is on file.
+FUNCTION ChamberDesc$ (nm AS STRING)
+    DIM i AS INTEGER, want AS STRING
+    want = UCASE$(_TRIM$(nm))
+    FOR i = 1 TO CHM_FLAV_N
+        IF _TRIM$(CHM_FLAV_NAME(i)) = want THEN ChamberDesc$ = CHM_FLAV_TXT(i): EXIT FUNCTION
+    NEXT i
+    ChamberDesc$ = ""
+END FUNCTION
 
 SUB AddSpecial (ky AS STRING, cx AS INTEGER, cy AS INTEGER)
     IF SP_N >= UBOUND(SP_KEY) THEN EXIT SUB
@@ -146,7 +171,7 @@ END SUB
 ' First-entry atmosphere for room rm: a named room gets a deep windowed description
 ' (with its location art, if any); an ordinary room a one-line typewriter subtitle.
 SUB RoomFlavor (rm AS INTEGER)
-    DIM i AS INTEGER, si AS INTEGER, lvl AS INTEGER, deep AS INTEGER
+    DIM i AS INTEGER, si AS INTEGER, lvl AS INTEGER, deep AS INTEGER, ri AS INTEGER
     IF rm < 1 OR rm > ROOM_N THEN EXIT SUB
     si = 0
     FOR i = 1 TO SP_N
@@ -162,15 +187,21 @@ SUB RoomFlavor (rm AS INTEGER)
         cursor_erase: cursor_draw: DrawHUD: _DISPLAY
     ELSE
         lvl = ROOMS(rm).sec: IF lvl < 1 OR lvl > 9 THEN lvl = 1
-        IF REG_N(lvl) > 0 THEN FlavorLine REG_FLAV(lvl, RollDie(REG_N(lvl)))
+        IF REG_N(lvl) > 0 THEN
+            ri = RollDie(REG_N(lvl))                        ' narratable per line: regular.<lvl>.<index>
+            FlavorLineVO REG_FLAV(lvl, ri), "regular." + _TRIM$(STR$(lvl)) + "." + _TRIM$(STR$(ri))
+        END IF
     END IF
 END SUB
 
-' Type a one-line subtitle across the top of the screen, with voice blips, then
-' hold briefly. Any key skips the typing / hold. The board redraws it away later.
-SUB FlavorLine (txt AS STRING)
-    DIM i AS INTEGER, k AS STRING, shown AS STRING, skip AS INTEGER, h AS INTEGER
+' Type a one-line subtitle across the top of the screen, then hold briefly. Any key skips.
+' If narration is on and a voice file exists for narrkey, the spoken line plays and the
+' per-glyph blips are muted (the voice covers it); otherwise it blips per glyph as before.
+SUB FlavorLineVO (txt AS STRING, narrkey AS STRING)
+    DIM i AS INTEGER, k AS STRING, shown AS STRING, skip AS INTEGER, h AS INTEGER, narrating AS INTEGER
     skip = FALSE
+    narrating = HasNarration%(narrkey)
+    IF narrating THEN Narrate narrkey
     _DEST CANVAS
     FOR i = 1 TO LEN(txt)
         shown = LEFT$(txt, i)
@@ -178,7 +209,7 @@ SUB FlavorLine (txt AS STRING)
         COLOR CYANU, BLACK: PrintCentered 1, shown
         _DISPLAY
         IF NOT skip THEN
-            IF opt_voice THEN VoiceBlip 480 + (ASC(MID$(txt, i, 1)) MOD 220)
+            IF opt_voice AND NOT narrating THEN VoiceBlip 480 + (ASC(MID$(txt, i, 1)) MOD 220)
             _DELAY 0.016
             k = INKEY$: IF k <> "" THEN skip = -1
         END IF
@@ -188,6 +219,12 @@ SUB FlavorLine (txt AS STRING)
         IF INKEY$ <> "" THEN EXIT FOR
         _DISPLAY
     NEXT h
+    IF narrating THEN NarrateStop
+END SUB
+
+' No-narration ambient one-liner (per-glyph blips) -- the plain entry point.
+SUB FlavorLine (txt AS STRING)
+    FlavorLineVO txt, ""
 END SUB
 
 ' A random sad epitaph for the FORFEIT screen (all lives spent). Falls back to a

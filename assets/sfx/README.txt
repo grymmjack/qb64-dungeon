@@ -32,7 +32,10 @@ Effect names you can override (from the Sfx dispatcher):
   dice-math-1 summing a roll: the       dice-math-2 summing a roll: the
               "x + y" rising ticks                  "= z" total ding
   monster-pain a monster is wounded     player-pain you are wounded (survive)
-  death       a life ends               teleport    Teleport Scroll whisks you
+  monster-death a monster is slain      death       your life ends
+  maxhit      a MAX-damage crushing blow curio      a curio reveals itself
+  heartbeat   plays (and quickens) while you are near death in D&D combat
+  teleport    Teleport Scroll whisks you
   poison-proc poison damage-over-time    frost-proc  frost/fire DoT bite
   fireball    spell: fire (unwired **)  lightning-bolt spell: lightning (** )
   voice       text-crawl blip (per glyph; keep it SHORT -- it plays once per

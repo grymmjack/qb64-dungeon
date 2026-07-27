@@ -387,7 +387,7 @@ SYSTEM
 
 FUNCTION PlayGame%
     DIM k AS STRING
-    DIM AS INTEGER sec, res, idle_ticks, sd, mvb, curlvl
+    DIM AS INTEGER sec, res, idle_ticks, sd, mvb, curlvl, heart_tick, hbeat
 
     DIM i AS INTEGER
     DIM hint AS STRING
@@ -474,6 +474,15 @@ FUNCTION PlayGame%
                 idle_ticks = 0
                 IF NOT InRoomNow THEN LoiterTick   ' danger gathers only out in the open halls
             END IF
+        END IF
+
+        ' near-death heartbeat (D&D mode): a low thud that races as your HP runs out
+        IF NOT opt_oldschool AND player_maxhp > 0 AND player_hp > 0 AND player_hp <= player_maxhp \ 4 THEN
+            heart_tick = heart_tick + 1
+            hbeat = 50: IF player_hp <= player_maxhp \ 10 THEN hbeat = 30   ' racing when critical
+            IF heart_tick >= hbeat THEN heart_tick = 0: Sfx "heartbeat"
+        ELSE
+            heart_tick = 0
         END IF
 
         IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
@@ -1029,7 +1038,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF last_raw = player_dmgdie THEN            ' MAX on the damage die -- brutal flavor (even without a crit)
                     mhs = MaxHitSaying$(mon, WeaponName$)
                     IF LEN(mhs) > 0 THEN
-                        Sfx "crit"
+                        Sfx "maxhit"
                         Banner "** A CRUSHING BLOW! **  (max damage)", mhs + "   [ press any key ]"
                         CombatPause
                     END IF
@@ -1255,6 +1264,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     mon = _TRIM$(ROOMS(rm).monster): tname = _TRIM$(ROOMS(rm).treasure_name)
     lvl = ROOMS(rm).sec: goldbefore = gold                 ' chronicle this kill + its haul
     FX_MON = mon: FX_LEVEL = lvl: FX_TREASURE = tname      ' flavor context for the death line
+    Sfx "monster-death"                                    ' the monster falls -- every slay funnels through here
     dfl = EventLine$(1, mon, 5)                            ' the monster's own death throes, if any
     IF LEN(dfl) > 0 THEN
         Sfx "treasure"
@@ -1890,8 +1900,18 @@ SUB ChamberEncounter (cid AS INTEGER)
     ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
     ROOMS(w).is_chamber = TRUE                             ' tells ClaimTreasure to grant no treasure
     Sfx "trap"
-    Banner MonVerb$(mon, "A " + mon + " stalks", mon + " stalk") + " the " + _TRIM$(CHM_NAME(cid)) + "!", "Chamber monster " + _TRIM$(STR$(CHM_DEAD(cid) + 1)) + " of 3 -- it guards no treasure.   [ press any key ]"
-    WaitKey
+    DIM cname AS STRING, cdesc AS STRING
+    cname = _TRIM$(CHM_NAME(cid))
+    IF CHM_DEAD(cid) = 0 THEN                              ' first time in: describe + narrate the hall
+        cdesc = ChamberDesc$(cname): IF LEN(cdesc) = 0 THEN cdesc = "You enter the " + cname + "."
+        Narrate "chamber." + NarrSlug$(cname)             ' spoken chamber description (if a pack has it)
+        Banner cdesc, MonVerb$(mon, "A " + mon + " stalks here", mon + " stalk here") + " -- three guard this hall, and no treasure.   [ press any key ]"
+        WaitKey
+        NarrateStop
+    ELSE
+        Banner MonVerb$(mon, "Another " + mon + " stalks", "More " + mon + " stalk") + " the " + cname + "!", "Chamber monster " + _TRIM$(STR$(CHM_DEAD(cid) + 1)) + " of 3.   [ press any key ]"
+        WaitKey
+    END IF
     res = DoCombat(w)
     IF NOT ROOMS(w).malive THEN CHM_DEAD(cid) = CHM_DEAD(cid) + 1   ' slain -> one more grave (up to 3)
     ROOMS(w).is_chamber = FALSE
