@@ -23,15 +23,15 @@
 # ============================================================================
 
 # name             | c1  | r1 | c2  | r2      (auto-detected seed -- verify/tighten these)
-ARMORY             |  12 |  8 |  20 | 11
-THE CRYPT          |  46 |  6 |  51 |  9
-WIZ'S LAB          |  82 |  8 |  87 | 10
-WIZ'S TREASURE     |  94 |  5 | 100 |  9
-KITCHEN            |   4 | 22 |   9 | 30
-GUARD ROOM         |  14 | 20 |  24 | 25
-STORE ROOM         |  16 | 40 |  24 | 43
-TORTURE CHAMBER    |  42 | 36 |  46 | 40
-QUEEN'S ANNEX      |  88 | 40 |  92 | 43
-QUEEN'S TREASURE   |  86 | 33 |  94 | 39
-KING'S LIBRARY     |  90 | 25 |  96 | 29
-KING'S TREASURE    | 105 | 16 | 113 | 26
+ARMORY             |  12 |  8 |  21 | 11
+THE CRYPT          |  46 |  6 |  52 | 10
+WIZ'S LAB          |  78 |  8 |  91 | 12
+WIZ'S TREASURE     |  92 |  6 | 101 |  9
+KITCHEN            |   2 | 24 |  11 | 28
+GUARD ROOM         |  15 | 22 |  24 | 26
+STORE ROOM         |  15 | 40 |  24 | 43
+TORTURE CHAMBER    |  48 | 38 |  56 | 42
+QUEEN'S ANNEX      |  84 | 41 |  95 | 45
+QUEEN'S TREASURE   |  86 | 33 |  95 | 36
+KING'S LIBRARY     |  85 | 25 |  97 | 29
+KING'S TREASURE    | 104 | 20 | 112 | 23
