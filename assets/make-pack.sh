@@ -118,6 +118,17 @@ export OGG=$([ $FMT_OGG = 1 ] && echo 1 || echo "")
 [ -n "$FORCE_ARG" ] && export FORCE=1
 [ -n "$BOXES_ARG" ] && export BOXES="$BOXES_ARG"
 
+# Snapshot the manifest once. Every section then works from the same bytes,
+# so a rebuild of dungeon.run partway through cannot change or empty it.
+SNAP="$(mktemp)"; trap 'rm -f "$SNAP"' EXIT
+( cd "$(dirname "$ASSETS")" && ./dungeon.run audiomanifest ) > "$SNAP" 2>/dev/null
+if ! grep -qE '^(sfx|music|narration)/' "$SNAP"; then
+    echo "✗ could not read a manifest from dungeon.run — build it (F5) and retry"
+    exit 1
+fi
+export MANIFEST="$SNAP"
+echo "  manifest: $(grep -cE '^(sfx|music|narration)/' "$SNAP") entries (snapshotted)"
+
 rc=0
 if want sfx; then
     mkdir -p "$OUT_SFX"
@@ -155,7 +166,9 @@ if want narration; then
     "$ASSETS/generate-from-manifest.sh" narration "$(basename "$OUT_NARR")" || rc=1
 fi
 
-echo; echo "▶ pack '$NAME' complete"
+echo
+if [ "$rc" -eq 0 ]; then echo "▶ pack '$NAME' complete"
+else echo "✗ pack '$NAME' INCOMPLETE — a section failed above"; fi
 for d in "$OUT_SFX" "$OUT_MUSIC" "$OUT_NARR"; do
     [ -d "$d" ] && printf "   %-52s %3s files  %s\n" "$d" \
         "$(find "$d" -maxdepth 1 \( -name '*.ogg' -o -name '*.wav' \) 2>/dev/null | wc -l)" \

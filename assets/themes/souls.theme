@@ -1,0 +1,24 @@
+# souls -- Dark Souls / Elden Ring treatment.
+# Matched by: souls, dark souls, darksouls, elden, bloodborne
+MATCH="souls darksouls dark-souls elden bloodborne fromsoft"
+
+# The Souls SFX signature is WEIGHT. Everything is heavy, physical and slow to
+# settle, recorded in vast stone rooms; metal rings and keeps ringing; footfalls
+# are deliberate, never light. Nothing cute, nothing arcadey.
+SFX_ADD="dark souls style, immense weight and physicality, heavy steel and cold stone, long cavernous reverb tail, grim deliberate and unhurried, AAA game audio, high fidelity"
+SFX_SECONDS=3
+
+# Sparse, mournful, tragic. Solo strings over silence; boss cues explode into
+# enormous choir and timpani. Motoi Sakuraba / Yuka Kitamura: grand but
+# grieving, never heroic. Slow tempos, minor keys, lots of space.
+MUSIC_ADD="dark souls soundtrack style, sparse mournful orchestral, solo violin and cello over silence, vast wordless latin choir, deep timpani, tragic and funereal, grand but grieving, live orchestra"
+MUSIC_SECONDS=60
+MUSIC_BPM=64
+MUSIC_KEY="D minor"
+
+# Deliberately a BRITISH FEMALE voice: the Souls games open with a woman's
+# measured, archaic narration ("In the Age of Ancients, the world was
+# unformed..."). Slow and formal rather than deep and booming.
+VOICE=bf_isabella
+PITCH=-1
+SPEED=0.82

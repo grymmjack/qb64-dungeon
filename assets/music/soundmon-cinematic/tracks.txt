@@ -1,0 +1,16 @@
+# name | seconds | bpm | key  -- theme defaults, edit freely
+caverns | 60 | 80 | D minor
+combat-high | 60 | 80 | D minor
+combat-intense | 60 | 80 | D minor
+combat-low | 60 | 80 | D minor
+crypt | 60 | 80 | D minor
+deeproads | 60 | 80 | D minor
+dragonlair | 60 | 80 | D minor
+everdark | 60 | 80 | D minor
+inferno | 60 | 80 | D minor
+level1 | 60 | 80 | D minor
+level2 | 60 | 80 | D minor
+lose | 60 | 80 | D minor
+start | 60 | 80 | D minor
+victory | 60 | 80 | D minor
+vr-theme | 60 | 80 | D minor

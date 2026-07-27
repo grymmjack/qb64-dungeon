@@ -1,0 +1,11 @@
+# cinematic -- live-orchestral high fantasy (Baldur's Gate / Icewind Dale).
+MATCH="cinematic baldur icewind highfantasy classic"
+SFX_ADD="dungeon, dark fantasy, close-mic, dry, cinematic game audio"
+SFX_SECONDS=3
+MUSIC_ADD="orchestral, live players, strings and brass, cinematic dark fantasy, baldurs gate"
+MUSIC_SECONDS=60
+MUSIC_BPM=80
+MUSIC_KEY="D minor"
+VOICE=bm_george
+PITCH=-3
+SPEED=0.92

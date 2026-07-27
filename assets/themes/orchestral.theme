@@ -1,0 +1,13 @@
+# orchestral -- full symphonic score. Big, warm, live players in a real hall.
+# Distinct from `cinematic` (dark-fantasy game scoring) by being brighter and
+# more classical: this is a symphony orchestra, not a game soundtrack.
+MATCH="orchestral symphonic symphony classical score film"
+SFX_ADD="recorded in a large concert hall, rich natural acoustics, warm and full-bodied, orchestral percussion sensibility, pristine high fidelity"
+SFX_SECONDS=3
+MUSIC_ADD="full symphony orchestra, live players in a concert hall, sweeping strings, warm french horns, woodwinds, timpani and cymbals, lush romantic harmony, film score"
+MUSIC_SECONDS=60
+MUSIC_BPM=88
+MUSIC_KEY="D minor"
+VOICE=bm_george
+PITCH=-2
+SPEED=0.90

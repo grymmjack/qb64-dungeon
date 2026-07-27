@@ -1,0 +1,11 @@
+# dungeonsynth -- lo-fi early-90s medieval synthesizer, DOS-crawler sound.
+MATCH="dungeonsynth dungeon-synth lofi dos retro eob dungeonhack"
+SFX_ADD="lo-fi retro computer game sound effect, simple and synthetic, 1993 dos game, dry and close"
+SFX_SECONDS=2
+MUSIC_ADD="dungeon synth, lo-fi analog synthesizer, tape hiss, simple repeating motif, 1993 dos game, no live instruments"
+MUSIC_SECONDS=60
+MUSIC_BPM=72
+MUSIC_KEY="A minor"
+VOICE=bm_daniel
+PITCH=-2
+SPEED=0.95

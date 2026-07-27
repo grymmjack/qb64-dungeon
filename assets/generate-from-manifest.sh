@@ -36,7 +36,12 @@ DEST="$ASSETS/$SECTION/$PACK"
 mkdir -p "$DEST"
 
 command -v soundmon >/dev/null || { echo "soundmon not on PATH"; exit 1; }
-[ -x "$GAME/dungeon.run" ] || { echo "no $GAME/dungeon.run — build it first (F5)"; exit 1; }
+# MANIFEST=<file> uses a pre-captured manifest instead of invoking the game.
+# dungeon.run is a compiled binary that F5 replaces, so a rebuild during a long
+# run makes it briefly absent — which silently emptied two whole packs once.
+if [ -z "${MANIFEST:-}" ]; then
+    [ -x "$GAME/dungeon.run" ] || { echo "no $GAME/dungeon.run — build it first (F5)"; exit 1; }
+fi
 
 # Pack identity (optional)
 STYLE=""; PROMPT_ADD=""; SECONDS_DEF=""
@@ -45,7 +50,12 @@ VOICE="${VOICE:-bm_george}"; PITCH="${PITCH:--3}"; SPEED="${SPEED:-0.92}"
 
 MAN="$(mktemp)"; QUEUE="$(mktemp)"; LOCK="$(mktemp)"
 trap 'rm -f "$MAN" "$QUEUE" "$LOCK" "$QUEUE.lines"' EXIT
-( cd "$GAME" && ./dungeon.run audiomanifest ) > "$MAN" 2>/dev/null
+if [ -n "${MANIFEST:-}" ] && [ -s "$MANIFEST" ]; then
+    cp "$MANIFEST" "$MAN"
+else
+    ( cd "$GAME" && ./dungeon.run audiomanifest ) > "$MAN" 2>/dev/null
+fi
+grep -qE '^(sfx|music|narration)/' "$MAN" || { echo "manifest is empty — aborting"; exit 1; }
 
 # Trim without xargs: the prompts contain apostrophes ("a monster's snarl"),
 # and xargs treats quotes as syntax — it errors out on every such line.

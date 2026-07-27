@@ -1,0 +1,12 @@
+# orcish-monster-tribal -- war drums, bone, hide and crude iron.
+# The sound of the things that live down there, not the hero who walks in.
+MATCH="orcish orc monster tribal warband goblin savage primal"
+SFX_ADD="crude and primal, bone and hide and rough beaten iron, guttural and animal, wet and visceral, tribal war-camp, raw and unpolished"
+SFX_SECONDS=3
+MUSIC_ADD="tribal war drums, huge taiko and frame drums, guttural male chanting and throat singing, bone flutes, crude horns, primal and savage, driving relentless rhythm, orcish warband"
+MUSIC_SECONDS=60
+MUSIC_BPM=104
+MUSIC_KEY="E minor"
+VOICE=bm_lewis
+PITCH=-4
+SPEED=0.88

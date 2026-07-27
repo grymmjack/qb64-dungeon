@@ -1,0 +1,11 @@
+# name | seconds | bpm | key  -- theme defaults, edit freely
+combat-high | 60 | 72 | A minor
+combat-intense | 60 | 72 | A minor
+combat-low | 60 | 72 | A minor
+everdark | 60 | 72 | A minor
+level1 | 60 | 72 | A minor
+level2 | 60 | 72 | A minor
+lose | 60 | 72 | A minor
+start | 60 | 72 | A minor
+victory | 60 | 72 | A minor
+vr-theme | 60 | 72 | A minor

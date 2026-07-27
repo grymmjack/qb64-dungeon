@@ -1,0 +1,12 @@
+# dark-and-scary -- horror. Dread first, jump-scares second.
+# Atonal, close, wrong. Sounds that make you not want to open the door.
+MATCH="darkandscary dark-and-scary darkscary horror scary terror dread creepy"
+SFX_ADD="horror sound design, unsettling and wrong, close and intimate like it is right behind you, dissonant metallic resonance, wet organic undertone, dry and airless"
+SFX_SECONDS=3
+MUSIC_ADD="horror score, atonal string clusters, bowed metal and prepared piano, sub-bass drones that sit under everything, sudden silences, creeping dread, no melody, deeply unsettling"
+MUSIC_SECONDS=60
+MUSIC_BPM=56
+MUSIC_KEY="C minor"
+VOICE=bf_isabella
+PITCH=-3
+SPEED=0.78
