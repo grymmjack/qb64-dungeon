@@ -123,6 +123,9 @@ Environment specifics that dictate this approach:
   so arrows and the numpad work anywhere WASD does. SETTINGS also carry **volume sliders** (Music/SFX/Voice, `opt_*vol` 0-10; all effects
   route through `Tone`, music through `_SNDVOL music_handle`) and a **Voice** toggle that blips
   per glyph in the typewriter **`ScrollText`** window (used for the game-open narration).
+  `VoiceBlip` plays an optional `assets/sfx/voice.*` sample (pack-aware, `_SNDPLAYCOPY` per glyph)
+  when present and otherwise falls back to the PC-speaker `SOUND` tone — so the text-crawl voice
+  is themeable like any other effect (keep the sample short; it fires once per letter).
   **Per-room encounters, rolled fresh each game.** `DetectRooms` (BOARD.bas) flood-fills the
   board's coloured blocks into ~90 individual `ROOMS()` (cell→room map in `ROOMAT()`), skipping
   the entrance chamber and tiny label blocks (`ROOM.cells < 4`). `RandomizeRooms` then gives

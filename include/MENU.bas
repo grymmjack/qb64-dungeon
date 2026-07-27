@@ -506,6 +506,13 @@ END SUB
 
 SUB ShowIntro
     DIM ansi AS STRING, mus AS LONG, k AS STRING, frames AS INTEGER
+    ' Settle the display BEFORE the logo fade. The window's fullscreen transition is applied
+    ' async by the compositor (Wayland) and only completes once we pump the event loop -- with
+    ' the $CONSOLE build that landed mid-fade, flashing the logo to black and re-fading. Pump a
+    ' few black frames here so it completes on black; the _DISPLAY also drops autodisplay, so the
+    ' freshly-drawn logo can't flash at full brightness for a frame before FadeInCurrent starts.
+    _DEST CANVAS: CLS , BLACK
+    FOR frames = 1 TO 15: _DISPLAY: _LIMIT 60: NEXT
     ansi = _READFILE$("assets/ansi/vermin-radioactive-logo.ans")
     mus = _SNDOPEN(ResolveMusic$("vr-theme"))       ' best-quality file for this name (pack-aware)
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
@@ -1594,7 +1601,13 @@ END SUB
 ' A single "voice" blip for the typewriter text window, at the Voice volume.
 SUB VoiceBlip (freq AS INTEGER)
     IF NOT opt_voice THEN EXIT SUB
-    SOUND freq, 0.03, opt_voicevol / 10 * 0.4      ' per-glyph typewriter blip -- kept quiet vs the slider
+    DIM h AS LONG
+    h = SfxHandle&("voice")                        ' pack/flat assets/sfx/voice.* if present
+    IF h > 0 THEN
+        _SNDPLAYCOPY h, opt_voicevol / 10 * 0.4    ' a copy per glyph so rapid blips overlap
+    ELSE
+        SOUND freq, 0.03, opt_voicevol / 10 * 0.4  ' PC-speaker fallback -- per-glyph typewriter blip, kept quiet vs the slider
+    END IF
 END SUB
 
 

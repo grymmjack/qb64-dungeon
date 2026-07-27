@@ -27,6 +27,18 @@ Effect names you can override (from the Sfx dispatcher):
   hiss        poison darts              fizzle      frost bomb
   alarm       magic siren               select      menu selection
   levelup     gaining a level / revival
+  diceroll    dice thrown (rattle)      diceland    dice come to rest
+  dice_edge   3D-dice bounce clack *    dice_settle 3D-dice final settle *
+  voice       text-crawl blip (per glyph; keep it SHORT -- it plays once per
+              letter. Falls back to the PC-speaker tone when absent.)
+
+  * dice_edge / dice_settle are for the 3D dice only and have NO beeper fallback
+    (silent until you add a file). diceroll / diceland DO beep if absent.
 
 Example: put a punchy "thwack.ogg", rename it to hit.ogg, drop it here, press F5 --
 every landed blow now thwacks. Delete it and the beeper returns.
+
+PACKS (themes): a SUB-FOLDER here is a pack -- put a themed set of the same
+filenames in assets/sfx/<pack-name>/ and pick it in SETTINGS -> SFX Pack. The
+pack overrides only the effects it ships; the rest fall back to this flat folder
+(then to the beeper). With no sub-folders you just get this flat folder ("(main)").
