@@ -233,9 +233,12 @@ Environment specifics that dictate this approach:
 - **Sector MASK** (`assets/ansi/board-132x50-sector-mask.ans`, the art-as-data replacement for the
   `sectors.txt` rectangles). Same idea as the secret mask: a same-size painted ANSI where **each
   cell's colour = which dungeon level owns it**, so levels can be any shape, not just rectangles.
-  `LoadSectorMask` (SECTOR.bas) fills `SECTORAT(cx,cy)` (0-based cells) via `SectorByColor%` (nearest
-  `SECTORS().kolor`); when the file is present `SECTORMASK_ON` is set and **`SECTOR.get_by_xy%`
-  returns `SECTORAT(cx,cy)` directly** (the `sectors.txt` rect loop is the fallback when it's absent).
+  `LoadSectorMask` (SECTOR.bas) fills `SECTORAT(cx,cy)` (0-based cells) via `SectorByColor%` (exact
+  match to a `SECTORS().kolor`); when the file is present `SECTORMASK_ON` is set and `SECTOR.get_by_xy%`
+  returns `SECTORAT(cx,cy)` — **but where a cell is black/unpainted (`SECTORAT = 0`) it falls through
+  to the `sectors.txt` rect loop**, so a *partial* mask never bricks movement (painted cells still
+  win, so any-shape levels hold; the rects only backstop the gaps). The rect loop is also the whole
+  story when no mask file is present.
   Black = sector 0 — harmless over walls/corridors/doors, but a room floor sitting on black won't
   register a level (and `CanMove` needs `sec >= 1`). Generated as a starter by `dungeon.run sectorgen`
   (paints each rect with **bg-colour + space**, not `fg + █` — an editor renders `█` with a sliver
@@ -243,6 +246,23 @@ Environment specifics that dictate this approach:
   Both generators (`maskgen`/`sectorgen`) **refuse to overwrite** an existing mask (they only ever
   write a fresh file, so SAUCE lands at EOF and a hand-painted mask is never clobbered);
   `dungeon.run --help` lists every dev mode.
+- **Mask line-ending / SGR gotcha + `MaskNormalize$` + `ansilint`.** A mask is art-as-data —
+  every cell must sample as *exactly* its painted colour — and two things an ANSI editor emits
+  silently corrupt that: **(1) CRLF line endings.** Each row is exactly `SW` (132) printable
+  columns, so ANSIPrint auto-wraps at column 132 **and then** the CRLF advances again — a blank
+  row between every painted row ("black bands"), so half the cells read as sector 0 and rooms go
+  unenterable. The working board/secret-mask sidestep this by having **no per-row line breaks** at
+  all (pure 132-col auto-wrap). **(2) Sticky SGR attributes.** A bright iCE background (`ESC[5;42m`,
+  the blink bit = high-intensity bg) stays set when the next run only changes the colour (`ESC[46m`),
+  so teal bleeds to bright-cyan and level 6 reads as level 7. Both are repaired at **load** by
+  `MaskNormalize$` (DATA.bas) — strip CR/LF so rows auto-wrap, inject `ESC[0m` before every SGR run
+  so each cell is self-contained, and stop at the `0x1A` EOF so SAUCE isn't rendered — which
+  `LoadSectorMask` and `LoadSecretMask` both apply. **`dungeon.run ansilint [file]`** (read-only;
+  no file = both board masks) is the checker: it reports line endings, per-row printable width,
+  SAUCE dims, how many cells `MaskNormalize$` changes (0 = clean), and each painted colour mapped
+  to its level (flagging unmapped colours and unpainted levels). **Gotcha:** ANSIPrint renders
+  each SGR bg correctly *in isolation*; the corruption only appears in a full file, so verify a
+  mask by rendering the WHOLE thing (or run `ansilint`), never a single code.
 - **`[~]` debug overlay & test panel** (`DrawDebug`/`DebugTestMenu`, BOARD.bas). `[~]` (or backtick)
   toggles the overlay — region/sector/chamber tints and a mouse readout (`sec:/reg:/lvl:/door→/cham:/
   dead:`); toggling **off repaints** the board (`cursor_erase`/`cursor_draw`/`DrawHUD`) so the frozen
@@ -270,7 +290,8 @@ Environment specifics that dictate this approach:
   `Init*` routines used. `DATA.bas` is the shared reader: `ReadDataFile(path)` fills `DLINE()`
   and `DField$(ln, n)` returns field `n` (**trimmed**, so columns can be space-padded; `#` =
   comment; blank lines ignored), plus helpers `HexRGB~&`, `SGRForColor$`/`SGRBgForColor$` (colour
-  → ANSI SGR, used by the mask generators), and `SauceRecord$`. Almost every `Init*` is now a
+  → ANSI SGR, used by the mask generators), `SauceRecord$`, and `MaskNormalize$` (see the mask
+  gotcha below). Almost every `Init*` is now a
   thin wrapper over a `Load*` sub:
   - **Content:** `monsters` / `treasures` / `items` / `bosses` / `curios` / `traps` / `effects`
     (via `Mob`/`SetTreSlot`/`SetItem`/`AddFX`, `LoadTraps` → `TRAPS()`). `InitMonsterTables` /

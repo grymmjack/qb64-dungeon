@@ -157,6 +157,21 @@ Generate starter masks from the current heuristics with `dungeon.run sectorgen` 
 `dungeon.run maskgen` (they **refuse to overwrite** an existing mask, so your hand-painted
 versions are safe), then paint from there. Run `dungeon.run --help` for all dev modes.
 
+**Two editor artifacts silently corrupt a mask** — the game repairs both when it loads a mask,
+but it's worth knowing:
+
+- **CRLF line endings.** Each row is exactly 132 columns, so the renderer wraps at column 132 *and*
+  the CRLF then advances again — a blank row between every painted row ("black bands"), and half the
+  cells stop registering. (The board and secret mask avoid this by having no line breaks at all.)
+- **Sticky bright colours.** A bright (iCE) background left set from one cell can bleed into the next
+  cell that only changed the base colour — e.g. teal turning into bright cyan — so a level reads as
+  the wrong one.
+
+Run **`dungeon.run ansilint`** (or `dungeon.run ansilint <file.ans>`) to check a mask: it reports the
+line endings, row widths, the SAUCE dimensions, and every painted colour mapped to its level —
+flagging colours that match no level and levels you haven't painted. It only reads the file, never
+writes it.
+
 ---
 
 *Live preference/save files (`dungeon-settings.dat`, `dungeon-save.dat`,

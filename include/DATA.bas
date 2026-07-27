@@ -108,6 +108,29 @@ FUNCTION SGRBgForColor$ (col AS _UNSIGNED LONG)
     IF f >= 90 THEN SGRBgForColor$ = "5;" + _TRIM$(STR$(f - 90 + 40)) ELSE SGRBgForColor$ = _TRIM$(STR$(f + 10))
 END FUNCTION
 
+' Normalise a MASK ANSI for pixel-exact, per-cell colour sampling. Masks are art-as-data:
+' every cell must read as EXACTLY its own painted colour. Two things an ANSI editor emits
+' break that (see `dungeon.run ansilint`):
+'   (1) CRLF line endings -- a canvas-width (132-col) row auto-wraps, then the CRLF advances
+'       AGAIN, leaving a blank row between every painted row ("black bands"). Strip CR/LF so
+'       the full-width rows just auto-wrap (the working masks have no line breaks at all).
+'   (2) sticky SGR attributes -- e.g. a bright iCE background ([5;42m) sets the blink bit, and
+'       a following [46m changes only the colour, so the bright bit LEAKS and teal renders as
+'       bright cyan. Inject a reset (ESC[0m) before every SGR run so each cell is self-contained.
+' Also stop at the 0x1A EOF so a trailing SAUCE record is never rendered as art.
+FUNCTION MaskNormalize$ (raw AS STRING)
+    DIM nrm AS STRING, i AS INTEGER, b AS INTEGER
+    DIM RST AS STRING: RST = CHR$(27) + "[0m"
+    FOR i = 1 TO LEN(raw)
+        b = ASC(raw, i)
+        IF b = 26 THEN EXIT FOR                          ' 0x1A EOF -- SAUCE follows, not art
+        IF b = 13 OR b = 10 THEN _CONTINUE               ' drop CR/LF -> rows auto-wrap, no double-advance
+        IF b = 27 THEN nrm = nrm + RST                   ' reset before each ESC[ run -> no attribute leak
+        nrm = nrm + CHR$(b)
+    NEXT i
+    MaskNormalize$ = nrm
+END FUNCTION
+
 ' Build a 128-byte SAUCE record (Character/ANSi, IBM VGA font) for an ANSI of cols x rows,
 ' where datalen = the byte length of the art before the 0x1A EOF marker.
 FUNCTION SauceRecord$ (title AS STRING, cols AS INTEGER, rows AS INTEGER, datalen AS LONG)

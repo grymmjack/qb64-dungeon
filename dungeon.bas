@@ -33,6 +33,8 @@ IF wanthelp THEN
     PRINT "  fogdump       fogged board + secret-region overlay -> fogdump.png / -regions.png (+ stats .txt)"
     PRINT "  maskgen       starter secret-door mask from the flood -> assets/ansi/board-132x50-secret-mask.ans"
     PRINT "  sectorgen     starter sector mask from the rects     -> assets/ansi/board-132x50-sector-mask.ans"
+    PRINT "  ansilint [f]  lint a mask ANSI (line endings, row width, colours->sectors, SAUCE);"
+    PRINT "                no file = check both board masks. Read-only."
     PRINT "  --help, -h    show this help"
     PRINT
     PRINT "Everything is data: edit assets/data/*.txt and assets/ansi/*-mask.ans, then rebuild (F5)."
@@ -296,6 +298,24 @@ IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
     PUT #smf, , smeof
     PUT #smf, , smsauce
     CLOSE #smf
+    SYSTEM
+END IF
+
+'--- dev: `dungeon.run ansilint [file]` lints a mask ANSI for the art-as-data gotchas
+'    (CRLF black bands, sticky-SGR/blink leaks, row width, SAUCE, colours->sectors). With no
+'    file it checks both board masks. Read-only: it never writes. ---
+IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
+    DIM alpath AS STRING, alc AS INTEGER
+    FOR alc = 1 TO _COMMANDCOUNT
+        IF UCASE$(COMMAND$(alc)) <> "ANSILINT" THEN alpath = COMMAND$(alc)
+    NEXT alc
+    _DEST _CONSOLE: PRINT
+    IF LEN(alpath) > 0 THEN
+        AnsiLint alpath
+    ELSE
+        AnsiLint "assets/ansi/board-132x50-sector-mask.ans"
+        AnsiLint "assets/ansi/board-132x50-secret-mask.ans"
+    END IF
     SYSTEM
 END IF
 

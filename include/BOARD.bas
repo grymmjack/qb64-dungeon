@@ -499,6 +499,7 @@ FUNCTION LoadSecretMask%
     DIM head AS INTEGER, tail AS INTEGER, cx AS INTEGER, cy AS INTEGER
     mb = _READFILE$("assets/ansi/board-132x50-secret-mask.ans")
     IF LEN(mb) = 0 THEN EXIT FUNCTION
+    mb = MaskNormalize$(mb)                   ' strip CR/LF + reset each SGR run (see ansilint / MaskNormalize$)
     mimg = _NEWIMAGE(SW * CW, SH * CH, 32)
     olddest = _DEST: _DEST mimg: _FONT CH: CLS , BLACK
     ANSI_Print (mb)
@@ -1147,6 +1148,140 @@ FUNCTION ChamberDeadAt% (cx AS INTEGER, cy AS INTEGER)
     id = CHAMBERAT(cx, cy)
     IF id >= 1 AND id <= NCHAMBER THEN ChamberDeadAt% = CHM_DEAD(id) ELSE ChamberDeadAt% = 0
 END FUNCTION
+
+' `dungeon.run ansilint [file]` -- lint a MASK ANSI (default: both board masks) for the
+' art-as-data gotchas we hit: CRLF double-advance ("black bands"), sticky-SGR attribute
+' leaks (an iCE-bright background bleeding into the next colour), rows not the canvas width,
+' a missing SAUCE record, and colours that map to no dungeon level. Renders the file both
+' raw (as ANSIPrint sees it) and through MaskNormalize$ (as the loaders now do), reports the
+' difference, then the caller SYSTEMs. Everything here mirrors what MaskNormalize$ repairs.
+SUB AnsiLint (pth AS STRING)
+    _DEST _CONSOLE
+    PRINT "== ansilint: "; pth
+    IF NOT _FILEEXISTS(pth) THEN PRINT "   (file not found)": PRINT: EXIT SUB
+    DIM raw AS STRING, norm AS STRING, i AS INTEGER, b AS INTEGER
+    DIM issector AS INTEGER, datalen AS LONG
+    raw = _READFILE$(pth)
+    issector = (INSTR(UCASE$(pth), "SECTOR") > 0)      ' sector mask -> colours are LEVELS; else REGIONS
+    datalen = INSTR(raw, CHR$(26)) - 1                 ' art ends at the 0x1A EOF (SAUCE follows)
+    IF datalen < 0 THEN datalen = LEN(raw)
+    PRINT "   bytes:"; LEN(raw); " (art:"; datalen; ")"
+
+    ' --- line endings (of the art, before any SAUCE) ---
+    DIM ncr AS LONG, nlf AS LONG, ncrlf AS LONG
+    FOR i = 1 TO datalen
+        b = ASC(raw, i)
+        IF b = 13 THEN ncr = ncr + 1
+        IF b = 10 THEN nlf = nlf + 1: IF i > 1 THEN IF ASC(raw, i - 1) = 13 THEN ncrlf = ncrlf + 1
+    NEXT i
+    PRINT "   line-endings: CR="; LTRIM$(STR$(ncr)); "  LF="; LTRIM$(STR$(nlf)); "  CRLF-pairs="; LTRIM$(STR$(ncrlf))
+
+    ' --- per-row printable width (CRLF-split; ESC..m sequences don't count) ---
+    DIM seg_st AS INTEGER, pw AS INTEGER, inesc AS INTEGER, rowcnt AS INTEGER, badw AS INTEGER, firstbad AS INTEGER
+    seg_st = 1: firstbad = 0
+    FOR i = 1 TO datalen + 1
+        IF i > datalen THEN b = 10 ELSE b = ASC(raw, i)
+        IF b = 13 THEN _CONTINUE                       ' CR handled at the LF
+        IF b = 10 THEN
+            ' measure printable width of segment [seg_st, i-1]
+            pw = 0: inesc = 0
+            DIM k AS INTEGER, kb AS INTEGER
+            FOR k = seg_st TO i - 1
+                kb = ASC(raw, k)
+                IF kb = 27 THEN inesc = 1
+                IF inesc = 0 THEN IF kb <> 13 THEN pw = pw + 1
+                IF inesc = 1 AND kb >= 64 AND kb <= 126 AND kb <> 91 THEN inesc = 0   ' final byte of CSI ends it
+            NEXT k
+            IF pw > 0 THEN
+                rowcnt = rowcnt + 1
+                IF pw <> SW THEN badw = badw + 1: IF firstbad = 0 THEN firstbad = rowcnt
+            END IF
+            seg_st = i + 1
+        END IF
+    NEXT i
+    IF ncrlf > 0 THEN
+        PRINT "   rows (CRLF-split):"; rowcnt; "  expected printable width"; SW
+        IF badw > 0 THEN PRINT "   !! "; LTRIM$(STR$(badw)); " row(s) not"; SW; "wide (first: row"; firstbad; ")"
+        IF badw = 0 THEN PRINT "   !! full-width rows + CRLF => DOUBLE-ADVANCE (black bands). The loaders auto-"
+        IF badw = 0 THEN PRINT "      normalise this; store with NO line breaks (or LF-only) to keep it clean."
+    ELSE
+        PRINT "   rows: no line breaks (pure "; LTRIM$(STR$(SW)); "-col auto-wrap) -- OK"
+    END IF
+
+    ' --- SAUCE record (last 128 bytes) ---
+    IF LEN(raw) >= 128 THEN
+        DIM soff AS LONG
+        soff = LEN(raw) - 128
+        IF MID$(raw, soff + 1, 7) = "SAUCE00" THEN
+            DIM scols AS INTEGER, srows AS INTEGER
+            scols = ASC(raw, soff + 97) + ASC(raw, soff + 98) * 256
+            srows = ASC(raw, soff + 99) + ASC(raw, soff + 100) * 256
+            PRINT "   SAUCE: present  dims="; LTRIM$(STR$(scols)); "x"; LTRIM$(STR$(srows));
+            IF scols <> SW THEN PRINT "  !! cols should be"; SW; ELSE PRINT "  (cols OK)";
+            PRINT
+        ELSE
+            PRINT "   SAUCE: MISSING -- ANSI editors will guess 80 cols and mangle the layout."
+        END IF
+    END IF
+
+    ' --- render raw vs normalized; compare cells; map colours to sectors ---
+    norm = MaskNormalize$(raw)
+    DIM imgR AS LONG, imgN AS LONG, od AS LONG, os AS LONG
+    imgR = _NEWIMAGE(SW * CW, SH * CH, 32): imgN = _NEWIMAGE(SW * CW, SH * CH, 32)
+    od = _DEST
+    _DEST imgR: _FONT CH: CLS , BLACK: ANSI_Print (raw)
+    _DEST imgN: _FONT CH: CLS , BLACK: ANSI_Print (norm)
+    _DEST od
+    os = _SOURCE
+    DIM x AS INTEGER, y AS INTEGER, cR AS _UNSIGNED LONG, cN AS _UNSIGNED LONG, diffn AS LONG
+    DIM nu AS INTEGER, j AS INTEGER, found AS INTEGER, sid AS INTEGER, unmapped AS LONG
+    REDIM ucolr(1 TO 64) AS _UNSIGNED LONG, ucnt(1 TO 64) AS LONG, umap(1 TO 64) AS INTEGER
+    DIM seccnt(0 TO 9) AS LONG
+    FOR y = 0 TO SH - 1
+        FOR x = 0 TO SW - 1
+            _SOURCE imgR: cR = MaskSample~&(x, y)
+            _SOURCE imgN: cN = MaskSample~&(x, y)
+            IF cR <> cN THEN diffn = diffn + 1
+            IF cN <> BLACK THEN
+                sid = SectorByColor%(cN)
+                seccnt(sid) = seccnt(sid) + 1
+                IF sid = 0 THEN unmapped = unmapped + 1
+                found = 0
+                FOR j = 1 TO nu
+                    IF ucolr(j) = cN THEN ucnt(j) = ucnt(j) + 1: found = -1: EXIT FOR
+                NEXT j
+                IF NOT found AND nu < 64 THEN nu = nu + 1: ucolr(nu) = cN: ucnt(nu) = 1: umap(nu) = sid
+            END IF
+        NEXT x
+    NEXT y
+    _SOURCE os: _FREEIMAGE imgR: _FREEIMAGE imgN
+
+    PRINT "   cells changed by normalisation:"; diffn;
+    IF diffn > 0 THEN PRINT "  (<< raw is corrupted; the loader fixes it)" ELSE PRINT "  (already clean)"
+    IF issector THEN PRINT "   distinct painted colours (levels):"; nu ELSE PRINT "   distinct painted colours (regions):"; nu
+    FOR j = 1 TO nu
+        PRINT "     "; RIGHT$("000000" + HEX$(ucolr(j) AND &HFFFFFF), 6); "  x"; ucnt(j);
+        IF issector THEN
+            IF umap(j) > 0 THEN PRINT "  -> sector"; umap(j); "("; _TRIM$(SECTORS(umap(j)).label); ")" ELSE PRINT "  -> !! no sector (reads as 0)"
+        ELSE
+            PRINT "  (secret region)"
+        END IF
+    NEXT j
+    ' sector-mask-only checks (the secret mask's colours are region ids, not levels)
+    IF issector THEN
+        IF unmapped > 0 THEN PRINT "   !! "; LTRIM$(STR$(unmapped)); " cell(s) painted a colour that is no level's colour -> sector 0 (unwalkable rooms)."
+        DIM anyempty AS INTEGER
+        FOR sid = 1 TO 9
+            IF seccnt(sid) = 0 THEN
+                IF anyempty = 0 THEN PRINT "   !! unpainted level(s) (rooms there fall back to the sectors.txt rects):"
+                anyempty = -1
+                PRINT "        sector"; sid; " "; _TRIM$(SECTORS(sid).label)
+            END IF
+        NEXT sid
+        IF anyempty = 0 THEN PRINT "   all 9 levels painted."
+    END IF
+    PRINT
+END SUB
 
 ' Repaint the board after a debug action takes over the screen.
 SUB DebugMenuClose

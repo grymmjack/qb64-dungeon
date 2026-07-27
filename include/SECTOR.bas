@@ -21,6 +21,7 @@ SUB LoadSectorMask
     DIM mb AS STRING, mimg AS LONG, olddest AS LONG, oldsrc AS LONG, cnt AS INTEGER
     mb = _READFILE$("assets/ansi/board-132x50-sector-mask.ans")
     IF LEN(mb) = 0 THEN EXIT SUB
+    mb = MaskNormalize$(mb)                   ' strip CR/LF + reset each SGR run (see ansilint / MaskNormalize$)
     mimg = _NEWIMAGE(SW * CW, SH * CH, 32)
     olddest = _DEST: _DEST mimg: _FONT CH: CLS , BLACK
     ANSI_Print (mb)
@@ -272,8 +273,12 @@ FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
     IF SECTORMASK_ON THEN                          ' sector mask: a straight per-cell lookup (0-based, no -1)
         DIM cx AS INTEGER, cy AS INTEGER
         cx = x \ CW: cy = y \ CH
-        IF cx >= 0 AND cx <= 131 AND cy >= 0 AND cy <= 60 THEN SECTOR.get_by_xy = SECTORAT(cx, cy) ELSE SECTOR.get_by_xy = 0
-        EXIT FUNCTION
+        IF cx >= 0 AND cx <= 131 AND cy >= 0 AND cy <= 60 THEN
+            IF SECTORAT(cx, cy) > 0 THEN SECTOR.get_by_xy = SECTORAT(cx, cy): EXIT FUNCTION
+        END IF
+        ' mask is silent (black / unpainted) here -- fall through to the sectors.txt
+        ' rectangles so a partial mask never blocks a room floor (painted cells above
+        ' still win, so any-shape levels are preserved; rects only backstop the gaps).
     END IF
     FOR i = 1 TO 9
         s = SECTORS(i)
