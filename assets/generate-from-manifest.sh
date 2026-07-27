@@ -63,14 +63,24 @@ have() {   # any extension the game accepts already present?
 
 # --- build the work list -------------------------------------------------
 total=0; skipped=0
-while IFS='|' read -r path prompt; do
-    path="$(trim "$path")"; prompt="$(trim "$prompt")"
+# The manifest carries a LENGTH column for sfx and music now:
+#   sfx/move   | 0.12         | ...   -> a hard max in seconds
+#   music/foo  | 30-60s loop  | ...   -> a range; take the upper bound
+#   narration/x| text                 -> two fields, no length
+while IFS='|' read -r path f2 f3; do
+    path="$(trim "$path")"
     case "$path" in "$SECTION"/*) ;; *) continue;; esac
     name="${path#"$SECTION"/}"
     [ -z "$name" ] && continue
+    if [ "$SECTION" = narration ]; then
+        length=""; prompt="$(trim "$f2")"
+    else
+        length="$(trim "$f2")"; prompt="$(trim "$f3")"
+    fi
+    [ -z "$prompt" ] && continue
     want "$name" || continue
     if [ -z "${FORCE:-}" ] && have "$name"; then skipped=$((skipped+1)); continue; fi
-    printf '%s|%s\n' "$name" "$prompt" >> "$QUEUE"
+    printf '%s|%s|%s\n' "$name" "$length" "$prompt" >> "$QUEUE"
     total=$((total+1))
 done < <(grep -E "^$SECTION/" "$MAN")
 
@@ -82,7 +92,7 @@ echo "▶ $SECTION/$PACK: $total to generate, $skipped already present"
 
 # --- narration: one batched CPU run (Kokoro loads once, ~1s a line) ------
 if [ "$SECTION" = narration ]; then
-    sed 's/|/ | /' "$QUEUE" > "$QUEUE.lines"
+    awk -F'|' 'BEGIN{OFS=" | "} {print $1, $3}' "$QUEUE" > "$QUEUE.lines"
     echo "  voice $VOICE  pitch $PITCH  speed $SPEED  (CPU, no farm)"
     soundmon --narrate-file "$QUEUE.lines" --voice "$VOICE" --pitch "$PITCH" \
              --speed "$SPEED" $OGG_ARG --output-to "$DEST" --create-dirs
@@ -95,10 +105,21 @@ IFS=',' read -ra POOL <<< "$BOXES"
 take() { ( flock 9; head -n 1 "$QUEUE"; sed -i '1d' "$QUEUE" ) 9>"$LOCK"; }
 
 run_box() {
-    local srv="$1" job name prompt made t0 ext
+    local srv="$1" job name prompt made t0 ext fails=0
     while :; do
+        # Drop a box after 3 consecutive failures. Dynamic dispatch hands work to
+        # whoever is free, and a box that fails INSTANTLY is always free — so a
+        # broken box pulls jobs faster than healthy boxes finish them and eats
+        # the whole queue. Observed: one unresponsive box claimed and failed 30
+        # of 46 jobs while three working boxes shared the rest.
+        if [ "$fails" -ge 3 ]; then
+            echo "   ⛔ ${srv%%:*} dropped after 3 consecutive failures"
+            break
+        fi
         job="$(take)"; [ -z "$job" ] && break
-        name="${job%%|*}"; prompt="${job#*|}"
+        name="$(printf '%s' "$job" | cut -d'|' -f1)"
+        length="$(printf '%s' "$job" | cut -d'|' -f2)"
+        prompt="$(printf '%s' "$job" | cut -d'|' -f3-)"
         [ -n "$PROMPT_ADD" ] && prompt="$prompt, $PROMPT_ADD"
         t0=$SECONDS
         if [ "$SECTION" = music ]; then
@@ -108,14 +129,25 @@ run_box() {
             local bpm key secs
             bpm="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/ /,"",$3); print $3; exit}' "$DEST/tracks.txt" 2>/dev/null)"
             key="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/^ +| +$/,"",$4); print $4; exit}' "$DEST/tracks.txt" 2>/dev/null)"
-            secs="${SECONDS_DEF:-60}"
+            # "30-60s loop" -> 60 ; "3s one-shot" -> 3 ; anything else -> pack default
+            secs="$(printf '%s' "$length" | grep -oE '[0-9]+' | tail -1)"
+            secs="${secs:-${SECONDS_DEF:-60}}"
             soundmon "$prompt" --song --seconds "$secs" \
                      ${bpm:+--bpm $bpm} ${key:+--key "$key"} \
                      --name "$name" --server "$srv" $OGG_ARG \
                      --output-to "$DEST" --no-open >/dev/null 2>&1
         else
+            # Generate with headroom, then hard-cap. The model needs a couple of
+            # seconds of canvas to produce a convincing event; asking it for
+            # 0.12s directly yields a fragment. --max-seconds truncates after
+            # trimming, so what survives is the front of a real sound.
+            cap=""
+            case "$length" in
+                ''|*[!0-9.]*) : ;;
+                *) cap="--max-seconds $length" ;;
+            esac
             soundmon "$prompt" ${STYLE:+--style "$STYLE"} --seconds "${SECONDS_DEF:-3}" \
-                     --name "$name" --server "$srv" $OGG_ARG \
+                     $cap --name "$name" --server "$srv" $OGG_ARG \
                      --output-to "$DEST" --no-open >/dev/null 2>&1
         fi
         # soundmon names files <name>_<...>_00001_.<ext>; the game wants <name>.<ext>
@@ -126,8 +158,12 @@ run_box() {
             mv -f "$made" "$DEST/${name}.${ext}"
             find "$DEST" -maxdepth 1 \( -name "${name}_*.ogg" -o -name "${name}_*.wav" \) -delete
             echo "   ✅ ${srv%%:*}  ${name}.${ext}  ($((SECONDS - t0))s)"
+            fails=0
         else
-            echo "   ❌ ${srv%%:*}  ${name}  (nothing produced)"
+            # Put it back for a healthy box to pick up, rather than losing it.
+            printf '%s|%s\n' "$name" "${job#*|}" >> "$QUEUE"
+            fails=$((fails + 1))
+            echo "   ❌ ${srv%%:*}  ${name}  (nothing produced; requeued)"
         fi
     done
 }

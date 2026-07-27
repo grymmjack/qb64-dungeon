@@ -47,6 +47,7 @@ BOARD.png
 # Bitwig project files ARE tracked, but its extensionless marker is caught by the
 # top "* / !*.*" rule -- unignore it so the project folder is complete
 !assets/music/bitwig/**/.bitwig-project
+assets/music/bitwig/**/auto-backups/
 
 chamberdump.png
 chamberdump.txt
