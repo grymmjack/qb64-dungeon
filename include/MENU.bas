@@ -664,10 +664,11 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 43
+    CONST NSET = 45
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
+    ScanAllPacks                                    ' refresh the sfx/music pack lists (packs added on disk show up)
     Build3DPreviews                                 ' render the 3D dice previews once (rebuilt on set change)
     DO
         _LIMIT 60
@@ -772,6 +773,8 @@ SUB RunSettings
                     IF opt_solomins < 15 THEN opt_solomins = 30
                     IF opt_solomins > 30 THEN opt_solomins = 15
                     Sfx "select"
+                CASE 43: CycleSfxPack delta
+                CASE 44: CycleMusicPack delta
             END SELECT
         END IF
 
@@ -855,7 +858,9 @@ SUB RunSettings
                     opt_solomode = opt_solomode + 1: IF opt_solomode > 3 THEN opt_solomode = 0
                 CASE 42
                     opt_solomins = opt_solomins - 5: IF opt_solomins < 15 THEN opt_solomins = 30
-                CASE 43: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 43: CycleSfxPack 1
+                CASE 44: CycleMusicPack 1
+                CASE 45: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -1007,6 +1012,14 @@ SUB RunSettings
                 CASE 42
                     lbl = "  Solo Time": slider = TRUE
                     vtxt = _TRIM$(STR$(opt_solomins)) + " min"
+                CASE 43
+                    lbl = "SFX Pack": slider = TRUE
+                    vtxt = PackLabel$(opt_sfxpack)
+                    IF SFXPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack))) + "/" + _TRIM$(STR$(SFXPACK_N)) + ")"
+                CASE 44
+                    lbl = "Music Pack": slider = TRUE
+                    vtxt = PackLabel$(opt_musicpack)
+                    IF MUSICPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack))) + "/" + _TRIM$(STR$(MUSICPACK_N)) + ")"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

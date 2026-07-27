@@ -125,8 +125,9 @@ LoadTraps                        ' load the curio-chest traps (assets/data/traps
 LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
+ScanAllPacks                     ' find sfx/music PACK subdirs (themes); validate the saved pick
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
-InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/*); beeper covers the rest
+InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/[pack]/*); beeper covers the rest
 LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
 LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (assets/fonts/dicefonts.txt)
 player_class = 1                 ' default HERO until the player creates a character

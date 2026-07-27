@@ -474,12 +474,14 @@ SUB SaveSettings
     PRINT #f, "dicefont " + _TRIM$(STR$(opt_dicefont))
     PRINT #f, "solomode " + _TRIM$(STR$(opt_solomode))
     PRINT #f, "solomins " + _TRIM$(STR$(opt_solomins))
+    PRINT #f, "sfxpack " + opt_sfxpack             ' audio pack subdir names ("" = flat main dir)
+    PRINT #f, "musicpack " + opt_musicpack
     CLOSE #f
 END SUB
 
 
 SUB LoadSettings
-    DIM f AS INTEGER, ln AS STRING, k AS STRING, v AS INTEGER, sp AS INTEGER
+    DIM f AS INTEGER, ln AS STRING, k AS STRING, v AS INTEGER, sp AS INTEGER, vs AS STRING
     IF NOT _FILEEXISTS("dungeon-settings.dat") THEN EXIT SUB
     f = FREEFILE
     OPEN "dungeon-settings.dat" FOR INPUT AS #f
@@ -487,7 +489,7 @@ SUB LoadSettings
         LINE INPUT #f, ln
         sp = INSTR(ln, " ")
         IF sp > 0 THEN
-            k = LEFT$(ln, sp - 1): v = VAL(MID$(ln, sp + 1))
+            k = LEFT$(ln, sp - 1): v = VAL(MID$(ln, sp + 1)): vs = _TRIM$(MID$(ln, sp + 1))
             SELECT CASE k
                 CASE "music": opt_music = v
                 CASE "sfx": opt_sfx = v
@@ -534,6 +536,8 @@ SUB LoadSettings
                 CASE "dicefont": opt_dicefont = v
                 CASE "solomode": opt_solomode = v
                 CASE "solomins": opt_solomins = v
+                CASE "sfxpack": opt_sfxpack = vs        ' string value (subdir name; validated in ScanAllPacks)
+                CASE "musicpack": opt_musicpack = vs
             END SELECT
         END IF
     LOOP

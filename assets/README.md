@@ -105,6 +105,11 @@ variants per (key, event) as you like; one is chosen at random.
   for full-length music (a `.wav` is uncompressed and can be huge).
 - `vr-theme.rad` (intro) and `everdark.rad` (menu) are referenced directly by the menu
   code, not the playlist.
+- **Music packs (themes).** Any *sub-folder* here is a "pack": drop a themed set of the same
+  track filenames into `assets/music/<pack-name>/` and pick it in **SETTINGS → Music Pack**.
+  The selected pack wins; any track it doesn't include falls back to the flat main folder.
+  A subdir only counts as a pack if it holds at least one audio file. With no subdirs, the
+  flat folder is all there is (`(main)`).
 
 ---
 
@@ -127,6 +132,12 @@ of** that effect's tone beeper; effects with no file keep beeping. Volume follow
 Vol slider, and effects overlap. The full list of overridable names is in
 [`sfx/README.txt`](sfx/README.txt) — e.g. `hit`, `crit`, `treasure`, `chest`, `boom`,
 `hiss`, `win`, `lose`, `key`, `move`.
+
+**SFX packs (themes).** Just like music, any *sub-folder* is a pack: put a themed set of the
+same effect filenames in `assets/sfx/<pack-name>/` and choose it in **SETTINGS → SFX Pack**.
+The pack overrides only the effects it actually ships; anything missing falls back to the
+flat folder (and then to the beeper). A subdir counts as a pack only if it holds at least one
+audio file; with no subdirs you just get the flat folder (`(main)`).
 
 ---
 

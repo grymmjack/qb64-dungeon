@@ -347,6 +347,11 @@ DIM SHARED SECTORMASK_ON AS INTEGER               ' TRUE = geometry from board-.
 DIM SHARED CLI_COLOR AS INTEGER                   ' console (CLI-mode) colour output on/off; off strips pipe codes
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 ' settings (toggled from the SETTINGS menu) + the run timer
+' audio PACKS: a subdir under assets/sfx/ or assets/music/ that overrides the flat files
+' (a "theme"). "" = the flat main dir. Missing files in a pack fall back to the main dir.
+DIM SHARED opt_sfxpack AS STRING, opt_musicpack AS STRING
+DIM SHARED SFXPACKS(0 TO 32) AS STRING, SFXPACK_N AS INTEGER      ' index 0 = "(main)" ("") ; 1..N = subdir names
+DIM SHARED MUSICPACKS(0 TO 32) AS STRING, MUSICPACK_N AS INTEGER
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER
 DIM SHARED opt_voice AS INTEGER                                    ' typewriter text "voice" blips on/off
 DIM SHARED opt_musicvol AS INTEGER, opt_sfxvol AS INTEGER, opt_voicevol AS INTEGER  ' 0..10 volume sliders

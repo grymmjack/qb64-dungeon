@@ -292,6 +292,15 @@ Environment specifics that dictate this approach:
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.
 - **`assets/music/`** — `.rad` (Reality Adlib Tracker) tracks played via `_SNDOPEN`.
+  **Audio packs** (MUSIC.bas): a *sub-folder* of `assets/sfx/` or `assets/music/` is a "theme"
+  the player picks in SETTINGS (**SFX Pack** / **Music Pack**, `opt_sfxpack`/`opt_musicpack`,
+  persisted as strings). `ScanAllPacks` (startup + on SETTINGS open) enumerates subdirs via
+  `_FILES$` in two passes (collect names, then keep those with ≥1 audio file — so junk like a
+  `bitwig/` project dir is skipped) into `SFXPACKS()`/`MUSICPACKS()`; index 0 = `(main)` = the
+  flat dir. `RegisterSfx`/`ResolveMusic$` try the selected pack dir first and **fall back to the
+  flat dir** per file, so a partial pack overrides only what it ships. Cycling a pack reloads SFX
+  (`ReloadSfxPack`) or re-resolves the current track immediately. A saved pack whose folder has
+  since vanished falls back to `(main)` (validated in `ScanAllPacks`).
 - **`assets/data/`** — the editable **content database**: pipe-delimited `.txt` files,
   loaded at launch by **`include/DATA.bas`** into the same shared tables the old hard-coded
   `Init*` routines used. `DATA.bas` is the shared reader: `ReadDataFile(path)` fills `DLINE()`
