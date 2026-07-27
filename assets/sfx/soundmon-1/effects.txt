@@ -1,0 +1,36 @@
+# soundmon-1 SFX pack manifest -- name | seconds | max | style | prompt
+# Regenerate the whole pack with ./generate.sh  (needs soundmon on PATH)
+# Effect names come from assets/sfx/README.txt; a missing file falls back to
+# the flat folder, then to the built-in beeper.
+move        | 2 | 0.6 | footstep,dry | a single soft leather boot step on a damp stone dungeon floor, close mic
+bump        | 2 | 0 | impact,dry   | a dull muffled thud of a body walking into a stone wall
+door        | 3 | 0 | door         | a heavy wooden dungeon door swinging open on groaning iron hinges
+strongdoor  | 2 | 0 | impact,dry   | a heavy iron-banded door refusing to budge, dull metallic clunk, locked and solid
+breakdoor   | 3 | 0 | impact       | a wooden door smashed apart, splintering wood, violent shoulder charge
+secret      | 3 | 0 | machine      | heavy stone grinding as a hidden door slides open, deep rumble, ancient mechanism
+secretpass  | 3 | 0 | machine      | a stone slab sliding shut behind you, low grinding rock
+key         | 2 | 0 | pickup       | a heavy iron key lifted, bright metallic jingle, medieval
+idle        | 3 | 0 | ambience     | a distant water drip in a vast stone dungeon, faint cold air
+treasure    | 3 | 0 | pickup       | gold coins spilling and clinking into a pile, treasure hoard, rich and rewarding
+trap        | 2 | 0 | machine      | a hidden mechanical trap springing, sharp metallic snap and release
+hit         | 2 | 0 | impact       | a sword striking flesh and mail armour, meaty visceral combat impact
+miss        | 2 | 0.35 | whoosh,dry   | a blade swishing through empty air, fast sharp whoosh
+crit        | 2 | 0 | impact,big   | a devastating critical sword strike, bone crunch, heavy dramatic impact
+fumble      | 2 | 0 | impact,dry   | a dropped weapon clattering awkwardly across a stone floor
+search      | 2 | 0.6 | footstep,dry | hands brushing and tapping along a rough stone wall, grit and cloth
+win         | 6 | 0 | big          | a triumphant orchestral victory fanfare, heroic brass and timpani
+lose        | 6 | 0 | horror,big   | an ominous death sting, low strings and a deep funeral bell toll
+saveok      | 2 | 0 | magic        | a bright shimmering magical chime, a blessing granted, positive
+savebad     | 2 | 0 | magic,horror | a dull descending tone, magic fizzling out and failing, ominous
+chest       | 3 | 0 | door         | an old wooden treasure chest lid creaking slowly open, hinges groaning
+boom        | 3 | 0 | explosion,big | a massive explosion, deep bass boom, falling rubble and debris
+hiss        | 2 | 0 | whoosh       | poison darts firing from a wall, sharp hiss and rapid impacts
+fizzle      | 2 | 0 | magic        | a frost spell bursting, ice crackling and shattering, freezing cold
+alarm       | 3 | 0 | electric     | a magical arcane siren wailing, pulsing urgent alarm
+select      | 2 | 0.2 | ui           | a crisp menu select click, medieval metal and parchment, very short
+levelup     | 4 | 0 | magic,big    | a glorious ascending magical chime with a choir swell, empowering
+diceroll    | 2 | 0 | dry          | wooden dice rattling in a leather cup then tumbling out onto a table
+diceland    | 2 | 0.8 | dry          | dice coming to rest on a wooden table, small final clatter
+dice_edge   | 2 | 0.25 | dry          | a single sharp die clack bouncing once on wood
+dice_settle | 2 | 0.35 | dry          | a die wobbling to a stop on wood, tiny final tick
+voice       | 2 | 0.12 | ui           | one extremely short soft blip tick, single typewriter key, tiny

@@ -1,0 +1,76 @@
+# playlist.txt -- which music plays on each dungeon level. Format:  level | name
+# The file lives in assets/music/. Re-read at launch (F5); edit freely.
+#
+# Give a BARE NAME (no extension). The game plays the HIGHEST-quality file that
+# exists for that name, following a worst -> best ladder:
+#
+#     .mid -> .rad -> .s3m / .mod / .xm / .it -> .ogg / .mp3 -> .flac -> .wav
+#
+# So ship a tiny .mid/.rad and a downloadable "music pack" of .ogg/.wav upgrades it
+# in place -- just drop the better file in assets/music/ with the same name. A name
+# with no file on disk plays nothing; a level with no line keeps whatever's playing;
+# levels that share a name won't restart the track as you move between them.
+#
+# ===========================================================================
+#  soundmon-1 pack -- a DISTINCT theme per level, cut as a descent arc:
+#  arrival -> exploration -> the natural deep -> the dead -> the abandoned ->
+#  the oppressive -> the hostile -> the end. Each level changes the music, so
+#  descending always feels like it costs you something.
+#
+#  TO USE: copy this file to assets/music/playlist.txt, and copy (or symlink)
+#  the .wav files from assets/music/soundmon-1/ up into assets/music/ --
+#  playlist names resolve against assets/music/ itself, not a subfolder.
+#  (Unlike assets/sfx/, where a subfolder IS a selectable pack.)
+#
+#      cd assets/music
+#      cp soundmon-1/playlist.txt .
+#      ln -sf soundmon-1/*.wav .          # or cp, if you'd rather not symlink
+#
+#  All nine tracks are instrumental, 60s, generated with:
+#      cd assets/music/soundmon-1 && ./generate.sh
+#  Tempo/key/tags per track live in tracks.txt -- tune and re-run.
+# ===========================================================================
+
+# level | name
+1 | start
+2 | level1
+3 | caverns
+4 | level2
+5 | crypt
+6 | deeproads
+7 | everdark
+8 | inferno
+9 | dragonlair
+
+# ---- what each track is (from tracks.txt) --------------------------------
+# start       84bpm  D minor   lute + strings, mysterious, the adventure begins
+# level1      76bpm  A minor   low strings, sparse percussion, tense exploring
+# caverns     80bpm  E minor   dripping water, low wooden flute, natural & vast
+# level2      72bpm  C minor   ominous drones, distant choir, creeping dread
+# crypt       66bpm  D minor   pipe organ + male choir, funereal, undead
+# deeproads   70bpm  G minor   deep horns, echoing stone, ancient and lonely
+# everdark    60bpm  F minor   subterranean drones, oppressive, almost no melody
+# inferno    132bpm  E minor   war drums, brass stabs, chaotic and demonic
+# dragonlair  96bpm  Bb minor  massive orchestral, low brass, the hoard
+
+# ---- the ORIGINAL mapping, kept so you can fall back ----------------------
+# 1 | level2
+# 2 | level1
+# 3 | start
+# 4 | everdark
+# 5 | start
+# 6 | everdark
+# 7 | everdark
+# 8 | everdark
+# 9 | everdark
+
+# ---- quieter variant: fewer changes, reuses tracks across level pairs -----
+# 1 | start
+# 2 | start
+# 3 | caverns
+# 4 | caverns
+# 5 | crypt
+# 6 | deeproads
+# 7 | everdark
+# 8 | everdark
+# 9 | dragonlair

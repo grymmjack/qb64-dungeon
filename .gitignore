@@ -50,3 +50,6 @@ BOARD.png
 
 chamberdump.png
 chamberdump.txt
+
+# generation run logs (noise; regenerate any time)
+*.log
