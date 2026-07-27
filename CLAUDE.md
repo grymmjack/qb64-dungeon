@@ -131,7 +131,25 @@ Environment specifics that dictate this approach:
   `ClaimTreasure` all take a **room index** and read `ROOMS(rm)` (the level label still comes
   from `ROOMS(rm).sec` → `SECTORS`). `DrawTombstones` paints a headstone on each cleared room
   (via `cursor_draw`); dying calls `DropEverything` (gold + all special cards). `SECTOR`'s old
-  monster fields are now vestigial. **Hot-seat multiplayer** (`include/PLAYERS.bas`): SETTINGS
+  monster fields are now vestigial. **Chambers** (the big named halls, distinct from `ROOMS`):
+  `DetectChambers` (BOARD.bas, openness flood-fill from each label anchor) fills `CHAMBERAT(cx,cy)`
+  = chamber id; per the board game a chamber holds **3 monsters and NO treasure**. Stepping into a
+  fresh chamber (`cur_chamber` transition in the play loop, never on a room cell) fires
+  `ChamberEncounter(cid)`: ONE monster of that level rises (scratch `ROOMS(ROOM_N+2)` slot,
+  `is_chamber = TRUE` so `ClaimTreasure` grants no treasure but still `RecordKill`s), fought with
+  `DoCombat`; leave and re-enter for the next until `CHM_DEAD(cid) = 3`. `PickChamberGraves` seats
+  3 spread cells at detection; `DrawChamberGraves` paints up to `CHM_DEAD` headstones. The Main
+  Gallery / entrance (the chamber containing START) never spawns. The `[~]` debug overlay tints
+  every `CHAMBERAT>0` cell (magenta = spawning, green = 3 graves) — those are the trigger cells,
+  vs the magenta `+` crosses which are only label seeds. **Solo play modes** (`include/SOLO.bas`,
+  SETTINGS **Solo Mode**, single-player only): **Time Limit** (`opt_solomins` 30/25/20/15 min; time
+  out = lose), **Item Search** (`SoloPickQuest` marks the deepest rich hoard as `solo_item_room`;
+  claim it to win, two deaths = lose), **Monster Prey** (a level-6 `hunt_*` monster BFS-chases the
+  player one cell per step over `FULL_BOARD` so it uses secret doors — `HunterAdvance` fills
+  `HDIST`; it catching you = lose, you stepping onto it = `HunterFight` → kill respawns a fresh one).
+  `SoloTick` (play-loop, every frame) sets `solo_result` = `OUT_WIN`/`OUT_LOSE`; `DrawSoloHUD` is the
+  top status ribbon; solo state resets per run (`SoloReset`) and is not saved (loaded games play
+  normal). **Hot-seat multiplayer** (`include/PLAYERS.bas`): SETTINGS
   **Players** (1-4; >1 forces Boardgame ON). The active player's state IS the working globals;
   `PLAYERS(1..4)` parks each between turns via `Load/SaveActivePlayer`, `SetupPlayers` runs each
   through class-select + roll-up + `PromptName$`, `EndPlayerTurn`/`NextActivePlayer`/`AnnounceTurn`

@@ -170,6 +170,7 @@ SUB cursor_draw
     DrawTombstones                       ' grey headstones on cleared rooms
     DrawChamberGraves                    ' grey headstones for chamber monsters slain
     DrawEntities                         ' monster glyphs + recoverable loot (FOV-aware)
+    DrawHunter                           ' Monster Prey: the pursuing hunter token
     ' other hot-seat players' tokens -- drawn as their NUMBER (white on their colour)
     IF num_players > 1 THEN
         FOR p = 1 TO num_players

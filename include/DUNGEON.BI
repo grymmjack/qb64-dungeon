@@ -186,6 +186,24 @@ DIM SHARED CHM_DEAD(1 TO MAXCHAMBER) AS INTEGER   ' graves so far (0..3); 3 = ch
 DIM SHARED cur_chamber AS INTEGER                 ' chamber the player is currently inside (0 = none)
 DIM SHARED CHM_GX(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER   ' 3 spread grave cells per chamber
 DIM SHARED CHM_GY(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER
+
+' --- Solo play modes (single-player variants from the DUNGEON! manual) ---
+CONST SOLO_OFF = 0, SOLO_TIME = 1, SOLO_ITEM = 2, SOLO_PREY = 3
+DIM SHARED opt_solomode AS INTEGER      ' 0 off / 1 Time Limit / 2 Item Search / 3 Monster Prey
+DIM SHARED opt_solomins AS INTEGER      ' Time-Limit budget in minutes (30/25/20/15)
+DIM SHARED solo_on AS INTEGER           ' this run is actively running a solo mode
+DIM SHARED solo_result AS INTEGER       ' 0 continue / OUT_WIN / OUT_LOSE (set by SoloTick)
+DIM SHARED solo_msg AS STRING           ' why the solo run ended (shown on the lose/win banner)
+DIM SHARED solo_deaths AS INTEGER       ' reserved (Item Search reads deaths(1) directly)
+DIM SHARED solo_item_room AS INTEGER    ' ROOMS() index of the quest treasure (Item Search)
+DIM SHARED solo_item_name AS STRING
+DIM SHARED solo_item_lvl AS INTEGER
+DIM SHARED solo_found AS INTEGER
+DIM SHARED hunt_on AS INTEGER           ' Monster Prey: a hunter is loose
+DIM SHARED hunt_cx AS INTEGER, hunt_cy AS INTEGER
+DIM SHARED hunt_mon AS STRING, hunt_slot AS INTEGER, hunt_lvl AS INTEGER
+DIM SHARED hunt_lastmoves AS INTEGER    ' moves_made at the hunter's last step (1 step per player step)
+DIM SHARED HDIST(0 TO 131, 0 TO 60) AS INTEGER   ' BFS distance field for the hunter's pathing
 DIM SHARED LABELMASK(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> TRUE if a room label prints here (keep monsters off it)
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 DIM SHARED LBL_N AS INTEGER, LBL_X(1 TO 40) AS INTEGER, LBL_Y(1 TO 40) AS INTEGER, LBL_T(1 TO 40) AS STRING

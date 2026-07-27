@@ -71,6 +71,7 @@ opt_dice3d_set = 6: opt_mon_dice3d_set = 8    ' default 3D dice sets (overridden
 opt_dicefont = 4                              ' default dice numeral font index (overridden by save)
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
+opt_solomode = 0: opt_solomins = 30           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 30 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = LoadFile$("assets/ansi/_/board-132x60-no-labels.ans")   ' same map, with secret doors
@@ -163,6 +164,7 @@ FUNCTION PlayGame%
     DIM hint AS STRING
     DIM didload AS INTEGER
     didload = FALSE
+    SoloReset                        ' solo state off until a fresh run activates it (loaded games play normal)
     IF HasSave THEN                  ' a saved delve exists -- offer to continue it
         IF AskContinue THEN LoadGameApply: didload = TRUE
     END IF
@@ -213,6 +215,7 @@ FUNCTION PlayGame%
     END IF
     WaitKey
     IF NOT didload THEN AnnounceTurn cur_player   ' multiplayer: announce whose turn it is
+    IF NOT didload THEN SoloBegin                 ' single-player: arm the chosen solo challenge
     cursor_erase: cursor_draw
     DrawHUD: _DISPLAY
 
@@ -388,10 +391,19 @@ FUNCTION PlayGame%
             END IF
         END IF
 
-        IF dbg_on THEN cursor_erase: cursor_draw   ' redraw the board each frame so the debug crosshair can't ghost
+        IF solo_on THEN SoloTick                   ' solo challenge: timer / two-deaths / the hunter's step
+        IF dbg_on OR solo_on THEN cursor_erase: cursor_draw   ' redraw each frame so the crosshair / hunter token can't ghost
         DrawHUD
+        IF solo_on THEN DrawSoloHUD                 ' the solo status ribbon (timer / quest / hunter distance)
         IF dbg_on THEN DrawDebug
         _DISPLAY
+        IF solo_result = OUT_LOSE THEN
+            Banner "SOLO CHALLENGE LOST", solo_msg + "   [ press any key ]"
+            WaitKey
+            DeleteSave: PlayGame = OUT_LOSE: EXIT FUNCTION
+        ELSEIF solo_result = OUT_WIN THEN
+            DeleteSave: PlayGame = OUT_WIN: EXIT FUNCTION
+        END IF
     LOOP
 END FUNCTION
 
@@ -1155,6 +1167,14 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             line2 = "You claim the " + tname + " -- " + _TRIM$(STR$(ROOMS(rm).treasure)) + " GOLD!"
     END SELECT
     IF lvl >= 1 AND lvl <= 9 THEN lvl_gold(lvl) = lvl_gold(lvl) + (gold - goldbefore)
+    IF solo_on THEN                                        ' Item Search: claiming the quest treasure wins the solo run
+        IF opt_solomode = SOLO_ITEM AND rm = solo_item_room THEN
+            solo_found = TRUE
+            Sfx "levelup"
+            Banner "YOU FOUND IT -- the " + _TRIM$(solo_item_name) + "!", "Your solo treasure hunt is WON!   [ press any key ]"
+            solo_result = OUT_WIN
+        END IF
+    END IF
     '--- chronicle the kill + its haul for the Game Menu screens ---
     DIM haulitem AS STRING
     IF itm >= 1 AND itm <= 11 THEN haulitem = tname: g_items_looted = g_items_looted + 1
@@ -1660,6 +1680,7 @@ END SUB
 '$INCLUDE:'include/JUICE.bas'
 '$INCLUDE:'include/STATS.bas'
 '$INCLUDE:'include/CHRONICLE.bas'
+'$INCLUDE:'include/SOLO.bas'
 '$INCLUDE:'include/SAVEGAME.bas'
 '$INCLUDE:'include/FLAVOR.bas'
 '$INCLUDE:'include/CTEXT.bas'

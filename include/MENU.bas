@@ -664,7 +664,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 41
+    CONST NSET = 43
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -762,6 +762,16 @@ SUB RunSettings
                     IF opt_flexstats < 0 THEN opt_flexstats = 2
                     IF opt_flexstats > 2 THEN opt_flexstats = 0
                     Sfx "select"
+                CASE 41
+                    opt_solomode = opt_solomode + delta
+                    IF opt_solomode < 0 THEN opt_solomode = 3
+                    IF opt_solomode > 3 THEN opt_solomode = 0
+                    Sfx "select"
+                CASE 42
+                    opt_solomins = opt_solomins + delta * 5
+                    IF opt_solomins < 15 THEN opt_solomins = 30
+                    IF opt_solomins > 30 THEN opt_solomins = 15
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -841,7 +851,11 @@ SUB RunSettings
                 CASE 40
                     opt_bloodstrength = opt_bloodstrength + 1
                     IF opt_bloodstrength > 10 THEN opt_bloodstrength = 0
-                CASE 41: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 41
+                    opt_solomode = opt_solomode + 1: IF opt_solomode > 3 THEN opt_solomode = 0
+                CASE 42
+                    opt_solomins = opt_solomins - 5: IF opt_solomins < 15 THEN opt_solomins = 30
+                CASE 43: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -981,6 +995,18 @@ SUB RunSettings
                 CASE 40
                     lbl = "Blood": slider = TRUE
                     IF opt_bloodstrength <= 0 THEN vtxt = "none" ELSE vtxt = _TRIM$(STR$(opt_bloodstrength)) + " / 10"
+                CASE 41
+                    lbl = "Solo Mode"
+                    SELECT CASE opt_solomode
+                        CASE 1: vtxt = "Time Limit"
+                        CASE 2: vtxt = "Item Search"
+                        CASE 3: vtxt = "Monster Prey"
+                        CASE ELSE: vtxt = "off (normal play)"
+                    END SELECT
+                    IF opt_solomode > 0 AND num_players > 1 THEN vtxt = vtxt + " (1 player only)"
+                CASE 42
+                    lbl = "  Solo Time": slider = TRUE
+                    vtxt = _TRIM$(STR$(opt_solomins)) + " min"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
