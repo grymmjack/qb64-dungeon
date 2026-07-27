@@ -1,0 +1,37 @@
+# ============================================================================
+#  TUNING -- gameplay balance knobs. Change a value, press F5, no code edit.
+#  Any key you omit keeps its shipped default (shown here). Unknown keys ignored.
+#
+#  Format:  KEY | value        ( '#' = comment; values are whole numbers )
+# ============================================================================
+
+# --- healing potions (D&D mode) ---
+POTION_SMALL_DIE      | 4     # Small potion heals 1dN
+POTION_LARGE_DIE      | 8     # Large potion heals 1dN...
+POTION_LARGE_BONUS    | 1     # ...+ this (Large = 1d8+1)
+TREASURE_POTION_PCT   | 15    # % chance a slain hoard also yields a potion
+TREASURE_LARGE_PCT    | 25    # when one drops, % chance it's the LARGE kind
+LEVELCLEAR_LARGE_PCT  | 30    # % chance clearing a level yields a Large potion
+
+# --- wandering monsters / loitering ---
+IDLE_ENCOUNTER_PCT    | 30    # % chance a wanderer appears once the loiter meter is full
+LOITER_THRESHOLD      | 3     # loiter ticks before a wander check
+WANDER_GOLD_DIV       | 6     # wanderer gold = level treasure / this (>=1; anti-farming)
+
+# --- progression / curios ---
+XP_PER_KILL_LVL       | 10    # XP per kill = monster's level * this (+ boss bonus)
+CHEST_PCT             | 20    # % chance a curio turns up after a room fight
+CHEST_TRAP_PCT        | 25    # % chance a curio chest is trapped
+CURIO_PATH_PCT        | 3     # % chance per corridor step a curio turns up
+CURIO_COOLDOWN        | 16    # minimum steps between path curios
+
+# --- magic siren (trap effect) ---
+SIREN_ENCOUNTER_BOOST | 20    # + to the wander % while a siren wails
+SIREN_MOVE_PCT        | 15    # % chance each step (siren wailing) to draw an encounter
+
+# --- fleeing combat ---
+FLEE_FAIL_BASE        | 15    # % a flee fails on level 1 (monster drags you back)
+FLEE_FAIL_STEP        | 5     # + this % per level deeper (level 9 = 15 + 8*5 = 55%)
+
+# --- movement ---
+MOVE_MAX              | 5     # spaces per turn in Boardgame mode (>=1)

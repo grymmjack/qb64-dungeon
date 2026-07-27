@@ -10,20 +10,20 @@ CONST OUT_WIN = 1, OUT_LOSE = 2, OUT_FLEE = 3
 ' --- the entrance chamber (cell coords) ---
 CONST START_CX = 59, START_CY = 24
 ' --- gameplay tuning (potions, encounters, XP) ---
-CONST POTION_SMALL_DIE = 4        ' Small Healing Potion heals 1d4
-CONST POTION_LARGE_DIE = 8        ' Large Healing Potion heals 1d8...
-CONST POTION_LARGE_BONUS = 1      ' ...+1  (Large potion heals 1d8+1)
-CONST TREASURE_POTION_PCT = 15    ' % chance a slain hoard also yields a potion -- kept lean
-CONST TREASURE_LARGE_PCT = 25     ' when a hoard potion drops, % chance it's the LARGE (1d8+1) kind
-CONST LEVELCLEAR_LARGE_PCT = 30   ' % chance clearing a level also yields a Large potion
-CONST IDLE_ENCOUNTER_PCT = 30     ' % chance a wanderer appears once the loiter meter is full
-CONST LOITER_THRESHOLD = 3        ' loiter ticks (searches / idle beats) before a wander check
-CONST WANDER_GOLD_DIV = 6         ' wandering-monster gold = level treasure / this (lean -- no farming)
-CONST XP_PER_KILL_LVL = 10        ' XP per slain monster = its dungeon level * this (+ boss bonus)
-CONST CHEST_PCT = 20              ' % chance a curio turns up after a room fight
-CONST CHEST_TRAP_PCT = 25         ' % chance a curio CHEST is trapped
-CONST CURIO_PATH_PCT = 3          ' % chance per explored corridor step that a curio turns up
-CONST CURIO_COOLDOWN = 16         ' minimum steps between path curios (anti-spam)
+DIM SHARED POTION_SMALL_DIE AS INTEGER  ' Small Healing Potion heals 1d4
+DIM SHARED POTION_LARGE_DIE AS INTEGER  ' Large Healing Potion heals 1d8...
+DIM SHARED POTION_LARGE_BONUS AS INTEGER  ' ...+1  (Large potion heals 1d8+1)
+DIM SHARED TREASURE_POTION_PCT AS INTEGER  ' % chance a slain hoard also yields a potion -- kept lean
+DIM SHARED TREASURE_LARGE_PCT AS INTEGER  ' when a hoard potion drops, % chance it's the LARGE (1d8+1) kind
+DIM SHARED LEVELCLEAR_LARGE_PCT AS INTEGER  ' % chance clearing a level also yields a Large potion
+DIM SHARED IDLE_ENCOUNTER_PCT AS INTEGER  ' % chance a wanderer appears once the loiter meter is full
+DIM SHARED LOITER_THRESHOLD AS INTEGER  ' loiter ticks (searches / idle beats) before a wander check
+DIM SHARED WANDER_GOLD_DIV AS INTEGER  ' wandering-monster gold = level treasure / this (lean -- no farming)
+DIM SHARED XP_PER_KILL_LVL AS INTEGER  ' XP per slain monster = its dungeon level * this (+ boss bonus)
+DIM SHARED CHEST_PCT AS INTEGER  ' % chance a curio turns up after a room fight
+DIM SHARED CHEST_TRAP_PCT AS INTEGER  ' % chance a curio CHEST is trapped
+DIM SHARED CURIO_PATH_PCT AS INTEGER  ' % chance per explored corridor step that a curio turns up
+DIM SHARED CURIO_COOLDOWN AS INTEGER  ' minimum steps between path curios (anti-spam)
 TYPE CURIO_T
     kind AS STRING * 12           ' the mechanic (dispatched in code)
     nm AS STRING * 24             ' display name
@@ -39,10 +39,10 @@ DIM SHARED opt_artstyle AS INTEGER        ' 0 = ANSI only, 1 = Pixel Art, 2 = Hy
 DIM SHARED SPR_PATH(1 TO 200) AS STRING   ' loaded-sprite cache: path -> image handle (0 = missing)
 DIM SHARED SPR_H(1 TO 200) AS LONG
 DIM SHARED SPR_N AS INTEGER
-CONST SIREN_ENCOUNTER_BOOST = 20  ' + to the wandering-encounter % while a magic siren wails
-CONST SIREN_MOVE_PCT = 15         ' % chance each step (while a siren wails) to draw an encounter
-CONST FLEE_FAIL_BASE = 15         ' % chance a flee attempt fails (monster drags you back) on level 1
-CONST FLEE_FAIL_STEP = 5          ' + this % per dungeon level deeper (level 9 = 15 + 8*5 = 55%)
+DIM SHARED SIREN_ENCOUNTER_BOOST AS INTEGER  ' + to the wandering-encounter % while a magic siren wails
+DIM SHARED SIREN_MOVE_PCT AS INTEGER  ' % chance each step (while a siren wails) to draw an encounter
+DIM SHARED FLEE_FAIL_BASE AS INTEGER  ' % chance a flee attempt fails (monster drags you back) on level 1
+DIM SHARED FLEE_FAIL_STEP AS INTEGER  ' + this % per dungeon level deeper (level 9 = 15 + 8*5 = 55%)
 
 TYPE SECTOR
     start_x AS INTEGER
@@ -356,7 +356,7 @@ DIM SHARED opt_heroicstats AS INTEGER ' TRUE: roll abilities 4d6-drop-lowest; FA
 DIM SHARED opt_flexstats AS INTEGER   ' 0 = OFF (rolled order), 1 = Assign roll (swap), 2 = Point distribution
 DIM SHARED opt_boardgame AS INTEGER   ' TRUE: roll dice + step-limited turns; FALSE: free "computer game" movement
 DIM SHARED opt_movedice AS INTEGER    ' Boardgame move style: TRUE = roll 1d6 (house variant); FALSE = up to MOVE_MAX, your choice (the DUNGEON! rule)
-CONST MOVE_MAX = 5                     ' DUNGEON!: a player moves up to 5 spaces per turn, their choice -- no movement die
+DIM SHARED MOVE_MAX AS INTEGER  ' DUNGEON!: a player moves up to 5 spaces per turn, their choice -- no movement die
 DIM SHARED opt_fov AS INTEGER         ' TRUE: line-of-sight fog-of-war (explore the map; start in the first room)
 ' ---- dice look & feel (all persisted; see DiceColors / DrawFontDie) ----
 DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/Blood/Emerald/Sapphire/Gold/Amethyst)

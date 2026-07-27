@@ -13,6 +13,45 @@
 '  blank lines are ignored.
 ' ============================================================================
 
+' Gameplay TUNING knobs (potion/encounter/flee/XP/curio/loiter/move/siren) -- shipped
+' defaults, then overridden by assets/data/tuning.txt (KEY | value). Call once at startup
+' BEFORE any play (some, e.g. WANDER_GOLD_DIV, are divisors -- must never be left 0).
+SUB LoadTuning
+    POTION_SMALL_DIE = 4: POTION_LARGE_DIE = 8: POTION_LARGE_BONUS = 1
+    TREASURE_POTION_PCT = 15: TREASURE_LARGE_PCT = 25: LEVELCLEAR_LARGE_PCT = 30
+    IDLE_ENCOUNTER_PCT = 30: LOITER_THRESHOLD = 3: WANDER_GOLD_DIV = 6
+    XP_PER_KILL_LVL = 10: CHEST_PCT = 20: CHEST_TRAP_PCT = 25
+    CURIO_PATH_PCT = 3: CURIO_COOLDOWN = 16
+    SIREN_ENCOUNTER_BOOST = 20: SIREN_MOVE_PCT = 15
+    FLEE_FAIL_BASE = 15: FLEE_FAIL_STEP = 5: MOVE_MAX = 5
+    DIM i AS INTEGER, k AS STRING, v AS INTEGER
+    ReadDataFile "assets/data/tuning.txt"
+    FOR i = 1 TO DLINE_N
+        k = UCASE$(DField$(DLINE(i), 1)): v = VAL(DField$(DLINE(i), 2))
+        SELECT CASE k
+            CASE "POTION_SMALL_DIE": POTION_SMALL_DIE = v
+            CASE "POTION_LARGE_DIE": POTION_LARGE_DIE = v
+            CASE "POTION_LARGE_BONUS": POTION_LARGE_BONUS = v
+            CASE "TREASURE_POTION_PCT": TREASURE_POTION_PCT = v
+            CASE "TREASURE_LARGE_PCT": TREASURE_LARGE_PCT = v
+            CASE "LEVELCLEAR_LARGE_PCT": LEVELCLEAR_LARGE_PCT = v
+            CASE "IDLE_ENCOUNTER_PCT": IDLE_ENCOUNTER_PCT = v
+            CASE "LOITER_THRESHOLD": LOITER_THRESHOLD = v
+            CASE "WANDER_GOLD_DIV": IF v >= 1 THEN WANDER_GOLD_DIV = v    ' guard: it's a divisor
+            CASE "XP_PER_KILL_LVL": XP_PER_KILL_LVL = v
+            CASE "CHEST_PCT": CHEST_PCT = v
+            CASE "CHEST_TRAP_PCT": CHEST_TRAP_PCT = v
+            CASE "CURIO_PATH_PCT": CURIO_PATH_PCT = v
+            CASE "CURIO_COOLDOWN": CURIO_COOLDOWN = v
+            CASE "SIREN_ENCOUNTER_BOOST": SIREN_ENCOUNTER_BOOST = v
+            CASE "SIREN_MOVE_PCT": SIREN_MOVE_PCT = v
+            CASE "FLEE_FAIL_BASE": FLEE_FAIL_BASE = v
+            CASE "FLEE_FAIL_STEP": FLEE_FAIL_STEP = v
+            CASE "MOVE_MAX": IF v >= 1 THEN MOVE_MAX = v
+        END SELECT
+    NEXT i
+END SUB
+
 ' Standard 16-colour VGA/CGA RGB -> ANSI foreground SGR code string (aixterm bright 90-97).
 ' Used to emit .ans starter masks whose colours ANSI_Print renders back to the exact palette.
 FUNCTION SGRForColor$ (col AS _UNSIGNED LONG)

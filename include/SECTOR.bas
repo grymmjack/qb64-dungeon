@@ -236,28 +236,29 @@ END FUNCTION
 
 ' Authentic DUNGEON! win totals: Hero/Elf 10k, Superhero 20k, Wizard 30k.
 
+' Class balance now lives in assets/data/classes.txt -- edit + F5. Thin wrapper.
 SUB InitClasses
-    ' Oldschool fields: combat_bonus/secret_bonus.  D&D fields: hp / tohit / dmg (die sides) / ac.
-    ' --- tune the D&D balance here ---
-    CLASSES(1).name = "HERO": CLASSES(1).gold_goal = 10000
-    CLASSES(1).combat_bonus = 0: CLASSES(1).secret_bonus = 0
-    CLASSES(1).blurb = "Solid fighter. Finds secret doors on a 1-2. Needs 10,000 gold."
-    CLASSES(1).hp = 24: CLASSES(1).tohit = 2: CLASSES(1).dmg = 8: CLASSES(1).ac = 15: CLASSES(1).hitdie = 10
+    LoadClasses
+END SUB
 
-    CLASSES(2).name = "ELF": CLASSES(2).gold_goal = 10000
-    CLASSES(2).combat_bonus = -1: CLASSES(2).secret_bonus = 2
-    CLASSES(2).blurb = "Weakest fighter, but finds secret doors on a 1-4. Needs 10,000."
-    CLASSES(2).hp = 16: CLASSES(2).tohit = 1: CLASSES(2).dmg = 6: CLASSES(2).ac = 13: CLASSES(2).hitdie = 8
-
-    CLASSES(3).name = "SUPERHERO": CLASSES(3).gold_goal = 20000
-    CLASSES(3).combat_bonus = 0: CLASSES(3).secret_bonus = 0
-    CLASSES(3).blurb = "The deadliest warrior -- slays monsters on low rolls. Needs 20,000 gold."
-    CLASSES(3).hp = 32: CLASSES(3).tohit = 3: CLASSES(3).dmg = 10: CLASSES(3).ac = 17: CLASSES(3).hitdie = 12
-
-    CLASSES(4).name = "WIZARD": CLASSES(4).gold_goal = 30000
-    CLASSES(4).combat_bonus = 0: CLASSES(4).secret_bonus = 1
-    CLASSES(4).blurb = "Slays with spells; can't use Magic Swords. Needs 30,000 gold."
-    CLASSES(4).hp = 14: CLASSES(4).tohit = 2: CLASSES(4).dmg = 10: CLASSES(4).ac = 12: CLASSES(4).hitdie = 6
+SUB LoadClasses
+    DIM i AS INTEGER, id AS INTEGER
+    ReadDataFile "assets/data/classes.txt"
+    FOR i = 1 TO DLINE_N
+        id = VAL(DField$(DLINE(i), 1))
+        IF id >= 1 AND id <= 4 THEN
+            CLASSES(id).name = DField$(DLINE(i), 2)
+            CLASSES(id).gold_goal = VAL(DField$(DLINE(i), 3))
+            CLASSES(id).combat_bonus = VAL(DField$(DLINE(i), 4))
+            CLASSES(id).secret_bonus = VAL(DField$(DLINE(i), 5))
+            CLASSES(id).hp = VAL(DField$(DLINE(i), 6))
+            CLASSES(id).tohit = VAL(DField$(DLINE(i), 7))
+            CLASSES(id).dmg = VAL(DField$(DLINE(i), 8))
+            CLASSES(id).ac = VAL(DField$(DLINE(i), 9))
+            CLASSES(id).hitdie = VAL(DField$(DLINE(i), 10))
+            CLASSES(id).blurb = DField$(DLINE(i), 11)
+        END IF
+    NEXT i
 END SUB
 
 

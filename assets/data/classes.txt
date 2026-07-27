@@ -1,0 +1,16 @@
+# ============================================================================
+#  CLASSES -- the 4 playable adventurers (Dungeon! + this game's D&D mode).
+#
+#  Oldschool fields: combat_bonus (added to the 2d6 attack roll), secret_bonus
+#  (edge at finding secret doors). D&D fields: hp (base max), tohit (d20 bonus),
+#  dmg (damage-die sides), ac (armour class), hitdie (HP die at char creation).
+#
+#  Format:  id | name | gold_goal | combat_bonus | secret_bonus | hp | tohit | dmg | ac | hitdie | blurb
+#  ( id 1-4; blurb is the last field so it may contain commas; fields trimmed; '#' = comment )
+# ============================================================================
+
+# id | name      | goal  | cbt | sec | hp | th | dmg | ac | hd | blurb
+1 | HERO      | 10000 |  0 | 0 | 24 | 2 |  8 | 15 | 10 | Solid fighter. Finds secret doors on a 1-2. Needs 10,000 gold.
+2 | ELF       | 10000 | -1 | 2 | 16 | 1 |  6 | 13 |  8 | Weakest fighter, but finds secret doors on a 1-4. Needs 10,000.
+3 | SUPERHERO | 20000 |  0 | 0 | 32 | 3 | 10 | 17 | 12 | The deadliest warrior -- slays monsters on low rolls. Needs 20,000 gold.
+4 | WIZARD    | 30000 |  0 | 1 | 14 | 2 | 10 | 12 |  6 | Slays with spells; can't use Magic Swords. Needs 30,000 gold.

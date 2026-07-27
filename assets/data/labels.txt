@@ -1,0 +1,50 @@
+# ============================================================================
+#  LABELS -- the text drawn on the board (level numbers come from the art; these
+#  are the named-hall labels: START / ARMORY / THE CRYPT / ...). Multi-word names
+#  are split across rows (one word per line) so they stack under each other.
+#
+#  Positions are in CELLS, 0-based (col,row) -- the same coords the [~] debug
+#  mouse readout shows, and the same as chambers.txt / the masks.
+#
+#  Format:  col | row | text        ( '#' = comment; text is the last field )
+# ============================================================================
+
+# col | row | text
+ 57 | 23 | START
+
+ 57 | 25 | MAIN
+ 56 | 26 | GALLERY
+ 
+ 14 | 10 | ARMORY
+
+ 47 |  7 | THE
+ 47 |  8 | CRYPT
+
+ 83 |  9 | WIZ'S
+ 84 | 10 | LAB
+
+ 93 |  7 | WIZ'S
+ 93 |  8 | TREASURE
+
+  3 | 26 | KITCHEN
+
+ 18 | 23 | GUARD
+ 18 | 24 | ROOM
+
+ 18 | 41 | STORE
+ 18 | 42 | ROOM
+
+ 49 | 39 | TORTURE
+ 49 | 40 | CHAMBER
+
+ 88 | 42 | QUEEN'S
+ 88 | 43 | ANNEX
+
+ 87 | 34 | QUEEN'S
+ 87 | 35 | TREASURE
+
+ 90 | 27 | KING'S
+ 88 | 28 | LIBRARY
+
+104 | 21 | KING'S
+104 | 22 | TREASURE

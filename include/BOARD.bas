@@ -1085,34 +1085,20 @@ END SUB
 
 ' The board's room labels live in one data table (LBL_*), used both to render them
 ' and to build LABELMASK -- so monster glyphs can be kept off the label cells.
+' Board labels now live in assets/data/labels.txt (col | row | text) -- edit + F5.
 SUB InitLabels
     LBL_N = 0
-    AddLabel 57, 23, "START"
-    AddLabel 57, 25, "MAIN"
-    AddLabel 56, 26, "GALLERY"
-    AddLabel 14, 10, "ARMORY"
-    AddLabel 47, 7, "THE"
-    AddLabel 47, 8, "CRYPT"
-    AddLabel 83, 9, "WIZ'S"
-    AddLabel 84, 10, "LAB"
-    AddLabel 93, 7, "WIZ'S"
-    AddLabel 93, 8, "TREASURE"
-    AddLabel 3, 26, "KITCHEN"
-    AddLabel 18, 23, "GUARD"
-    AddLabel 18, 24, "ROOM"
-    AddLabel 18, 41, "STORE"
-    AddLabel 18, 42, "ROOM"
-    AddLabel 49, 39, "TORTURE"
-    AddLabel 49, 40, "CHAMBER"
-    AddLabel 88, 42, "QUEEN'S"
-    AddLabel 88, 43, "ANNEX"
-    AddLabel 87, 34, "QUEEN'S"
-    AddLabel 87, 35, "TREASURE"
-    AddLabel 90, 27, "KING'S"
-    AddLabel 88, 28, "LIBRARY"
-    AddLabel 104, 21, "KING'S"
-    AddLabel 104, 22, "TREASURE"
+    LoadLabels
     BuildLabelMask
+END SUB
+
+SUB LoadLabels
+    DIM i AS INTEGER, txt AS STRING
+    ReadDataFile "assets/data/labels.txt"
+    FOR i = 1 TO DLINE_N
+        txt = DField$(DLINE(i), 3)
+        IF LEN(txt) > 0 THEN AddLabel VAL(DField$(DLINE(i), 1)), VAL(DField$(DLINE(i), 2)), txt
+    NEXT i
 END SUB
 
 SUB AddLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING)

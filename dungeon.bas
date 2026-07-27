@@ -3,13 +3,42 @@
 '  Vertical slice: INTRO -> MENU -> PLAY (turn/dice movement + combat) -> END
 '
 '  Build:  qb64pe -w -x dungeon.bas -o dungeon.run   (run from repo root)
+'  Run `dungeon.run --help` for command-line modes.
 ' ============================================================================
+' a console (hidden in normal play) so `dungeon.run --help` can print to the terminal:
+$CONSOLE
 '$INCLUDE:'include/ansi/ANSIPrint.bi'   ' vendored ANSI renderer (decoupled from Toolbox64 submodule); file reads use _READFILE$
 
 '$INCLUDE:'include/DUNGEON.BI'
 '$INCLUDE:'include/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
 '$INCLUDE:'include/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
 SW = 132: SH = 51: CW = 8: CH = 16
+
+' --- CLI: `dungeon.run --help` (or -h) lists the command-line modes, then exits ---
+DIM cli AS INTEGER, wanthelp AS INTEGER
+FOR cli = 1 TO _COMMANDCOUNT
+    SELECT CASE UCASE$(COMMAND$(cli))
+        CASE "--HELP", "-H", "HELP", "/?", "/H": wanthelp = -1
+    END SELECT
+NEXT cli
+IF wanthelp THEN
+    _DEST _CONSOLE
+    PRINT "DUNGEON!  --  a QB64PE adaptation of TSR's DUNGEON! (1975)"
+    PRINT
+    PRINT "usage: dungeon.run [MODE]"
+    PRINT "  (no MODE launches the game)"
+    PRINT
+    PRINT "Dev / diagnostic modes (render or write a file, then exit):"
+    PRINT "  chamberdump   detected chambers -> chamberdump.png (+ .txt bounding boxes)"
+    PRINT "  fogdump       fogged board + secret-region overlay -> fogdump.png / -regions.png (+ stats .txt)"
+    PRINT "  maskgen       starter secret-door mask from the flood -> assets/ansi/board-132x50-secret-mask.ans"
+    PRINT "  sectorgen     starter sector mask from the rects     -> assets/ansi/board-132x50-sector-mask.ans"
+    PRINT "  --help, -h    show this help"
+    PRINT
+    PRINT "Everything is data: edit assets/data/*.txt and assets/ansi/*-mask.ans, then rebuild (F5)."
+    SYSTEM
+END IF
+_CONSOLE OFF                            ' normal run: hide the console, go graphics
 
 ' collision palette (must match the board ANSI art exactly)
 YELLOW = _RGB32(&HFF, &HFF, &H55)
@@ -74,6 +103,7 @@ opt_solomode = 0: opt_solomins = 30           ' solo challenge: 0 off / 1 Time /
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
 BOARD_ANSI = _READFILE$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
+LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
 InitSectors
 InitClasses
 InitMonsterTables
