@@ -357,7 +357,10 @@ FUNCTION PlayGame%
         IF k = "G" AND num_players = 1 THEN SaveAndToast: idle_ticks = 0
         IF k = "?" OR k = "/" THEN ShowKeys
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
-        IF k = "~" OR k = "`" THEN dbg_on = NOT dbg_on
+        IF k = "~" OR k = "`" THEN
+            dbg_on = NOT dbg_on
+            IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY   ' wipe the frozen debug overlay off the board
+        END IF
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1

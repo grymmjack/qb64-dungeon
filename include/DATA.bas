@@ -13,6 +13,14 @@
 '  blank lines are ignored.
 ' ============================================================================
 
+' Parse a "RRGGBB" (or "#RRGGBB") hex colour string to _RGB32. Black on a bad value.
+FUNCTION HexRGB~& (h AS STRING)
+    DIM s AS STRING
+    s = _TRIM$(h): IF LEFT$(s, 1) = "#" THEN s = MID$(s, 2)
+    IF LEN(s) < 6 THEN HexRGB~& = _RGB32(0, 0, 0): EXIT FUNCTION
+    HexRGB~& = _RGB32(VAL("&H" + MID$(s, 1, 2)), VAL("&H" + MID$(s, 3, 2)), VAL("&H" + MID$(s, 5, 2)))
+END FUNCTION
+
 ' Field n (1-based) of a pipe-delimited line, trimmed. "" if there aren't that many.
 FUNCTION DField$ (ln AS STRING, n AS INTEGER)
     DIM s AS STRING, p AS INTEGER, i AS INTEGER

@@ -1,0 +1,23 @@
+# ============================================================================
+#  SECTORS -- the 9 dungeon levels as coloured rectangles on the board.
+#
+#  Each sector is a rectangle (in CELLS, 1-based col/row) with a COLOUR that must
+#  match the room-block colour the board art uses for that level -- collision and
+#  "which level am I on" both resolve by testing position against these rects and
+#  matching this colour (SECTOR.get_by_xy / in_room). Change the art's level colour
+#  and you MUST change it here too, or movement silently breaks.
+#
+#  Format:  id | label | col1 | row1 | col2 | row2 | RRGGBB
+#  ( id 1-9; RRGGBB = 6 hex digits, '#' optional; fields are trimmed; '#' line = comment )
+# ============================================================================
+
+# id | label                       | c1 | r1  | c2  | r2  | colour
+1  | LEVEL 1 - MAIN GALLERY         | 41 | 17  | 79  | 32  | 55FF55
+2  | LEVEL 2 - GUARD ROOM           |  1 | 17  | 40  | 33  | 00AA00
+3  | LEVEL 3 - ARMORY               |  1 |  1  | 34  | 16  | AA0000
+4  | LEVEL 4 - STORE ROOM           |  1 | 34  | 40  | 50  | FF5555
+5  | LEVEL 5 - TORTURE CHAMBER      | 41 | 33  | 80  | 50  | FF55FF
+6  | LEVEL 6 - KING'S QUARTERS      | 80 | 17  | 117 | 32  | 00AAAA
+7  | LEVEL 7 - WIZ'S QUARTERS       | 79 |  1  | 117 | 16  | 55FFFF
+8  | LEVEL 8 - QUEEN'S QUARTERS     | 81 | 33  | 117 | 50  | 555555
+9  | LEVEL 9 - THE CRYPT            | 35 |  1  | 78  | 16  | AA00AA

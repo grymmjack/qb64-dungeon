@@ -2,33 +2,26 @@
 '  SECTOR.bas -- sector geometry, monster/treasure/class data + randomiser
 ' ============================================================================
 
+' Sector geometry + colours now live in assets/data/sectors.txt -- edit + F5, no
+' code change. Thin wrapper over LoadSectors (matches InitMonsterTables' pattern).
 SUB InitSectors
-    SECTORS(1).kolor = _RGB32(&H55, &HFF, &H55): SECTORS(1).label = "LEVEL 1 - MAIN GALLERY"
-    SECTORS(1).start_x = 41: SECTORS(1).start_y = 17: SECTORS(1).end_x = 79: SECTORS(1).end_y = 32
+    LoadSectors
+END SUB
 
-    SECTORS(2).kolor = _RGB32(&H00, &HAA, &H00): SECTORS(2).label = "LEVEL 2 - GUARD ROOM"
-    SECTORS(2).start_x = 1: SECTORS(2).start_y = 17: SECTORS(2).end_x = 40: SECTORS(2).end_y = 33
-
-    SECTORS(3).kolor = _RGB32(&HAA, &H00, &H00): SECTORS(3).label = "LEVEL 3 - ARMORY"
-    SECTORS(3).start_x = 1: SECTORS(3).start_y = 1: SECTORS(3).end_x = 34: SECTORS(3).end_y = 16
-
-    SECTORS(4).kolor = _RGB32(&HFF, &H55, &H55): SECTORS(4).label = "LEVEL 4 - STORE ROOM"
-    SECTORS(4).start_x = 1: SECTORS(4).start_y = 34: SECTORS(4).end_x = 40: SECTORS(4).end_y = 50
-
-    SECTORS(5).kolor = _RGB32(&HFF, &H55, &HFF): SECTORS(5).label = "LEVEL 5 - TORTURE CHAMBER"
-    SECTORS(5).start_x = 41: SECTORS(5).start_y = 33: SECTORS(5).end_x = 80: SECTORS(5).end_y = 50
-
-    SECTORS(6).kolor = _RGB32(&H00, &HAA, &HAA): SECTORS(6).label = "LEVEL 6 - KING'S QUARTERS"
-    SECTORS(6).start_x = 80: SECTORS(6).start_y = 17: SECTORS(6).end_x = 117: SECTORS(6).end_y = 32
-
-    SECTORS(7).kolor = _RGB32(&H55, &HFF, &HFF): SECTORS(7).label = "LEVEL 7 - WIZ'S QUARTERS"
-    SECTORS(7).start_x = 79: SECTORS(7).start_y = 1: SECTORS(7).end_x = 117: SECTORS(7).end_y = 16
-
-    SECTORS(8).kolor = _RGB32(&H55, &H55, &H55): SECTORS(8).label = "LEVEL 8 - QUEEN'S QUARTERS"
-    SECTORS(8).start_x = 81: SECTORS(8).start_y = 33: SECTORS(8).end_x = 117: SECTORS(8).end_y = 50
-
-    SECTORS(9).kolor = _RGB32(&HAA, &H00, &HAA): SECTORS(9).label = "LEVEL 9 - THE CRYPT"
-    SECTORS(9).start_x = 35: SECTORS(9).start_y = 1: SECTORS(9).end_x = 78: SECTORS(9).end_y = 16
+SUB LoadSectors
+    DIM i AS INTEGER, id AS INTEGER
+    ReadDataFile "assets/data/sectors.txt"
+    FOR i = 1 TO DLINE_N
+        id = VAL(DField$(DLINE(i), 1))
+        IF id >= 1 AND id <= 9 THEN
+            SECTORS(id).label = DField$(DLINE(i), 2)
+            SECTORS(id).start_x = VAL(DField$(DLINE(i), 3))
+            SECTORS(id).start_y = VAL(DField$(DLINE(i), 4))
+            SECTORS(id).end_x = VAL(DField$(DLINE(i), 5))
+            SECTORS(id).end_y = VAL(DField$(DLINE(i), 6))
+            SECTORS(id).kolor = HexRGB~&(DField$(DLINE(i), 7))
+        END IF
+    NEXT i
 END SUB
 
 
