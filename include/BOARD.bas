@@ -1148,6 +1148,63 @@ FUNCTION ChamberDeadAt% (cx AS INTEGER, cy AS INTEGER)
     IF id >= 1 AND id <= NCHAMBER THEN ChamberDeadAt% = CHM_DEAD(id) ELSE ChamberDeadAt% = 0
 END FUNCTION
 
+' Repaint the board after a debug action takes over the screen.
+SUB DebugMenuClose
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+' [~] debug -> press [0] to open this cheat/test panel: spawn encounters, grant
+' items/potions/HP/gold/key, reveal doors, set up a win. Left-click the board while
+' [~] is on teleports the player. For fast playtesting without grinding there.
+SUB DebugTestMenu
+    DIM k AS STRING, done AS INTEGER, msg AS STRING, rm AS INTEGER, i AS INTEGER
+    DIM bg AS _UNSIGNED LONG
+    bg = _RGB32(&H00, &H00, &H30)
+    DO
+        _LIMIT 60
+        _DEST CANVAS
+        LINE (30 * CW, 7 * CH)-(102 * CW, 42 * CH), bg, BF
+        LINE (30 * CW, 7 * CH)-(102 * CW, 42 * CH), CYANU, B
+        COLOR YELLOWU, bg: PrintCentered 8, "-=  D E B U G   T E S T   M E N U  =-"
+        COLOR WHITE, bg
+        _PRINTSTRING (34 * CW, 11 * CH), "1   Spawn a CURIO here"
+        _PRINTSTRING (34 * CW, 13 * CH), "2   Fight a wandering MONSTER (this level)"
+        _PRINTSTRING (34 * CW, 15 * CH), "3   Spring a TRAP"
+        _PRINTSTRING (34 * CW, 17 * CH), "4   Grant ALL items + the Level Key"
+        _PRINTSTRING (34 * CW, 19 * CH), "5   +3 small & +3 large POTIONS"
+        _PRINTSTRING (34 * CW, 21 * CH), "6   Heal to FULL"
+        _PRINTSTRING (34 * CW, 23 * CH), "7   +5000 GOLD"
+        _PRINTSTRING (34 * CW, 25 * CH), "8   Reveal ALL secret doors (+ key)"
+        _PRINTSTRING (34 * CW, 27 * CH), "9   WIN-READY (goal gold + key; walk to START)"
+        COLOR GREY, bg: _PRINTSTRING (34 * CW, 33 * CH), "left-click the board (with [~] on) = teleport the player"
+        COLOR YELLOWU, bg: PrintCentered 35, "[ESC] close"
+        IF LEN(msg) > 0 THEN COLOR GREENU, bg: PrintCentered 38, msg
+        _DISPLAY
+        k = INKEY$
+        rm = ROOMAT(c.x \ CW, c.y \ CH)
+        SELECT CASE k
+            CASE "1": DebugMenuClose: DoCurio 0: EXIT SUB
+            CASE "2": DebugMenuClose: WanderEncounter: EXIT SUB
+            CASE "3": DebugMenuClose: SpringTrap rm: EXIT SUB
+            CASE "4"
+                item_sword = 1: item_secret_card = -1: item_esp = -1: item_crystal = -1
+                item_bow = -1: item_boots = -1: item_teleport = item_teleport + 3: has_key = -1
+                msg = "granted: sword+1, secret card, ESP, crystal, bow, boots, 3 scrolls, KEY"
+            CASE "5": item_potion_small = item_potion_small + 3: item_potion_large = item_potion_large + 3: msg = "potions +3 small / +3 large"
+            CASE "6": player_hp = player_maxhp: msg = "healed to full (" + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + ")"
+            CASE "7": gold = gold + 5000: msg = "gold now " + _TRIM$(STR$(gold))
+            CASE "8"
+                FOR i = 1 TO SD_N
+                    IF NOT SD_FOUND(i) THEN SD_FOUND(i) = -1: RevealRegionFromDoor i
+                NEXT i
+                has_key = -1: msg = "all secret doors revealed + Level Key granted"
+            CASE "9": gold = target_gold: has_key = -1: msg = "win-ready: " + _TRIM$(STR$(gold)) + " gold + key -- return to START"
+            CASE CHR$(27): done = -1
+        END SELECT
+    LOOP UNTIL done
+    DebugMenuClose
+END SUB
+
 SUB DrawDebug
     DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER, i AS INTEGER
     DIM onpath AS INTEGER, inroom AS INTEGER, ondoor AS INTEGER, onsecret AS INTEGER, nearsd AS INTEGER
@@ -1181,6 +1238,17 @@ SUB DrawDebug
     DO WHILE _MOUSEINPUT: LOOP
     mx = _MOUSEX: my = _MOUSEY
     mcx = mx \ CW: mcy = my \ CH
+    ' click-to-place: a left-click teleports the player to the moused cell (debug testing)
+    IF _MOUSEBUTTON(1) THEN
+        IF dbg_click_armed = 0 THEN
+            IF mcx >= 0 AND mcx <= SW - 1 AND mcy >= 0 AND mcy <= SH - 1 THEN
+                c.x = mcx * CW: c.y = mcy * CH: c.prev_x = c.x: c.prev_y = c.y
+            END IF
+            dbg_click_armed = -1
+        END IF
+    ELSE
+        dbg_click_armed = 0
+    END IF
     oldsrc = _SOURCE: _SOURCE CANVAS_COPY
     kind = CellKind(mcx, mcy)
     _SOURCE oldsrc
@@ -1198,7 +1266,7 @@ SUB DrawDebug
     LINE (0, 0)-(52 * CW, 6 * CH), bg, BF
     LINE (0, 0)-(52 * CW, 6 * CH), CYANU, B
     COLOR YELLOWU, bg
-    _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
+    _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  [0]=test menu  click=teleport   px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
     _PRINTSTRING (1 * CW, 1 * CH), "sector " + _TRIM$(STR$(sec)) + "   moves " + _TRIM$(STR$(moves_made)) + "   time " + MMSS$(el)
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot

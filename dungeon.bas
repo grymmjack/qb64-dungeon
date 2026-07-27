@@ -446,6 +446,7 @@ FUNCTION PlayGame%
             dbg_on = NOT dbg_on
             IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY   ' wipe the frozen debug overlay off the board
         END IF
+        IF dbg_on AND k = "0" THEN DebugTestMenu   ' [~] on -> [0] opens the cheat/test panel
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1
