@@ -357,6 +357,10 @@ DIM SHARED MUSICPACKS(0 TO 32) AS STRING, MUSICPACK_N AS INTEGER
 ' (load-on-demand; falls back pack -> flat, silent if absent). opt_narration = on/off.
 DIM SHARED opt_narration AS INTEGER, opt_narrationpack AS STRING
 DIM SHARED NARRPACKS(0 TO 32) AS STRING, NARRPACK_N AS INTEGER
+' ART PACK: a subdir of assets/pixel-art/ (mirroring the category layout) that overrides the
+' flat sprites -- a visual "theme". "" = the flat main dirs. Missing files fall back to main.
+DIM SHARED opt_artpack AS STRING
+DIM SHARED ARTPACKS(0 TO 32) AS STRING, ARTPACK_N AS INTEGER      ' index 0 = "(main)" ("") ; 1..N = pack subdirs
 DIM SHARED narr_handle AS LONG                    ' the currently-playing narration line (one at a time)
 ' MUSIC CUES: non-level tracks (victory / lose / combat-low|high|intense) that temporarily
 ' override the level track. music_cue_active = a cue is playing over the level music.

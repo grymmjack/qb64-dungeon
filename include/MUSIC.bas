@@ -238,6 +238,7 @@ SUB ScanAllPacks
     ScanAudioPacks "assets/sfx/", SFXPACKS(), SFXPACK_N
     ScanAudioPacks "assets/music/", MUSICPACKS(), MUSICPACK_N
     ScanAudioPacks "assets/narration/", NARRPACKS(), NARRPACK_N
+    ScanArtPacks                                          ' pixel-art theme packs (subdirs of assets/pixel-art/)
     ' a saved pack whose folder has since vanished falls back to the main dir
     IF LEN(opt_sfxpack) > 0 AND PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack) = 0 THEN opt_sfxpack = ""
     IF LEN(opt_musicpack) > 0 AND PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack) = 0 THEN opt_musicpack = ""

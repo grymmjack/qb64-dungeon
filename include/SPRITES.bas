@@ -44,6 +44,58 @@ FUNCTION DrawSpriteFit% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INT
     DrawSpriteFit% = -1
 END FUNCTION
 
+' Resolve a pixel-art file under assets/pixel-art/ with ART-PACK support: try the selected
+' pack subdir first (assets/pixel-art/<pack>/<subpath>), then the flat main dir. "" if neither
+' exists. `subpath` is e.g. "monsters/undead/skeleton.png". A partial pack overrides only the
+' sprites it ships; everything else falls back to the main art.
+FUNCTION ArtFile$ (subpath AS STRING)
+    DIM p AS STRING
+    IF LEN(opt_artpack) > 0 THEN
+        p = "assets/pixel-art/" + opt_artpack + "/" + subpath
+        IF _FILEEXISTS(p) THEN ArtFile$ = p: EXIT FUNCTION
+    END IF
+    p = "assets/pixel-art/" + subpath
+    IF _FILEEXISTS(p) THEN ArtFile$ = p ELSE ArtFile$ = ""
+END FUNCTION
+
+' TRUE if `nm` is a known category folder (so it is NOT a pack). Anything else under
+' assets/pixel-art/ is treated as an art pack (a themed override, mirroring the layout).
+FUNCTION IsArtCategory% (nm AS STRING)
+    SELECT CASE LCASE$(_TRIM$(nm))
+        CASE "monsters", "treasures", "items", "classes", "rooms", "events", "markers": IsArtCategory% = -1
+        CASE ELSE: IsArtCategory% = 0
+    END SELECT
+END FUNCTION
+
+' Fill ARTPACKS() with the pack subdirs under assets/pixel-art/ (every subdir that isn't a
+' category). ARTPACKS(0) = "" ("(main)"); 1..N = pack names. A saved pack that has vanished
+' falls back to main.
+SUB ScanArtPacks
+    DIM e AS STRING, nm AS STRING
+    ARTPACK_N = 0: ARTPACKS(0) = ""
+    IF _DIREXISTS("assets/pixel-art/") THEN
+        e = _FILES$("assets/pixel-art/")
+        DO WHILE LEN(e) > 0
+            IF RIGHT$(e, 1) = "/" THEN
+                nm = LEFT$(e, LEN(e) - 1)
+                IF nm <> "." AND nm <> ".." AND NOT IsArtCategory%(nm) AND ARTPACK_N < UBOUND(ARTPACKS) THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
+            END IF
+            e = _FILES$
+        LOOP
+    END IF
+    IF LEN(opt_artpack) > 0 AND PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack) = 0 THEN opt_artpack = ""
+END SUB
+
+' Cycle the art pack by delta (sprites resolve on demand, so nothing to reload).
+SUB CycleArtPack (delta AS INTEGER)
+    DIM idx AS INTEGER
+    idx = PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack) + delta
+    IF idx < 0 THEN idx = ARTPACK_N
+    IF idx > ARTPACK_N THEN idx = 0
+    opt_artpack = ARTPACKS(idx)
+    Sfx "select"
+END SUB
+
 ' Normalise a name to a sprite base: lower-case, spaces/slashes -> hyphens, drop a
 ' trailing plural 's'. "GIANT RATS" -> "giant-rat", "BLACK PUDDING" -> "black-pudding".
 FUNCTION SpriteBase$ (nm AS STRING)
@@ -68,12 +120,12 @@ FUNCTION MonsterSprite$ (nm AS STRING)
     sbase = SpriteBase$(nm)
     MonsterSprite$ = ""
     FOR i = 1 TO 6
-        p = "assets/pixel-art/monsters/" + cats(i) + "/" + sbase + ".png"
-        IF _FILEEXISTS(p) THEN MonsterSprite$ = p: EXIT FUNCTION
+        p = ArtFile$("monsters/" + cats(i) + "/" + sbase + ".png")
+        IF LEN(p) > 0 THEN MonsterSprite$ = p: EXIT FUNCTION
     NEXT
     ' fallback: a curio that turns INTO a fight (a MIMIC) uses its event-prop art
-    p = "assets/pixel-art/events/" + sbase + ".png"
-    IF _FILEEXISTS(p) THEN MonsterSprite$ = p
+    p = ArtFile$("events/" + sbase + ".png")
+    IF LEN(p) > 0 THEN MonsterSprite$ = p
 END FUNCTION
 
 ' Filename base for a TREASURE/ITEM name: lowercase, drop any "(...)" qualifier
@@ -106,8 +158,8 @@ END FUNCTION
 FUNCTION TreasureSprite$ (nm AS STRING)
     DIM tb AS STRING, u AS STRING, p AS STRING, fb AS STRING
     tb = TreBase$(nm)
-    p = "assets/pixel-art/treasures/" + tb + ".png": IF _FILEEXISTS(p) THEN TreasureSprite$ = p: EXIT FUNCTION
-    p = "assets/pixel-art/items/" + tb + ".png": IF _FILEEXISTS(p) THEN TreasureSprite$ = p: EXIT FUNCTION
+    p = ArtFile$("treasures/" + tb + ".png"): IF LEN(p) > 0 THEN TreasureSprite$ = p: EXIT FUNCTION
+    p = ArtFile$("items/" + tb + ".png"): IF LEN(p) > 0 THEN TreasureSprite$ = p: EXIT FUNCTION
     '--- keyword fallbacks (checked most-specific first) ---
     u = " " + UCASE$(_TRIM$(nm)) + " "
     fb = ""
@@ -128,8 +180,7 @@ FUNCTION TreasureSprite$ (nm AS STRING)
     IF fb = "" AND InStrAny%(u, "KEY") THEN fb = "items/key-medallion"
     IF fb = "" AND InStrAny%(u, "COIN SILVER") THEN fb = "treasures/silver-coins"
     IF fb = "" THEN fb = "treasures/sack-of-gold"                    ' gold, chest, coffer, sack -> a hoard
-    p = "assets/pixel-art/" + fb + ".png"
-    IF _FILEEXISTS(p) THEN TreasureSprite$ = p ELSE TreasureSprite$ = ""
+    TreasureSprite$ = ArtFile$(fb + ".png")
 END FUNCTION
 
 ' TRUE if any space-separated word of `words` occurs in `hay` (hay pre-padded/uppercased).
@@ -154,7 +205,7 @@ FUNCTION ClassSprite$ (pc AS INTEGER)
         CASE 4: nm = "wizard"
         CASE ELSE: nm = ""
     END SELECT
-    IF nm = "" THEN ClassSprite$ = "" ELSE ClassSprite$ = "assets/pixel-art/classes/" + nm + ".png"
+    IF nm = "" THEN ClassSprite$ = "" ELSE ClassSprite$ = ArtFile$("classes/" + nm + ".png")
 END FUNCTION
 
 ' The short room name for a level -- the part after "LEVEL n - " (e.g.
@@ -185,8 +236,7 @@ FUNCTION LocationSprite$ (sec AS INTEGER)
         CASE ELSE: nm = ""
     END SELECT
     IF nm = "" THEN LocationSprite$ = "": EXIT FUNCTION
-    p = "assets/pixel-art/rooms/" + nm + ".png"
-    IF _FILEEXISTS(p) THEN LocationSprite$ = p ELSE LocationSprite$ = ""
+    LocationSprite$ = ArtFile$("rooms/" + nm + ".png")
 END FUNCTION
 
 ' Draw one framed art box with a caption bar, anchored to a character-cell rect.
@@ -287,8 +337,7 @@ FUNCTION CurioSprite$ (kd AS STRING)
         CASE ELSE: nm = ""
     END SELECT
     IF nm = "" THEN CurioSprite$ = "": EXIT FUNCTION
-    p = "assets/pixel-art/events/" + nm + ".png"
-    IF _FILEEXISTS(p) THEN CurioSprite$ = p ELSE CurioSprite$ = ""
+    CurioSprite$ = ArtFile$("events/" + nm + ".png")
 END FUNCTION
 
 ' Draw a curio's prop framed top-LEFT on CANVAS -- same clear zone as the combat
@@ -324,8 +373,7 @@ FUNCTION SpecialSprite$ (ky AS STRING)
         CASE ELSE: nm = ""
     END SELECT
     IF nm = "" THEN SpecialSprite$ = "": EXIT FUNCTION
-    p = "assets/pixel-art/rooms/" + nm + ".png"
-    IF _FILEEXISTS(p) THEN SpecialSprite$ = p ELSE SpecialSprite$ = ""
+    SpecialSprite$ = ArtFile$("rooms/" + nm + ".png")
 END FUNCTION
 
 ' Named-room flavor crawl WITH an establishing shot: frame the location art centred

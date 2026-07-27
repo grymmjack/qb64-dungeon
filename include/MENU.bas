@@ -671,7 +671,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 46
+    CONST NSET = 47
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -783,6 +783,7 @@ SUB RunSettings
                 CASE 43: CycleSfxPack delta
                 CASE 44: CycleMusicPack delta
                 CASE 45: CycleNarration delta
+                CASE 46: CycleArtPack delta
             END SELECT
         END IF
 
@@ -869,7 +870,8 @@ SUB RunSettings
                 CASE 43: CycleSfxPack 1
                 CASE 44: CycleMusicPack 1
                 CASE 45: CycleNarration 1
-                CASE 46: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 46: CycleArtPack 1
+                CASE 47: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -1033,6 +1035,10 @@ SUB RunSettings
                     lbl = "Narration": slider = TRUE
                     vtxt = NarrationLabel$
                     IF opt_narration AND NARRPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack))) + "/" + _TRIM$(STR$(NARRPACK_N)) + ")"
+                CASE 46
+                    lbl = "Art Pack": slider = TRUE
+                    vtxt = PackLabel$(opt_artpack)
+                    IF ARTPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack))) + "/" + _TRIM$(STR$(ARTPACK_N)) + ")"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -1045,7 +1051,7 @@ SUB RunSettings
             DrawDicePreview 100, " your dice"                   ' player dice on the right
             PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
         END IF
-        COLOR CYANU, BLACK: PrintCentered 49, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 50, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
         _DISPLAY
     LOOP
 END SUB

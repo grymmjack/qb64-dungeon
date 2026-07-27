@@ -303,7 +303,14 @@ Environment specifics that dictate this approach:
   flat dir. `RegisterSfx`/`ResolveMusic$` try the selected pack dir first and **fall back to the
   flat dir** per file, so a partial pack overrides only what it ships. Cycling a pack reloads SFX
   (`ReloadSfxPack`) or re-resolves the current track immediately. A saved pack whose folder has
-  since vanished falls back to `(main)` (validated in `ScanAllPacks`). **Narration** is a THIRD
+  since vanished falls back to `(main)` (validated in `ScanAllPacks`). **Art packs** (SPRITES.bas,
+  `opt_artpack`, SETTINGS **Art Pack** row): a sub-folder of `assets/pixel-art/` that MIRRORS the
+  category layout (`monsters/`, `treasures/`, …) is a visual theme; `ArtFile$(subpath)` resolves the
+  pack dir first then the flat main dir per sprite (so a partial pack overrides only what it ships),
+  and every sprite path (`MonsterSprite$`/`TreasureSprite$`/`ClassSprite$`/`LocationSprite$`/
+  `SpecialSprite$`/`CurioSprite$`) routes through it. `ScanArtPacks` enumerates subdirs that AREN'T a
+  known category (`IsArtCategory%`); sprites resolve on demand so switching packs needs no reload.
+  **Narration** is a THIRD
   pack type (`assets/narration/`, `opt_narration`/`opt_narrationpack`, one SETTINGS row cycling
   *off → (main) → packs* via `CycleNarration`): spoken audio named after a **`strings.txt` key**
   (`Narrate "win.title"` plays `assets/narration/[pack]/win.title.<ext>`), load-on-demand, one line
