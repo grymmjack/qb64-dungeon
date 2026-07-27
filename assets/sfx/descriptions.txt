@@ -1,0 +1,51 @@
+# descriptions.txt -- an AI-generation PROMPT for each sound effect. Format:  name | prompt
+# `dungeon.run audiomanifest` prints  sfx/<name> | <prompt>  so a generator knows what to make.
+# Edit the prompts freely; a name with no line here still lists (with a blank prompt).
+#
+# name         | prompt (what the sound should be)
+move           | a soft single footstep on cold stone, brief and quiet
+bump           | a dull thud of walking into a stone wall, no ring
+door           | a heavy wooden door creaking open on iron hinges
+strongdoor     | a reinforced iron-banded door refusing to budge, a heavy solid thud
+breakdoor      | a wooden door splintering and crashing violently open
+secret         | grinding stone as a hidden door is discovered, ending on a soft mystic chime
+secretpass     | a whispered stone slide as you pass through a hidden passage
+key            | a small iron key turning in a lock, a bright metallic jingle of triumph
+idle           | faint ambient dungeon room tone, a distant drip and low echo
+treasure       | a bright shimmering chime of coins and gems, rewarding
+trap           | a hidden mechanism springing, a sharp metallic snap and click
+hit            | a short punchy melee impact, a blade or club landing on flesh and bone
+miss           | a quick whoosh of a weapon swinging through empty air
+crit           | a heavy decisive critical strike, a powerful crunch with a bright metallic ring
+fumble         | a clumsy botched swing, an off-balance stumble and clatter
+search         | light rustling of hands feeling along a stone wall
+win            | a triumphant short victory sting, heroic brass and a rising flourish
+lose           | a somber descending defeat sting, low and mournful
+saveok         | a bright rising confirmation chime, three ascending notes
+savebad        | a sad descending failure tone, three falling notes
+chest          | a heavy wooden chest creaking open, the lid clunking back
+boom           | a low heavy bomb blast, a deep concussive thump and rumble
+hiss           | a sharp hiss of poison darts firing through the air
+fizzle         | a brittle crackling frost burst, icy crystalline shatter
+alarm          | a wailing magical siren, oscillating and urgent
+select         | a soft short UI menu blip, neutral
+levelup        | a bright ascending magical shimmer, empowering and warm
+voice          | a single very short vocal blip for a typewriter effect (tiny, plays once per letter)
+diceroll       | dice tumbling and rattling as they are thrown across a table
+diceland       | dice coming to rest, a small final click and settle
+dice_edge      | a single small die bounce, one hard clack
+dice_settle    | dice settling to a final stop, a soft tap
+dice-math-1    | a short rising tick as numbers add up
+dice-math-2    | a bright ding as a running total is reached
+monster-pain   | a monster's pained snarl or shriek when wounded but alive
+player-pain    | a short human grunt of pain when struck
+death          | a person's final death cry fading to silence
+monster-death  | a monster's guttural death throes collapsing to the ground
+maxhit         | a devastating maximum-damage impact, a bone-crushing blow with huge weight
+heartbeat      | a slow deep heartbeat thump, tense and ominous, on the edge of death
+curio          | a soft magical reveal shimmer as a curious object appears
+poison-proc    | a sickly wet gurgle as poison courses through the body
+frost-proc     | a brittle icy crackle of lingering frost biting the skin
+teleport       | a swirling magical whoosh rising in pitch as reality folds away
+fireball       | a roaring burst of flame, a fiery whoosh and low rumble
+lightning-bolt | a sharp electric crack and crackle of a lightning strike

@@ -1,0 +1,22 @@
+# descriptions.txt -- an AI-generation PROMPT for each music track / cue. Format:  name | prompt
+# `dungeon.run audiomanifest` prints  music/<name> | <prompt>  so a generator knows what to make.
+# The names come from your playlist.txt (per-level tracks) plus the fixed cues below. Add a line
+# for any track name you use; a name with no line here still lists (with a blank prompt).
+# Keep loops seamless. All original dark-fantasy dungeon-crawler moods.
+#
+# name           | prompt (mood / style / structure)
+vr-theme         | a short dark synth intro sting for a studio logo, ominous and atmospheric, non-looping
+everdark         | a brooding ambient dungeon MENU theme, slow, mysterious, spacious reverb, seamless loop
+start            | a tense, sparse early-dungeon exploration loop, low drones and distant echoes, seamless loop
+level1           | dark-fantasy dungeon exploration, upper level, low tension, subtle percussion, seamless loop
+level2           | dark-fantasy dungeon exploration, deeper, rising unease, seamless loop
+caverns          | echoing underground cavern ambience, dripping water, deep drones, seamless loop
+crypt            | a cold funereal crypt theme, distant wordless choir, bone-dry space, seamless loop
+deeproads        | a vast deep-road theme, cavernous and ominous, slow and huge, seamless loop
+inferno          | a hot, driving lower-dungeon theme, fiery and dangerous, seamless loop
+dragonlair       | an epic, dread-filled dragon-lair theme, enormous scale and menace, seamless loop
+victory          | a triumphant, heroic orchestral fanfare, warm brass and strings, short, non-looping
+lose             | a somber, mournful defeat theme, slow low strings, short, non-looping
+combat-low       | a tense, driving dark-fantasy combat loop, low-to-mid intensity, percussive, seamless loop
+combat-high      | an intense, fast dark-fantasy combat loop, high energy and urgency, seamless loop
+combat-intense   | a massive BOSS-battle theme, epic, relentless, full percussion and brass, seamless loop

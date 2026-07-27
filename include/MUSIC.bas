@@ -423,44 +423,76 @@ FUNCTION CombatCueName$ (lvl AS INTEGER, isboss AS INTEGER)
     END IF
 END FUNCTION
 
-' `dungeon.run audiomanifest` -- print every audio file the engine will look for (relative to
-' assets/, before the .ogg|mp3|wav|flac extension). Computed from the LOADED data + the real
-' NarrSlug$, so it's always in sync with the code -- pipe it to your generators to fill the gaps.
+' Look up want in the parallel keys()/vals() arrays (case-insensitive), or a placeholder.
+FUNCTION LookupDesc$ (dkey() AS STRING, dval() AS STRING, dn AS INTEGER, want AS STRING)
+    DIM i AS INTEGER
+    LookupDesc$ = "(no description -- add one)"
+    FOR i = 1 TO dn
+        IF dkey(i) = UCASE$(want) THEN LookupDesc$ = dval(i): EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
+' `dungeon.run audiomanifest` -- print EVERY audio asset as  path | description-or-text  so the
+' AI generators self-serve: SFX/MUSIC get their generation PROMPT (from assets/{sfx,music}/
+' descriptions.txt), NARRATION gets the LINE TO SPEAK (from the loaded flavor/data, always in
+' sync with what the game shows). Path is under assets/, sans .ogg/.mp3/.wav/.flac; a pack
+' subfolder overrides. regular/chamber/curio lines are the exact on-screen text; room lines are a
+' representative sample; intro/titles are clean spoken versions.
 SUB DumpAudioManifest
-    DIM i AS INTEGER, lvl AS INTEGER, lst AS STRING, p AS INTEGER, nm AS STRING, seen AS STRING
+    DIM i AS INTEGER, lvl AS INTEGER, si AS INTEGER, lst AS STRING, p AS INTEGER, nm AS STRING, seen AS STRING
+    DIM dkey(1 TO 300) AS STRING, dval(1 TO 300) AS STRING, dn AS INTEGER
     _DEST _CONSOLE
-    PRINT "# DUNGEON! audio manifest  (paths under assets/ ; add .ogg/.mp3/.wav/.flac ; a pack subfolder overrides)"
+    PRINT "# DUNGEON! audio manifest  (path | description-or-text)  -- feed to the generators."
+    PRINT "# path is under assets/ , add .ogg/.mp3/.wav/.flac ; a pack subfolder overrides."
     PRINT
-    PRINT "# --- SFX (assets/sfx/[pack]/) ---"
+
+    PRINT "# --- SFX (assets/sfx/[pack]/) : path | generation prompt ---"
+    dn = 0: ReadDataFile "assets/sfx/descriptions.txt"
+    FOR i = 1 TO DLINE_N
+        IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2))
+    NEXT i
     lst = SfxNameList$ + " ": p = 1
     FOR i = 1 TO LEN(lst)
-        IF MID$(lst, i, 1) = " " THEN nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(nm) > 0 THEN PRINT "sfx/" + nm
+        IF MID$(lst, i, 1) = " " THEN
+            nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1
+            IF LEN(nm) > 0 THEN PRINT "sfx/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm)
+        END IF
     NEXT i
     PRINT
-    PRINT "# --- MUSIC (assets/music/[pack]/) ---"
+
+    PRINT "# --- MUSIC (assets/music/[pack]/) : path | generation prompt ---"
+    dn = 0: ReadDataFile "assets/music/descriptions.txt"
+    FOR i = 1 TO DLINE_N
+        IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2))
+    NEXT i
     seen = " "
-    FOR lvl = 1 TO 9                                    ' per-level tracks (unique bare names)
+    FOR lvl = 1 TO 9                                    ' per-level tracks (unique bare names from playlist)
         nm = _TRIM$(MUSIC_FILE(lvl))
-        IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm: seen = seen + nm + " "
+        IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
     NEXT lvl
-    PRINT "music/vr-theme"                              ' intro
-    PRINT "music/everdark"                              ' menu
-    PRINT "music/victory"
-    PRINT "music/lose"
-    PRINT "music/combat-low"
-    PRINT "music/combat-high"
-    PRINT "music/combat-intense"
+    lst = "vr-theme everdark victory lose combat-low combat-high combat-intense ": p = 1
+    FOR i = 1 TO LEN(lst)                               ' fixed intro/menu/cue tracks (deduped vs level names)
+        IF MID$(lst, i, 1) = " " THEN
+            nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1
+            IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
+        END IF
+    NEXT i
     PRINT
-    PRINT "# --- NARRATION (assets/narration/[pack]/) ---"
-    PRINT "narration/intro.descent"
-    PRINT "narration/win.title"
-    PRINT "narration/win.subtitle"
-    PRINT "narration/lose.title"
-    PRINT "narration/lose.subtitle"
-    FOR lvl = 1 TO 9                                    ' ambient one-liners: one per regular.txt line
-        FOR i = 1 TO REG_N(lvl): PRINT "narration/regular." + LTRIM$(STR$(lvl)) + "." + LTRIM$(STR$(i)): NEXT i
+
+    PRINT "# --- NARRATION (assets/narration/[pack]/) : path | line to speak ---"
+    PRINT "narration/intro.descent | Torchlight gutters as you cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies the Level Key -- claim it, gather a fortune in gold, and return alive to this entrance. Few ever escape. Let the delving begin."
+    PRINT "narration/win.title | Victory."
+    PRINT "narration/win.subtitle | " + _TRIM$(Say$("win.subtitle"))
+    PRINT "narration/lose.title | You died."
+    PRINT "narration/lose.subtitle | " + _TRIM$(Say$("lose.subtitle"))
+    FOR lvl = 1 TO 9                                    ' ambient one-liners: exact per-line text
+        FOR i = 1 TO REG_N(lvl)
+            PRINT "narration/regular." + LTRIM$(STR$(lvl)) + "." + LTRIM$(STR$(i)) + " | " + _TRIM$(REG_FLAV(lvl, i))
+        NEXT i
     NEXT lvl
-    FOR i = 1 TO SP_N: PRINT "narration/room." + NarrSlug$(_TRIM$(SP_KEY(i))): NEXT i        ' named rooms
-    FOR i = 1 TO CHM_FLAV_N: PRINT "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))): NEXT i  ' chambers
-    FOR i = 1 TO NCURIO: PRINT "narration/curio." + _TRIM$(CURIOS(i).kind): NEXT i           ' curios
+    FOR si = 1 TO SP_N                                  ' named rooms (representative line)
+        IF SP_FN(si) > 0 THEN PRINT "narration/room." + NarrSlug$(_TRIM$(SP_KEY(si))) + " | " + _TRIM$(SP_FLAV(si, 1))
+    NEXT si
+    FOR i = 1 TO CHM_FLAV_N: PRINT "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))) + " | " + _TRIM$(CHM_FLAV_TXT(i)): NEXT i
+    FOR i = 1 TO NCURIO: PRINT "narration/curio." + _TRIM$(CURIOS(i).kind) + " | " + _TRIM$(CURIOS(i).prompt): NEXT i
 END SUB
