@@ -133,17 +133,28 @@ run_box() {
         [ -n "$PROMPT_ADD" ] && prompt="$prompt, $PROMPT_ADD"
         t0=$SECONDS
         if [ "$SECTION" = music ]; then
-            # Songs, not SFX: ACE-Step holds a theme for minutes; Stable Audio
-            # tops out at 47s and wanders. bpm/key come from tracks.txt if the
-            # pack has one, else ACE's defaults.
+            # Stable Audio 3 via --music, NOT ACE via --song.
+            #
+            # ACE is a SONG model: it sings, and it takes bpm/key as real
+            # conditioning. But the manifest never asks for vocals — every music
+            # prompt says "seamless loop" — and ACE's audio VAE hard-cuts at
+            # 16 kHz, which is the hollow "missing frequencies" artifact. SA3 is
+            # full-band to 22 kHz (Nyquist at 44.1k) and generates a 60s loop in
+            # 3-10s instead of 200-500s.
+            #
+            # SA3 has no bpm/key inputs, so those move into the PROMPT text.
+            # Losing them as hard conditioning is worth full bandwidth and a
+            # 20-50x speedup for instrumental game loops.
             local bpm key secs
             bpm="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/ /,"",$3); print $3; exit}' "$DEST/tracks.txt" 2>/dev/null)"
             key="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/^ +| +$/,"",$4); print $4; exit}' "$DEST/tracks.txt" 2>/dev/null)"
             # "30-60s loop" -> 60 ; "3s one-shot" -> 3 ; anything else -> pack default
             secs="$(printf '%s' "$length" | grep -oE '[0-9]+' | tail -1)"
             secs="${secs:-${SECONDS_DEF:-60}}"
-            soundmon "$prompt" --song --seconds "$secs" \
-                     ${bpm:+--bpm $bpm} ${key:+--key "$key"} \
+            local musicprompt="$prompt"
+            [ -n "$bpm" ] && musicprompt="$musicprompt, around $bpm BPM"
+            [ -n "$key" ] && musicprompt="$musicprompt, in $key"
+            soundmon "$musicprompt" --music --seconds "$secs" \
                      --name "$name" --server "$srv" $OGG_ARG \
                      --output-to "$DEST" --no-open >/dev/null 2>&1
         else
