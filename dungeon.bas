@@ -215,6 +215,12 @@ END IF
 '    (magenta block = secret cell). Only runs the flood (mask absent -> InitFog floods);
 '    delete the mask first to regenerate. Then hand-refine it in your ANSI editor. ---
 IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
+    IF _FILEEXISTS("assets/ansi/board-132x50-secret-mask.ans") THEN
+        _DEST _CONSOLE
+        PRINT "board-132x50-secret-mask.ans already exists -- NOT regenerating (would clobber your"
+        PRINT "hand-painted mask). Delete the file first if you really want a fresh starter."
+        SYSTEM
+    END IF
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
     InitFog                                   ' floods SECRET() (mask file not present yet)
     DIM mgf AS INTEGER, mgy AS INTEGER, mgx AS INTEGER, mgs AS STRING, sauce AS STRING, eofc AS STRING
@@ -254,6 +260,12 @@ END IF
 '    hand-refine it to your art in an ANSI editor. (Named SECTORGEN, not SECTORMASKGEN,
 '    so it doesn't contain the substring "MASKGEN" and trigger the secret-mask maskgen.) ---
 IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
+    IF _FILEEXISTS("assets/ansi/board-132x50-sector-mask.ans") THEN
+        _DEST _CONSOLE
+        PRINT "board-132x50-sector-mask.ans already exists -- NOT regenerating (would clobber your"
+        PRINT "hand-painted mask). Delete the file first if you really want a fresh starter."
+        SYSTEM
+    END IF
     SECTORMASK_ON = FALSE                       ' force get_by_xy to use the sectors.txt RECTS
     DIM smf AS INTEGER, smy AS INTEGER, smx AS INTEGER, sms AS STRING, smid AS INTEGER, smlast AS INTEGER, smeof AS STRING
     sms = "": smlast = -999
