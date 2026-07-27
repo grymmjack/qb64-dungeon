@@ -36,6 +36,12 @@ assets/
 | `bosses.txt`    | a boss name  | `slot \| name` |
 | `traps.txt`     | a curio trap | `kind \| name \| save \| word \| sfx \| die \| trigger \| savemsg \| failtitle \| failbody` |
 | `effects.txt`   | a crit/fumble line | `table \| kind \| die \| text` (table 1 crit / 2 you-fumble / 3 monster-fumble) |
+| `chambers.txt`  | a chamber    | `name \| col1 \| row1 \| col2 \| row2` (bounding rectangle in cells; walkable cells inside = its trigger zone) |
+
+`chambers.txt` is the exact, hand-authored map of the big named halls (3 monsters, no
+treasure each). The board art is fixed so these never move; press `[~]` in-game to read a
+cell's `col,row` under the mouse, then tighten any box. If the file is missing the game
+falls back to auto-detecting chambers by openness.
 
 Each level (1–9) has **3 monster + 3 treasure slots**; a room rolls one of them. Item
 `type` codes and trap `kind` values are documented in the header of each file. Trap

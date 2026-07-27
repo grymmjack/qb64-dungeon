@@ -1,0 +1,37 @@
+# ============================================================================
+#  CHAMBERS -- the big named halls. Per the DUNGEON! board game a chamber holds
+#  3 monsters and NO treasure (see include/SOLO.bas / ChamberEncounter).
+#
+#  The board art is FIXED, so chambers never move -- this hand-authored map is
+#  exact and replaces the openness heuristic (DetectChambers falls back to the
+#  heuristic only if this file is missing/empty).
+#
+#  Each row is ONE chamber as a bounding rectangle in CELLS (col,row). Every
+#  WALKABLE (yellow floor / door) cell inside the rectangle becomes a trigger
+#  cell for that chamber; walls inside the rectangle are ignored, so the box
+#  only has to bound the hall's floor. Keep boxes tight so a passing corridor
+#  isn't swallowed. Rectangles must not overlap (first row wins a shared cell).
+#
+#  READ EXACT CELLS IN-GAME: press [~] for the debug overlay. The bottom line
+#  shows "cell X,Y" under the mouse -- hover a chamber's top-left and
+#  bottom-right corners to read col1,row1 and col2,row2. The overlay tints
+#  every chamber cell (magenta = will spawn, green = cleared). Edit, press F5.
+#
+#  Format:   name | col1 | row1 | col2 | row2
+#  ( '#' starts a comment; fields are trimmed; the Main Gallery is intentionally
+#    omitted so the entrance never spawns monsters. )
+# ============================================================================
+
+# name             | c1  | r1 | c2  | r2      (auto-detected seed -- verify/tighten these)
+ARMORY             |  12 |  8 |  20 | 11
+THE CRYPT          |  46 |  6 |  51 |  9
+WIZ'S LAB          |  82 |  8 |  87 | 10
+WIZ'S TREASURE     |  94 |  5 | 100 |  9
+KITCHEN            |   4 | 22 |   9 | 30
+GUARD ROOM         |  14 | 20 |  24 | 25
+STORE ROOM         |  16 | 40 |  24 | 43
+TORTURE CHAMBER    |  42 | 36 |  46 | 40
+QUEEN'S ANNEX      |  88 | 40 |  92 | 43
+QUEEN'S TREASURE   |  86 | 33 |  94 | 39
+KING'S LIBRARY     |  90 | 25 |  96 | 29
+KING'S TREASURE    | 105 | 16 | 113 | 26

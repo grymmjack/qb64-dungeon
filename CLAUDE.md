@@ -132,8 +132,11 @@ Environment specifics that dictate this approach:
   from `ROOMS(rm).sec` → `SECTORS`). `DrawTombstones` paints a headstone on each cleared room
   (via `cursor_draw`); dying calls `DropEverything` (gold + all special cards). `SECTOR`'s old
   monster fields are now vestigial. **Chambers** (the big named halls, distinct from `ROOMS`):
-  `DetectChambers` (BOARD.bas, openness flood-fill from each label anchor) fills `CHAMBERAT(cx,cy)`
-  = chamber id; per the board game a chamber holds **3 monsters and NO treasure**. Stepping into a
+  `DetectChambers` (BOARD.bas) fills `CHAMBERAT(cx,cy)` = chamber id. The board art is fixed, so
+  the exact map is hand-authored in **`assets/data/chambers.txt`** (one `name | c1 | r1 | c2 | r2`
+  rectangle per chamber; every walkable cell inside becomes a trigger cell) and loaded by
+  `LoadChambers` — the openness-flood-fill heuristic is only the fallback when that file is
+  missing/empty. Per the board game a chamber holds **3 monsters and NO treasure**. Stepping into a
   fresh chamber (`cur_chamber` transition in the play loop, never on a room cell) fires
   `ChamberEncounter(cid)`: ONE monster of that level rises (scratch `ROOMS(ROOM_N+2)` slot,
   `is_chamber = TRUE` so `ClaimTreasure` grants no treasure but still `RecordKill`s), fought with

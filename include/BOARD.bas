@@ -184,9 +184,68 @@ END SUB
 ' Detect the named CHAMBERS -- the large yellow spaces -- by flooding the wide-open area
 ' near each chamber label (so thin corridors are excluded). Call AFTER FULL_BOARD is
 ' painted. Approach A: openness heuristic, no board recolouring.
+' Load the exact hand-authored chamber map from assets/data/chambers.txt (rectangles in
+' cells; every walkable cell inside becomes a trigger cell). Returns TRUE if it built >=1
+' chamber -- the fixed board means this beats the openness heuristic. Falls through to the
+' heuristic when the file is absent or empty.
+FUNCTION LoadChambers%
+    LoadChambers = 0
+    IF NOT _FILEEXISTS("assets/data/chambers.txt") THEN EXIT FUNCTION
+    DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
+    DIM nm AS STRING, c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER
+    DIM x AS INTEGER, y AS INTEGER, cnt AS INTEGER, oldsrc AS LONG
+    FOR y = 0 TO 60: FOR x = 0 TO 131: CHAMBERAT(x, y) = 0: NEXT: NEXT
+    FOR x = 1 TO MAXCHAMBER: CHM_DEAD(x) = 0: NEXT
+    NCHAMBER = 0: cur_chamber = 0
+    whole = _READFILE$("assets/data/chambers.txt")
+    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    p = 1
+    DO WHILE p <= LEN(whole)
+        nl = INSTR(p, whole, CHR$(10))
+        IF nl = 0 THEN ln = MID$(whole, p): p = LEN(whole) + 1 ELSE ln = MID$(whole, p, nl - p): p = nl + 1
+        IF RIGHT$(ln, 1) = CHR$(13) THEN ln = LEFT$(ln, LEN(ln) - 1)   ' strip CR
+        hp = INSTR(ln, "#"): IF hp > 0 THEN ln = LEFT$(ln, hp - 1)     ' strip comment
+        ln = _TRIM$(ln)
+        IF LEN(ln) > 0 AND INSTR(ln, "|") > 0 THEN
+            nm = _TRIM$(NthField$(ln, "|", 1))
+            c1 = VAL(NthField$(ln, "|", 2)): r1 = VAL(NthField$(ln, "|", 3))
+            c2 = VAL(NthField$(ln, "|", 4)): r2 = VAL(NthField$(ln, "|", 5))
+            IF LEN(nm) > 0 AND NCHAMBER < MAXCHAMBER THEN
+                IF c2 < c1 THEN SWAP c1, c2
+                IF r2 < r1 THEN SWAP r1, r2
+                IF c1 < 0 THEN c1 = 0
+                IF r1 < 0 THEN r1 = 0
+                IF c2 > 131 THEN c2 = 131
+                IF r2 > 60 THEN r2 = 60
+                NCHAMBER = NCHAMBER + 1
+                cnt = 0
+                FOR y = r1 TO r2
+                    FOR x = c1 TO c2
+                        IF CHAMBERAT(x, y) = 0 THEN            ' first rectangle wins a shared cell
+                            IF CellKind(x, y) >= 1 THEN CHAMBERAT(x, y) = NCHAMBER: cnt = cnt + 1
+                        END IF
+                    NEXT x
+                NEXT y
+                CHM_NAME(NCHAMBER) = nm: CHM_CELLS(NCHAMBER) = cnt
+                CHM_CX(NCHAMBER) = (c1 + c2) \ 2: CHM_CY(NCHAMBER) = (r1 + r2) \ 2
+                CHM_SEC(NCHAMBER) = SECTOR.get_by_xy(CHM_CX(NCHAMBER) * CW, CHM_CY(NCHAMBER) * CH)
+                IF CHM_SEC(NCHAMBER) < 1 THEN CHM_SEC(NCHAMBER) = 1
+                IF cnt < 1 THEN
+                    NCHAMBER = NCHAMBER - 1                    ' the rectangle held no floor -- drop it
+                ELSE
+                    PickChamberGraves NCHAMBER
+                END IF
+            END IF
+        END IF
+    LOOP
+    _SOURCE oldsrc
+    LoadChambers = (NCHAMBER > 0)
+END FUNCTION
+
 SUB DetectChambers
     DIM i AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, j AS INTEGER, skp AS INTEGER
     DIM sx AS INTEGER, sy AS INTEGER, oldsrc AS LONG, seedmin AS INTEGER, floodmin AS INTEGER
+    IF LoadChambers THEN EXIT SUB    ' exact hand-authored map (assets/data/chambers.txt) wins
     REDIM made(1 TO 40) AS INTEGER   ' which labels actually seeded a chamber (for multi-word skip)
     seedmin = 18: floodmin = 18      ' wide-open cells only -- keeps chambers off the thin corridors
     FOR ny = 0 TO 60: FOR nx = 0 TO 131: CHAMBERAT(nx, ny) = 0: NEXT: NEXT

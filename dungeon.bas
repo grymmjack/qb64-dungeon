@@ -110,6 +110,24 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
         COLOR _RGB32(&HFF, &HFF, &H00), _RGB32(0, 0, 0): _PRINTSTRING (CHM_CX(ddc) * CW, CHM_CY(ddc) * CH), _TRIM$(STR$(ddc)) + " " + _TRIM$(CHM_NAME(ddc)) + " (" + _TRIM$(STR$(CHM_CELLS(ddc))) + ")"
     NEXT
     _SAVEIMAGE "chamberdump.png", CANVAS
+    '--- also dump each chamber's bounding box (cells) as text, for seeding chambers.txt ---
+    DIM ddf AS INTEGER, ddi AS INTEGER, ddminx AS INTEGER, ddminy AS INTEGER, ddmaxx AS INTEGER, ddmaxy AS INTEGER
+    ddf = FREEFILE: OPEN "chamberdump.txt" FOR OUTPUT AS #ddf
+    FOR ddi = 1 TO NCHAMBER
+        ddminx = 999: ddminy = 999: ddmaxx = -1: ddmaxy = -1
+        FOR ddy = 0 TO 60
+            FOR ddx = 0 TO 131
+                IF CHAMBERAT(ddx, ddy) = ddi THEN
+                    IF ddx < ddminx THEN ddminx = ddx
+                    IF ddx > ddmaxx THEN ddmaxx = ddx
+                    IF ddy < ddminy THEN ddminy = ddy
+                    IF ddy > ddmaxy THEN ddmaxy = ddy
+                END IF
+            NEXT
+        NEXT
+        PRINT #ddf, _TRIM$(CHM_NAME(ddi)) + " | " + _TRIM$(STR$(ddminx)) + " | " + _TRIM$(STR$(ddminy)) + " | " + _TRIM$(STR$(ddmaxx)) + " | " + _TRIM$(STR$(ddmaxy)) + "   # sec " + _TRIM$(STR$(CHM_SEC(ddi))) + ", " + _TRIM$(STR$(CHM_CELLS(ddi))) + " cells"
+    NEXT
+    CLOSE #ddf
     SYSTEM
 END IF
 
