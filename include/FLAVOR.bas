@@ -219,7 +219,9 @@ SUB FlavorLineVO (txt AS STRING, narrkey AS STRING)
         IF INKEY$ <> "" THEN EXIT FOR
         _DISPLAY
     NEXT h
-    IF narrating THEN NarrateStop
+    ' Do NOT NarrateStop here: this is an AMBIENT one-liner, so let the spoken line finish in
+    ' the background while the player carries on (the next Narrate / room / event stops it).
+    ' Stopping at the fixed hold truncated any voice line longer than the crawl.
 END SUB
 
 ' No-narration ambient one-liner (per-glyph blips) -- the plain entry point.
