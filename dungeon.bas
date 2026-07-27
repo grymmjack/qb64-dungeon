@@ -49,6 +49,12 @@ IF wanthelp THEN
     SYSTEM
 END IF
 _CONSOLE OFF                            ' normal run: hide the console, go graphics
+' CLI dev modes (manifests / dumps / mask tools) are console-only -- keep the graphics
+' window HIDDEN and skip fullscreen so they never flash a black screen over the terminal.
+DIM devmode AS INTEGER
+devmode = (INSTR(UCASE$(COMMAND$), "MANIFEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DUMP") > 0)
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0) OR (INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0)
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
 
 ' collision palette (must match the board ANSI art exactly)
 YELLOW = _RGB32(&HFF, &HFF, &H55)
@@ -66,6 +72,8 @@ BOXBG = _RGB32(&H20, &H00, &H00)
 
 RANDOMIZE TIMER
 
+' window starts HIDDEN (no black flash); _SCREENSHOW reveals it for play only (dev modes never do)
+$SCREENHIDE
 $RESIZE:ON
 $RESIZE:STRETCH
 CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
@@ -74,7 +82,7 @@ FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "DUNGEON"
 _FONT CH
 SCREEN CANVAS
-_FULLSCREEN _SQUAREPIXELS, _SMOOTH
+IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
@@ -111,7 +119,7 @@ IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 opt_solomode = 0: opt_solomins = 30           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 30 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
-ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
+IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
 BOARD_ANSI = _READFILE$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
 LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
@@ -130,6 +138,13 @@ InitFlavor                       ' load the room + combat flavor text (assets/fl
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 ScanAllPacks                     ' find sfx/music PACK subdirs (themes); validate the saved pick
 LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
+
+' text-only manifests exit HERE -- after the data they need, before the heavy graphics init
+' (dice atlases / fonts / vignette). Window stays hidden ($SCREENHIDE), so no black flash.
+IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest: SYSTEM
+
 InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/[pack]/*); beeper covers the rest
 LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
 LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (assets/fonts/dicefonts.txt)
@@ -347,20 +362,10 @@ END IF
 
 '--- dev: `dungeon.run audiomanifest` prints every sfx / music / narration file the engine
 '    will look for (computed from the loaded data), so the audio generators know what to make. ---
-IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN
-    DumpAudioManifest
-    SYSTEM
-END IF
-IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN     ' pixel-art + ansi-art of every entity
-    DumpImageManifest
-    SYSTEM
-END IF
-IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN        ' decorative ANSI UI chrome
-    DumpUiManifest
-    SYSTEM
-END IF
+' (audio/image/ui manifests already handled earlier -- they exit before the heavy init)
 
 ' ---------------------------------------------------------------- state machine
+_SCREENSHOW                            ' normal play only (dev modes SYSTEM'd already): reveal the window
 DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
 game_state = ST_INTRO
 DO
