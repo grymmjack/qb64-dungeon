@@ -38,13 +38,13 @@ SUB TickStatus
     IF poison_turns > 0 THEN
         player_hp = player_hp - 1: IF player_hp < 1 THEN player_hp = 1
         poison_turns = poison_turns - 1
-        Sfx "trap"
+        Sfx "poison-proc"
         IF opt_juice THEN ImpactFX 5, 1          ' a green poison pulse courses through you
     END IF
     IF fire_turns > 0 THEN
         player_hp = player_hp - 1: IF player_hp < 1 THEN player_hp = 1
         fire_turns = fire_turns - 1
-        Sfx "trap"
+        Sfx "frost-proc"                          ' lingering elemental bite (frost/fire DoT)
         IF opt_juice THEN ImpactFX 6, 2          ' an orange sear of lingering flame
     END IF
     IF siren_turns > 0 THEN siren_turns = siren_turns - 1

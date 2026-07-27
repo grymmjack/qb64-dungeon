@@ -110,6 +110,24 @@ variants per (key, event) as you like; one is chosen at random.
   The selected pack wins; any track it doesn't include falls back to the flat main folder.
   A subdir only counts as a pack if it holds at least one audio file. With no subdirs, the
   flat folder is all there is (`(main)`).
+- **Context cues (not levels).** Besides the per-level tracks, a few bare names play at
+  specific moments — drop a file with that name in and it plays; absent, the level track keeps
+  going: **`victory`** (win screen), **`lose`** (death screen), and **`combat-low`** /
+  **`combat-high`** / **`combat-intense`** (a D&D fight, by level / boss — loops during the
+  fight, hands back to the level track after).
+
+---
+
+## `assets/narration/` — optional spoken narration  (loaded by `include/MUSIC.bas`)
+
+Voice-over for the UI lines, keyed by the same keys as **`assets/data/strings.txt`**. Drop a
+file named after a string key and the game speaks it when that line shows — e.g.
+`win.title.ogg` booms over the victory banner. Absent → nothing spoken (the typewriter blips
+still cover it). Extensions: `.ogg .mp3 .wav .flac`. Loaded on demand, one line at a time;
+volume follows **Voice Vol**; turn it on and pick a voice with **SETTINGS → Narration**
+(cycles *off → (main) → each pack*). Sub-folders are **packs** (voices/themes) exactly like
+SFX/Music. Currently spoken: `win.title`, `lose.title` — add `Narrate "<key>"` at any other
+string's display site to voice it. See [`narration/README.txt`](narration/README.txt).
 
 ---
 

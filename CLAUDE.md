@@ -303,7 +303,25 @@ Environment specifics that dictate this approach:
   flat dir. `RegisterSfx`/`ResolveMusic$` try the selected pack dir first and **fall back to the
   flat dir** per file, so a partial pack overrides only what it ships. Cycling a pack reloads SFX
   (`ReloadSfxPack`) or re-resolves the current track immediately. A saved pack whose folder has
-  since vanished falls back to `(main)` (validated in `ScanAllPacks`).
+  since vanished falls back to `(main)` (validated in `ScanAllPacks`). **Narration** is a THIRD
+  pack type (`assets/narration/`, `opt_narration`/`opt_narrationpack`, one SETTINGS row cycling
+  *off → (main) → packs* via `CycleNarration`): spoken audio named after a **`strings.txt` key**
+  (`Narrate "win.title"` plays `assets/narration/[pack]/win.title.<ext>`), load-on-demand, one line
+  at a time, volume off Voice Vol — silent if absent (the typewriter blips still cover it). Hooked
+  at the win/lose end screen; add `Narrate "<key>"` at any other `Say$` site to voice it.
+  **Music CUES** (`PlayCue`/`EndCue`, `music_cue_active`): non-level tracks that temporarily override
+  the level music — `victory`/`lose` (one screen) and `combat-low`/`combat-high`/`combat-intense`
+  (`CombatCueName$` by level/boss, looped through a D&D fight, `EndCue` restores the level track).
+  `PlayCue` is a no-op when the cue file is absent, so cues never cut to silence.
+- **Sound routing / themeability.** Every distinct sound goes through the `Sfx` dispatcher (file if a
+  pack/flat sample exists, else a hand-tuned `Tone` beeper fallback), so ALL are pack-overridable.
+  Two helpers keep animation audio themeable without losing the crafted fallback: `SfxOr(nm, freq,
+  dur)` plays sample `nm` if loaded else `Tone freq,dur` (used for the dice-sum ticks
+  `dice-math-1`/`dice-math-2`), and `DiceAnimSfx(f, settle, ...)` fires `diceroll` on the throw /
+  `diceland` on the settle and only beeps the per-frame tumble rattle when no `diceroll` sample is
+  loaded. `VoiceBlip` likewise prefers a `voice` sample over the PC-speaker tone. The only
+  procedural-by-design sounds are the per-frame tumble texture and per-glyph blips — both overridden
+  by a sample when present.
 - **`assets/data/`** — the editable **content database**: pipe-delimited `.txt` files,
   loaded at launch by **`include/DATA.bas`** into the same shared tables the old hard-coded
   `Init*` routines used. `DATA.bas` is the shared reader: `ReadDataFile(path)` fills `DLINE()`

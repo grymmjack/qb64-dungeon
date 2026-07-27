@@ -29,11 +29,24 @@ Effect names you can override (from the Sfx dispatcher):
   levelup     gaining a level / revival
   diceroll    dice thrown (rattle)      diceland    dice come to rest
   dice_edge   3D-dice bounce clack *    dice_settle 3D-dice final settle *
+  dice-math-1 summing a roll: the       dice-math-2 summing a roll: the
+              "x + y" rising ticks                  "= z" total ding
+  monster-pain a monster is wounded     player-pain you are wounded (survive)
+  death       a life ends               teleport    Teleport Scroll whisks you
+  poison-proc poison damage-over-time    frost-proc  frost/fire DoT bite
+  fireball    spell: fire (unwired **)  lightning-bolt spell: lightning (** )
   voice       text-crawl blip (per glyph; keep it SHORT -- it plays once per
               letter. Falls back to the PC-speaker tone when absent.)
 
   * dice_edge / dice_settle are for the 3D dice only and have NO beeper fallback
     (silent until you add a file). diceroll / diceland DO beep if absent.
+  ** fireball / lightning-bolt are registered + beeper-backed and ready, but not
+     yet triggered in-game (no spell system) -- they'll play once wired.
+
+Every effect above plays through the SAME dispatcher, so ALL are pack-overridable
+and all have a PC-speaker fallback. (The only sounds that DON'T come from here are
+the per-frame dice-TUMBLE rattle and per-glyph text blips -- procedural texture by
+design -- but even those are replaced by a diceroll / voice sample when you add one.)
 
 Example: put a punchy "thwack.ogg", rename it to hit.ogg, drop it here, press F5 --
 every landed blow now thwacks. Delete it and the beeper returns.

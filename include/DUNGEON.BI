@@ -352,6 +352,14 @@ DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill que
 DIM SHARED opt_sfxpack AS STRING, opt_musicpack AS STRING
 DIM SHARED SFXPACKS(0 TO 32) AS STRING, SFXPACK_N AS INTEGER      ' index 0 = "(main)" ("") ; 1..N = subdir names
 DIM SHARED MUSICPACKS(0 TO 32) AS STRING, MUSICPACK_N AS INTEGER
+' NARRATION: spoken-word audio keyed by a strings.txt key, in assets/narration/[pack]/<key>.<ext>
+' (load-on-demand; falls back pack -> flat, silent if absent). opt_narration = on/off.
+DIM SHARED opt_narration AS INTEGER, opt_narrationpack AS STRING
+DIM SHARED NARRPACKS(0 TO 32) AS STRING, NARRPACK_N AS INTEGER
+DIM SHARED narr_handle AS LONG                    ' the currently-playing narration line (one at a time)
+' MUSIC CUES: non-level tracks (victory / lose / combat-low|high|intense) that temporarily
+' override the level track. music_cue_active = a cue is playing over the level music.
+DIM SHARED music_cue_active AS INTEGER
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER
 DIM SHARED opt_voice AS INTEGER                                    ' typewriter text "voice" blips on/off
 DIM SHARED opt_musicvol AS INTEGER, opt_sfxvol AS INTEGER, opt_voicevol AS INTEGER  ' 0..10 volume sliders

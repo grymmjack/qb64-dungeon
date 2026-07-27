@@ -476,6 +476,8 @@ SUB SaveSettings
     PRINT #f, "solomins " + _TRIM$(STR$(opt_solomins))
     PRINT #f, "sfxpack " + opt_sfxpack             ' audio pack subdir names ("" = flat main dir)
     PRINT #f, "musicpack " + opt_musicpack
+    PRINT #f, "narration " + _TRIM$(STR$(opt_narration))
+    PRINT #f, "narrationpack " + opt_narrationpack
     CLOSE #f
 END SUB
 
@@ -538,6 +540,8 @@ SUB LoadSettings
                 CASE "solomins": opt_solomins = v
                 CASE "sfxpack": opt_sfxpack = vs        ' string value (subdir name; validated in ScanAllPacks)
                 CASE "musicpack": opt_musicpack = vs
+                CASE "narration": opt_narration = v
+                CASE "narrationpack": opt_narrationpack = vs
             END SELECT
         END IF
     LOOP

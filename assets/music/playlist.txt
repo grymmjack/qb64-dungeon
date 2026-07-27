@@ -32,3 +32,13 @@
 # 7 | inferno
 # 8 | inferno
 # 9 | dragonlair
+#
+# ---- CONTEXT CUES (not levels) -- drop a file with one of these bare names in
+#      assets/music/ (or a music pack) and the game plays it at that moment. No
+#      playlist line needed; if the file is absent the level track keeps playing.
+#        victory        the win screen (through name entry)
+#        lose           the death screen
+#        combat-low     a fight on levels 1-5 (D&D combat)
+#        combat-high    a fight on levels 6-9
+#        combat-intense a BOSS fight
+#      Combat cues loop during the fight and hand back to the level track when it ends.

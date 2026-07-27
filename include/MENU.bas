@@ -10,11 +10,11 @@ FUNCTION SelectClass%
         k = NormKey$(UCASE$(INKEY$))         ' arrows / numpad -> WASD too
         IF k = "W" OR k = "A" THEN
             sel = sel - 1: IF sel < 1 THEN sel = 4
-            IF opt_sfx THEN Tone 200, 0.1
+            Sfx "select"
         END IF
         IF k = "S" OR k = "D" THEN
             sel = sel + 1: IF sel > 4 THEN sel = 1
-            IF opt_sfx THEN Tone 200, 0.1
+            Sfx "select"
         END IF
         IF k = CHR$(13) THEN SelectClass = sel: EXIT FUNCTION
         IF k = CHR$(27) THEN SelectClass = 0: EXIT FUNCTION
@@ -671,7 +671,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 45
+    CONST NSET = 46
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -782,6 +782,7 @@ SUB RunSettings
                     Sfx "select"
                 CASE 43: CycleSfxPack delta
                 CASE 44: CycleMusicPack delta
+                CASE 45: CycleNarration delta
             END SELECT
         END IF
 
@@ -867,7 +868,8 @@ SUB RunSettings
                     opt_solomins = opt_solomins - 5: IF opt_solomins < 15 THEN opt_solomins = 30
                 CASE 43: CycleSfxPack 1
                 CASE 44: CycleMusicPack 1
-                CASE 45: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 45: CycleNarration 1
+                CASE 46: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -1027,6 +1029,10 @@ SUB RunSettings
                     lbl = "Music Pack": slider = TRUE
                     vtxt = PackLabel$(opt_musicpack)
                     IF MUSICPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack))) + "/" + _TRIM$(STR$(MUSICPACK_N)) + ")"
+                CASE 45
+                    lbl = "Narration": slider = TRUE
+                    vtxt = NarrationLabel$
+                    IF opt_narration AND NARRPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack))) + "/" + _TRIM$(STR$(NARRPACK_N)) + ")"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
@@ -1279,6 +1285,7 @@ SUB ShowEnd (win AS INTEGER)
     DIM nm AS STRING, el AS LONG, mapid AS LONG
     IF win THEN
         Sfx "win"
+        PlayCue "victory", TRUE                  ' victory music (if assets/music/victory.* exists), through name entry
         el = TIMER - game_start: IF el < 0 THEN el = el + 86400
         '--- snapshot the final board (explored state, labels, final position) BEFORE the
         '    name-entry screen overdraws it, keyed to a deterministic per-lord map id ---
@@ -1296,14 +1303,18 @@ SUB ShowEnd (win AS INTEGER)
         COLOR CYANU, BLACK: PrintCentered 25, Say$("win.subtitle")
     ELSE
         Sfx "lose"
+        PlayCue "lose", TRUE                     ' defeat music (if assets/music/lose.* exists)
         _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR REDU, BLACK: PrintCentered 20, Say$("lose.title")
         COLOR GREY, BLACK: PrintCentered 23, Say$("lose.subtitle")
     END IF
     COLOR YELLOWU, BLACK: PrintCentered 28, Say$("end.return")
+    IF win THEN Narrate "win.title" ELSE Narrate "lose.title"   ' spoken line (if a narration pack has it)
     FadeInCurrent                               ' fade the end screen in
     WaitKey
     FadeOut                                      ' fade out before returning to the menu
+    NarrateStop                                  ' stop any spoken line + the victory/lose cue before the menu music
+    music_cue_active = FALSE: StopLevelMusic
 END SUB
 
 
@@ -1594,7 +1605,33 @@ SUB Sfx (kind AS STRING)
         CASE "select": Tone 220, 0.06
         CASE "diceroll": Tone 260, 0.02: Tone 330, 0.02: Tone 240, 0.02: Tone 300, 0.03   ' dice thrown -- a quick rattle
         CASE "diceland": Tone 380, 0.03: Tone 210, 0.06                                    ' dice come to rest -- a click/thud
+        CASE "monster-pain": Tone 300, 0.05: Tone 180, 0.09                                ' a monster is wounded
+        CASE "player-pain": Tone 200, 0.06: Tone 130, 0.12                                 ' you are wounded
+        CASE "death": Tone 200, 0.12: Tone 150, 0.14: Tone 90, 0.3                         ' a life ends
+        CASE "poison-proc": Tone 400, 0.04: Tone 320, 0.05: Tone 260, 0.09                 ' poison gnaws
+        CASE "frost-proc": Tone 900, 0.03: Tone 1100, 0.03: Tone 700, 0.07                 ' frost bites
+        CASE "teleport": Tone 600, 0.04: Tone 900, 0.04: Tone 1300, 0.05: Tone 1800, 0.1   ' scroll whisks you away
+        CASE "fireball": Tone 200, 0.05: Tone 300, 0.05: Tone 150, 0.13                     ' spell: fire
+        CASE "lightning-bolt": Tone 1800, 0.02: Tone 1400, 0.03: Tone 900, 0.05: Tone 300, 0.1  ' spell: lightning
     END SELECT
+END SUB
+
+' Play effect nm if a file is loaded for it, else a procedural Tone freq,dur. Lets an
+' animation keep its hand-tuned beep as the fallback while a pack SAMPLE can override it.
+SUB SfxOr (nm AS STRING, freq AS INTEGER, dur AS SINGLE)
+    IF NOT opt_sfx THEN EXIT SUB
+    IF SfxHandle&(nm) > 0 THEN Sfx nm ELSE Tone freq, dur
+END SUB
+
+' Dice-tumble audio for frame f of an animation that settles on frame `settle`. The throw
+' (f=1) and the landing (f=settle) go through Sfx -- themeable diceroll / diceland (with the
+' beeper as fallback); the per-frame rattle `texfreq` is a procedural texture used ONLY when
+' no diceroll sample is loaded, so a pack's roll sample isn't buried under beeps.
+SUB DiceAnimSfx (f AS INTEGER, settle AS INTEGER, texfreq AS INTEGER, texdur AS SINGLE)
+    IF NOT opt_sfx THEN EXIT SUB
+    IF f = settle THEN Sfx "diceland": EXIT SUB
+    IF f = 1 THEN Sfx "diceroll": EXIT SUB
+    IF SfxHandle&("diceroll") = 0 THEN Tone texfreq, texdur
 END SUB
 
 
@@ -1770,7 +1807,7 @@ SUB RevealMath (bx1 AS INTEGER, bx2 AS INTEGER, mrow AS INTEGER, roll AS INTEGER
         COLOR YELLOWU, BOXBG: PrintCentered mrow, acc
         _DISPLAY
         IF opt_sfx THEN
-            IF i = np THEN Tone 1100, 0.15 ELSE Tone 440 + i * 130, 0.06   ' rising ticks; bright ding on the total
+            IF i = np THEN SfxOr "dice-math-2", 1100, 0.15 ELSE SfxOr "dice-math-1", 440 + i * 130, 0.06  ' summing: ticks then total
         END IF
         IF NOT skip THEN
             FOR j = 1 TO 22                                       ' ~0.36s of suspense per beat
@@ -1866,7 +1903,7 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                 END IF
             NEXT j
             IF opt_sfx THEN
-                IF f = settle THEN Tone 240, 0.09 ELSE Tone 300 + (f MOD 5) * 40, 0.04
+                DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
             END IF
             _DISPLAY
             _LIMIT rate
@@ -2240,7 +2277,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
             END IF
         NEXT i
         IF opt_sfx THEN
-            IF f = settle THEN Tone 240, 0.09 ELSE Tone 300 + (f MOD 5) * 40, 0.04
+            DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
         END IF
         _DISPLAY
         _LIMIT rate
@@ -2289,7 +2326,7 @@ FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
             COLOR CYANU, BOXBG: PrintCentered by + 1, "-= " + caption + " =-"
             COLOR YELLOWU, BOXBG: PrintCentered by + 3, "[  " + _TRIM$(STR$(shown)) + "  ]"
             IF opt_sfx THEN
-                IF f = settle THEN Tone 240, 0.09 ELSE Tone 380 + f * 28, 0.05
+                DiceAnimSfx f, settle, 380 + f * 28, 0.05
             END IF
             _DISPLAY
             _LIMIT rate

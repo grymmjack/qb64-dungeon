@@ -118,6 +118,10 @@ SUB InitSfxFiles
     RegisterSfx "voice"                                 ' optional per-glyph text-crawl blip (else the PC-speaker tone)
     RegisterSfx "diceroll": RegisterSfx "diceland"      ' 3D-dice throw / land cues
     RegisterSfx "dice_edge": RegisterSfx "dice_settle"  ' optional per-bounce clack + settle for the 3D dice
+    RegisterSfx "dice-math-1": RegisterSfx "dice-math-2" ' summing the roll: 1 = the "x + y", 2 = the "= z"
+    RegisterSfx "monster-pain": RegisterSfx "player-pain": RegisterSfx "death"  ' combat cries
+    RegisterSfx "poison-proc": RegisterSfx "frost-proc"  ' status ticks (poison bite / frost bite)
+    RegisterSfx "teleport": RegisterSfx "fireball": RegisterSfx "lightning-bolt"  ' spells / scroll
 END SUB
 
 ' Load the sound file for effect nm into the SFX map (silent if none exists). Honours the
@@ -226,9 +230,11 @@ END SUB
 SUB ScanAllPacks
     ScanAudioPacks "assets/sfx/", SFXPACKS(), SFXPACK_N
     ScanAudioPacks "assets/music/", MUSICPACKS(), MUSICPACK_N
+    ScanAudioPacks "assets/narration/", NARRPACKS(), NARRPACK_N
     ' a saved pack whose folder has since vanished falls back to the main dir
     IF LEN(opt_sfxpack) > 0 AND PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack) = 0 THEN opt_sfxpack = ""
     IF LEN(opt_musicpack) > 0 AND PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack) = 0 THEN opt_musicpack = ""
+    IF LEN(opt_narrationpack) > 0 AND PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack) = 0 THEN opt_narrationpack = ""
 END SUB
 
 ' Index of name within packs(0..cnt), or 0 (the main dir) if not present.
@@ -267,3 +273,116 @@ SUB CycleMusicPack (delta AS INTEGER)
     IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level
     Sfx "select"
 END SUB
+
+
+' ----------------------------------------------------------------------------
+'  NARRATION -- spoken-word audio for a strings.txt key. A file named after the
+'  key (assets/narration/[pack]/<key>.ogg|mp3|wav|flac) plays when that line is
+'  shown; absent -> silent (the typewriter voice blips still cover it). Load-on-
+'  demand + one line at a time, so hundreds of lines cost no startup memory.
+' ----------------------------------------------------------------------------
+
+' Path of the first existing <base>.<ext> (ogg/mp3/wav/flac), or "" if none.
+FUNCTION FirstAudioFile$ (bpath AS STRING)
+    IF _FILEEXISTS(bpath + ".ogg") THEN FirstAudioFile$ = bpath + ".ogg": EXIT FUNCTION
+    IF _FILEEXISTS(bpath + ".mp3") THEN FirstAudioFile$ = bpath + ".mp3": EXIT FUNCTION
+    IF _FILEEXISTS(bpath + ".wav") THEN FirstAudioFile$ = bpath + ".wav": EXIT FUNCTION
+    IF _FILEEXISTS(bpath + ".flac") THEN FirstAudioFile$ = bpath + ".flac": EXIT FUNCTION
+    FirstAudioFile$ = ""
+END FUNCTION
+
+' Narration file for a string key: selected pack first, then the flat dir. "" if none.
+FUNCTION NarratePath$ (nkey AS STRING)
+    DIM p AS STRING
+    NarratePath$ = ""
+    IF LEN(opt_narrationpack) > 0 THEN
+        p = FirstAudioFile$("assets/narration/" + opt_narrationpack + "/" + nkey)
+        IF LEN(p) > 0 THEN NarratePath$ = p: EXIT FUNCTION
+    END IF
+    NarratePath$ = FirstAudioFile$("assets/narration/" + nkey)
+END FUNCTION
+
+' Stop and release the current narration line.
+SUB NarrateStop
+    IF narr_handle > 0 THEN _SNDSTOP narr_handle: _SNDCLOSE narr_handle: narr_handle = 0
+END SUB
+
+' Speak the narration line for a string key (interrupts any line already speaking).
+' No-op if narration is off or no file exists for the key. Volume follows Voice Vol.
+SUB Narrate (nkey AS STRING)
+    DIM p AS STRING
+    IF NOT opt_narration THEN EXIT SUB
+    p = NarratePath$(nkey)
+    IF LEN(p) = 0 THEN EXIT SUB
+    NarrateStop
+    narr_handle = _SNDOPEN(p)
+    IF narr_handle > 0 THEN _SNDVOL narr_handle, opt_voicevol / 10: _SNDPLAY narr_handle
+END SUB
+
+' Cycle the narration setting: OFF -> (main) -> pack1 .. packN -> OFF. One SETTINGS row
+' does both the on/off and the pack pick. Reloads nothing (narration is load-on-demand).
+SUB CycleNarration (delta AS INTEGER)
+    DIM idx AS INTEGER
+    ' virtual index: 0 = OFF, 1 = (main), 2..N+1 = packs
+    IF NOT opt_narration THEN idx = 0 ELSE idx = 1 + PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack)
+    idx = idx + delta
+    IF idx < 0 THEN idx = NARRPACK_N + 1
+    IF idx > NARRPACK_N + 1 THEN idx = 0
+    IF idx = 0 THEN
+        opt_narration = FALSE: NarrateStop
+    ELSE
+        opt_narration = -1: opt_narrationpack = NARRPACKS(idx - 1)
+    END IF
+    Sfx "select"
+END SUB
+
+' Display label for the narration row: "off", or the pack name / "(main)".
+FUNCTION NarrationLabel$
+    IF NOT opt_narration THEN NarrationLabel$ = "off" ELSE NarrationLabel$ = PackLabel$(opt_narrationpack)
+END FUNCTION
+
+
+' ----------------------------------------------------------------------------
+'  MUSIC CUES -- non-level tracks: victory / lose (one-shots) and combat-low /
+'  combat-high / combat-intense (looped). A cue temporarily overrides the level
+'  music; EndCue restores it. If the cue file doesn't exist the level music is
+'  left playing (never cut to silence), so cues are safe to wire before soundmon
+'  has generated them.
+' ----------------------------------------------------------------------------
+
+' Play a named music cue. doloop = loop it (combat) vs one-shot (victory/lose).
+' No-op (keeps the level track) when music is off or no file exists for the name.
+SUB PlayCue (nm AS STRING, doloop AS INTEGER)
+    DIM path AS STRING
+    IF NOT opt_music THEN EXIT SUB
+    path = ResolveMusic$(nm)                             ' pack-aware, best-quality file ("" = none)
+    IF LEN(path) = 0 THEN EXIT SUB                       ' no cue on disk -> leave the level music alone
+    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
+    music_curfile = ""                                   ' so EndCue's PlayLevelMusic re-resolves the level track
+    music_cue_active = -1
+    music_handle = _SNDOPEN(path)
+    IF music_handle > 0 THEN
+        _SNDVOL music_handle, opt_musicvol / 10
+        IF doloop THEN _SNDLOOP music_handle ELSE _SNDPLAY music_handle
+    END IF
+END SUB
+
+' End a combat/level cue and return to the current level's track (no-op if no cue is active).
+SUB EndCue
+    IF NOT music_cue_active THEN EXIT SUB
+    music_cue_active = FALSE
+    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
+    music_curfile = ""
+    IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level
+END SUB
+
+' Which combat cue fits the fight: intense for a boss, high for the deep levels, else low.
+FUNCTION CombatCueName$ (lvl AS INTEGER, isboss AS INTEGER)
+    IF isboss THEN
+        CombatCueName$ = "combat-intense"
+    ELSEIF lvl >= 6 THEN
+        CombatCueName$ = "combat-high"
+    ELSE
+        CombatCueName$ = "combat-low"
+    END IF
+END FUNCTION

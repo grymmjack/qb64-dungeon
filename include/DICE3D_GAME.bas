@@ -229,7 +229,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
         COLOR WHITE, boxviolet: PrintCentered rrow, beat(bi)
         dice3d_present_hw cfg
         IF opt_sfx THEN
-            IF bi = nb THEN Tone 1100, 0.15 ELSE Tone 440 + bi * 120, 0.06        ' rising ticks; bright ding on the total
+            IF bi = nb THEN SfxOr "dice-math-2", 1100, 0.15 ELSE SfxOr "dice-math-1", 440 + bi * 120, 0.06  ' summing: ticks then total
         END IF
         IF NOT skip THEN
             FOR j = 1 TO 18                                                       ' ~0.3s of suspense per beat

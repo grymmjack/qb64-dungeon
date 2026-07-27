@@ -493,7 +493,7 @@ FUNCTION PlayGame%
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1
-            Sfx "key"
+            Sfx "teleport"
             PopArt "Teleport Scroll", "TELEPORT SCROLL"       ' show the scroll art as you use it
             Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"
             WaitKey
@@ -796,6 +796,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
         combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm
         combat_active = 0                           ' (cleared here so ALL of DoCombatDnD's exits are covered)
+        EndCue                                       ' return from combat music to the level track (no-op if none)
         cursor_erase: cursor_draw: _DISPLAY
         EXIT FUNCTION
     END IF
@@ -926,6 +927,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     mon = _TRIM$(ROOMS(rm).monster)
     isboss = ROOMS(rm).is_boss
     lvl = sec                                   ' sector index doubles as dungeon level 1..9
+    PlayCue CombatCueName$(lvl, isboss), TRUE   ' combat music by intensity (no-op if the cue file is absent)
     mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
     thb = player_tohit                          ' final to-hit incl. ability modifier
     IF item_sword > 0 THEN thb = thb + item_sword   ' a Magic Sword +N sharpens the SWING as well as the wound (+N hit AND +N dmg)
@@ -987,6 +989,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
+                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
                 RecordCrit mon, dmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
@@ -1016,6 +1019,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
+                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
                 Sfx "hit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.45, 0   ' a lighter thump when you connect
@@ -1068,6 +1072,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
+                IF player_hp > 0 THEN Sfx "player-pain"   ' hurt but standing -> a cry
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg) * 1.25, 0   ' a brutal crit really rattles the frame
@@ -1080,6 +1085,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
+                IF player_hp > 0 THEN Sfx "player-pain"   ' hurt but standing -> a cry
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg), 0         ' you take a hit -- the frame lurches
@@ -1102,6 +1108,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ELSE
                     player_hp = 0
                     ROOMS(rm).player_died = TRUE
+                    Sfx "death"
                     IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
                     DrawCombatPanel rm, mon, lead
                     FX_MON = mon: FX_DMG = mdmg        ' your class's own death cry, if it has one
