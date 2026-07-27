@@ -17,10 +17,16 @@
 ' ============================================================================
 
 SUB LoadPlaylist
-    DIM i AS INTEGER, lv AS INTEGER
+    DIM i AS INTEGER, lv AS INTEGER, pl AS STRING
     FOR i = 1 TO 9: MUSIC_FILE(i) = "": NEXT i
     music_level = 0: music_curfile = ""
-    ReadDataFile "assets/music/playlist.txt"
+    ' a selected MUSIC PACK may ship its OWN playlist.txt (its own per-level track names);
+    ' otherwise use the flat assets/music/playlist.txt.
+    pl = "assets/music/playlist.txt"
+    IF LEN(opt_musicpack) > 0 THEN
+        IF _FILEEXISTS("assets/music/" + opt_musicpack + "/playlist.txt") THEN pl = "assets/music/" + opt_musicpack + "/playlist.txt"
+    END IF
+    ReadDataFile pl
     FOR i = 1 TO DLINE_N
         lv = VAL(DField$(DLINE(i), 1))
         IF lv >= 1 AND lv <= 9 THEN MUSIC_FILE(lv) = DField$(DLINE(i), 2)
@@ -269,6 +275,7 @@ SUB CycleMusicPack (delta AS INTEGER)
     IF idx < 0 THEN idx = MUSICPACK_N
     IF idx > MUSICPACK_N THEN idx = 0
     opt_musicpack = MUSICPACKS(idx)
+    LoadPlaylist                                         ' the new pack may bring its own playlist.txt
     music_curfile = ""                                   ' force PlayLevelMusic to re-resolve
     IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level
     Sfx "select"

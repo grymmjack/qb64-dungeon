@@ -1,6 +1,11 @@
 # playlist.txt -- which music plays on each dungeon level. Format:  level | name
 # The file lives in assets/music/. Re-read at launch (F5); edit freely.
 #
+# A MUSIC PACK can ship its OWN playlist.txt: drop one in assets/music/<pack>/ and,
+# while that pack is selected in SETTINGS, it replaces this one (its own per-level
+# track names). No pack playlist -> this flat file is used. Track names resolve
+# inside the pack first, then fall back to the flat assets/music/ folder.
+#
 # Give a BARE NAME (no extension). The game plays the HIGHEST-quality file that
 # exists for that name, following a worst -> best ladder:
 #
