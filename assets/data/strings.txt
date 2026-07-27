@@ -1,0 +1,20 @@
+# ============================================================================
+#  STRINGS -- UI / system text, looked up by KEY via Say$("key"). Reword any of
+#  these (or translate them) here, press F5. A key not found returns the key
+#  itself (so a missing string is visible, not blank). Migration is incremental:
+#  more of the game's text moves here over time.
+#
+#  Format:  key | text        ( split on the FIRST '|', so text may contain '|';
+#                               '#' starts a comment line; both fields trimmed )
+# ============================================================================
+
+# --- end screens (ShowEnd) ---
+win.title        | V I C T O R Y
+win.subtitle     | You are now a Legendary Lord.
+lose.title       | Y O U   D I E D
+lose.subtitle    | The dungeon claims another soul...
+end.return       | [ press any key to return to the menu ]
+
+# --- universal prompts ---
+press.key        | [ press any key ]
+press.key.menu   | [ press any key to return to the menu ]

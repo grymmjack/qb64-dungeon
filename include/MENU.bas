@@ -1271,16 +1271,16 @@ SUB ShowEnd (win AS INTEGER)
         player_name = nm
         SaveLord nm, class_name, gold, el, mapid ' enshrine in the Legendary Lords
         _DEST CANVAS: _FONT CH: CLS , BLACK
-        COLOR GREENU, BLACK: PrintCentered 20, "V I C T O R Y"
+        COLOR GREENU, BLACK: PrintCentered 20, Say$("win.title")
         COLOR WHITE, BLACK: PrintCentered 23, nm + " the " + class_name + " escapes with " + _TRIM$(STR$(gold)) + " gold!"
-        COLOR CYANU, BLACK: PrintCentered 25, "You are now a Legendary Lord."
+        COLOR CYANU, BLACK: PrintCentered 25, Say$("win.subtitle")
     ELSE
         Sfx "lose"
         _DEST CANVAS: _FONT CH: CLS , BLACK
-        COLOR REDU, BLACK: PrintCentered 20, "Y O U   D I E D"
-        COLOR GREY, BLACK: PrintCentered 23, "The dungeon claims another soul..."
+        COLOR REDU, BLACK: PrintCentered 20, Say$("lose.title")
+        COLOR GREY, BLACK: PrintCentered 23, Say$("lose.subtitle")
     END IF
-    COLOR YELLOWU, BLACK: PrintCentered 28, "[ press any key to return to the menu ]"
+    COLOR YELLOWU, BLACK: PrintCentered 28, Say$("end.return")
     FadeInCurrent                               ' fade the end screen in
     WaitKey
     FadeOut                                      ' fade out before returning to the menu

@@ -13,6 +13,30 @@
 '  blank lines are ignored.
 ' ============================================================================
 
+' UI / system strings from assets/data/strings.txt (key | text, split on the FIRST '|').
+SUB LoadStrings
+    DIM i AS INTEGER, ln AS STRING, p AS INTEGER
+    STR_N = 0
+    ReadDataFile "assets/data/strings.txt"
+    FOR i = 1 TO DLINE_N
+        ln = DLINE(i): p = INSTR(ln, "|")
+        IF p > 0 AND STR_N < UBOUND(STR_KEY) THEN
+            STR_N = STR_N + 1
+            STR_KEY(STR_N) = _TRIM$(LEFT$(ln, p - 1))
+            STR_TXT(STR_N) = _TRIM$(MID$(ln, p + 1))
+        END IF
+    NEXT i
+END SUB
+
+' Look up a UI string by key. Missing key -> the key itself (a visible "TODO" signal).
+FUNCTION Say$ (k AS STRING)
+    DIM i AS INTEGER
+    FOR i = 1 TO STR_N
+        IF STR_KEY(i) = k THEN Say$ = STR_TXT(i): EXIT FUNCTION
+    NEXT i
+    Say$ = k
+END FUNCTION
+
 ' Gameplay TUNING knobs (potion/encounter/flee/XP/curio/loiter/move/siren) -- shipped
 ' defaults, then overridden by assets/data/tuning.txt (KEY | value). Call once at startup
 ' BEFORE any play (some, e.g. WANDER_GOLD_DIV, are divisors -- must never be left 0).

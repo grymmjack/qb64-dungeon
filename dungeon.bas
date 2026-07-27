@@ -105,6 +105,7 @@ ApplyDisplay                                  ' apply fullscreen + smoothing per
 BOARD_ANSI = _READFILE$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
 LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
+LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
 InitSectors
 InitClasses
 InitMonsterTables

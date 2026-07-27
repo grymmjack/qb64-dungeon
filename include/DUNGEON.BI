@@ -363,6 +363,9 @@ DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/B
 DIM SHARED DICE_BODY(0 TO 5) AS _UNSIGNED LONG   ' dice palettes, from assets/data/dice-colors.txt
 DIM SHARED DICE_INK(0 TO 5) AS _UNSIGNED LONG
 DIM SHARED DICE_CNAME(0 TO 5) AS STRING
+DIM SHARED STR_KEY(1 TO 400) AS STRING   ' UI string table (assets/data/strings.txt), Say$()
+DIM SHARED STR_TXT(1 TO 400) AS STRING
+DIM SHARED STR_N AS INTEGER
 DIM SHARED opt_dicesolid AS INTEGER   ' TRUE: filled die body + contrasting number; FALSE: hollow outline
 DIM SHARED opt_d6pips AS INTEGER      ' TRUE: d6 rolls use the hand-drawn pip dice; FALSE: the numbered DPoly d6
 DIM SHARED opt_dicespeed AS INTEGER   ' tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant (see DiceTiming)
