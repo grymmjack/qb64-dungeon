@@ -170,7 +170,12 @@ but it's worth knowing:
 Run **`dungeon.run ansilint`** (or `dungeon.run ansilint <file.ans>`) to check a mask: it reports the
 line endings, row widths, the SAUCE dimensions, and every painted colour mapped to its level —
 flagging colours that match no level and levels you haven't painted. It only reads the file, never
-writes it.
+writes it. To *fix* a mask's stored file, **`dungeon.run ansifix <file.ans>`** rewrites it clean
+(strips the blank-row CR/LFs, resets each colour run) and backs the original up to `<file>.bak`.
+
+Both tools (and `--help`, and the other dev modes) print in colour — green = OK, yellow = warning,
+red = problem. Set the `NO_COLOR` environment variable, or append `nocolor` to any command, for
+plain text.
 
 ---
 

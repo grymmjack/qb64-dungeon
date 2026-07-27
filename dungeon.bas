@@ -15,6 +15,10 @@ $CONSOLE
 SW = 132: SH = 51: CW = 8: CH = 16
 
 ' --- CLI: `dungeon.run --help` (or -h) lists the command-line modes, then exits ---
+' console colour on by default; off if NO_COLOR is set (standard) or a `nocolor` arg is passed
+CLI_COLOR = -1
+IF LEN(ENVIRON$("NO_COLOR")) > 0 THEN CLI_COLOR = 0
+IF INSTR(UCASE$(COMMAND$), "NOCOLOR") > 0 THEN CLI_COLOR = 0
 DIM cli AS INTEGER, wanthelp AS INTEGER
 FOR cli = 1 TO _COMMANDCOUNT
     SELECT CASE UCASE$(COMMAND$(cli))
@@ -23,21 +27,22 @@ FOR cli = 1 TO _COMMANDCOUNT
 NEXT cli
 IF wanthelp THEN
     _DEST _CONSOLE
-    PRINT "DUNGEON!  --  a QB64PE adaptation of TSR's DUNGEON! (1975)"
+    PRINT PipeCol$("|15DUNGEON!|07  --  a QB64PE adaptation of TSR's |11DUNGEON!|07 (1975)")
     PRINT
-    PRINT "usage: dungeon.run [MODE]"
-    PRINT "  (no MODE launches the game)"
+    PRINT PipeCol$("usage: |15dungeon.run |14[MODE]")
+    PRINT PipeCol$("  |08(no MODE launches the game)")
     PRINT
-    PRINT "Dev / diagnostic modes (render or write a file, then exit):"
-    PRINT "  chamberdump   detected chambers -> chamberdump.png (+ .txt bounding boxes)"
-    PRINT "  fogdump       fogged board + secret-region overlay -> fogdump.png / -regions.png (+ stats .txt)"
-    PRINT "  maskgen       starter secret-door mask from the flood -> assets/ansi/board-132x50-secret-mask.ans"
-    PRINT "  sectorgen     starter sector mask from the rects     -> assets/ansi/board-132x50-sector-mask.ans"
-    PRINT "  ansilint [f]  lint a mask ANSI (line endings, row width, colours->sectors, SAUCE);"
-    PRINT "                no file = check both board masks. Read-only."
-    PRINT "  --help, -h    show this help"
+    PRINT PipeCol$("|11Dev / diagnostic modes|07 (render or write a file, then exit):")
+    PRINT PipeCol$("  |10chamberdump|07   detected chambers -> chamberdump.png (+ .txt bounding boxes)")
+    PRINT PipeCol$("  |10fogdump|07       fogged board + secret-region overlay -> fogdump.png / -regions.png (+ stats .txt)")
+    PRINT PipeCol$("  |10maskgen|07       starter secret-door mask from the flood -> assets/ansi/board-132x50-secret-mask.ans")
+    PRINT PipeCol$("  |10sectorgen|07     starter sector mask from the rects     -> assets/ansi/board-132x50-sector-mask.ans")
+    PRINT PipeCol$("  |10ansilint|07 |14[f]|07  lint a mask ANSI (line endings, row width, colours->sectors, SAUCE);")
+    PRINT PipeCol$("                no file = check both board masks. Read-only.")
+    PRINT PipeCol$("  |10ansifix|07 |14<f>|07   rewrite a mask ANSI clean (strip CR/LF blanks, reset SGR); backs up to <f>.bak")
+    PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
-    PRINT "Everything is data: edit assets/data/*.txt and assets/ansi/*-mask.ans, then rebuild (F5)."
+    PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi/*-mask.ans|07, then rebuild (F5).")
     SYSTEM
 END IF
 _CONSOLE OFF                            ' normal run: hide the console, go graphics
@@ -221,8 +226,8 @@ END IF
 IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
     IF _FILEEXISTS("assets/ansi/board-132x50-secret-mask.ans") THEN
         _DEST _CONSOLE
-        PRINT "board-132x50-secret-mask.ans already exists -- NOT regenerating (would clobber your"
-        PRINT "hand-painted mask). Delete the file first if you really want a fresh starter."
+        PRINT PipeCol$("|14board-132x50-secret-mask.ans already exists -- NOT regenerating|07 (would clobber your")
+        PRINT PipeCol$("hand-painted mask). |12Delete the file first|07 if you really want a fresh starter.")
         SYSTEM
     END IF
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
@@ -271,8 +276,8 @@ END IF
 IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
     IF _FILEEXISTS("assets/ansi/board-132x50-sector-mask.ans") THEN
         _DEST _CONSOLE
-        PRINT "board-132x50-sector-mask.ans already exists -- NOT regenerating (would clobber your"
-        PRINT "hand-painted mask). Delete the file first if you really want a fresh starter."
+        PRINT PipeCol$("|14board-132x50-sector-mask.ans already exists -- NOT regenerating|07 (would clobber your")
+        PRINT PipeCol$("hand-painted mask). |12Delete the file first|07 if you really want a fresh starter.")
         SYSTEM
     END IF
     SECTORMASK_ON = FALSE                       ' force get_by_xy to use the sectors.txt RECTS
@@ -307,7 +312,7 @@ END IF
 IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
     DIM alpath AS STRING, alc AS INTEGER
     FOR alc = 1 TO _COMMANDCOUNT
-        IF UCASE$(COMMAND$(alc)) <> "ANSILINT" THEN alpath = COMMAND$(alc)
+        IF UCASE$(COMMAND$(alc)) <> "ANSILINT" AND UCASE$(COMMAND$(alc)) <> "NOCOLOR" THEN alpath = COMMAND$(alc)
     NEXT alc
     _DEST _CONSOLE: PRINT
     IF LEN(alpath) > 0 THEN
@@ -315,6 +320,23 @@ IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
     ELSE
         AnsiLint "assets/ansi/board-132x50-sector-mask.ans"
         AnsiLint "assets/ansi/board-132x50-secret-mask.ans"
+    END IF
+    SYSTEM
+END IF
+
+'--- dev: `dungeon.run ansifix <file>` rewrites a mask ANSI to the clean canonical form
+'    (strip CR/LF blanks + reset each SGR run + fresh SAUCE), backing up the original to
+'    <file>.bak. The loaders already normalise at load; this cleans the STORED file. ---
+IF INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0 THEN
+    DIM afpath AS STRING, afc AS INTEGER
+    FOR afc = 1 TO _COMMANDCOUNT
+        IF UCASE$(COMMAND$(afc)) <> "ANSIFIX" AND UCASE$(COMMAND$(afc)) <> "NOCOLOR" THEN afpath = COMMAND$(afc)
+    NEXT afc
+    _DEST _CONSOLE: PRINT
+    IF LEN(afpath) = 0 THEN
+        PRINT PipeCol$("|14usage:|07 dungeon.run ansifix <file.ans>   (rewrites it clean; backs up to <file>.bak)")
+    ELSE
+        AnsiFix afpath
     END IF
     SYSTEM
 END IF

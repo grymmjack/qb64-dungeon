@@ -1157,15 +1157,15 @@ END FUNCTION
 ' difference, then the caller SYSTEMs. Everything here mirrors what MaskNormalize$ repairs.
 SUB AnsiLint (pth AS STRING)
     _DEST _CONSOLE
-    PRINT "== ansilint: "; pth
-    IF NOT _FILEEXISTS(pth) THEN PRINT "   (file not found)": PRINT: EXIT SUB
+    PRINT PipeCol$("== ansilint: |11" + pth)
+    IF NOT _FILEEXISTS(pth) THEN PRINT PipeCol$("   |12(file not found)"): PRINT: EXIT SUB
     DIM raw AS STRING, norm AS STRING, i AS INTEGER, b AS INTEGER
-    DIM issector AS INTEGER, datalen AS LONG
+    DIM issector AS INTEGER, datalen AS LONG, cecol AS STRING, cline AS STRING
     raw = _READFILE$(pth)
     issector = (INSTR(UCASE$(pth), "SECTOR") > 0)      ' sector mask -> colours are LEVELS; else REGIONS
     datalen = INSTR(raw, CHR$(26)) - 1                 ' art ends at the 0x1A EOF (SAUCE follows)
     IF datalen < 0 THEN datalen = LEN(raw)
-    PRINT "   bytes:"; LEN(raw); " (art:"; datalen; ")"
+    PRINT PipeCol$("   bytes: " + LTRIM$(STR$(LEN(raw))) + "  (art: " + LTRIM$(STR$(datalen)) + ")")
 
     ' --- line endings (of the art, before any SAUCE) ---
     DIM ncr AS LONG, nlf AS LONG, ncrlf AS LONG
@@ -1174,7 +1174,8 @@ SUB AnsiLint (pth AS STRING)
         IF b = 13 THEN ncr = ncr + 1
         IF b = 10 THEN nlf = nlf + 1: IF i > 1 THEN IF ASC(raw, i - 1) = 13 THEN ncrlf = ncrlf + 1
     NEXT i
-    PRINT "   line-endings: CR="; LTRIM$(STR$(ncr)); "  LF="; LTRIM$(STR$(nlf)); "  CRLF-pairs="; LTRIM$(STR$(ncrlf))
+    IF ncrlf > 0 THEN cecol = "|14" ELSE cecol = "|10"
+    PRINT PipeCol$("   line-endings: CR=" + LTRIM$(STR$(ncr)) + "  LF=" + LTRIM$(STR$(nlf)) + "  CRLF-pairs=" + cecol + LTRIM$(STR$(ncrlf)))
 
     ' --- per-row printable width (CRLF-split; ESC..m sequences don't count) ---
     DIM seg_st AS INTEGER, pw AS INTEGER, inesc AS INTEGER, rowcnt AS INTEGER, badw AS INTEGER, firstbad AS INTEGER
@@ -1200,12 +1201,12 @@ SUB AnsiLint (pth AS STRING)
         END IF
     NEXT i
     IF ncrlf > 0 THEN
-        PRINT "   rows (CRLF-split):"; rowcnt; "  expected printable width"; SW
-        IF badw > 0 THEN PRINT "   !! "; LTRIM$(STR$(badw)); " row(s) not"; SW; "wide (first: row"; firstbad; ")"
-        IF badw = 0 THEN PRINT "   !! full-width rows + CRLF => DOUBLE-ADVANCE (black bands). The loaders auto-"
-        IF badw = 0 THEN PRINT "      normalise this; store with NO line breaks (or LF-only) to keep it clean."
+        PRINT PipeCol$("   rows (CRLF-split): " + LTRIM$(STR$(rowcnt)) + "  expected printable width " + LTRIM$(STR$(SW)))
+        IF badw > 0 THEN PRINT PipeCol$("   |12!!|07 " + LTRIM$(STR$(badw)) + " row(s) not " + LTRIM$(STR$(SW)) + " wide (first: row " + LTRIM$(STR$(firstbad)) + ")")
+        IF badw = 0 THEN PRINT PipeCol$("   |14!!|07 full-width rows + CRLF => DOUBLE-ADVANCE (black bands). The loaders")
+        IF badw = 0 THEN PRINT PipeCol$("      auto-normalise this; run |11ansifix|07 to clean the stored file too.")
     ELSE
-        PRINT "   rows: no line breaks (pure "; LTRIM$(STR$(SW)); "-col auto-wrap) -- OK"
+        PRINT PipeCol$("   rows: |10no line breaks (pure " + LTRIM$(STR$(SW)) + "-col auto-wrap) -- OK")
     END IF
 
     ' --- SAUCE record (last 128 bytes) ---
@@ -1213,14 +1214,13 @@ SUB AnsiLint (pth AS STRING)
         DIM soff AS LONG
         soff = LEN(raw) - 128
         IF MID$(raw, soff + 1, 7) = "SAUCE00" THEN
-            DIM scols AS INTEGER, srows AS INTEGER
+            DIM scols AS INTEGER, srows AS INTEGER, snote AS STRING
             scols = ASC(raw, soff + 97) + ASC(raw, soff + 98) * 256
             srows = ASC(raw, soff + 99) + ASC(raw, soff + 100) * 256
-            PRINT "   SAUCE: present  dims="; LTRIM$(STR$(scols)); "x"; LTRIM$(STR$(srows));
-            IF scols <> SW THEN PRINT "  !! cols should be"; SW; ELSE PRINT "  (cols OK)";
-            PRINT
+            IF scols <> SW THEN snote = "  |12(cols should be " + LTRIM$(STR$(SW)) + ")" ELSE snote = "  |10(cols OK)"
+            PRINT PipeCol$("   SAUCE: |10present|07  dims=" + LTRIM$(STR$(scols)) + "x" + LTRIM$(STR$(srows)) + snote)
         ELSE
-            PRINT "   SAUCE: MISSING -- ANSI editors will guess 80 cols and mangle the layout."
+            PRINT PipeCol$("   SAUCE: |12MISSING|07 -- ANSI editors will guess 80 cols and mangle the layout.")
         END IF
     END IF
 
@@ -1256,31 +1256,81 @@ SUB AnsiLint (pth AS STRING)
     NEXT y
     _SOURCE os: _FREEIMAGE imgR: _FREEIMAGE imgN
 
-    PRINT "   cells changed by normalisation:"; diffn;
-    IF diffn > 0 THEN PRINT "  (<< raw is corrupted; the loader fixes it)" ELSE PRINT "  (already clean)"
-    IF issector THEN PRINT "   distinct painted colours (levels):"; nu ELSE PRINT "   distinct painted colours (regions):"; nu
+    IF diffn > 0 THEN
+        PRINT PipeCol$("   cells changed by normalisation: |14" + LTRIM$(STR$(diffn)) + "|07  (raw is corrupted; the loader fixes it)")
+    ELSE
+        PRINT PipeCol$("   cells changed by normalisation: |10" + LTRIM$(STR$(diffn)) + "|07  (already clean)")
+    END IF
+    IF issector THEN PRINT PipeCol$("   distinct painted colours (levels): " + LTRIM$(STR$(nu))) ELSE PRINT PipeCol$("   distinct painted colours (regions): " + LTRIM$(STR$(nu)))
     FOR j = 1 TO nu
-        PRINT "     "; RIGHT$("000000" + HEX$(ucolr(j) AND &HFFFFFF), 6); "  x"; ucnt(j);
+        cline = "     " + RIGHT$("000000" + HEX$(ucolr(j) AND &HFFFFFF), 6) + "  x" + LTRIM$(STR$(ucnt(j)))
         IF issector THEN
-            IF umap(j) > 0 THEN PRINT "  -> sector"; umap(j); "("; _TRIM$(SECTORS(umap(j)).label); ")" ELSE PRINT "  -> !! no sector (reads as 0)"
+            IF umap(j) > 0 THEN
+                cline = cline + "  |10-> sector " + LTRIM$(STR$(umap(j))) + " (" + _TRIM$(SECTORS(umap(j)).label) + ")"
+            ELSE
+                cline = cline + "  |12-> !! no sector (reads as 0)"
+            END IF
         ELSE
-            PRINT "  (secret region)"
+            cline = cline + "  |08(secret region)"
         END IF
+        PRINT PipeCol$(cline)
     NEXT j
     ' sector-mask-only checks (the secret mask's colours are region ids, not levels)
     IF issector THEN
-        IF unmapped > 0 THEN PRINT "   !! "; LTRIM$(STR$(unmapped)); " cell(s) painted a colour that is no level's colour -> sector 0 (unwalkable rooms)."
+        IF unmapped > 0 THEN PRINT PipeCol$("   |12!!|07 " + LTRIM$(STR$(unmapped)) + " cell(s) painted a colour that is no level's colour -> sector 0 (unwalkable rooms).")
         DIM anyempty AS INTEGER
         FOR sid = 1 TO 9
             IF seccnt(sid) = 0 THEN
-                IF anyempty = 0 THEN PRINT "   !! unpainted level(s) (rooms there fall back to the sectors.txt rects):"
+                IF anyempty = 0 THEN PRINT PipeCol$("   |14!!|07 unpainted level(s) (rooms there fall back to the sectors.txt rects):")
                 anyempty = -1
-                PRINT "        sector"; sid; " "; _TRIM$(SECTORS(sid).label)
+                PRINT PipeCol$("        |14sector " + LTRIM$(STR$(sid)) + " " + _TRIM$(SECTORS(sid).label))
             END IF
         NEXT sid
-        IF anyempty = 0 THEN PRINT "   all 9 levels painted."
+        IF anyempty = 0 THEN PRINT PipeCol$("   |10all 9 levels painted.")
     END IF
     PRINT
+END SUB
+
+' `dungeon.run ansifix <file>` -- rewrite a mask ANSI to the clean canonical form: run it
+' through MaskNormalize$ (strip CR/LF blanks, reset each SGR run, stop at EOF) and re-append a
+' fresh SAUCE, keeping the file's own dims. Backs the original up to <file>.bak (once), then
+' overwrites in place. The loaders already normalise at load, so this is a convenience to clean
+' the STORED file (so it opens correctly in an ANSI editor); re-saving from an editor may re-dirty
+' it, and the loader will re-clean. KILL before writing so BINARY leaves no stale tail.
+SUB AnsiFix (pth AS STRING)
+    _DEST _CONSOLE
+    PRINT PipeCol$("== ansifix: |11" + pth)
+    IF NOT _FILEEXISTS(pth) THEN PRINT PipeCol$("   |12(file not found)"): EXIT SUB
+    DIM raw AS STRING, norm AS STRING, cols AS INTEGER, rows AS INTEGER, i AS INTEGER, b AS INTEGER, neol AS LONG
+    raw = _READFILE$(pth)
+    cols = SW: rows = SH - 1                                   ' default board-mask dims
+    IF LEN(raw) >= 128 THEN
+        DIM soff AS LONG: soff = LEN(raw) - 128
+        IF MID$(raw, soff + 1, 7) = "SAUCE00" THEN
+            cols = ASC(raw, soff + 97) + ASC(raw, soff + 98) * 256
+            rows = ASC(raw, soff + 99) + ASC(raw, soff + 100) * 256
+        END IF
+    END IF
+    FOR i = 1 TO LEN(raw)                                      ' count CR/LF we strip (for the report)
+        b = ASC(raw, i): IF b = 26 THEN EXIT FOR
+        IF b = 13 OR b = 10 THEN neol = neol + 1
+    NEXT i
+    norm = MaskNormalize$(raw)
+    DIM fixed AS STRING
+    fixed = norm + CHR$(26) + SauceRecord$("DUNGEON! mask", cols, rows, LEN(norm))
+    IF NOT _FILEEXISTS(pth + ".bak") THEN
+        DIM bkf AS INTEGER: bkf = FREEFILE
+        OPEN pth + ".bak" FOR BINARY AS #bkf: PUT #bkf, 1, raw: CLOSE #bkf
+        PRINT PipeCol$("   backed up original -> |11" + pth + ".bak")
+    ELSE
+        PRINT PipeCol$("   |14" + pth + ".bak already exists|07 -- keeping that first backup")
+    END IF
+    KILL pth
+    DIM wf AS INTEGER: wf = FREEFILE
+    OPEN pth FOR BINARY AS #wf: PUT #wf, 1, fixed: CLOSE #wf
+    PRINT PipeCol$("   removed |14" + LTRIM$(STR$(neol)) + "|07 CR/LF byte(s); rewrote clean (pure auto-wrap + SAUCE)")
+    PRINT PipeCol$("   bytes: " + LTRIM$(STR$(LEN(raw))) + " -> " + LTRIM$(STR$(LEN(fixed))))
+    PRINT PipeCol$("   |10done|07 -- run |11ansilint " + pth + "|07 to confirm")
 END SUB
 
 ' Repaint the board after a debug action takes over the screen.

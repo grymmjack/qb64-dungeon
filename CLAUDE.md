@@ -257,12 +257,19 @@ Environment specifics that dictate this approach:
   so teal bleeds to bright-cyan and level 6 reads as level 7. Both are repaired at **load** by
   `MaskNormalize$` (DATA.bas) — strip CR/LF so rows auto-wrap, inject `ESC[0m` before every SGR run
   so each cell is self-contained, and stop at the `0x1A` EOF so SAUCE isn't rendered — which
-  `LoadSectorMask` and `LoadSecretMask` both apply. **`dungeon.run ansilint [file]`** (read-only;
-  no file = both board masks) is the checker: it reports line endings, per-row printable width,
-  SAUCE dims, how many cells `MaskNormalize$` changes (0 = clean), and each painted colour mapped
-  to its level (flagging unmapped colours and unpainted levels). **Gotcha:** ANSIPrint renders
-  each SGR bg correctly *in isolation*; the corruption only appears in a full file, so verify a
-  mask by rendering the WHOLE thing (or run `ansilint`), never a single code.
+  `LoadSectorMask` and `LoadSecretMask` both apply. Two CLI tools pair with it: **`dungeon.run
+  ansilint [file]`** (read-only; no file = both board masks) reports line endings, per-row printable
+  width, SAUCE dims, how many cells `MaskNormalize$` changes (0 = clean), and each painted colour
+  mapped to its level (flagging unmapped colours and unpainted levels); **`dungeon.run ansifix
+  <file>`** rewrites a mask to the clean canonical form (`MaskNormalize$` + fresh SAUCE), backing the
+  original up to `<file>.bak` (loaders already normalise at load — this just cleans the *stored*
+  file). **Gotcha:** ANSIPrint renders each SGR bg correctly *in isolation*; the corruption only
+  appears in a full file, so verify a mask by rendering the WHOLE thing (or run `ansilint`), never a
+  single code. **Colored CLI:** all dev-mode/`--help` console output goes through `PipeCol$` (DATA.bas),
+  a self-contained Mystic-BBS-style pipe-colour formatter (`|10` green = OK, `|12` red = BAD, `|14`
+  yellow = WARN, `|PI` = literal `|`) — same `|NN` notation as `QB64_GJ_LIB/PIPEPRINT` but with no
+  submodule dependency (keeps the plain-checkout build). Honours the `CLI_COLOR` global, which
+  `dungeon.bas` clears on `NO_COLOR` (env) or a `nocolor` arg — then the codes are stripped to plain text.
 - **`[~]` debug overlay & test panel** (`DrawDebug`/`DebugTestMenu`, BOARD.bas). `[~]` (or backtick)
   toggles the overlay — region/sector/chamber tints and a mouse readout (`sec:/reg:/lvl:/door→/cham:/
   dead:`); toggling **off repaints** the board (`cursor_erase`/`cursor_draw`/`DrawHUD`) so the frozen

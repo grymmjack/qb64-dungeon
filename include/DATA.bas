@@ -131,6 +131,67 @@ FUNCTION MaskNormalize$ (raw AS STRING)
     MaskNormalize$ = nrm
 END FUNCTION
 
+' Mystic-BBS-style PIPE COLOURS for console (CLI-mode) output -> ANSI SGR. Self-contained (no
+' QB64_GJ_LIB dependency) so the game still builds from a plain checkout, and using the same
+' |NN notation as QB64_GJ_LIB/PIPEPRINT: |00-|15 foreground (|10 bright green = OK, |12 bright
+' red = BAD, |14 yellow = WARN, |07 grey = reset-ish), |16-|23 background, |PI = a literal '|'.
+' Honours CLI_COLOR (off -> the codes are stripped, leaving plain text -- e.g. NO_COLOR or a
+' non-terminal). A reset is appended so colour never bleeds past the string.
+FUNCTION PipeCol$ (s AS STRING)
+    DIM r AS STRING, i AS INTEGER, code AS STRING, sgr AS STRING
+    i = 1
+    DO WHILE i <= LEN(s)
+        IF MID$(s, i, 1) = "|" AND i + 2 <= LEN(s) THEN
+            code = MID$(s, i, 3)
+            IF code = "|PI" THEN
+                r = r + "|": i = i + 3
+            ELSE
+                sgr = PipeSGR$(code)
+                IF LEN(sgr) > 0 THEN
+                    IF CLI_COLOR THEN r = r + CHR$(27) + "[" + sgr + "m"
+                    i = i + 3
+                ELSE
+                    r = r + MID$(s, i, 1): i = i + 1
+                END IF
+            END IF
+        ELSE
+            r = r + MID$(s, i, 1): i = i + 1
+        END IF
+    LOOP
+    IF CLI_COLOR THEN r = r + CHR$(27) + "[0m"
+    PipeCol$ = r
+END FUNCTION
+
+' A pipe colour code (|00..|23) -> the ANSI SGR parameter, or "" if not a colour code.
+FUNCTION PipeSGR$ (code AS STRING)
+    SELECT CASE code
+        CASE "|00": PipeSGR$ = "30"          '  0 black
+        CASE "|01": PipeSGR$ = "34"          '  1 blue
+        CASE "|02": PipeSGR$ = "32"          '  2 green
+        CASE "|03": PipeSGR$ = "36"          '  3 cyan
+        CASE "|04": PipeSGR$ = "31"          '  4 red
+        CASE "|05": PipeSGR$ = "35"          '  5 magenta
+        CASE "|06": PipeSGR$ = "33"          '  6 brown/yellow
+        CASE "|07": PipeSGR$ = "37"          '  7 light grey
+        CASE "|08": PipeSGR$ = "90"          '  8 dark grey
+        CASE "|09": PipeSGR$ = "94"          '  9 bright blue
+        CASE "|10": PipeSGR$ = "92"          ' 10 bright green   (OK)
+        CASE "|11": PipeSGR$ = "96"          ' 11 bright cyan
+        CASE "|12": PipeSGR$ = "91"          ' 12 bright red     (BAD)
+        CASE "|13": PipeSGR$ = "95"          ' 13 bright magenta
+        CASE "|14": PipeSGR$ = "93"          ' 14 yellow         (WARN)
+        CASE "|15": PipeSGR$ = "97"          ' 15 white
+        CASE "|16": PipeSGR$ = "40"          ' 16-23 backgrounds
+        CASE "|17": PipeSGR$ = "44"
+        CASE "|18": PipeSGR$ = "42"
+        CASE "|19": PipeSGR$ = "46"
+        CASE "|20": PipeSGR$ = "41"
+        CASE "|21": PipeSGR$ = "45"
+        CASE "|22": PipeSGR$ = "43"
+        CASE "|23": PipeSGR$ = "47"
+    END SELECT
+END FUNCTION
+
 ' Build a 128-byte SAUCE record (Character/ANSi, IBM VGA font) for an ANSI of cols x rows,
 ' where datalen = the byte length of the art before the 0x1A EOF marker.
 FUNCTION SauceRecord$ (title AS STRING, cols AS INTEGER, rows AS INTEGER, datalen AS LONG)
