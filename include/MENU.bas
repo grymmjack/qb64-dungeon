@@ -2050,27 +2050,31 @@ SUB PopMonsterDice
 END SUB
 
 
+' Dice palettes now live in assets/data/dice-colors.txt (loaded by LoadDiceColors).
 SUB DiceColors (body AS _UNSIGNED LONG, ink AS _UNSIGNED LONG)
-    SELECT CASE opt_dicecolor
-        CASE 0: body = _RGB32(&HEC, &HE4, &HD0): ink = _RGB32(&H1A, &H10, &H0C)   ' Bone
-        CASE 1: body = _RGB32(&HC4, &H22, &H22): ink = _RGB32(&HFF, &HEE, &HEE)   ' Blood
-        CASE 2: body = _RGB32(&H1E, &HA0, &H55): ink = _RGB32(&HF0, &HFF, &HF0)   ' Emerald
-        CASE 3: body = _RGB32(&H36, &H72, &HD8): ink = _RGB32(&HF0, &HF6, &HFF)   ' Sapphire
-        CASE 4: body = _RGB32(&HD8, &HA8, &H20): ink = _RGB32(&H24, &H1A, &H00)   ' Gold
-        CASE ELSE: body = _RGB32(&H8A, &H4C, &HC8): ink = _RGB32(&HF8, &HF0, &HFF) ' Amethyst
-    END SELECT
+    DIM i AS INTEGER
+    i = opt_dicecolor: IF i < 0 OR i > 5 THEN i = 5
+    body = DICE_BODY(i): ink = DICE_INK(i)
+END SUB
+
+SUB LoadDiceColors
+    DIM i AS INTEGER, id AS INTEGER
+    ReadDataFile "assets/data/dice-colors.txt"
+    FOR i = 1 TO DLINE_N
+        id = VAL(DField$(DLINE(i), 1))
+        IF id >= 0 AND id <= 5 THEN
+            DICE_CNAME(id) = DField$(DLINE(i), 2)
+            DICE_BODY(id) = HexRGB~&(DField$(DLINE(i), 3))
+            DICE_INK(id) = HexRGB~&(DField$(DLINE(i), 4))
+        END IF
+    NEXT i
 END SUB
 
 
 FUNCTION ColorName$ (idx AS INTEGER)
-    SELECT CASE idx
-        CASE 0: ColorName$ = "Bone"
-        CASE 1: ColorName$ = "Blood"
-        CASE 2: ColorName$ = "Emerald"
-        CASE 3: ColorName$ = "Sapphire"
-        CASE 4: ColorName$ = "Gold"
-        CASE ELSE: ColorName$ = "Amethyst"
-    END SELECT
+    DIM i AS INTEGER
+    i = idx: IF i < 0 OR i > 5 THEN i = 5
+    ColorName$ = DICE_CNAME(i)
 END FUNCTION
 
 FUNCTION DiceColorName$ ()

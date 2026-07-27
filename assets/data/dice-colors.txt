@@ -1,0 +1,15 @@
+# ============================================================================
+#  DICE COLOURS -- the 6 dice palettes cycled by the SETTINGS "Dice Colour"
+#  (and "Monster Dice Colour") sliders. Each is a BODY (the die) + INK (the
+#  number) colour. Edit the hex, press F5.
+#
+#  Format:  id | name | body | ink        ( id 0-5; body/ink = RRGGBB hex )
+# ============================================================================
+
+# id | name     | body   | ink
+0 | Bone     | ECE4D0 | 1A100C
+1 | Blood    | C42222 | FFEEEE
+2 | Emerald  | 1EA055 | F0FFF0
+3 | Sapphire | 3672D8 | F0F6FF
+4 | Gold     | D8A820 | 241A00
+5 | Amethyst | 8A4CC8 | F8F0FF
