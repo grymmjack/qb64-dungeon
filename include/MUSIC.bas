@@ -443,14 +443,15 @@ SUB DumpAudioManifest
     DIM i AS INTEGER, lvl AS INTEGER, si AS INTEGER, lst AS STRING, p AS INTEGER, nm AS STRING, seen AS STRING
     DIM dkey(1 TO 300) AS STRING, dval(1 TO 300) AS STRING, dn AS INTEGER
     _DEST _CONSOLE
-    PRINT "# DUNGEON! audio manifest  (path | description-or-text)  -- feed to the generators."
-    PRINT "# path is under assets/ , add .ogg/.mp3/.wav/.flac ; a pack subfolder overrides."
+    PRINT "# DUNGEON! audio manifest  -- feed to the generators. path is under assets/ , add"
+    PRINT "# .ogg/.mp3/.wav/.flac ; a pack subfolder overrides. sfx/music: path | length | prompt"
+    PRINT "# (length is a TARGET/MAX -- keep sfx at or under it); narration: path | line to speak."
     PRINT
 
-    PRINT "# --- SFX (assets/sfx/[pack]/) : path | generation prompt ---"
+    PRINT "# --- SFX (assets/sfx/[pack]/) : path | max-seconds | generation prompt ---"
     dn = 0: ReadDataFile "assets/sfx/descriptions.txt"
     FOR i = 1 TO DLINE_N
-        IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2))
+        IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2)) + " | " + _TRIM$(DField$(DLINE(i), 3))
     NEXT i
     lst = SfxNameList$ + " ": p = 1
     FOR i = 1 TO LEN(lst)
@@ -461,10 +462,10 @@ SUB DumpAudioManifest
     NEXT i
     PRINT
 
-    PRINT "# --- MUSIC (assets/music/[pack]/) : path | generation prompt ---"
+    PRINT "# --- MUSIC (assets/music/[pack]/) : path | length | generation prompt ---"
     dn = 0: ReadDataFile "assets/music/descriptions.txt"
     FOR i = 1 TO DLINE_N
-        IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2))
+        IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2)) + " | " + _TRIM$(DField$(DLINE(i), 3))
     NEXT i
     seen = " "
     FOR lvl = 1 TO 9                                    ' per-level tracks (unique bare names from playlist)

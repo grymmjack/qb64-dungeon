@@ -1,51 +1,58 @@
-# descriptions.txt -- an AI-generation PROMPT for each sound effect. Format:  name | prompt
-# `dungeon.run audiomanifest` prints  sfx/<name> | <prompt>  so a generator knows what to make.
-# Edit the prompts freely; a name with no line here still lists (with a blank prompt).
+# descriptions.txt -- per sound effect: a TARGET/MAX length and an AI-generation prompt.
+# Format:  name | max-seconds | prompt
+# `dungeon.run audiomanifest` prints  sfx/<name> | <max-seconds> | <prompt>.
+# The length + language reflect HOW the sound is used in game:
+#   * fires rapidly / every frame (footsteps, menu blips, per-glyph voice, per-dice-bounce,
+#     per-sum-tick) -> keep it TINY and DRY with NO reverb tail, so copies don't smear together.
+#   * loops while active (heartbeat) -> one clean cycle that repeats seamlessly, no bleed.
+#   * plays ALONE at a moment (win / lose / level up / death) -> may breathe a little.
+#   * combat impacts overlap -> short and punchy.
+# Edit freely; press F5 (a name with no line here still lists, blank fields).
 #
-# name         | prompt (what the sound should be)
-move           | a soft single footstep on cold stone, brief and quiet
-bump           | a dull thud of walking into a stone wall, no ring
-door           | a heavy wooden door creaking open on iron hinges
-strongdoor     | a reinforced iron-banded door refusing to budge, a heavy solid thud
-breakdoor      | a wooden door splintering and crashing violently open
-secret         | grinding stone as a hidden door is discovered, ending on a soft mystic chime
-secretpass     | a whispered stone slide as you pass through a hidden passage
-key            | a small iron key turning in a lock, a bright metallic jingle of triumph
-idle           | faint ambient dungeon room tone, a distant drip and low echo
-treasure       | a bright shimmering chime of coins and gems, rewarding
-trap           | a hidden mechanism springing, a sharp metallic snap and click
-hit            | a short punchy melee impact, a blade or club landing on flesh and bone
-miss           | a quick whoosh of a weapon swinging through empty air
-crit           | a heavy decisive critical strike, a powerful crunch with a bright metallic ring
-fumble         | a clumsy botched swing, an off-balance stumble and clatter
-search         | light rustling of hands feeling along a stone wall
-win            | a triumphant short victory sting, heroic brass and a rising flourish
-lose           | a somber descending defeat sting, low and mournful
-saveok         | a bright rising confirmation chime, three ascending notes
-savebad        | a sad descending failure tone, three falling notes
-chest          | a heavy wooden chest creaking open, the lid clunking back
-boom           | a low heavy bomb blast, a deep concussive thump and rumble
-hiss           | a sharp hiss of poison darts firing through the air
-fizzle         | a brittle crackling frost burst, icy crystalline shatter
-alarm          | a wailing magical siren, oscillating and urgent
-select         | a soft short UI menu blip, neutral
-levelup        | a bright ascending magical shimmer, empowering and warm
-voice          | a single very short vocal blip for a typewriter effect (tiny, plays once per letter)
-diceroll       | dice tumbling and rattling as they are thrown across a table
-diceland       | dice coming to rest, a small final click and settle
-dice_edge      | a single small die bounce, one hard clack
-dice_settle    | dice settling to a final stop, a soft tap
-dice-math-1    | a short rising tick as numbers add up
-dice-math-2    | a bright ding as a running total is reached
-monster-pain   | a monster's pained snarl or shriek when wounded but alive
-player-pain    | a short human grunt of pain when struck
-death          | a person's final death cry fading to silence
-monster-death  | a monster's guttural death throes collapsing to the ground
-maxhit         | a devastating maximum-damage impact, a bone-crushing blow with huge weight
-heartbeat      | a slow deep heartbeat thump, tense and ominous, on the edge of death
-curio          | a soft magical reveal shimmer as a curious object appears
-poison-proc    | a sickly wet gurgle as poison courses through the body
-frost-proc     | a brittle icy crackle of lingering frost biting the skin
-teleport       | a swirling magical whoosh rising in pitch as reality folds away
-fireball       | a roaring burst of flame, a fiery whoosh and low rumble
-lightning-bolt | a sharp electric crack and crackle of a lightning strike
+# name         | secs | prompt
+move           | 0.12 | a single soft footstep on cold stone -- plays on EVERY step, so keep it very short, dry and subtle (no reverb tail, nothing that fatigues over hours)
+bump           | 0.18 | one short dull thud of walking into a stone wall, no ring or tail
+door           | 0.40 | a heavy wooden door creaking open on iron hinges, one motion
+strongdoor     | 0.30 | a reinforced iron-banded door refusing to budge, one heavy solid thud
+breakdoor      | 0.50 | a wooden door splintering and crashing violently open, one big crack
+secret         | 0.45 | grinding stone as a hidden door is found, ending on a soft mystic chime
+secretpass     | 0.30 | a whispered stone slide as you slip through a hidden passage
+key            | 0.55 | a small iron key turning in a lock into a bright triumphant metallic jingle (seizing the Level Key)
+idle           | 0.40 | a faint ambient dungeon room tone -- a distant drip and low echo (plays now and then while you loiter)
+treasure       | 0.50 | a bright shimmering chime of coins and gems, rewarding, one flourish
+trap           | 0.40 | a hidden mechanism springing -- a sharp metallic snap and click
+hit            | 0.22 | a short punchy melee impact, blade or club on flesh and bone -- these OVERLAP in fast combat, so keep it tight and dry
+miss           | 0.18 | one quick whoosh of a weapon cutting empty air
+crit           | 0.55 | a heavy decisive critical strike -- a powerful crunch with a bright metallic ring
+fumble         | 0.35 | a clumsy botched swing, an off-balance stumble and clatter
+search         | 0.25 | light rustling of hands feeling along a stone wall
+win            | 1.80 | a triumphant victory sting, heroic brass and a rising flourish -- plays alone on the win screen, so it can breathe
+lose           | 1.80 | a somber descending defeat sting, low and mournful -- plays alone on the death screen
+saveok         | 0.50 | a bright rising confirmation chime, three ascending notes (a saving throw succeeds)
+savebad        | 0.60 | a sad descending failure tone, three falling notes (a saving throw fails)
+chest          | 0.50 | a heavy wooden chest creaking open, the lid clunking back
+boom           | 0.60 | a low heavy bomb blast, a deep concussive thump and short rumble
+hiss           | 0.30 | a sharp hiss of poison darts firing through the air
+fizzle         | 0.35 | a brittle crackling frost burst, icy crystalline shatter
+alarm          | 1.00 | a wailing magical siren, oscillating and urgent (a summoning wail)
+select         | 0.08 | a tiny neutral UI blip -- fires on EVERY menu keypress, so it must be short and dry, no tail
+levelup        | 1.00 | a bright ascending magical shimmer, empowering and warm -- plays alone
+voice          | 0.05 | a TINY vocal tick for a typewriter effect -- it fires once PER LETTER (many times a second), so it must be minuscule and dry, absolutely no tail
+diceroll       | 0.35 | dice tumbling and being thrown -- one quick dry clatter, NO long tail (a roll happens constantly)
+diceland       | 0.18 | dice coming to rest, one small final click
+dice_edge      | 0.06 | a single die bounce -- ONE tiny dry clack (several fire during a tumble, so no ring)
+dice_settle    | 0.15 | dice settling to a final stop, a soft tap
+dice-math-1    | 0.08 | ONE tiny rising tick -- fires rapidly as the roll's numbers add up, so short and dry, no tail
+dice-math-2    | 0.20 | one bright ding as the running total lands
+monster-pain   | 0.40 | a monster's pained snarl or shriek when wounded but still alive (mid-combat, may repeat)
+player-pain    | 0.35 | a short human grunt of pain when struck (mid-combat, may repeat)
+death          | 1.10 | a person's final death cry fading to silence -- plays alone when you fall
+monster-death  | 0.70 | a monster's guttural death throes collapsing to the ground (fires on each kill)
+maxhit         | 0.65 | a devastating maximum-damage impact -- a huge bone-crushing blow with weight and a low boom
+heartbeat      | 0.30 | ONE clean deep heartbeat lub-dub -- it LOOPS while you are near death (fires every ~0.5s and quickens), so no tail that bleeds into the next beat
+curio          | 0.40 | a soft magical reveal shimmer as a curio appears
+poison-proc    | 0.40 | a sickly wet gurgle as poison bites (ticks once per turn while poisoned)
+frost-proc     | 0.35 | a brittle icy crackle of lingering frost biting the skin (ticks per turn)
+teleport       | 0.60 | a swirling magical whoosh rising in pitch as reality folds (reading a Teleport Scroll)
+fireball       | 0.60 | a roaring burst of flame, a fiery whoosh and low rumble
+lightning-bolt | 0.45 | a sharp electric crack and crackle of a lightning strike

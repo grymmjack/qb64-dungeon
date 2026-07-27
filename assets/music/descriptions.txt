@@ -1,22 +1,25 @@
-# descriptions.txt -- an AI-generation PROMPT for each music track / cue. Format:  name | prompt
-# `dungeon.run audiomanifest` prints  music/<name> | <prompt>  so a generator knows what to make.
-# The names come from your playlist.txt (per-level tracks) plus the fixed cues below. Add a line
-# for any track name you use; a name with no line here still lists (with a blank prompt).
-# Keep loops seamless. All original dark-fantasy dungeon-crawler moods.
+# descriptions.txt -- per music track / cue: a target LENGTH and an AI-generation prompt.
+# Format:  name | length | prompt
+# `dungeon.run audiomanifest` prints  music/<name> | <length> | <prompt>.
+# Level tracks and combat cues LOOP (they play continuously while you're in that level/fight),
+# so they must loop SEAMLESSLY -- write a self-contained phrase with no hard start/stop.
+# The intro sting and the victory/lose cues play at a discrete moment. Names come from your
+# playlist.txt plus the fixed cues below. Add a line for any track name you use.
+# All original dark-fantasy dungeon-crawler moods.
 #
-# name           | prompt (mood / style / structure)
-vr-theme         | a short dark synth intro sting for a studio logo, ominous and atmospheric, non-looping
-everdark         | a brooding ambient dungeon MENU theme, slow, mysterious, spacious reverb, seamless loop
-start            | a tense, sparse early-dungeon exploration loop, low drones and distant echoes, seamless loop
-level1           | dark-fantasy dungeon exploration, upper level, low tension, subtle percussion, seamless loop
-level2           | dark-fantasy dungeon exploration, deeper, rising unease, seamless loop
-caverns          | echoing underground cavern ambience, dripping water, deep drones, seamless loop
-crypt            | a cold funereal crypt theme, distant wordless choir, bone-dry space, seamless loop
-deeproads        | a vast deep-road theme, cavernous and ominous, slow and huge, seamless loop
-inferno          | a hot, driving lower-dungeon theme, fiery and dangerous, seamless loop
-dragonlair       | an epic, dread-filled dragon-lair theme, enormous scale and menace, seamless loop
-victory          | a triumphant, heroic orchestral fanfare, warm brass and strings, short, non-looping
-lose             | a somber, mournful defeat theme, slow low strings, short, non-looping
-combat-low       | a tense, driving dark-fantasy combat loop, low-to-mid intensity, percussive, seamless loop
-combat-high      | an intense, fast dark-fantasy combat loop, high energy and urgency, seamless loop
-combat-intense   | a massive BOSS-battle theme, epic, relentless, full percussion and brass, seamless loop
+# name           | length        | prompt
+vr-theme         | 3s one-shot   | a short dark synth intro sting for a studio logo, ominous and atmospheric, non-looping
+everdark         | 40-60s loop   | a brooding ambient dungeon MENU theme -- plays the whole time you're in the menu, so slow, mysterious, spacious, seamless loop
+start            | 30-60s loop   | a tense, sparse early-dungeon exploration loop, low drones and distant echoes, seamless
+level1           | 30-60s loop   | dark-fantasy dungeon exploration, upper level, low tension, subtle percussion, seamless loop
+level2           | 30-60s loop   | dark-fantasy dungeon exploration, deeper, rising unease, seamless loop
+caverns          | 30-60s loop   | echoing underground cavern ambience, dripping water, deep drones, seamless loop
+crypt            | 30-60s loop   | a cold funereal crypt theme, distant wordless choir, bone-dry space, seamless loop
+deeproads        | 30-60s loop   | a vast deep-road theme, cavernous and ominous, slow and huge, seamless loop
+inferno          | 30-60s loop   | a hot, driving lower-dungeon theme, fiery and dangerous, seamless loop
+dragonlair       | 40-80s loop   | an epic, dread-filled dragon-lair theme, enormous scale and menace, seamless loop
+victory          | 20-40s loop   | a triumphant heroic theme that loops behind the win + name-entry screen, warm brass and strings, celebratory but seamless (not a one-shot fanfare)
+lose             | 20-40s loop   | a somber, mournful defeat theme behind the death screen, slow low strings, seamless
+combat-low       | 20-40s loop   | a tense, driving dark-fantasy combat loop for levels 1-5, low-to-mid intensity, percussive, seamless
+combat-high      | 20-40s loop   | an intense, fast dark-fantasy combat loop for the deep levels, high energy and urgency, seamless
+combat-intense   | 30-60s loop   | a massive BOSS-battle theme, epic and relentless, full percussion and brass, seamless loop
