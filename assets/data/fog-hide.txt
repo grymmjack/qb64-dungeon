@@ -1,0 +1,20 @@
+# ============================================================================
+#  FOG HIDE -- stray art specks to force-black on the played board.
+#
+#  Some cells of the board art are isolated non-black specks sitting on the black
+#  background (a leftover pixel near a secret room, a stray mark). The fog flood
+#  can't reach them (they touch no room), so the secret-room hiding leaves them
+#  visible as little coloured dots. They are indistinguishable in code from the
+#  level-number labels ("3rd", "9th", ...), which are ALSO small isolated art --
+#  so there is no safe automatic scrub. Instead, list the exact speck cells here
+#  and the engine blacks precisely those, nothing else.
+#
+#  HOW TO FIND A SPECK'S CELL: press [~] in-game for the debug overlay. The bottom
+#  line shows "cell X,Y" under the mouse -- hover the dot and read col,row.
+#
+#  Format:  col,row      (one cell per line; '#' starts a comment)
+#  Example: 52,20
+#
+#  (Empty = nothing hidden. Add lines, press F5. Safe: only listed cells change,
+#   and reveal never brings them back.)
+# ============================================================================

@@ -543,6 +543,33 @@ SUB InitFog
             END IF
         NEXT cx
     NEXT cy
+    LoadFogHide                          ' 4) black out any hand-listed stray art specks
+END SUB
+
+' Force-black specific cells listed in assets/data/fog-hide.txt (one "col,row" per line).
+' The board art is fixed, so this is the exact, label-safe way to erase stray specks the
+' flood can't reach (isolated non-black cells the secret-room hiding leaves behind). Only
+' the cells you list are touched -- read them from the [~] debug overlay's "cell X,Y".
+SUB LoadFogHide
+    IF NOT _FILEEXISTS("assets/data/fog-hide.txt") THEN EXIT SUB
+    DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
+    DIM hx AS INTEGER, hy AS INTEGER
+    whole = _READFILE$("assets/data/fog-hide.txt")
+    p = 1
+    DO WHILE p <= LEN(whole)
+        nl = INSTR(p, whole, CHR$(10))
+        IF nl = 0 THEN ln = MID$(whole, p): p = LEN(whole) + 1 ELSE ln = MID$(whole, p, nl - p): p = nl + 1
+        IF RIGHT$(ln, 1) = CHR$(13) THEN ln = LEFT$(ln, LEN(ln) - 1)   ' strip CR
+        hp = INSTR(ln, "#"): IF hp > 0 THEN ln = LEFT$(ln, hp - 1)     ' strip comment
+        ln = _TRIM$(ln)
+        IF LEN(ln) > 0 AND INSTR(ln, ",") > 0 THEN
+            hx = VAL(NthField$(ln, ",", 1)): hy = VAL(NthField$(ln, ",", 2))
+            IF hx >= 0 AND hx <= SW - 1 AND hy >= 0 AND hy <= SH - 1 THEN
+                _DEST CANVAS_COPY: LINE (hx * CW, hy * CH)-(hx * CW + CW - 1, hy * CH + CH - 1), BLACK, BF
+                _DEST CANVAS: LINE (hx * CW, hy * CH)-(hx * CW + CW - 1, hy * CH + CH - 1), BLACK, BF
+            END IF
+        END IF
+    LOOP
 END SUB
 
 

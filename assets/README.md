@@ -37,6 +37,7 @@ assets/
 | `traps.txt`     | a curio trap | `kind \| name \| save \| word \| sfx \| die \| trigger \| savemsg \| failtitle \| failbody` |
 | `effects.txt`   | a crit/fumble line | `table \| kind \| die \| text` (table 1 crit / 2 you-fumble / 3 monster-fumble) |
 | `chambers.txt`  | a chamber    | `name \| col1 \| row1 \| col2 \| row2` (bounding rectangle in cells; walkable cells inside = its trigger zone) |
+| `fog-hide.txt`  | a cell to black | `col,row` (force-black a stray art speck the secret-room fog can't reach; read the cell from the `[~]` overlay) |
 
 `chambers.txt` is the exact, hand-authored map of the big named halls (3 monsters, no
 treasure each). The board art is fixed so these never move; press `[~]` in-game to read a
