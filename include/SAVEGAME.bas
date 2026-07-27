@@ -99,6 +99,11 @@ SUB SaveGame
     FOR i = 1 TO UBOUND(LOOSE)
         PRINT #f, LOOSE(i).active; LOOSE(i).cx; LOOSE(i).cy; LOOSE(i).gold; LOOSE(i).sword; LOOSE(i).secret; LOOSE(i).esp; LOOSE(i).crystal
     NEXT i
+    ' solo challenge (single-player variants) -- so a saved timed / item-hunt / monster-prey
+    ' run RESUMES in the same mode (else Continue dropped back to normal play: no timer/hunter)
+    PRINT #f, "SOLO "; solo_on; opt_solomode; opt_solomins; solo_item_room; solo_item_lvl; solo_found; hunt_on; hunt_cx; hunt_cy; hunt_slot; hunt_lvl
+    PRINT #f, "SITEM " + _TRIM$(solo_item_name)
+    PRINT #f, "HMON " + _TRIM$(hunt_mon)
     CLOSE #f
 END SUB
 
@@ -236,6 +241,44 @@ SUB LoadGameApply
                 LOOSE(i).active = NextI: LOOSE(i).cx = NextI: LOOSE(i).cy = NextI: LOOSE(i).gold = NextL
                 LOOSE(i).sword = NextI: LOOSE(i).secret = NextI: LOOSE(i).esp = NextI: LOOSE(i).crystal = NextI
             NEXT i
+        END IF
+    END IF
+
+    ' solo challenge state (optional -- old saves lack it, so tag-guard). Default: no solo.
+    solo_on = FALSE
+    IF SVTOK_I <= SVTOK_N THEN
+        IF SVTOK(SVTOK_I) = "SOLO" THEN
+            tag = NextTok$                            ' "SOLO"
+            solo_on = NextI: opt_solomode = NextI: opt_solomins = NextI
+            solo_item_room = NextI: solo_item_lvl = NextI: solo_found = NextI
+            hunt_on = NextI: hunt_cx = NextI: hunt_cy = NextI: hunt_slot = NextI: hunt_lvl = NextI
+            ' SITEM whole-line (quest treasure name -- may contain spaces), read until HMON
+            IF SVTOK_I <= SVTOK_N THEN
+                IF SVTOK(SVTOK_I) = "SITEM" THEN
+                    tag = NextTok$: nm = ""
+                    DO
+                        IF SVTOK_I > SVTOK_N THEN EXIT DO
+                        IF SVTOK(SVTOK_I) = "HMON" THEN EXIT DO
+                        IF nm = "" THEN nm = SVTOK(SVTOK_I) ELSE nm = nm + " " + SVTOK(SVTOK_I)
+                        SVTOK_I = SVTOK_I + 1
+                    LOOP
+                    solo_item_name = nm
+                END IF
+            END IF
+            ' HMON whole-line (hunter monster name), read to end
+            IF SVTOK_I <= SVTOK_N THEN
+                IF SVTOK(SVTOK_I) = "HMON" THEN
+                    tag = NextTok$: nm = ""
+                    DO
+                        IF SVTOK_I > SVTOK_N THEN EXIT DO
+                        IF nm = "" THEN nm = SVTOK(SVTOK_I) ELSE nm = nm + " " + SVTOK(SVTOK_I)
+                        SVTOK_I = SVTOK_I + 1
+                    LOOP
+                    hunt_mon = nm
+                END IF
+            END IF
+            solo_result = 0                           ' a fresh continue never starts already-lost
+            hunt_lastmoves = moves_made               ' the hunter doesn't jump on the first post-load frame
         END IF
     END IF
 

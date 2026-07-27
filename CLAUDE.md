@@ -151,8 +151,9 @@ Environment specifics that dictate this approach:
   player one cell per step over `FULL_BOARD` so it uses secret doors — `HunterAdvance` fills
   `HDIST`; it catching you = lose, you stepping onto it = `HunterFight` → kill respawns a fresh one).
   `SoloTick` (play-loop, every frame) sets `solo_result` = `OUT_WIN`/`OUT_LOSE`; `DrawSoloHUD` is the
-  top status ribbon; solo state resets per run (`SoloReset`) and is not saved (loaded games play
-  normal). **Hot-seat multiplayer** (`include/PLAYERS.bas`): SETTINGS
+  top status ribbon; solo state resets per run (`SoloReset`) and is **persisted in the save**
+  (SAVEGAME.bas `SOLO`/`SITEM`/`HMON` lines) so a timed / item-hunt / monster-prey run resumes
+  in its mode on Continue. **Hot-seat multiplayer** (`include/PLAYERS.bas`): SETTINGS
   **Players** (1-4; >1 forces Boardgame ON). The active player's state IS the working globals;
   `PLAYERS(1..4)` parks each between turns via `Load/SaveActivePlayer`, `SetupPlayers` runs each
   through class-select + roll-up + `PromptName$`, `EndPlayerTurn`/`NextActivePlayer`/`AnnounceTurn`
