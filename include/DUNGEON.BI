@@ -337,6 +337,11 @@ DIM SHARED fov_cx AS INTEGER, fov_cy AS INTEGER   ' last position FOV was comput
 DIM SHARED DOORCELL(0 TO 131, 0 TO 60) AS _BYTE   ' 1 = a secret-door cell
 DIM SHARED SECRET(0 TO 131, 0 TO 60) AS _BYTE     ' 1 = fogged (door-connected sealed cell)
 DIM SHARED FOGHIDE(0 TO 131, 0 TO 60) AS _BYTE    ' 1 = force-blacked stray speck (fog-hide.txt; [~] tints it)
+DIM SHARED MASKREG(0 TO 131, 0 TO 60) AS INTEGER  ' secret-mask region id per cell (0 = public); reveal-by-region
+DIM SHARED MASK_ON AS INTEGER                     ' TRUE = fog driven by the hand-painted mask, not the flood
+DIM SHARED DOOR_REGION(1 TO 500) AS INTEGER       ' which mask region each secret door opens
+DIM SHARED MASKLVL(0 TO 255) AS INTEGER           ' nesting depth per region (1 = opened from public, 2 = secret-in-secret, ...)
+DIM SHARED MASKCOL(0 TO 131, 0 TO 60) AS _UNSIGNED LONG   ' sampled mask colour per cell (region flood)
 DIM SHARED QX(0 TO 8000) AS INTEGER, QY(0 TO 8000) AS INTEGER   ' flood-fill queue
 ' settings (toggled from the SETTINGS menu) + the run timer
 DIM SHARED opt_music AS INTEGER, opt_sfx AS INTEGER, opt_showdice AS INTEGER, opt_fullscreen AS INTEGER

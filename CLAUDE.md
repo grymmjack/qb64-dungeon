@@ -24,17 +24,18 @@ character create, "Lords of Legend") is the adaptation's rule set.
 
 ## Setup
 
-Dependencies are git submodules and **must** be fetched before anything compiles:
+The game itself has **no external submodule build dependency** — the one thing it needed
+from Toolbox64 (the ANSI renderer) is **vendored** in `include/ansi/` (see below). File
+reads use QB64PE's built-in `_READFILE$`. So `dungeon.bas` compiles from a plain checkout.
 
-```
-git submodule init
-git submodule update
-```
-
-- `include/Toolbox64` — a740g's library; this project uses `FileOps` (`LoadFile$` /
-  `LoadFileFromDisk$`) and `ANSIPrint` (`ANSI_Print`, which renders `.ans` bytes to the
-  current `_DEST` image).
-- `include/QB64_GJ_LIB` — grymmjack's `_GJ_LIB.BI` / `_GJ_LIB.BM` helpers.
+- **`include/ansi/`** — vendored `ANSIPrint` + its `GraphicOps`/`Common`/`Types`/`Debug`
+  headers (from Toolbox64 @ `8c5d57d`, the last commit that compiles on QB64PE **4.4.0 and
+  4.5.0**). Provides `ANSI_Print` (renders `.ans` bytes to the current `_DEST`). We vendored
+  it because Toolbox64 `main`'s newer `ANSIPrint`→`Graphics2D.h` reaches a QB64PE internal
+  (`write_page`) that fails to compile under 4.5.0 (see `scratchpads/TOOLBOX64-write_page-bug.md`).
+  Do **not** re-point these includes at the `Toolbox64` submodule.
+- `include/Toolbox64`, `include/QB64_GJ_LIB` — submodules kept for reference / other tools;
+  **not** included by the game. If present, fetch with `git submodule update --init`.
 
 ## Build & run
 
@@ -214,6 +215,21 @@ Environment specifics that dictate this approach:
   (`RevealRegionFromDoor`), copying just that region back from `FULL_BOARD` — revealing the
   door and only what it connects to. The first door found grants the Level Key; the win
   requires gold **and** `has_key` **and** returning to START.
+- **Secret-region MASK** (the exact, art-as-data replacement for the flood above).
+  `LoadSecretMask` (BOARD.bas) loads a same-size painted ANSI, `assets/ansi/board-132x50-secret-mask.ans`:
+  **black = public, any non-black cell = secret**, and a **same-colour 4-connected run = one
+  REGION** (a colour change or a black gap splits regions — so you paint each secret area, and
+  each *nesting level* a different colour). `InitFog` prefers the mask (`MASK_ON`) and falls back
+  to the flood only when the file is absent/empty. Each detected blue door maps to the region it
+  opens (`RegionAtDoor`→`DOOR_REGION`), and `RevealRegionFromDoor` then reveals **exactly** that
+  region (no flood, no ambiguity, no leftover specks). **Nested secrets** work naturally: a door
+  painted the inner region's colour opens that inner region; it stays hidden inside the outer
+  region until found by `DoSearch` (which is proximity-based, not sight-based) — `ComputeMaskLevels`
+  tags each region's nesting depth. The mask is generated as a starter by `dungeon.run maskgen`
+  (writes secret cells + a **SAUCE** record so ANSI editors read the 132×50 / IBM VGA dims), then
+  hand-painted. `dungeon.run fogdump` renders the fogged board + a region overlay for verification.
+  The `[~]` debug view tints each region, marks every secret door by nesting level (green entry /
+  cyan nested / **red X = unmapped, a dead door**), and the mouse line shows `reg:/lvl:/door→`.
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and

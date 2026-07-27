@@ -487,11 +487,159 @@ END FUNCTION
 ' START without crossing a door (the "public" area), then black out every
 ' walkable cell that is only reachable through a door, plus the doors.
 
+' Load the hand-painted secret mask (assets/ansi/board-132x50-secret-mask.ans). Any non-black
+' cell is secret; same-colour 4-connected runs form a REGION (a colour change or gap splits
+' regions). Fills SECRET + MASKREG + MASKCOL. Returns TRUE (and sets MASK_ON) if it painted
+' >=1 secret cell -- the exact, art-as-data replacement for the openness/flood heuristic.
+FUNCTION LoadSecretMask%
+    LoadSecretMask = 0: MASK_ON = FALSE
+    IF NOT _FILEEXISTS("assets/ansi/board-132x50-secret-mask.ans") THEN EXIT FUNCTION
+    DIM mb AS STRING, mimg AS LONG, olddest AS LONG, oldsrc AS LONG
+    DIM x AS INTEGER, y AS INTEGER, cnt AS INTEGER, regid AS INTEGER
+    DIM head AS INTEGER, tail AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    mb = _READFILE$("assets/ansi/board-132x50-secret-mask.ans")
+    IF LEN(mb) = 0 THEN EXIT FUNCTION
+    mimg = _NEWIMAGE(SW * CW, SH * CH, 32)
+    olddest = _DEST: _DEST mimg: _FONT CH: CLS , BLACK
+    ANSI_Print (mb)
+    _DEST olddest
+    oldsrc = _SOURCE: _SOURCE mimg                    ' sample the mask's cell colours
+    cnt = 0
+    FOR y = 0 TO SH - 1
+        FOR x = 0 TO SW - 1
+            MASKCOL(x, y) = MaskSample~&(x, y): MASKREG(x, y) = 0
+            IF MASKCOL(x, y) <> BLACK THEN cnt = cnt + 1
+        NEXT x
+    NEXT y
+    _SOURCE oldsrc: _FREEIMAGE mimg
+    IF cnt = 0 THEN EXIT FUNCTION                     ' empty mask -> caller uses the flood instead
+    ' region ids: same-colour 4-connected components
+    regid = 0
+    FOR y = 0 TO SH - 1
+        FOR x = 0 TO SW - 1
+            IF MASKCOL(x, y) <> BLACK AND MASKREG(x, y) = 0 THEN
+                regid = regid + 1
+                head = 0: QX(0) = x: QY(0) = y: MASKREG(x, y) = regid: tail = 1
+                DO WHILE head < tail
+                    cx = QX(head): cy = QY(head): head = head + 1
+                    MaskFlood cx - 1, cy, regid, MASKCOL(cx, cy), tail
+                    MaskFlood cx + 1, cy, regid, MASKCOL(cx, cy), tail
+                    MaskFlood cx, cy - 1, regid, MASKCOL(cx, cy), tail
+                    MaskFlood cx, cy + 1, regid, MASKCOL(cx, cy), tail
+                LOOP
+            END IF
+        NEXT x
+    NEXT y
+    FOR y = 0 TO SH - 1: FOR x = 0 TO SW - 1: IF MASKREG(x, y) > 0 THEN SECRET(x, y) = 1
+    NEXT x: NEXT y
+    MASK_ON = -1: LoadSecretMask = -1
+END FUNCTION
+
+' Robust cell-colour sample for the mask (centre, then the 4 mid-half points, so a cell
+' painted as a half-block still registers). _SOURCE must be the mask image. BLACK = public.
+FUNCTION MaskSample~& (cx AS INTEGER, cy AS INTEGER)
+    DIM bx AS INTEGER, by AS INTEGER, c AS _UNSIGNED LONG
+    bx = cx * CW: by = cy * CH
+    c = POINT(bx + CW \ 2, by + CH \ 2): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
+    c = POINT(bx + CW \ 2, by + CH \ 4): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
+    c = POINT(bx + CW \ 2, by + 3 * CH \ 4): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
+    c = POINT(bx + CW \ 4, by + CH \ 2): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
+    c = POINT(bx + 3 * CW \ 4, by + CH \ 2): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
+    MaskSample~& = BLACK
+END FUNCTION
+
+' Region-flood helper: join a same-colour, unassigned neighbour into region regid.
+SUB MaskFlood (nx AS INTEGER, ny AS INTEGER, regid AS INTEGER, wantcol AS _UNSIGNED LONG, tail AS INTEGER)
+    IF nx < 0 OR nx > SW - 1 OR ny < 0 OR ny > SH - 1 THEN EXIT SUB
+    IF MASKREG(nx, ny) <> 0 THEN EXIT SUB
+    IF MASKCOL(nx, ny) <> wantcol THEN EXIT SUB       ' colour change = a new region boundary
+    MASKREG(nx, ny) = regid
+    QX(tail) = nx: QY(tail) = ny: tail = tail + 1
+END SUB
+
+' Which mask region a secret door opens (its own cell, else the first painted neighbour).
+FUNCTION RegionAtDoor% (di AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER
+    dx = SD_X(di): dy = SD_Y(di)
+    RegionAtDoor = 0
+    IF MASKREG(dx, dy) > 0 THEN RegionAtDoor = MASKREG(dx, dy): EXIT FUNCTION
+    IF dx > 0 THEN IF MASKREG(dx - 1, dy) > 0 THEN RegionAtDoor = MASKREG(dx - 1, dy): EXIT FUNCTION
+    IF dx < SW - 1 THEN IF MASKREG(dx + 1, dy) > 0 THEN RegionAtDoor = MASKREG(dx + 1, dy): EXIT FUNCTION
+    IF dy > 0 THEN IF MASKREG(dx, dy - 1) > 0 THEN RegionAtDoor = MASKREG(dx, dy - 1): EXIT FUNCTION
+    IF dy < SH - 1 THEN IF MASKREG(dx, dy + 1) > 0 THEN RegionAtDoor = MASKREG(dx, dy + 1): EXIT FUNCTION
+END FUNCTION
+
+' TRUE if cell is a PUBLIC walkable floor (not secret) -- a door touching one is a
+' level-1 entry from the open dungeon. (_SOURCE must be FULL_BOARD.)
+FUNCTION NeighPublic% (x AS INTEGER, y AS INTEGER)
+    NeighPublic = 0
+    IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT FUNCTION
+    IF SECRET(x, y) = 0 THEN IF CellKind(x, y) >= 1 THEN NeighPublic = -1
+END FUNCTION
+
+' A door's parent region: a neighbouring painted region that isn't the one it opens.
+FUNCTION DoorParentRegion% (di AS INTEGER, r AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER
+    dx = SD_X(di): dy = SD_Y(di): DoorParentRegion = 0
+    IF NeighRegionNot%(dx - 1, dy, r) > 0 THEN DoorParentRegion = NeighRegionNot%(dx - 1, dy, r): EXIT FUNCTION
+    IF NeighRegionNot%(dx + 1, dy, r) > 0 THEN DoorParentRegion = NeighRegionNot%(dx + 1, dy, r): EXIT FUNCTION
+    IF NeighRegionNot%(dx, dy - 1, r) > 0 THEN DoorParentRegion = NeighRegionNot%(dx, dy - 1, r): EXIT FUNCTION
+    IF NeighRegionNot%(dx, dy + 1, r) > 0 THEN DoorParentRegion = NeighRegionNot%(dx, dy + 1, r): EXIT FUNCTION
+END FUNCTION
+
+FUNCTION NeighRegionNot% (x AS INTEGER, y AS INTEGER, r AS INTEGER)
+    NeighRegionNot = 0
+    IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT FUNCTION
+    IF MASKREG(x, y) > 0 THEN IF MASKREG(x, y) <> r THEN NeighRegionNot = MASKREG(x, y)
+END FUNCTION
+
+' Compute each region's nesting depth: 1 = reached from the public dungeon, 2 = a secret
+' inside a level-1 secret, and so on. Regions still 0 after this are unreachable/unmapped.
+SUB ComputeMaskLevels
+    DIM di AS INTEGER, r AS INTEGER, p AS INTEGER, it AS INTEGER, changed AS INTEGER, oldsrc AS LONG
+    DIM k AS INTEGER
+    FOR k = 0 TO UBOUND(MASKLVL): MASKLVL(k) = 0: NEXT
+    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    FOR di = 1 TO SD_N                                   ' level 1: doors opening from public floor
+        r = DOOR_REGION(di)
+        IF r > 0 AND r <= UBOUND(MASKLVL) THEN
+            IF NeighPublic(SD_X(di) - 1, SD_Y(di)) OR NeighPublic(SD_X(di) + 1, SD_Y(di)) OR NeighPublic(SD_X(di), SD_Y(di) - 1) OR NeighPublic(SD_X(di), SD_Y(di) + 1) THEN
+                IF MASKLVL(r) = 0 THEN MASKLVL(r) = 1
+            END IF
+        END IF
+    NEXT di
+    FOR it = 1 TO 40                                     ' propagate: nested = parent depth + 1
+        changed = 0
+        FOR di = 1 TO SD_N
+            r = DOOR_REGION(di)
+            IF r > 0 AND r <= UBOUND(MASKLVL) THEN
+                IF MASKLVL(r) = 0 THEN
+                    p = DoorParentRegion(di, r)
+                    IF p > 0 AND p <= UBOUND(MASKLVL) THEN
+                        IF MASKLVL(p) > 0 THEN MASKLVL(r) = MASKLVL(p) + 1: changed = -1
+                    END IF
+                END IF
+            END IF
+        NEXT di
+        IF changed = 0 THEN EXIT FOR
+    NEXT it
+    _SOURCE oldsrc
+END SUB
+
+' A distinct, readable tint colour per mask region id (cycled hue). Alpha for the overlay.
+FUNCTION MaskRegionColor~& (id AS INTEGER, alpha AS INTEGER)
+    DIM rr AS INTEGER, gg AS INTEGER, bb AS INTEGER
+    rr = (id * 53) MOD 180 + 70
+    gg = (id * 101 + 40) MOD 180 + 70
+    bb = (id * 173 + 90) MOD 180 + 70
+    MaskRegionColor~& = _RGBA32(rr, gg, bb, alpha)
+END FUNCTION
+
 SUB InitFog
     DIM cx AS INTEGER, cy AS INTEGER, i AS INTEGER, head AS INTEGER, tail AS INTEGER
     FOR cy = 0 TO SH - 1
         FOR cx = 0 TO SW - 1
-            VIS(cx, cy) = 0: DOORCELL(cx, cy) = 0: SECRET(cx, cy) = 0
+            VIS(cx, cy) = 0: DOORCELL(cx, cy) = 0: SECRET(cx, cy) = 0: MASKREG(cx, cy) = 0
         NEXT cx
     NEXT cy
 
@@ -502,35 +650,49 @@ SUB InitFog
     DetectRooms                          ' flood-fill the coloured room blocks -> ROOMS / ROOMAT
     DetectChambers                       ' flood the large yellow named CHAMBERS (openness heuristic)
 
-    ' 1) BFS the public area from START (doors are treated as walls)
-    _SOURCE FULL_BOARD
-    head = 0: tail = 0
-    QX(0) = START_CX: QY(0) = START_CY: VIS(START_CX, START_CY) = 1: tail = 1
-    DO WHILE head < tail
-        cx = QX(head): cy = QY(head): head = head + 1
-        FogVisit cx - 1, cy, tail
-        FogVisit cx + 1, cy, tail
-        FogVisit cx, cy - 1, tail
-        FogVisit cx, cy + 1, tail
-    LOOP
-
-    ' 2) BFS the secret network outward from every door (through non-public
-    '    walkable cells + doors) so ONLY door-connected areas get fogged --
-    '    isolated terrain-coloured graphics (labels, legend) stay visible.
-    head = 0: tail = 0
-    FOR i = 1 TO SD_N
-        IF SECRET(SD_X(i), SD_Y(i)) = 0 THEN
-            SECRET(SD_X(i), SD_Y(i)) = 1
-            QX(tail) = SD_X(i): QY(tail) = SD_Y(i): tail = tail + 1
-        END IF
-    NEXT i
-    DO WHILE head < tail
-        cx = QX(head): cy = QY(head): head = head + 1
-        SecretVisit cx - 1, cy, tail
-        SecretVisit cx + 1, cy, tail
-        SecretVisit cx, cy - 1, tail
-        SecretVisit cx, cy + 1, tail
-    LOOP
+    IF LoadSecretMask THEN
+        ' the hand-painted mask drives the fog: SECRET + MASKREG are set. Public = every
+        ' non-secret cell (visible now); each secret door maps to the region it opens.
+        FOR cy = 0 TO SH - 1
+            FOR cx = 0 TO SW - 1
+                IF SECRET(cx, cy) = 0 THEN VIS(cx, cy) = 1 ELSE VIS(cx, cy) = 0
+            NEXT cx
+        NEXT cy
+        FOR i = 1 TO SD_N                 ' always hide the blue door tile, and record its region
+            SECRET(SD_X(i), SD_Y(i)) = 1: VIS(SD_X(i), SD_Y(i)) = 0
+            DOOR_REGION(i) = RegionAtDoor(i)
+        NEXT i
+        ComputeMaskLevels                 ' nesting depth per region (for the [~] mask overlay)
+    ELSE
+        ' -- FALLBACK: no mask file -> the openness/flood heuristic --
+        ' 1) BFS the public area from START (doors are treated as walls)
+        _SOURCE FULL_BOARD
+        head = 0: tail = 0
+        QX(0) = START_CX: QY(0) = START_CY: VIS(START_CX, START_CY) = 1: tail = 1
+        DO WHILE head < tail
+            cx = QX(head): cy = QY(head): head = head + 1
+            FogVisit cx - 1, cy, tail
+            FogVisit cx + 1, cy, tail
+            FogVisit cx, cy - 1, tail
+            FogVisit cx, cy + 1, tail
+        LOOP
+        ' 2) BFS the secret network outward from every door (through non-public
+        '    walkable cells + doors) so ONLY door-connected areas get fogged.
+        head = 0: tail = 0
+        FOR i = 1 TO SD_N
+            IF SECRET(SD_X(i), SD_Y(i)) = 0 THEN
+                SECRET(SD_X(i), SD_Y(i)) = 1
+                QX(tail) = SD_X(i): QY(tail) = SD_Y(i): tail = tail + 1
+            END IF
+        NEXT i
+        DO WHILE head < tail
+            cx = QX(head): cy = QY(head): head = head + 1
+            SecretVisit cx - 1, cy, tail
+            SecretVisit cx + 1, cy, tail
+            SecretVisit cx, cy - 1, tail
+            SecretVisit cx, cy + 1, tail
+        LOOP
+    END IF
 
     ' 3) compose the played board: full board, then black out the secret cells
     _PUTIMAGE (0, 0), FULL_BOARD, CANVAS_COPY
@@ -612,8 +774,18 @@ END SUB
 ' onto -- stopping at walls and other (still-hidden) doors.
 
 SUB RevealRegionFromDoor (di AS INTEGER)
-    DIM cx AS INTEGER, cy AS INTEGER, head AS INTEGER, tail AS INTEGER
+    DIM cx AS INTEGER, cy AS INTEGER, head AS INTEGER, tail AS INTEGER, rg AS INTEGER
     _SOURCE FULL_BOARD
+    IF MASK_ON THEN
+        ' mask fog: reveal EXACTLY the door's painted region (no flood, no ambiguity)
+        rg = DOOR_REGION(di): IF rg <= 0 THEN EXIT SUB
+        FOR cy = 0 TO SH - 1
+            FOR cx = 0 TO SW - 1
+                IF MASKREG(cx, cy) = rg THEN RevealCell cx, cy: VIS(cx, cy) = 1
+            NEXT cx
+        NEXT cy
+        EXIT SUB
+    END IF
     cx = SD_X(di): cy = SD_Y(di)
     RevealCell cx, cy: VIS(cx, cy) = 1
     head = 0: tail = 0: QX(0) = cx: QY(0) = cy: tail = 1
@@ -1045,7 +1217,7 @@ SUB DrawDebug
     _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
     _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
     _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
-    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy))) + " fh:" + YN$(FOGHIDE(mcx, mcy))
+    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy))) + " fh:" + YN$(FOGHIDE(mcx, mcy)) + MaskHoverInfo$(mcx, mcy)
     '--- OFFSET DIAGNOSTIC overlay: the 9 sector rects drawn with the EXACT SECTOR.get_by_xy
     '    math ((start-1)*cell), the hard-coded label anchor cells (magenta +), and the START
     '    cell (white box). Compare against the coloured art underneath:
@@ -1079,6 +1251,47 @@ SUB DrawDebug
             IF FOGHIDE(chx, chy) THEN                        ' ORANGE = a cell force-blacked by fog-hide.txt
                 LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), _RGBA32(&HFF, &HA0, &H00, 150), BF
             END IF
+            IF MASK_ON THEN                                  ' each secret-mask REGION its own tint
+                IF MASKREG(chx, chy) > 0 THEN LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), MaskRegionColor~&(MASKREG(chx, chy), 130), BF
+            END IF
         NEXT chx
     NEXT chy
+    IF MASK_ON THEN DrawMaskDoors                        ' secret-door markers (level-coloured; red = unmapped)
+END SUB
+
+' Overlay the secret doors on the [~] mask view: a box per door, coloured by nesting level
+' (green = level-1 entry, cyan = nested/deeper, RED = unmapped -> reveals nothing), with the
+' level digit drawn in it. Lets you spot dead doors and see the secret-in-secret structure.
+' Mask readout for the [~] mouse line: region id + its level at the hovered cell, and
+' (if the cell is a secret door) which region it opens. Empty when no mask is loaded.
+FUNCTION MaskHoverInfo$ (mcx AS INTEGER, mcy AS INTEGER)
+    IF NOT MASK_ON THEN MaskHoverInfo$ = "": EXIT FUNCTION
+    DIM s AS STRING, rg AS INTEGER, i AS INTEGER
+    rg = MASKREG(mcx, mcy)
+    s = "  reg:" + _TRIM$(STR$(rg))
+    IF rg > 0 THEN s = s + " lvl:" + _TRIM$(STR$(MASKLVL(rg)))
+    FOR i = 1 TO SD_N
+        IF SD_X(i) = mcx AND SD_Y(i) = mcy THEN s = s + " door->" + _TRIM$(STR$(DOOR_REGION(i))): EXIT FOR
+    NEXT i
+    MaskHoverInfo$ = s
+END FUNCTION
+
+SUB DrawMaskDoors
+    DIM i AS INTEGER, px AS INTEGER, py AS INTEGER, rg AS INTEGER, lv AS INTEGER, dc AS _UNSIGNED LONG
+    _DEST CANVAS
+    FOR i = 1 TO SD_N
+        px = SD_X(i) * CW: py = SD_Y(i) * CH
+        rg = DOOR_REGION(i)
+        IF rg <= 0 THEN
+            dc = _RGB32(&HFF, &H30, &H30): lv = 0          ' RED = unmapped (dead door)
+        ELSE
+            lv = MASKLVL(rg)
+            IF lv <= 1 THEN dc = _RGB32(&H30, &HFF, &H30) ELSE dc = _RGB32(&H30, &HD0, &HFF)  ' green entry / cyan nested
+        END IF
+        LINE (px, py)-(px + CW - 1, py + CH - 1), dc, BF
+        LINE (px, py)-(px + CW - 1, py + CH - 1), BLACK, B
+        COLOR BLACK, dc
+        IF lv > 0 THEN _PRINTSTRING (px, py), _TRIM$(STR$(lv)) ELSE _PRINTSTRING (px, py), "X"
+    NEXT i
+    COLOR WHITE, BLACK
 END SUB

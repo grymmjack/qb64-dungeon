@@ -506,7 +506,7 @@ END SUB
 
 SUB ShowIntro
     DIM ansi AS STRING, mus AS LONG, k AS STRING, frames AS INTEGER
-    ansi = LoadFile$("assets/ansi/vermin-radioactive-logo.ans")
+    ansi = _READFILE$("assets/ansi/vermin-radioactive-logo.ans")
     mus = _SNDOPEN(ResolveMusic$("vr-theme"))       ' best-quality file for this name (pack-aware)
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDPLAY mus
@@ -537,10 +537,10 @@ FUNCTION RunMenu%
     DIM AS LONG t
     DIM k AS STRING
 
-    logo = LoadFile$("assets/ansi/dungeon-menu-logo.ans")
-    FOR i = 1 TO 4: lw(i) = LoadFile$("assets/ansi/dungeon-menu-left-wall-" + _TRIM$(STR$(i)) + ".ans"): NEXT
-    FOR i = 1 TO 4: rw(i) = LoadFile$("assets/ansi/dungeon-menu-right-wall-" + _TRIM$(STR$(i)) + ".ans"): NEXT
-    FOR i = 1 TO 6: bl(i) = LoadFile$("assets/ansi/dungeon-menu-block-" + _TRIM$(STR$(i)) + ".ans"): NEXT
+    logo = _READFILE$("assets/ansi/dungeon-menu-logo.ans")
+    FOR i = 1 TO 4: lw(i) = _READFILE$("assets/ansi/dungeon-menu-left-wall-" + _TRIM$(STR$(i)) + ".ans"): NEXT
+    FOR i = 1 TO 4: rw(i) = _READFILE$("assets/ansi/dungeon-menu-right-wall-" + _TRIM$(STR$(i)) + ".ans"): NEXT
+    FOR i = 1 TO 6: bl(i) = _READFILE$("assets/ansi/dungeon-menu-block-" + _TRIM$(STR$(i)) + ".ans"): NEXT
 
     iLogo = _NEWIMAGE(102 * CW, 15 * CH, 32)
     iLeft = _NEWIMAGE(15 * CW, 51 * CH, 32)

@@ -4,8 +4,7 @@
 '
 '  Build:  qb64pe -w -x dungeon.bas -o dungeon.run   (run from repo root)
 ' ============================================================================
-'$INCLUDE:'include/Toolbox64/FileOps.bi'
-'$INCLUDE:'include/Toolbox64/ANSIPrint.bi'
+'$INCLUDE:'include/ansi/ANSIPrint.bi'   ' vendored ANSI renderer (decoupled from Toolbox64 submodule); file reads use _READFILE$
 
 '$INCLUDE:'include/DUNGEON.BI'
 '$INCLUDE:'include/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
@@ -74,7 +73,7 @@ opt_maxdeaths = 3                             ' lives before permadeath: reach 3
 opt_solomode = 0: opt_solomins = 30           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 30 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 ApplyDisplay                                  ' apply fullscreen + smoothing per the (possibly loaded) settings
-BOARD_ANSI = LoadFile$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
+BOARD_ANSI = _READFILE$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
 InitSectors
 InitClasses
 InitMonsterTables
@@ -138,6 +137,80 @@ IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
     InitFog
     _SAVEIMAGE "fogdump.png", CANVAS
+    '--- region-overlay render (mimics the [~] mask view: per-region tint + level-coloured doors) ---
+    DIM rvx AS INTEGER, rvy AS INTEGER
+    _DEST CANVAS
+    FOR rvy = 0 TO SH - 1
+        FOR rvx = 0 TO SW - 1
+            IF MASKREG(rvx, rvy) > 0 THEN LINE (rvx * CW, rvy * CH)-(rvx * CW + CW - 1, rvy * CH + CH - 1), MaskRegionColor~&(MASKREG(rvx, rvy), 150), BF
+        NEXT
+    NEXT
+    IF MASK_ON THEN DrawMaskDoors
+    _SAVEIMAGE "fogdump-regions.png", CANVAS
+    '--- mask stats: secret cells, regions, and door->region mapping (0 = UNMAPPED = can't reveal) ---
+    DIM fdx AS INTEGER, fdy AS INTEGER, fdsec AS LONG, fdreg AS INTEGER, fdunmap AS INTEGER, fdf AS INTEGER
+    fdsec = 0: fdreg = 0
+    FOR fdy = 0 TO SH - 1
+        FOR fdx = 0 TO SW - 1
+            IF SECRET(fdx, fdy) THEN fdsec = fdsec + 1
+            IF MASKREG(fdx, fdy) > fdreg THEN fdreg = MASKREG(fdx, fdy)
+        NEXT
+    NEXT
+    fdunmap = 0
+    FOR fdx = 1 TO SD_N: IF DOOR_REGION(fdx) <= 0 THEN fdunmap = fdunmap + 1
+    NEXT
+    fdf = FREEFILE: OPEN "fogdump.txt" FOR OUTPUT AS #fdf
+    PRINT #fdf, "MASK_ON      = " + _TRIM$(STR$(MASK_ON))
+    PRINT #fdf, "secret cells = " + _TRIM$(STR$(fdsec))
+    PRINT #fdf, "regions      = " + _TRIM$(STR$(fdreg))
+    PRINT #fdf, "secret doors = " + _TRIM$(STR$(SD_N)) + "   (UNMAPPED to a region = " + _TRIM$(STR$(fdunmap)) + ")"
+    PRINT #fdf, "region levels (id:lvl):"
+    DIM fdl AS STRING, fdi AS INTEGER
+    fdl = ""
+    FOR fdi = 1 TO fdreg: fdl = fdl + " " + _TRIM$(STR$(fdi)) + ":" + _TRIM$(STR$(MASKLVL(fdi))): NEXT
+    PRINT #fdf, fdl
+    FOR fdx = 1 TO SD_N
+        PRINT #fdf, "  door " + _TRIM$(STR$(fdx)) + " @ (" + _TRIM$(STR$(SD_X(fdx))) + "," + _TRIM$(STR$(SD_Y(fdx))) + ") -> region " + _TRIM$(STR$(DOOR_REGION(fdx))) + " lvl " + _TRIM$(STR$(MASKLVL(DOOR_REGION(fdx))))
+    NEXT
+    CLOSE #fdf
+    SYSTEM
+END IF
+
+'--- dev: `dungeon.run maskgen` writes a STARTER secret-mask .ans from the current flood
+'    (magenta block = secret cell). Only runs the flood (mask absent -> InitFog floods);
+'    delete the mask first to regenerate. Then hand-refine it in your ANSI editor. ---
+IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    InitFog                                   ' floods SECRET() (mask file not present yet)
+    DIM mgf AS INTEGER, mgy AS INTEGER, mgx AS INTEGER, mgs AS STRING, sauce AS STRING, eofc AS STRING
+    mgs = CHR$(27) + "[35m"                    ' magenta foreground for every secret block
+    FOR mgy = 0 TO SH - 2                      ' 50 board rows (row 50 = HUD line, never secret)
+        FOR mgx = 0 TO SW - 1
+            IF SECRET(mgx, mgy) THEN mgs = mgs + CHR$(219) ELSE mgs = mgs + " "
+        NEXT mgx
+        mgs = mgs + CHR$(13) + CHR$(10)
+    NEXT mgy
+    mgs = mgs + CHR$(27) + "[0m"               ' reset the SGR at the end
+    ' --- SAUCE record (128 bytes) so ANSI editors read the 132x50 dims + IBM VGA font
+    '     (layout per ~/git/img2ans include/SAUCE/SAUCE.BI) ---
+    sauce = "SAUCE" + "00"
+    sauce = sauce + PadR$("DUNGEON! secret-door mask", 35)
+    sauce = sauce + PadR$("grymmjack", 20)
+    sauce = sauce + PadR$("", 20)
+    sauce = sauce + MID$(DATE$, 7, 4) + MID$(DATE$, 1, 2) + MID$(DATE$, 4, 2)   ' Date CCYYMMDD
+    sauce = sauce + MKL$(LEN(mgs))             ' FileSize = data length before the EOF marker
+    sauce = sauce + CHR$(1) + CHR$(1)          ' DataType = Character, FileType = ANSi
+    sauce = sauce + MKI$(SW) + MKI$(SH - 1)    ' TInfo1 = 132 cols, TInfo2 = 50 lines
+    sauce = sauce + MKI$(0) + MKI$(0)          ' TInfo3 / TInfo4
+    sauce = sauce + CHR$(0) + CHR$(0)          ' Comments = 0, TFlags = 0
+    sauce = sauce + "IBM VGA" + STRING$(15, 0) ' TInfoS = font name, null-padded to 22
+    eofc = CHR$(26)                            ' SAUCE sits after a 0x1A EOF marker
+    mgf = FREEFILE
+    OPEN "assets/ansi/board-132x50-secret-mask.ans" FOR BINARY AS #mgf
+    PUT #mgf, 1, mgs
+    PUT #mgf, , eofc
+    PUT #mgf, , sauce
+    CLOSE #mgf
     SYSTEM
 END IF
 
@@ -1717,5 +1790,5 @@ END SUB
 '$INCLUDE:'include/DICE3D/_ALL.BM'      ' 3D dice implementation (bottom, per the module's contract)
 '$INCLUDE:'include/DICE3D_GAME.bas'     ' dungeon<->DICE3D glue (LoadDiceSets, Show3DRoll)
 
-'$INCLUDE:'include/Toolbox64/FileOps.bas'
-'$INCLUDE:'include/Toolbox64/ANSIPrint.bas'
+'$INCLUDE:'include/ansi/ANSIPrint.bas'  ' vendored ANSI renderer bodies (Toolbox64 8c5d57d, works on 4.4.0/4.5.0)
+
