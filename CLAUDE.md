@@ -230,26 +230,63 @@ Environment specifics that dictate this approach:
   hand-painted. `dungeon.run fogdump` renders the fogged board + a region overlay for verification.
   The `[~]` debug view tints each region, marks every secret door by nesting level (green entry /
   cyan nested / **red X = unmapped, a dead door**), and the mouse line shows `reg:/lvl:/door→`.
+- **Sector MASK** (`assets/ansi/board-132x50-sector-mask.ans`, the art-as-data replacement for the
+  `sectors.txt` rectangles). Same idea as the secret mask: a same-size painted ANSI where **each
+  cell's colour = which dungeon level owns it**, so levels can be any shape, not just rectangles.
+  `LoadSectorMask` (SECTOR.bas) fills `SECTORAT(cx,cy)` (0-based cells) via `SectorByColor%` (nearest
+  `SECTORS().kolor`); when the file is present `SECTORMASK_ON` is set and **`SECTOR.get_by_xy%`
+  returns `SECTORAT(cx,cy)` directly** (the `sectors.txt` rect loop is the fallback when it's absent).
+  Black = sector 0 — harmless over walls/corridors/doors, but a room floor sitting on black won't
+  register a level (and `CanMove` needs `sec >= 1`). Generated as a starter by `dungeon.run sectorgen`
+  (paints each rect with **bg-colour + space**, not `fg + █` — an editor renders `█` with a sliver
+  gap that reads as black seams; iCE bright-bg `5;4x` matches the hand-paint), plus a SAUCE record.
+  Both generators (`maskgen`/`sectorgen`) **refuse to overwrite** an existing mask (they only ever
+  write a fresh file, so SAUCE lands at EOF and a hand-painted mask is never clobbered);
+  `dungeon.run --help` lists every dev mode.
+- **`[~]` debug overlay & test panel** (`DrawDebug`/`DebugTestMenu`, BOARD.bas). `[~]` (or backtick)
+  toggles the overlay — region/sector/chamber tints and a mouse readout (`sec:/reg:/lvl:/door→/cham:/
+  dead:`); toggling **off repaints** the board (`cursor_erase`/`cursor_draw`/`DrawHUD`) so the frozen
+  overlay is wiped, not left stuck. With it on, **left-click teleports** the player to any cell
+  (`dbg_click_armed` debounces so one press = one jump), and **`[0]` opens `DebugTestMenu`** — a modal
+  cheat panel for fast playtesting: spawn a curio (`DoCurio`) / wandering monster (`WanderEncounter`) /
+  trap (`SpringTrap`), grant all items + Level Key, +potions, heal full, +5000 gold, reveal all secret
+  doors, or set up win-ready state. It calls the real gameplay hooks so the test path exercises the
+  same code as play.
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
   TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
-- **`include/`** — `DUNGEON.BI` (header) + `SECTOR.bas` / `BOARD.bas` / `CURSOR.bas` /
-  `MENU.bas` (the game's module bodies, `'$INCLUDE`'d by `dungeon.bas`), plus the `Toolbox64`
-  and `QB64_GJ_LIB` submodules.
+- **`include/`** — `DUNGEON.BI` (header) + the game's module bodies `'$INCLUDE`'d by
+  `dungeon.bas` (`SECTOR.bas` / `BOARD.bas` / `CURSOR.bas` / `MENU.bas` / `DATA.bas` (the
+  data-file reader + all `Load*` subs) / `CURIO.bas` / `LORDS.bas` / `CHRONICLE.bas` / …),
+  the **vendored** `include/ansi/` ANSI renderer, and the `Toolbox64` / `QB64_GJ_LIB`
+  submodules (kept for reference; **not** compiled into the game).
 - **`assets/ansi/`** — the game's actual graphics: `.ans`/`.icy`/`.xb` text-mode art,
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.
 - **`assets/music/`** — `.rad` (Reality Adlib Tracker) tracks played via `_SNDOPEN`.
-- **`assets/data/`** — the editable **content database**: pipe-delimited `.txt` files
-  (`monsters` / `treasures` / `items` / `bosses` / `traps` / `effects`), loaded at launch by
-  **`include/DATA.bas`** into the same shared tables the old hard-coded `Init*` routines used
-  (via `Mob`/`SetTreSlot`/`SetItem`/`AddFX`, and `LoadTraps` for the `TRAPS()` array). Fields
-  are TRIMMED so columns can be space-padded; `#` = comment. `InitMonsterTables` and
-  `InitEffects` are now thin wrappers that call the `Load*` subs. Edit a file, press F5 — no
-  code change needed to rebalance. Trap *mechanics* (poison/bomb/frost/siren) stay in code,
-  keyed by each row's `kind`; everything else about a trap (name, save stat, dice, messages)
-  is data. Room/combat prose lives in the sibling **`assets/flavor/`** files: `regular`/
+- **`assets/data/`** — the editable **content database**: pipe-delimited `.txt` files,
+  loaded at launch by **`include/DATA.bas`** into the same shared tables the old hard-coded
+  `Init*` routines used. `DATA.bas` is the shared reader: `ReadDataFile(path)` fills `DLINE()`
+  and `DField$(ln, n)` returns field `n` (**trimmed**, so columns can be space-padded; `#` =
+  comment; blank lines ignored), plus helpers `HexRGB~&`, `SGRForColor$`/`SGRBgForColor$` (colour
+  → ANSI SGR, used by the mask generators), and `SauceRecord$`. Almost every `Init*` is now a
+  thin wrapper over a `Load*` sub:
+  - **Content:** `monsters` / `treasures` / `items` / `bosses` / `curios` / `traps` / `effects`
+    (via `Mob`/`SetTreSlot`/`SetItem`/`AddFX`, `LoadTraps` → `TRAPS()`). `InitMonsterTables` /
+    `InitEffects` are the wrappers.
+  - **Board layout:** `sectors.txt` (`id|label|col1|row1|col2|row2|RRGGBB` → `LoadSectors`, the
+    fallback rects + level colours) and `labels.txt` (`col|row|text`, 0-based → `LoadLabels`).
+  - **Tuning & presentation:** `tuning.txt` (`KEY|value` balance knobs → `LoadTuning`, filling
+    the `DIM SHARED … AS INTEGER` globals that used to be `CONST`s — potion %, treasure odds,
+    idle/wander/XP timers, `MOVE_MAX`…), `classes.txt` (→ `LoadClasses`, the four `PCLASS`
+    records), `dice-colors.txt` (`id|name|body|ink` → `LoadDiceColors`, filling `DICE_BODY/INK/
+    CNAME()` that `DiceColors`/`ColorName$` read), and `strings.txt` (`key|text`, **split on the
+    FIRST `|`** → `LoadStrings`; `Say$("key")` looks one up and returns the **key itself** if
+    missing, so untranslated text is visible not blank — migration is incremental).
+  Edit a file, press F5 — no code change needed to rebalance. Trap *mechanics*
+  (poison/bomb/frost/siren) stay in code, keyed by each row's `kind`; everything else about a
+  trap (name, save stat, dice, messages) is data. Room/combat prose lives in the sibling **`assets/flavor/`** files: `regular`/
   `special` room lines, `maxhit`, `forfeit` (see FLAVOR.bas), plus **per-monster and
   per-class combat event text** — `monster_events.txt` / `class_events.txt` (`key | event |
   text`, events attack/miss/crit/fumble/death, `key "*"` = default), loaded by **CTEXT.bas**
@@ -299,10 +336,13 @@ the pristine board. The cursor `_PUTIMAGE`s a clean copy back to erase, and samp
 `CANVAS_COPY` (never the dirtied `CANVAS`) when testing collision, so the cursor's own
 pixels can't be mistaken for terrain.
 
-**Sectors.** The board is divided into 9 `SECTOR`s (`SECTORS(1 TO 9)`), each a rectangle
-with a `kolor` and `label`. `SECTOR.get_by_xy` resolves a pixel position to a sector,
-and the sector's color is what `in_room` matches against — this is how "which dungeon
-level am I in" is derived from position + art color.
+**Sectors.** The board is divided into 9 `SECTOR`s (`SECTORS(1 TO 9)`), loaded from
+`assets/data/sectors.txt` (rectangle + `kolor` + `label` per level). `SECTOR.get_by_xy`
+resolves a pixel position to a sector, and the sector's color is what `in_room` matches
+against — this is how "which dungeon level am I in" is derived from position + art color.
+When the **sector MASK** (`board-132x50-sector-mask.ans`) is present it supersedes the rects:
+`SECTOR.get_by_xy` returns `SECTORAT(cx,cy)` directly, letting levels be any shape (see the
+Sector MASK bullet above).
 
 **Dice fonts (DPoly).** Non-d6 rolls are drawn with the six **DPoly** OTF dice fonts in
 `assets/fonts/dpoly` (dafont.com/dpoly), loaded by `InitDice` into `DFONT()` **indexed by side

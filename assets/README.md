@@ -6,11 +6,11 @@ press F5 to rebuild; no code change needed.** This is the map of what's where.
 
 ```
 assets/
-├── data/      game tables   (monsters, treasures, items, bosses, traps, effects)
+├── data/      game tables   (monsters, loot, traps, effects, sectors, classes, tuning, UI strings…)
 ├── flavor/    all the prose (room text, combat event text, epitaphs, brutal-hit lines)
 ├── music/     playlist.txt  + music tracks (per dungeon level)
 ├── sfx/       optional real sound-effect files (fall back to the tone beeper)
-├── ansi/      the text-mode art — board, menus, monsters (see the caveat below)
+├── ansi/      the text-mode art — board, board MASKS, menus, monsters (see the caveat below)
 └── fonts/     the DPoly polyhedral dice fonts (not meant to be edited)
 ```
 
@@ -28,26 +28,46 @@ assets/
 
 ## `assets/data/` — game tables  (loaded by `include/DATA.bas`)
 
+**Content — the bestiary, loot, and encounters:**
+
 | File | One row is… | Columns |
 |---|---|---|
 | `monsters.txt`  | a monster    | `lvl \| slot \| name \| HERO \| ELF \| SUP \| WIZ` (2d6 kill numbers; 13 = "-") |
 | `treasures.txt` | a treasure   | `lvl \| slot \| name \| gold` |
 | `items.txt`     | a magic item | `lvl \| slot \| name \| gold \| type` (overrides that treasure slot) |
 | `bosses.txt`    | a boss name  | `slot \| name` |
+| `curios.txt`    | a curio      | `kind \| name \| weight \| prompt` (fountains, chests, shrines… `kind` picks the mechanic) |
 | `traps.txt`     | a curio trap | `kind \| name \| save \| word \| sfx \| die \| trigger \| savemsg \| failtitle \| failbody` |
 | `effects.txt`   | a crit/fumble line | `table \| kind \| die \| text` (table 1 crit / 2 you-fumble / 3 monster-fumble) |
-| `chambers.txt`  | a chamber    | `name \| col1 \| row1 \| col2 \| row2` (bounding rectangle in cells; walkable cells inside = its trigger zone) |
-| `fog-hide.txt`  | a cell to black | `col,row` (force-black a stray art speck the secret-room fog can't reach; read the cell from the `[~]` overlay) |
+
+**Board layout — geometry read from data + matching board MASKS (see `assets/ansi/`):**
+
+| File | One row is… | Columns |
+|---|---|---|
+| `sectors.txt`  | a dungeon level | `id \| label \| col1 \| row1 \| col2 \| row2 \| RRGGBB` (fallback rectangle + colour; the sector **mask** overrides the rects when present) |
+| `labels.txt`   | a board caption | `col \| row \| text` (0-based cell; blank lines just group the list) |
+| `chambers.txt` | a chamber       | `name \| col1 \| row1 \| col2 \| row2` (bounding rectangle in cells; walkable cells inside = its trigger zone) |
+
+**Tuning & presentation — knobs, classes, and all the UI chrome:**
+
+| File | One row is… | Columns |
+|---|---|---|
+| `tuning.txt`      | a balance knob | `KEY \| value` (potion drop %, treasure odds, idle/wander/XP timers, move max…) |
+| `classes.txt`     | a player class | `id \| name \| gold_goal \| combat_bonus \| secret_bonus \| hp \| tohit \| dmg \| ac \| hitdie \| blurb` |
+| `dice-colors.txt` | a dice palette | `id \| name \| body \| ink` (RRGGBB; the 6 SETTINGS dice colours) |
+| `strings.txt`     | a UI string    | `key \| text` (looked up by `Say$("key")`; **split on the FIRST `\|`**, so text may contain `\|`) |
+| `ui-fonts.txt`    | a UI font map  | `region \| fontfile \| size` (see the UI-fonts section below) |
 
 `chambers.txt` is the exact, hand-authored map of the big named halls (3 monsters, no
 treasure each). The board art is fixed so these never move; press `[~]` in-game to read a
-cell's `col,row` under the mouse, then tighten any box. If the file is missing the game
-falls back to auto-detecting chambers by openness.
+cell's `col,row` under the mouse, then tighten any box. If a layout file is missing the game
+falls back to auto-detecting (chambers by openness, sectors by the `sectors.txt` rects).
 
 Each level (1–9) has **3 monster + 3 treasure slots**; a room rolls one of them. Item
 `type` codes and trap `kind` values are documented in the header of each file. Trap
 *mechanics* (poison/bomb/frost/siren) are fixed in code by `kind`; everything else about
-a trap is data.
+a trap is data. `strings.txt` migration is incremental — a key that isn't found returns the
+key itself, so missing text is visible rather than blank.
 
 ---
 
@@ -117,6 +137,25 @@ art doubles as the collision map**: movement is decided by sampling the exact pi
 colours, so the palette values must match what the engine checks — an anti-aliased or
 off-by-one colour silently breaks movement. Safe to retheme the *look*; risky to change
 the board's structure or colours without knowing the collision rules (see `CLAUDE.md`).
+
+### Board MASKS — art-as-data overlays (same 132×50 grid as the board)
+
+Two `.ans` files are painted **on top of** the board layout as pure data — one cell's
+colour = one value. Paint them in any ANSI editor (fill cells with a coloured **background +
+space**, not a `█` block, so rows don't get sliver gaps), and keep the **SAUCE record**
+(dimensions) intact.
+
+- **`board-132x50-sector-mask.ans`** — each cell's colour says which dungeon **level** owns
+  it, letting levels be any shape (not just the `sectors.txt` rectangles). When present it
+  wins; black = sector 0 (harmless over walls/corridors, but a room floor needs a real
+  sector). The `[~]` overlay reads the sector under the mouse.
+- **`board-132x50-secret-mask.ans`** — each non-black colour marks a **secret region**
+  reachable through a hidden door; distinct colours nest secrets-within-secrets. `[F]`
+  searching reveals a door and just the region it gates.
+
+Generate starter masks from the current heuristics with `dungeon.run sectorgen` /
+`dungeon.run maskgen` (they **refuse to overwrite** an existing mask, so your hand-painted
+versions are safe), then paint from there. Run `dungeon.run --help` for all dev modes.
 
 ---
 
