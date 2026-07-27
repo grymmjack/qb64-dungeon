@@ -138,7 +138,16 @@ binary.
 house simplification the player asked for): a duplicate is sold for gold, the Magic Sword is a
 flat +1 (no `+1…+5` upgrading), and there is **no Armor Class**, so Shield/Armor cards (a D&D-
 mode feature) are sold as gold. ESP Medallion, Crystal Ball, and Secret Door Card are the
-faithful utilities; Wizard spells are not yet implemented.
+faithful utilities. **Wizard spells** are implemented (`spell_fire` / `spell_bolt` charges, plus
+`item_teleport`): a Wizard opens each game with a **spellbook** (3 Fire Ball / 3 Lightning Bolt /
+2 Teleport), the charges refill on each descent to a deeper level, and **Spell Card** treasures
+(item codes 12/13) grant +2 charges when a Wizard claims them (any other class can't read the
+runes and sells the scroll). Casting is **[F]** Fire Ball / **[L]** Lightning Bolt in a fight:
+in **Oldschool** a cast is an auto-slay (the only way past a "—" monster besides a Magic Sword)
+unless the monster is immune to that element, in which case it fizzles and the monster attacks;
+in **D&D mode** it deals dice damage (Fire Ball 3d6, Lightning Bolt 4d6) to the monster's HP, and
+an immune monster shrugs it off. Fire-immune (dragons, demons, salamanders…) and lightning-immune
+(elementals, golems, storm-things…) foes are checked by `MonsterImmune%`.
 
 ## 6. Winning
 

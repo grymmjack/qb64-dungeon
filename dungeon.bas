@@ -440,6 +440,8 @@ FUNCTION PlayGame%
         char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
         item_potion_small = 0: item_potion_large = 0
         item_armor = 0: item_shield = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0   ' newer items aren't in PLAYER type -- clear them so nothing leaks between games
+        spell_fire = 0: spell_bolt = 0                                       ' clear Wizard spell charges between games
+        IF player_class = 4 THEN spell_fire = 3: spell_bolt = 3: item_teleport = 2   ' the WIZARD opens with a spellbook (3 Fire Ball / 3 Lightning / 2 Teleport)
         poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
         deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
         player_out = FALSE                                                  ' nobody has forfeited yet
@@ -588,7 +590,17 @@ FUNCTION PlayGame%
                         IF RollDie(100) <= SIREN_MOVE_PCT THEN WanderEncounter
                     END IF
                     curlvl = SECTOR.get_by_xy(c.x, c.y)   ' chronicle the levels you tread
-                    IF curlvl >= 1 AND curlvl <= 9 THEN lvl_reached(curlvl) = TRUE
+                    IF curlvl >= 1 AND curlvl <= 9 THEN
+                        IF NOT lvl_reached(curlvl) THEN
+                            lvl_reached(curlvl) = TRUE
+                            IF player_class = 4 THEN                    ' a WIZARD's power grows as they descend
+                                spell_fire = spell_fire + 1: spell_bolt = spell_bolt + 1
+                                Sfx "levelup"
+                                Banner "The deeper magic answers you.", "You gain a Fire Ball and a Lightning Bolt.   [ press any key ]"
+                                WaitKey
+                            END IF
+                        END IF
+                    END IF
                     PlayLevelMusic curlvl                 ' switch to this level's track (no-op if unchanged)
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
@@ -815,6 +827,64 @@ FUNCTION EspEnter% (rm AS INTEGER)
 END FUNCTION
 
 
+' ---- WIZARD SPELLS (Fire Ball / Lightning Bolt; Teleport reuses item_teleport) ----------------
+
+' TRUE if the active player is a Wizard -- the only class that casts spells.
+FUNCTION IsWizard%
+    IsWizard% = (player_class = 4)
+END FUNCTION
+
+' TRUE if `mon` shrugs off a spell element ("fire"/"lightning"). Thematic: fiery/infernal things
+' are immune to fire, constructs/metal/storm things to lightning -- so when one element fizzles,
+' the Wizard casts the OTHER. Loose name match; edit the word lists to taste.
+FUNCTION MonsterImmune% (mon AS STRING, elem AS STRING)
+    DIM u AS STRING
+    u = " " + UCASE$(_TRIM$(mon)) + " "
+    MonsterImmune% = 0
+    IF elem = "fire" THEN
+        IF InStrAny%(u, "DRAGON FIRE FLAME SALAMANDER DEMON DEVIL EFREET HELL HELLHOUND MAGMA LAVA PHOENIX IMP") THEN MonsterImmune% = -1
+    ELSEIF elem = "lightning" THEN
+        IF InStrAny%(u, "ELEMENTAL GOLEM IRON METAL STORM THUNDER DJINN GARGOYLE STATUE WISP SPARK STORMCLOUD") THEN MonsterImmune% = -1
+    END IF
+END FUNCTION
+
+FUNCTION SpellLabel$ (elem AS STRING)
+    IF elem = "fire" THEN SpellLabel$ = "FIRE BALL" ELSE SpellLabel$ = "LIGHTNING BOLT"
+END FUNCTION
+FUNCTION SpellSfx$ (elem AS STRING)
+    IF elem = "fire" THEN SpellSfx$ = "fireball" ELSE SpellSfx$ = "lightning-bolt"
+END FUNCTION
+
+' The extra combat-prompt line a Wizard sees when spells are available this fight.
+FUNCTION WizSpellPrompt$
+    DIM s AS STRING
+    IF NOT IsWizard% THEN EXIT FUNCTION
+    IF spell_fire > 0 THEN s = s + "   [F] Fire Ball(" + _TRIM$(STR$(spell_fire)) + ")"
+    IF spell_bolt > 0 THEN s = s + "   [L] Lightning(" + _TRIM$(STR$(spell_bolt)) + ")"
+    WizSpellPrompt$ = s
+END FUNCTION
+
+' A Wizard casts an offensive spell in OLDSCHOOL (2d6) combat: an instant SLAY unless the monster
+' is immune to that element (then the spell fizzles and the monster gets a free swing). Either way
+' the charge is spent and the turn ends -- the caller EXIT DOs afterwards.
+SUB WizardCastOldschool (rm AS INTEGER, elem AS STRING)
+    DIM sec AS INTEGER, mon AS STRING
+    sec = ROOMS(rm).sec: mon = _TRIM$(ROOMS(rm).monster)
+    IF elem = "fire" THEN spell_fire = spell_fire - 1 ELSE spell_bolt = spell_bolt - 1
+    Sfx SpellSfx$(elem)
+    IF MonsterImmune%(mon, elem) THEN
+        Banner "You hurl a " + SpellLabel$(elem) + "!", "The " + mon + " is IMMUNE to " + elem + " -- the spell fizzles!   [ press any key ]"
+        CombatPause
+        MonsterAttack rm                          ' a wasted cast still spends your turn
+    ELSE
+        ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
+        Banner "You loose a " + SpellLabel$(elem) + "!", "The " + mon + " is blasted apart!   [ press any key ]"
+        CombatPause
+        ClaimTreasure rm, 12                       ' a clean magical kill (ClaimTreasure records the kill + death sfx)
+        StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "killed", 1, 0, 0
+    END IF
+END SUB
+
 FUNCTION DoCombat% (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING
     DIM AS INTEGER sec, sm, need, target, unbeatable, god_favor
@@ -862,6 +932,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
     ELSE
         p2 = "Roll " + _TRIM$(STR$(target)) + "+ on 2d6 to slay it   [SPACE] ATTACK   [ESC] FLEE"
     END IF
+    p2 = p2 + WizSpellPrompt$                       ' Wizard: [F]/[L] cast options -- and the ONLY way past a "-" monster
     IF god_favor > 0 THEN                          ' the desperate are watched over -- tell them
         Sfx "levelup"
         Banner "THE GODS FAVOUR THE DESPERATE!", "Fortune lowers the roll you need by " + _TRIM$(STR$(god_favor)) + " this fight.   [ press any key ]"
@@ -893,6 +964,10 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 MonsterAttack rm                 ' healing spends your turn, so the monster gets its swing
                 EXIT DO
             END IF
+        ELSEIF (k = "F" OR k = "f") AND IsWizard% AND spell_fire > 0 THEN
+            WizardCastOldschool rm, "fire": EXIT DO      ' slay unless fire-immune (then it fizzles)
+        ELSEIF (k = "L" OR k = "l") AND IsWizard% AND spell_bolt > 0 THEN
+            WizardCastOldschool rm, "lightning": EXIT DO
         ELSEIF k = " " AND NOT unbeatable THEN
             sm = DoRoll(2, item_sword, "attacking the " + mon)
             IF last_raw = 12 THEN
@@ -953,6 +1028,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING, cdf AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
     DIM AS INTEGER tot_dealt, tot_taken, wander, vanished, god_favor, acted, did_attack, saved
+    DIM spell_elem AS STRING, spell_dcnt AS INTEGER   ' Wizard cast: element + damage-dice count
     DIM lost AS LONG
     wander = (rm > ROOM_N)                       ' TRUE for a wandering-monster scratch slot
     sec = ROOMS(rm).sec
@@ -1008,6 +1084,32 @@ SUB DoCombatDnD (rm AS INTEGER)
                 cursor_erase: cursor_draw: DrawHUD: _DISPLAY   ' show the healed HP bar at once, before the monster swings
             END IF
             dirty = -1
+        ELSEIF IsWizard% AND (((k = "F" OR k = "f") AND spell_fire > 0) OR ((k = "L" OR k = "l") AND spell_bolt > 0)) THEN
+            ' ---------- Wizard casts a spell (dice damage; the monster still swings after) ----------
+            IF k = "F" OR k = "f" THEN spell_elem = "fire": spell_dcnt = 3: spell_fire = spell_fire - 1 ELSE spell_elem = "lightning": spell_dcnt = 4: spell_bolt = spell_bolt - 1
+            acted = -1: did_attack = -1: rounds = rounds + 1: combat_round = rounds: dirty = -1
+            Sfx SpellSfx$(spell_elem)
+            IF MonsterImmune%(mon, spell_elem) THEN
+                Banner "You cast " + SpellLabel$(spell_elem) + "!", "The " + mon + " is IMMUNE to " + spell_elem + " -- it fizzles!   [ press any key ]"
+                CombatPause
+            ELSE
+                dmg = GameRoll(spell_dcnt, 6, 0, SpellLabel$(spell_elem) + " on the " + mon)
+                IF dmg < 1 THEN dmg = 1
+                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
+                IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
+                tot_dealt = tot_dealt + dmg
+                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"
+                DrawCombatPanel rm, mon, lead     ' drain the HP bar before the banner
+                IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.6, 0
+                Banner "You cast " + SpellLabel$(spell_elem) + "!  " + _TRIM$(STR$(spell_dcnt)) + "d6 = " + _TRIM$(STR$(dmg)), SpellLabel$(spell_elem) + " engulfs the " + mon + "!   [ press any key ]"
+                CombatPause
+                IF ROOMS(rm).mhp_now <= 0 THEN     ' slain by the blast
+                    ROOMS(rm).mhp_now = 0: ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
+                    Sfx "treasure": ClaimTreasure rm, rounds
+                    StatLog sec, rm, mon, isboss, wander, "killed", rounds, tot_dealt, tot_taken
+                    EXIT SUB
+                END IF
+            END IF
         ELSEIF k = " " THEN
             acted = -1: did_attack = -1
             rounds = rounds + 1: combat_round = rounds
@@ -1199,6 +1301,14 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
         PrintCentered by + 8, "[SPACE] attack    [H] potion (" + _TRIM$(STR$(item_potion_small + item_potion_large)) + ")    [ESC] flee"
     ELSE
         PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
+    END IF
+    IF IsWizard% AND (spell_fire > 0 OR spell_bolt > 0) THEN   ' Wizard-only cast options
+        DIM sph AS STRING
+        sph = "SPELLS:"
+        IF spell_fire > 0 THEN sph = sph + "   [F] Fire Ball x" + _TRIM$(STR$(spell_fire))
+        IF spell_bolt > 0 THEN sph = sph + "   [L] Lightning x" + _TRIM$(STR$(spell_bolt))
+        COLOR _RGB32(&HFF, &H88, &HFF), BOXBG
+        PrintCentered by + 9, sph
     END IF
     UIFontOff                                   ' restore the grid font before the pixel-art + present
     DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
@@ -1434,6 +1544,26 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             item_teleport = item_teleport + 1
             LogTreasure "Teleport Scroll", 0
             line2 = "You pocket a TELEPORT SCROLL (" + _TRIM$(STR$(item_teleport)) + " held) -- press [T] to whisk to START."
+        CASE 12                                    ' Fire Ball spell card (Wizard scribes it; any other class sells the scroll)
+            IF player_class = 4 THEN
+                spell_fire = spell_fire + 2
+                LogTreasure "Fire Ball spell", 0
+                line2 = "You inscribe the FIRE BALL into your spellbook (" + _TRIM$(STR$(spell_fire)) + " charges) -- press [F] in a fight to hurl it!"
+            ELSE
+                gold = gold + 500
+                LogTreasure _TRIM$(tname) + " (sold)", 500
+                line2 = "The " + tname + " is written in arcane runes only a Wizard can read -- you sell it for 500 gold."
+            END IF
+        CASE 13                                    ' Lightning Bolt spell card (Wizard scribes it; any other class sells the scroll)
+            IF player_class = 4 THEN
+                spell_bolt = spell_bolt + 2
+                LogTreasure "Lightning Bolt spell", 0
+                line2 = "You inscribe the LIGHTNING BOLT into your spellbook (" + _TRIM$(STR$(spell_bolt)) + " charges) -- press [L] in a fight to loose it!"
+            ELSE
+                gold = gold + 500
+                LogTreasure _TRIM$(tname) + " (sold)", 500
+                line2 = "The " + tname + " is written in arcane runes only a Wizard can read -- you sell it for 500 gold."
+            END IF
         CASE ELSE                                 ' plain gold treasure
             gold = gold + ROOMS(rm).treasure
             LogTreasure tname, ROOMS(rm).treasure
@@ -1450,7 +1580,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     END IF
     '--- chronicle the kill + its haul for the Game Menu screens ---
     DIM haulitem AS STRING
-    IF itm >= 1 AND itm <= 11 THEN haulitem = tname: g_items_looted = g_items_looted + 1
+    IF itm >= 1 AND itm <= 13 THEN haulitem = tname: g_items_looted = g_items_looted + 1
     IF itm = 0 THEN RecordTreasure tname, ROOMS(rm).treasure
     RecordKill lvl, rm, mon, sm, gold - goldbefore, haulitem
     IF itm = 6 THEN                                        ' THE LEVEL KEY -- make the win-item unmissable

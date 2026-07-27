@@ -8,6 +8,7 @@
 # type codes: 1=MagicSword+1  2=MagicSword+2  3=SecretDoorCard  4=ESP Medallion
 #             5=CrystalBall   7=Shield(+2 AC) 8=MagicArmor(+3 AC) 9=MagicBow(+2 hit)
 #             10=ElfBoots(+2 move) 11=TeleportScroll   (6=LevelKey is placed dynamically)
+#             12=FireBallScroll  13=LightningBoltScroll  (Wizard scribes 2 charges; others sell)
 #
 # lvl | slot | name             | gold | type
 2 | 3 | MAGIC SWORD +1   | 500  | 1
@@ -17,10 +18,14 @@
 4 | 2 | ELF BOOTS        | 900  | 10
 5 | 3 | CRYSTAL BALL     | 1000 | 5
 5 | 2 | MAGIC BOW        | 1200 | 9
+5 | 1 | FIRE BALL SCROLL | 500  | 12
 6 | 3 | MAGIC SWORD +2   | 500  | 2
 6 | 2 | TELEPORT SCROLL  | 400  | 11
+6 | 1 | LIGHTNING SCROLL | 500  | 13
 7 | 3 | MAGIC ARMOR      | 1500 | 8
 7 | 2 | TELEPORT SCROLL  | 400  | 11
 8 | 3 | SHIELD           | 800  | 7
 8 | 2 | MAGIC BOW        | 1200 | 9
+8 | 1 | FIRE BALL SCROLL | 500  | 12
 9 | 3 | MAGIC ARMOR      | 1500 | 8
+9 | 1 | LIGHTNING SCROLL | 500  | 13

@@ -289,7 +289,8 @@ DIM SHARED item_armor AS INTEGER      ' AC bonus from BODY ARMOR worn (0 if none
 DIM SHARED item_shield AS INTEGER     ' AC bonus from a SHIELD (separate slot; adds to armor)
 DIM SHARED item_bow AS INTEGER        ' Magic Bow: +2 to-hit (strike from range)
 DIM SHARED item_boots AS INTEGER      ' Elf Boots: +2 to the movement roll
-DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls held: [T] whisks you back to START
+DIM SHARED item_teleport AS INTEGER   ' Teleport Scrolls / Teleport spell charges: [T] whisks you back to START
+DIM SHARED spell_fire AS INTEGER, spell_bolt AS INTEGER   ' WIZARD-only: Fire Ball / Lightning Bolt spell charges (cast in combat)
 DIM SHARED item_potion_small AS INTEGER, item_potion_large AS INTEGER   ' healing potions held ([H] to quaff)
 DIM SHARED char_level AS INTEGER, char_xp AS LONG   ' D&D character level + accumulated XP (levels up on clearing a floor)
 DIM SHARED combat_round AS INTEGER   ' current D&D combat round (shown on the combat panel)

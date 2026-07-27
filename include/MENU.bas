@@ -1173,6 +1173,8 @@ SUB ShowCharSheet
     IF item_bow THEN inv = inv + "Magic Bow (+2 hit)    "
     IF item_boots THEN inv = inv + "Elf Boots (+2 move, easy flee)    "
     IF item_teleport > 0 THEN inv = inv + "Teleport x" + _TRIM$(STR$(item_teleport)) + " [T]    "
+    IF spell_fire > 0 THEN inv = inv + "Fire Ball x" + _TRIM$(STR$(spell_fire)) + " [F]    "
+    IF spell_bolt > 0 THEN inv = inv + "Lightning x" + _TRIM$(STR$(spell_bolt)) + " [L]    "
     IF item_potion_small > 0 THEN inv = inv + "Sm Potion x" + _TRIM$(STR$(item_potion_small)) + " [H]    "
     IF item_potion_large > 0 THEN inv = inv + "Lg Potion x" + _TRIM$(STR$(item_potion_large)) + " [H]    "
     IF item_secret_card THEN inv = inv + "Secret Door Card    "

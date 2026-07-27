@@ -53,7 +53,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN "dungeon-save.dat" FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 3"
+    PRINT #f, "DUNGEONSAVE 4"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -61,7 +61,7 @@ SUB SaveGame
     PRINT #f, char_level; " "; char_xp; " "; player_hp; " "; player_maxhp
     PRINT #f, player_str; player_int; player_wis; player_dex; player_con; player_cha
     PRINT #f, player_tohit; player_ac; player_dmgdie; player_dmgbonus
-    PRINT #f, item_sword; item_secret_card; item_esp; item_crystal; item_armor; item_bow; item_boots; item_teleport; item_potion_small; item_potion_large; item_shield
+    PRINT #f, item_sword; item_secret_card; item_esp; item_crystal; item_armor; item_bow; item_boots; item_teleport; item_potion_small; item_potion_large; item_shield; spell_fire; spell_bolt
     PRINT #f, poison_turns; fire_turns; frost_turns; siren_turns
     PRINT #f, c.x; c.y; c.prev_x; c.prev_y
     PRINT #f, moves_made; turn_num; steps_left; need_roll; loiter
@@ -165,6 +165,7 @@ SUB LoadGameApply
     item_armor = NextI: item_bow = NextI: item_boots = NextI: item_teleport = NextI
     item_potion_small = NextI: item_potion_large = NextI
     IF sver >= 3 THEN item_shield = NextI            ' shield is its own slot as of v3 (old saves had it folded into item_armor)
+    IF sver >= 4 THEN spell_fire = NextI: spell_bolt = NextI  ' Wizard spell charges (v4)
     poison_turns = NextI: fire_turns = NextI: frost_turns = NextI: siren_turns = NextI
     scx = NextI: scy = NextI: spx = NextI: spy = NextI       ' restored AFTER StartBoard (which resets it)
     moves_made = NextI: turn_num = NextI: steps_left = NextI: need_roll = NextI: loiter = NextI
