@@ -2,6 +2,12 @@
 '  LORDS.bas -- persistent hall of fame + character load (dungeon-lords.dat)
 ' ============================================================================
 
+' Path to a champion's end-of-run board snapshot. Kept in a subdirectory (not the
+' repo root) -- ShowEnd creates the folder before saving. One helper for all 3 sites.
+FUNCTION LordsMapPath$ (mapkey AS STRING)
+    LordsMapPath$ = "dungeon-lords-maps/" + _TRIM$(mapkey) + ".png"
+END FUNCTION
+
 ' Append a victorious champion to the hall of fame, v2 pipe-delimited record:
 '   name|class|gold|secs|deepest|k1..k9|g1..g9|STR INT WIS DEX CON CHA HP
 ' The per-level chronicle + ability scores come straight from the run's globals.
@@ -191,7 +197,7 @@ SUB ShowLordDetail (idx AS INTEGER, nm AS STRING, klass AS STRING, gld AS LONG, 
     detail = LORD_DETAIL(idx)
     mapkey = _TRIM$(NthField$(detail, "|", 9))
     evfield = NthField$(detail, "|", 10)
-    hasmap = 0: IF LEN(mapkey) > 0 THEN IF _FILEEXISTS("dungeon-lords-map-" + mapkey + ".png") THEN hasmap = -1
+    hasmap = 0: IF LEN(mapkey) > 0 THEN IF _FILEEXISTS(LordsMapPath$(mapkey)) THEN hasmap = -1
     hasev = 0: IF LEN(_TRIM$(evfield)) > 0 THEN hasev = -1
     DO
         _DEST CANVAS: _FONT CH: CLS , BLACK
@@ -280,7 +286,7 @@ END SUB
 ' nothing). If a record's map is some other size, centre it 1:1 rather than distort.
 SUB ShowLordMap (nm AS STRING, mapkey AS STRING)
     DIM img AS LONG, iw AS INTEGER, ih AS INTEGER, ox AS INTEGER, oy AS INTEGER
-    img = _LOADIMAGE("dungeon-lords-map-" + mapkey + ".png", 32)
+    img = _LOADIMAGE(LordsMapPath$(mapkey), 32)
     _DEST CANVAS: _FONT CH: CLS , BLACK
     IF img >= -1 THEN                              ' load failed (-1); valid handles are < -1
         COLOR GREY, BLACK: PrintCentered 24, "(the map for this record could not be found)"
