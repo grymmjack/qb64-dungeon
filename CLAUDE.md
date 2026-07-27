@@ -169,7 +169,13 @@ Environment specifics that dictate this approach:
   stunned / missed). Special treasure cards grant powers (`ClaimTreasure`): **Magic Sword**
   (+1/+2; a Wizard can't wield one), **Secret Door Card** (searches never fail), **ESP
   Medallion** (peek a monster's treasure), **Crystal Ball** (`[V]` `ScryView` reveals every
-  room's contents). A `[C]` character sheet (`ShowCharSheet`) lists class, gold, key, and
+  room's contents). **Wizard spells** (`spell_fire`/`spell_bolt` charges + `item_teleport`;
+  helpers grouped before `DoCombat`): a Wizard opens each game with a spellbook (3 Fire Ball /
+  3 Lightning Bolt / 2 Teleport) that refills on each descent, casts `[F]`/`[L]` in a fight
+  (`WizardCastOldschool` = auto-slay unless `MonsterImmune%`, and the Wizard's only way past a
+  "-" monster; D&D-mode = 3d6/4d6 to the monster's HP), and **Spell Card** treasures
+  (`items.txt` codes 12/13) grant +2 charges to a Wizard while any other class sells the scroll.
+  A `[C]` character sheet (`ShowCharSheet`) lists class, gold, key, and
   items. All events route through the `Sfx` dispatcher. Build/run from the repo root (asset
   paths are `assets/...`, not `../assets/...`).
 - **Chronicle / Game Menu (`[M]`)** (`include/CHRONICLE.bas`). A per-run journal + reference
