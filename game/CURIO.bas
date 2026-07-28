@@ -91,7 +91,7 @@ SUB DoCurio (rm AS INTEGER)
     kd = _TRIM$(CURIOS(pick).kind)
     RecordCurio _TRIM$(CURIOS(pick).nm)                 ' chronicle: a curio appeared
     Sfx "curio"
-    Narrate "curio." + kd                               ' spoken by curio kind (curio.chest, curio.fountain, ...) if a pack has it
+    NarrateT "curio." + kd, NARR_EVENT                  ' spoken by curio kind (curio.chest, ...) if a pack has it -- Events tier
     cursor_erase: cursor_draw: DrawHUD                  ' fresh board + row-50 status line UNDER the curio art/banner (was hidden during the interaction)
     DrawCurioArt kd, _TRIM$(CURIOS(pick).nm)            ' pixel-art: the curio's prop, framed top-left (persists behind the banner)
     Banner _TRIM$(CURIOS(pick).prompt), CurioHint$(kd)

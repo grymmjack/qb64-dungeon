@@ -328,6 +328,14 @@ SUB Narrate (nkey AS STRING)
     IF narr_handle > 0 THEN _SNDVOL narr_handle, opt_voicevol / 10: _SNDPLAY narr_handle
 END SUB
 
+' Tiered narration: speak `nkey` only if the SETTINGS narration frequency reaches
+' this tier. NARR_FLAVOR (0) rooms/chambers/ambient/win-lose is the base and can use
+' bare Narrate; NARR_EVENT (1) = curios/traps; NARR_COMBAT (2) = combat. Graceful --
+' still silent if narration is off or no voice file exists for the key.
+SUB NarrateT (nkey AS STRING, tier AS INTEGER)
+    IF opt_narrfreq >= tier THEN Narrate nkey
+END SUB
+
 ' TRUE if narration is on AND a voice file exists for this key -- callers use it to decide
 ' whether to Narrate + mute the per-glyph blips (the spoken line covers the text crawl).
 FUNCTION HasNarration% (nkey AS STRING)
@@ -376,6 +384,15 @@ END SUB
 ' Display label for the narration row: "off", or the pack name / "(main)".
 FUNCTION NarrationLabel$
     IF NOT opt_narration THEN NarrationLabel$ = "off" ELSE NarrationLabel$ = PackLabel$(opt_narrationpack)
+END FUNCTION
+
+' SETTINGS label for the narration-frequency tier (which spoken tiers are on).
+FUNCTION NarrFreqLabel$
+    SELECT CASE opt_narrfreq
+        CASE NARR_FLAVOR: NarrFreqLabel$ = "Flavor"
+        CASE NARR_EVENT: NarrFreqLabel$ = "Flavor + Events"
+        CASE ELSE: NarrFreqLabel$ = "Flavor + Events + Combat"
+    END SELECT
 END FUNCTION
 
 
@@ -497,4 +514,12 @@ SUB DumpAudioManifest
     NEXT si
     FOR i = 1 TO CHM_FLAV_N: PRINT "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))) + " | " + _TRIM$(CHM_FLAV_TXT(i)): NEXT i
     FOR i = 1 TO NCURIO: PRINT "narration/curio." + _TRIM$(CURIOS(i).kind) + " | " + _TRIM$(CURIOS(i).prompt): NEXT i
+    ' combat narration -- generic per-event voiced lines (Combat tier; see NarrateT / game/COMBAT.bas).
+    ' Keep them short and atmospheric; they play OVER the combat banners, so they set mood, not detail.
+    PRINT "narration/combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself."
+    PRINT "narration/combat.reface | The creature still stands between you and your goal. You must face it."
+    PRINT "narration/combat.slay | Your foe crumples and falls still. The way is clear."
+    PRINT "narration/combat.flee | You break away and slip back into the shadows, the fight unfinished."
+    PRINT "narration/combat.hurt | Pain sears through you as the blow lands. Blood runs."
+    PRINT "narration/combat.downed | Your strength fails you. The world tilts, darkens -- and you fall."
 END SUB

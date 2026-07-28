@@ -535,7 +535,7 @@ END FUNCTION
 
 
 SUB RunSettings
-    CONST NSET = 47
+    CONST NSET = 48
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -648,6 +648,11 @@ SUB RunSettings
                 CASE 44: CycleMusicPack delta
                 CASE 45: CycleNarration delta
                 CASE 46: CycleArtPack delta
+                CASE 47
+                    opt_narrfreq = opt_narrfreq + delta
+                    IF opt_narrfreq < NARR_FLAVOR THEN opt_narrfreq = NARR_COMBAT
+                    IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
+                    Sfx "select"
             END SELECT
         END IF
 
@@ -735,7 +740,9 @@ SUB RunSettings
                 CASE 44: CycleMusicPack 1
                 CASE 45: CycleNarration 1
                 CASE 46: CycleArtPack 1
-                CASE 47: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 47
+                    opt_narrfreq = opt_narrfreq + 1: IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
+                CASE 48: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -743,7 +750,7 @@ SUB RunSettings
         _DEST CANVAS: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 1, "-=  S E T T I N G S  =-"
         FOR i = 1 TO NSET
-            y = 3 + (i - 1)                     ' single-row list (grown too long for double spacing)
+            y = 2 + (i - 1)                     ' single-row list: title row 1, list rows 2..49, hint row 50
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -903,6 +910,9 @@ SUB RunSettings
                     lbl = "Art Pack": slider = TRUE
                     vtxt = PackLabel$(opt_artpack)
                     IF ARTPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack))) + "/" + _TRIM$(STR$(ARTPACK_N)) + ")"
+                CASE 47
+                    lbl = "  Narration Freq": slider = TRUE
+                    vtxt = NarrFreqLabel$
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

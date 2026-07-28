@@ -83,6 +83,10 @@ DIM SHARED SFXPACKS(0 TO 32) AS STRING, SFXPACK_N AS INTEGER      ' index 0 = "(
 DIM SHARED MUSICPACKS(0 TO 32) AS STRING, MUSICPACK_N AS INTEGER
 DIM SHARED opt_narration AS INTEGER, opt_narrationpack AS STRING
 DIM SHARED NARRPACKS(0 TO 32) AS STRING, NARRPACK_N AS INTEGER
+' narration FREQUENCY: which tiers of narration are spoken (cumulative). 0 = Flavor only
+' (rooms/chambers/ambient/win-lose), 1 = + Events (curios/traps), 2 = + Combat.
+CONST NARR_FLAVOR = 0, NARR_EVENT = 1, NARR_COMBAT = 2
+DIM SHARED opt_narrfreq AS INTEGER
 DIM SHARED opt_artpack AS STRING
 DIM SHARED ARTPACKS(0 TO 32) AS STRING, ARTPACK_N AS INTEGER
 DIM SHARED narr_handle AS LONG                    ' the currently-playing narration line (one at a time)

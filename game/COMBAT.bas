@@ -217,6 +217,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
     mon = _TRIM$(ROOMS(rm).monster)
     ROOMS(rm).monster_fought = TRUE
     RecordEncounter mon                            ' bestiary: # times faced
+    NarrateT "combat.encounter", NARR_COMBAT       ' spoken "a monster bars your path" (both modes; Combat tier)
     IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
         combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm
@@ -272,11 +273,13 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 Sfx "bump"
                 Banner "The " + mon + " " + MonVerb$(mon, "lunges and drags", "lunge and drag") + " you back!", "You cannot flee!   [ press any key ]"
                 CombatPause
+                NarrateT "combat.reface", NARR_COMBAT        ' spoken "you still face it" (Combat tier)
                 Banner lead + whatguards, p2 + HealSuffix$   ' re-show the fight prompt
             ELSE
                 c.x = c.prev_x: c.y = c.prev_y  ' back out the way you came
                 StatLog sec, rm, mon, ROOMS(rm).is_boss, (rm > ROOM_N), "fled", 0, 0, 0
                 RecordFled mon
+                NarrateT "combat.flee", NARR_COMBAT          ' spoken "you slip away" (Combat tier)
                 Banner "You slip away from the " + mon + ".", MonVerb$(mon, "It still guards", "They still guard") + " the " + _TRIM$(SECTORS(sec).label) + " -- return to finish " + MonVerb$(mon, "it", "them") + ".   [ press any key ]"
                 CombatPause
                 EXIT DO
@@ -391,11 +394,13 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "bump"
                 Banner "The " + mon + " " + MonVerb$(mon, "lunges and drags", "lunge and drag") + " you back!", "You cannot flee!   [ press any key ]"
                 CombatPause
+                NarrateT "combat.reface", NARR_COMBAT   ' spoken "you still face it" (Combat tier)
                 dirty = -1                       ' clear the banner, redraw the panel next loop
             ELSE
                 c.x = c.prev_x: c.y = c.prev_y   ' back out the way you came
                 StatLog sec, rm, mon, isboss, wander, "fled", rounds, tot_dealt, tot_taken
                 RecordFled mon
+                NarrateT "combat.flee", NARR_COMBAT     ' spoken "you slip away" (Combat tier)
                 Banner "You slip away from the " + mon + ".", MonVerb$(mon, "It still guards", "They still guard") + " the " + _TRIM$(SECTORS(sec).label) + " -- return to finish " + MonVerb$(mon, "it", "them") + ".   [ press any key ]"
                 CombatPause
                 EXIT SUB
@@ -547,6 +552,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg), 0         ' you take a hit -- the frame lurches
                 FX_DMG = mdmg
+                NarrateT "combat.hurt", NARR_COMBAT   ' spoken "it wounds you" (Combat tier)
                 EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
                 CombatPause
             ELSE
@@ -566,6 +572,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     player_hp = 0
                     ROOMS(rm).player_died = TRUE
                     Sfx "death"
+                    NarrateT "combat.downed", NARR_COMBAT   ' spoken "you fall" (Combat tier)
                     IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
                     DrawCombatPanel rm, mon, lead
                     FX_MON = mon: FX_DMG = mdmg        ' your class's own death cry, if it has one
@@ -670,6 +677,7 @@ SUB MonsterAttack (rm AS INTEGER)
             IF opt_lootrecovery = 2 THEN vanished = AnyDropExists
             DropEverything rm                   ' killed = drop gold AND all special cards (in the room, MP)
             Sfx "lose"
+            NarrateT "combat.downed", NARR_COMBAT   ' spoken "you fall" (Combat tier)
             IF vanished THEN
                 Banner "You clutch your bloody fist to your chest and reach for the loot you had hoped to reclaim,", "as it vanishes before your very eyes -- and the world fades to black.   [ press any key ]"
             ELSEIF opt_lootrecovery >= 1 THEN
@@ -686,6 +694,7 @@ SUB MonsterAttack (rm AS INTEGER)
         CASE 3                                   ' SERIOUS WOUND
             lost = gold \ 2: gold = gold - lost
             Sfx "trap"
+            NarrateT "combat.hurt", NARR_COMBAT     ' spoken "it wounds you" (Combat tier)
             Banner mon + " ATTACK (3): SERIOUS WOUND!", "You drop half your treasure (" + _TRIM$(STR$(lost)) + ") and retreat to START.   [ press any key ]"
             CombatPause
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
@@ -911,6 +920,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     ELSE
         PopArt tname, _TRIM$(tname)                        ' flash the treasure/item art you just claimed
     END IF
+    NarrateT "combat.slay", NARR_COMBAT                     ' spoken "you slay it" (both modes; Combat tier)
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
