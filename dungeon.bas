@@ -2037,6 +2037,7 @@ END SUB
 '$INCLUDE:'engine/DATA.bas'
 '$INCLUDE:'game/SECTOR.bas'
 '$INCLUDE:'game/HOOKS.bas'      ' engine<->game contract: Game_OnEnterCell% / Game_WinReached% / Game_WinReady%
+'$INCLUDE:'game/LOADERS.bas'    ' game data-table loaders (Load*), moved out of engine/DATA.bas
 '$INCLUDE:'engine/BOARD.bas'
 '$INCLUDE:'engine/CURSOR.bas'
 '$INCLUDE:'include/MENU.bas'

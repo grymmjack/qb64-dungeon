@@ -25,6 +25,7 @@ engine/
 game/
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
+  LOADERS.bas        game data-table loaders (Load*), moved out of engine/DATA.bas
   SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS   .bas modules
 include/             not-yet-split (tangled) modules: MENU CHRONICLE SAVEGAME LORDS SPRITES
                      DICE3D_GAME, plus the vendored ansi/ + DICE3D/ dirs
@@ -84,7 +85,7 @@ Engine-side code that still names game symbols directly. Each line is a future h
 | flavor/effects ← context | `game/*` already | `FX_*` | (already game→game after the move; keep in GAME.BI) |
 | BOARD ← rooms | `engine/BOARD.bas` `DrawTombstones`/`DrawChamberGraves`/`render_room_labels` | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
 | region detect → game data | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
-| DATA ← loaders | `engine/DATA.bas` `Load*` wrappers | monster/treasure/trap tables | move the `Load*` payload to `game/` |
+| ~~DATA ← loaders~~ | `engine/DATA.bas` `Load*` wrappers | monster/treasure/trap tables | **cleared** — moved to `game/LOADERS.bas`; `engine/DATA.bas` is now game-free |
 | PLAYERS ← inventory | `engine/PLAYERS.bas` | `PLAYER` game fields | game-defined player-state blob |
 | MENU (still include/) | `RunMenu`/`RunSettings`/`DrawHUD`/`ShowEnd` | class/inventory/ruleset opts | widget core + game-supplied item/option/HUD lists |
 | SAVE/SETTINGS (still include/) | `SaveGame`/`SaveSettings` | game `opt_*` + solo state | game-injected save schema |
