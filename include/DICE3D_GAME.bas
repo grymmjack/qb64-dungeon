@@ -297,7 +297,7 @@ END SUB
 SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, atlas AS LONG, setcfg AS DICE3D_CONFIG)
     DIM AS INTEGER gx, gy, scx, scy
     DIM cfg AS DICE3D_CONFIG, pxk AS SINGLE
-    gx = gxc * CW: gy = 15 * CH
+    gx = gxc * CW: gy = 31 * CH                     ' bottom strip, below the columnar SETTINGS list
     _DEST CANVAS: _FONT CH
     COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
     IF atlas = 0 THEN EXIT SUB

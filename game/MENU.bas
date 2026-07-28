@@ -552,10 +552,12 @@ SUB SetLayHdr (c AS INTEGER, txt AS STRING, prow() AS INTEGER)
     prow(c) = prow(c) + 1
 END SUB
 
-' Place option id at column c's current pen row; advance the pen.
+' Place option id at column c's current pen row; advance the pen. Also append to the
+' reading-order list SORD (calls run col1 top-down, then col2, then col3) for up/down nav.
 SUB SetLayRow (c AS INTEGER, id AS INTEGER, prow() AS INTEGER)
     SL_COL(id) = c: SL_ROW(id) = prow(c)
     prow(c) = prow(c) + 1
+    SORD_N = SORD_N + 1: SORD(SORD_N) = id
 END SUB
 
 ' Build the columnar SETTINGS layout: assign every option id (1..49) to a column + screen
@@ -566,7 +568,7 @@ SUB BuildSetLayout
     DIM prow(1 TO NSCOL) AS INTEGER, c AS INTEGER
     SL_COLX(1) = 1: SL_COLX(2) = 45: SL_COLX(3) = 89
     FOR c = 1 TO NSCOL: prow(c) = 2: NEXT          ' title row 0, gap row 1, list from row 2
-    SLH_N = 0
+    SLH_N = 0: SORD_N = 0
     ' Column 1 -- SOUND
     SetLayHdr 1, "SOUND", prow()
     SetLayRow 1, 1, prow(): SetLayRow 1, 2, prow(): SetLayRow 1, 3, prow(): SetLayRow 1, 4, prow()
@@ -591,47 +593,19 @@ SUB BuildSetLayout
     SetLayRow 3, 49, prow()                         ' << Back at the foot of the last column
 END SUB
 
-' Move the SETTINGS cursor from option `cur` in direction dir$ ("W"/"S"/"A"/"D") over the 2D
-' grid: W/S = nearest option up/down in the SAME column (wrap); A/D = nearest option by row in
-' the next/prev column (wrap). Returns the new option id.
-FUNCTION SetLayMove% (cur AS INTEGER, dir$)
-    DIM i AS INTEGER, best AS INTEGER, bestd AS INTEGER, tcol AS INTEGER, crow AS INTEGER
-    best = cur: bestd = 9999: crow = SL_ROW(cur)
-    IF dir$ = "W" OR dir$ = "S" THEN
-        ' same column, nearest row in the direction; wrap to far end if none
-        DIM wrapc AS INTEGER, wrapd AS INTEGER: wrapc = cur: wrapd = -1
-        FOR i = 1 TO 49
-            IF SL_COL(i) = SL_COL(cur) AND i <> cur THEN
-                IF dir$ = "W" AND SL_ROW(i) < crow THEN
-                    IF crow - SL_ROW(i) < bestd THEN bestd = crow - SL_ROW(i): best = i
-                ELSEIF dir$ = "S" AND SL_ROW(i) > crow THEN
-                    IF SL_ROW(i) - crow < bestd THEN bestd = SL_ROW(i) - crow: best = i
-                END IF
-                ' track the wrap target (farthest opposite end)
-                IF dir$ = "W" THEN
-                    IF SL_ROW(i) > wrapd THEN wrapd = SL_ROW(i): wrapc = i
-                ELSE
-                    IF wrapd = -1 OR SL_ROW(i) < wrapd THEN wrapd = SL_ROW(i): wrapc = i
-                END IF
-            END IF
-        NEXT
-        IF best = cur THEN best = wrapc               ' none in-direction -> wrap
-    ELSE
-        tcol = SL_COL(cur) + IIFN%(dir$ = "D", 1, -1)
-        IF tcol < 1 THEN tcol = NSCOL
-        IF tcol > NSCOL THEN tcol = 1
-        FOR i = 1 TO 49                                ' nearest row in the target column
-            IF SL_COL(i) = tcol THEN
-                IF ABS(SL_ROW(i) - crow) < bestd THEN bestd = ABS(SL_ROW(i) - crow): best = i
-            END IF
-        NEXT
-    END IF
-    SetLayMove% = best
-END FUNCTION
-
-' tiny inline "IIF" for integers (QB64 has no ternary)
-FUNCTION IIFN% (cond AS INTEGER, a AS INTEGER, b AS INTEGER)
-    IF cond THEN IIFN% = a ELSE IIFN% = b
+' Move option `cur` up (W / up-arrow) or down (S / down-arrow) through the reading-order
+' list SORD (col1 top-down, then col2, then col3), wrapping at the ends. Left/right are NOT
+' navigation -- they adjust the selected value (the universal slider convention).
+FUNCTION SetOrdMove% (cur AS INTEGER, dir$)
+    DIM i AS INTEGER, idx AS INTEGER
+    idx = 1
+    FOR i = 1 TO SORD_N
+        IF SORD(i) = cur THEN idx = i: EXIT FOR
+    NEXT
+    IF dir$ = "W" THEN idx = idx - 1 ELSE idx = idx + 1
+    IF idx < 1 THEN idx = SORD_N
+    IF idx > SORD_N THEN idx = 1
+    SetOrdMove% = SORD(idx)
 END FUNCTION
 
 ' Apply the Music on/off toggle the instant it's flipped in SETTINGS (the player expects
@@ -664,12 +638,12 @@ SUB RunSettings
         _LIMIT 60
         AudioTick                                   ' live music crossfade / toggle fade + narration fade
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" OR k = "S" OR k = "A" OR k = "D" THEN sel = SetLayMove%(sel, k): Sfx "select"
+        IF k = "W" OR k = "S" THEN sel = SetOrdMove%(sel, k): Sfx "select"   ' up/down move (arrows too)
         IF k = CHR$(27) THEN SaveSettings: Free3DPreviews: EXIT SUB
 
-        ' [ and ] (or , .) adjust the selected slider/value -- A/D now navigate columns
-        IF k = "[" OR k = "]" OR k = "," OR k = "." THEN
-            IF k = "[" OR k = "," THEN delta = -1 ELSE delta = 1
+        ' A/D (left/right arrows) adjust the selected slider/value -- the familiar convention
+        IF k = "A" OR k = "D" THEN
+            IF k = "A" THEN delta = -1 ELSE delta = 1
             SELECT CASE sel
                 CASE 2: opt_musicvol = Clamp10(opt_musicvol + delta): IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10
                 CASE 4: opt_sfxvol = Clamp10(opt_sfxvol + delta): Sfx "select"
@@ -1052,7 +1026,15 @@ SUB RunSettings
             IF i <> NSET THEN _PRINTSTRING ((cx0 + SCOLW - LEN(vtxt)) * CW, y * CH), vtxt   ' value right-aligned (no truncation)
             _PRINTMODE _FILLBACKGROUND
         NEXT i
-        COLOR CYANU, BLACK: PrintCentered 50, "[WASD] move   [ / ] adjust   [ENTER] cycle   [ESC] back"
+        ' live dice previews in the free strip BELOW the columns (repositioned to row 31)
+        IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
+            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M, MSET3D(dice3d_set_index%(20))
+        ELSE                                                    ' font dice: the live 2x3 sample grid
+            DrawDicePreview 100, " your dice"
+            PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice
+        END IF
+        COLOR CYANU, BLACK: PrintCentered 50, "W/S or up/down = move     A/D or left/right = adjust     ENTER = cycle     ESC = back"
         _DISPLAY
         IF settingsshot_on THEN _SAVEIMAGE "settings-shot.png", CANVAS: SYSTEM   ' dev layout check -- exits BEFORE any SaveSettings
     LOOP
@@ -1077,7 +1059,7 @@ SUB DrawDicePreview (gxc AS INTEGER, lbl AS STRING)
     SD(5) = 4: FV(5) = 4
     SD(6) = 6: FV(6) = 6
     cellw = 84: cellh = 92
-    gx = gxc * CW: gy = 15 * CH
+    gx = gxc * CW: gy = 31 * CH                     ' bottom strip, below the columnar SETTINGS list
     _DEST CANVAS
     COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
     FOR idx = 1 TO 6

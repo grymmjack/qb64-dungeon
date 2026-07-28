@@ -328,3 +328,5 @@ DIM SHARED SL_ROW(1 TO 64) AS INTEGER            ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count
 DIM SHARED SLH_COL(1 TO 24) AS INTEGER, SLH_ROW(1 TO 24) AS INTEGER
 DIM SHARED SLH_TXT(1 TO 24) AS STRING
+DIM SHARED SORD(1 TO 64) AS INTEGER              ' option ids in reading order (col1 top-down, col2, col3) for up/down nav
+DIM SHARED SORD_N AS INTEGER
