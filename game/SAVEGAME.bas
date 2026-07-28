@@ -1,5 +1,6 @@
 ' ============================================================================
-'  SAVEGAME.bas -- single-slot mid-run save/load (dungeon-save.dat, git-ignored)
+'  SAVEGAME.bas -- GAME payload for single-slot mid-run save/load
+'                  (dungeon-save.dat, git-ignored).
 '
 '  The dungeon layout is DETERMINISTIC given its seed: PlayGame captures run_seed
 '  and RANDOMIZEs with it before StartBoard + RandomizeRooms. So the save file
@@ -7,35 +8,11 @@
 '  flags, revealed secret doors, broken doors, chronicle, status). On load we
 '  re-seed and rebuild the identical dungeon, then overlay those deltas.
 '
-'  Format: whitespace-separated tokens, consumed in a fixed order. Reading uses
-'  _READFILE$ + a manual split (QB64's EOF/LINE INPUT is unreliable here).
+'  The generic file plumbing it rides on (HasSave / DeleteSave / AskContinue /
+'  TokLoad / NextTok$ / NextI% / NextL&) lives in engine/SAVEIO.bas.
+'  Format: whitespace-separated tokens, consumed in a fixed order.
 '  Scope: single-player. [G] saves in-game; a save is offered on entering.
 ' ============================================================================
-
-FUNCTION HasSave%
-    HasSave = (_FILEEXISTS("dungeon-save.dat") <> 0)
-END FUNCTION
-
-' Remove the save (called when a run ends -- winning -- so a stale continue can't resume it).
-SUB DeleteSave
-    IF _FILEEXISTS("dungeon-save.dat") THEN KILL "dungeon-save.dat"
-END SUB
-
-
-' Offered when entering the dungeon and a save exists: continue it or start fresh.
-FUNCTION AskContinue%
-    DIM k AS STRING
-    _DEST CANVAS: CLS , BLACK
-    COLOR YELLOWU, BLACK: PrintCentered 22, "A saved delve awaits you."
-    COLOR CYANU, BLACK: PrintCentered 24, "[C] CONTINUE saved game        [N] start a NEW game"
-    _DISPLAY
-    DO
-        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
-        IF k = "C" OR k = CHR$(13) THEN AskContinue = -1: EXIT FUNCTION
-        IF k = "N" OR k = CHR$(27) THEN AskContinue = 0: EXIT FUNCTION
-    LOOP
-END FUNCTION
-
 
 ' [G] in-game: save + a brief confirmation, then back to the board.
 SUB SaveAndToast
@@ -106,40 +83,6 @@ SUB SaveGame
     PRINT #f, "HMON " + _TRIM$(hunt_mon)
     CLOSE #f
 END SUB
-
-
-' -- token-stream reader (split the save file once, then consume in order) --
-SUB TokLoad (path AS STRING)
-    DIM raw AS STRING, i AS INTEGER, cur AS STRING, ch2 AS STRING
-    raw = _READFILE$(path)
-    SVTOK_N = 0: SVTOK_I = 1
-    cur = ""
-    FOR i = 1 TO LEN(raw)
-        ch2 = MID$(raw, i, 1)
-        IF ch2 = " " OR ch2 = CHR$(9) OR ch2 = CHR$(10) OR ch2 = CHR$(13) THEN
-            IF LEN(cur) > 0 THEN
-                IF SVTOK_N < UBOUND(SVTOK) THEN SVTOK_N = SVTOK_N + 1: SVTOK(SVTOK_N) = cur
-                cur = ""
-            END IF
-        ELSE
-            cur = cur + ch2
-        END IF
-    NEXT i
-    IF LEN(cur) > 0 AND SVTOK_N < UBOUND(SVTOK) THEN SVTOK_N = SVTOK_N + 1: SVTOK(SVTOK_N) = cur
-END SUB
-
-FUNCTION NextTok$
-    IF SVTOK_I > SVTOK_N THEN NextTok$ = "": EXIT FUNCTION
-    NextTok$ = SVTOK(SVTOK_I): SVTOK_I = SVTOK_I + 1
-END FUNCTION
-
-FUNCTION NextI%
-    NextI = VAL(NextTok$)
-END FUNCTION
-
-FUNCTION NextL&
-    NextL = VAL(NextTok$)
-END FUNCTION
 
 
 ' Read dungeon-save.dat, rebuild the identical dungeon from its seed, then overlay

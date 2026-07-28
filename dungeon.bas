@@ -2051,7 +2051,8 @@ END SUB
 '$INCLUDE:'engine/STATS.bas'
 '$INCLUDE:'include/CHRONICLE.bas'
 '$INCLUDE:'game/SOLO.bas'
-'$INCLUDE:'include/SAVEGAME.bas'
+'$INCLUDE:'engine/SAVEIO.bas'   ' engine save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
+'$INCLUDE:'game/SAVEGAME.bas'   ' game save payload (SaveGame/LoadGameApply/SaveAndToast)
 '$INCLUDE:'game/FLAVOR.bas'
 '$INCLUDE:'game/CTEXT.bas'
 '$INCLUDE:'engine/MUSIC.bas'
