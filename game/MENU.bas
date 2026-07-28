@@ -543,6 +543,97 @@ FUNCTION Clamp10% (v AS INTEGER)
 END FUNCTION
 
 
+' Place a category header at the top of a group in column c (blank line before, except the
+' first group in the column). Advances that column's pen row (prow -- "pen" is reserved).
+SUB SetLayHdr (c AS INTEGER, txt AS STRING, prow() AS INTEGER)
+    IF prow(c) > 2 THEN prow(c) = prow(c) + 1        ' one blank row between stacked groups
+    SLH_N = SLH_N + 1
+    SLH_COL(SLH_N) = c: SLH_ROW(SLH_N) = prow(c): SLH_TXT(SLH_N) = txt
+    prow(c) = prow(c) + 1
+END SUB
+
+' Place option id at column c's current pen row; advance the pen.
+SUB SetLayRow (c AS INTEGER, id AS INTEGER, prow() AS INTEGER)
+    SL_COL(id) = c: SL_ROW(id) = prow(c)
+    prow(c) = prow(c) + 1
+END SUB
+
+' Build the columnar SETTINGS layout: assign every option id (1..49) to a column + screen
+' row, grouped by category with a header before each group. The per-option label/value logic
+' (the SELECT CASE i blocks) is unchanged -- this only decides WHERE each row draws + how the
+' cursor moves. Rebuilt each time SETTINGS opens (cheap).
+SUB BuildSetLayout
+    DIM prow(1 TO NSCOL) AS INTEGER, c AS INTEGER
+    SL_COLX(1) = 1: SL_COLX(2) = 45: SL_COLX(3) = 89
+    FOR c = 1 TO NSCOL: prow(c) = 2: NEXT          ' title row 0, gap row 1, list from row 2
+    SLH_N = 0
+    ' Column 1 -- SOUND
+    SetLayHdr 1, "SOUND", prow()
+    SetLayRow 1, 1, prow(): SetLayRow 1, 2, prow(): SetLayRow 1, 3, prow(): SetLayRow 1, 4, prow()
+    SetLayRow 1, 5, prow(): SetLayRow 1, 6, prow(): SetLayRow 1, 48, prow()
+    SetLayRow 1, 45, prow(): SetLayRow 1, 47, prow(): SetLayRow 1, 43, prow(): SetLayRow 1, 44, prow()
+    ' Column 2 -- DICE, then MONSTER DICE
+    SetLayHdr 2, "DICE", prow()
+    SetLayRow 2, 7, prow(): SetLayRow 2, 30, prow(): SetLayRow 2, 10, prow(): SetLayRow 2, 11, prow()
+    SetLayRow 2, 12, prow(): SetLayRow 2, 13, prow(): SetLayRow 2, 38, prow(): SetLayRow 2, 39, prow()
+    SetLayRow 2, 31, prow(): SetLayRow 2, 33, prow(): SetLayRow 2, 8, prow(): SetLayRow 2, 9, prow()
+    SetLayHdr 2, "MONSTER DICE", prow()
+    SetLayRow 2, 26, prow(): SetLayRow 2, 27, prow(): SetLayRow 2, 28, prow(): SetLayRow 2, 29, prow(): SetLayRow 2, 32, prow()
+    ' Column 3 -- RULES, then DISPLAY & ART, then Back
+    SetLayHdr 3, "RULES", prow()
+    SetLayRow 3, 14, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow(): SetLayRow 3, 17, prow()
+    SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
+    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow()
+    SetLayHdr 3, "DISPLAY & ART", prow()
+    SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
+    SetLayRow 3, 46, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow(): SetLayRow 3, 36, prow()
+    prow(3) = prow(3) + 1
+    SetLayRow 3, 49, prow()                         ' << Back at the foot of the last column
+END SUB
+
+' Move the SETTINGS cursor from option `cur` in direction dir$ ("W"/"S"/"A"/"D") over the 2D
+' grid: W/S = nearest option up/down in the SAME column (wrap); A/D = nearest option by row in
+' the next/prev column (wrap). Returns the new option id.
+FUNCTION SetLayMove% (cur AS INTEGER, dir$)
+    DIM i AS INTEGER, best AS INTEGER, bestd AS INTEGER, tcol AS INTEGER, crow AS INTEGER
+    best = cur: bestd = 9999: crow = SL_ROW(cur)
+    IF dir$ = "W" OR dir$ = "S" THEN
+        ' same column, nearest row in the direction; wrap to far end if none
+        DIM wrapc AS INTEGER, wrapd AS INTEGER: wrapc = cur: wrapd = -1
+        FOR i = 1 TO 49
+            IF SL_COL(i) = SL_COL(cur) AND i <> cur THEN
+                IF dir$ = "W" AND SL_ROW(i) < crow THEN
+                    IF crow - SL_ROW(i) < bestd THEN bestd = crow - SL_ROW(i): best = i
+                ELSEIF dir$ = "S" AND SL_ROW(i) > crow THEN
+                    IF SL_ROW(i) - crow < bestd THEN bestd = SL_ROW(i) - crow: best = i
+                END IF
+                ' track the wrap target (farthest opposite end)
+                IF dir$ = "W" THEN
+                    IF SL_ROW(i) > wrapd THEN wrapd = SL_ROW(i): wrapc = i
+                ELSE
+                    IF wrapd = -1 OR SL_ROW(i) < wrapd THEN wrapd = SL_ROW(i): wrapc = i
+                END IF
+            END IF
+        NEXT
+        IF best = cur THEN best = wrapc               ' none in-direction -> wrap
+    ELSE
+        tcol = SL_COL(cur) + IIFN%(dir$ = "D", 1, -1)
+        IF tcol < 1 THEN tcol = NSCOL
+        IF tcol > NSCOL THEN tcol = 1
+        FOR i = 1 TO 49                                ' nearest row in the target column
+            IF SL_COL(i) = tcol THEN
+                IF ABS(SL_ROW(i) - crow) < bestd THEN bestd = ABS(SL_ROW(i) - crow): best = i
+            END IF
+        NEXT
+    END IF
+    SetLayMove% = best
+END FUNCTION
+
+' tiny inline "IIF" for integers (QB64 has no ternary)
+FUNCTION IIFN% (cond AS INTEGER, a AS INTEGER, b AS INTEGER)
+    IF cond THEN IIFN% = a ELSE IIFN% = b
+END FUNCTION
+
 ' Apply the Music on/off toggle the instant it's flipped in SETTINGS (the player expects
 ' silence NOW when they turn it off, not when they leave the screen). Off = stop whatever's
 ' playing but KEEP the level context (music_level) so turning it back on resumes the right
@@ -563,21 +654,22 @@ SUB RunSettings
     CONST NSET = 49
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
+    DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
+    CONST SCOLW = 42                                        ' option-column width in cells
     sel = 1
     ScanAllPacks                                    ' refresh the sfx/music pack lists (packs added on disk show up)
     Build3DPreviews                                 ' render the 3D dice previews once (rebuilt on set change)
+    BuildSetLayout                                  ' assign every option to its column + screen row (grouped)
     DO
         _LIMIT 60
         AudioTick                                   ' live music crossfade / toggle fade + narration fade
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = NSET
-        IF k = "S" THEN sel = sel + 1: IF sel > NSET THEN sel = 1
-        IF k = "W" OR k = "S" THEN Sfx "select"
+        IF k = "W" OR k = "S" OR k = "A" OR k = "D" THEN sel = SetLayMove%(sel, k): Sfx "select"
         IF k = CHR$(27) THEN SaveSettings: Free3DPreviews: EXIT SUB
 
-        ' A/D adjusts the sliders: volumes (2/4/6), dice colour (10), speed (13), players (16)
-        IF k = "A" OR k = "D" THEN
-            IF k = "A" THEN delta = -1 ELSE delta = 1
+        ' [ and ] (or , .) adjust the selected slider/value -- A/D now navigate columns
+        IF k = "[" OR k = "]" OR k = "," OR k = "." THEN
+            IF k = "[" OR k = "," THEN delta = -1 ELSE delta = 1
             SELECT CASE sel
                 CASE 2: opt_musicvol = Clamp10(opt_musicvol + delta): IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10
                 CASE 4: opt_sfxvol = Clamp10(opt_sfxvol + delta): Sfx "select"
@@ -778,8 +870,13 @@ SUB RunSettings
 
         _DEST CANVAS: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 0, "-=  S E T T I N G S  =-"
+        FOR hh = 1 TO SLH_N                    ' category headers atop each group
+            COLOR _RGB32(&HFF, &HC0, &H40), BLACK
+            dsh = 39 - LEN(SLH_TXT(hh)) - 3: IF dsh < 0 THEN dsh = 0
+            _PRINTSTRING (SL_COLX(SLH_COL(hh)) * CW, SLH_ROW(hh) * CH), "- " + SLH_TXT(hh) + " " + STRING$(dsh, "-")
+        NEXT hh
         FOR i = 1 TO NSET
-            y = 1 + (i - 1)                     ' single-row list: title row 0, list rows 1..49, hint row 50
+            y = SL_ROW(i)                      ' columnar grouped layout -- BuildSetLayout placed each option
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -926,39 +1023,38 @@ SUB RunSettings
                 CASE 43
                     lbl = "SFX Pack": slider = TRUE
                     vtxt = PackLabel$(opt_sfxpack)
-                    IF SFXPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack))) + "/" + _TRIM$(STR$(SFXPACK_N)) + ")"
+                    ' (pack #/count counter dropped -- long pack names need the whole column width)
                 CASE 44
                     lbl = "Music Pack": slider = TRUE
                     vtxt = PackLabel$(opt_musicpack)
-                    IF MUSICPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack))) + "/" + _TRIM$(STR$(MUSICPACK_N)) + ")"
+                    ' (counter dropped -- see SFX Pack)
                 CASE 45
                     lbl = "Narration": slider = TRUE
                     vtxt = NarrationLabel$
-                    IF opt_narration AND NARRPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack))) + "/" + _TRIM$(STR$(NARRPACK_N)) + ")"
+                    ' (counter dropped -- see SFX Pack)
                 CASE 46
                     lbl = "Art Pack": slider = TRUE
                     vtxt = PackLabel$(opt_artpack)
-                    IF ARTPACK_N > 0 THEN vtxt = vtxt + "  (" + _TRIM$(STR$(PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack))) + "/" + _TRIM$(STR$(ARTPACK_N)) + ")"
+                    ' (counter dropped -- see SFX Pack)
                 CASE 47
                     lbl = "  Narration Freq": slider = TRUE
                     vtxt = NarrFreqLabel$
                 CASE 48
                     lbl = "  Music Ducking": slider = TRUE
-                    IF opt_duckamt <= 0 THEN vtxt = "off" ELSE vtxt = _TRIM$(STR$(opt_duckamt)) + " / 10  (music dips under voice)"
+                    IF opt_duckamt <= 0 THEN vtxt = "off" ELSE vtxt = _TRIM$(STR$(opt_duckamt)) + " / 10"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
-            IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK
-            IF i = NSET THEN PrintCentered y, "   " + lbl + "   " ELSE PrintCentered y, "   " + lbl + ":  " + vtxt + "   "
+            cx0 = SL_COLX(SL_COL(i))
+            IF i = sel THEN LINE (cx0 * CW, y * CH)-((cx0 + SCOLW) * CW - 1, (y + 1) * CH - 1), REDU, BF   ' highlight bar
+            IF i = sel THEN COLOR WHITE ELSE IF slider THEN COLOR CYANU ELSE COLOR GREY
+            _PRINTMODE _KEEPBACKGROUND                     ' text over the bar; bg stays whatever's under it
+            _PRINTSTRING ((cx0 + 1) * CW, y * CH), lbl     ' label left
+            IF i <> NSET THEN _PRINTSTRING ((cx0 + SCOLW - LEN(vtxt)) * CW, y * CH), vtxt   ' value right-aligned (no truncation)
+            _PRINTMODE _FILLBACKGROUND
         NEXT i
-        IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
-            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P, DSET3D(dice3d_set_index%(20))
-            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M, MSET3D(dice3d_set_index%(20))
-        ELSE                                                    ' font dice: the live 2x3 sample grid
-            DrawDicePreview 100, " your dice"                   ' player dice on the right
-            PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice   ' monster dice on the left
-        END IF
-        COLOR CYANU, BLACK: PrintCentered 50, "[W/S] move   [A/D] adjust   [ENTER] toggle   [ESC] back"
+        COLOR CYANU, BLACK: PrintCentered 50, "[WASD] move   [ / ] adjust   [ENTER] cycle   [ESC] back"
         _DISPLAY
+        IF settingsshot_on THEN _SAVEIMAGE "settings-shot.png", CANVAS: SYSTEM   ' dev layout check -- exits BEFORE any SaveSettings
     LOOP
 END SUB
 

@@ -318,3 +318,13 @@ DIM SHARED BEAST_N AS INTEGER
 REDIM SHARED TRE_STATNAME(1 TO MAXTRE) AS STRING
 REDIM SHARED TRE_FOUND(1 TO MAXTRE) AS INTEGER, TRE_GP(1 TO MAXTRE) AS LONG
 DIM SHARED TRE_STAT_N AS INTEGER
+
+' --- SETTINGS screen layout (columnar grouped): per-option column + screen row,
+'     plus the category header list. Filled by BuildSetLayout each time SETTINGS opens. ---
+CONST NSCOL = 3                                  ' number of option columns
+DIM SHARED SL_COLX(1 TO NSCOL) AS INTEGER        ' left cell-column x of each option column
+DIM SHARED SL_COL(1 TO 64) AS INTEGER            ' per option id: which column (1..NSCOL)
+DIM SHARED SL_ROW(1 TO 64) AS INTEGER            ' per option id: screen row
+DIM SHARED SLH_N AS INTEGER                      ' category header count
+DIM SHARED SLH_COL(1 TO 24) AS INTEGER, SLH_ROW(1 TO 24) AS INTEGER
+DIM SHARED SLH_TXT(1 TO 24) AS STRING

@@ -193,4 +193,5 @@ DIM SHARED SFX_NAME(1 TO 48) AS STRING, SFX_HND(1 TO 48) AS LONG, SFX_N AS INTEG
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter
+DIM SHARED settingsshot_on AS INTEGER                 ' dev: `settingsshot` -- save the SETTINGS render to PNG + exit (layout check)
 DIM SHARED dbg_click_armed AS INTEGER                 ' debounce for debug click-to-place
