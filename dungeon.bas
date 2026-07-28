@@ -2049,7 +2049,8 @@ END SUB
 '$INCLUDE:'engine/GESTURE.bas'
 '$INCLUDE:'engine/JUICE.bas'
 '$INCLUDE:'engine/STATS.bas'
-'$INCLUDE:'include/CHRONICLE.bas'
+'$INCLUDE:'engine/MARKDOWN.bas' ' reusable markdown -> text-mode renderer (was inside CHRONICLE.bas)
+'$INCLUDE:'game/CHRONICLE.bas'  ' per-run journal + Bestiary/Treasury/Rules/Game Menu
 '$INCLUDE:'game/SOLO.bas'
 '$INCLUDE:'engine/SAVEIO.bas'   ' engine save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
 '$INCLUDE:'game/SAVEGAME.bas'   ' game save payload (SaveGame/LoadGameApply/SaveAndToast)
