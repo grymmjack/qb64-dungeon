@@ -32,3 +32,13 @@ lose             | 20-40s loop   | a somber, mournful defeat theme behind the de
 combat-low       | 20-40s loop   | a tense, driving dark-fantasy combat loop for levels 1-5, low-to-mid intensity, percussive, looping seamlessly
 combat-high      | 20-40s loop   | an intense, fast dark-fantasy combat loop for the deep levels, high energy and urgency, looping seamlessly
 combat-intense   | 30-60s loop   | a massive BOSS-battle theme, epic and relentless, full percussion and brass, looping seamlessly
+# --- screen / context cues: play while you're on that screen (loop seamlessly), except
+#     introsplash which is a one-shot title sting. Wire them with PlayCue/EndCue. ---
+introsplash      | 3s one-shot   | a short 3-second intro-splash sting for the game's title card -- dark-fantasy and cinematic, a single dramatic swell of low brass and a deep sub-hit, ominous and grand, then silence. NON-looping one-shot.
+settings         | 30-60s loop   | the SETTINGS screen -- calm, contemplative configuration ambience. Soft sustained pads, a gentle celeste or music-box motif, unhurried, the quiet of tuning your gear before the descent. Looping seamlessly.
+chargen          | 30-60s loop   | CHARACTER CREATION -- forging a hero. A hopeful, rising theme with a hint of destiny: warm strings and a noble horn over a steady heartbeat, the roll of fate's dice, brave but not yet triumphant. Looping seamlessly.
+treasury         | 30-60s loop   | the TREASURY screen -- glittering hoards counted by torchlight. A shimmering theme of wealth and wonder: harp and celeste arpeggios, glassy bells, warm low strings, avarice and awe. Looping seamlessly.
+bestiary         | 30-60s loop   | the BESTIARY screen -- a dark catalogue of the dungeon's horrors. A brooding, curious theme: low woodwinds, muted strings, uneasy motifs that hint at each beast, scholarly dread. Looping seamlessly.
+curio            | 30-60s loop   | a CURIO discovery -- mystery, risk and reward. A hushed, tempting theme of curiosity: soft mallet percussion, a questioning motif, a glint of the arcane, danger beneath the wonder. Looping seamlessly.
+lords            | 30-60s loop   | the LEGENDARY LORDS hall of fame -- a memorial to fallen and triumphant champions. A solemn, noble theme: distant choir, slow strings, a proud but melancholy brass line, legends remembered. Looping seamlessly.
+gamemenu         | 30-60s loop   | the GAME MENU / journal ([M], paused mid-delve) -- a quiet, reflective interlude. Sparse piano or harp over low ambient drones, the calm of taking stock deep in the dark. Looping seamlessly.

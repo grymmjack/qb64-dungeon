@@ -489,7 +489,7 @@ SUB DumpAudioManifest
         nm = _TRIM$(MUSIC_FILE(lvl))
         IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
     NEXT lvl
-    lst = "vr-theme everdark victory lose combat-low combat-high combat-intense ": p = 1
+    lst = "vr-theme introsplash everdark victory lose combat-low combat-high combat-intense settings chargen treasury bestiary curio lords gamemenu ": p = 1
     FOR i = 1 TO LEN(lst)                               ' fixed intro/menu/cue tracks (deduped vs level names)
         IF MID$(lst, i, 1) = " " THEN
             nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1
