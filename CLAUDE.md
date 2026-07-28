@@ -74,19 +74,25 @@ Environment specifics that dictate this approach:
 ## Where the code lives
 
 - **`dungeon.bas`** (repo root) — the playable game. The main file is now thin (~290 lines):
-  top includes `include/DUNGEON.BI` (all `CONST`s, `TYPE`s, and `DIM SHARED` globals — must
-  load first), then the screen/init setup, the `INTRO → MENU → PLAY → WIN/LOSE` state machine
-  (`SELECT CASE game_state`), the **core game loop** (`PlayGame` / `DoCombat` / `MonsterAttack`
-  / `ClaimTreasure`), and finally the module bodies. The SUBs/FUNCTIONs are split into
-  bottom-`'$INCLUDE`'d modules: **`include/SECTOR.bas`** (sector geometry + monster/treasure/
-  class data + `RandomizeRooms`), **`include/BOARD.bas`** (board render, fog-of-war, secret
-  doors, pixel-colour collision), **`include/CURSOR.bas`** (movement + draw/erase), and
-  **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound),
+  top includes the split header **`engine/ENGINE.BI` then `game/GAME.BI`** (all `CONST`s,
+  `TYPE`s, and `DIM SHARED` globals — must load first, **engine before game**), then the
+  screen/init setup, the `INTRO → MENU → PLAY → WIN/LOSE` state machine (`SELECT CASE
+  game_state`), the **core game loop** (`PlayGame` / `DoCombat` / `MonsterAttack` /
+  `ClaimTreasure`), and finally the module bodies. **The codebase is mid-refactor into a
+  reusable `engine/` + a swappable `game/`** — see [engine/ENGINE.md](engine/ENGINE.md) for the
+  layout, the `Game_*` hook contract, and the boundary-debt ledger (this is the authority for
+  which dir a module lives in; the per-feature prose below still names some modules by their old
+  `include/` path). The SUBs/FUNCTIONs are split into bottom-`'$INCLUDE`'d modules:
+  **`game/SECTOR.bas`** (sector geometry + monster/treasure/class data + `RandomizeRooms`),
+  **`engine/BOARD.bas`** (board render, fog-of-war, secret doors, pixel-colour collision),
+  **`engine/CURSOR.bas`** (movement + draw/erase), **`game/HOOKS.bas`** (the engine↔game
+  contract — `Game_OnEnterCell%` / `Game_WinReached%`), and — still in `include/` pending the
+  split — **`include/MENU.bas`** (intro, menu, class-select, SETTINGS, dialogs, HUD, dice, sound),
   **`include/LORDS.bas`** (persistent hall of fame + LOAD A CHARACTER, saved to the git-ignored
   `dungeon-lords.dat`), and **`include/CHRONICLE.bas`** (the in-game **Game Menu** `[M]` reference
   suite). QB64 resolves
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
-  the only ordering rule is that `DUNGEON.BI`'s declarations come before the executable setup. Encounters ride the existing pixel-color collision:
+  the only ordering rule is that the header (`ENGINE.BI` then `GAME.BI`) comes before the executable setup. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
   in a sector with a live monster triggers combat (`DoCombat`). **Dice** — every d6 roll
   (movement 1d6, combat 2d6, the 3d6 ability rolls) animates hand-drawn pip dice
@@ -292,11 +298,14 @@ Environment specifics that dictate this approach:
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
   TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
-- **`include/`** — `DUNGEON.BI` (header) + the game's module bodies `'$INCLUDE`'d by
-  `dungeon.bas` (`SECTOR.bas` / `BOARD.bas` / `CURSOR.bas` / `MENU.bas` / `DATA.bas` (the
-  data-file reader + all `Load*` subs) / `CURIO.bas` / `LORDS.bas` / `CHRONICLE.bas` / …),
-  the **vendored** `include/ansi/` ANSI renderer, and the `Toolbox64` / `QB64_GJ_LIB`
-  submodules (kept for reference; **not** compiled into the game).
+- **`engine/` / `game/` / `include/`** — the module bodies `'$INCLUDE`'d by `dungeon.bas`, now
+  being sorted into a reusable **`engine/`** (`ENGINE.BI` header + `BOARD` / `CURSOR` / `MUSIC` /
+  `JUICE` / `GESTURE` / `STATS` / `DATA` (data-file reader + `Load*`) / `PLAYERS`), a swappable
+  **`game/`** (`GAME.BI` header + `HOOKS` / `SECTOR` / `SOLO` / `FLAVOR` / `CTEXT` / `CURIO` /
+  `EFFECTS`), and the not-yet-split **`include/`** (`MENU` / `CHRONICLE` / `SAVEGAME` / `LORDS` /
+  `SPRITES` / `DICE3D_GAME`). The **vendored** `include/ansi/` ANSI renderer + `include/DICE3D/`
+  are logically engine but still under `include/`. `Toolbox64` / `QB64_GJ_LIB` submodules are
+  kept for reference; **not** compiled into the game. See [engine/ENGINE.md](engine/ENGINE.md).
 - **`assets/ansi/`** — the game's actual graphics: `.ans`/`.icy`/`.xb` text-mode art,
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.

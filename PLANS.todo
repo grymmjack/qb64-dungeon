@@ -3,11 +3,16 @@ Note:
     scratchpad prototypes). Items below are checked off against that build.
 
 Roadmap (future / bigger efforts):
-    ☐ Extract a REUSABLE ENGINE from the game (so the next game starts from it):
+    ⧖ Extract a REUSABLE ENGINE from the game (so the next game starts from it):
+        [STARTED 2026-07-27 on branch worktree-engine -- full contract + debt ledger
+         in engine/ENGINE.md. First increment (4 commits) done; build stays green.]
         Today it's "a game with a lot of reusable machinery" -- engine + game share
         globals (DUNGEON.BI) and modules mix concerns. Split into:
-        ☐ engine/  -- ANSI-art world + pixel-colour collision (image_is_mono/dia,
-          CanMove, CellColorAt, NeighborHasColor); movement/input (TryMove, NormKey$,
+        ◑ engine/  -- created; moved CURSOR BOARD MUSIC JUICE GESTURE STATS DATA
+          PLAYERS. Still to move: ansi/ + DICE3D/, and the engine parts of MENU /
+          CHRONICLE / SAVEGAME / LORDS / SPRITES (deeply tangled). Concerns it owns:
+          ANSI-art world + pixel-colour collision (image_is_mono/dia, CanMove,
+          CellColorAt, NeighborHasColor); movement/input (TryMove, NormKey$,
           IsMoveKey, door-hop); region detection (flood-fill DetectRooms/Doors);
           visibility (fog BFS + raytraced FOV ComputeFOV/CastRay/FovRender); dice
           (GameRoll, pip dice, tumbler, real-dice input); UI (animated ANSI menu +
@@ -15,11 +20,15 @@ Roadmap (future / bigger efforts):
           (Sfx + volumes); persistence (settings + save/load); multiplayer scaffold
           (active-player-as-working-globals, Load/SaveActivePlayer); character/stats
           (3d6 gen, AbilMod, class templates).
-        ☐ game/   -- board art, monster/treasure/spell tables (InitMonsterTables),
-          class win totals, sector geometry, and the Dungeon! rules (DoCombat, kill
-          numbers, secret-key win). This is the swappable layer.
-        ☐ engine exposes hooks the game fills in (room/encounter callbacks, win
-          condition, data tables) -- the chamber event system below is the first user.
+        ◑ game/   -- created; moved SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS + GAME.BI
+          + HOOKS.bas. Owns: board art, monster/treasure/spell tables
+          (InitMonsterTables), class win totals, sector geometry, and the Dungeon!
+          rules (DoCombat, kill numbers, secret-key win) -- combat rules still live
+          in dungeon.bas for now. This is the swappable layer.
+        ✔ DUNGEON.BI split per-declaration into engine/ENGINE.BI + game/GAME.BI.
+        ◑ engine exposes hooks the game fills in -- DONE: Game_WinReached% /
+          Game_WinReady% / Game_OnEnterCell%; 13 more mapped in engine/ENGINE.md
+          (combat resolution, board seeding, HUD/render reads, per-step ticks).
     ☐ DEEP TACTICAL COMBAT screen (party vs. a group of enemies -- see mockup):
         REFERENCE MOCKUP: assets/ansi/ui-fight.xb  (XBIN, editable in text mode -- the
           full screen layout the mockup shows). Supporting art already made:
@@ -42,6 +51,11 @@ Roadmap (future / bigger efforts):
           selection (crosshair over the chosen enemy)
         ☐ Spells (the Dungeon! Spell Cards): Lightning Bolt, Fireball, Heal, ...
         ☐ Persistent scrolling COMBAT LOG (to-hit rolls, damage, effects) -- extend ScrollText
+        ☐ Combat STATS counters -- PLAYER (left) vs MONSTER (right) columns showing
+          # CRITS / # FUMBLES / # MAX DAMAGE / TOTAL DAMAGE.  [requested 2026-07-27]
+          (chronicle already tracks g_crits/g_fumbles for the player; extend to the
+          monster side + a max-damage tally + running total, drawn on the combat
+          panel -- see DrawCombatPanel / DUNGEON! FX_* combat context.)
         ☐ Crit fanfare with narrated consequences ("entrails fly", "slammed prone", bonus
           damage shown: 1d8(+1) = 7 x2 = 14)
         ☐ Enemy + player PORTRAITS (ANSI art per monster / class)
