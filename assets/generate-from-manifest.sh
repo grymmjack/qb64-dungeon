@@ -32,6 +32,10 @@ WANT=("$@")
 
 BOXES="${BOXES:-local,titan,mac,rtx}"
 OGG_ARG="${OGG:+--ogg}"
+# Keep lossless masters under <pack>/masters/ when asked. They are deliberately
+# NOT left beside the pack files: assets/music resolves .wav as the HIGHEST
+# quality rung, so a leftover wav silently outranks the ogg the pack ships.
+[ -n "${KEEPWAV:-}" ] && OGG_ARG="$OGG_ARG --keep-wav"
 DEST="$ASSETS/$SECTION/$PACK"
 mkdir -p "$DEST"
 
@@ -60,6 +64,20 @@ grep -qE '^(sfx|music|narration)/' "$MAN" || { echo "manifest is empty — abort
 # Trim without xargs: the prompts contain apostrophes ("a monster's snarl"),
 # and xargs treats quotes as syntax — it errors out on every such line.
 trim() { local v="$*"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
+
+# Pre-rewritten prompts from reprompt-cache.py. Running the Qwen rewriter inline
+# makes ComfyUI swap between it and the audio model on every job — measured at
+# 75.6 s/asset on an 8 GB card versus ~8 s without. When the cache exists we use
+# it and pass --no-reprompt so the audio pass never loads the LLM at all.
+PROMPTS_JSON="$DEST/prompts.json"
+cached_prompt() {
+    [ -f "$PROMPTS_JSON" ] || return 1
+    python3 -c "
+import json,sys
+try: print(json.load(open(sys.argv[1])).get(sys.argv[2],''))
+except Exception: pass" "$PROMPTS_JSON" "$1"
+}
+[ -f "$PROMPTS_JSON" ] && OGG_ARG="$OGG_ARG --no-reprompt"
 
 want() {
     [ ${#WANT[@]} -eq 0 ] && return 0
@@ -106,6 +124,14 @@ if [ "$SECTION" = narration ]; then
     echo "  voice $VOICE  pitch $PITCH  speed $SPEED  (CPU, no farm)"
     soundmon --narrate-file "$QUEUE.lines" --voice "$VOICE" --pitch "$PITCH" \
              --speed "$SPEED" $OGG_ARG --output-to "$DEST" --create-dirs
+    # narrate.py writes <key>.wav next to <key>.ogg under --keep-wav; this
+    # branch returns before run_box's masters/ move, so do it here. Narration
+    # resolves .ogg first so a stray wav does not break playback, but it doubles
+    # the pack size and ships files nobody asked for.
+    if [ -n "${KEEPWAV:-}" ]; then
+        mkdir -p "$DEST/masters"
+        find "$DEST" -maxdepth 1 -name '*.wav' -exec mv -f {} "$DEST/masters/" \;
+    fi
     echo "▶ done — $(find "$DEST" -maxdepth 1 \( -name '*.ogg' -o -name '*.wav' \) | wc -l) file(s) in $DEST"
     exit 0
 fi
@@ -151,10 +177,28 @@ run_box() {
             # "30-60s loop" -> 60 ; "3s one-shot" -> 3 ; anything else -> pack default
             secs="$(printf '%s' "$length" | grep -oE '[0-9]+' | tail -1)"
             secs="${secs:-${SECONDS_DEF:-60}}"
+            # Stable Audio 3's own system prompt mandates this tail:
+            #   "Genre/Style with instruments ... BPM: X. Length: Y seconds"
+            # Without it the result is technically clean but musically weaker —
+            # identical audio quality, worse composition. Both numbers are
+            # already known here, so there is no reason to omit them.
             local musicprompt="$prompt"
-            [ -n "$bpm" ] && musicprompt="$musicprompt, around $bpm BPM"
             [ -n "$key" ] && musicprompt="$musicprompt, in $key"
-            soundmon "$musicprompt" --music --seconds "$secs" \
+            musicprompt="$musicprompt. BPM: ${bpm:-120}. Length: ${secs} seconds"
+            local cp; cp="$(cached_prompt "$name")"
+            [ -n "$cp" ] && musicprompt="$cp"
+            # Loop-aware post-processing, driven by the manifest's own label.
+            # The model COMPOSES AN ENDING -- a 60s request gets a 60s piece of
+            # music with a decay -- so a track that plays continuously has a
+            # hole at the seam no matter what the endpoints are set to. Leaving
+            # them alone makes it worse, not better (measured: tail -30.4 dB
+            # trimmed vs -66.4 dB untrimmed). --loop crossfades the tail over
+            # the head so the seam is contiguous by construction. Costs 2s.
+            local loopargs=""
+            case "$length" in
+                *loop*) loopargs="--loop" ;;   # "3s one-shot" never matches
+            esac
+            soundmon "$musicprompt" --music --seconds "$secs" $loopargs \
                      --name "$name" --server "$srv" $OGG_ARG \
                      --output-to "$DEST" --no-open >/dev/null 2>&1
         else
@@ -167,16 +211,32 @@ run_box() {
                 ''|*[!0-9.]*) : ;;
                 *) cap="--max-seconds $length" ;;
             esac
-            soundmon "$prompt" ${STYLE:+--style "$STYLE"} --seconds "${SECONDS_DEF:-3}" \
+            # SA3's SFX system prompt: "Always append: Length: X seconds
+            # (integer only, no decimals)."
+            local sfxsecs="${SECONDS_DEF:-3}"
+            local sfxtext="$prompt. Length: ${sfxsecs%.*} seconds"
+            local cp; cp="$(cached_prompt "$name")"
+            [ -n "$cp" ] && sfxtext="$cp"
+            soundmon "$sfxtext" ${STYLE:+--style "$STYLE"} \
+                     --seconds "$sfxsecs" \
                      $cap --name "$name" --server "$srv" $OGG_ARG \
                      --output-to "$DEST" --no-open >/dev/null 2>&1
         fi
         # soundmon names files <name>_<...>_00001_.<ext>; the game wants <name>.<ext>
-        made="$(find "$DEST" -maxdepth 1 \( -name "${name}_*.ogg" -o -name "${name}_*.wav" \) \
+        # Prefer the ogg when both exist (--keep-wav leaves a sibling wav).
+        made="$(find "$DEST" -maxdepth 1 -name "${name}_*.ogg" -printf '%T@ %p\n' \
+                | sort -rn | head -1 | cut -d' ' -f2-)"
+        [ -z "$made" ] && made="$(find "$DEST" -maxdepth 1 -name "${name}_*.wav" \
                 -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)"
         if [ -n "$made" ]; then
             ext="${made##*.}"
             mv -f "$made" "$DEST/${name}.${ext}"
+            if [ -n "${KEEPWAV:-}" ]; then
+                mkdir -p "$DEST/masters"
+                local keep
+                keep="$(find "$DEST" -maxdepth 1 -name "${name}_*.wav" | head -1)"
+                [ -n "$keep" ] && mv -f "$keep" "$DEST/masters/${name}.wav"
+            fi
             find "$DEST" -maxdepth 1 \( -name "${name}_*.ogg" -o -name "${name}_*.wav" \) -delete
             echo "   ✅ ${srv%%:*}  ${name}.${ext}  ($((SECONDS - t0))s)"
             fails=0

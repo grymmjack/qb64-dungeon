@@ -1,0 +1,137 @@
+intro.descent | Torchlight gutters as you cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies the Level Key -- claim it, gather a fortune in gold, and return alive to this entrance. Few ever escape. Let the delving begin.
+win.title | Victory.
+win.subtitle | You are now a Legendary Lord.
+lose.title | You died.
+lose.subtitle | The dungeon claims another soul...
+regular.1.1 | Dust motes drift in the still, cold air.
+regular.1.2 | Your footsteps echo down the empty corridor.
+regular.1.3 | Old torch brackets rust on the damp stone walls.
+regular.1.4 | A faint smell of mildew hangs over the room.
+regular.1.5 | Cobwebs cling to the corners, long abandoned.
+regular.1.6 | Water drips somewhere out of sight, steady and slow.
+regular.1.7 | The floor is littered with cracked flagstones.
+regular.1.8 | A cold draft brushes past you from an unseen gap.
+regular.1.9 | Faded scratches mar the walls -- claw marks, perhaps.
+regular.1.10 | The silence here feels almost watchful.
+regular.2.1 | A rat skitters into the shadows as you enter.
+regular.2.2 | The air grows colder, and thicker.
+regular.2.3 | Bones crunch softly underfoot.
+regular.2.4 | Something has nested here, and recently.
+regular.2.5 | The walls sweat with a greasy damp.
+regular.2.6 | A low, wet dripping echoes from the dark.
+regular.2.7 | Old bloodstains have blackened into the stone.
+regular.2.8 | The room reeks of animal musk.
+regular.2.9 | Broken weapons lie rusting in a heap.
+regular.2.10 | You feel unseen eyes tracking your steps.
+regular.3.1 | A guttering green light seeps from the mossy walls.
+regular.3.2 | The floor is slick with something you would rather not name.
+regular.3.3 | Distant chittering rises and falls in the dark.
+regular.3.4 | Fungus glows faintly on the ceiling above.
+regular.3.5 | The stench of rot makes your eyes water.
+regular.3.6 | Half-eaten remains lie scattered in a corner.
+regular.3.7 | The stone here is warm, as if something breathes beneath.
+regular.3.8 | Your torch sputters in the foul, heavy air.
+regular.3.9 | Scorch marks blacken one entire wall.
+regular.3.10 | A whisper brushes your ear, then is gone.
+regular.4.1 | The temperature drops sharply as you step inside.
+regular.4.2 | Strange sigils are scratched deep into the floor.
+regular.4.3 | The dark here seems to swallow your torchlight.
+regular.4.4 | A cold hand of dread settles on your shoulders.
+regular.4.5 | Shattered cages hang from rusted chains.
+regular.4.6 | The air tastes of copper and old fear.
+regular.4.7 | Something vast shifts in the blackness beyond.
+regular.4.8 | Faint moaning drifts up from cracks in the floor.
+regular.4.9 | Your breath fogs and hangs, unwilling to fade.
+regular.4.10 | The walls are carved with screaming faces.
+regular.5.1 | A red glow pulses faintly deep in the stone.
+regular.5.2 | The floor is scattered with gnawed and splintered bone.
+regular.5.3 | Heat radiates from somewhere far below.
+regular.5.4 | Chains rattle though no wind stirs them.
+regular.5.5 | The shadows here move against the light.
+regular.5.6 | A thick, sweet stench of decay coats your throat.
+regular.5.7 | Ancient runes flare and dim as you pass.
+regular.5.8 | You hear breathing that is not your own.
+regular.5.9 | The ceiling drips a slow, dark ichor.
+regular.5.10 | Something laughs, low and wet, then falls silent.
+regular.6.1 | The very air trembles with a distant roar.
+regular.6.2 | Molten cracks vein the floor with sullen orange.
+regular.6.3 | Twisted statues leer from every corner.
+regular.6.4 | The heat here is a living, pressing thing.
+regular.6.5 | Screams echo up from the depths, then cut off.
+regular.6.6 | Your skin crawls with unseen malice.
+regular.6.7 | The stone floor is worn smooth by countless feet.
+regular.6.8 | A pall of ash hangs heavy in the gloom.
+regular.6.9 | Eyes gleam and vanish at the edge of the light.
+regular.6.10 | The dread here is thick enough to taste.
+regular.7.1 | Reality seems to bend at the edges of your sight.
+regular.7.2 | The walls weep a slow, black tar.
+regular.7.3 | Whispers in no living tongue crowd your mind.
+regular.7.4 | Bones fuse into the very stone of the walls.
+regular.7.5 | The air is thick with the reek of the grave.
+regular.7.6 | Cold fire dances without heat along the floor.
+regular.7.7 | Your shadow lags a heartbeat behind you.
+regular.7.8 | Something enormous breathes in the dark ahead.
+regular.7.9 | The floor is carpeted in centuries of dust and dead.
+regular.7.10 | A distant bell tolls, though none should hang here.
+regular.8.1 | The dark is absolute, and it is watching.
+regular.8.2 | The ground pulses like a slow, vast heartbeat.
+regular.8.3 | Faces press out from the melting walls.
+regular.8.4 | An unbearable weight of ages bears down on you.
+regular.8.5 | The air itself seems to whisper your name.
+regular.8.6 | Rivers of shadow crawl across the floor.
+regular.8.7 | Every instinct screams at you to flee.
+regular.8.8 | The stone is hot and slick as living flesh.
+regular.8.9 | A chorus of the damned moans just out of hearing.
+regular.8.10 | Here, even your torchlight seems afraid.
+regular.9.1 | This is the bottom of the world, and it hungers.
+regular.9.2 | The dark here has weight, and teeth.
+regular.9.3 | The walls breathe. The floor breathes. It all breathes.
+regular.9.4 | A presence vast and ancient turns its gaze upon you.
+regular.9.5 | Reality frays; the void grins through the cracks.
+regular.9.6 | The air is a scream held on the edge of sound.
+regular.9.7 | Every shadow here has known a thousand deaths.
+regular.9.8 | You stand where light has never truly reached.
+regular.9.9 | The deep itself leans close to watch you die.
+regular.9.10 | Turn back, whispers the dark. You will not.
+room.main-gallery | The Main Gallery stretches wide and pillared, its vaulted dark swallowing your torchlight whole. Every path in this dungeon seems to bleed back to here.
+room.armory | Racks that once bristled with spears and blades stand empty and rust-eaten, though a few notched weapons still lie where they fell. Whatever army mustered here marched out long ago -- and never marched back.
+room.the-crypt | Row upon row of stone sarcophagi fill the Crypt, their lids carved with the faces of the long dead. One lid, you notice, has been pushed aside -- from within.
+room.wizs-lab | Shattered alembics and spilled reagents cover the Wizard's Lab, their fumes still curling in impossible colours. A half-finished sigil smoulders on the central table.
+room.wizs-treasure | The Wizard's hoard glitters with more than gold: rings that whisper, tomes bound in strange hide, and a crystal that shows you your own death. Best not to linger on that one.
+room.kitchen | The great hearth of the Kitchen is cold now, but the spit above it still turns -- slow and creaking, though nothing tends it. On it roasts something you refuse to look at closely.
+room.guard-room | The Guard Room is strewn with overturned stools and a card game abandoned mid-hand. The garrison left in a hurry -- or was taken.
+room.store-room | The Store Room is packed with rotted crates and barrels swollen with age, their contents long since turned to mould and worse. Something scuttles behind the sacks.
+room.torture-chamber | The Torture Chamber is a gallery of rusted horrors: racks and irons and things without names, all dark with old use. The screams have long faded, but the walls remember.
+room.queens-annex | The Queen's Annex keeps a faded, poisonous elegance: rotted silk drapes, a cracked vanity, a music box that plays a single warped note when you pass.
+room.queens-treasure | The Queen's Treasure spills across the floor in a river of jewels and pearls, each piece cold as a tomb. Her crown sits atop the pile, still faintly warm.
+room.kings-library | The King's Library rises in tiers of rotting tomes and crumbling scrolls, their knowledge bleeding away into damp. One book lies open on a lectern, its ink still wet.
+room.kings-treasure | The King's Treasure is a dragon's dream: mountains of coin, chalices, crowns and sceptres heaped to the ceiling. All of it his, and all of it cursed.
+chamber.armory | Racks of rusted blades and dented shields line the walls; something moves among the steel.
+chamber.the-crypt | Cold stone caskets brood in the dark, their lids ajar. The air is thick with grave-dust.
+chamber.wizs-lab | Cracked alembics and half-burnt sigils cover the benches; the very air tastes of spent magic.
+chamber.wizs-treasure | Arcane wards flicker over hoarded relics -- and their jealous, unsleeping guardians.
+chamber.kitchen | Rotted haunches hang from black hooks; the cold hearth still reeks of old smoke and worse.
+chamber.guard-room | Overturned stools and a scarred table -- the watch was here, and never truly left.
+chamber.store-room | Toppled crates and split barrels spill their ruin across the floor. Things nest in the dark.
+chamber.torture-chamber | Chains and iron maidens rust in the gloom; the walls remember every scream.
+chamber.queens-annex | Faded tapestries and a shattered mirror -- the Queen's retreat, long since defiled.
+chamber.queens-treasure | The Queen's jewels glint behind a veil of cobwebs, watched by whatever slew her servants.
+chamber.kings-library | Shelves of mouldering tomes rise into shadow; something turns the pages when you look away.
+chamber.kings-treasure | The King's hoard gleams beyond the threshold -- and so do the eyes that guard it.
+curio.chest | A CURIO CHEST sits half-buried in the rubble!
+curio.fountain | A still FOUNTAIN glimmers with dark, waiting water.
+curio.shrine | A moss-grown SHRINE to some forgotten god broods in the gloom.
+curio.gamble | A skull-carved ALTAR hums -- bone dice sit frozen mid-throw upon it.
+curio.peddler | A HOODED PEDDLER melts out of the shadows, wares held open.
+curio.idol | A leering IDOL squats in an alcove, one eye a fat, winking ruby.
+curio.corpse | A long-dead ADVENTURER slumps against the wall, pack still intact.
+curio.mushroom | A fairy-ring of luminous MUSHROOMS pulses with soft light.
+curio.obelisk | A rune-carved OBELISK thrums with old, buried power.
+curio.cache | A half-buried WEAPON CACHE glints with oiled, unrusted steel.
+curio.mimic | A CURIO CHEST rests here, lid shut, half-sunk in the dust.
+combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself.
+combat.reface | The creature still stands between you and your goal. You must face it.
+combat.slay | Your foe crumples and falls still. The way is clear.
+combat.flee | You break away and slip back into the shadows, the fight unfinished.
+combat.hurt | Pain sears through you as the blow lands. Blood runs.
+combat.downed | Your strength fails you. The world tilts, darkens -- and you fall.
