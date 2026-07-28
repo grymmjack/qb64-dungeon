@@ -84,7 +84,7 @@ SFX_ADD=""; MUSIC_ADD=""; SFX_SECONDS=3; MUSIC_SECONDS=60
 MUSIC_BPM=""; MUSIC_KEY=""; VOICE=bm_george; PITCH=-3; SPEED=0.92
 # narration playback fade (seconds) -- the game ramps every line in from silence at the
 # start and out at the end, masking the record key's click. Defaults match the engine.
-NARR_FADEIN=0.75; NARR_FADEOUT=0.5
+NARR_FADEIN=0.25; NARR_FADEOUT=0.5
 if [ -n "$THEME_FILE" ]; then
     . "$THEME_FILE"
     echo "▶ theme: $THEME_NAME   (matched \"$PHRASE\")"

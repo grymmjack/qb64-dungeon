@@ -90,7 +90,9 @@ DIM SHARED opt_narrfreq AS INTEGER
 DIM SHARED opt_artpack AS STRING
 DIM SHARED ARTPACKS(0 TO 32) AS STRING, ARTPACK_N AS INTEGER
 DIM SHARED narr_handle AS LONG                    ' the currently-playing narration line (one at a time)
-DIM SHARED narr_fadein AS SINGLE                  ' narration fade-IN seconds (masks the recording's key-click at the start)
+DIM SHARED narr_start AS DOUBLE                   ' TIMER when the current line began (envelope is wall-clock, not playhead)
+DIM SHARED narr_len AS DOUBLE                     ' _SNDLEN of the current line, read once (0 = unknown -> no fade-out)
+DIM SHARED narr_fadein AS SINGLE                  ' narration fade-IN seconds (a SHARP ramp that masks the record key-click)
 DIM SHARED narr_fadeout AS SINGLE                 ' narration fade-OUT seconds (masks the click at the end)
 DIM SHARED narr_conf_pack AS STRING               ' which pack's pack.conf is loaded into narr_fade* (cache key)
 DIM SHARED narr_conf_loaded AS INTEGER            ' -1 once the fade envelope has been read at least once
@@ -165,8 +167,8 @@ DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
 DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
 DIM SHARED player_dmgdie AS INTEGER, player_dmgbonus AS INTEGER  ' weapon die + STR/INT damage mod
 ' --- music + sound-effect subsystem ---
-CONST MUSIC_FADE_SEC = .8                         ' music crossfade duration in seconds (hardcoded per design)
-CONST NARR_FADE_IN_DEF = .75                      ' default narration fade-in seconds (pack.conf FADEIN= overrides)
+CONST MUSIC_FADE_SEC = 2.5                        ' music fade/crossfade duration, seconds (hardcoded; fade-in from silence AND track-to-track)
+CONST NARR_FADE_IN_DEF = .25                      ' default narration fade-in seconds -- a SHARP ramp (pack.conf FADEIN= overrides)
 CONST NARR_FADE_OUT_DEF = .5                      ' default narration fade-out seconds (pack.conf FADEOUT= overrides)
 DIM SHARED music_handle AS LONG                  ' currently-looping menu/level music (for live volume)
 DIM SHARED music_fadeout AS LONG                 ' the PREVIOUS track, crossfading out under a transition (0 = none)

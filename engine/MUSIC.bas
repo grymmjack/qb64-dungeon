@@ -106,20 +106,18 @@ END SUB
 ' The ramp itself is advanced by AudioTick (called each frame) over MUSIC_FADE_SEC seconds;
 ' this SUB only sets it up and returns immediately, so the game never blocks on a transition.
 SUB BeginTrack (path AS STRING, doloop AS INTEGER)
-    DIM hadprev AS INTEGER
     IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout   ' retire the last fade-out track
-    music_fadeout = 0
-    hadprev = (music_handle > 0)
-    music_fadeout = music_handle                    ' the current track becomes the fade-OUT track (0 if silent)
+    music_fadeout = music_handle                    ' the current track (if any) becomes the fade-OUT track
     music_handle = 0
     IF LEN(path) > 0 THEN
         music_handle = _SNDOPEN(path)
         IF music_handle > 0 THEN
-            IF hadprev THEN _SNDVOL music_handle, 0 ELSE _SNDVOL music_handle, opt_musicvol / 10
-            IF doloop THEN _SNDLOOP music_handle ELSE _SNDPLAY music_handle
+            _SNDVOL music_handle, 0                  ' ALWAYS start silent -> AudioTick rings it up over MUSIC_FADE_SEC:
+            IF doloop THEN _SNDLOOP music_handle ELSE _SNDPLAY music_handle   ' a crossfade if a track fades out under it, else a plain fade-in from silence
         END IF
     END IF
-    IF hadprev THEN music_fade_start = TIMER: music_fading = -1 ELSE music_fading = 0
+    music_fade_start = TIMER                         ' the music channel ALWAYS arrives by fading (never a hard cut-in)
+    music_fading = -1
 END SUB
 
 ' Per-frame audio ramp: advances the music crossfade AND the narration in/out envelope.
@@ -129,7 +127,7 @@ END SUB
 ' level by wall-clock the moment any loop calls it.
 SUB AudioTick
     DIM tv AS SINGLE, el AS DOUBLE, frac AS SINGLE
-    DIM npos AS DOUBLE, nlen AS DOUBLE, g AS SINGLE, g2 AS SINGLE
+    DIM npos AS DOUBLE, g AS SINGLE, g2 AS SINGLE
     ' --- music crossfade ---
     IF music_fading THEN
         tv = opt_musicvol / 10
@@ -147,22 +145,22 @@ SUB AudioTick
         END IF
     END IF
     ' --- narration fade in/out (attenuates the record-click at both ends of a spoken line) ---
+    ' WALL-CLOCK envelope: _SNDGETPOS reports 0 until the buffer starts, so a playhead-based
+    ' ramp stayed silent then snapped in. Timing off narr_start (set at _SNDPLAY) ramps smoothly.
     IF narr_handle > 0 THEN
-        IF _SNDPLAYING(narr_handle) THEN
-            npos = _SNDGETPOS(narr_handle)              ' real playhead -> the envelope self-corrects
-            nlen = _SNDLEN(narr_handle)
-            g = 1
-            IF narr_fadein > 0 THEN IF npos < narr_fadein THEN g = npos / narr_fadein
-            IF narr_fadeout > 0 AND nlen > 0 THEN         ' both pure reads -> AND is safe here
-                IF npos > nlen - narr_fadeout THEN
-                    g2 = (nlen - npos) / narr_fadeout
-                    IF g2 < g THEN g = g2               ' the tighter of in/out wins near a short clip's middle
-                END IF
+        npos = TIMER - narr_start                       ' seconds since this line began (npos reused as elapsed)
+        IF npos < 0 THEN npos = npos + 86400#            ' TIMER midnight wrap
+        g = 1
+        IF narr_fadein > 0 THEN IF npos < narr_fadein THEN g = npos / narr_fadein
+        IF narr_fadeout > 0 AND narr_len > 0 THEN         ' both pure reads -> AND is safe here
+            IF npos > narr_len - narr_fadeout THEN
+                g2 = (narr_len - npos) / narr_fadeout
+                IF g2 < g THEN g = g2                   ' the tighter of in/out wins on a short clip
             END IF
-            IF g < 0 THEN g = 0
-            IF g > 1 THEN g = 1
-            _SNDVOL narr_handle, (opt_voicevol / 10) * g
         END IF
+        IF g < 0 THEN g = 0
+        IF g > 1 THEN g = 1
+        _SNDVOL narr_handle, (opt_voicevol / 10) * g
     END IF
 END SUB
 
@@ -428,9 +426,12 @@ SUB Narrate (nkey AS STRING)
     narr_handle = _SNDOPEN(p)
     IF narr_handle > 0 THEN
         ' start SILENT when a fade-in is set so AudioTick can ramp it up from 0 (masking the
-        ' record-click); AudioTick reads the real playhead, so the level self-corrects each frame.
+        ' record-click). The envelope is WALL-CLOCK (narr_start/narr_len), NOT the playhead --
+        ' _SNDGETPOS reads 0 until the buffer actually starts, which made the fade snap in.
         IF narr_fadein > 0 THEN _SNDVOL narr_handle, 0 ELSE _SNDVOL narr_handle, opt_voicevol / 10
         _SNDPLAY narr_handle
+        narr_start = TIMER
+        narr_len = _SNDLEN(narr_handle)             ' read once; 0 if the format doesn't report length (-> no fade-out)
     END IF
 END SUB
 

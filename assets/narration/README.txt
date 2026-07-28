@@ -63,7 +63,7 @@ that already holds VOICE=/PITCH=/SPEED= for the generator). They set a fade the
 engine applies at PLAYBACK to every line in that pack, to soften the recording's
 start/end -- e.g. the click of the record key being pressed/released:
 
-  FADEIN=0.75     seconds to ramp a line up from silence at its START  (default 0.75)
+  FADEIN=0.25     seconds to ramp a line up from silence at its START  (default 0.25)
   FADEOUT=0.5     seconds to ramp a line down to silence at its END    (default 0.5)
 
 Both are in SECONDS and may be fractional. Omit a key (or the whole file) and the
