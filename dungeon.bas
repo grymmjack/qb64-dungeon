@@ -87,16 +87,16 @@ IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
-opt_musicvol = 5: opt_sfxvol = 7: opt_voicevol = 9   ' 0..10 volume sliders
+opt_musicvol = 4: opt_sfxvol = 4: opt_voicevol = 10  ' 0..10 volume sliders (maintainer's mix)
 opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/sfx/); "" = flat main dir
-opt_musicpack = ""                                   ' default music = flat main dir
-opt_narration = TRUE: opt_narrationpack = "soundmon-darkscary"   ' default: narration ON, dark/scary voice pack
+opt_musicpack = "soundmon-orchestral"                ' default music pack (assets/music/); "" = flat main dir
+opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
 opt_narrfreq = NARR_COMBAT                           ' default: narrate everything (flavor + events + combat)
 opt_artpack = ""                                     ' default pixel-art = flat main dir
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
-opt_flexstats = 0                             ' character build: 0 OFF (rolled) / 1 Assign roll / 2 Point distribution
+opt_flexstats = 2                             ' character build: 0 OFF (rolled) / 1 Assign roll / 2 Point distribution
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 opt_movedice = TRUE                           ' default boardgame move: roll 1d6 (FALSE = DUNGEON! "up to 5, your choice")
 opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
@@ -123,7 +123,7 @@ opt_dice3d_set = 6: opt_mon_dice3d_set = 8    ' default 3D dice sets (overridden
 opt_dicefont = 4                              ' default dice numeral font index (overridden by save)
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
-opt_solomode = 0: opt_solomins = 30           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 30 min
+opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 25 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
 BOARD_ANSI = _READFILE$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
