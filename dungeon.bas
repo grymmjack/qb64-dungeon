@@ -2041,7 +2041,8 @@ END SUB
 '$INCLUDE:'engine/BOARD.bas'
 '$INCLUDE:'engine/CURSOR.bas'
 '$INCLUDE:'include/MENU.bas'
-'$INCLUDE:'include/LORDS.bas'
+'$INCLUDE:'engine/TEXT.bas'     ' reusable string/format utils (NthField$/PadR$/MMSS$)
+'$INCLUDE:'game/LORDS.bas'      ' hall of fame + LOAD A CHARACTER + settings persistence
 '$INCLUDE:'engine/PLAYERS.bas'
 '$INCLUDE:'game/EFFECTS.bas'
 '$INCLUDE:'game/CURIO.bas'

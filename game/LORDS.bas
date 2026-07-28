@@ -36,19 +36,7 @@ END SUB
 
 
 ' Return the idx-th (1-based) `delim`-separated field of s ("" if out of range).
-FUNCTION NthField$ (s AS STRING, delim AS STRING, idx AS INTEGER)
-    DIM cur AS STRING, q AS INTEGER, i AS INTEGER
-    cur = s: i = 1
-    DO
-        q = INSTR(cur, delim)
-        IF q = 0 THEN
-            IF i = idx THEN NthField$ = cur
-            EXIT FUNCTION
-        END IF
-        IF i = idx THEN NthField$ = LEFT$(cur, q - 1): EXIT FUNCTION
-        cur = MID$(cur, q + LEN(delim)): i = i + 1
-    LOOP
-END FUNCTION
+' NthField$ moved to engine/TEXT.bas (reusable; resolved globally).
 
 
 ' Load the hall of fame, sorted by gold (desc). Fills the base arrays and parks
@@ -106,17 +94,7 @@ END FUNCTION
 
 
 ' Pad a string on the right to width w (for simple table columns).
-FUNCTION PadR$ (s AS STRING, w AS INTEGER)
-    ' fixed width w; when truncating a too-long value keep a trailing space so it
-    ' never butts up against the next column
-    IF LEN(s) >= w THEN PadR$ = LEFT$(s, w - 1) + " " ELSE PadR$ = s + SPACE$(w - LEN(s))
-END FUNCTION
-
-
-' Seconds -> mm:ss.
-FUNCTION MMSS$ (secs AS LONG)
-    MMSS$ = _TRIM$(STR$(secs \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(secs MOD 60)), 2)
-END FUNCTION
+' PadR$ and MMSS$ moved to engine/TEXT.bas (reusable; resolved globally).
 
 
 ' Class name -> CLASSES index (1..4), default HERO.
