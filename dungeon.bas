@@ -650,7 +650,8 @@ END FUNCTION
 '$INCLUDE:'game/PLAY.bas'      ' loot drops + loiter/danger + wander + chamber encounters (was in dungeon.bas)
 '$INCLUDE:'engine/BOARD.bas'
 '$INCLUDE:'engine/CURSOR.bas'
-'$INCLUDE:'include/MENU.bas'
+'$INCLUDE:'engine/UI.bas'       ' engine presentation: fades + UI primitives + sound + dice subsystem
+'$INCLUDE:'game/MENU.bas'       ' game screens: class-select, char-gen, intro, menu/settings, HUD
 '$INCLUDE:'engine/TEXT.bas'     ' reusable string/format utils (NthField$/PadR$/MMSS$)
 '$INCLUDE:'game/LORDS.bas'      ' hall of fame + LOAD A CHARACTER + settings persistence
 '$INCLUDE:'engine/PLAYERS.bas'
