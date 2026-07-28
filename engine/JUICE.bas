@@ -8,7 +8,7 @@
 '  * DrawWounds -- a persistent near-death overlay: a soft dark VIGNETTE that
 '    closes in from the edges (and PULSES near death) plus dried BLOOD grime
 '    spattered round the frame, both intensifying as HP drops.
-'  * DrawPoison -- a persistent POISON overlay while poison_turns > 0: sickly-green
+'  * DrawPoison -- a persistent POISON overlay at a given intensity (0..1): sickly-green
 '    veins/branches creeping in from the rim (pre-baked once, like the blood grime),
 '    slime pools, and ooze drips, throbbing with a slow queasy pulse.
 '
@@ -122,16 +122,16 @@ SUB AddVein (x1 AS SINGLE, y1 AS SINGLE, x2 AS SINGLE, y2 AS SINGLE, gen AS INTE
     VEIN_GEN(VEIN_N) = gen
 END SUB
 
-' The persistent POISON overlay -- drawn every frame while poison_turns > 0, right
+' The persistent POISON overlay -- drawn every frame at `intensity` (0..1) > 0, right
 ' after DrawWounds (board -> blood -> poison -> text). A sickly-green rim, veins
 ' creeping inward, slime pools, and ooze drips, all throbbing with a slow queasy pulse
 ' that deepens the longer the poison lingers. Sits UNDER the labels/HUD like the blood.
-SUB DrawPoison
+SUB DrawPoison (intensity AS SINGLE)
     IF NOT opt_juice THEN EXIT SUB
-    IF poison_turns <= 0 THEN EXIT SUB
+    IF intensity <= 0 THEN EXIT SUB                    ' 0 = not poisoned (game supplies the level via Game_PoisonLevel!)
     DIM AS INTEGER i, aV, aSl, aO, aE, aW
     DIM AS SINGLE p, pulse
-    p = poison_turns / 8: IF p > 1 THEN p = 1
+    p = intensity: IF p > 1 THEN p = 1
     IF p < 0.4 THEN p = 0.4                            ' always clearly sick while poisoned
     pulse = 0.6 + 0.4 * ((SIN(TIMER * 2.1) + 1) / 2)   ' slow nauseous throb
     _DEST CANVAS

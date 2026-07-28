@@ -85,3 +85,16 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
         Game_OnEnterCell% = OUT_WIN
     END IF
 END FUNCTION
+
+' Game hook -- the POISON overlay intensity (0 = none .. 1 = full), derived from the
+' DUNGEON! poison-dart timer. The engine's DrawPoison takes this as a pure parameter, so
+' engine/JUICE.bas names no game state (clears the JUICE<-poison boundary-debt line).
+FUNCTION Game_PoisonLevel!
+    DIM lvl AS SINGLE
+    lvl = 0
+    IF poison_turns > 0 THEN
+        lvl = poison_turns / 8
+        IF lvl > 1 THEN lvl = 1
+    END IF
+    Game_PoisonLevel! = lvl
+END FUNCTION

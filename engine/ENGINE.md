@@ -65,6 +65,7 @@ the rest are still inlined in the play loop / renderers and get lifted in later 
 | 1 | `Game_WinReached%()` — win predicate | ✅ done | play-loop win check |
 | 2 | `Game_OnEnterCell%(cx,cy)` — movement→consequence (encounter/loot/heal/win) | ✅ done | `dungeon.bas` play loop |
 | — | `Game_WinReady%()` — shared "gold+key" sub-predicate (HUD hint + #1) | ✅ done | 2 copies (loop + HUD) |
+| — | `Game_PoisonLevel!()` — poison overlay intensity 0..1 (JUICE decouple) | ✅ done | `DrawPoison` read of `poison_turns` |
 | 3 | `Game_Play%()` / `Game_ShowIntro` / `Game_ShowEnd(win)` — state-machine bodies | planned | `dungeon.bas` state machine |
 | 4 | `Game_RunOver%()` — lose/forfeit predicate (`player_out`/`solo_result`) | planned | play loop |
 | 5 | `Game_HUDText$()` / `Game_DrawHUDExtra` — HUD content injection | planned | `DrawHUD` (MENU.bas) |
@@ -88,6 +89,8 @@ Engine-side code that still names game symbols directly. Each line is a future h
 
 **Cleared:**
 - ~~JUICE ← player HP~~ — `player_hp/maxhp` moved into ENGINE.BI (engine→engine) in split B.
+- ~~JUICE ← poison~~ — `DrawPoison` takes a pure `intensity` (0..1) param; the game supplies it
+  via the `Game_PoisonLevel!()` hook. `engine/JUICE.bas` now names no game symbol.
 - ~~DATA ← loaders~~ — `Load*` moved to `game/LOADERS.bas`; `engine/DATA.bas` is game-free.
 - ~~SAVE plumbing~~ — `engine/SAVEIO.bas` (game-free) + `game/SAVEGAME.bas` (payload).
 - ~~CHRONICLE md~~ — reusable md renderer lifted to `engine/MARKDOWN.bas`.
@@ -100,7 +103,6 @@ Engine-side code that still names game symbols directly. Each line is a future h
 
 | Debt | Where (engine side) | Reads game symbol | Fix |
 |------|--------------------|-------------------|-----|
-| JUICE ← poison | `engine/JUICE.bas` `DrawPoison` | `poison_turns` | pass an intensity 0..1 param |
 | BOARD ← rooms | `engine/BOARD.bas` `DrawTombstones`/`DrawChamberGraves`/`render_room_labels` | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
 | BOARD debug menu | `engine/BOARD.bas` `DebugTestMenu` | calls `WanderEncounter`/`DoCurio`/`SpringTrap`/`LoiterTick` | a `Game_DebugSpawn` hook |
 | region detect → game | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
