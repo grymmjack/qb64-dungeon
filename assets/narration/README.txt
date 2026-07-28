@@ -65,10 +65,16 @@ start/end -- e.g. the click of the record key being pressed/released:
 
   FADEIN=0.25     seconds to ramp a line up from silence at its START  (default 0.25)
   FADEOUT=0.5     seconds to ramp a line down to silence at its END    (default 0.5)
+  FADECURVE=0.5   SHAPE of the ramp -- <1 = sharp (fast rise, kills the click but keeps
+                  the first word), 1 = linear (sounds abrupt on speech), >1 = gentle/slow
+                  onset.  (default 0.5)
 
-Both are in SECONDS and may be fractional. Omit a key (or the whole file) and the
-defaults above apply -- so existing packs already fade without any edit. Set
-FADEIN=0 / FADEOUT=0 to disable a side. The flat (main) folder uses a pack.conf
-here in  assets/narration/  if you add one, else the defaults. The fade is driven
-per-frame off the clip's real playhead, so it needs no per-file metadata -- just
-these two numbers per pack.
+FADEIN/FADEOUT are in SECONDS and may be fractional. Omit a key (or the whole file)
+and the defaults above apply -- so existing packs already fade without any edit. Set
+FADEIN=0 / FADEOUT=0 to disable a side. FADECURVE tunes how the fade FEELS without
+changing its length: a linear ramp sounds like a hard cut on speech (the ear is
+logarithmic), so the default 0.5 gives a crisp, natural fade-in; raise it toward 2-3
+for a slow swell, lower it toward 0.2 for an almost-instant-but-click-free start. The
+flat (main) folder uses a pack.conf here in  assets/narration/  if you add one, else
+the defaults. The envelope is driven per-frame off wall-clock time, so it needs no
+per-file metadata -- just these numbers per pack.

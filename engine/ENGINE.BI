@@ -94,6 +94,7 @@ DIM SHARED narr_start AS DOUBLE                   ' TIMER when the current line 
 DIM SHARED narr_len AS DOUBLE                     ' _SNDLEN of the current line, read once (0 = unknown -> no fade-out)
 DIM SHARED narr_fadein AS SINGLE                  ' narration fade-IN seconds (a SHARP ramp that masks the record key-click)
 DIM SHARED narr_fadeout AS SINGLE                 ' narration fade-OUT seconds (masks the click at the end)
+DIM SHARED narr_curve AS SINGLE                   ' fade SHAPE exponent applied to the envelope (pack.conf FADECURVE=; <1 sharp, 1 linear, >1 gentle)
 DIM SHARED narr_conf_pack AS STRING               ' which pack's pack.conf is loaded into narr_fade* (cache key)
 DIM SHARED narr_conf_loaded AS INTEGER            ' -1 once the fade envelope has been read at least once
 DIM SHARED music_cue_active AS INTEGER            ' a non-level cue is playing over the level music
@@ -170,6 +171,7 @@ DIM SHARED player_dmgdie AS INTEGER, player_dmgbonus AS INTEGER  ' weapon die + 
 CONST MUSIC_FADE_SEC = 2.5                        ' music fade/crossfade duration, seconds (hardcoded; fade-in from silence AND track-to-track)
 CONST NARR_FADE_IN_DEF = .25                      ' default narration fade-in seconds -- a SHARP ramp (pack.conf FADEIN= overrides)
 CONST NARR_FADE_OUT_DEF = .5                      ' default narration fade-out seconds (pack.conf FADEOUT= overrides)
+CONST NARR_FADE_CURVE_DEF = .5                    ' default fade SHAPE exponent: <1 sharp/fast rise, 1 linear, >1 gentle (pack.conf FADECURVE=)
 DIM SHARED music_handle AS LONG                  ' currently-looping menu/level music (for live volume)
 DIM SHARED music_fadeout AS LONG                 ' the PREVIOUS track, crossfading out under a transition (0 = none)
 DIM SHARED music_fade_start AS DOUBLE            ' TIMER when the current crossfade began

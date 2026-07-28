@@ -160,6 +160,7 @@ SUB AudioTick
         END IF
         IF g < 0 THEN g = 0
         IF g > 1 THEN g = 1
+        IF g > 0 AND g < 1 THEN g = g ^ narr_curve   ' SHAPE the ramp (linear sounds abrupt on speech): <1 sharp, >1 gentle
         _SNDVOL narr_handle, (opt_voicevol / 10) * g
     END IF
 END SUB
@@ -173,11 +174,15 @@ SUB LoadNarrConf
     narr_conf_loaded = -1
     narr_fadein = NARR_FADE_IN_DEF
     narr_fadeout = NARR_FADE_OUT_DEF
+    narr_curve = NARR_FADE_CURVE_DEF
     IF LEN(opt_narrationpack) > 0 THEN cf = "assets/narration/" + opt_narrationpack + "/pack.conf" ELSE cf = "assets/narration/pack.conf"
     IF NOT _FILEEXISTS(cf) THEN EXIT SUB
     raw = UCASE$(_READFILE$(cf))
     narr_fadein = ConfNum(raw, "FADEIN", NARR_FADE_IN_DEF)
     narr_fadeout = ConfNum(raw, "FADEOUT", NARR_FADE_OUT_DEF)
+    narr_curve = ConfNum(raw, "FADECURVE", NARR_FADE_CURVE_DEF)
+    IF narr_curve < .05 THEN narr_curve = .05       ' clamp to a sane exponent range (avoid 0/negative powers)
+    IF narr_curve > 8 THEN narr_curve = 8
 END SUB
 
 ' Read `<kname>=<number>` (seconds) out of a pack.conf blob; returns dflt if absent.
