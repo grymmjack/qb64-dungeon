@@ -298,17 +298,19 @@ Environment specifics that dictate this approach:
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
   TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
-- **`engine/` / `game/` / `include/`** — the module bodies `'$INCLUDE`'d by `dungeon.bas`, being
-  sorted into a reusable **`engine/`** (`ENGINE.BI` header + `BOARD` / `CURSOR` / `MUSIC` / `JUICE` /
-  `GESTURE` / `STATS` / `DATA` (game-free data-file reader) / `PLAYERS` / `SAVEIO` (save plumbing) /
-  `MARKDOWN` (md→text renderer) / `TEXT` (string utils)), a swappable **`game/`** (`GAME.BI` header
-  + `HOOKS` / `LOADERS` (the `Load*` tables) / `SECTOR` / `SOLO` / `FLAVOR` / `CTEXT` / `CURIO` /
-  `EFFECTS` / `SAVEGAME` (payload) / `CHRONICLE` (journal) / `LORDS` (hall of fame + settings)), and
-  the not-yet-split **`include/`** (`MENU` — deeply tangled; `SPRITES` — mixed art-pack engine +
-  game entity sprites; `DICE3D_GAME`). The **vendored** `include/ansi/` ANSI renderer + `include/
-  DICE3D/` are logically engine but still under `include/`. `Toolbox64` / `QB64_GJ_LIB` submodules
-  are kept for reference; **not** compiled. **[engine/ENGINE.md](engine/ENGINE.md) is the authority**
-  (layout, the `Game_*` hook contract, and the boundary-debt ledger).
+- **`engine/` / `game/` / `include/`** — the module bodies `'$INCLUDE`'d by `dungeon.bas`, sorted
+  into a reusable **`engine/`** (`ENGINE.BI` header + `BOARD` / `CURSOR` / `MUSIC` / `JUICE` /
+  `GESTURE` / `STATS` / `DATA` (game-free reader) / `PLAYERS` / `UI` (fades + UI primitives + sound +
+  the dice subsystem) / `ARTPACK` (pixel-art load/fit/pack) / `SAVEIO` (save plumbing) / `MARKDOWN`
+  (md→text renderer) / `TEXT` (string utils)), a swappable **`game/`** (`GAME.BI` header + `HOOKS` /
+  `LOADERS` / `COMBAT` (combat/treasure) / `PLAY` (drops/loiter/encounters) / `MENU` (screens +
+  char-gen + HUD) / `SPRITES` (entity→sprite + manifests) / `SECTOR` / `SOLO` / `FLAVOR` / `CTEXT` /
+  `CURIO` / `EFFECTS` / `SAVEGAME` / `CHRONICLE` / `LORDS`). `dungeon.bas` is now a thin assembly
+  (setup + state machine + `PlayGame` + the `$INCLUDE` block). Only the **vendored** `include/ansi/`
+  + `include/DICE3D/` and the small `include/DICE3D_GAME` dice-glue remain under `include/`.
+  `Toolbox64` / `QB64_GJ_LIB` submodules are kept for reference; **not** compiled.
+  **[engine/ENGINE.md](engine/ENGINE.md) is the authority** (layout, the `Game_*` hook contract, and
+  the boundary-debt ledger).
 - **`assets/ansi/`** — the game's actual graphics: `.ans`/`.icy`/`.xb` text-mode art,
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.

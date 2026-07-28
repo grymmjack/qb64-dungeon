@@ -16,12 +16,14 @@ map of that boundary and the ledger of work remaining to make it real.
 ## Layout
 
 ```
-dungeon.bas          the assembly + state machine + play loop + (still) combat rules
+dungeon.bas          thin assembly: screen/CLI setup + state machine + PlayGame + $INCLUDE block
 engine/
   ENGINE.BI          reusable globals/types/consts (loaded FIRST)
   ENGINE.md          this file
   ansi/  DICE3D/      vendored ANSI renderer + 3D dice (logically engine; still under include/)
   BOARD CURSOR MUSIC JUICE GESTURE STATS DATA PLAYERS   .bas modules
+  UI                 presentation: fades + UI primitives + sound dispatcher + dice subsystem
+  ARTPACK            pixel-art layer: load/cache/fit sprites + art-pack resolution
   SAVEIO             save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
   MARKDOWN           markdown -> text-mode renderer (was inside CHRONICLE)
   TEXT               reusable string/format utils (PadR$/NthField$/MMSS$)
@@ -29,11 +31,12 @@ game/
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
   LOADERS.bas        game data-table loaders (Load*), moved out of engine/DATA.bas
-  SAVEGAME CHRONICLE LORDS   .bas  (save payload / per-run journal / hall of fame)
+  COMBAT PLAY        the combat/treasure system + play-loop support (drops/loiter/encounters)
+  MENU               game screens: class-select, char-gen, intro, menu/settings, HUD
+  SPRITES            entity->sprite mapping + popups + manifests
+  SAVEGAME CHRONICLE LORDS   .bas  (save payload / per-run journal / hall of fame + settings)
   SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS   .bas modules
-include/             not-yet-split: MENU (deeply tangled -- widget core vs game data),
-                     SPRITES (mixed: art-pack engine + game entity sprites + manifests),
-                     DICE3D_GAME, plus the vendored ansi/ + DICE3D/ dirs
+include/             not-yet-split: DICE3D_GAME (dice glue) + the vendored ansi/ + DICE3D/ dirs
 ```
 
 Header include order (top of `dungeon.bas`): **`engine/ENGINE.BI` then `game/GAME.BI`** — engine
@@ -83,23 +86,29 @@ The two indispensable ones (#1, #2) are done — they were the tightest and most
 Engine-side code that still names game symbols directly. Each line is a future hook/refactor.
 "Cleared" = the leak is gone. Until all are cleared, `engine/` cannot be lifted out standalone.
 
+**Cleared:**
+- ~~JUICE ← player HP~~ — `player_hp/maxhp` moved into ENGINE.BI (engine→engine) in split B.
+- ~~DATA ← loaders~~ — `Load*` moved to `game/LOADERS.bas`; `engine/DATA.bas` is game-free.
+- ~~SAVE plumbing~~ — `engine/SAVEIO.bas` (game-free) + `game/SAVEGAME.bas` (payload).
+- ~~CHRONICLE md~~ — reusable md renderer lifted to `engine/MARKDOWN.bas`.
+- ~~PadR$/utils~~ — moved to `engine/TEXT.bas` (engine no longer reaches into a game file).
+- ~~SPRITES~~ — split `engine/ARTPACK.bas` (game-free) vs `game/SPRITES.bas` (entity sprites).
+- ~~combat rules in `dungeon.bas`~~ — extracted to `game/COMBAT.bas` + `game/PLAY.bas`.
+- ~~MENU presentation~~ — the fades/UI/sound/dice runtime lifted to `engine/UI.bas` (game-free).
+
+**Remaining** (each needs a render/visual play-test, so parked for the user):
+
 | Debt | Where (engine side) | Reads game symbol | Fix |
 |------|--------------------|-------------------|-----|
-| ~~JUICE ← player HP~~ | `engine/JUICE.bas` | `player_hp/maxhp` | **cleared** in split B — moved into ENGINE.BI (now engine→engine) |
 | JUICE ← poison | `engine/JUICE.bas` `DrawPoison` | `poison_turns` | pass an intensity 0..1 param |
-| flavor/effects ← context | `game/*` already | `FX_*` | (already game→game after the move; keep in GAME.BI) |
 | BOARD ← rooms | `engine/BOARD.bas` `DrawTombstones`/`DrawChamberGraves`/`render_room_labels` | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
-| region detect → game data | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
-| ~~DATA ← loaders~~ | `engine/DATA.bas` `Load*` wrappers | monster/treasure/trap tables | **cleared** — moved to `game/LOADERS.bas`; `engine/DATA.bas` is now game-free |
-| ~~SAVE plumbing~~ | old `include/SAVEGAME.bas` | mixed IO + payload | **cleared** — `engine/SAVEIO.bas` (game-free) + `game/SAVEGAME.bas` (payload) |
-| ~~CHRONICLE md~~ | old `include/CHRONICLE.bas` | md renderer buried in game journal | **cleared** — reusable md renderer lifted to `engine/MARKDOWN.bas` |
-| ~~PadR$/utils in a game file~~ | old `include/LORDS.bas` | engine callers reached into it | **cleared** — moved to `engine/TEXT.bas` |
+| BOARD debug menu | `engine/BOARD.bas` `DebugTestMenu` | calls `WanderEncounter`/`DoCurio`/`SpringTrap`/`LoiterTick` | a `Game_DebugSpawn` hook |
+| region detect → game | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
+| CURSOR ← rooms | `engine/CURSOR.bas` `DrawEntities` | `ROOMS` (monster/body/loot glyphs) | hook #6 `Game_CellMarker%` |
 | PLAYERS ← inventory | `engine/PLAYERS.bas` | `PLAYER` game fields | game-defined player-state blob |
-| JUICE ← poison | `engine/JUICE.bas` `DrawPoison` | `poison_turns` | pass an intensity 0..1 param |
-| BOARD ← rooms | `engine/BOARD.bas` tombstones/graves/labels | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
-| SPRITES mixed (include/) | art-pack engine tangled with entity sprites | `MON_NAME`/`TRE_NAME`/`SECTORS`/`CLASSES` | split `engine/ARTPACK` vs `game/SPRITES` |
-| MENU tangled (include/) | `RunMenu`/`RunSettings`/`DrawHUD`/`ShowEnd` | class/inventory/ruleset opts | widget core + game-supplied item/option/HUD lists |
-| SETTINGS schema | `game/LORDS.bas` `SaveSettings`/`LoadSettings` | enumerates game `opt_*` + solo | game-injected save schema |
+| MENU widget cores | `game/MENU.bas` `RunMenu`/`RunSettings` | still fuse a generic widget with game option/action lists | widget core (engine) + game-supplied lists (MENU-B) |
+| SETTINGS schema | `game/LORDS.bas` `SaveSettings`/`LoadSettings` | enumerate game `opt_*` + solo | game-injected save schema |
+| `FX_*` context (fine) | `game/*` | `FX_*` | already game→game after the moves; keep in GAME.BI |
 
 ## Verifying a change
 
