@@ -2046,7 +2046,8 @@ END SUB
 '$INCLUDE:'engine/PLAYERS.bas'
 '$INCLUDE:'game/EFFECTS.bas'
 '$INCLUDE:'game/CURIO.bas'
-'$INCLUDE:'include/SPRITES.bas'
+'$INCLUDE:'engine/ARTPACK.bas'  ' engine pixel-art layer: load/cache/fit sprites + art-pack resolution
+'$INCLUDE:'game/SPRITES.bas'    ' game entity->sprite mapping + popups + manifests
 '$INCLUDE:'engine/GESTURE.bas'
 '$INCLUDE:'engine/JUICE.bas'
 '$INCLUDE:'engine/STATS.bas'
