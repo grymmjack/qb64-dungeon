@@ -17,15 +17,18 @@
 # levels that share a name won't restart the track as you move between them.
 #
 # level | name
-1 | level2
-2 | level1
-3 | start
-4 | everdark
-5 | start
-6 | everdark
-7 | everdark
-8 | everdark
-9 | everdark
+# Each dungeon level now has its OWN track (level1..level9), themed to its room and
+# deepening in dread. Generate them with `dungeon.run audiomanifest | grep music/level`
+# (deep prompts are in descriptions.txt). A track with no file yet simply plays nothing.
+1 | level1
+2 | level2
+3 | level3
+4 | level4
+5 | level5
+6 | level6
+7 | level7
+8 | level8
+9 | level9
 #
 # ---- example of DIFFERENT music per level (drop the files in, then uncomment) ----
 # 1 | caverns

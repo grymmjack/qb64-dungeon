@@ -11,8 +11,17 @@
 vr-theme         | 3s one-shot   | a short dark synth intro sting for a studio logo, ominous and atmospheric, non-looping
 everdark         | 40-60s loop   | a brooding ambient dungeon MENU theme -- plays the whole time you're in the menu, so slow, mysterious, spacious, seamless loop
 start            | 30-60s loop   | a tense, sparse early-dungeon exploration loop, low drones and distant echoes, seamless
-level1           | 30-60s loop   | dark-fantasy dungeon exploration, upper level, low tension, subtle percussion, seamless loop
-level2           | 30-60s loop   | dark-fantasy dungeon exploration, deeper, rising unease, seamless loop
+# --- per-level exploration loops (level1..level9): one theme per dungeon level,
+#     themed to its room and DEEPENING in dread as you descend. All seamless loops. ---
+level1           | 30-60s loop   | the MAIN GALLERY -- the dungeon's torch-lit entrance hall, vaulted stone and echoing footsteps, distant dripping water. Cautious first steps into the dark: low sustained drones, a sparse hand-drum, a lonely bowed cello, faint moving air. Curious and uneasy, not yet threatening. Seamless loop.
+level2           | 30-60s loop   | the GUARD ROOM -- a dead garrison's barracks, cold iron and rusted mail. A low martial pulse beneath dark ambience: a muffled war-drum heartbeat, a distant dissonant horn, scraping metal textures. Watchful and tense, something waiting in the gloom. Seamless loop.
+level3           | 30-60s loop   | the ARMORY -- forge and weapon-racks gone cold. Resonant struck-metal tones, a slow anvil-echo in the deep, low bellows-breath drones, high metallic shimmers like sparks. Industrial and grim, the smell of old steel and rust. Seamless loop.
+level4           | 30-60s loop   | the STORE ROOM -- forgotten crates and cobwebbed stores, claustrophobic and dusty. Creaking timber, groaning rope, skittering rats, a suffocating low drone that presses inward. Sparse, airless, quietly wrong. Seamless loop.
+level5           | 30-60s loop   | the TORTURE CHAMBER -- dried blood and remembered pain. Dissonant and cruel: detuned string clusters, a slow dripping rhythm, distant half-heard moans, the screech of metal on stone. Horror rising, deeply unsettling. Seamless loop.
+level6           | 30-60s loop   | the KING'S QUARTERS -- fallen royalty, gold turned to rot. A dark corrupted regal theme: decayed brass-fanfare fragments, a mournful pipe organ, a slow processional pulse, grandeur gone to ruin. Opulent and sinister. Seamless loop.
+level7           | 30-60s loop   | the WIZARD'S QUARTERS and arcane laboratory -- eldritch and unnatural. Warbling detuned synths, glassy bell harmonics, whispered incantation textures, unstable shifting drones that feel spellbound and wrong. Magical menace, reality worn thin. Seamless loop.
+level8           | 30-60s loop   | the QUEEN'S QUARTERS -- cold, elegant, deathly beautiful. A spectral royal lament: a distant wordless soprano, glassy music-box fragments, icy strings, a mournful grace suspended over a black void. Sorrowful and haunting. Seamless loop.
+level9           | 40-80s loop   | THE CRYPT -- the deepest dark, tombs and the walking dead. A vast funereal dread: subterranean pipe organ, a low wordless choir, tolling bells, immense sub-bass, the crushing finality of the grave. Maximum menace and scale. Seamless loop.
 caverns          | 30-60s loop   | echoing underground cavern ambience, dripping water, deep drones, seamless loop
 crypt            | 30-60s loop   | a cold funereal crypt theme, distant wordless choir, bone-dry space, seamless loop
 deeproads        | 30-60s loop   | a vast deep-road theme, cavernous and ominous, slow and huge, seamless loop
