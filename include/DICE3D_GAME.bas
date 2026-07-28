@@ -186,14 +186,22 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     DIM keptv(1 TO 8) AS INTEGER
     DIM beat(1 TO 16) AS STRING, nb AS INTEGER, acc AS STRING, tail AS STRING
     DIM bi AS INTEGER, j AS INTEGER, skip AS INTEGER, natd20 AS INTEGER
-    dropstr = "": kept = 0
+    ' The vendored DICE3D module reads a d10 as 0..9 (percentile convention -- see
+    ' _GEO.BM). The GAME uses the d10 as a 1..10 die (hit points etc.), so its "0"
+    ' face means 10. Remap value + running sum here, matching the 2D font dice (which
+    ' roll 1..10 and simply DRAW 10 as "0"). sum3d is the dice-only total after remap.
+    DIM sum3d AS INTEGER, d10val AS INTEGER
+    dropstr = "": kept = 0: sum3d = 0
     FOR ri = 1 TO dice3d_count%
+        d10val = dice3d_value%(ri)
+        IF sides = 10 AND d10val = 0 THEN d10val = 10
         IF dice3d_dropped%(ri) THEN                  ' a 4d6-drop-lowest die that didn't count
             IF LEN(dropstr) > 0 THEN dropstr = dropstr + " "
-            dropstr = dropstr + _TRIM$(STR$(dice3d_value%(ri)))
+            dropstr = dropstr + _TRIM$(STR$(d10val))
         ELSE
             kept = kept + 1
-            IF kept <= 8 THEN keptv(kept) = dice3d_value%(ri)
+            IF kept <= 8 THEN keptv(kept) = d10val
+            sum3d = sum3d + d10val
         END IF
     NEXT
     tail = "": IF LEN(dropstr) > 0 THEN tail = "   (drop " + dropstr + ")"
@@ -201,7 +209,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' Each beat is an accumulated snapshot of the running sum. But on a single d20
     ' showing 1 or 20 the math is moot (nat-1 = fumble, nat-20 = crit, whatever the
     ' modifier) -- show the face at once and skip the reveal, exactly like the 2D dice.
-    natd20 = (sides = 20 AND n = 1 AND (dice3d_total% = 1 OR dice3d_total% = 20))
+    natd20 = (sides = 20 AND n = 1 AND (sum3d = 1 OR sum3d = 20))
     nb = 0: acc = ""
     IF (kept <= 1 AND bonus = 0) OR natd20 THEN
         IF kept >= 1 THEN acc = "=  " + _TRIM$(STR$(keptv(1))) + "  ="   ' lone die / nat 1 or 20 -- the face says it all
@@ -213,7 +221,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
         NEXT
         IF bonus > 0 THEN acc = acc + "  +  " + _TRIM$(STR$(bonus)): nb = nb + 1: beat(nb) = acc
         IF bonus < 0 THEN acc = acc + "  -  " + _TRIM$(STR$(-bonus)): nb = nb + 1: beat(nb) = acc
-        acc = acc + "  =  " + _TRIM$(STR$(dice3d_total% + bonus)): nb = nb + 1: beat(nb) = acc + tail
+        acc = acc + "  =  " + _TRIM$(STR$(sum3d + bonus)): nb = nb + 1: beat(nb) = acc + tail
     END IF
 
     rrow = (ty + th) \ CH
@@ -253,7 +261,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     DICE3D_HW = 0
     cursor_erase: cursor_draw                       ' wipe the dice box off the board so the combat
     DrawHUD: _DISPLAY                                ' panel / "you still face..." prompt shows clean next
-    Show3DRoll = dice3d_total%
+    Show3DRoll = sum3d
 END FUNCTION
 
 
