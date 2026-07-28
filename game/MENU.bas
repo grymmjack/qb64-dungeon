@@ -608,6 +608,23 @@ FUNCTION SetOrdMove% (cur AS INTEGER, dir$)
     SetOrdMove% = SORD(idx)
 END FUNCTION
 
+' TAB (dir +1) / Shift-TAB (dir -1): jump to the next/prev COLUMN (wrapping), landing on the
+' option nearest the current vertical position -- so you don't scroll a whole column to reach
+' the next group. Returns the new option id.
+FUNCTION SetColJump% (cur AS INTEGER, dir AS INTEGER)
+    DIM i AS INTEGER, tcol AS INTEGER, best AS INTEGER, bestd AS INTEGER, crow AS INTEGER
+    tcol = SL_COL(cur) + dir
+    IF tcol < 1 THEN tcol = NSCOL
+    IF tcol > NSCOL THEN tcol = 1
+    best = cur: bestd = 9999: crow = SL_ROW(cur)
+    FOR i = 1 TO SORD_N
+        IF SL_COL(SORD(i)) = tcol THEN
+            IF ABS(SL_ROW(SORD(i)) - crow) < bestd THEN bestd = ABS(SL_ROW(SORD(i)) - crow): best = SORD(i)
+        END IF
+    NEXT
+    SetColJump% = best
+END FUNCTION
+
 ' Apply the Music on/off toggle the instant it's flipped in SETTINGS (the player expects
 ' silence NOW when they turn it off, not when they leave the screen). Off = stop whatever's
 ' playing but KEEP the level context (music_level) so turning it back on resumes the right
@@ -639,6 +656,8 @@ SUB RunSettings
         AudioTick                                   ' live music crossfade / toggle fade + narration fade
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" OR k = "S" THEN sel = SetOrdMove%(sel, k): Sfx "select"   ' up/down move (arrows too)
+        IF k = CHR$(9) THEN sel = SetColJump%(sel, 1): Sfx "select"          ' TAB: jump to next column
+        IF k = CHR$(0) + CHR$(15) THEN sel = SetColJump%(sel, -1): Sfx "select"   ' Shift-TAB: prev column
         IF k = CHR$(27) THEN SaveSettings: Free3DPreviews: EXIT SUB
 
         ' A/D (left/right arrows) adjust the selected slider/value -- the familiar convention
@@ -1034,7 +1053,7 @@ SUB RunSettings
             DrawDicePreview 100, " your dice"
             PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice
         END IF
-        COLOR CYANU, BLACK: PrintCentered 50, "W/S or up/down = move     A/D or left/right = adjust     ENTER = cycle     ESC = back"
+        COLOR CYANU, BLACK: PrintCentered 50, "up/down move    left/right adjust    TAB/shift-TAB column    ENTER cycle    ESC back"
         _DISPLAY
         IF settingsshot_on THEN _SAVEIMAGE "settings-shot.png", CANVAS: SYSTEM   ' dev layout check -- exits BEFORE any SaveSettings
     LOOP
