@@ -9,7 +9,8 @@
 $CONSOLE
 '$INCLUDE:'include/ansi/ANSIPrint.bi'   ' vendored ANSI renderer (decoupled from Toolbox64 submodule); file reads use _READFILE$
 
-'$INCLUDE:'include/DUNGEON.BI'
+'$INCLUDE:'engine/ENGINE.BI'    ' reusable engine globals/types/consts (must load first)
+'$INCLUDE:'game/GAME.BI'        ' DUNGEON!-specific globals/types/consts (the swappable layer)
 '$INCLUDE:'include/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
 '$INCLUDE:'include/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
 SW = 132: SH = 51: CW = 8: CH = 16
