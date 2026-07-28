@@ -1141,6 +1141,7 @@ FUNCTION PromptRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS 
             IF k = CHR$(13) THEN
                 IF LEN(entry) > 0 THEN
                     v = VAL(entry)
+                    IF sides = 10 AND n = 1 AND v = 0 THEN v = 10   ' a lone d10 shows "0" for 10 -- accept it
                     IF v >= lo AND v <= hi THEN
                         PromptRoll = v: EXIT FUNCTION
                     ELSE
