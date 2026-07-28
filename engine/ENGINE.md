@@ -22,12 +22,17 @@ engine/
   ENGINE.md          this file
   ansi/  DICE3D/      vendored ANSI renderer + 3D dice (logically engine; still under include/)
   BOARD CURSOR MUSIC JUICE GESTURE STATS DATA PLAYERS   .bas modules
+  SAVEIO             save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
+  MARKDOWN           markdown -> text-mode renderer (was inside CHRONICLE)
+  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$)
 game/
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
   LOADERS.bas        game data-table loaders (Load*), moved out of engine/DATA.bas
+  SAVEGAME CHRONICLE LORDS   .bas  (save payload / per-run journal / hall of fame)
   SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS   .bas modules
-include/             not-yet-split (tangled) modules: MENU CHRONICLE SAVEGAME LORDS SPRITES
+include/             not-yet-split: MENU (deeply tangled -- widget core vs game data),
+                     SPRITES (mixed: art-pack engine + game entity sprites + manifests),
                      DICE3D_GAME, plus the vendored ansi/ + DICE3D/ dirs
 ```
 
@@ -86,9 +91,15 @@ Engine-side code that still names game symbols directly. Each line is a future h
 | BOARD ← rooms | `engine/BOARD.bas` `DrawTombstones`/`DrawChamberGraves`/`render_room_labels` | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
 | region detect → game data | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
 | ~~DATA ← loaders~~ | `engine/DATA.bas` `Load*` wrappers | monster/treasure/trap tables | **cleared** — moved to `game/LOADERS.bas`; `engine/DATA.bas` is now game-free |
+| ~~SAVE plumbing~~ | old `include/SAVEGAME.bas` | mixed IO + payload | **cleared** — `engine/SAVEIO.bas` (game-free) + `game/SAVEGAME.bas` (payload) |
+| ~~CHRONICLE md~~ | old `include/CHRONICLE.bas` | md renderer buried in game journal | **cleared** — reusable md renderer lifted to `engine/MARKDOWN.bas` |
+| ~~PadR$/utils in a game file~~ | old `include/LORDS.bas` | engine callers reached into it | **cleared** — moved to `engine/TEXT.bas` |
 | PLAYERS ← inventory | `engine/PLAYERS.bas` | `PLAYER` game fields | game-defined player-state blob |
-| MENU (still include/) | `RunMenu`/`RunSettings`/`DrawHUD`/`ShowEnd` | class/inventory/ruleset opts | widget core + game-supplied item/option/HUD lists |
-| SAVE/SETTINGS (still include/) | `SaveGame`/`SaveSettings` | game `opt_*` + solo state | game-injected save schema |
+| JUICE ← poison | `engine/JUICE.bas` `DrawPoison` | `poison_turns` | pass an intensity 0..1 param |
+| BOARD ← rooms | `engine/BOARD.bas` tombstones/graves/labels | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
+| SPRITES mixed (include/) | art-pack engine tangled with entity sprites | `MON_NAME`/`TRE_NAME`/`SECTORS`/`CLASSES` | split `engine/ARTPACK` vs `game/SPRITES` |
+| MENU tangled (include/) | `RunMenu`/`RunSettings`/`DrawHUD`/`ShowEnd` | class/inventory/ruleset opts | widget core + game-supplied item/option/HUD lists |
+| SETTINGS schema | `game/LORDS.bas` `SaveSettings`/`LoadSettings` | enumerates game `opt_*` + solo | game-injected save schema |
 
 ## Verifying a change
 
