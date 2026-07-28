@@ -1401,7 +1401,7 @@ SUB DrawHUD
         PrintCentered 3, rp
         COLOR YELLOWU, BLACK
         _PRINTSTRING ((SW - 17) * CW, 50 * CH), "[SPACE] ROLL DICE"
-    ELSEIF gold >= target_gold AND has_key THEN
+    ELSEIF Game_WinReady% THEN
         COLOR GREENU, BLACK
         _PRINTSTRING ((SW - 23) * CW, 50 * CH), "RETURN TO START TO WIN!"
     ELSEIF opt_boardgame AND steps_left > 0 THEN

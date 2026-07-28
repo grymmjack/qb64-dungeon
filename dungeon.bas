@@ -613,61 +613,11 @@ FUNCTION PlayGame%
                         DOOROPEN(c.x \ CW, c.y \ CH) = TRUE   ' opening the door lets you see through it (FOV)
                         IF TryMove(k) THEN moves_made = moves_made + 1
                     END IF
-                    ' returning to the entrance patches you up (D&D mode)
-                    IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN player_hp = player_maxhp
-                    IF InRoomNow THEN
-                        sec = ROOMAT(c.x \ CW, c.y \ CH)   ' which room block are we standing in?
-                        IF sec >= 1 THEN
-                            IF NOT ROOMS(sec).seen THEN
-                                ROOMS(sec).seen = TRUE     ' entering reveals this room's monster on the board
-                                RecordEnterRoom            ' chronicle: rooms explored
-                                RoomFlavor sec             ' first-entry atmosphere (special or level one-liner)
-                            END IF
-                            ' a monster guards this room's treasure?
-                            IF ROOMS(sec).malive AND LEN(_TRIM$(ROOMS(sec).monster)) > 0 THEN
-                                ' ESP Medallion (ONLY if held): foresee the monster; [N] backs off.
-                                ' NOTE: BASIC's AND does not short-circuit, so EspEnter must be called
-                                ' inside its own IF item_esp -- not as "item_esp AND EspEnter(...)",
-                                ' which would pop the prompt (and ignore [N]) even without the medallion.
-                                IF item_esp THEN
-                                    IF EspEnter(sec) THEN
-                                        res = DoCombat(sec)
-                                        IF opt_boardgame THEN steps_left = 0   ' combat ends your turn
-                                    ELSE
-                                        c.x = c.prev_x: c.y = c.prev_y         ' heed the warning, step back out
-                                        cursor_erase: cursor_draw
-                                    END IF
-                                ELSE
-                                    res = DoCombat(sec)
-                                    IF opt_boardgame THEN steps_left = 0       ' no ESP -- straight into the fight
-                                END IF
-                            END IF
-                            ' reclaim dropped loot once the room is clear (your own, solo; a rival's, MP)
-                            IF NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
-                        END IF
-                    END IF
-                    ' CHAMBERS: stepping into a fresh (uncleared) chamber wakes ONE of its 3 monsters;
-                    ' leave and re-enter for the next until three graves stand. Fire only on ENTRY
-                    ' (cur_chamber transition) and never on a coloured room block (rooms handle their own).
-                    DIM chnow AS INTEGER
-                    chnow = CHAMBERAT(c.x \ CW, c.y \ CH)
-                    IF ROOMAT(c.x \ CW, c.y \ CH) <> 0 THEN chnow = 0
-                    IF chnow <> cur_chamber THEN
-                        cur_chamber = chnow
-                        IF chnow > 0 THEN
-                            ChamberEncounter chnow
-                            IF opt_boardgame THEN steps_left = 0     ' a chamber fight ends your turn
-                        END IF
-                    END IF
-                    ' reclaim loose spoils left on the paths where a fall happened (rooms OR corridors)
-                    IF LooseAt%(c.x \ CW, c.y \ CH) > 0 THEN CollectLooseAt c.x \ CW, c.y \ CH
-                    ' victory: enough gold, hold the Level Key, and back at the entrance
-                    IF gold >= target_gold AND has_key THEN
-                        IF ABS((c.x \ CW) - START_CX) <= 1 AND ABS((c.y \ CH) - START_CY) <= 1 THEN
-                            DeleteSave                       ' the run is won -- clear any stale save
-                            PlayGame = OUT_WIN: EXIT FUNCTION
-                        END IF
-                    END IF
+                    ' hand off to the GAME: every consequence of arriving on this cell
+                    ' (entrance heal, room/chamber encounter, loot pickup, the win check).
+                    ' The engine owns "where the player is"; the game owns "what it means".
+                    res = Game_OnEnterCell%(c.x \ CW, c.y \ CH)
+                    IF res = OUT_WIN THEN PlayGame = OUT_WIN: EXIT FUNCTION
                     IF opt_boardgame AND steps_left <= 0 THEN EndPlayerTurn
                 END IF
             END IF
@@ -2086,6 +2036,7 @@ END SUB
 ' ============================================================================
 '$INCLUDE:'engine/DATA.bas'
 '$INCLUDE:'game/SECTOR.bas'
+'$INCLUDE:'game/HOOKS.bas'      ' engine<->game contract: Game_OnEnterCell% / Game_WinReached% / Game_WinReady%
 '$INCLUDE:'engine/BOARD.bas'
 '$INCLUDE:'engine/CURSOR.bas'
 '$INCLUDE:'include/MENU.bas'
