@@ -321,9 +321,13 @@ END SUB
 SUB Narrate (nkey AS STRING)
     DIM p AS STRING
     IF NOT opt_narration THEN EXIT SUB
+    ' POLITENESS: never cut off a line that's still speaking -- let it finish and skip the
+    ' new one. (The ambient text-crawl voice keeps playing after its typewriter ends, and
+    ' combat lines fire in quick succession -- without this they chop each other off.)
+    IF narr_handle > 0 THEN IF _SNDPLAYING(narr_handle) THEN EXIT SUB
     p = NarratePath$(nkey)
     IF LEN(p) = 0 THEN EXIT SUB
-    NarrateStop
+    NarrateStop                                     ' release the finished handle before the next line
     narr_handle = _SNDOPEN(p)
     IF narr_handle > 0 THEN _SNDVOL narr_handle, opt_voicevol / 10: _SNDPLAY narr_handle
 END SUB

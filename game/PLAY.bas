@@ -331,7 +331,6 @@ SUB ChamberEncounter (cid AS INTEGER)
         Narrate "chamber." + NarrSlug$(cname)             ' spoken chamber description (if a pack has it)
         Banner cdesc, MonVerb$(mon, "A " + mon + " stalks here", mon + " stalk here") + " -- three guard this hall, and no treasure.   [ press any key ]"
         WaitKey
-        NarrateStop
     ELSE
         Banner MonVerb$(mon, "Another " + mon + " stalks", "More " + mon + " stalk") + " the " + cname + "!", "Chamber monster " + _TRIM$(STR$(CHM_DEAD(cid) + 1)) + " of 3.   [ press any key ]"
         WaitKey
