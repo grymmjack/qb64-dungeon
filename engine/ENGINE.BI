@@ -176,6 +176,16 @@ DIM SHARED music_handle AS LONG                  ' currently-looping menu/level 
 DIM SHARED music_fadeout AS LONG                 ' the PREVIOUS track, crossfading out under a transition (0 = none)
 DIM SHARED music_fade_start AS DOUBLE            ' TIMER when the current crossfade began
 DIM SHARED music_fading AS INTEGER               ' -1 while a crossfade ramp is in progress
+' --- audio MIXER: dedicated channels (music / voice / sfx), each auto-mixed by QB64.
+'     Final volume per channel = player slider x channel gain x (duck / fade / envelope). ---
+CONST CH_MUSIC = 0, CH_VOICE = 1, CH_SFX = 2     ' channel ids for ChannelGain
+CONST DUCK_ATTACK = .06                           ' per-frame step to duck DOWN under voice (fast, ~0.15s)
+CONST DUCK_RELEASE = .02                          ' per-frame step to restore UP after voice (gentle, ~0.5s)
+DIM SHARED opt_duckamt AS INTEGER                 ' SETTINGS 0..10: how far music dips under narration (0 off, 10 = silent under voice)
+DIM SHARED music_duck AS SINGLE                   ' live music duck multiplier (1 = open, dips toward 1-opt_duckamt/10 under voice)
+DIM SHARED chgain_music AS SINGLE                 ' programmatic per-channel gain on TOP of the player's slider (1 = unity)
+DIM SHARED chgain_voice AS SINGLE
+DIM SHARED chgain_sfx AS SINGLE
 DIM SHARED MUSIC_FILE(1 TO 9) AS STRING          ' music file assigned to each dungeon level (in assets/music/)
 DIM SHARED music_level AS INTEGER                ' the level whose track is loaded right now (0 = none)
 DIM SHARED music_curfile AS STRING               ' the file currently loaded (so same-file levels don't restart it)

@@ -418,6 +418,7 @@ SUB SaveSettings
     PRINT #f, "musicvol " + _TRIM$(STR$(opt_musicvol))
     PRINT #f, "sfxvol " + _TRIM$(STR$(opt_sfxvol))
     PRINT #f, "voicevol " + _TRIM$(STR$(opt_voicevol))
+    PRINT #f, "duckamt " + _TRIM$(STR$(opt_duckamt))
     PRINT #f, "realdice " + _TRIM$(STR$(opt_realdice))
     PRINT #f, "dicemath " + _TRIM$(STR$(opt_dicemath))
     PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
@@ -484,6 +485,7 @@ SUB LoadSettings
                 CASE "musicvol": opt_musicvol = v
                 CASE "sfxvol": opt_sfxvol = v
                 CASE "voicevol": opt_voicevol = v
+                CASE "duckamt": opt_duckamt = v
                 CASE "realdice": opt_realdice = v
                 CASE "dicemath": opt_dicemath = v
                 CASE "oldschool": opt_oldschool = v

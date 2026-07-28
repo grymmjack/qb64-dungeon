@@ -88,6 +88,7 @@ IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
 opt_musicvol = 4: opt_sfxvol = 4: opt_voicevol = 10  ' 0..10 volume sliders (maintainer's mix)
+opt_duckamt = 6                                      ' music ducks to 40% under narration (0 off .. 10 silent)
 opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/sfx/); "" = flat main dir
 opt_musicpack = "soundmon-orchestral"                ' default music pack (assets/music/); "" = flat main dir
 opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
@@ -152,6 +153,7 @@ IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest: SYSTEM
 
 InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/[pack]/*); beeper covers the rest
+MixerInit                        ' unity channel gains + music duck open (before any AudioTick)
 LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
 LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (assets/fonts/dicefonts.txt)
 player_class = 1                 ' default HERO until the player creates a character

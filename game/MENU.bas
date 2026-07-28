@@ -560,7 +560,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 48
+    CONST NSET = 49
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     sel = 1
@@ -679,6 +679,7 @@ SUB RunSettings
                     IF opt_narrfreq < NARR_FLAVOR THEN opt_narrfreq = NARR_COMBAT
                     IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
                     Sfx "select"
+                CASE 48: opt_duckamt = Clamp10(opt_duckamt + delta): Sfx "select"   ' music-under-voice ducking depth
             END SELECT
         END IF
 
@@ -768,15 +769,17 @@ SUB RunSettings
                 CASE 46: CycleArtPack 1
                 CASE 47
                     opt_narrfreq = opt_narrfreq + 1: IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
-                CASE 48: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 48
+                    opt_duckamt = opt_duckamt + 1: IF opt_duckamt > 10 THEN opt_duckamt = 0
+                CASE 49: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
 
         _DEST CANVAS: CLS , BLACK
-        COLOR YELLOWU, BLACK: PrintCentered 1, "-=  S E T T I N G S  =-"
+        COLOR YELLOWU, BLACK: PrintCentered 0, "-=  S E T T I N G S  =-"
         FOR i = 1 TO NSET
-            y = 2 + (i - 1)                     ' single-row list: title row 1, list rows 2..49, hint row 50
+            y = 1 + (i - 1)                     ' single-row list: title row 0, list rows 1..49, hint row 50
             slider = FALSE
             SELECT CASE i
                 CASE 1: lbl = "Music": vtxt = OnOff$(opt_music)
@@ -939,6 +942,9 @@ SUB RunSettings
                 CASE 47
                     lbl = "  Narration Freq": slider = TRUE
                     vtxt = NarrFreqLabel$
+                CASE 48
+                    lbl = "  Music Ducking": slider = TRUE
+                    IF opt_duckamt <= 0 THEN vtxt = "off" ELSE vtxt = _TRIM$(STR$(opt_duckamt)) + " / 10  (music dips under voice)"
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             IF i = sel THEN COLOR WHITE, REDU ELSE IF slider THEN COLOR CYANU, BLACK ELSE COLOR GREY, BLACK

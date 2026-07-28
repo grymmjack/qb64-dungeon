@@ -128,22 +128,39 @@ END SUB
 SUB AudioTick
     DIM tv AS SINGLE, el AS DOUBLE, frac AS SINGLE
     DIM npos AS DOUBLE, g AS SINGLE, g2 AS SINGLE
-    ' --- music crossfade ---
+    DIM voicing AS INTEGER, dtarget AS SINGLE
+    ' --- MUSIC CHANNEL mixdown: player slider x channel gain x duck x crossfade fraction ---
+    ' crossfade fraction (1 when not fading); completing a fade drops the outgoing track
+    frac = 1
     IF music_fading THEN
-        tv = opt_musicvol / 10
         el = TIMER - music_fade_start
         IF el < 0 THEN el = el + 86400#                 ' TIMER wraps at midnight
         frac = el / MUSIC_FADE_SEC
-        IF frac >= 1 THEN                               ' fade complete: drop the old track, new to full
+        IF frac >= 1 THEN
+            frac = 1
             IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
             music_fadeout = 0
-            IF music_handle > 0 THEN _SNDVOL music_handle, tv
             music_fading = 0
-        ELSE                                            ' mid-fade: new rises, old falls, they cross
-            IF music_handle > 0 THEN _SNDVOL music_handle, tv * frac
-            IF music_fadeout > 0 THEN _SNDVOL music_fadeout, tv * (1 - frac)
         END IF
     END IF
+    ' voiceover DUCK: dip music toward 1-opt_duckamt/10 while narration is audibly playing,
+    ' ramping down fast (attack) and back up gently (release). Nest the _SNDPLAYING test so it
+    ' never runs on a 0 handle (QB64 AND doesn't short-circuit).
+    voicing = 0
+    IF narr_handle > 0 THEN IF _SNDPLAYING(narr_handle) THEN voicing = -1
+    IF voicing THEN dtarget = 1 - opt_duckamt / 10 ELSE dtarget = 1
+    IF dtarget < 0 THEN dtarget = 0
+    IF music_duck > dtarget THEN
+        music_duck = music_duck - DUCK_ATTACK
+        IF music_duck < dtarget THEN music_duck = dtarget
+    ELSEIF music_duck < dtarget THEN
+        music_duck = music_duck + DUCK_RELEASE
+        IF music_duck > dtarget THEN music_duck = dtarget
+    END IF
+    ' apply the mixdown every frame (so the duck + slider changes are live, not just during a fade)
+    tv = opt_musicvol / 10 * chgain_music * music_duck
+    IF music_handle > 0 THEN _SNDVOL music_handle, tv * frac
+    IF music_fadeout > 0 THEN _SNDVOL music_fadeout, tv * (1 - frac)
     ' --- narration fade in/out (attenuates the record-click at both ends of a spoken line) ---
     ' WALL-CLOCK envelope: _SNDGETPOS reports 0 until the buffer starts, so a playhead-based
     ' ramp stayed silent then snapped in. Timing off narr_start (set at _SNDPLAY) ramps smoothly.
@@ -161,8 +178,27 @@ SUB AudioTick
         IF g < 0 THEN g = 0
         IF g > 1 THEN g = 1
         IF g > 0 AND g < 1 THEN g = g ^ narr_curve   ' SHAPE the ramp (linear sounds abrupt on speech): <1 sharp, >1 gentle
-        _SNDVOL narr_handle, (opt_voicevol / 10) * g
+        _SNDVOL narr_handle, (opt_voicevol / 10) * chgain_voice * g   ' VOICE CHANNEL mixdown: slider x channel gain x envelope
     END IF
+END SUB
+
+' --- audio MIXER helpers ---------------------------------------------------
+' Reset the programmatic mixer to unity gains, music open (call once at startup, BEFORE any
+' AudioTick -- otherwise music_duck defaults to 0 and the music channel starts silent).
+SUB MixerInit
+    chgain_music = 1: chgain_voice = 1: chgain_sfx = 1
+    music_duck = 1
+END SUB
+
+' Set a channel's programmatic gain (1 = unity) on top of the player's volume slider -- the
+' hook for mixing buses live from game code, e.g. ChannelGain CH_MUSIC, .5 to half music.
+' (Auto voiceover ducking of the music channel is separate; see AudioTick.)
+SUB ChannelGain (ch AS INTEGER, gain AS SINGLE)
+    SELECT CASE ch
+        CASE CH_MUSIC: chgain_music = gain
+        CASE CH_VOICE: chgain_voice = gain
+        CASE CH_SFX: chgain_sfx = gain
+    END SELECT
 END SUB
 
 ' Load the narration fade envelope for the CURRENT pack from its pack.conf (FADEIN=/FADEOUT=

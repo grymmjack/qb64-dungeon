@@ -313,7 +313,7 @@ SUB Sfx (kind AS STRING)
     IF NOT opt_sfx THEN EXIT SUB
     DIM h AS LONG
     h = SfxHandle(kind)                         ' a real audio file for this effect?
-    IF h > 0 THEN _SNDPLAYCOPY h, opt_sfxvol / 10: EXIT SUB   ' play it (a copy, so effects can overlap)
+    IF h > 0 THEN _SNDPLAYCOPY h, opt_sfxvol / 10 * chgain_sfx: EXIT SUB   ' SFX CHANNEL mixdown: slider x channel gain (copy so effects overlap)
     SELECT CASE kind                            ' otherwise fall back to the tone beeper
         CASE "move": Tone 350, 0.08
         CASE "bump": Tone 170, 0.12
