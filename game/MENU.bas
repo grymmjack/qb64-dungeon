@@ -7,6 +7,7 @@ FUNCTION SelectClass%
     sel = player_class: IF sel < 1 OR sel > 4 THEN sel = 1
     DO
         _LIMIT 60
+        AudioTick                            ' chargen cue crossfade keeps ramping during class select
         k = NormKey$(UCASE$(INKEY$))         ' arrows / numpad -> WASD too
         IF k = "W" OR k = "A" THEN
             sel = sel - 1: IF sel < 1 THEN sel = 4
@@ -433,6 +434,7 @@ FUNCTION RunMenu%
     DIM firstframe AS INTEGER: firstframe = -1
     DO
         _LIMIT 60
+        AudioTick                             ' menu-theme crossfade + any screen-cue fade-back
         k = NormKey$(UCASE$(INKEY$))          ' arrows/numpad -> WASD
         IF k = "A" OR k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 6
         IF k = "D" OR k = "S" THEN sel = sel + 1: IF sel > 6 THEN sel = 1
@@ -510,7 +512,8 @@ FUNCTION RunMenu%
     IF result = MENU_ENTER THEN BloodDrip ELSE FadeOut     ' blood-drip descent into the dungeon; plain fade otherwise
 
     IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle   ' stop the menu theme; PlayGame starts the level track
-    music_handle = 0
+    IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout ' and any half-finished crossfade tail
+    music_handle = 0: music_fadeout = 0: music_fading = 0
     _FREEIMAGE iLogo: _FREEIMAGE iLeft: _FREEIMAGE iRight: _FREEIMAGE iBlock
     RunMenu = result
 END FUNCTION
@@ -540,6 +543,22 @@ FUNCTION Clamp10% (v AS INTEGER)
 END FUNCTION
 
 
+' Apply the Music on/off toggle the instant it's flipped in SETTINGS (the player expects
+' silence NOW when they turn it off, not when they leave the screen). Off = stop whatever's
+' playing but KEEP the level context (music_level) so turning it back on resumes the right
+' track; On = restart the context track (level track in a delve, else the menu theme).
+SUB ApplyMusicToggle
+    IF opt_music THEN
+        music_curfile = ""                          ' force an actual (re)start rather than the same-file skip
+        IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level ELSE PlayMenuMusic
+    ELSE
+        IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle
+        IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
+        music_handle = 0: music_fadeout = 0: music_fading = 0
+        music_curfile = ""                          ' but leave music_level intact so re-enabling knows the context
+    END IF
+END SUB
+
 SUB RunSettings
     CONST NSET = 48
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
@@ -549,6 +568,7 @@ SUB RunSettings
     Build3DPreviews                                 ' render the 3D dice previews once (rebuilt on set change)
     DO
         _LIMIT 60
+        AudioTick                                   ' live music crossfade / toggle fade + narration fade
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = NSET
         IF k = "S" THEN sel = sel + 1: IF sel > NSET THEN sel = 1
@@ -664,7 +684,7 @@ SUB RunSettings
 
         IF k = " " OR k = CHR$(13) THEN
             SELECT CASE sel
-                CASE 1: opt_music = NOT opt_music
+                CASE 1: opt_music = NOT opt_music: ApplyMusicToggle   ' take effect immediately (silence now / resume on)
                 CASE 3: opt_sfx = NOT opt_sfx
                 CASE 5: opt_voice = NOT opt_voice
                 CASE 7: opt_showdice = NOT opt_showdice

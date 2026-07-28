@@ -130,6 +130,7 @@ SUB ShowLords
     sel = 1
     DO
         _LIMIT 60
+        AudioTick                             ' lords-screen cue crossfade keeps ramping
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN
             sel = sel - 1: IF sel < 1 THEN sel = n
@@ -344,6 +345,7 @@ SUB LoadCharacter
     sel = 1
     DO
         _LIMIT 60
+        AudioTick                             ' lords-screen cue crossfade keeps ramping
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = n
         IF k = "S" THEN sel = sel + 1: IF sel > n THEN sel = 1

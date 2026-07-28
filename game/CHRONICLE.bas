@@ -286,6 +286,7 @@ SUB ShowBestiary
         DO
             k = NormKey$(UCASE$(INKEY$))
             IF k <> "" THEN EXIT DO
+            AudioTick                           ' screen-cue crossfade must keep ramping here
             _LIMIT 60
         LOOP
         IF k = CHR$(27) THEN EXIT DO
@@ -356,6 +357,7 @@ SUB ShowTreasury
         DO
             k = NormKey$(UCASE$(INKEY$))
             IF k <> "" THEN EXIT DO
+            AudioTick                           ' screen-cue crossfade must keep ramping here
             _LIMIT 60
         LOOP
         IF k = CHR$(27) THEN EXIT DO
@@ -567,6 +569,7 @@ SUB GameMenu
         NEXT
         COLOR YELLOWU, BOXBG: PrintCentered 32, "[W/S] move   [ENTER] pick   [ESC] resume"
         _DISPLAY
+        AudioTick                             ' gamemenu cue crossfade / narration fade keeps ramping
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 8
         IF k = "S" THEN sel = sel + 1: IF sel > 8 THEN sel = 1

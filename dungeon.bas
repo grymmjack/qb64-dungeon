@@ -487,6 +487,7 @@ FUNCTION PlayGame%
 
     DO
         _LIMIT 60
+        AudioTick                                 ' advance music crossfade + narration fade each frame
         IF player_out THEN                        ' the active player has spent their last life
             ' solo (or last one standing) -> the run is over for good. Delete the save so a
             ' permadeath run can never be "continued" back to life.

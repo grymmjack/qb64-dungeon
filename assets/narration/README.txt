@@ -56,3 +56,19 @@ file.
 Example: put a deep, reverbed "victory" read into win.title.ogg -- or a whole
 voice set under narration/soundmon-1/ -- flip Narration on in SETTINGS, win a
 run, and hear it.
+
+PACK.CONF (per-pack fade envelope -- a CREATOR setting, not a player toggle):
+The game reads two optional keys from a pack's  pack.conf  (same KEY=value file
+that already holds VOICE=/PITCH=/SPEED= for the generator). They set a fade the
+engine applies at PLAYBACK to every line in that pack, to soften the recording's
+start/end -- e.g. the click of the record key being pressed/released:
+
+  FADEIN=0.75     seconds to ramp a line up from silence at its START  (default 0.75)
+  FADEOUT=0.5     seconds to ramp a line down to silence at its END    (default 0.5)
+
+Both are in SECONDS and may be fractional. Omit a key (or the whole file) and the
+defaults above apply -- so existing packs already fade without any edit. Set
+FADEIN=0 / FADEOUT=0 to disable a side. The flat (main) folder uses a pack.conf
+here in  assets/narration/  if you add one, else the defaults. The fade is driven
+per-frame off the clip's real playhead, so it needs no per-file metadata -- just
+these two numbers per pack.

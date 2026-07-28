@@ -233,7 +233,7 @@ END SUB
 SUB WaitKey
     DIM k AS STRING
     _KEYCLEAR              ' drain buffered keys
-    DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    DO: _LIMIT 60: AudioTick: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
     FlashPrompt
 END SUB
 
@@ -267,7 +267,7 @@ SUB CombatPause
     ' '[ press any key ]' need a second press). We only drain AFTER advancing so
     ' the advance key can't spill into the next attack.
     IF opt_msgdelay <= 0 THEN                       ' 0 = wait for a keypress (manual)
-        DO: _LIMIT 60: _DISPLAY: LOOP UNTIL INKEY$ <> ""
+        DO: _LIMIT 60: AudioTick: _DISPLAY: LOOP UNTIL INKEY$ <> ""
         FlashPrompt: _KEYCLEAR: EXIT SUB
     END IF
     ' TIMED: this prompt will auto-advance, so '[ press any key ]' is misleading.
@@ -286,6 +286,7 @@ SUB CombatPause
     maxf = opt_msgdelay * 60                        ' else auto-advance after the delay...
     FOR f = 1 TO maxf
         _LIMIT 60
+        AudioTick
         IF INKEY$ <> "" THEN FlashPrompt: EXIT FOR  ' ...or ANY key advances early (with feedback)
         _DISPLAY
     NEXT f
@@ -444,6 +445,7 @@ SUB ScrollTextVO (title AS STRING, body AS STRING, narrkey AS STRING)
         LOOP
         COLOR CYANU, BOXBG: PrintCentered by + bh - 2, "[ any key to continue ]"
         _DISPLAY
+        AudioTick                                   ' keep the narration fade-in ramping while the crawl types
         IF NOT narrating THEN IF c1 <> CHR$(10) AND c1 <> " " THEN VoiceBlip 380 + (ASC(c1) MOD 12) * 40
         IF NOT skip THEN
             k = INKEY$
@@ -453,7 +455,7 @@ SUB ScrollTextVO (title AS STRING, body AS STRING, narrkey AS STRING)
     NEXT i
     ' hold on the fully-revealed text
     _KEYCLEAR
-    DO: _LIMIT 60: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    DO: _LIMIT 60: AudioTick: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
     IF narrating THEN NarrateStop                   ' cut the voice when the crawl is dismissed
 END SUB
 
@@ -659,6 +661,7 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                 DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
             END IF
             _DISPLAY
+            AudioTick
             _LIMIT rate
         NEXT f
         ' fade the discarded die out -- it dissolves into the box, then the result
@@ -1033,6 +1036,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
             DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
         END IF
         _DISPLAY
+        AudioTick
         _LIMIT rate
     NEXT f
     ' fade the discarded die out -- it dissolves into the box, then the result
@@ -1082,6 +1086,7 @@ FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
                 DiceAnimSfx f, settle, 380 + f * 28, 0.05
             END IF
             _DISPLAY
+            AudioTick
             _LIMIT rate
         NEXT f
         _DELAY hold

@@ -44,16 +44,10 @@ SUB PlayLevelMusic (lv AS INTEGER)
     IF LEN(fn) = 0 THEN EXIT SUB                    ' no track assigned for this level -> keep current
     music_level = lv
     IF fn = music_curfile THEN EXIT SUB            ' this entry already resolved/playing -> nothing to do
-    ' the entry changed: stop the old track and resolve the best file for the new name
-    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
+    ' the entry changed: crossfade from the current track to the best file for the new name
     music_curfile = fn                              ' remember the ENTRY so we don't re-resolve every step
     path = ResolveMusic$(fn)                        ' bare name -> best-quality file on disk ("" = none)
-    IF LEN(path) = 0 THEN EXIT SUB                  ' nothing on disk for this name -> silence
-    music_handle = _SNDOPEN(path)
-    IF music_handle > 0 THEN
-        _SNDVOL music_handle, opt_musicvol / 10
-        _SNDLOOP music_handle
-    END IF
+    BeginTrack path, -1                             ' crossfade in over ~MUSIC_FADE_SEC ("" -> fades the old out to silence)
 END SUB
 
 ' Resolve a BARE track name to the highest-quality file that exists for it, per the
@@ -101,8 +95,109 @@ END FUNCTION
 ' Stop and release the in-game track (called when a run ends, before the menu music).
 SUB StopLevelMusic
     IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle
-    music_handle = 0: music_level = 0: music_curfile = ""
+    IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
+    music_handle = 0: music_fadeout = 0: music_fading = 0
+    music_level = 0: music_curfile = ""
 END SUB
+
+' Crossfade helper: bring `path` in as the new music while whatever's playing fades OUT.
+' If nothing is playing yet, the new track just starts at full volume (no crossfade to do).
+' Any crossfade already in progress is snapped off first, so at most two tracks overlap.
+' The ramp itself is advanced by AudioTick (called each frame) over MUSIC_FADE_SEC seconds;
+' this SUB only sets it up and returns immediately, so the game never blocks on a transition.
+SUB BeginTrack (path AS STRING, doloop AS INTEGER)
+    DIM hadprev AS INTEGER
+    IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout   ' retire the last fade-out track
+    music_fadeout = 0
+    hadprev = (music_handle > 0)
+    music_fadeout = music_handle                    ' the current track becomes the fade-OUT track (0 if silent)
+    music_handle = 0
+    IF LEN(path) > 0 THEN
+        music_handle = _SNDOPEN(path)
+        IF music_handle > 0 THEN
+            IF hadprev THEN _SNDVOL music_handle, 0 ELSE _SNDVOL music_handle, opt_musicvol / 10
+            IF doloop THEN _SNDLOOP music_handle ELSE _SNDPLAY music_handle
+        END IF
+    END IF
+    IF hadprev THEN music_fade_start = TIMER: music_fading = -1 ELSE music_fading = 0
+END SUB
+
+' Per-frame audio ramp: advances the music crossfade AND the narration in/out envelope.
+' Call once per frame from every loop that runs while audio may be playing (the play loop,
+' the menu, combat, the reference screens, and the key-wait helpers). It is TIME-based
+' (TIMER - start), so irregular ticking never leaves a fade stuck -- it lands at the right
+' level by wall-clock the moment any loop calls it.
+SUB AudioTick
+    DIM tv AS SINGLE, el AS DOUBLE, frac AS SINGLE
+    DIM npos AS DOUBLE, nlen AS DOUBLE, g AS SINGLE, g2 AS SINGLE
+    ' --- music crossfade ---
+    IF music_fading THEN
+        tv = opt_musicvol / 10
+        el = TIMER - music_fade_start
+        IF el < 0 THEN el = el + 86400#                 ' TIMER wraps at midnight
+        frac = el / MUSIC_FADE_SEC
+        IF frac >= 1 THEN                               ' fade complete: drop the old track, new to full
+            IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
+            music_fadeout = 0
+            IF music_handle > 0 THEN _SNDVOL music_handle, tv
+            music_fading = 0
+        ELSE                                            ' mid-fade: new rises, old falls, they cross
+            IF music_handle > 0 THEN _SNDVOL music_handle, tv * frac
+            IF music_fadeout > 0 THEN _SNDVOL music_fadeout, tv * (1 - frac)
+        END IF
+    END IF
+    ' --- narration fade in/out (attenuates the record-click at both ends of a spoken line) ---
+    IF narr_handle > 0 THEN
+        IF _SNDPLAYING(narr_handle) THEN
+            npos = _SNDGETPOS(narr_handle)              ' real playhead -> the envelope self-corrects
+            nlen = _SNDLEN(narr_handle)
+            g = 1
+            IF narr_fadein > 0 THEN IF npos < narr_fadein THEN g = npos / narr_fadein
+            IF narr_fadeout > 0 AND nlen > 0 THEN         ' both pure reads -> AND is safe here
+                IF npos > nlen - narr_fadeout THEN
+                    g2 = (nlen - npos) / narr_fadeout
+                    IF g2 < g THEN g = g2               ' the tighter of in/out wins near a short clip's middle
+                END IF
+            END IF
+            IF g < 0 THEN g = 0
+            IF g > 1 THEN g = 1
+            _SNDVOL narr_handle, (opt_voicevol / 10) * g
+        END IF
+    END IF
+END SUB
+
+' Load the narration fade envelope for the CURRENT pack from its pack.conf (FADEIN=/FADEOUT=
+' seconds -- a CREATOR setting, not a player one). Defaults NARR_FADE_IN/OUT_DEF when the file
+' or a key is absent. Cached by pack name so it only re-reads on a pack change.
+SUB LoadNarrConf
+    DIM cf AS STRING, raw AS STRING
+    narr_conf_pack = opt_narrationpack
+    narr_conf_loaded = -1
+    narr_fadein = NARR_FADE_IN_DEF
+    narr_fadeout = NARR_FADE_OUT_DEF
+    IF LEN(opt_narrationpack) > 0 THEN cf = "assets/narration/" + opt_narrationpack + "/pack.conf" ELSE cf = "assets/narration/pack.conf"
+    IF NOT _FILEEXISTS(cf) THEN EXIT SUB
+    raw = UCASE$(_READFILE$(cf))
+    narr_fadein = ConfNum(raw, "FADEIN", NARR_FADE_IN_DEF)
+    narr_fadeout = ConfNum(raw, "FADEOUT", NARR_FADE_OUT_DEF)
+END SUB
+
+' Read `<kname>=<number>` (seconds) out of a pack.conf blob; returns dflt if absent.
+FUNCTION ConfNum (raw AS STRING, kname AS STRING, dflt AS SINGLE)
+    DIM p AS INTEGER, e AS INTEGER, c AS STRING, s AS STRING
+    ConfNum = dflt
+    p = INSTR(raw, kname + "=")
+    IF p = 0 THEN EXIT FUNCTION
+    p = p + LEN(kname) + 1
+    e = p
+    DO WHILE e <= LEN(raw)
+        c = MID$(raw, e, 1)
+        IF c = CHR$(10) OR c = CHR$(13) THEN EXIT DO
+        e = e + 1
+    LOOP
+    s = _TRIM$(MID$(raw, p, e - p))
+    IF LEN(s) > 0 THEN ConfNum = VAL(s)
+END FUNCTION
 
 
 ' ----------------------------------------------------------------------------
@@ -327,9 +422,16 @@ SUB Narrate (nkey AS STRING)
     IF narr_handle > 0 THEN IF _SNDPLAYING(narr_handle) THEN EXIT SUB
     p = NarratePath$(nkey)
     IF LEN(p) = 0 THEN EXIT SUB
+    ' refresh the fade envelope if the pack changed (or on the very first line)
+    IF (NOT narr_conf_loaded) OR (narr_conf_pack <> opt_narrationpack) THEN LoadNarrConf
     NarrateStop                                     ' release the finished handle before the next line
     narr_handle = _SNDOPEN(p)
-    IF narr_handle > 0 THEN _SNDVOL narr_handle, opt_voicevol / 10: _SNDPLAY narr_handle
+    IF narr_handle > 0 THEN
+        ' start SILENT when a fade-in is set so AudioTick can ramp it up from 0 (masking the
+        ' record-click); AudioTick reads the real playhead, so the level self-corrects each frame.
+        IF narr_fadein > 0 THEN _SNDVOL narr_handle, 0 ELSE _SNDVOL narr_handle, opt_voicevol / 10
+        _SNDPLAY narr_handle
+    END IF
 END SUB
 
 ' Tiered narration: speak `nkey` only if the SETTINGS narration frequency reaches
@@ -415,14 +517,9 @@ SUB PlayCue (nm AS STRING, doloop AS INTEGER)
     IF NOT opt_music THEN EXIT SUB
     path = ResolveMusic$(nm)                             ' pack-aware, best-quality file ("" = none)
     IF LEN(path) = 0 THEN EXIT SUB                       ' no cue on disk -> leave the level music alone
-    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
     music_curfile = ""                                   ' so EndCue's PlayLevelMusic re-resolves the level track
     music_cue_active = -1
-    music_handle = _SNDOPEN(path)
-    IF music_handle > 0 THEN
-        _SNDVOL music_handle, opt_musicvol / 10
-        IF doloop THEN _SNDLOOP music_handle ELSE _SNDPLAY music_handle
-    END IF
+    BeginTrack path, doloop                              ' crossfade to the cue (level track fades under it)
 END SUB
 
 ' End a screen/combat cue and return to the BACKGROUND track: the level track when
@@ -431,8 +528,7 @@ END SUB
 SUB EndCue
     IF NOT music_cue_active THEN EXIT SUB
     music_cue_active = FALSE
-    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
-    music_curfile = ""
+    music_curfile = ""                              ' force a re-resolve; PlayLevelMusic/PlayMenuMusic crossfade FROM the cue
     IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level ELSE PlayMenuMusic
 END SUB
 
@@ -446,12 +542,9 @@ SUB PlayMenuMusic
     music_level = 0                                 ' menu context (not a dungeon level)
     IF NOT opt_music THEN EXIT SUB
     IF music_handle > 0 AND music_curfile = "everdark" THEN EXIT SUB   ' already playing -> no restart
-    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
     music_curfile = "everdark"
     path = ResolveMusic$("everdark")
-    IF LEN(path) = 0 THEN EXIT SUB
-    music_handle = _SNDOPEN(path)
-    IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10: _SNDLOOP music_handle
+    BeginTrack path, -1                             ' crossfade the menu theme in (fades a screen cue out under it)
 END SUB
 
 ' Which combat cue fits the fight: intense for a boss, high for the deep levels, else low.

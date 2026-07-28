@@ -267,6 +267,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
 
     DO
         _LIMIT 60
+        AudioTick                            ' keep combat narration fade + music crossfade ramping while idle
         k = INKEY$
         IF k = CHR$(27) THEN
             IF FleeFails(sec) THEN               ' the deeper you are, the likelier it grabs you
@@ -383,6 +384,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     END IF
     DO
         _LIMIT 60
+        AudioTick                            ' keep combat narration fade + music crossfade ramping while idle
         ' Once an action's banners are done, wipe the message/dice area and redraw
         ' the board so ONLY the combat panel shows -- makes it obvious it's your turn.
         IF dirty THEN cursor_erase: cursor_draw: dirty = 0

@@ -134,7 +134,7 @@ END FUNCTION
 FUNCTION CurioChoose% (ky AS STRING)
     DIM k AS STRING
     DO
-        _LIMIT 60: k = UCASE$(INKEY$)
+        _LIMIT 60: AudioTick: k = UCASE$(INKEY$)
         IF k = UCASE$(ky) OR k = CHR$(13) THEN CurioChoose% = -1: EXIT FUNCTION
         IF k = "L" OR k = CHR$(27) THEN CurioChoose% = 0: EXIT FUNCTION
         _DISPLAY
