@@ -381,6 +381,9 @@ SUB ShowIntro
     mus = _SNDOPEN(ResolveMusic$("vr-theme"))       ' best-quality file for this name (pack-aware)
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDPLAY mus
+    DIM splash AS LONG                              ' introsplash: a short (~3s) one-shot title sting at the intro
+    splash = _SNDOPEN(ResolveMusic$("introsplash"))
+    IF splash > 0 AND opt_music THEN _SNDVOL splash, opt_musicvol / 10: _SNDPLAY splash
     _DEST CANVAS: _FONT CH: CLS , BLACK
     ANSI_Print (ansi)
     FadeInCurrent                               ' fade the logo in from black
@@ -393,6 +396,7 @@ SUB ShowIntro
     LOOP UNTIL k <> "" OR frames >= 150          ' auto-advance to the menu after ~5s idle
     FadeOut                                      ' fade to black before the menu
     IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
+    IF splash > 0 THEN _SNDSTOP splash: _SNDCLOSE splash
 END SUB
 
 
@@ -422,10 +426,7 @@ FUNCTION RunMenu%
     _DEST iRight: _FONT CH: ANSI_Print (rw(1))
     _DEST iBlock: _FONT CH: ANSI_Print (bl(1))
 
-    mus = _SNDOPEN(ResolveMusic$("everdark"))       ' best-quality file for this name (pack-aware)
-    music_handle = mus
-    IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
-    IF mus > 0 AND opt_music THEN _SNDLOOP mus
+    PlayMenuMusic                                   ' the MAIN MENU theme (everdark), cue-aware so screens can override + restore it
 
     sel = 1: t = 0: result = 0
     bnr_l2 = ""                               ' no stale in-game banner should flash in the menu
@@ -440,21 +441,26 @@ FUNCTION RunMenu%
             IF sel = 1 THEN
                 result = MENU_ENTER: EXIT DO
             ELSEIF sel = 2 THEN
+                PlayCue "chargen", -1                ' character-creation music (spans SelectClass + RollCharacter)
                 chosen = SelectClass
                 IF chosen > 0 THEN
                     player_class = chosen: player_name = ""
                     RollCharacter chosen             ' old-school 3d6 stats + rolled HP
                 END IF
+                EndCue                               ' back to the menu theme
             ELSEIF sel = 3 THEN
                 LoadCharacter
             ELSEIF sel = 4 THEN
-                ShowLords
+                ShowLords                            ' self-cues "lords" music internally
             ELSEIF sel = 5 THEN
+                PlayCue "settings", -1
                 RunSettings
-                IF mus > 0 THEN
-                    _SNDVOL mus, opt_musicvol / 10
-                    IF opt_music AND _SNDPLAYING(mus) = 0 THEN _SNDLOOP mus
-                    IF NOT opt_music THEN _SNDSTOP mus
+                EndCue
+                ' settings may have toggled music off or changed its volume -- resync the menu track
+                IF opt_music THEN
+                    IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10 ELSE PlayMenuMusic
+                ELSEIF music_handle > 0 THEN
+                    _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
                 END IF
             ELSEIF sel = 6 THEN
                 result = MENU_FLEE: EXIT DO
@@ -503,7 +509,7 @@ FUNCTION RunMenu%
     LOOP
     IF result = MENU_ENTER THEN BloodDrip ELSE FadeOut     ' blood-drip descent into the dungeon; plain fade otherwise
 
-    IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
+    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle   ' stop the menu theme; PlayGame starts the level track
     music_handle = 0
     _FREEIMAGE iLogo: _FREEIMAGE iLeft: _FREEIMAGE iRight: _FREEIMAGE iBlock
     RunMenu = result

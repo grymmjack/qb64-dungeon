@@ -126,6 +126,7 @@ SUB ShowLords
         COLOR YELLOWU, BLACK: PrintCentered 46, "[ press any key ]"
         _DISPLAY: WaitKey: EXIT SUB
     END IF
+    PlayCue "lords", -1                                 ' hall-of-fame music (restored to menu/level track on exit)
     sel = 1
     DO
         _LIMIT 60
@@ -138,7 +139,7 @@ SUB ShowLords
             sel = sel + 1: IF sel > n THEN sel = 1
             Sfx "select"
         END IF
-        IF k = CHR$(27) THEN EXIT SUB
+        IF k = CHR$(27) THEN EndCue: EXIT SUB
         IF k = CHR$(13) THEN
             Sfx "select"
             ShowLordDetail sel, nm(sel), klass(sel), gld(sel), secs(sel)

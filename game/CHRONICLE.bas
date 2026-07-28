@@ -254,6 +254,7 @@ END SUB
 ' BESTIARY -- lightbar list on the left, portrait + tallies on the right.
 SUB ShowBestiary
     DIM sel AS INTEGER, i AS INTEGER, y AS INTEGER, k AS STRING, ext AS INTEGER, sp AS STRING
+    PlayCue "bestiary", -1                              ' bestiary music (restored to the level track on exit)
     sel = 1
     DO
         _DEST CANVAS: LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
@@ -293,6 +294,7 @@ SUB ShowBestiary
         IF sel < 1 THEN sel = BEAST_N
         IF sel > BEAST_N THEN sel = 1
     LOOP
+    EndCue                                              ' bestiary done -> back to the level track
     ChronicleClose
 END SUB
 SUB BeastRow (y AS INTEGER, lbl AS STRING, v AS INTEGER)
@@ -323,6 +325,7 @@ SUB ShowTreasury
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
         _DISPLAY: WaitKey: ChronicleClose: EXIT SUB
     END IF
+    PlayCue "treasury", -1                              ' treasury music (restored to the level track on exit)
     sel = 1
     DO
         _DEST CANVAS: LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
@@ -361,6 +364,7 @@ SUB ShowTreasury
         IF sel < 1 THEN sel = TRE_STAT_N
         IF sel > TRE_STAT_N THEN sel = 1
     LOOP
+    EndCue                                              ' treasury done -> back to the level track
     ChronicleClose
 END SUB
 

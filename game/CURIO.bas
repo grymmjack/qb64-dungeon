@@ -89,6 +89,7 @@ SUB DoCurio (rm AS INTEGER)
         IF r <= 0 THEN pick = i: EXIT FOR
     NEXT
     kd = _TRIM$(CURIOS(pick).kind)
+    PlayCue "curio", -1                                 ' curio-discovery music (restored to the level track on exit)
     RecordCurio _TRIM$(CURIOS(pick).nm)                 ' chronicle: a curio appeared
     Sfx "curio"
     NarrateT "curio." + kd, NARR_EVENT                  ' spoken by curio kind (curio.chest, ...) if a pack has it -- Events tier
@@ -108,6 +109,7 @@ SUB DoCurio (rm AS INTEGER)
         CASE "cache": CurioCache sec
         CASE "mimic": CurioMimic sec
     END SELECT
+    EndCue                                             ' curio done -> back to the level track
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
 

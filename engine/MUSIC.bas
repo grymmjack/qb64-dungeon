@@ -421,13 +421,33 @@ SUB PlayCue (nm AS STRING, doloop AS INTEGER)
     END IF
 END SUB
 
-' End a combat/level cue and return to the current level's track (no-op if no cue is active).
+' End a screen/combat cue and return to the BACKGROUND track: the level track when
+' inside a delve (music_level 1-9), else the MENU theme (music_level 0). No-op if no
+' cue is active.
 SUB EndCue
     IF NOT music_cue_active THEN EXIT SUB
     music_cue_active = FALSE
     IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
     music_curfile = ""
-    IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level
+    IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level ELSE PlayMenuMusic
+END SUB
+
+' Play the MAIN MENU theme (everdark) as the background track, and mark the context
+' as "not in a delve" (music_level = 0) so EndCue restores THIS when a screen cue ends.
+' Won't restart everdark if it's already the track playing. Graceful: silent if music
+' is off or no everdark file exists. Centralises what RunMenu used to do inline, so the
+' menu screens (settings / char-gen / lords) can override it with a cue and get it back.
+SUB PlayMenuMusic
+    DIM path AS STRING
+    music_level = 0                                 ' menu context (not a dungeon level)
+    IF NOT opt_music THEN EXIT SUB
+    IF music_handle > 0 AND music_curfile = "everdark" THEN EXIT SUB   ' already playing -> no restart
+    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
+    music_curfile = "everdark"
+    path = ResolveMusic$("everdark")
+    IF LEN(path) = 0 THEN EXIT SUB
+    music_handle = _SNDOPEN(path)
+    IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10: _SNDLOOP music_handle
 END SUB
 
 ' Which combat cue fits the fight: intense for a boss, high for the deep levels, else low.
