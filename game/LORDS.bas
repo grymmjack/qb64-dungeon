@@ -5,7 +5,7 @@
 ' Path to a champion's end-of-run board snapshot. Kept in a subdirectory (not the
 ' repo root) -- ShowEnd creates the folder before saving. One helper for all 3 sites.
 FUNCTION LordsMapPath$ (mapkey AS STRING)
-    LordsMapPath$ = "dungeon-lords-maps/" + _TRIM$(mapkey) + ".png"
+    LordsMapPath$ = "gameplay-data-saves/dungeon-lords-maps/" + _TRIM$(mapkey) + ".png"
 END FUNCTION
 
 ' Append a victorious champion to the hall of fame, v2 pipe-delimited record:
@@ -29,7 +29,7 @@ SUB SaveLord (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG, mapid AS
     FOR i = e0 TO EVLOG_N: evs = evs + EVLOG(i): IF i < EVLOG_N THEN evs = evs + " ~~ "
     NEXT
     f = FREEFILE
-    OPEN "dungeon-lords.dat" FOR APPEND AS #f
+    OPEN "gameplay-data-saves/dungeon-lords.dat" FOR APPEND AS #f
     PRINT #f, nm + "|" + klass + "|" + _TRIM$(STR$(gld)) + "|" + _TRIM$(STR$(secs)) + "|" + _TRIM$(STR$(deep)) + "|" + ks + "|" + gs + "|" + ab + "|" + _TRIM$(STR$(mapid)) + "|" + evs
     CLOSE #f
 END SUB
@@ -46,10 +46,10 @@ FUNCTION ReadLords% (nm() AS STRING, klass() AS STRING, gld() AS LONG, secs() AS
     DIM n AS INTEGER, i AS INTEGER, j AS INTEGER, ln AS STRING, whole AS STRING
     DIM a AS INTEGER, b AS INTEGER, rest AS STRING, p AS LONG, nl AS LONG
     n = 0
-    IF NOT _FILEEXISTS("dungeon-lords.dat") THEN ReadLords = 0: EXIT FUNCTION
+    IF NOT _FILEEXISTS("gameplay-data-saves/dungeon-lords.dat") THEN ReadLords = 0: EXIT FUNCTION
     ' read the whole file and split on newlines ourselves -- dodges QB64's flaky
     ' EOF/LINE INPUT interaction ("Input past end of file") on the last line.
-    whole = _READFILE$("dungeon-lords.dat")
+    whole = _READFILE$("gameplay-data-saves/dungeon-lords.dat")
     p = 1
     DO WHILE p <= LEN(whole)
         IF n >= UBOUND(nm) THEN EXIT DO
@@ -409,7 +409,7 @@ END FUNCTION
 SUB SaveSettings
     DIM f AS INTEGER
     f = FREEFILE
-    OPEN "dungeon-settings.dat" FOR OUTPUT AS #f
+    OPEN "gameplay-data-saves/dungeon-settings.dat" FOR OUTPUT AS #f
     PRINT #f, "music " + _TRIM$(STR$(opt_music))
     PRINT #f, "sfx " + _TRIM$(STR$(opt_sfx))
     PRINT #f, "voice " + _TRIM$(STR$(opt_voice))
@@ -469,9 +469,9 @@ END SUB
 
 SUB LoadSettings
     DIM f AS INTEGER, ln AS STRING, k AS STRING, v AS INTEGER, sp AS INTEGER, vs AS STRING
-    IF NOT _FILEEXISTS("dungeon-settings.dat") THEN EXIT SUB
+    IF NOT _FILEEXISTS("gameplay-data-saves/dungeon-settings.dat") THEN EXIT SUB
     f = FREEFILE
-    OPEN "dungeon-settings.dat" FOR INPUT AS #f
+    OPEN "gameplay-data-saves/dungeon-settings.dat" FOR INPUT AS #f
     DO WHILE NOT EOF(f)
         LINE INPUT #f, ln
         sp = INSTR(ln, " ")

@@ -27,10 +27,10 @@ END FUNCTION
 ' outcome = "killed"/"fled"/"died", dealt/taken = HP totals over the fight.
 SUB StatLog (dlevel AS INTEGER, roomid AS INTEGER, mon AS STRING, boss AS INTEGER, wander AS INTEGER, outcome AS STRING, rounds AS INTEGER, dealt AS INTEGER, taken AS INTEGER)
     DIM f AS INTEGER, newfile AS INTEGER, mode AS STRING
-    newfile = (_FILEEXISTS("dungeon-stats.csv") = 0)
+    newfile = (_FILEEXISTS("gameplay-data-saves/dungeon-stats.csv") = 0)
     IF opt_oldschool THEN mode = "oldschool" ELSE mode = "dnd"
     f = FREEFILE
-    OPEN "dungeon-stats.csv" FOR APPEND AS #f
+    OPEN "gameplay-data-saves/dungeon-stats.csv" FOR APPEND AS #f
     IF newfile THEN PRINT #f, "date,time,hero,class,mode,char_level,xp,dungeon_level,room,monster,boss,wandering,outcome,rounds,dmg_dealt,dmg_taken,hp_after,maxhp,gold_after"
     PRINT #f, DATE$ + "," + TIME$ + "," + CsvCell$(player_name) + "," + CsvCell$(class_name) + "," + mode + "," + _TRIM$(STR$(char_level)) + "," + _TRIM$(STR$(char_xp)) + "," + _TRIM$(STR$(dlevel)) + "," + _TRIM$(STR$(roomid)) + "," + CsvCell$(mon) + "," + Bit$(boss) + "," + Bit$(wander) + "," + outcome + "," + _TRIM$(STR$(rounds)) + "," + _TRIM$(STR$(dealt)) + "," + _TRIM$(STR$(taken)) + "," + _TRIM$(STR$(player_hp)) + "," + _TRIM$(STR$(player_maxhp)) + "," + _TRIM$(STR$(gold))
     CLOSE #f

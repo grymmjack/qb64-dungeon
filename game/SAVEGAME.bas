@@ -29,7 +29,7 @@ SUB SaveGame
     DIM f AS INTEGER, i AS INTEGER, s AS STRING, el AS DOUBLE
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
-    OPEN "dungeon-save.dat" FOR OUTPUT AS #f
+    OPEN "gameplay-data-saves/dungeon-save.dat" FOR OUTPUT AS #f
     PRINT #f, "DUNGEONSAVE 4"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
@@ -93,7 +93,7 @@ SUB LoadGameApply
     DIM i AS INTEGER, rn AS INTEGER, el AS DOUBLE, tag AS STRING, nm AS STRING, sver AS INTEGER
     DIM scx AS INTEGER, scy AS INTEGER, spx AS INTEGER, spy AS INTEGER
 
-    TokLoad "dungeon-save.dat"
+    TokLoad "gameplay-data-saves/dungeon-save.dat"
     tag = NextTok$                                  ' "DUNGEONSAVE"
     sver = NextI                                    ' save format version (3 = per-room mhp is stored, not reproduced)
     run_seed = VAL(NextTok$)

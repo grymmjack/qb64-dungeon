@@ -85,6 +85,8 @@ _FONT CH
 SCREEN CANVAS
 IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
+IF _DIREXISTS("gameplay-data-saves") = 0 THEN MKDIR "gameplay-data-saves"   ' all runtime saves/prefs/stats/maps live here (keeps the repo root clean); must exist before any load/save
+
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
 opt_musicvol = 4: opt_sfxvol = 4: opt_voicevol = 10  ' 0..10 volume sliders (maintainer's mix)

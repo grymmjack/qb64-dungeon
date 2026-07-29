@@ -1308,7 +1308,7 @@ SUB ShowEnd (win AS INTEGER)
         cursor_erase: cursor_draw
         mapid = ABS(gold) * 97 + el * 13 + player_str * 7 + player_dex * 3 + LEN(class_name) * 101
         IF mapid < 0 THEN mapid = -mapid
-        IF _DIREXISTS("dungeon-lords-maps") = 0 THEN MKDIR "dungeon-lords-maps"   ' ensure the subdir exists before saving
+        IF _DIREXISTS("gameplay-data-saves/dungeon-lords-maps") = 0 THEN MKDIR "gameplay-data-saves/dungeon-lords-maps"   ' ensure the subdir exists before saving
         _SAVEIMAGE LordsMapPath$(_TRIM$(STR$(mapid))), CANVAS
         nm = EnterName$                         ' victory + name entry
         player_name = nm
