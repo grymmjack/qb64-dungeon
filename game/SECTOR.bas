@@ -17,9 +17,9 @@ SUB LoadSectorMask
     DIM x AS INTEGER, y AS INTEGER
     FOR y = 0 TO 60: FOR x = 0 TO 131: SECTORAT(x, y) = 0: NEXT: NEXT
     SECTORMASK_ON = FALSE
-    IF NOT _FILEEXISTS("assets/ansi/board-132x50-sector-mask.ans") THEN EXIT SUB
+    IF NOT _FILEEXISTS(AnsiFile$("board-132x50-sector-mask.ans")) THEN EXIT SUB
     DIM mb AS STRING, mimg AS LONG, olddest AS LONG, oldsrc AS LONG, cnt AS INTEGER
-    mb = _READFILE$("assets/ansi/board-132x50-sector-mask.ans")
+    mb = _READFILE$(AnsiFile$("board-132x50-sector-mask.ans"))
     IF LEN(mb) = 0 THEN EXIT SUB
     mb = MaskNormalize$(mb)                   ' strip CR/LF + reset each SGR run (see ansilint / MaskNormalize$)
     mimg = _NEWIMAGE(SW * CW, SH * CH, 32)

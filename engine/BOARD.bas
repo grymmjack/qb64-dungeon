@@ -493,11 +493,11 @@ END FUNCTION
 ' >=1 secret cell -- the exact, art-as-data replacement for the openness/flood heuristic.
 FUNCTION LoadSecretMask%
     LoadSecretMask = 0: MASK_ON = FALSE
-    IF NOT _FILEEXISTS("assets/ansi/board-132x50-secret-mask.ans") THEN EXIT FUNCTION
+    IF NOT _FILEEXISTS(AnsiFile$("board-132x50-secret-mask.ans")) THEN EXIT FUNCTION
     DIM mb AS STRING, mimg AS LONG, olddest AS LONG, oldsrc AS LONG
     DIM x AS INTEGER, y AS INTEGER, cnt AS INTEGER, regid AS INTEGER
     DIM head AS INTEGER, tail AS INTEGER, cx AS INTEGER, cy AS INTEGER
-    mb = _READFILE$("assets/ansi/board-132x50-secret-mask.ans")
+    mb = _READFILE$(AnsiFile$("board-132x50-secret-mask.ans"))
     IF LEN(mb) = 0 THEN EXIT FUNCTION
     mb = MaskNormalize$(mb)                   ' strip CR/LF + reset each SGR run (see ansilint / MaskNormalize$)
     mimg = _NEWIMAGE(SW * CW, SH * CH, 32)

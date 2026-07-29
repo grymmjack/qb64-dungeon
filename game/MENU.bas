@@ -378,7 +378,7 @@ SUB ShowIntro
     ' freshly-drawn logo can't flash at full brightness for a frame before FadeInCurrent starts.
     _DEST CANVAS: CLS , BLACK
     FOR frames = 1 TO 15: _DISPLAY: _LIMIT 60: NEXT
-    ansi = _READFILE$("assets/ansi/vermin-radioactive-logo.ans")
+    ansi = _READFILE$(AnsiFile$("vermin-radioactive-logo.ans"))
     mus = _SNDOPEN(ResolveMusic$("vr-theme"))       ' best-quality file for this name (pack-aware)
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
     IF mus > 0 AND opt_music THEN _SNDPLAY mus
@@ -413,10 +413,10 @@ FUNCTION RunMenu%
     DIM AS LONG t
     DIM k AS STRING
 
-    logo = _READFILE$("assets/ansi/dungeon-menu-logo.ans")
-    FOR i = 1 TO 4: lw(i) = _READFILE$("assets/ansi/dungeon-menu-left-wall-" + _TRIM$(STR$(i)) + ".ans"): NEXT
-    FOR i = 1 TO 4: rw(i) = _READFILE$("assets/ansi/dungeon-menu-right-wall-" + _TRIM$(STR$(i)) + ".ans"): NEXT
-    FOR i = 1 TO 6: bl(i) = _READFILE$("assets/ansi/dungeon-menu-block-" + _TRIM$(STR$(i)) + ".ans"): NEXT
+    logo = _READFILE$(AnsiFile$("dungeon-menu-logo.ans"))
+    FOR i = 1 TO 4: lw(i) = _READFILE$(AnsiFile$("dungeon-menu-left-wall-" + _TRIM$(STR$(i)) + ".ans")): NEXT
+    FOR i = 1 TO 4: rw(i) = _READFILE$(AnsiFile$("dungeon-menu-right-wall-" + _TRIM$(STR$(i)) + ".ans")): NEXT
+    FOR i = 1 TO 6: bl(i) = _READFILE$(AnsiFile$("dungeon-menu-block-" + _TRIM$(STR$(i)) + ".ans")): NEXT
 
     iLogo = _NEWIMAGE(102 * CW, 15 * CH, 32)
     iLeft = _NEWIMAGE(15 * CW, 51 * CH, 32)
@@ -588,9 +588,9 @@ SUB BuildSetLayout
     SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
-    SetLayRow 3, 46, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow(): SetLayRow 3, 36, prow()
+    SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow(): SetLayRow 3, 36, prow()
     prow(3) = prow(3) + 1
-    SetLayRow 3, 49, prow()                         ' << Back at the foot of the last column
+    SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
 END SUB
 
 ' Move option `cur` up (W / up-arrow) or down (S / down-arrow) through the reading-order
@@ -642,7 +642,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 49
+    CONST NSET = 50
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -765,6 +765,7 @@ SUB RunSettings
                     IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
                     Sfx "select"
                 CASE 48: opt_duckamt = Clamp10(opt_duckamt + delta): Sfx "select"   ' music-under-voice ducking depth
+                CASE 49: CycleAnsiPack delta                                        ' ANSI-art pack (board + masks + menu)
             END SELECT
         END IF
 
@@ -856,7 +857,8 @@ SUB RunSettings
                     opt_narrfreq = opt_narrfreq + 1: IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
                 CASE 48
                     opt_duckamt = opt_duckamt + 1: IF opt_duckamt > 10 THEN opt_duckamt = 0
-                CASE 49: SaveSettings: Free3DPreviews: EXIT SUB
+                CASE 49: CycleAnsiPack 1
+                CASE 50: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
         END IF
@@ -1035,6 +1037,9 @@ SUB RunSettings
                 CASE 48
                     lbl = "  Music Ducking": slider = TRUE
                     IF opt_duckamt <= 0 THEN vtxt = "off" ELSE vtxt = _TRIM$(STR$(opt_duckamt)) + " / 10"
+                CASE 49
+                    lbl = "ANSI Art Pack": slider = TRUE
+                    vtxt = PackLabel$(opt_ansipack)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             cx0 = SL_COLX(SL_COL(i))

@@ -36,8 +36,8 @@ IF wanthelp THEN
     PRINT PipeCol$("|11Dev / diagnostic modes|07 (render or write a file, then exit):")
     PRINT PipeCol$("  |10chamberdump|07   detected chambers -> chamberdump.png (+ .txt bounding boxes)")
     PRINT PipeCol$("  |10fogdump|07       fogged board + secret-region overlay -> fogdump.png / -regions.png (+ stats .txt)")
-    PRINT PipeCol$("  |10maskgen|07       starter secret-door mask from the flood -> assets/ansi/board-132x50-secret-mask.ans")
-    PRINT PipeCol$("  |10sectorgen|07     starter sector mask from the rects     -> assets/ansi/board-132x50-sector-mask.ans")
+    PRINT PipeCol$("  |10maskgen|07       starter secret-door mask from the flood -> assets/ansi-art/default/board-132x50-secret-mask.ans")
+    PRINT PipeCol$("  |10sectorgen|07     starter sector mask from the rects     -> assets/ansi-art/default/board-132x50-sector-mask.ans")
     PRINT PipeCol$("  |10ansilint|07 |14[f]|07  lint a mask ANSI (line endings, row width, colours->sectors, SAUCE);")
     PRINT PipeCol$("                no file = check both board masks. Read-only.")
     PRINT PipeCol$("  |10ansifix|07 |14<f>|07   rewrite a mask ANSI clean (strip CR/LF blanks, reset SGR); backs up to <f>.bak")
@@ -46,7 +46,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
-    PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi/*-mask.ans|07, then rebuild (F5).")
+    PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
     SYSTEM
 END IF
 _CONSOLE OFF                            ' normal run: hide the console, go graphics
@@ -94,6 +94,7 @@ opt_musicpack = "soundmon-orchestral"                ' default music pack (asset
 opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
 opt_narrfreq = NARR_COMBAT                           ' default: narrate everything (flavor + events + combat)
 opt_artpack = "default"                              ' default pixel-art pack (assets/pixel-art/default/); every pack is a named subfolder
+opt_ansipack = "default"                             ' default ANSI-art pack (assets/ansi-art/default/); board + masks + menu art
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
@@ -127,7 +128,7 @@ opt_maxdeaths = 3                             ' lives before permadeath: reach 3
 opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 25 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
-BOARD_ANSI = _READFILE$("assets/ansi/board-132x50-no-labels.ans")   ' same map, with secret doors
+BOARD_ANSI = _READFILE$(AnsiFile$("board-132x50-no-labels.ans"))   ' same map, with secret doors (ANSI-pack aware)
 LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
 LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
@@ -254,7 +255,7 @@ END IF
 '    (magenta block = secret cell). Only runs the flood (mask absent -> InitFog floods);
 '    delete the mask first to regenerate. Then hand-refine it in your ANSI editor. ---
 IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
-    IF _FILEEXISTS("assets/ansi/board-132x50-secret-mask.ans") THEN
+    IF _FILEEXISTS("assets/ansi-art/default/board-132x50-secret-mask.ans") THEN
         _DEST _CONSOLE
         PRINT PipeCol$("|14board-132x50-secret-mask.ans already exists -- NOT regenerating|07 (would clobber your")
         PRINT PipeCol$("hand-painted mask). |12Delete the file first|07 if you really want a fresh starter.")
@@ -291,7 +292,7 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
     sauce = sauce + "IBM VGA" + STRING$(15, 0) ' TInfoS = font name, null-padded to 22
     eofc = CHR$(26)                            ' SAUCE sits after a 0x1A EOF marker
     mgf = FREEFILE
-    OPEN "assets/ansi/board-132x50-secret-mask.ans" FOR BINARY AS #mgf
+    OPEN "assets/ansi-art/default/board-132x50-secret-mask.ans" FOR BINARY AS #mgf
     PUT #mgf, 1, mgs
     PUT #mgf, , eofc
     PUT #mgf, , sauce
@@ -304,7 +305,7 @@ END IF
 '    hand-refine it to your art in an ANSI editor. (Named SECTORGEN, not SECTORMASKGEN,
 '    so it doesn't contain the substring "MASKGEN" and trigger the secret-mask maskgen.) ---
 IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
-    IF _FILEEXISTS("assets/ansi/board-132x50-sector-mask.ans") THEN
+    IF _FILEEXISTS("assets/ansi-art/default/board-132x50-sector-mask.ans") THEN
         _DEST _CONSOLE
         PRINT PipeCol$("|14board-132x50-sector-mask.ans already exists -- NOT regenerating|07 (would clobber your")
         PRINT PipeCol$("hand-painted mask). |12Delete the file first|07 if you really want a fresh starter.")
@@ -328,7 +329,7 @@ IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
     DIM smsauce AS STRING
     smsauce = SauceRecord$("DUNGEON! sector mask", SW, SH - 1, LEN(sms))
     smf = FREEFILE
-    OPEN "assets/ansi/board-132x50-sector-mask.ans" FOR BINARY AS #smf
+    OPEN "assets/ansi-art/default/board-132x50-sector-mask.ans" FOR BINARY AS #smf
     PUT #smf, 1, sms
     PUT #smf, , smeof
     PUT #smf, , smsauce
@@ -348,8 +349,8 @@ IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
     IF LEN(alpath) > 0 THEN
         AnsiLint alpath
     ELSE
-        AnsiLint "assets/ansi/board-132x50-sector-mask.ans"
-        AnsiLint "assets/ansi/board-132x50-secret-mask.ans"
+        AnsiLint "assets/ansi-art/default/board-132x50-sector-mask.ans"
+        AnsiLint "assets/ansi-art/default/board-132x50-secret-mask.ans"
     END IF
     SYSTEM
 END IF

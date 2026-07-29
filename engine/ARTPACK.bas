@@ -89,6 +89,49 @@ SUB CycleArtPack (delta AS INTEGER)
     Sfx "select"
 END SUB
 
+' Resolve an ANSI-art file under assets/ansi-art/ with pack support: selected pack first
+' (assets/ansi-art/<pack>/<subpath>), then the "default" pack. "" if neither exists. Note the
+' .ans set INCLUDES the board (which is ALSO the collision map) + the sector/secret masks, so an
+' ANSI pack is a full total-conversion -- a pack must keep the board's wall/floor/door palette.
+FUNCTION AnsiFile$ (subpath AS STRING)
+    DIM p AS STRING
+    IF LEN(opt_ansipack) > 0 THEN
+        p = "assets/ansi-art/" + opt_ansipack + "/" + subpath
+        IF _FILEEXISTS(p) THEN AnsiFile$ = p: EXIT FUNCTION
+    END IF
+    p = "assets/ansi-art/default/" + subpath
+    IF _FILEEXISTS(p) THEN AnsiFile$ = p ELSE AnsiFile$ = ""
+END FUNCTION
+
+' Fill ANSIPACKS() with every subfolder of assets/ansi-art/ (each is a pack, incl "default").
+' Same model as ScanArtPacks: the folder list IS the pack list; a vanished pick -> "default".
+SUB ScanAnsiPacks
+    DIM e AS STRING, nm AS STRING
+    ANSIPACK_N = 0
+    IF _DIREXISTS("assets/ansi-art/") THEN
+        e = _FILES$("assets/ansi-art/")
+        DO WHILE LEN(e) > 0
+            IF RIGHT$(e, 1) = "/" THEN
+                nm = LEFT$(e, LEN(e) - 1)
+                IF nm <> "." AND nm <> ".." AND ANSIPACK_N < UBOUND(ANSIPACKS) THEN ANSIPACK_N = ANSIPACK_N + 1: ANSIPACKS(ANSIPACK_N) = nm
+            END IF
+            e = _FILES$
+        LOOP
+    END IF
+    IF PackIndex%(ANSIPACKS(), ANSIPACK_N, opt_ansipack) = 0 THEN opt_ansipack = "default"
+END SUB
+
+' Cycle the ANSI-art pack by delta. The MENU art re-reads next time the menu opens, but the
+' BOARD is loaded once at startup -- so a board change from a new pack fully applies on restart.
+SUB CycleAnsiPack (delta AS INTEGER)
+    DIM idx AS INTEGER
+    idx = PackIndex%(ANSIPACKS(), ANSIPACK_N, opt_ansipack) + delta
+    IF idx < 1 THEN idx = ANSIPACK_N
+    IF idx > ANSIPACK_N THEN idx = 1
+    opt_ansipack = ANSIPACKS(idx)
+    Sfx "select"
+END SUB
+
 ' TRUE if any space-separated word of `words` occurs in `hay` (hay pre-padded/uppercased).
 FUNCTION InStrAny% (hay AS STRING, words AS STRING)
     DIM rest AS STRING, w AS STRING, sp AS INTEGER
