@@ -28,6 +28,16 @@ assets/
 
 ## `assets/data/` — game tables  (loaded by `include/DATA.bas`)
 
+> **📦 Data packs — make a whole new game.** The base game lives in **`assets/data/default/`**
+> (+ its prose in **`assets/flavor/default/`**). Every subfolder of `assets/data/` is a *data pack*
+> you pick in **SETTINGS → Data Pack**. To build your own game: copy `default/` to
+> `assets/data/mygame/` (and `assets/flavor/default/` → `assets/flavor/mygame/`), edit the tables,
+> select **mygame** in SETTINGS, and **restart** (data loads once at launch). A pack is resolved
+> **per file** with fallback to `default/`, so a *partial* pack only needs the files it changes —
+> e.g. a `mygame/` holding just `monsters.txt` swaps the bestiary and inherits everything else.
+> Same model as the Art Pack / ANSI Art Pack. The tables below are named by their *logical* path
+> (`monsters.txt`); on disk they sit under the selected pack folder.
+
 **Content — the bestiary, loot, and encounters:**
 
 | File | One row is… | Columns |

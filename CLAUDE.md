@@ -356,7 +356,16 @@ Environment specifics that dictate this approach:
   by a sample when present.
 - **`assets/data/`** — the editable **content database**: pipe-delimited `.txt` files,
   loaded at launch by **`include/DATA.bas`** into the same shared tables the old hard-coded
-  `Init*` routines used. `DATA.bas` is the shared reader: `ReadDataFile(path)` fills `DLINE()`
+  `Init*` routines used. **DATA PACKS:** every file now lives under a named pack subfolder — the
+  base game is **`assets/data/default/`** + **`assets/flavor/default/`**. `DataPath$` (DATA.bas)
+  rewrites each `"assets/data/<f>"`/`"assets/flavor/<f>"` load through the SETTINGS **Data Pack**
+  (`opt_datapack`, default `default`): the selected pack is tried first, **per-file**, falling back
+  to `default/` — so a *partial* pack overrides only the tables/flavor it ships. A pack IS a whole
+  game (swap monsters/treasures/tuning/classes/strings + flavor prose). It applies on the **next
+  launch** (data loads once at startup, like the ANSI board pack); `ScanDataPacks` enumerates
+  `assets/data/` subdirs, `CycleDataPack` switches, persisted as `datapack`. The two funnels
+  `ReadDataFile`/`ParseFlavorFile` both route through `DataPath$`, so the file names below are the
+  *logical* paths (physically under `default/`). `DATA.bas` is the shared reader: `ReadDataFile(path)` fills `DLINE()`
   and `DField$(ln, n)` returns field `n` (**trimmed**, so columns can be space-padded; `#` =
   comment; blank lines ignored), plus helpers `HexRGB~&`, `SGRForColor$`/`SGRBgForColor$` (colour
   → ANSI SGR, used by the mask generators), `SauceRecord$`, and `MaskNormalize$` (see the mask
