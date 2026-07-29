@@ -48,18 +48,24 @@ END SUB
 
 ' Scan FULL_BOARD for regular (brown) door tiles and record their cells.
 SUB DetectDoors
-    DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, brown AS INTEGER
+    ' GOTCHA: the hit counter must NOT be named `brown`. QB64 identifiers are
+    ' case-insensitive, so a local `brown` shadows the shared BROWN colour and
+    ' `POINT(...) = BROWN` silently compares the pixel against the counter (0)
+    ' instead of AA5500 -- so this found ZERO doors, `MarkStrongDoors` marked
+    ' nothing, and reinforced doors never appeared in the game. Compare
+    ' DetectSecretDoors, whose `blue` vs BRIGHT_BLUE never collided and worked.
+    DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, hits AS INTEGER
     DOOR_N = 0
     _SOURCE FULL_BOARD
     FOR cy = 1 TO SH - 4
         FOR cx = 1 TO SW - 2
-            brown = 0
+            hits = 0
             FOR py = 1 TO CH - 1 STEP 2
                 FOR px = 1 TO CW - 1 STEP 2
-                    IF POINT(cx * CW + px, cy * CH + py) = BROWN THEN brown = brown + 1
+                    IF POINT(cx * CW + px, cy * CH + py) = BROWN THEN hits = hits + 1
                 NEXT px
             NEXT py
-            IF brown >= 2 AND DOOR_N < UBOUND(DOOR_X) THEN
+            IF hits >= 2 AND DOOR_N < UBOUND(DOOR_X) THEN
                 DOOR_N = DOOR_N + 1
                 DOOR_X(DOOR_N) = cx: DOOR_Y(DOOR_N) = cy
             END IF
