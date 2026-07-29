@@ -367,7 +367,6 @@ DIM SHARED SORD_N AS INTEGER
 '  (whose ENGINE.BI comment already conceded "rules that fill it live in game/").
 ' ============================================================================
 DIM SHARED opt_artstyle AS INTEGER        ' 0 = ANSI only, 1 = Pixel Art, 2 = Hybrid (ANSI board + pixel portraits)
-DIM SHARED AS INTEGER turn_num, steps_left, need_roll    ' turn machinery (rules that fill it live in game/)
 DIM SHARED opt_flexstats AS INTEGER   ' 0 = OFF (rolled order), 1 = Assign roll (swap), 2 = Point distribution
 DIM SHARED opt_gestures AS INTEGER     ' SETTINGS "Action Gestures": timing-bar mini-game (second-wind + crit flourish)
 DIM SHARED opt_combatspeed AS INTEGER ' (legacy, kept for save compat) -- superseded by opt_msgdelay

@@ -145,8 +145,18 @@ for f in engine_src:
         engine_txt.append(re.sub(r"'.*$", "", l))
 engine_blob = "".join(engine_txt)
 
+# RESERVED: engine concepts the engine does not consume YET. Listed explicitly so the fact
+# stays visible instead of being silently exempt -- the audit still reports them, it just
+# does not fail on them. Turn structure (whose turn, steps left, roll owed) is engine by
+# design; the deeper tactical-combat screen in plans/PLANS.todo will need engine-side
+# initiative + turn order and will consume these. Remove a name from here the moment an
+# engine/ file uses it, or move it to GAME.BI if that never happens.
+RESERVED = {"turn_num", "steps_left", "need_roll"}
+
 orphan = [n for n in decls
           if not re.search(r'\b%s\b' % re.escape(n), engine_blob, re.I)]
+reserved = [n for n in orphan if n.lower() in RESERVED]
+orphan = [n for n in orphan if n.lower() not in RESERVED]
 
 print()
 print(f"ENGINE.BI hoarding check: {len(decls)} globals declared")
@@ -156,7 +166,9 @@ if orphan:
     print("      " + " ".join(sorted(orphan)))
     print("  Either move the declaration to game/GAME.BI, or move its consumer into engine/.")
 else:
-    print("  every ENGINE.BI global is used by at least one engine/ file")
+    print("  no ENGINE.BI global is orphaned")
+if reserved:
+    print("  reserved (engine by design, no engine consumer yet): " + " ".join(sorted(reserved)))
 
 sys.exit(1 if bad else 0)
 PY

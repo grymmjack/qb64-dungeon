@@ -39,6 +39,14 @@ DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door 
 ' -- shared scratch buffer for the data-file loaders (see engine/DATA.bas) --
 DIM SHARED DLINE(1 TO 600) AS STRING, DLINE_N AS INTEGER
 
+' --- turn machinery (ENGINE, by design) ---
+' Turn STRUCTURE is engine: how many steps remain, whose turn it is, whether a roll is
+' owed. What a turn COSTS and what combat does with it are game rules. Today only game/
+' and dungeon.bas fill these, so the ENGINE.BI hoarding audit would flag them as unused --
+' they are RESERVED there on purpose, because the deeper tactical-combat screen in
+' plans/PLANS.todo needs engine-side initiative + turn order and will consume them.
+' See the allowlist in tests/audit-boundary.sh.
+DIM SHARED AS INTEGER turn_num, steps_left, need_roll
 DIM SHARED c AS CURSOR
 DIM SHARED bnr_l2 AS STRING, bnr_bx1 AS INTEGER, bnr_bx2 AS INTEGER   ' last Banner's prompt line + box, for the keypress flash
 

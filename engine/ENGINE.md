@@ -65,6 +65,20 @@ implemented by both `game/` and `examples/minimal/`) and **ENGINE.BI hoarding** 
 > cleaner signal than name-matching. That check now runs too. When it fires you have two honest
 > options: move the declaration to GAME.BI, or move its *consumer* into `engine/`.
 
+**Turn machinery is the deliberate exception, and worth understanding as a design call rather
+than an oversight.** `turn_num`/`steps_left`/`need_roll` sit in ENGINE.BI with **no engine
+consumer yet**, so the hoarding check would flag them. They are engine by design: turn
+*structure* — whose turn it is, how many steps remain, whether a roll is owed — is generic, while
+what a turn *costs* and what combat does with it are game rules. The deeper tactical-combat screen
+in [PLANS.todo](../plans/PLANS.todo) needs engine-side **initiative + turn order** and will consume
+them. So they are listed in a `RESERVED` set in `audit-boundary.sh`, which still **reports** them
+every run — visible, not silently exempt — but does not fail on them. Take a name out of that set
+the moment an `engine/` file uses it; move it to GAME.BI if that never happens.
+
+The general lesson: "no engine file uses this" is strong evidence of misfiling, but it is
+evidence, not proof. A deliberate reservation is legitimate — it just has to be *stated*, not
+assumed, or the next reader deletes it.
+
 > **Why a script, not a one-liner.** The obvious `grep '^ *DIM SHARED +\w+'` captures only the
 > **first** name on a line, so `DIM SHARED num_players AS INTEGER, cur_player AS INTEGER` hides
 > `cur_player` — which is exactly how this audit missed three real leaks mid-refactor. The script
@@ -121,13 +135,14 @@ primitives/types first; game types may build on engine ones, never the reverse.
   fullscreen/smooth); fog/FOV + secret-door/mask detection arrays; near-death juice bake data
   (blood/vignette/poison); `player_hp`/`player_maxhp` + `player_dmgdie` (the only character
   fields any engine module reads — JUICE bleeds for HP, GESTURE rolls the damage die);
-  save-token stream + `SAVE_FILE`; data-loader scratch; flood-fill queue; `START_CX`/`START_CY`.
+  save-token stream + `SAVE_FILE`; data-loader scratch; flood-fill queue; `START_CX`/`START_CY`;
+  **turn machinery** (`turn_num`/`steps_left`/`need_roll`).
 
   **Every global here is used by at least one `engine/` file, and `audit-boundary.sh` enforces
   that.** 27 were not: the D&D ability scores and derived to-hit/AC, the ruleset switches
   (`opt_flexstats`/`opt_critfumble`/`opt_hardcore`/`opt_combatspeed`/`opt_gestures`/`opt_artstyle`),
-  run identity (`run_seed`/`game_start`/`player_name`), the turn machinery
-  (`turn_num`/`steps_left`/`need_roll`/`moves_made`) and the dev flags — all moved to GAME.BI.
+  run identity (`run_seed`/`game_start`/`player_name`), `moves_made` and the dev flags — all moved
+  to GAME.BI.
   Two (`opt_fullscreen`/`opt_smooth`) were legitimately engine config whose only *consumer* was
   misfiled: `ApplyDisplay` moved from `game/MENU.bas` into `engine/UI.bas` instead.
 - **GAME.BI** — `SECTOR`/`ROOM`/`PCLASS`/`PLAYER`/`CURIO_T`/`FXROW`/`TRAPROW`/`EVTROW` types;
