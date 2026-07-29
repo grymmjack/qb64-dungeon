@@ -65,10 +65,13 @@ like `IF n > 0 AND ROOMS(n).x` still reads `ROOMS(0)`). Finally it builds + self
 **`examples/minimal`**, a second game on `engine/` alone that proves the engine carries no
 hidden DUNGEON! dependency, and runs **`dungeon.run savetest`** (save/load round-trip for the
 positional token stream, plus a read-only load of a COPY of the player's real save to prove a
-format bump has not orphaned it). Only *game-free* engine modules
+format bump has not orphaned it) and **`dungeon.run datalint`** (validates the loaded content
+tables of the ACTIVE data pack: a level must keep at least one gold treasure slot, since items
+override slots and a room rolls 1 of 3 uniformly — levels 5/6/8 had silently become
+item-only, making their `treasures.txt` rows dead data). Only *game-free* engine modules
 that touch nothing but QB64 built-ins can be unit-tested; everything else is verified through the
 binary's dev modes (`chamberdump`, `audiomanifest`, `imagemanifest`, `ansilint`, `settingsshot`,
-`savetest`)
+`savetest`, `datalint`)
 or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
 QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are unrelated —
 manual runnable prototypes, not suites.)

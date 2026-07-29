@@ -88,6 +88,19 @@ if (( $# == 0 )); then
     echo "-- short-circuit audit (AND/OR evaluate both sides) --"
     if tests/audit-shortcircuit.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shortcircuit"); fi
 
+    # Content tables: a data mistake never crashes, the level just plays wrong.
+    echo "-- content tables (dungeon.run datalint) --"
+    if [[ -x ./dungeon.run ]]; then
+        if dl=$(setsid timeout 60 xvfb-run -a ./dungeon.run datalint nocolor 2>&1) && grep -q 'datalint: clean' <<<"$dl"; then
+            grep -E 'datalint: clean' <<<"$dl" | sed 's/^/  /'
+        else
+            grep -E '!!|error' <<<"$dl" | head -8 | sed 's/^/    /'
+            (( fail++ )); failed+=("datalint")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Save-format round-trip: the stream is positional, so a field added on one side and
     # not the other silently shifts everything after it. Also loads a COPY of the player's
     # real save to prove a format bump did not orphan it.

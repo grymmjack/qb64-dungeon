@@ -291,9 +291,22 @@ Refinement backlog (from playtest 26-07-24):
     ~ LEGENDARY LORDS overhaul: per-level progression (levels 1-9 reached), monsters killed and gold
       earned PER LEVEL are now CAPTURED in the v2 save (lvl_reached/lvl_kills/lvl_gold/lvl_cleared).
       REMAINING: the viewer UI -- select a lord to see their full per-level character sheet.
-    ☐ Treasure/ITEM CARD drops per the DUNGEON! rules: verify the item deck + drop odds against the
-      manual (Magic Sword, Magic Bow/Arrow, Shield, Cloak, ESP Medallion, Crystal Ball, Elf Boots,
-      Teleport, Wizard spells, etc.) and their per-level frequency; expand TRE_ITEM beyond the current 5.
+    ✔ Treasure/ITEM CARD deck verified against the manual @done(26-07-29)
+      TRE_ITEM already spans 12 usable codes (the "expand beyond 5" note was stale). All the
+      manual's magic cards are in the deck: Magic Sword +1/+2, Secret Door Card, ESP Medallion,
+      Crystal Ball, Shield, Magic Armor, Magic Bow, Elf Boots, Teleport Scroll, Fire Ball and
+      Lightning scrolls. (No Cloak / separate Magic Arrow -- neither is in DUNGEON-RULES.md's
+      card list; "Magic Bow/Arrow" reads as one item and is the Magic Bow.)
+      FOUND + FIXED a real per-level frequency bug: items OVERRIDE a treasure slot and a room
+      rolls 1 of its level's 3 slots uniformly, so levels 5, 6 and 8 -- whose every slot had
+      become an item -- could NEVER yield a gold treasure card, and their treasures.txt rows
+      were dead data. Dropped the 3 duplicate cards that saturated them (L5 Fire Ball, L6
+      Lightning, L8 Magic Bow -- each still available elsewhere). Deck 18 -> 15; every level now
+      keeps >=1 gold slot. items.txt records the invariant and `dungeon.run datalint` fails the
+      build if it is ever broken again.
+    ☐ Item drop ODDS are still uniform-by-slot: levels 3-9 all sit at 66% item chance (2 of 3
+      slots). The manual implies magic cards are a minority of the deck. Consider thinning to 1
+      item slot on the mid levels, or weighting the slot roll -- a balance call, wants playtesting.
     ~ To-hit is class base + attribute mod (STR fighters / INT wizard) -- e.g. Hero +7 = +4 class +3 STR;
       shown by CombatDerivation$. Working as designed; revisit class base values if combat stays too easy.
 
