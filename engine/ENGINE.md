@@ -72,7 +72,7 @@ the rest are still inlined in the play loop / renderers and get lifted in later 
 | 5 | `Game_HUDText$()` / `Game_DrawHUDExtra` — HUD content injection | planned | `DrawHUD` (MENU.bas) |
 | 6 | `Game_RenderMapLabels`/`Game_RenderOverlays` — board labels + tombstone/grave/entity overlays (superseded the guessed per-cell `Game_CellMarker%`) | ✅ done | `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/`DrawEntities` |
 | 7 | `Game_OnRoomDiscovered(rm)` — first-entry (`RoomFlavor`+chronicle) | planned | play loop (now inside #2) |
-| 8 | `Game_PopulateBoard()` — seed detected rooms (`RandomizeRooms`) | planned | after `StartBoard`/`DetectRooms` |
+| 8 | `Game_PopulateBoard()` — detect the board's ROOMS from the coloured blocks | ✅ done | `DetectRooms`/`FloodRoom` in `engine/BOARD.bas` |
 | 9 | `Game_ResolveEncounter%(rm)` — combat entry (`DoCombat`) | planned | `dungeon.bas` |
 | 10 | `Game_MonsterAttack(rm)` — Monster Attack Table (death/gold/retreat) | planned | `dungeon.bas` |
 | 11 | `Game_AwardTreasure(rm,sm)` — item table + Level Key (`ClaimTreasure`) | planned | `dungeon.bas` |
@@ -103,13 +103,15 @@ Engine-side code that still names game symbols directly. Each line is a future h
   `DrawEntities` (+ `EntityDrawX/Y`/`EntityShiftFind`) moved to **`game/OVERLAYS.bas`**; the engine's
   `cursor_erase`/`cursor_draw` reach them only via the `Game_RenderMapLabels`/`Game_RenderOverlays`
   hooks. `engine/BOARD.bas` + `engine/CURSOR.bas` no longer name `ROOMS`/`CHM_*`/`LBL_*` for rendering.
+- ~~region detect → game~~ — `DetectRooms` + `FloodRoom` moved to `game/SECTOR.bas`; the engine's board
+  setup calls the `Game_PopulateBoard()` hook (#8) instead. `engine/BOARD.bas` no longer fills `ROOMS`/
+  `ROOMAT`. (Verified: `chamberdump` still detects 93 rooms.)
 
 **Remaining** (each needs a render/visual play-test, so parked for the user):
 
 | Debt | Where (engine side) | Reads game symbol | Fix |
 |------|--------------------|-------------------|-----|
 | BOARD debug menu | `engine/BOARD.bas` `DebugTestMenu` | calls `WanderEncounter`/`DoCurio`/`SpringTrap`/`LoiterTick` | a `Game_DebugSpawn` hook |
-| region detect → game | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
 | PLAYERS ← inventory | `engine/PLAYERS.bas` | `PLAYER` game fields | game-defined player-state blob |
 | MENU widget cores | `game/MENU.bas` `RunMenu`/`RunSettings` | still fuse a generic widget with game option/action lists | widget core (engine) + game-supplied lists (MENU-B) |
 | SETTINGS schema | `game/LORDS.bas` `SaveSettings`/`LoadSettings` | enumerate game `opt_*` + solo | game-injected save schema |

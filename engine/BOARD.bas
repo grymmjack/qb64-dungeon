@@ -298,70 +298,6 @@ SUB PickChamberGraves (cid AS INTEGER)
 END SUB
 
 
-SUB DetectRooms
-    DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER
-    DIM oldsrc AS LONG
-    ROOM_N = 0
-    FOR cy = 0 TO SH - 1
-        FOR cx = 0 TO SW - 1: ROOMAT(cx, cy) = 0: NEXT cx
-    NEXT cy
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
-    FOR cy = 1 TO SH - 2
-        FOR cx = 1 TO SW - 1
-            IF ROOMAT(cx, cy) = 0 THEN
-                sec = SECTOR.get_by_xy(cx * CW, cy * CH)
-                IF sec >= 1 THEN
-                    IF POINT(cx * CW + CW \ 2, cy * CH + CH \ 2) = SECTORS(sec).kolor THEN
-                        IF ROOM_N < UBOUND(ROOMS) THEN
-                            ROOM_N = ROOM_N + 1
-                            FloodRoom cx, cy, sec, ROOM_N
-                        END IF
-                    END IF
-                END IF
-            END IF
-        NEXT cx
-    NEXT cy
-    _SOURCE oldsrc
-END SUB
-
-
-' BFS one room block (same sector + colour, 4-connected); record its centre cell.
-SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
-    DIM head AS INTEGER, tail AS INTEGER, x AS INTEGER, y AS INTEGER
-    DIM minx AS INTEGER, maxx AS INTEGER, miny AS INTEGER, maxy AS INTEGER
-    DIM kol AS _UNSIGNED LONG
-    kol = SECTORS(sec).kolor
-    head = 0: tail = 0
-    QX(0) = sx: QY(0) = sy: ROOMAT(sx, sy) = rid: tail = 1
-    minx = sx: maxx = sx: miny = sy: maxy = sy
-    DO WHILE head < tail
-        x = QX(head): y = QY(head): head = head + 1
-        IF x < minx THEN minx = x
-        IF x > maxx THEN maxx = x
-        IF y < miny THEN miny = y
-        IF y > maxy THEN maxy = y
-        RoomVisit x - 1, y, sec, rid, kol, tail
-        RoomVisit x + 1, y, sec, rid, kol, tail
-        RoomVisit x, y - 1, sec, rid, kol, tail
-        RoomVisit x, y + 1, sec, rid, kol, tail
-    LOOP
-    ROOMS(rid).sec = sec
-    ROOMS(rid).cells = tail                 ' block size (tail = cells enqueued)
-    ' Marker cell = the real room cell nearest the bbox centre. The bounding-box
-    ' centre itself can land on a WALL for an L-shaped/irregular block, which used
-    ' to drop the monster glyph onto an unreachable wall tile (so combat never
-    ' fired). Every enqueued QX/QY cell is genuine room floor, so snap to the
-    ' closest one -- guaranteeing the monster sits where the player can step.
-    DIM ccx AS INTEGER, ccy AS INTEGER, bi AS INTEGER, qi AS INTEGER
-    DIM bestd AS LONG, dd AS LONG
-    ccx = (minx + maxx) \ 2: ccy = (miny + maxy) \ 2
-    bi = 0: bestd = 2147483647
-    FOR qi = 0 TO tail - 1
-        dd = (QX(qi) - ccx) * (QX(qi) - ccx) + (QY(qi) - ccy) * (QY(qi) - ccy)
-        IF dd < bestd THEN bestd = dd: bi = qi
-    NEXT qi
-    ROOMS(rid).cx = QX(bi): ROOMS(rid).cy = QY(bi)
-END SUB
 
 
 SUB RoomVisit (x AS INTEGER, y AS INTEGER, sec AS INTEGER, rid AS INTEGER, kol AS _UNSIGNED LONG, tail AS INTEGER)
@@ -602,7 +538,7 @@ SUB InitFog
     FOR i = 1 TO SD_N: DOORCELL(SD_X(i), SD_Y(i)) = 1: NEXT i
     DetectDoors                          ' regular (brown) doors -> DOOR arrays
     MarkStrongDoors                      ' re-roll which ones are reinforced this game
-    DetectRooms                          ' flood-fill the coloured room blocks -> ROOMS / ROOMAT
+    Game_PopulateBoard                   ' flood-fill the coloured room blocks -> ROOMS / ROOMAT (game hook #8)
     DetectChambers                       ' flood the large yellow named CHAMBERS (openness heuristic)
 
     IF LoadSecretMask THEN

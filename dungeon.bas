@@ -168,7 +168,7 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     DIM AS INTEGER ddx, ddy, ddc
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
     DetectSecretDoors
-    DetectRooms
+    Game_PopulateBoard
     DetectChambers
     _DEST CANVAS: _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
     FOR ddy = 0 TO 60
