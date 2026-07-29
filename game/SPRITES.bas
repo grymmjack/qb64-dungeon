@@ -11,13 +11,13 @@
 ' Normalise a name to a sprite base: lower-case, spaces/slashes -> hyphens, drop a
 ' trailing plural 's'. "GIANT RATS" -> "giant-rat", "BLACK PUDDING" -> "black-pudding".
 FUNCTION SpriteBase$ (nm AS STRING)
-    DIM s AS STRING, o AS STRING, i AS INTEGER, c AS STRING
+    DIM s AS STRING, o AS STRING, i AS INTEGER, chx AS STRING
     s = LCASE$(_TRIM$(nm))
     o = ""
     FOR i = 1 TO LEN(s)
-        c = MID$(s, i, 1)
-        IF c = " " OR c = "/" OR c = "'" THEN c = "-"
-        o = o + c
+        chx = MID$(s, i, 1)
+        IF chx = " " OR chx = "/" OR chx = "'" THEN chx = "-"
+        o = o + chx
     NEXT
     IF RIGHT$(o, 1) = "s" AND LEN(o) > 3 THEN o = LEFT$(o, LEN(o) - 1)
     SpriteBase$ = o
@@ -45,17 +45,17 @@ END FUNCTION
 ' SpriteBase$ this does NOT strip a trailing 's', because the treasure art is plural
 ' (silver-coins.png).
 FUNCTION TreBase$ (nm AS STRING)
-    DIM s AS STRING, o AS STRING, i AS INTEGER, c AS STRING, depth AS INTEGER
+    DIM s AS STRING, o AS STRING, i AS INTEGER, chx AS STRING, depth AS INTEGER
     s = LCASE$(_TRIM$(nm))
     o = "": depth = 0
     FOR i = 1 TO LEN(s)
-        c = MID$(s, i, 1)
-        IF c = "(" THEN depth = depth + 1
+        chx = MID$(s, i, 1)
+        IF chx = "(" THEN depth = depth + 1
         IF depth = 0 THEN
-            IF c = " " OR c = "/" OR c = "'" OR c = "+" THEN c = "-"
-            o = o + c
+            IF chx = " " OR chx = "/" OR chx = "'" OR chx = "+" THEN chx = "-"
+            o = o + chx
         END IF
-        IF c = ")" THEN depth = depth - 1
+        IF chx = ")" THEN depth = depth - 1
     NEXT
     DO WHILE INSTR(o, "--") > 0: o = StrSubst$(o, "--", "-"): LOOP   ' collapse runs
     DO WHILE RIGHT$(o, 1) = "-": o = LEFT$(o, LEN(o) - 1): LOOP
@@ -281,9 +281,9 @@ END SUB
 
 ' A readable name from a slug ("gold-necklace" -> "gold necklace").
 FUNCTION UnSlug$ (s AS STRING)
-    DIM i AS INTEGER, o AS STRING, c AS STRING
-    FOR i = 1 TO LEN(s): c = MID$(s, i, 1): IF c = "-" THEN c = " "
-        o = o + c
+    DIM i AS INTEGER, o AS STRING, chx AS STRING
+    FOR i = 1 TO LEN(s): chx = MID$(s, i, 1): IF chx = "-" THEN chx = " "
+        o = o + chx
     NEXT
     UnSlug$ = o
 END FUNCTION

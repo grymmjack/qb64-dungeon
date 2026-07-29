@@ -545,18 +545,18 @@ END FUNCTION
 
 ' Place a category header at the top of a group in column c (blank line before, except the
 ' first group in the column). Advances that column's pen row (prow -- "pen" is reserved).
-SUB SetLayHdr (c AS INTEGER, txt AS STRING, prow() AS INTEGER)
-    IF prow(c) > 2 THEN prow(c) = prow(c) + 1        ' one blank row between stacked groups
+SUB SetLayHdr (col AS INTEGER, txt AS STRING, prow() AS INTEGER)
+    IF prow(col) > 2 THEN prow(col) = prow(col) + 1        ' one blank row between stacked groups
     SLH_N = SLH_N + 1
-    SLH_COL(SLH_N) = c: SLH_ROW(SLH_N) = prow(c): SLH_TXT(SLH_N) = txt
-    prow(c) = prow(c) + 1
+    SLH_COL(SLH_N) = col: SLH_ROW(SLH_N) = prow(col): SLH_TXT(SLH_N) = txt
+    prow(col) = prow(col) + 1
 END SUB
 
 ' Place option id at column c's current pen row; advance the pen. Also append to the
 ' reading-order list SORD (calls run col1 top-down, then col2, then col3) for up/down nav.
-SUB SetLayRow (c AS INTEGER, id AS INTEGER, prow() AS INTEGER)
-    SL_COL(id) = c: SL_ROW(id) = prow(c)
-    prow(c) = prow(c) + 1
+SUB SetLayRow (col AS INTEGER, id AS INTEGER, prow() AS INTEGER)
+    SL_COL(id) = col: SL_ROW(id) = prow(col)
+    prow(col) = prow(col) + 1
     SORD_N = SORD_N + 1: SORD(SORD_N) = id
 END SUB
 
@@ -565,9 +565,9 @@ END SUB
 ' (the SELECT CASE i blocks) is unchanged -- this only decides WHERE each row draws + how the
 ' cursor moves. Rebuilt each time SETTINGS opens (cheap).
 SUB BuildSetLayout
-    DIM prow(1 TO NSCOL) AS INTEGER, c AS INTEGER
+    DIM prow(1 TO NSCOL) AS INTEGER, col AS INTEGER
     SL_COLX(1) = 1: SL_COLX(2) = 45: SL_COLX(3) = 89
-    FOR c = 1 TO NSCOL: prow(c) = 2: NEXT          ' title row 0, gap row 1, list from row 2
+    FOR col = 1 TO NSCOL: prow(col) = 2: NEXT          ' title row 0, gap row 1, list from row 2
     SLH_N = 0: SORD_N = 0
     ' Column 1 -- SOUND
     SetLayHdr 1, "SOUND", prow()

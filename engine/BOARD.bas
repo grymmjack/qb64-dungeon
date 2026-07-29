@@ -190,13 +190,13 @@ END FUNCTION
 ' Robust cell-colour sample for the mask (centre, then the 4 mid-half points, so a cell
 ' painted as a half-block still registers). _SOURCE must be the mask image. BLACK = public.
 FUNCTION MaskSample~& (cx AS INTEGER, cy AS INTEGER)
-    DIM bx AS INTEGER, by AS INTEGER, c AS _UNSIGNED LONG
+    DIM bx AS INTEGER, by AS INTEGER, kol AS _UNSIGNED LONG
     bx = cx * CW: by = cy * CH
-    c = POINT(bx + CW \ 2, by + CH \ 2): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
-    c = POINT(bx + CW \ 2, by + CH \ 4): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
-    c = POINT(bx + CW \ 2, by + 3 * CH \ 4): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
-    c = POINT(bx + CW \ 4, by + CH \ 2): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
-    c = POINT(bx + 3 * CW \ 4, by + CH \ 2): IF c <> BLACK THEN MaskSample~& = c: EXIT FUNCTION
+    kol = POINT(bx + CW \ 2, by + CH \ 2): IF kol <> BLACK THEN MaskSample~& = kol: EXIT FUNCTION
+    kol = POINT(bx + CW \ 2, by + CH \ 4): IF kol <> BLACK THEN MaskSample~& = kol: EXIT FUNCTION
+    kol = POINT(bx + CW \ 2, by + 3 * CH \ 4): IF kol <> BLACK THEN MaskSample~& = kol: EXIT FUNCTION
+    kol = POINT(bx + CW \ 4, by + CH \ 2): IF kol <> BLACK THEN MaskSample~& = kol: EXIT FUNCTION
+    kol = POINT(bx + 3 * CW \ 4, by + CH \ 2): IF kol <> BLACK THEN MaskSample~& = kol: EXIT FUNCTION
     MaskSample~& = BLACK
 END FUNCTION
 

@@ -30,8 +30,8 @@ FUNCTION AddURL% (u AS STRING, url() AS STRING, nurl AS INTEGER)
 END FUNCTION
 
 ' Append one char to the three parallel attribute strings.
-SUB EmitCh (vis AS STRING, sty AS STRING, lnk AS STRING, ch AS STRING, styb AS INTEGER, lnkid AS INTEGER)
-    vis = vis + ch: sty = sty + CHR$(styb): lnk = lnk + CHR$(lnkid)
+SUB EmitCh (vis AS STRING, sty AS STRING, lnk AS STRING, chx AS STRING, styb AS INTEGER, lnkid AS INTEGER)
+    vis = vis + chx: sty = sty + CHR$(styb): lnk = lnk + CHR$(lnkid)
 END SUB
 
 ' Colour for a character given its block kind + style byte + whether it's the hovered link.
@@ -79,17 +79,17 @@ END FUNCTION
 ' Parse inline markdown of `raw` into the three parallel attribute strings, collecting
 ' link URLs. Handles **bold**, `code`, [text](url), and <url> autolinks.
 SUB MdInline (raw AS STRING, vis AS STRING, sty AS STRING, lnk AS STRING, url() AS STRING, nurl AS INTEGER)
-    DIM i AS INTEGER, n AS INTEGER, c AS STRING, c2 AS STRING, bold AS INTEGER, code AS INTEGER
+    DIM i AS INTEGER, n AS INTEGER, chx AS STRING, c2 AS STRING, bold AS INTEGER, code AS INTEGER
     DIM j AS INTEGER, k2 AS INTEGER, txt AS STRING, u AS STRING, id AS INTEGER, m AS INTEGER
     vis = "": sty = "": lnk = "": bold = 0: code = 0
     n = LEN(raw): i = 1
     DO WHILE i <= n
-        c = MID$(raw, i, 1): c2 = MID$(raw, i + 1, 1)
-        IF c = "*" AND c2 = "*" THEN
+        chx = MID$(raw, i, 1): c2 = MID$(raw, i + 1, 1)
+        IF chx = "*" AND c2 = "*" THEN
             bold = NOT bold: i = i + 2
-        ELSEIF c = "`" THEN
+        ELSEIF chx = "`" THEN
             code = NOT code: i = i + 1
-        ELSEIF c = "[" THEN
+        ELSEIF chx = "[" THEN
             j = INSTR(i, raw, "]")
             IF j > 0 AND MID$(raw, j + 1, 1) = "(" THEN
                 k2 = INSTR(j + 2, raw, ")")
@@ -99,22 +99,22 @@ SUB MdInline (raw AS STRING, vis AS STRING, sty AS STRING, lnk AS STRING, url() 
                     FOR m = 1 TO LEN(txt): EmitCh vis, sty, lnk, MID$(txt, m, 1), 0, id: NEXT
                     i = k2 + 1
                 ELSE
-                    EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+                    EmitCh vis, sty, lnk, chx, StyOf%(bold, code), 0: i = i + 1
                 END IF
             ELSE
-                EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+                EmitCh vis, sty, lnk, chx, StyOf%(bold, code), 0: i = i + 1
             END IF
-        ELSEIF c = "<" AND MID$(raw, i, 5) = "<http" THEN   ' <http://...> or <https://...> autolink
+        ELSEIF chx = "<" AND MID$(raw, i, 5) = "<http" THEN   ' <http://...> or <https://...> autolink
             j = INSTR(i, raw, ">")
             IF j > 0 THEN
                 u = MID$(raw, i + 1, j - i - 1): id = AddURL%(u, url(), nurl)
                 FOR m = 1 TO LEN(u): EmitCh vis, sty, lnk, MID$(u, m, 1), 0, id: NEXT
                 i = j + 1
             ELSE
-                EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+                EmitCh vis, sty, lnk, chx, StyOf%(bold, code), 0: i = i + 1
             END IF
         ELSE
-            EmitCh vis, sty, lnk, c, StyOf%(bold, code), 0: i = i + 1
+            EmitCh vis, sty, lnk, chx, StyOf%(bold, code), 0: i = i + 1
         END IF
     LOOP
 END SUB
@@ -158,12 +158,12 @@ END SUB
 
 ' TRUE if a table cell is a separator cell (only dashes / colons / spaces, at least one dash).
 FUNCTION IsDashes% (s AS STRING)
-    DIM i AS INTEGER, c AS STRING, hasdash AS INTEGER
+    DIM i AS INTEGER, chx AS STRING, hasdash AS INTEGER
     IF LEN(_TRIM$(s)) = 0 THEN IsDashes% = 0: EXIT FUNCTION
     hasdash = 0
     FOR i = 1 TO LEN(s)
-        c = MID$(s, i, 1)
-        IF c = "-" THEN hasdash = -1 ELSE IF c <> ":" AND c <> " " THEN IsDashes% = 0: EXIT FUNCTION
+        chx = MID$(s, i, 1)
+        IF chx = "-" THEN hasdash = -1 ELSE IF chx <> ":" AND chx <> " " THEN IsDashes% = 0: EXIT FUNCTION
     NEXT
     IsDashes% = hasdash
 END FUNCTION
@@ -174,7 +174,7 @@ END FUNCTION
 ' attributed display lines into the doc arrays.
 SUB EmitTable (tbl() AS STRING, ntbl AS INTEGER, url() AS STRING, nurl AS INTEGER, vis() AS STRING, sty() AS STRING, lnk() AS STRING, kind() AS INTEGER, n AS INTEGER)
     CONST MAXC = 8
-    DIM r AS INTEGER, c AS INTEGER, ncols AS INTEGER, raw AS STRING, part AS STRING, p2 AS INTEGER
+    DIM r AS INTEGER, col AS INTEGER, ncols AS INTEGER, raw AS STRING, part AS STRING, p2 AS INTEGER
     DIM tv AS STRING, ts AS STRING, tl AS STRING, lv AS STRING, ls AS STRING, ll AS STRING, pad AS INTEGER
     REDIM cvis(1 TO ntbl, 1 TO MAXC) AS STRING, csty(1 TO ntbl, 1 TO MAXC) AS STRING, clnk(1 TO ntbl, 1 TO MAXC) AS STRING
     REDIM ncell(1 TO ntbl) AS INTEGER, issep(1 TO ntbl) AS INTEGER, colw(1 TO MAXC) AS INTEGER
@@ -183,33 +183,33 @@ SUB EmitTable (tbl() AS STRING, ntbl AS INTEGER, url() AS STRING, nurl AS INTEGE
         raw = _TRIM$(tbl(r))
         IF LEFT$(raw, 1) = "|" THEN raw = MID$(raw, 2)
         IF RIGHT$(raw, 1) = "|" THEN raw = LEFT$(raw, LEN(raw) - 1)
-        issep(r) = -1: c = 0
+        issep(r) = -1: col = 0
         DO
             p2 = INSTR(raw, "|")
             IF p2 = 0 THEN part = raw ELSE part = LEFT$(raw, p2 - 1)
-            c = c + 1: IF c > MAXC THEN c = MAXC: EXIT DO
+            col = col + 1: IF col > MAXC THEN col = MAXC: EXIT DO
             IF NOT IsDashes%(part) THEN issep(r) = 0
             MdInline _TRIM$(part), tv, ts, tl, url(), nurl
-            cvis(r, c) = tv: csty(r, c) = ts: clnk(r, c) = tl
-            IF LEN(tv) > colw(c) THEN colw(c) = LEN(tv)
+            cvis(r, col) = tv: csty(r, col) = ts: clnk(r, col) = tl
+            IF LEN(tv) > colw(col) THEN colw(col) = LEN(tv)
             IF p2 = 0 THEN EXIT DO
             raw = MID$(raw, p2 + 1)
         LOOP
-        ncell(r) = c: IF c > ncols THEN ncols = c
+        ncell(r) = col: IF col > ncols THEN ncols = col
     NEXT r
     FOR r = 1 TO ntbl                                     ' build each display line
         lv = "  ": ls = STRING$(2, CHR$(0)): ll = STRING$(2, CHR$(0))   ' small indent
         IF issep(r) THEN
-            FOR c = 1 TO ncols
-                IF c > 1 THEN lv = lv + CHR$(196) + CHR$(197) + CHR$(196): ls = ls + STRING$(3, CHR$(3)): ll = ll + STRING$(3, CHR$(0))
-                lv = lv + STRING$(colw(c), CHR$(196)): ls = ls + STRING$(colw(c), CHR$(3)): ll = ll + STRING$(colw(c), CHR$(0))
+            FOR col = 1 TO ncols
+                IF col > 1 THEN lv = lv + CHR$(196) + CHR$(197) + CHR$(196): ls = ls + STRING$(3, CHR$(3)): ll = ll + STRING$(3, CHR$(0))
+                lv = lv + STRING$(colw(col), CHR$(196)): ls = ls + STRING$(colw(col), CHR$(3)): ll = ll + STRING$(colw(col), CHR$(0))
             NEXT
         ELSE
-            FOR c = 1 TO ncols
-                IF c > 1 THEN lv = lv + " " + CHR$(179) + " ": ls = ls + CHR$(0) + CHR$(3) + CHR$(0): ll = ll + STRING$(3, CHR$(0))
-                tv = cvis(r, c): ts = csty(r, c): tl = clnk(r, c)
+            FOR col = 1 TO ncols
+                IF col > 1 THEN lv = lv + " " + CHR$(179) + " ": ls = ls + CHR$(0) + CHR$(3) + CHR$(0): ll = ll + STRING$(3, CHR$(0))
+                tv = cvis(r, col): ts = csty(r, col): tl = clnk(r, col)
                 IF r = 1 THEN ts = STRING$(LEN(tv), CHR$(1))   ' header row: bold every cell
-                pad = colw(c) - LEN(tv): IF pad < 0 THEN pad = 0
+                pad = colw(col) - LEN(tv): IF pad < 0 THEN pad = 0
                 lv = lv + tv + SPACE$(pad): ls = ls + ts + STRING$(pad, CHR$(0)): ll = ll + tl + STRING$(pad, CHR$(0))
             NEXT
         END IF

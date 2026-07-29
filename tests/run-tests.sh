@@ -12,7 +12,6 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
-ROOT="$PWD"
 
 find_qb64() {
     if [[ -n "${QB64PE:-}" && -x "$QB64PE" ]]; then echo "$QB64PE"; return; fi
@@ -77,11 +76,38 @@ for src in tests/TEST-*.bas; do
     fi
 done
 
+# With an explicit filter the caller wants one suite, not the whole gate.
+if (( $# == 0 )); then
+    echo
+    echo "-- boundary audit (engine/ must name no game symbol) --"
+    if tests/audit-boundary.sh | tail -1; then :; else (( fail++ )); failed+=("audit-boundary"); fi
+
+    echo "-- shadow audit (no local named after a high-risk global) --"
+    if tests/audit-shadow.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shadow"); fi
+
+    # Separability proof: a game that is NOT DUNGEON!, built on engine/ alone.
+    # If engine/ ever grows a hidden game dependency, this stops compiling.
+    echo "-- separability (examples/minimal on engine/ alone) --"
+    rm -f examples/minimal/minimal.run
+    mout=$("$QB" -w -x examples/minimal/minimal.bas -o examples/minimal/minimal.run 2>&1)
+    if ! grep -q '^Output:' <<<"$mout" || [[ ! -x examples/minimal/minimal.run ]]; then
+        echo "  COMPILE FAIL -- engine/ no longer builds without game/"
+        grep -vE '^\[|%\[A$|^$' <<<"$mout" | tail -6 | sed 's/^/    /'
+        (( fail++ )); failed+=("minimal (compile)")
+    elif sout=$(setsid timeout 60 xvfb-run -a ./examples/minimal/minimal.run selftest 2>&1) && grep -q '^OK$' <<<"$sout"; then
+        echo "  $(grep -E 'secret doors|brown doors' <<<"$sout" | tr -s ' ' | paste -sd'|' -)"
+        echo "  OK -- the engine drives a non-DUNGEON! game"
+    else
+        printf '%s\n' "$sout" | sed 's/^/    /'
+        (( fail++ )); failed+=("minimal (selftest)")
+    fi
+fi
+
 echo
 if (( fail == 0 )); then
     if (( pass == 0 )); then echo "no suites matched."; exit 0; fi
-    echo "ALL GREEN -- $pass suite(s) passed."
+    echo "ALL GREEN -- $pass suite(s) + audits + separability proof passed."
     exit 0
 fi
-echo "$fail suite(s) FAILED: ${failed[*]}"
+echo "$fail check(s) FAILED: ${failed[*]}"
 exit 1

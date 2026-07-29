@@ -193,8 +193,8 @@ END SUB
 ' Set a channel's programmatic gain (1 = unity) on top of the player's volume slider -- the
 ' hook for mixing buses live from game code, e.g. ChannelGain CH_MUSIC, .5 to half music.
 ' (Auto voiceover ducking of the music channel is separate; see AudioTick.)
-SUB ChannelGain (ch AS INTEGER, gain AS SINGLE)
-    SELECT CASE ch
+SUB ChannelGain (chan AS INTEGER, gain AS SINGLE)
+    SELECT CASE chan
         CASE CH_MUSIC: chgain_music = gain
         CASE CH_VOICE: chgain_voice = gain
         CASE CH_SFX: chgain_sfx = gain
@@ -223,15 +223,15 @@ END SUB
 
 ' Read `<kname>=<number>` (seconds) out of a pack.conf blob; returns dflt if absent.
 FUNCTION ConfNum (raw AS STRING, kname AS STRING, dflt AS SINGLE)
-    DIM p AS INTEGER, e AS INTEGER, c AS STRING, s AS STRING
+    DIM p AS INTEGER, e AS INTEGER, chx AS STRING, s AS STRING
     ConfNum = dflt
     p = INSTR(raw, kname + "=")
     IF p = 0 THEN EXIT FUNCTION
     p = p + LEN(kname) + 1
     e = p
     DO WHILE e <= LEN(raw)
-        c = MID$(raw, e, 1)
-        IF c = CHR$(10) OR c = CHR$(13) THEN EXIT DO
+        chx = MID$(raw, e, 1)
+        IF chx = CHR$(10) OR chx = CHR$(13) THEN EXIT DO
         e = e + 1
     LOOP
     s = _TRIM$(MID$(raw, p, e - p))
@@ -510,12 +510,12 @@ END FUNCTION
 ' "KING'S LIBRARY" -> "kings-library", "THE CRYPT" -> "the-crypt". Used to key narration
 ' files after room / chamber / curio names (e.g. Narrate "chamber." + NarrSlug$(name)).
 FUNCTION NarrSlug$ (s AS STRING)
-    DIM i AS INTEGER, c AS STRING, r AS STRING, dash AS INTEGER
+    DIM i AS INTEGER, chx AS STRING, r AS STRING, dash AS INTEGER
     FOR i = 1 TO LEN(s)
-        c = LCASE$(MID$(s, i, 1))
-        IF (c >= "a" AND c <= "z") OR (c >= "0" AND c <= "9") THEN
-            r = r + c: dash = 0
-        ELSEIF c = "'" THEN
+        chx = LCASE$(MID$(s, i, 1))
+        IF (chx >= "a" AND chx <= "z") OR (chx >= "0" AND chx <= "9") THEN
+            r = r + chx: dash = 0
+        ELSEIF chx = "'" THEN
             ' drop apostrophes so KING'S -> kings (no stray dash)
         ELSEIF LEN(r) > 0 AND NOT dash THEN
             r = r + "-": dash = -1

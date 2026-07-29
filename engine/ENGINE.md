@@ -13,17 +13,27 @@ the map of the boundary, the hook contract, and the record of how each leak was 
 > a future edit from reaching straight into `ROOMS()` from `engine/` and compiling fine — which is
 > why the boundary is enforced by a **script** (`tests/audit-boundary.sh`), not by good intentions.
 
-## Status: the engine is CLEAN
+## Status: the engine is CLEAN, and separability is PROVEN
 
-**No file in `engine/` names a game symbol.** Every remaining engine→game reference goes through
-a `Game_*` hook. That is the milestone the ledger below was burning down toward — `engine/` can
-now be lifted into its own repo/submodule, with `game/` as one implementation of its hooks.
-
-Verify it yourself, any time — do not trust this paragraph, re-derive it:
+**No file in `engine/` names a game symbol** — every engine→game reference goes through a
+`Game_*` hook. And that is not just asserted: **[examples/minimal](../examples/minimal/)** is a
+second game, built on `engine/` with nothing from `game/`, that walks a player around the board.
+It implements the 10 hooks in ~40 lines. If the engine ever grows a hidden DUNGEON! dependency,
+that demo stops compiling — a louder alarm than any document.
 
 ```sh
-tests/audit-boundary.sh -v      # exit 0 = clean; -v lists offending symbols per file
+tests/run-tests.sh              # everything: unit suites + both audits + the separability proof
+tests/audit-boundary.sh -v      # just the boundary; -v lists offending symbols per file
+./examples/minimal/minimal.run  # walk around, WASD/arrows, ESC to quit
 ```
+
+> **Building the second game immediately found a real bug**, which is the argument for doing it.
+> `DetectDoors` counted hits in a local named `brown`, and QB64 identifiers are case-insensitive —
+> so `IF POINT(...) = BROWN` compared each pixel against the *counter* (0) instead of `AA5500`. It
+> had **always** returned zero doors: `MarkStrongDoors` marked nothing, `StrongDoorAhead` always
+> returned 0, and the reinforced-door feature never once fired in play. The demo's independent
+> recount found 192 doors where `DetectDoors` found 0. Fixed, and `tests/audit-shadow.sh` now
+> fails the build if any local shadows a high-risk global (screen metrics, cursor, palette).
 
 ## Auditing the boundary (do this before trusting any claim here)
 
@@ -75,7 +85,8 @@ game/
   SAVEGAME CHRONICLE LORDS   .bas  (save payload / per-run journal / hall of fame + settings)
   SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS   .bas modules
 include/             not-yet-split: DICE3D_GAME (dice glue) + the vendored ansi/ + DICE3D/ dirs
-tests/               headless assert suites for the game-free engine modules + the boundary audit
+tests/               headless assert suites + the boundary/shadow audits (tests/run-tests.sh)
+examples/minimal/    a SECOND game on engine/ alone -- the separability proof
 ```
 
 Header include order (top of `dungeon.bas`): **`engine/ENGINE.BI` then `game/GAME.BI`** — engine
@@ -244,10 +255,15 @@ qb64pe -w -x dungeon.bas -o dungeon.run       # must print "Output:" AND leave a
 setsid timeout 12 xvfb-run -a ./dungeon.run   # boots to the menu (exit 124 = still up = OK)
 ./dungeon.run chamberdump                     # regions unchanged: 43 doors / 93 rooms / 12 chambers
 ./dungeon.run audiomanifest | wc -l           # content manifest unchanged: 216 lines
-./dungeon.run ansilint                        # masks lint clean; all 9 zones painted
-tests/run-tests.sh                            # engine unit suites (94 assertions)
-tests/audit-boundary.sh                       # exit 0 = no engine file names a game symbol
+./dungeon.run imagemanifest                   # sprite paths (SpriteBase$/TreBase$/UnSlug$)
+./dungeon.run ansilint                        # masks lint clean; all 9 zones painted (MaskSample~&)
+./dungeon.run settingsshot                    # SETTINGS layout -> settings-shot.png (look at it)
+tests/run-tests.sh                            # ALL of: unit suites + both audits + separability
 ```
+
+`tests/run-tests.sh` with no arguments is the gate: unit suites, `audit-boundary.sh`,
+`audit-shadow.sh`, and building + selftesting `examples/minimal`. Pass a name fragment
+(`tests/run-tests.sh stats`) to run a single suite and skip the rest.
 
 `chamberdump` is the cheap regression test for any board-region or collision change — it runs
 detection headlessly and writes counts + bounding boxes, so a move that silently loses a region is

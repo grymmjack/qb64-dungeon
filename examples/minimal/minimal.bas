@@ -1,0 +1,132 @@
+' ============================================================================
+'  MINIMAL -- a second game on the DUNGEON! engine. Walk around the board. That's it.
+'
+'  PURPOSE: this is the separability PROOF for engine/. It includes engine/ENGINE.BI
+'  and every engine/*.bas module, plus the vendored ANSI renderer and 3D dice, and
+'  NOTHING from game/. If it compiles and runs, the engine carries no hidden
+'  DUNGEON! dependency; if someone reaches into ROOMS() from engine code, this
+'  stops building -- a louder alarm than any doc.
+'
+'  Build:  qb64pe -w -x examples/minimal/minimal.bas -o examples/minimal/minimal.run
+'  Or:     tests/run-tests.sh   (builds it as part of the suite)
+'
+'  Keys: WASD / arrows to move, ESC to quit.
+' ============================================================================
+$CONSOLE:ONLY
+
+'$INCLUDE:'../../include/ansi/ANSIPrint.bi'
+'$INCLUDE:'../../engine/ENGINE.BI'
+'$INCLUDE:'../../include/DICE3D/_ALL.BI'
+'$INCLUDE:'../../include/DICE3D_GAME.bi'
+
+' QB64 chdirs to the EXECUTABLE's dir at startup, so "assets/..." would resolve
+' under examples/minimal/. Fix cwd to the repo root once, up front (same trick as
+' tests/TESTLIB.bas T_RepoRoot).
+IF _FILEEXISTS("dungeon.bas") = 0 THEN CHDIR "../.."
+
+SW = 132: SH = 51: CW = 8: CH = 16
+CLI_COLOR = 0
+
+' collision palette -- must match the board art exactly (engine convention)
+YELLOW = _RGB32(&HFF, &HFF, &H55)
+BLACK = _RGB32(&H00, &H00, &H00)
+BROWN = _RGB32(&HAA, &H55, &H00)
+BRIGHT_BLUE = _RGB32(&H55, &H55, &HFF)
+WHITE = _RGB32(&HFF, &HFF, &HFF)
+GREY = _RGB32(&HAA, &HAA, &HAA)
+REDU = _RGB32(&HFF, &H55, &H55)
+GREENU = _RGB32(&H55, &HFF, &H55)
+YELLOWU = _RGB32(&HFF, &HFF, &H55)
+CYANU = _RGB32(&H55, &HFF, &HFF)
+BOXBG = _RGB32(&H20, &H00, &H00)
+
+RANDOMIZE TIMER
+
+$RESIZE:ON
+$RESIZE:STRETCH
+CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
+CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
+FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
+_TITLE "MINIMAL -- engine separability demo"
+_FONT CH
+SCREEN CANVAS
+
+' engine defaults this demo cares about (no settings file, no SETTINGS screen)
+opt_music = FALSE: opt_sfx = FALSE: opt_voice = FALSE
+opt_fov = FALSE: opt_juice = FALSE: opt_smooth = FALSE
+opt_artpack = "default": opt_ansipack = "default": opt_datapack = "default"
+
+BOARD_ANSI = _READFILE$(AnsiFile$("board-132x50-no-labels.ans"))
+IF LEN(BOARD_ANSI) = 0 THEN PRINT "minimal: board art not found (run from the repo root)": SYSTEM 2
+
+InitJuice                        ' engine: screen-shake buffer + near-death bake
+StartBoard                       ' engine: paint FULL_BOARD, build the fog, place the cursor, render
+
+' Headless self-check: `minimal.run selftest` proves the engine came up under a
+' non-DUNGEON! game and exits, so CI can assert separability without a display.
+IF INSTR(UCASE$(COMMAND$), "SELFTEST") > 0 THEN
+    _DEST _CONSOLE
+    PRINT "minimal: engine booted under a non-DUNGEON! game"
+    PRINT "  board bytes : " + _TRIM$(STR$(LEN(BOARD_ANSI)))
+    PRINT "  secret doors: " + _TRIM$(STR$(SD_N)) + "   regular doors: " + _TRIM$(STR$(DOOR_N))
+    PRINT "  cursor cell : " + _TRIM$(STR$(c.x \ CW)) + "," + _TRIM$(STR$(c.y \ CH))
+    PRINT "  zones       : " + _TRIM$(STR$(Game_ZoneCount%)) + " (" + Game_ZoneName$(1) + ")"
+    '--- independent brown-door count, using a counter NOT named after the colour ---
+    ' (DetectDoors' own counter is `brown`, which case-insensitively shadows the shared
+    '  BROWN constant -- this recount is the control that proves it.)
+    DIM AS INTEGER pcx, pcy, ppx, ppy, hits, ndoor
+    DIM oldsrc AS LONG: oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    FOR pcy = 1 TO SH - 4
+        FOR pcx = 1 TO SW - 2
+            hits = 0
+            FOR ppy = 1 TO CH - 1 STEP 2
+                FOR ppx = 1 TO CW - 1 STEP 2
+                    IF POINT(pcx * CW + ppx, pcy * CH + ppy) = BROWN THEN hits = hits + 1
+                NEXT ppx
+            NEXT ppy
+            IF hits >= 2 THEN ndoor = ndoor + 1
+        NEXT pcx
+    NEXT pcy
+    _SOURCE oldsrc
+    PRINT "  brown doors : DetectDoors=" + _TRIM$(STR$(DOOR_N)) + "  independent recount=" + _TRIM$(STR$(ndoor))
+    IF SD_N > 0 AND DOOR_N > 0 THEN PRINT "OK": SYSTEM 0
+    PRINT "FAIL: board detection produced nothing": SYSTEM 1
+END IF
+
+_SCREENSHOW
+_FULLSCREEN _SQUAREPIXELS
+
+DIM k AS STRING, nk AS STRING
+DO
+    _LIMIT 60
+    k = INKEY$
+    IF k = CHR$(27) THEN EXIT DO
+    nk = NormKey$(k)                     ' engine: WASD / arrows / numpad -> direction
+    IF IsMoveKey%(nk) THEN
+        IF TryMove%(nk) THEN              ' engine: collision-checked step
+            cursor_erase
+            cursor_draw
+        END IF
+    END IF
+    _DISPLAY
+LOOP
+SYSTEM
+
+'$INCLUDE:'HOOKS.bas'
+
+'$INCLUDE:'../../engine/TEXT.bas'
+'$INCLUDE:'../../engine/DATA.bas'
+'$INCLUDE:'../../engine/ARTPACK.bas'
+'$INCLUDE:'../../engine/BOARD.bas'
+'$INCLUDE:'../../engine/CURSOR.bas'
+'$INCLUDE:'../../engine/JUICE.bas'
+'$INCLUDE:'../../engine/GESTURE.bas'
+'$INCLUDE:'../../engine/STATS.bas'
+'$INCLUDE:'../../engine/SAVEIO.bas'
+'$INCLUDE:'../../engine/MARKDOWN.bas'
+'$INCLUDE:'../../engine/MUSIC.bas'
+'$INCLUDE:'../../engine/UI.bas'
+
+'$INCLUDE:'../../include/DICE3D/_ALL.BM'
+'$INCLUDE:'../../include/DICE3D_GAME.bas'
+'$INCLUDE:'../../include/ansi/ANSIPrint.bas'

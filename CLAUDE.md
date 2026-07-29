@@ -53,12 +53,17 @@ the `qb64pe.compilerPath` setting (provided by the `grymmjack.qb64pe` extension)
 To compile a single file by hand: `qb64pe -w -x <path/to/file.bas> -o <path/to/file.run>`
 (needs a local QB64PE install; the exact binary path is machine-specific).
 
-**Tests:** `tests/run-tests.sh` (VS Code task **TEST: Run engine tests**) compiles and runs
-the headless assert suites in `tests/TEST-*.bas` — currently `engine/TEXT.bas`,
-`engine/STATS.bas`, and the pure half of `engine/DATA.bas` (94 assertions). Only *game-free*
-engine modules that touch nothing but QB64 built-ins can be tested this way; everything else is
-verified through the binary's dev modes (`chamberdump`, `audiomanifest`, `ansilint`) or a
-play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
+**Tests:** `tests/run-tests.sh` (VS Code task **TEST: Run engine tests**) is the gate. It runs
+the headless assert suites in `tests/TEST-*.bas` (`engine/TEXT.bas`, `engine/STATS.bas`, and the
+pure half of `engine/DATA.bas` — 94 assertions), then **`tests/audit-boundary.sh`** (no `engine/`
+file may name a `game/` symbol) and **`tests/audit-shadow.sh`** (no local may be named after a
+high-risk shared global — QB64 identifiers are case-insensitive, and a local `brown` shadowing
+the shared `BROWN` made `DetectDoors` return zero doors forever, silently disabling reinforced
+doors), and finally builds + selftests **`examples/minimal`**, a second game on `engine/` alone
+that proves the engine carries no hidden DUNGEON! dependency. Only *game-free* engine modules
+that touch nothing but QB64 built-ins can be unit-tested; everything else is verified through the
+binary's dev modes (`chamberdump`, `audiomanifest`, `imagemanifest`, `ansilint`, `settingsshot`)
+or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
 QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are unrelated —
 manual runnable prototypes, not suites.)
 

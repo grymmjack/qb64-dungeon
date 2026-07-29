@@ -49,3 +49,7 @@ settings-shot.png
 tests/*.run
 tests/*.exe
 tests/tmp/
+
+# separability-proof binary (examples/minimal)
+examples/*/*.run
+examples/*/*.exe

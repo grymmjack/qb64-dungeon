@@ -5,10 +5,22 @@ Assert suites for the **game-free** `engine/` modules. QB64PE has no test framew
 exit non-zero so a runner can gate on it.
 
 ```sh
-tests/run-tests.sh            # every suite
-tests/run-tests.sh stats      # only suites whose filename matches "stats"
+tests/run-tests.sh            # THE GATE: suites + both audits + the separability proof
+tests/run-tests.sh stats      # only suites matching "stats" (skips the audits/proof)
 QB64PE=/path/to/qb64pe tests/run-tests.sh    # explicit compiler
 ```
+
+With no arguments `run-tests.sh` also runs:
+
+- **`audit-boundary.sh`** — no `engine/` file may name a `game/` symbol (see
+  [../engine/ENGINE.md](../engine/ENGINE.md)).
+- **`audit-shadow.sh`** — no local may be named after a high-risk shared global. QB64
+  identifiers are case-insensitive, so `DIM brown` inside a SUB silently shadows the
+  shared `BROWN` colour. That exact bug made `DetectDoors` return zero doors forever,
+  so the game's reinforced doors never once appeared. It compiles clean and warns about
+  nothing — only a scan catches it.
+- **`../examples/minimal`** — builds and selftests a second game on `engine/` alone. If
+  the engine grows a hidden DUNGEON! dependency, this stops compiling.
 
 Also wired as the VS Code tasks **TEST: Run engine tests** and **TEST: Run engine tests
 (this file)**.
