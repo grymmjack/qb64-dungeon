@@ -93,7 +93,7 @@ opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/
 opt_musicpack = "soundmon-orchestral"                ' default music pack (assets/music/); "" = flat main dir
 opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
 opt_narrfreq = NARR_COMBAT                           ' default: narrate everything (flavor + events + combat)
-opt_artpack = ""                                     ' default pixel-art = flat main dir
+opt_artpack = "default"                              ' default pixel-art pack (assets/pixel-art/default/); every pack is a named subfolder
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)

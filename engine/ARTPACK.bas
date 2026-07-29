@@ -55,44 +55,36 @@ FUNCTION ArtFile$ (subpath AS STRING)
         p = "assets/pixel-art/" + opt_artpack + "/" + subpath
         IF _FILEEXISTS(p) THEN ArtFile$ = p: EXIT FUNCTION
     END IF
-    p = "assets/pixel-art/" + subpath
+    p = "assets/pixel-art/default/" + subpath       ' fall back to the DEFAULT pack (every pack is a named subfolder)
     IF _FILEEXISTS(p) THEN ArtFile$ = p ELSE ArtFile$ = ""
 END FUNCTION
 
-' TRUE if `nm` is a known category folder (so it is NOT a pack). Anything else under
-' assets/pixel-art/ is treated as an art pack (a themed override, mirroring the layout).
-FUNCTION IsArtCategory% (nm AS STRING)
-    SELECT CASE LCASE$(_TRIM$(nm))
-        CASE "monsters", "treasures", "items", "classes", "rooms", "events", "markers": IsArtCategory% = -1
-        CASE ELSE: IsArtCategory% = 0
-    END SELECT
-END FUNCTION
-
-' Fill ARTPACKS() with the pack subdirs under assets/pixel-art/ (every subdir that isn't a
-' category). ARTPACKS(0) = "" ("(main)"); 1..N = pack names. A saved pack that has vanished
-' falls back to main.
+' Fill ARTPACKS() with EVERY subfolder of assets/pixel-art/ -- each one is a pack (including
+' "default"). No flat "main" and no category special-casing: the folder list IS the pack list.
+' 1..N = pack names. A saved pack that has vanished falls back to "default".
 SUB ScanArtPacks
     DIM e AS STRING, nm AS STRING
-    ARTPACK_N = 0: ARTPACKS(0) = ""
+    ARTPACK_N = 0
     IF _DIREXISTS("assets/pixel-art/") THEN
         e = _FILES$("assets/pixel-art/")
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
-                IF nm <> "." AND nm <> ".." AND NOT IsArtCategory%(nm) AND ARTPACK_N < UBOUND(ARTPACKS) THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
+                IF nm <> "." AND nm <> ".." AND ARTPACK_N < UBOUND(ARTPACKS) THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
             END IF
             e = _FILES$
         LOOP
     END IF
-    IF LEN(opt_artpack) > 0 AND PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack) = 0 THEN opt_artpack = ""
+    IF PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack) = 0 THEN opt_artpack = "default"
 END SUB
 
-' Cycle the art pack by delta (sprites resolve on demand, so nothing to reload).
+' Cycle the art pack by delta (sprites resolve on demand, so nothing to reload). Packs are
+' 1..N (there is no "(main)" 0-slot -- "default" is a normal pack in the list).
 SUB CycleArtPack (delta AS INTEGER)
     DIM idx AS INTEGER
     idx = PackIndex%(ARTPACKS(), ARTPACK_N, opt_artpack) + delta
-    IF idx < 0 THEN idx = ARTPACK_N
-    IF idx > ARTPACK_N THEN idx = 0
+    IF idx < 1 THEN idx = ARTPACK_N
+    IF idx > ARTPACK_N THEN idx = 1
     opt_artpack = ARTPACKS(idx)
     Sfx "select"
 END SUB
