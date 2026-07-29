@@ -25,10 +25,10 @@ character create, "Lords of Legend") is the adaptation's rule set.
 ## Setup
 
 The game itself has **no external submodule build dependency** — the one thing it needed
-from Toolbox64 (the ANSI renderer) is **vendored** in `include/ansi/` (see below). File
+from Toolbox64 (the ANSI renderer) is **vendored** in `engine/ansi/` (see below). File
 reads use QB64PE's built-in `_READFILE$`. So `dungeon.bas` compiles from a plain checkout.
 
-- **`include/ansi/`** — vendored `ANSIPrint` + its `GraphicOps`/`Common`/`Types`/`Debug`
+- **`engine/ansi/`** — vendored `ANSIPrint` + its `GraphicOps`/`Common`/`Types`/`Debug`
   headers (from Toolbox64 @ `8c5d57d`, the last commit that compiles on QB64PE **4.4.0 and
   4.5.0**). Provides `ANSI_Print` (renders `.ans` bytes to the current `_DEST`). We vendored
   it because Toolbox64 `main`'s newer `ANSIPrint`→`Graphics2D.h` reaches a QB64PE internal
@@ -318,15 +318,20 @@ Environment specifics that dictate this approach:
   the dice subsystem) / `ARTPACK` (pixel-art load/fit/pack) / `SAVEIO` (save plumbing) / `MARKDOWN`
   (md→text renderer) / `TEXT` (string utils)), a swappable **`game/`** (`GAME.BI` header + `HOOKS` /
   `OVERLAYS` (board overlays + render hooks) / `LOADERS` / `CHAMBERS` (named-hall detection) /
-  `MANIFEST` (audio manifest + SFX roster) /
-  `COMBAT` (combat/treasure) / `PLAY` (drops/loiter/encounters) / `MENU` (screens +
+  `MANIFEST` (audio manifest + SFX roster) / `DEBUG` (`[~]` overlay + `[0]` cheat panel) /
+  `PLAYERS` (hot-seat seats) /
+  `COMBAT` (combat/treasure) / `PLAY` (drops/loiter/encounters/search/doors) / `MENU` (screens +
   char-gen + HUD) / `SPRITES` (entity→sprite + manifests) / `SECTOR` / `SOLO` / `FLAVOR` / `CTEXT` /
   `CURIO` / `EFFECTS` / `SAVEGAME` / `CHRONICLE` / `LORDS`). `dungeon.bas` is now a thin assembly
-  (setup + state machine + `PlayGame` + the `$INCLUDE` block). Only the **vendored** `include/ansi/`
-  + `include/DICE3D/` and the small `include/DICE3D_GAME` dice-glue remain under `include/`.
-  `Toolbox64` / `QB64_GJ_LIB` submodules are kept for reference; **not** compiled.
+  (setup + state machine + `PlayGame` + the `$INCLUDE` block). The vendored `ansi/` renderer, the
+  `DICE3D/` module and its `DICE3D_GAME` presentation layer now live under **`engine/`**, so that
+  directory is self-contained on disk; `include/` holds only the `Toolbox64` / `QB64_GJ_LIB`
+  reference submodules, **not** compiled.
+  **`engine/` names no `game/` symbol** — every engine→game call goes through one of 11 `Game_*`
+  hooks, enforced by `tests/audit-boundary.sh`, and `examples/minimal` is a second game on
+  `engine/` alone that proves it.
   **[engine/ENGINE.md](engine/ENGINE.md) is the authority** (layout, the `Game_*` hook contract, and
-  the boundary-debt ledger).
+  the record of how each boundary leak was closed).
 - **`assets/ansi/`** — the game's actual graphics: `.ans`/`.icy`/`.xb` text-mode art,
   including the board, menu pieces, and monsters. These are content, not decoration —
   the board art is also the collision map.

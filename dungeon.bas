@@ -7,12 +7,12 @@
 ' ============================================================================
 ' a console (hidden in normal play) so `dungeon.run --help` can print to the terminal:
 $CONSOLE
-'$INCLUDE:'include/ansi/ANSIPrint.bi'   ' vendored ANSI renderer (decoupled from Toolbox64 submodule); file reads use _READFILE$
+'$INCLUDE:'engine/ansi/ANSIPrint.bi'   ' vendored ANSI renderer (decoupled from Toolbox64 submodule); file reads use _READFILE$
 
 '$INCLUDE:'engine/ENGINE.BI'    ' reusable engine globals/types/consts (must load first)
 '$INCLUDE:'game/GAME.BI'        ' DUNGEON!-specific globals/types/consts (the swappable layer)
-'$INCLUDE:'include/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
-'$INCLUDE:'include/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
+'$INCLUDE:'engine/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
+'$INCLUDE:'engine/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
 SW = 132: SH = 51: CW = 8: CH = 16
 
 ' --- CLI: `dungeon.run --help` (or -h) lists the command-line modes, then exits ---
@@ -685,8 +685,8 @@ END FUNCTION
 '$INCLUDE:'game/CTEXT.bas'
 '$INCLUDE:'engine/MUSIC.bas'
 
-'$INCLUDE:'include/DICE3D/_ALL.BM'      ' 3D dice implementation (bottom, per the module's contract)
-'$INCLUDE:'include/DICE3D_GAME.bas'     ' dungeon<->DICE3D glue (LoadDiceSets, Show3DRoll)
+'$INCLUDE:'engine/DICE3D/_ALL.BM'      ' 3D dice implementation (bottom, per the module's contract)
+'$INCLUDE:'engine/DICE3D_GAME.bas'     ' dungeon<->DICE3D glue (LoadDiceSets, Show3DRoll)
 
-'$INCLUDE:'include/ansi/ANSIPrint.bas'  ' vendored ANSI renderer bodies (Toolbox64 8c5d57d, works on 4.4.0/4.5.0)
+'$INCLUDE:'engine/ansi/ANSIPrint.bas'  ' vendored ANSI renderer bodies (Toolbox64 8c5d57d, works on 4.4.0/4.5.0)
 

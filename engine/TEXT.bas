@@ -44,3 +44,16 @@ FUNCTION StrSubst$ (s AS STRING, finds AS STRING, repl AS STRING)
     LOOP
     StrSubst$ = buf
 END FUNCTION
+
+
+' Index of `want` in packs(1..cnt), or 0 if absent. A generic array search -- it lived in
+' MUSIC.bas but DATA, MUSIC and ARTPACK all use it for pack resolution, so it belongs here
+' with the other reusable helpers (and lets those modules be unit-tested without a stub).
+' Index of name within packs(0..cnt), or 0 (the main dir) if not present.
+FUNCTION PackIndex% (packs() AS STRING, cnt AS INTEGER, want AS STRING)
+    DIM i AS INTEGER
+    PackIndex = 0
+    FOR i = 1 TO cnt
+        IF packs(i) = want THEN PackIndex = i: EXIT FUNCTION
+    NEXT i
+END FUNCTION

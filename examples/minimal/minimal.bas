@@ -14,10 +14,10 @@
 ' ============================================================================
 $CONSOLE:ONLY
 
-'$INCLUDE:'../../include/ansi/ANSIPrint.bi'
+'$INCLUDE:'../../engine/ansi/ANSIPrint.bi'
 '$INCLUDE:'../../engine/ENGINE.BI'
-'$INCLUDE:'../../include/DICE3D/_ALL.BI'
-'$INCLUDE:'../../include/DICE3D_GAME.bi'
+'$INCLUDE:'../../engine/DICE3D/_ALL.BI'
+'$INCLUDE:'../../engine/DICE3D_GAME.bi'
 
 ' QB64 chdirs to the EXECUTABLE's dir at startup, so "assets/..." would resolve
 ' under examples/minimal/. Fix cwd to the repo root once, up front (same trick as
@@ -127,6 +127,6 @@ SYSTEM
 '$INCLUDE:'../../engine/MUSIC.bas'
 '$INCLUDE:'../../engine/UI.bas'
 
-'$INCLUDE:'../../include/DICE3D/_ALL.BM'
-'$INCLUDE:'../../include/DICE3D_GAME.bas'
-'$INCLUDE:'../../include/ansi/ANSIPrint.bas'
+'$INCLUDE:'../../engine/DICE3D/_ALL.BM'
+'$INCLUDE:'../../engine/DICE3D_GAME.bas'
+'$INCLUDE:'../../engine/ansi/ANSIPrint.bas'

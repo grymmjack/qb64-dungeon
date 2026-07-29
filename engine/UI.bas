@@ -1165,3 +1165,21 @@ FUNCTION PromptRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS 
 END FUNCTION
 
 
+
+
+' The "continue or new?" dialog. It lived in SAVEIO.bas beside the token reader, but it is a
+' SCREEN -- it draws and waits on a key -- so it belongs with the other UI primitives. Moving
+' it leaves engine/SAVEIO.bas genuinely pure file plumbing (and stub-free to unit-test).
+' Offered when entering the dungeon and a save exists: continue it or start fresh.
+FUNCTION AskContinue%
+    DIM k AS STRING
+    _DEST CANVAS: CLS , BLACK
+    COLOR YELLOWU, BLACK: PrintCentered 22, "A saved delve awaits you."
+    COLOR CYANU, BLACK: PrintCentered 24, "[C] CONTINUE saved game        [N] start a NEW game"
+    _DISPLAY
+    DO
+        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+        IF k = "C" OR k = CHR$(13) THEN AskContinue = -1: EXIT FUNCTION
+        IF k = "N" OR k = CHR$(27) THEN AskContinue = 0: EXIT FUNCTION
+    LOOP
+END FUNCTION

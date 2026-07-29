@@ -142,3 +142,14 @@ END FUNCTION
 FUNCTION Game_ZoneCount%
     Game_ZoneCount% = UBOUND(SECTORS)
 END FUNCTION
+
+' Game hook (#5) -- repaint the game's HUD layer.
+'
+' The engine repaints the BOARD after an overlay closes (cursor_erase/cursor_draw), but
+' what sits on top of it -- gold, HP, the turn/steps readout, the combat panel -- is the
+' game's. The 3D dice roller needs this: after wiping its dice box off the board it must
+' restore the HUD, or the combat panel and the "you still face..." prompt come back
+' half-erased. Was a direct DrawHUD call from engine/DICE3D_GAME.bas.
+SUB Game_RenderHUD
+    DrawHUD
+END SUB

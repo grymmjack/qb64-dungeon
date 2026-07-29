@@ -20,19 +20,6 @@ SUB DeleteSave
 END SUB
 
 
-' Offered when entering the dungeon and a save exists: continue it or start fresh.
-FUNCTION AskContinue%
-    DIM k AS STRING
-    _DEST CANVAS: CLS , BLACK
-    COLOR YELLOWU, BLACK: PrintCentered 22, "A saved delve awaits you."
-    COLOR CYANU, BLACK: PrintCentered 24, "[C] CONTINUE saved game        [N] start a NEW game"
-    _DISPLAY
-    DO
-        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
-        IF k = "C" OR k = CHR$(13) THEN AskContinue = -1: EXIT FUNCTION
-        IF k = "N" OR k = CHR$(27) THEN AskContinue = 0: EXIT FUNCTION
-    LOOP
-END FUNCTION
 
 
 ' -- token-stream reader (split a save file once, then consume tokens in order) --

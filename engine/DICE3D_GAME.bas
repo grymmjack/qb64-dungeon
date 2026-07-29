@@ -260,7 +260,10 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
     DICE3D_HW = 0
     cursor_erase: cursor_draw                       ' wipe the dice box off the board so the combat
-    DrawHUD: _DISPLAY                                ' panel / "you still face..." prompt shows clean next
+    ' NOTE: on its OWN line. `Game_RenderHUD: _DISPLAY` parses the name as a LABEL, not a
+    ' call, whenever that SUB is not defined -- it compiles clean and silently does nothing.
+    Game_RenderHUD                                   ' game hook #5: restore the HUD layer
+    _DISPLAY                                         ' panel / "you still face..." prompt shows clean next
     Show3DRoll = sum3d
 END FUNCTION
 

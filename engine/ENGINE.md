@@ -16,10 +16,21 @@ the map of the boundary, the hook contract, and the record of how each leak was 
 ## Status: the engine is CLEAN, and separability is PROVEN
 
 **No file in `engine/` names a game symbol** — every engine→game reference goes through a
-`Game_*` hook. And that is not just asserted: **[examples/minimal](../examples/minimal/)** is a
-second game, built on `engine/` with nothing from `game/`, that walks a player around the board.
-It implements the 10 hooks in ~40 lines. If the engine ever grows a hidden DUNGEON! dependency,
-that demo stops compiling — a louder alarm than any document.
+`Game_*` hook — and `engine/` is now **self-contained on disk**: the vendored ANSI renderer and
+the DICE3D module moved in from `include/`, which is left holding only the two reference
+submodules. The directory can be copied out as-is.
+
+Separability is not just asserted: **[examples/minimal](../examples/minimal/)** is a second game,
+built on `engine/` with nothing from `game/`, that walks a player around the board. It implements
+all 11 hooks in ~50 lines.
+
+> **Do not rely on "the demo stops compiling" to catch a missing hook.** A bare `Game_Foo`
+> statement whose SUB is undefined parses as a **label**, not a call — it compiles clean and
+> silently does nothing. That is exactly what happened when `Game_RenderHUD` was added: the demo
+> kept building without it. CLAUDE.md documents this trap for *dotted* names; it applies to **any**
+> name that is not a defined SUB. Two defences: never write a hook call in `NAME: statement`
+> position (give it its own line), and let `tests/audit-boundary.sh` set-difference the hooks the
+> engine CALLS against the ones each game DEFINES. That check is the real alarm.
 
 ```sh
 tests/run-tests.sh              # everything: unit suites + both audits + the separability proof
@@ -43,7 +54,8 @@ and both times the audit caught what the prose had got wrong. So the audit is a 
 `SUB`/`FUNCTION` in `game/*.bas`, each `DIM SHARED`/`CONST`/`TYPE` in `GAME.BI`), then intersects
 that with the identifiers in each `engine/` file. Anything back — other than a `Game_*` hook — is
 boundary debt. It strips comments and string literals, and filters QB64 keywords and shared type
-names.
+names. It then checks **contract completeness**: every `Game_*` hook the engine calls must be
+implemented by both `game/` and `examples/minimal/`.
 
 > **Why a script, not a one-liner.** The obvious `grep '^ *DIM SHARED +\w+'` captures only the
 > **first** name on a line, so `DIM SHARED num_players AS INTEGER, cur_player AS INTEGER` hides
@@ -60,7 +72,9 @@ dungeon.bas          thin assembly: screen/CLI setup + state machine + PlayGame 
 engine/
   ENGINE.BI          reusable globals/types/consts (loaded FIRST)
   ENGINE.md          this file
-  ansi/  DICE3D/      vendored ANSI renderer + 3D dice (logically engine; still under include/)
+  ansi/              vendored ANSI renderer (ANSI_Print) -- moved in from include/
+  DICE3D/            the 3D polyhedral dice module -- moved in from include/
+  DICE3D_GAME.bas    the engine's 3D-dice presentation layer (roll box, sets, previews)
   BOARD              board render, fog/FOV, secret doors + masks, pixel-colour collision
   CURSOR             movement + draw/erase
   MUSIC JUICE GESTURE DATA   .bas modules
@@ -69,7 +83,7 @@ engine/
   SAVEIO             save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
   STATS              append-only CSV plumbing + the schema-drift rotate guard
   MARKDOWN           markdown -> text-mode renderer (was inside CHRONICLE)
-  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$)
+  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$/PackIndex%)
 game/
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
@@ -84,7 +98,7 @@ game/
   SPRITES            entity->sprite mapping + popups + manifests
   SAVEGAME CHRONICLE LORDS   .bas  (save payload / per-run journal / hall of fame + settings)
   SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS   .bas modules
-include/             not-yet-split: DICE3D_GAME (dice glue) + the vendored ansi/ + DICE3D/ dirs
+include/             reference submodules ONLY (Toolbox64, QB64_GJ_LIB) -- not compiled
 tests/               headless assert suites + the boundary/shadow audits (tests/run-tests.sh)
 examples/minimal/    a SECOND game on engine/ alone -- the separability proof
 ```
@@ -109,7 +123,7 @@ primitives/types first; game types may build on engine ones, never the reverse.
 
 ## The engine ↔ game contract
 
-A hook is a `Game_*` SUB/FUNCTION the engine calls and `game/` implements. **12 are live** — and
+A hook is a `Game_*` SUB/FUNCTION the engine calls and `game/` implements. **11 are live** — and
 they are now the *only* way engine code reaches game code. The still-"planned" rows are not debt:
 they are inlined in `dungeon.bas`, the **assembly**, which is allowed to name both sides. Lifting
 them would make `dungeon.bas` itself reusable; it is not required for `engine/` to be separable.
@@ -126,7 +140,7 @@ them would make `dungeon.bas` itself reusable; it is not required for `engine/` 
 | — | `Game_ZoneByColor%` / `Game_ZoneName$` / `Game_ZoneCount%` — zone identity for the mask linter | ✅ done | `SectorByColor%`/`SECTORS().label` inside `AnsiLint` |
 | 3 | `Game_Play%()` / `Game_ShowIntro` / `Game_ShowEnd(win)` — state-machine bodies | planned | `dungeon.bas` state machine |
 | 4 | `Game_RunOver%()` — lose/forfeit predicate (`player_out`/`solo_result`) | planned | play loop |
-| 5 | `Game_HUDText$()` / `Game_DrawHUDExtra` — HUD content injection | planned | `DrawHUD` (MENU.bas) |
+| 5 | `Game_RenderHUD()` — repaint the game's HUD layer after the engine wipes an overlay | ✅ done | `DrawHUD` call inside the 3D dice roller |
 | 6 | `Game_RenderMapLabels`/`Game_RenderOverlays` — board labels + tombstone/grave/entity/hunter overlays (superseded the guessed per-cell `Game_CellMarker%`) | ✅ done | `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/`DrawEntities`/`DrawHunter` |
 | 7 | `Game_OnRoomDiscovered(rm)` — first-entry (`RoomFlavor`+chronicle) | planned | play loop (now inside #2) |
 | 8 | `Game_PopulateBoard()` — the game claims **both** its region kinds: ROOMS (coloured blocks) **and** CHAMBERS (named halls) | ✅ done | `DetectRooms`/`FloodRoom`/`RoomVisit` + `DetectChambers` & co. in `engine/BOARD.bas` |

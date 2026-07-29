@@ -94,14 +94,9 @@ T_True "file present", _FILEEXISTS(P)
 T_Rm P
 T_Done
 
-' --- stubbed collaborator ---------------------------------------------------
-' engine/SAVEIO.bas is not fully self-contained: AskContinue% is a "continue or
-' new?" SCREEN sharing the file with the pure token reader, so it reaches for
-' PrintCentered (engine/UI.bas). Pulling UI in would drag the whole dice/audio
-' stack into a tokeniser test, so stub it -- nothing under test calls it.
-' (Noted as cohesion debt: the dialog would sit better in UI, leaving SAVEIO pure.)
-SUB PrintCentered (row AS INTEGER, txt AS STRING)
-END SUB
+' No stubs needed: engine/SAVEIO.bas is pure file plumbing. (It used to need a
+' PrintCentered stub because AskContinue% -- a SCREEN -- shared the file with the
+' token reader; that dialog now lives in engine/UI.bas where it belongs.)
 
 '$INCLUDE:'TESTLIB.bas'
 '$INCLUDE:'../engine/TEXT.bas'

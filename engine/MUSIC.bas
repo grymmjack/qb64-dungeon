@@ -379,14 +379,6 @@ SUB ScanAllPacks
     IF opt_narration AND PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack) = 0 THEN opt_narrationpack = FallbackPack$(NARRPACKS(), NARRPACK_N)
 END SUB
 
-' Index of name within packs(0..cnt), or 0 (the main dir) if not present.
-FUNCTION PackIndex% (packs() AS STRING, cnt AS INTEGER, want AS STRING)
-    DIM i AS INTEGER
-    PackIndex = 0
-    FOR i = 1 TO cnt
-        IF packs(i) = want THEN PackIndex = i: EXIT FUNCTION
-    NEXT i
-END FUNCTION
 
 ' A pack name for display: "(main)" for the flat dir, else the subdir name.
 FUNCTION PackLabel$ (want AS STRING)

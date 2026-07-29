@@ -90,18 +90,10 @@ opt_datapack = "default"
 T_Done
 
 ' --- stubbed collaborators -------------------------------------------------
-' engine/DATA.bas is not fully self-contained: ScanDataPacks/CycleDataPack reach
-' for PackIndex% (engine/MUSIC.bas) and Sfx (engine/UI.bas). Both are engine->engine,
-' so not boundary debt -- but pulling MUSIC/UI in would drag the whole audio stack
-' into a string-parsing test. Stub them instead; nothing under test calls either.
-FUNCTION PackIndex% (packs() AS STRING, cnt AS INTEGER, want AS STRING)
-    DIM i AS INTEGER
-    PackIndex = 0
-    FOR i = 1 TO cnt
-        IF packs(i) = want THEN PackIndex = i: EXIT FUNCTION
-    NEXT i
-END FUNCTION
-
+' engine/DATA.bas is not fully self-contained: ScanDataPacks/CycleDataPack reach for
+' Sfx (engine/UI.bas). engine->engine, so not boundary debt -- but pulling UI in would
+' drag the whole audio stack into a string-parsing test. Stub it; nothing under test
+' calls it. (PackIndex% used to be stubbed here too; it moved to engine/TEXT.bas.)
 SUB Sfx (kind AS STRING)
 END SUB
 

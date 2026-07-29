@@ -3,10 +3,14 @@
 '  DUNGEON!. This file IS the proof that engine/ is separable: if the engine can
 '  be driven by these ~40 lines, nothing DUNGEON!-specific is hiding inside it.
 '
-'  Every Game_* SUB/FUNCTION the engine calls must exist here. Find the current
-'  list with:   grep -rhoE 'Game_[A-Za-z_]+' engine/*.bas | sort -u
-'  If that list grows and this file is not updated, examples/minimal stops
-'  compiling -- which is exactly the alarm we want. See engine/ENGINE.md.
+'  Every Game_* SUB/FUNCTION the engine calls must exist here.
+'
+'  DO NOT rely on "the demo stops compiling" to notice a new hook: a bare
+'  `Game_Foo` statement whose SUB is undefined parses as a LABEL, not a call, so
+'  it compiles clean and silently does nothing. That is exactly what happened when
+'  Game_RenderHUD was added. tests/audit-boundary.sh is the real alarm -- it
+'  set-differences the hooks engine/ CALLS against the ones this file DEFINES.
+'  See engine/ENGINE.md.
 ' ============================================================================
 
 ' The engine asks the game to claim its board regions after the art is painted.
@@ -16,6 +20,11 @@ END SUB
 
 ' Map-layer labels (drawn under the near-death overlay). None here.
 SUB Game_RenderMapLabels
+END SUB
+
+' Repaint the game's HUD layer after the engine wipes an overlay off the board
+' (the 3D dice roller needs this). This demo has no HUD.
+SUB Game_RenderHUD
 END SUB
 
 ' On-top overlays: entities, tokens, markers. This demo draws just the player.

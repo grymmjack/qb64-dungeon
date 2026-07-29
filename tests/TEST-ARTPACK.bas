@@ -59,18 +59,10 @@ T_EqS "absent ANSI asset -> empty", AnsiFile$("no-such-art.ans"), ""
 T_Done
 
 ' --- stubbed collaborators --------------------------------------------------
-' ScanArtPacks/CycleArtPack reach for PackIndex% (engine/MUSIC.bas) and Sfx
-' (engine/UI.bas); the sprite/box drawers reach for UI primitives. None are on the
-' path under test, so stub rather than drag the audio + dice stack in. As in
-' TEST-DATA, the stub list is an honest record of this module's real dependencies.
-FUNCTION PackIndex% (packs() AS STRING, cnt AS INTEGER, want AS STRING)
-    DIM i AS INTEGER
-    PackIndex = 0
-    FOR i = 1 TO cnt
-        IF packs(i) = want THEN PackIndex = i: EXIT FUNCTION
-    NEXT i
-END FUNCTION
-
+' ScanArtPacks/CycleArtPack reach for Sfx (engine/UI.bas), and the sprite/box drawers
+' reach for UI primitives -- not on the path under test, so stub rather than drag the
+' whole audio + dice stack into a path-resolution test. (PackIndex% used to be stubbed
+' here too; it moved to engine/TEXT.bas, which this suite already includes.)
 SUB Sfx (kind AS STRING)
 END SUB
 
