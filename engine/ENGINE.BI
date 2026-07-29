@@ -91,6 +91,8 @@ DIM SHARED opt_artpack AS STRING
 DIM SHARED ARTPACKS(0 TO 32) AS STRING, ARTPACK_N AS INTEGER
 DIM SHARED opt_ansipack AS STRING                ' selected ANSI-art pack (assets/ansi-art/<pack>/); "default" = the base
 DIM SHARED ANSIPACKS(0 TO 32) AS STRING, ANSIPACK_N AS INTEGER
+DIM SHARED opt_datapack AS STRING                ' selected DATA pack (assets/data/<pack>/ + assets/flavor/<pack>/); "default" = base game content
+DIM SHARED DATAPACKS(0 TO 32) AS STRING, DATAPACK_N AS INTEGER
 DIM SHARED narr_handle AS LONG                    ' the currently-playing narration line (one at a time)
 DIM SHARED narr_start AS DOUBLE                   ' TIMER when the current line began (envelope is wall-clock, not playhead)
 DIM SHARED narr_len AS DOUBLE                     ' _SNDLEN of the current line, read once (0 = unknown -> no fade-out)

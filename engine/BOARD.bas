@@ -165,14 +165,15 @@ END SUB
 ' heuristic when the file is absent or empty.
 FUNCTION LoadChambers%
     LoadChambers = 0
-    IF NOT _FILEEXISTS("assets/data/chambers.txt") THEN EXIT FUNCTION
+    DIM cf AS STRING: cf = DataPath$("assets/data/chambers.txt")   ' data-pack aware
+    IF NOT _FILEEXISTS(cf) THEN EXIT FUNCTION
     DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
     DIM nm AS STRING, c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER
     DIM x AS INTEGER, y AS INTEGER, cnt AS INTEGER, oldsrc AS LONG
     FOR y = 0 TO 60: FOR x = 0 TO 131: CHAMBERAT(x, y) = 0: NEXT: NEXT
     FOR x = 1 TO MAXCHAMBER: CHM_DEAD(x) = 0: NEXT
     NCHAMBER = 0: cur_chamber = 0
-    whole = _READFILE$("assets/data/chambers.txt")
+    whole = _READFILE$(cf)
     oldsrc = _SOURCE: _SOURCE FULL_BOARD
     p = 1
     DO WHILE p <= LEN(whole)
@@ -606,10 +607,11 @@ END SUB
 SUB LoadFogHide
     DIM fcx AS INTEGER, fcy AS INTEGER
     FOR fcy = 0 TO 60: FOR fcx = 0 TO 131: FOGHIDE(fcx, fcy) = 0: NEXT: NEXT   ' fresh each build (for the [~] overlay)
-    IF NOT _FILEEXISTS("assets/data/fog-hide.txt") THEN EXIT SUB
+    DIM ff AS STRING: ff = DataPath$("assets/data/fog-hide.txt")   ' data-pack aware
+    IF NOT _FILEEXISTS(ff) THEN EXIT SUB
     DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
     DIM hx AS INTEGER, hy AS INTEGER
-    whole = _READFILE$("assets/data/fog-hide.txt")
+    whole = _READFILE$(ff)
     p = 1
     DO WHILE p <= LEN(whole)
         nl = INSTR(p, whole, CHR$(10))

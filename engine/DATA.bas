@@ -194,11 +194,67 @@ END FUNCTION
 ' Read a data file into DLINE()/DLINE_N, dropping comments and blank lines. A whole
 ' -file read (_READFILE$) side-steps QB64's line-input EOF quirk; CR and LF both end
 ' a line. DLINE is a shared scratch buffer -- consume it before the next ReadDataFile.
+' Route an "assets/data/<f>" or "assets/flavor/<f>" path through the selected DATA PACK.
+' Every data/flavor file now lives under a named pack subfolder (default = "assets/data/default/").
+' The chosen pack is tried first per-file; anything it doesn't ship falls back to the "default"
+' pack -- so a partial pack overrides only the tables/flavor it replaces. A pack IS a whole game:
+' swap monsters/treasures/tuning/classes/strings/flavor and you have a different DUNGEON!.
+' Non-data paths pass through untouched. Applies on next launch (data loads once at startup).
+FUNCTION DataPath$ (p AS STRING)
+    DIM pfx AS STRING, rest AS STRING, pk AS STRING, cand AS STRING
+    IF LEFT$(p, 12) = "assets/data/" THEN
+        pfx = "assets/data/": rest = MID$(p, 13)
+    ELSEIF LEFT$(p, 14) = "assets/flavor/" THEN
+        pfx = "assets/flavor/": rest = MID$(p, 15)
+    ELSE
+        DataPath$ = p: EXIT FUNCTION
+    END IF
+    pk = _TRIM$(opt_datapack)
+    IF pk = "" THEN pk = "default"
+    IF pk <> "default" THEN
+        cand = pfx + pk + "/" + rest
+        IF _FILEEXISTS(cand) THEN DataPath$ = cand: EXIT FUNCTION
+    END IF
+    DataPath$ = pfx + "default/" + rest
+END FUNCTION
+
+' Fill DATAPACKS() with every subfolder of assets/data/ (each is a data pack, incl "default").
+' A data pack bundles the game's content -- monsters/treasures/items/tuning/classes/strings + the
+' assets/flavor/<same-name>/ prose -- so the folder list IS the list of installable "games".
+' Same model as ScanAnsiPacks: a vanished saved pick falls back to "default".
+SUB ScanDataPacks
+    DIM e AS STRING, nm AS STRING
+    DATAPACK_N = 0
+    IF _DIREXISTS("assets/data/") THEN
+        e = _FILES$("assets/data/")
+        DO WHILE LEN(e) > 0
+            IF RIGHT$(e, 1) = "/" THEN
+                nm = LEFT$(e, LEN(e) - 1)
+                IF nm <> "." AND nm <> ".." AND DATAPACK_N < UBOUND(DATAPACKS) THEN DATAPACK_N = DATAPACK_N + 1: DATAPACKS(DATAPACK_N) = nm
+            END IF
+            e = _FILES$
+        LOOP
+    END IF
+    IF PackIndex%(DATAPACKS(), DATAPACK_N, opt_datapack) = 0 THEN opt_datapack = "default"
+END SUB
+
+' Cycle the data pack by delta. Data is loaded ONCE at startup (tables + flavor + strings), so a
+' pack change fully applies on the NEXT launch -- same as the ANSI board pack. The pick is saved now.
+SUB CycleDataPack (delta AS INTEGER)
+    DIM idx AS INTEGER
+    idx = PackIndex%(DATAPACKS(), DATAPACK_N, opt_datapack) + delta
+    IF idx < 1 THEN idx = DATAPACK_N
+    IF idx > DATAPACK_N THEN idx = 1
+    opt_datapack = DATAPACKS(idx)
+    Sfx "select"
+END SUB
+
 SUB ReadDataFile (path AS STRING)
-    DIM raw AS STRING, i AS INTEGER, ch2 AS STRING, ln AS STRING
+    DIM raw AS STRING, i AS INTEGER, ch2 AS STRING, ln AS STRING, rp AS STRING
     DLINE_N = 0
-    IF _FILEEXISTS(path) = 0 THEN EXIT SUB
-    raw = _READFILE$(path)
+    rp = DataPath$(path)                              ' route through the selected data pack (default fallback)
+    IF _FILEEXISTS(rp) = 0 THEN EXIT SUB
+    raw = _READFILE$(rp)
     ln = ""
     FOR i = 1 TO LEN(raw)
         ch2 = MID$(raw, i, 1)

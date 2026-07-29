@@ -183,9 +183,10 @@ END SUB
 SUB LoadUIFonts
     DIM f AS INTEGER, ln AS STRING, p1 AS INTEGER, p2 AS INTEGER
     DIM region AS STRING, file AS STRING, sz AS INTEGER, h AS LONG, path AS STRING
-    IF _FILEEXISTS("assets/data/ui-fonts.txt") = 0 THEN EXIT SUB
+    DIM uf AS STRING: uf = DataPath$("assets/data/ui-fonts.txt")   ' data-pack aware
+    IF _FILEEXISTS(uf) = 0 THEN EXIT SUB
     f = FREEFILE
-    OPEN "assets/data/ui-fonts.txt" FOR INPUT AS #f
+    OPEN uf FOR INPUT AS #f
     DO WHILE NOT EOF(f)
         LINE INPUT #f, ln
         ln = _TRIM$(ln)

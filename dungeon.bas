@@ -97,6 +97,7 @@ opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narra
 opt_narrfreq = NARR_COMBAT                           ' default: narrate everything (flavor + events + combat)
 opt_artpack = "default"                              ' default pixel-art pack (assets/pixel-art/default/); every pack is a named subfolder
 opt_ansipack = "default"                             ' default ANSI-art pack (assets/ansi-art/default/); board + masks + menu art
+opt_datapack = "default"                             ' default DATA pack (assets/data/default/ + assets/flavor/default/); a pack = a whole game's content
 opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)

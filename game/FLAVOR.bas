@@ -69,9 +69,10 @@ END SUB
 
 ' Read a flavor file and add each line. mode: 1 regular, 2 special, 3 maxhit.
 SUB ParseFlavorFile (path AS STRING, mode AS INTEGER)
-    DIM raw AS STRING, i AS INTEGER, ch2 AS STRING, ln AS STRING
-    IF _FILEEXISTS(path) = 0 THEN EXIT SUB
-    raw = _READFILE$(path)
+    DIM raw AS STRING, i AS INTEGER, ch2 AS STRING, ln AS STRING, rp AS STRING
+    rp = DataPath$(path)                              ' data-pack aware (assets/flavor/<pack>/, default fallback)
+    IF _FILEEXISTS(rp) = 0 THEN EXIT SUB
+    raw = _READFILE$(rp)
     ln = ""
     FOR i = 1 TO LEN(raw)
         ch2 = MID$(raw, i, 1)

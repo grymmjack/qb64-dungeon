@@ -588,7 +588,7 @@ SUB BuildSetLayout
     SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
-    SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow(): SetLayRow 3, 36, prow()
+    SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow(): SetLayRow 3, 36, prow()
     prow(3) = prow(3) + 1
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
 END SUB
@@ -642,7 +642,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 50
+    CONST NSET = 51
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -766,6 +766,7 @@ SUB RunSettings
                     Sfx "select"
                 CASE 48: opt_duckamt = Clamp10(opt_duckamt + delta): Sfx "select"   ' music-under-voice ducking depth
                 CASE 49: CycleAnsiPack delta                                        ' ANSI-art pack (board + masks + menu)
+                CASE 51: CycleDataPack delta                                        ' DATA pack -- whole game (monsters/tuning/flavor); applies on restart
             END SELECT
         END IF
 
@@ -858,6 +859,7 @@ SUB RunSettings
                 CASE 48
                     opt_duckamt = opt_duckamt + 1: IF opt_duckamt > 10 THEN opt_duckamt = 0
                 CASE 49: CycleAnsiPack 1
+                CASE 51: CycleDataPack 1
                 CASE 50: SaveSettings: Free3DPreviews: EXIT SUB
             END SELECT
             Sfx "select"
@@ -1040,6 +1042,9 @@ SUB RunSettings
                 CASE 49
                     lbl = "ANSI Art Pack": slider = TRUE
                     vtxt = PackLabel$(opt_ansipack)
+                CASE 51
+                    lbl = "Data Pack": slider = TRUE
+                    vtxt = PackLabel$(opt_datapack)
                 CASE ELSE: lbl = "<< Back": vtxt = ""
             END SELECT
             cx0 = SL_COLX(SL_COL(i))
@@ -1047,7 +1052,7 @@ SUB RunSettings
             IF i = sel THEN COLOR WHITE ELSE IF slider THEN COLOR CYANU ELSE COLOR GREY
             _PRINTMODE _KEEPBACKGROUND                     ' text over the bar; bg stays whatever's under it
             _PRINTSTRING ((cx0 + 1) * CW, y * CH), lbl     ' label left
-            IF i <> NSET THEN _PRINTSTRING ((cx0 + SCOLW - LEN(vtxt)) * CW, y * CH), vtxt   ' value right-aligned (no truncation)
+            IF LEN(vtxt) > 0 THEN _PRINTSTRING ((cx0 + SCOLW - LEN(vtxt)) * CW, y * CH), vtxt   ' value right-aligned (Back has none)
             _PRINTMODE _FILLBACKGROUND
         NEXT i
         ' live dice previews in the free strip BELOW the columns (repositioned to row 31)

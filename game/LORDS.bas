@@ -463,6 +463,7 @@ SUB SaveSettings
     PRINT #f, "narrfreq " + _TRIM$(STR$(opt_narrfreq))
     PRINT #f, "artpack " + opt_artpack
     PRINT #f, "ansipack " + opt_ansipack
+    PRINT #f, "datapack " + opt_datapack
     CLOSE #f
 END SUB
 
@@ -531,6 +532,7 @@ SUB LoadSettings
                 CASE "narrfreq": opt_narrfreq = v
                 CASE "artpack": opt_artpack = vs
                 CASE "ansipack": opt_ansipack = vs
+                CASE "datapack": opt_datapack = vs
             END SELECT
         END IF
     LOOP

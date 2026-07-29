@@ -374,6 +374,7 @@ SUB ScanAllPacks
     ScanAudioPacks "assets/narration/", NARRPACKS(), NARRPACK_N
     ScanArtPacks                                          ' pixel-art theme packs (subdirs of assets/pixel-art/)
     ScanAnsiPacks                                         ' ANSI-art packs (subdirs of assets/ansi-art/): board + masks + menu art
+    ScanDataPacks                                         ' DATA packs (subdirs of assets/data/): monsters/treasures/tuning/classes/strings + flavor -- a whole game
     ' a saved pack whose folder has since vanished (or a blank pick) falls back to a real pack
     IF PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack) = 0 THEN opt_sfxpack = FallbackPack$(SFXPACKS(), SFXPACK_N)
     IF PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack) = 0 THEN opt_musicpack = FallbackPack$(MUSICPACKS(), MUSICPACK_N)
