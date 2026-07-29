@@ -44,3 +44,8 @@ chamberdump.txt
 # generation run logs (noise; regenerate any time)
 *.log
 settings-shot.png
+
+# headless engine test harness: compiled suites + their scratch dir
+tests/*.run
+tests/*.exe
+tests/tmp/

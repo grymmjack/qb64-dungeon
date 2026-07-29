@@ -510,6 +510,49 @@
                 "panel": "shared",
                 "focus": false
             }
+        },
+        {
+            "label": "TEST: Run engine tests",
+            "detail": "Compile + run every tests/TEST-*.bas headlessly (assert suites for the game-free engine modules)",
+            "type": "shell",
+            "command": "tests/run-tests.sh",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "QB64PE": "${config:qb64pe.compilerPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "clear": true,
+                "panel": "shared",
+                "focus": false
+            }
+        },
+        {
+            "label": "TEST: Run engine tests (this file)",
+            "detail": "Run only the suite matching the open file's name, e.g. TEST-STATS.bas",
+            "type": "shell",
+            "command": "tests/run-tests.sh",
+            "args": [
+                "${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "QB64PE": "${config:qb64pe.compilerPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "clear": true,
+                "panel": "shared",
+                "focus": false
+            }
         }
     ]
 }
