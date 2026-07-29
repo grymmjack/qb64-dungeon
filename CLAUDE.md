@@ -10,7 +10,7 @@ sectors, collision) is driven by sampling the pixels of that rendered art rather
 separate tile data model.
 
 **Design basis: TSR's _Dungeon!_ board game (1975).** Treat its mechanics as the rules
-reference — [DUNGEON-RULES.md](DUNGEON-RULES.md) is the full plain-text rules summary (movement,
+reference — [DUNGEON-RULES.md](assets/reference/DUNGEON-RULES.md) is the full plain-text rules summary (movement,
 combat, items, the Monster Attack Table) mapped to the code, and is what **Oldschool mode**
 (`opt_oldschool`) reproduces. Original: 6 levels (deeper = tougher monsters / richer treasure); classes with
 different treasure-to-win goals (Hero 10k GP, Elf 10k + 2× secret-door odds, Superhero
@@ -18,7 +18,7 @@ different treasure-to-win goals (Hero 10k GP, Elf 10k + 2× secret-door odds, Su
 the monster's number; treasure sits under the monster; win by returning to the start
 chamber with your class's target. This project expands that to **9 levels** — the 9
 `SECTORS` and their room labels (Armory, The Crypt, King's/Queen's/Wizard's Quarters,
-Torture Chamber, …) are the Dungeon! rooms, and `PLANS.todo` (dice `1d20`/`3d6+3DL`,
+Torture Chamber, …) are the Dungeon! rooms, and `plans/PLANS.todo` (dice `1d20`/`3d6+3DL`,
 turns/step-limits, secret-door detection, `has_level_key`/`is_boss_room` room flags,
 character create, "Lords of Legend") is the adaptation's rule set.
 
@@ -400,7 +400,7 @@ Environment specifics that dictate this approach:
 asset (data tables, flavor prose, music playlist, sound effects) with formats and the
 token list — keep it in sync when the asset formats change.
 
-[PLANS.todo](PLANS.todo) (todo.txt/@done format) is the roadmap and the source of truth
+[PLANS.todo](plans/PLANS.todo) (todo.txt/@done format) is the roadmap and the source of truth
 for intended game rules (rooms, doors, dice, turns, cursor states).
 
 ## Core architecture

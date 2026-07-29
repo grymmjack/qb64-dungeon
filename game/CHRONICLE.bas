@@ -438,7 +438,7 @@ SUB ShowRules
     W = 116: leftcol = 6: toprow = 5: per = 40
 
     DIM rulesfile AS STRING
-    IF opt_oldschool THEN rulesfile = "DUNGEON-RULES.md" ELSE rulesfile = "DND-RULES.md"
+    IF opt_oldschool THEN rulesfile = "assets/reference/DUNGEON-RULES.md" ELSE rulesfile = "assets/reference/DND-RULES.md"
     whole = RulesConfigBlock$                             ' live "your game" section first
     IF _FILEEXISTS(rulesfile) THEN whole = whole + _READFILE$(rulesfile)
     IF LEN(_TRIM$(whole)) = 0 THEN whole = "# Rules" + CHR$(10) + "The rules scroll (" + rulesfile + ") is missing."

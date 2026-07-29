@@ -28,22 +28,11 @@ scratchpads/shots/*.png
 
 # Claude Code local files (activity log etc.)
 .claude/
-# runtime hall-of-fame save
-dungeon-lords.dat
-dungeon-lords-maps/
-dungeon-settings.dat
-dungeon-stats.csv
-dungeon-save.dat*
+# all runtime saves/prefs/stats/maps live here (game MKDIRs it at startup)
+gameplay-data-saves/
 # big lossless render kept locally; the game/playlist uses the .ogg
 assets/music/level2.wav
-# physical rulebook + card scans -- OCR'd to manuals/*.txt (committed); keep the big scans local
-Game Manual.pdf
-Introductory Game.pdf
-Monster Cards.pdf
-Treasure Cards.pdf
-Spell Cards.pdf
-Grave and Number.pdf
-BOARD.png
+# (the rulebook/card PDF scans + BOARD.png moved to docs/ and are now TRACKED)
 # Bitwig project files ARE tracked, but its extensionless marker is caught by the
 # top "* / !*.*" rule -- unignore it so the project folder is complete
 !assets/music/bitwig/**/.bitwig-project

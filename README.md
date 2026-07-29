@@ -51,5 +51,5 @@ assets for anything it's missing.
 
 - **[CLAUDE.md](CLAUDE.md)** — full architecture (art-as-collision, sectors, masks, packs, dice, combat).
 - **[assets/README.md](assets/README.md)** — the player/modder map of every editable asset.
-- **[DUNGEON-RULES.md](DUNGEON-RULES.md)** — the _Dungeon!_ rules this reproduces.
-- **[PLANS.todo](PLANS.todo)** — roadmap and the source of truth for intended rules.
+- **[DUNGEON-RULES.md](assets/reference/DUNGEON-RULES.md)** — the _Dungeon!_ rules this reproduces.
+- **[PLANS.todo](plans/PLANS.todo)** — roadmap and the source of truth for intended rules.
