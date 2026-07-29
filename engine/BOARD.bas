@@ -108,31 +108,6 @@ END SUB
 ' Flood-fill the board's coloured room blocks into individual ROOMs, one per
 ' connected block of a sector's colour, recording a centre cell and cell->room
 ' map (ROOMAT). Every reachable room later gets its own monster + treasure.
-' Draw a small grey headstone on every room whose monster has been slain, so the
-' board shows at a glance which rooms are cleared. (Rendered onto CANVAS after a
-' fresh board blit, so it rides along with cursor_draw.)
-SUB DrawTombstones
-    DIM r AS INTEGER, px AS INTEGER, py AS INTEGER, gx AS INTEGER, gy AS INTEGER
-    DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
-    grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
-    _DEST CANVAS
-    ' Headstones only. Loot markers (the fallen-body ☻ and the recoverable-$ glyph)
-    ' are drawn by DrawEntities, which runs after this and matches the board legend.
-    ' Sit the grave on the SAME label-avoiding cell the § monster used (EntityDrawX/Y),
-    ' so the headstone lands exactly where the monster stood -- never off under a label.
-    FOR r = 1 TO ROOM_N
-        gx = EntityDrawX(r): gy = EntityDrawY(r)
-        IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
-            px = gx * CW: py = gy * CH
-            IF ROOMS(r).monster_fought AND NOT ROOMS(r).malive THEN
-                LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF     ' stone body
-                LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF          ' rounded top
-                LINE (px + CW \ 2, py + 6)-(px + CW \ 2, py + CH - 3), dark     ' cross (vertical)
-                LINE (px + 2, py + 9)-(px + CW - 3, py + 9), dark               ' cross (horizontal)
-            END IF
-        END IF
-    NEXT r
-END SUB
 
 
 ' Openness of a cell: how many of the surrounding 5x5 cells are walkable (CellKind 1).
@@ -322,27 +297,6 @@ SUB PickChamberGraves (cid AS INTEGER)
     NEXT
 END SUB
 
-' Grey headstones for chamber monsters slain -- one per grave (up to CHM_DEAD, max 3).
-SUB DrawChamberGraves
-    DIM cid AS INTEGER, k AS INTEGER, gx AS INTEGER, gy AS INTEGER, px AS INTEGER, py AS INTEGER
-    DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
-    grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
-    _DEST CANVAS
-    FOR cid = 1 TO NCHAMBER
-        IF CHM_DEAD(cid) > 0 AND CHAMBERAT(START_CX, START_CY) <> cid THEN
-            FOR k = 1 TO CHM_DEAD(cid)
-                gx = CHM_GX(cid, k): gy = CHM_GY(cid, k)
-                IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
-                    px = gx * CW: py = gy * CH
-                    LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF   ' stone body
-                    LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF        ' rounded top
-                    LINE (px + CW \ 2, py + 6)-(px + CW \ 2, py + CH - 3), dark   ' cross (vertical)
-                    LINE (px + 2, py + 9)-(px + CW - 3, py + 9), dark             ' cross (horizontal)
-                END IF
-            NEXT k
-        END IF
-    NEXT cid
-END SUB
 
 SUB DetectRooms
     DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER
@@ -1123,16 +1077,6 @@ SUB BuildLabelMask
     NEXT i
 END SUB
 
-SUB render_room_labels
-    DIM AS _UNSIGNED LONG b, r
-    DIM i AS INTEGER, fg AS _UNSIGNED LONG
-    b = _RGB32(&H00, &H00, &HAA): r = _RGB32(&HFF, &H55, &H55)
-    _DEST CANVAS
-    FOR i = 1 TO LBL_N
-        IF LBL_T(i) = "START" THEN fg = r ELSE fg = b
-        PutLabel LBL_X(i), LBL_Y(i), LBL_T(i), fg
-    NEXT i
-END SUB
 
 
 

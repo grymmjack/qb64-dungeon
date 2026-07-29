@@ -30,6 +30,7 @@ engine/
 game/
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
+  OVERLAYS.bas       game-side board overlays (labels/tombstones/graves/entities) + render hooks
   LOADERS.bas        game data-table loaders (Load*), moved out of engine/DATA.bas
   COMBAT PLAY        the combat/treasure system + play-loop support (drops/loiter/encounters)
   MENU               game screens: class-select, char-gen, intro, menu/settings, HUD
@@ -69,7 +70,7 @@ the rest are still inlined in the play loop / renderers and get lifted in later 
 | 3 | `Game_Play%()` / `Game_ShowIntro` / `Game_ShowEnd(win)` — state-machine bodies | planned | `dungeon.bas` state machine |
 | 4 | `Game_RunOver%()` — lose/forfeit predicate (`player_out`/`solo_result`) | planned | play loop |
 | 5 | `Game_HUDText$()` / `Game_DrawHUDExtra` — HUD content injection | planned | `DrawHUD` (MENU.bas) |
-| 6 | `Game_CellMarker%(rm)` — monster/body/loot/grave glyph per cell | planned | `DrawEntities`/`DrawTombstones`/`DrawChamberGraves` |
+| 6 | `Game_RenderMapLabels`/`Game_RenderOverlays` — board labels + tombstone/grave/entity overlays (superseded the guessed per-cell `Game_CellMarker%`) | ✅ done | `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/`DrawEntities` |
 | 7 | `Game_OnRoomDiscovered(rm)` — first-entry (`RoomFlavor`+chronicle) | planned | play loop (now inside #2) |
 | 8 | `Game_PopulateBoard()` — seed detected rooms (`RandomizeRooms`) | planned | after `StartBoard`/`DetectRooms` |
 | 9 | `Game_ResolveEncounter%(rm)` — combat entry (`DoCombat`) | planned | `dungeon.bas` |
@@ -98,15 +99,17 @@ Engine-side code that still names game symbols directly. Each line is a future h
 - ~~SPRITES~~ — split `engine/ARTPACK.bas` (game-free) vs `game/SPRITES.bas` (entity sprites).
 - ~~combat rules in `dungeon.bas`~~ — extracted to `game/COMBAT.bas` + `game/PLAY.bas`.
 - ~~MENU presentation~~ — the fades/UI/sound/dice runtime lifted to `engine/UI.bas` (game-free).
+- ~~BOARD/CURSOR ← rooms (overlays)~~ — `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/
+  `DrawEntities` (+ `EntityDrawX/Y`/`EntityShiftFind`) moved to **`game/OVERLAYS.bas`**; the engine's
+  `cursor_erase`/`cursor_draw` reach them only via the `Game_RenderMapLabels`/`Game_RenderOverlays`
+  hooks. `engine/BOARD.bas` + `engine/CURSOR.bas` no longer name `ROOMS`/`CHM_*`/`LBL_*` for rendering.
 
 **Remaining** (each needs a render/visual play-test, so parked for the user):
 
 | Debt | Where (engine side) | Reads game symbol | Fix |
 |------|--------------------|-------------------|-----|
-| BOARD ← rooms | `engine/BOARD.bas` `DrawTombstones`/`DrawChamberGraves`/`render_room_labels` | `ROOMS`/`CHM_DEAD`/`LBL_*` | hook #6 `Game_CellMarker%` |
 | BOARD debug menu | `engine/BOARD.bas` `DebugTestMenu` | calls `WanderEncounter`/`DoCurio`/`SpringTrap`/`LoiterTick` | a `Game_DebugSpawn` hook |
 | region detect → game | `engine/BOARD.bas` `DetectRooms` | fills `ROOMS`/`ROOMAT` | hook #8 `Game_PopulateBoard` |
-| CURSOR ← rooms | `engine/CURSOR.bas` `DrawEntities` | `ROOMS` (monster/body/loot glyphs) | hook #6 `Game_CellMarker%` |
 | PLAYERS ← inventory | `engine/PLAYERS.bas` | `PLAYER` game fields | game-defined player-state blob |
 | MENU widget cores | `game/MENU.bas` `RunMenu`/`RunSettings` | still fuse a generic widget with game option/action lists | widget core (engine) + game-supplied lists (MENU-B) |
 | SETTINGS schema | `game/LORDS.bas` `SaveSettings`/`LoadSettings` | enumerate game `opt_*` + solo | game-injected save schema |

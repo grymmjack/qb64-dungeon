@@ -653,6 +653,7 @@ END FUNCTION
 '$INCLUDE:'engine/DATA.bas'
 '$INCLUDE:'game/SECTOR.bas'
 '$INCLUDE:'game/HOOKS.bas'      ' engine<->game contract: Game_OnEnterCell% / Game_WinReached% / Game_WinReady%
+'$INCLUDE:'game/OVERLAYS.bas'   ' game-side board overlays (labels/tombstones/graves/entities) + their render hooks
 '$INCLUDE:'game/LOADERS.bas'    ' game data-table loaders (Load*), moved out of engine/DATA.bas
 '$INCLUDE:'game/COMBAT.bas'    ' combat + spells + treasure + potions + turn/revive (was in dungeon.bas)
 '$INCLUDE:'game/PLAY.bas'      ' loot drops + loiter/danger + wander + chamber encounters (was in dungeon.bas)
