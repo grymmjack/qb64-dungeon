@@ -45,6 +45,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10imagemanifest|07 dump |14path | prompt|07 for every entity as pixel-art (.png) AND ansi-art (.ans)")
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
+    PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
@@ -57,7 +58,7 @@ DIM devmode AS INTEGER
 devmode = (INSTR(UCASE$(COMMAND$), "MANIFEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DUMP") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0) OR (INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
-devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0)
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DATALINT") > 0)
 
 ' collision palette (must match the board ANSI art exactly)
 YELLOW = _RGB32(&HFF, &HFF, &H55)
@@ -171,6 +172,9 @@ IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN settingsshot_on = -1: RunSet
 
 '--- dev: `dungeon.run savetest` round-trips a synthetic 4-player save and exits ---
 IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
+
+'--- dev: `dungeon.run datalint` validates the loaded content tables and exits ---
+IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
 
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---
 IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
@@ -663,6 +667,7 @@ END FUNCTION
 '$INCLUDE:'game/CHAMBERS.bas'   ' the big named halls: detection + grave seating (was in engine/BOARD.bas)
 '$INCLUDE:'game/MANIFEST.bas'   ' game audio manifest + the Game_SfxNames$ roster (was in engine/MUSIC.bas)
 '$INCLUDE:'game/DEBUG.bas'      ' [~] dev overlay + [0] cheat panel (was in engine/BOARD.bas)
+'$INCLUDE:'game/DATALINT.bas'   ' `datalint` dev mode: validate the loaded content tables
 '$INCLUDE:'game/HOOKS.bas'      ' engine<->game contract: Game_OnEnterCell% / Game_WinReached% / Game_WinReady%
 '$INCLUDE:'game/OVERLAYS.bas'   ' game-side board overlays (labels/tombstones/graves/entities) + their render hooks
 '$INCLUDE:'game/LOADERS.bas'    ' game data-table loaders (Load*), moved out of engine/DATA.bas
