@@ -89,8 +89,8 @@ opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
 opt_musicvol = 4: opt_sfxvol = 4: opt_voicevol = 10  ' 0..10 volume sliders (maintainer's mix)
 opt_duckamt = 6                                      ' music ducks to 40% under narration (0 off .. 10 silent)
-opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/sfx/); "" = flat main dir
-opt_musicpack = "soundmon-orchestral"                ' default music pack (assets/music/); "" = flat main dir
+opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/sfx/); falls back to the default pack
+opt_musicpack = "soundmon-orchestral"                ' default music pack (assets/music/); falls back to the default pack
 opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
 opt_narrfreq = NARR_COMBAT                           ' default: narrate everything (flavor + events + combat)
 opt_artpack = "default"                              ' default pixel-art pack (assets/pixel-art/default/); every pack is a named subfolder

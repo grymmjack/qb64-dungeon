@@ -22,7 +22,7 @@ SUB LoadPlaylist
     music_level = 0: music_curfile = ""
     ' a selected MUSIC PACK may ship its OWN playlist.txt (its own per-level track names);
     ' otherwise use the flat assets/music/playlist.txt.
-    pl = "assets/music/playlist.txt"
+    pl = "assets/music/default/playlist.txt"             ' the DEFAULT pack's playlist is the base
     IF LEN(opt_musicpack) > 0 THEN
         IF _FILEEXISTS("assets/music/" + opt_musicpack + "/playlist.txt") THEN pl = "assets/music/" + opt_musicpack + "/playlist.txt"
     END IF
@@ -61,7 +61,7 @@ FUNCTION ResolveMusic$ (nm AS STRING)
     ' selected MUSIC PACK wins; if it has no file for this name, fall back to the flat main dir
     chosen = ""
     IF LEN(opt_musicpack) > 0 THEN chosen = ResolveMusicIn$("assets/music/" + opt_musicpack + "/", b)
-    IF LEN(chosen) = 0 THEN chosen = ResolveMusicIn$("assets/music/", b)
+    IF LEN(chosen) = 0 THEN chosen = ResolveMusicIn$("assets/music/default/", b)   ' fall back to the DEFAULT pack
     ResolveMusic$ = chosen
 END FUNCTION
 
@@ -211,7 +211,7 @@ SUB LoadNarrConf
     narr_fadein = NARR_FADE_IN_DEF
     narr_fadeout = NARR_FADE_OUT_DEF
     narr_curve = NARR_FADE_CURVE_DEF
-    IF LEN(opt_narrationpack) > 0 THEN cf = "assets/narration/" + opt_narrationpack + "/pack.conf" ELSE cf = "assets/narration/pack.conf"
+    IF LEN(opt_narrationpack) > 0 THEN cf = "assets/narration/" + opt_narrationpack + "/pack.conf" ELSE cf = "assets/narration/default/pack.conf"
     IF NOT _FILEEXISTS(cf) THEN EXIT SUB
     raw = UCASE$(_READFILE$(cf))
     narr_fadein = ConfNum(raw, "FADEIN", NARR_FADE_IN_DEF)
@@ -272,7 +272,7 @@ SUB RegisterSfx (nm AS STRING)
     DIM h AS LONG
     h = 0
     IF LEN(opt_sfxpack) > 0 THEN h = OpenSfx&("assets/sfx/" + opt_sfxpack + "/" + nm)
-    IF h <= 0 THEN h = OpenSfx&("assets/sfx/" + nm)
+    IF h <= 0 THEN h = OpenSfx&("assets/sfx/default/" + nm)   ' fall back to the DEFAULT pack (was the flat dir)
     IF h > 0 THEN
         IF SFX_N < UBOUND(SFX_NAME) THEN SFX_N = SFX_N + 1: SFX_NAME(SFX_N) = nm: SFX_HND(SFX_N) = h
     END IF
@@ -349,7 +349,7 @@ END FUNCTION
 ' scan in DirHasAudio never clobbers the outer (single-cursor) directory enumeration.
 SUB ScanAudioPacks (bpath AS STRING, packs() AS STRING, cnt AS INTEGER)
     DIM e AS STRING, nm AS STRING, subs(1 TO 64) AS STRING, ns AS INTEGER, i AS INTEGER
-    packs(0) = "": cnt = 0
+    cnt = 0                                               ' no "(main)" 0-slot: every subfolder (incl "default") is a pack
     IF NOT _DIREXISTS(bpath) THEN EXIT SUB
     e = _FILES$(bpath)                                    ' pass 1: collect subdir names
     DO WHILE LEN(e) > 0
@@ -374,10 +374,11 @@ SUB ScanAllPacks
     ScanAudioPacks "assets/narration/", NARRPACKS(), NARRPACK_N
     ScanArtPacks                                          ' pixel-art theme packs (subdirs of assets/pixel-art/)
     ScanAnsiPacks                                         ' ANSI-art packs (subdirs of assets/ansi-art/): board + masks + menu art
-    ' a saved pack whose folder has since vanished falls back to the main dir
-    IF LEN(opt_sfxpack) > 0 AND PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack) = 0 THEN opt_sfxpack = ""
-    IF LEN(opt_musicpack) > 0 AND PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack) = 0 THEN opt_musicpack = ""
-    IF LEN(opt_narrationpack) > 0 AND PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack) = 0 THEN opt_narrationpack = ""
+    ' a saved pack whose folder has since vanished (or a blank pick) falls back to a real pack
+    IF PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack) = 0 THEN opt_sfxpack = FallbackPack$(SFXPACKS(), SFXPACK_N)
+    IF PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack) = 0 THEN opt_musicpack = FallbackPack$(MUSICPACKS(), MUSICPACK_N)
+    ' narration keeps its OFF state; only re-home a stale pack pick while narration is on
+    IF opt_narration AND PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack) = 0 THEN opt_narrationpack = FallbackPack$(NARRPACKS(), NARRPACK_N)
 END SUB
 
 ' Index of name within packs(0..cnt), or 0 (the main dir) if not present.
@@ -394,12 +395,25 @@ FUNCTION PackLabel$ (want AS STRING)
     IF LEN(want) = 0 THEN PackLabel$ = "(main)" ELSE PackLabel$ = want
 END FUNCTION
 
+' A safe pack to fall back to when a saved pick is gone/blank: the "default" pack if it
+' exists (art/music have one), else the first real pack in the list (sfx/narration have
+' no default folder), else "default" as a last resort. Always yields something playable.
+FUNCTION FallbackPack$ (packs() AS STRING, cnt AS INTEGER)
+    IF PackIndex%(packs(), cnt, "default") > 0 THEN
+        FallbackPack$ = "default"
+    ELSEIF cnt >= 1 THEN
+        FallbackPack$ = packs(1)
+    ELSE
+        FallbackPack$ = "default"
+    END IF
+END FUNCTION
+
 ' Cycle the SFX pack by delta and reload the effect files from the new pack.
 SUB CycleSfxPack (delta AS INTEGER)
     DIM idx AS INTEGER
     idx = PackIndex%(SFXPACKS(), SFXPACK_N, opt_sfxpack) + delta
-    IF idx < 0 THEN idx = SFXPACK_N
-    IF idx > SFXPACK_N THEN idx = 0
+    IF idx < 1 THEN idx = SFXPACK_N
+    IF idx > SFXPACK_N THEN idx = 1
     opt_sfxpack = SFXPACKS(idx)
     ReloadSfxPack
     Sfx "select"                                         ' preview a cue from the new pack
@@ -409,8 +423,8 @@ END SUB
 SUB CycleMusicPack (delta AS INTEGER)
     DIM idx AS INTEGER
     idx = PackIndex%(MUSICPACKS(), MUSICPACK_N, opt_musicpack) + delta
-    IF idx < 0 THEN idx = MUSICPACK_N
-    IF idx > MUSICPACK_N THEN idx = 0
+    IF idx < 1 THEN idx = MUSICPACK_N
+    IF idx > MUSICPACK_N THEN idx = 1
     opt_musicpack = MUSICPACKS(idx)
     LoadPlaylist                                         ' the new pack may bring its own playlist.txt
     music_curfile = ""                                   ' force PlayLevelMusic to re-resolve
@@ -443,7 +457,7 @@ FUNCTION NarratePath$ (nkey AS STRING)
         p = FirstAudioFile$("assets/narration/" + opt_narrationpack + "/" + nkey)
         IF LEN(p) > 0 THEN NarratePath$ = p: EXIT FUNCTION
     END IF
-    NarratePath$ = FirstAudioFile$("assets/narration/" + nkey)
+    NarratePath$ = FirstAudioFile$("assets/narration/default/" + nkey)   ' fall back to the DEFAULT pack
 END FUNCTION
 
 ' Stop and release the current narration line.
@@ -517,15 +531,15 @@ END FUNCTION
 ' does both the on/off and the pack pick. Reloads nothing (narration is load-on-demand).
 SUB CycleNarration (delta AS INTEGER)
     DIM idx AS INTEGER
-    ' virtual index: 0 = OFF, 1 = (main), 2..N+1 = packs
-    IF NOT opt_narration THEN idx = 0 ELSE idx = 1 + PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack)
+    ' virtual index: 0 = OFF, 1..N = packs (no "(main)" slot anymore)
+    IF NOT opt_narration THEN idx = 0 ELSE idx = PackIndex%(NARRPACKS(), NARRPACK_N, opt_narrationpack)
     idx = idx + delta
-    IF idx < 0 THEN idx = NARRPACK_N + 1
-    IF idx > NARRPACK_N + 1 THEN idx = 0
+    IF idx < 0 THEN idx = NARRPACK_N
+    IF idx > NARRPACK_N THEN idx = 0
     IF idx = 0 THEN
         opt_narration = FALSE: NarrateStop
     ELSE
-        opt_narration = -1: opt_narrationpack = NARRPACKS(idx - 1)
+        opt_narration = -1: opt_narrationpack = NARRPACKS(idx)
     END IF
     Sfx "select"
 END SUB
