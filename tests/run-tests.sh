@@ -85,6 +85,9 @@ if (( $# == 0 )); then
     echo "-- shadow audit (no local named after a high-risk global) --"
     if tests/audit-shadow.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shadow"); fi
 
+    echo "-- short-circuit audit (AND/OR evaluate both sides) --"
+    if tests/audit-shortcircuit.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shortcircuit"); fi
+
     # Separability proof: a game that is NOT DUNGEON!, built on engine/ alone.
     # If engine/ ever grows a hidden game dependency, this stops compiling.
     echo "-- separability (examples/minimal on engine/ alone) --"
@@ -106,7 +109,11 @@ fi
 echo
 if (( fail == 0 )); then
     if (( pass == 0 )); then echo "no suites matched."; exit 0; fi
-    echo "ALL GREEN -- $pass suite(s) + audits + separability proof passed."
+    if (( $# == 0 )); then
+        echo "ALL GREEN -- $pass suite(s) + audits + separability proof passed."
+    else
+        echo "ALL GREEN -- $pass suite(s) passed (filtered: audits + separability NOT run)."
+    fi
     exit 0
 fi
 echo "$fail check(s) FAILED: ${failed[*]}"

@@ -258,11 +258,13 @@ setsid timeout 12 xvfb-run -a ./dungeon.run   # boots to the menu (exit 124 = st
 ./dungeon.run imagemanifest                   # sprite paths (SpriteBase$/TreBase$/UnSlug$)
 ./dungeon.run ansilint                        # masks lint clean; all 9 zones painted (MaskSample~&)
 ./dungeon.run settingsshot                    # SETTINGS layout -> settings-shot.png (look at it)
-tests/run-tests.sh                            # ALL of: unit suites + both audits + separability
+tests/run-tests.sh                            # ALL of: unit suites + 3 audits + separability
 ```
 
-`tests/run-tests.sh` with no arguments is the gate: unit suites, `audit-boundary.sh`,
-`audit-shadow.sh`, and building + selftesting `examples/minimal`. Pass a name fragment
+`tests/run-tests.sh` with no arguments is the gate: unit suites, then `audit-boundary.sh`
+(no engine file names a game symbol), `audit-shadow.sh` (no local shadows a high-risk global),
+`audit-shortcircuit.sh` (no bounds guard relies on short-circuiting, which QB64 does not do),
+and finally building + selftesting `examples/minimal`. Pass a name fragment
 (`tests/run-tests.sh stats`) to run a single suite and skip the rest.
 
 `chamberdump` is the cheap regression test for any board-region or collision change — it runs

@@ -38,8 +38,13 @@ END FUNCTION
 ' -- token-stream reader (split a save file once, then consume tokens in order) --
 SUB TokLoad (path AS STRING)
     DIM raw AS STRING, i AS INTEGER, cur AS STRING, ch2 AS STRING
-    raw = _READFILE$(path)
     SVTOK_N = 0: SVTOK_I = 1
+    ' _READFILE$ on a missing file is a RUNTIME ERROR, not an empty string. The game
+    ' happens to gate this behind HasSave%, but an engine other games build on must not
+    ' depend on every caller remembering -- an absent save is "no tokens", and the
+    ' Next* readers already degrade to ""/0 from there.
+    IF _FILEEXISTS(path) = 0 THEN EXIT SUB
+    raw = _READFILE$(path)
     cur = ""
     FOR i = 1 TO LEN(raw)
         ch2 = MID$(raw, i, 1)

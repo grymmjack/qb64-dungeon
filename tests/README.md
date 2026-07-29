@@ -19,6 +19,11 @@ With no arguments `run-tests.sh` also runs:
   shared `BROWN` colour. That exact bug made `DetectDoors` return zero doors forever,
   so the game's reinforced doors never once appeared. It compiles clean and warns about
   nothing — only a scan catches it.
+- **`audit-shortcircuit.sh`** — QB64's `AND`/`OR` are bitwise and **always evaluate both
+  sides**, so `IF rm > 0 AND ROOMS(rm).malive` still reads `ROOMS(0)`. With `$Debug` off
+  that is a silent out-of-bounds read, not a crash. The audit flags the precise shape:
+  an operand guarding a variable's *bounds* combined with a later operand subscripting
+  by it. The codebase is currently clean; the audit is verified against planted hazards.
 - **`../examples/minimal`** — builds and selftests a second game on `engine/` alone. If
   the engine grows a hidden DUNGEON! dependency, this stops compiling.
 
@@ -28,7 +33,8 @@ Also wired as the VS Code tasks **TEST: Run engine tests** and **TEST: Run engin
 ## What can be tested this way
 
 Only modules whose functions touch nothing but QB64 built-ins — no rendered `CANVAS`, no
-loaded font, no game tables. Today that is `TEXT`, `STATS`, and the pure half of `DATA`.
+loaded font, no game tables. Today: `TEXT`, `STATS`, `MARKDOWN`, `SAVEIO`, `ARTPACK`, and
+the pure half of `DATA` — 200 assertions across 6 suites.
 
 Everything else stays verified through the real binary's dev modes (`dungeon.run
 chamberdump`, `audiomanifest`, `ansilint`) or a play-test. Don't contort engine code into

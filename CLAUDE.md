@@ -54,13 +54,16 @@ To compile a single file by hand: `qb64pe -w -x <path/to/file.bas> -o <path/to/f
 (needs a local QB64PE install; the exact binary path is machine-specific).
 
 **Tests:** `tests/run-tests.sh` (VS Code task **TEST: Run engine tests**) is the gate. It runs
-the headless assert suites in `tests/TEST-*.bas` (`engine/TEXT.bas`, `engine/STATS.bas`, and the
-pure half of `engine/DATA.bas` — 94 assertions), then **`tests/audit-boundary.sh`** (no `engine/`
-file may name a `game/` symbol) and **`tests/audit-shadow.sh`** (no local may be named after a
-high-risk shared global — QB64 identifiers are case-insensitive, and a local `brown` shadowing
-the shared `BROWN` made `DetectDoors` return zero doors forever, silently disabling reinforced
-doors), and finally builds + selftests **`examples/minimal`**, a second game on `engine/` alone
-that proves the engine carries no hidden DUNGEON! dependency. Only *game-free* engine modules
+the headless assert suites in `tests/TEST-*.bas` (`engine/TEXT.bas`, `engine/STATS.bas`,
+`MARKDOWN`, `SAVEIO`, `ARTPACK`, and the pure half of `engine/DATA.bas` — 200 assertions across
+6 suites), then three audits: **`audit-boundary.sh`** (no `engine/` file may name a `game/`
+symbol), **`audit-shadow.sh`** (no local may be named after a high-risk shared global — QB64
+identifiers are case-insensitive, and a local `brown` shadowing the shared `BROWN` made
+`DetectDoors` return zero doors forever, silently disabling reinforced doors), and
+**`audit-shortcircuit.sh`** (QB64's `AND`/`OR` always evaluate both sides, so a bounds guard
+like `IF n > 0 AND ROOMS(n).x` still reads `ROOMS(0)`). Finally it builds + selftests
+**`examples/minimal`**, a second game on `engine/` alone that proves the engine carries no
+hidden DUNGEON! dependency. Only *game-free* engine modules
 that touch nothing but QB64 built-ins can be unit-tested; everything else is verified through the
 binary's dev modes (`chamberdump`, `audiomanifest`, `imagemanifest`, `ansilint`, `settingsshot`)
 or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
