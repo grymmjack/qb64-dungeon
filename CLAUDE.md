@@ -63,9 +63,12 @@ identifiers are case-insensitive, and a local `brown` shadowing the shared `BROW
 **`audit-shortcircuit.sh`** (QB64's `AND`/`OR` always evaluate both sides, so a bounds guard
 like `IF n > 0 AND ROOMS(n).x` still reads `ROOMS(0)`). Finally it builds + selftests
 **`examples/minimal`**, a second game on `engine/` alone that proves the engine carries no
-hidden DUNGEON! dependency. Only *game-free* engine modules
+hidden DUNGEON! dependency, and runs **`dungeon.run savetest`** (save/load round-trip for the
+positional token stream, plus a read-only load of a COPY of the player's real save to prove a
+format bump has not orphaned it). Only *game-free* engine modules
 that touch nothing but QB64 built-ins can be unit-tested; everything else is verified through the
-binary's dev modes (`chamberdump`, `audiomanifest`, `imagemanifest`, `ansilint`, `settingsshot`)
+binary's dev modes (`chamberdump`, `audiomanifest`, `imagemanifest`, `ansilint`, `settingsshot`,
+`savetest`)
 or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
 QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are unrelated —
 manual runnable prototypes, not suites.)

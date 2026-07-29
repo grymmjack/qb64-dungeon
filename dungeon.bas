@@ -44,6 +44,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10audiomanifest|07 dump |14path | prompt-or-text|07 for every sfx/music/narration asset (feed the AI generators)")
     PRINT PipeCol$("  |10imagemanifest|07 dump |14path | prompt|07 for every entity as pixel-art (.png) AND ansi-art (.ans)")
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
+    PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
@@ -56,6 +57,7 @@ DIM devmode AS INTEGER
 devmode = (INSTR(UCASE$(COMMAND$), "MANIFEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DUMP") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0) OR (INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0)
 
 ' collision palette (must match the board ANSI art exactly)
 YELLOW = _RGB32(&HFF, &HFF, &H55)
@@ -86,6 +88,7 @@ SCREEN CANVAS
 IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
 
 IF _DIREXISTS("gameplay-data-saves") = 0 THEN MKDIR "gameplay-data-saves"   ' all runtime saves/prefs/stats/maps live here (keeps the repo root clean); must exist before any load/save
+SAVE_FILE = "gameplay-data-saves/dungeon-save.dat"   ' the save slot (engine reads this; `savetest` swaps it)
 
 opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
 opt_voice = TRUE                              ' typewriter text speaks in blips
@@ -165,6 +168,9 @@ InitDefaultChar 1                ' baseline stats so D&D combat works even witho
 
 '--- dev: `dungeon.run settingsshot` renders the SETTINGS screen to a PNG and exits (layout check) ---
 IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN settingsshot_on = -1: RunSettings: SYSTEM
+
+'--- dev: `dungeon.run savetest` round-trips a synthetic 4-player save and exits ---
+IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---
 IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
@@ -531,7 +537,7 @@ FUNCTION PlayGame%
         IF k = "V" THEN ScryView
         IF k = "H" THEN UsePotion FALSE: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
         IF k = "P" THEN PauseGame: idle_ticks = 0
-        IF k = "G" AND num_players = 1 THEN SaveAndToast: idle_ticks = 0
+        IF k = "G" THEN SaveAndToast: idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
         IF k = "?" OR k = "/" THEN ShowKeys
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
         IF k = "~" OR k = "`" THEN

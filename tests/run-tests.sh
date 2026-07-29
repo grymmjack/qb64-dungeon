@@ -88,6 +88,21 @@ if (( $# == 0 )); then
     echo "-- short-circuit audit (AND/OR evaluate both sides) --"
     if tests/audit-shortcircuit.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shortcircuit"); fi
 
+    # Save-format round-trip: the stream is positional, so a field added on one side and
+    # not the other silently shifts everything after it. Also loads a COPY of the player's
+    # real save to prove a format bump did not orphan it.
+    echo "-- save round-trip + backward compat (dungeon.run savetest) --"
+    if [[ -x ./dungeon.run ]]; then
+        if sv=$(setsid timeout 90 xvfb-run -a ./dungeon.run savetest 2>&1) && grep -q 'savetest: PASS' <<<"$sv"; then
+            grep -E 'round-tripped|compat:|loaded OK' <<<"$sv" | sed 's/^/  /'
+        else
+            printf '%s\n' "$sv" | sed 's/^/    /'
+            (( fail++ )); failed+=("savetest")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Separability proof: a game that is NOT DUNGEON!, built on engine/ alone.
     # If engine/ ever grows a hidden game dependency, this stops compiling.
     echo "-- separability (examples/minimal on engine/ alone) --"

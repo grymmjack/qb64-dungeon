@@ -3,32 +3,37 @@ Note:
     scratchpad prototypes). Items below are checked off against that build.
 
 Roadmap (future / bigger efforts):
-    ⧖ Extract a REUSABLE ENGINE from the game (so the next game starts from it):
-        [STARTED 2026-07-27 on branch worktree-engine -- full contract + debt ledger
-         in engine/ENGINE.md. First increment (4 commits) done; build stays green.]
-        Today it's "a game with a lot of reusable machinery" -- engine + game share
-        globals (DUNGEON.BI) and modules mix concerns. Split into:
-        ◑ engine/  -- created; moved CURSOR BOARD MUSIC JUICE GESTURE STATS DATA
-          PLAYERS. Still to move: ansi/ + DICE3D/, and the engine parts of MENU /
-          CHRONICLE / SAVEGAME / LORDS / SPRITES (deeply tangled). Concerns it owns:
-          ANSI-art world + pixel-colour collision (image_is_mono/dia, CanMove,
-          CellColorAt, NeighborHasColor); movement/input (TryMove, NormKey$,
-          IsMoveKey, door-hop); region detection (flood-fill DetectRooms/Doors);
-          visibility (fog BFS + raytraced FOV ComputeFOV/CastRay/FovRender); dice
-          (GameRoll, pip dice, tumbler, real-dice input); UI (animated ANSI menu +
-          wrapping lightbars, settings toggles/sliders, Banner, ScrollText); audio
-          (Sfx + volumes); persistence (settings + save/load); multiplayer scaffold
-          (active-player-as-working-globals, Load/SaveActivePlayer); character/stats
-          (3d6 gen, AbilMod, class templates).
-        ◑ game/   -- created; moved SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS + GAME.BI
-          + HOOKS.bas. Owns: board art, monster/treasure/spell tables
-          (InitMonsterTables), class win totals, sector geometry, and the Dungeon!
-          rules (DoCombat, kill numbers, secret-key win) -- combat rules still live
-          in dungeon.bas for now. This is the swappable layer.
+    ✔ Extract a REUSABLE ENGINE from the game @done(26-07-29)
+        DONE and verified -- engine/ names NO game symbol; every engine->game call goes
+        through one of 11 Game_* hooks. engine/ is also self-contained on disk (the
+        vendored ansi/ renderer + the DICE3D module moved in), so the directory can be
+        lifted out as-is. include/ now holds only the reference submodules.
+        The authority is engine/ENGINE.md (layout, hook contract, how each leak closed).
+        ✔ engine/  -- BOARD CURSOR MUSIC JUICE GESTURE STATS DATA UI ARTPACK SAVEIO
+          MARKDOWN TEXT + ansi/ + DICE3D/ + DICE3D_GAME.
+        ✔ game/   -- HOOKS OVERLAYS LOADERS CHAMBERS MANIFEST DEBUG PLAYERS COMBAT PLAY
+          MENU SPRITES SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS SAVEGAME CHRONICLE LORDS.
         ✔ DUNGEON.BI split per-declaration into engine/ENGINE.BI + game/GAME.BI.
-        ◑ engine exposes hooks the game fills in -- DONE: Game_WinReached% /
-          Game_WinReady% / Game_OnEnterCell%; 13 more mapped in engine/ENGINE.md
-          (combat resolution, board seeding, HUD/render reads, per-step ticks).
+        ✔ PROVEN, not just asserted: examples/minimal is a second game on engine/ alone
+          (no game/ at all) that walks a player around the board in ~50 lines of hooks.
+          Building it immediately exposed a real bug -- see the DetectDoors note below.
+        ✔ ENFORCED by scripts, not discipline (tests/run-tests.sh runs all of these):
+            audit-boundary.sh      no engine/ file may name a game/ symbol; also checks
+                                   every hook the engine CALLS is DEFINED by both games
+            audit-shadow.sh        no local named after a high-risk shared global
+            audit-shortcircuit.sh  no bounds guard relying on short-circuit (QB64 has none)
+            6 unit suites          200 assertions over the game-free engine modules
+        ✔ BUG FOUND BY THE ABOVE: DetectDoors counted hits in a local named `brown`,
+          which case-insensitively shadowed the shared BROWN colour -- so it compared each
+          pixel against the counter (0) and found ZERO doors, forever. MarkStrongDoors
+          marked nothing and reinforced doors never once appeared in play. Fixed; 192 doors
+          now detected, ~1 in 6 reinforced as the rules intend.
+        ✔ Also hardened: TokLoad crashed on a missing save (_READFILE$ errors rather than
+          returning ""); StatAppend now rotates a stale CSV aside on schema drift.
+        ~ NOT done, and deliberately: hooks #3/#4/#9-#15 remain inlined in dungeon.bas.
+          That file is the ASSEMBLY and is allowed to name both sides -- lifting them would
+          make dungeon.bas reusable too, which no one needs yet. Not debt.
+
     ☐ DEEP TACTICAL COMBAT screen (party vs. a group of enemies -- see mockup):
         REFERENCE MOCKUP: assets/ansi/ui-fight.xb  (XBIN, editable in text mode -- the
           full screen layout the mockup shows). Supporting art already made:
@@ -315,7 +320,18 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
     ✔ [P] pause for bio breaks; death waits for a keypress before the blood transition @done(26-07-24)
     ✔ Dice ROTATION: polyhedra spin via _MAPTRIANGLE (render die to scratch image, rotate-blit, ease
       upright on settle). Verified via scratchpads/TEST-DICE-ROT.bas. @done(26-07-24)
-    ☐ Multiplayer save/load: serialize the PLAYERS() hot-seat array ([G] is solo-only for now).
+    ✔ Multiplayer save/load @done(26-07-29) -- save v5 adds a PLRS block holding every
+      hot-seat seat, so [G] now works in multiplayer (was solo-only). SaveGame syncs the
+      ACTIVE seat first (its state lives in the working globals and is only parked on a turn
+      change). Player names are written with spaces encoded as CHR$(1) -- the loader splits on
+      whitespace, so "Grognard the Fast" would otherwise become 3 tokens and desync the whole
+      positional stream. Verified by `dungeon.run savetest`, which round-trips 4 synthetic seats
+      AND loads a copy of the real save to prove the bump did not orphan it.
+    ☐ Per-player inventory gap (found while doing the above): the PLAYER type carries only
+      class/gold/key/sword/secret/esp/crystal/stats/pos. Potions, bow, boots, teleport, shield,
+      armour, spell charges, char_level/xp and the status timers are NOT in it, so in hot-seat
+      those are SHARED between players (cleared per GAME, not per SEAT). Fixing it means
+      extending PLAYER + the save format again -- a gameplay call, not a mechanical one.
     ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in DUNGEON.BI).
     ☐ Board legend art: add "$ = recoverable treasure" and a "fallen-body = an adventurer died here"
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).

@@ -6,17 +6,17 @@
 '  game's load routine consumes. The GAME payload (what actually gets written and
 '  read back) lives in game/SAVEGAME.bas and drives these.
 '
-'  Minor debt: the fixed filename "gameplay-data-saves/dungeon-save.dat" is game-chosen; a fully
-'  separable engine would take it as a parameter. No game *symbols* are referenced.
+'  The slot path is SAVE_FILE (ENGINE.BI), set by the game at startup -- so the engine holds
+'  no game-chosen filename, and a test can point the whole save system at a scratch file.
 ' ============================================================================
 
 FUNCTION HasSave%
-    HasSave = (_FILEEXISTS("gameplay-data-saves/dungeon-save.dat") <> 0)
+    HasSave = (_FILEEXISTS(SAVE_FILE) <> 0)
 END FUNCTION
 
 ' Remove the save (called when a run ends -- winning -- so a stale continue can't resume it).
 SUB DeleteSave
-    IF _FILEEXISTS("gameplay-data-saves/dungeon-save.dat") THEN KILL "gameplay-data-saves/dungeon-save.dat"
+    IF _FILEEXISTS(SAVE_FILE) THEN KILL SAVE_FILE
 END SUB
 
 
