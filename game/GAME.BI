@@ -138,6 +138,26 @@ TYPE PLAYER
     cx       AS INTEGER         ' cursor pixel position
     cy       AS INTEGER
     kolor    AS _UNSIGNED LONG  ' board token colour
+    ' --- the rest of the per-seat run state -------------------------------------
+    ' These were plain globals with no home in this record, so in hot-seat they were
+    ' SHARED between players: one player's potions, spell charges, XP and poison timer
+    ' were everyone's (they were cleared per GAME, not per SEAT). Load/SaveActivePlayer
+    ' park and restore them now, so each seat truly owns its own kit.
+    armor    AS INTEGER         ' BODY ARMOR AC bonus
+    shield   AS INTEGER         ' SHIELD AC bonus (separate slot, adds to armor)
+    bow      AS INTEGER         ' Magic Bow: +2 to-hit
+    boots    AS INTEGER         ' Elf Boots: +2 movement roll
+    teleport AS INTEGER         ' Teleport scrolls / spell charges
+    pot_sm   AS INTEGER         ' small healing potions held
+    pot_lg   AS INTEGER         ' large healing potions held
+    sp_fire  AS INTEGER         ' WIZARD Fire Ball charges
+    sp_bolt  AS INTEGER         ' WIZARD Lightning Bolt charges
+    clevel   AS INTEGER         ' D&D character level
+    cxp      AS LONG            ' accumulated XP
+    t_poison AS INTEGER         ' status timers -- poison darts (-1 HP/turn)
+    t_fire   AS INTEGER         '                 bomb fire (-1 HP/turn)
+    t_frost  AS INTEGER         '                 frost bomb (movement frozen)
+    t_siren  AS INTEGER         '                 magic siren (encounter chance up)
 END TYPE
 
 DIM SHARED SECTORS(1 TO 9) AS SECTOR

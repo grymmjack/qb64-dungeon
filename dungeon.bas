@@ -451,19 +451,19 @@ FUNCTION PlayGame%
         RANDOMIZE run_seed
         StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
         RandomizeRooms                   ' give every detected room its own monster + treasure (+ the key room)
-        LoadActivePlayer cur_player      ' player 1 becomes the active player (pos / colour / stats)
+        ' Per-SEAT run state (inventory, potions, spell charges, level/XP, status timers) is
+        ' initialised inside SetupPlayers -- including a spellbook for EVERY Wizard seat -- and
+        ' arrives in the working globals via LoadActivePlayer. It used to be reset HERE instead,
+        ' i.e. once, after the active player was already loaded: so those values were shared by
+        ' all hot-seat players and only seat 1 could ever be handed a spellbook.
+        LoadActivePlayer cur_player      ' player 1 becomes the active player (kit / pos / colour / stats)
         StartTurnMove                    ' set turn 1's move budget (roll 1d6 / up-to-5 / free)
+        ' --- genuinely run-wide state (NOT per seat) ---
         loiter = 0                       ' fresh danger meter for lingering
         curio_cool = 0                   ' path curios may start turning up right away
         FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
         lvl_reached(1) = TRUE            ' you start on the 1st level
-        char_level = 1: char_xp = 0      ' fresh D&D level + XP for this run
-        item_potion_small = 0: item_potion_large = 0
-        item_armor = 0: item_shield = 0: item_bow = FALSE: item_boots = FALSE: item_teleport = 0   ' newer items aren't in PLAYER type -- clear them so nothing leaks between games
-        spell_fire = 0: spell_bolt = 0                                       ' clear Wizard spell charges between games
-        IF player_class = 4 THEN spell_fire = 3: spell_bolt = 3: item_teleport = 2   ' the WIZARD opens with a spellbook (3 Fire Ball / 3 Lightning / 2 Teleport)
-        poison_turns = 0: fire_turns = 0: frost_turns = 0: siren_turns = 0   ' no lingering trap effects
-        deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally
+        deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally (already per-player)
         player_out = FALSE                                                  ' nobody has forfeited yet
 
         DIM ident AS STRING                                                 ' "Grognard the Fast, a HERO" (or "the HERO" if unnamed)

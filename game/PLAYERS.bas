@@ -37,6 +37,15 @@ SUB LoadActivePlayer (p AS INTEGER)
     player_dmgdie = PLAYERS(p).dmgdie: player_dmgbonus = PLAYERS(p).dmgbonus
     c.x = PLAYERS(p).cx: c.y = PLAYERS(p).cy: c.prev_x = c.x: c.prev_y = c.y
     c.cursor_color = PLAYERS(p).kolor
+    ' the rest of the seat's kit -- without these, hot-seat players shared one inventory
+    item_armor = PLAYERS(p).armor: item_shield = PLAYERS(p).shield
+    item_bow = PLAYERS(p).bow: item_boots = PLAYERS(p).boots
+    item_teleport = PLAYERS(p).teleport
+    item_potion_small = PLAYERS(p).pot_sm: item_potion_large = PLAYERS(p).pot_lg
+    spell_fire = PLAYERS(p).sp_fire: spell_bolt = PLAYERS(p).sp_bolt
+    char_level = PLAYERS(p).clevel: char_xp = PLAYERS(p).cxp
+    poison_turns = PLAYERS(p).t_poison: fire_turns = PLAYERS(p).t_fire
+    frost_turns = PLAYERS(p).t_frost: siren_turns = PLAYERS(p).t_siren
 END SUB
 
 
@@ -54,6 +63,14 @@ SUB SaveActivePlayer (p AS INTEGER)
     PLAYERS(p).tohit = player_tohit: PLAYERS(p).ac = player_ac
     PLAYERS(p).dmgdie = player_dmgdie: PLAYERS(p).dmgbonus = player_dmgbonus
     PLAYERS(p).cx = c.x: PLAYERS(p).cy = c.y
+    PLAYERS(p).armor = item_armor: PLAYERS(p).shield = item_shield
+    PLAYERS(p).bow = item_bow: PLAYERS(p).boots = item_boots
+    PLAYERS(p).teleport = item_teleport
+    PLAYERS(p).pot_sm = item_potion_small: PLAYERS(p).pot_lg = item_potion_large
+    PLAYERS(p).sp_fire = spell_fire: PLAYERS(p).sp_bolt = spell_bolt
+    PLAYERS(p).clevel = char_level: PLAYERS(p).cxp = char_xp
+    PLAYERS(p).t_poison = poison_turns: PLAYERS(p).t_fire = fire_turns
+    PLAYERS(p).t_frost = frost_turns: PLAYERS(p).t_siren = siren_turns
 END SUB
 
 
@@ -119,6 +136,20 @@ SUB SetupPlayers
         PLAYERS(p).dmgdie = player_dmgdie: PLAYERS(p).dmgbonus = player_dmgbonus
         PLAYERS(p).cx = START_CX * CW: PLAYERS(p).cy = START_CY * CH
         PLAYERS(p).kolor = PlayerColor(p)
+        ' fresh per-seat kit. This is where the Wizard's spellbook is granted -- it used to
+        ' be set once on the working globals AFTER SetupPlayers, so only whoever happened to
+        ' be active at init (player 1) ever got one; a Wizard in seat 2 started empty.
+        PLAYERS(p).armor = 0: PLAYERS(p).shield = 0
+        PLAYERS(p).bow = FALSE: PLAYERS(p).boots = FALSE
+        PLAYERS(p).pot_sm = 0: PLAYERS(p).pot_lg = 0
+        PLAYERS(p).clevel = 1: PLAYERS(p).cxp = 0
+        PLAYERS(p).t_poison = 0: PLAYERS(p).t_fire = 0
+        PLAYERS(p).t_frost = 0: PLAYERS(p).t_siren = 0
+        IF klass = 4 THEN
+            PLAYERS(p).sp_fire = 3: PLAYERS(p).sp_bolt = 3: PLAYERS(p).teleport = 2
+        ELSE
+            PLAYERS(p).sp_fire = 0: PLAYERS(p).sp_bolt = 0: PLAYERS(p).teleport = 0
+        END IF
         LOOT_N(p) = 0                             ' fresh treasure log
     NEXT p
 END SUB

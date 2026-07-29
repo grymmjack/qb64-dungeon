@@ -11,9 +11,11 @@
 '  The generic file plumbing it rides on (HasSave / DeleteSave / AskContinue /
 '  TokLoad / NextTok$ / NextI% / NextL&) lives in engine/SAVEIO.bas.
 '  Format: whitespace-separated tokens, consumed in a fixed order.
-'  Scope: solo AND hot-seat (v5 adds the PLRS seat block). [G] saves in-game; a save is
-'  offered on entering. Old saves still load -- every block added since v2 is tag-guarded
-'  or version-gated, so v2..v4 files read back fine.
+'  Scope: solo AND hot-seat. v5 added the PLRS seat block; v6 added the rest of each seat's
+'  kit (potions/spells/XP/status), which had been shared globals. [G] saves in-game; a save is
+'  offered on entering. Old saves still load -- every block added since v2 is tag-guarded or
+'  version-gated, so v2..v5 files read back fine (a pre-v6 file has no per-seat kit, so the
+'  active seat is re-synced FROM the globals after load).
 ' ============================================================================
 
 ' [G] in-game: save + a brief confirmation, then back to the board.
@@ -32,7 +34,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN SAVE_FILE FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 5"
+    PRINT #f, "DUNGEONSAVE 6"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -95,6 +97,11 @@ SUB SaveGame
         PRINT #f, PLAYERS(i).sstr; PLAYERS(i).sint; PLAYERS(i).swis; PLAYERS(i).sdex; PLAYERS(i).scon; PLAYERS(i).scha;
         PRINT #f, PLAYERS(i).tohit; PLAYERS(i).ac; PLAYERS(i).dmgdie; PLAYERS(i).dmgbonus;
         PRINT #f, PLAYERS(i).cx; PLAYERS(i).cy; PLAYERS(i).kolor;
+        ' v6: the rest of the seat's kit (was shared between hot-seat players before)
+        PRINT #f, PLAYERS(i).armor; PLAYERS(i).shield; PLAYERS(i).bow; PLAYERS(i).boots; PLAYERS(i).teleport;
+        PRINT #f, PLAYERS(i).pot_sm; PLAYERS(i).pot_lg; PLAYERS(i).sp_fire; PLAYERS(i).sp_bolt;
+        PRINT #f, PLAYERS(i).clevel; PLAYERS(i).cxp;
+        PRINT #f, PLAYERS(i).t_poison; PLAYERS(i).t_fire; PLAYERS(i).t_frost; PLAYERS(i).t_siren;
         PRINT #f, " " + StrSubst$(_TRIM$(PLAYERS(i).name), " ", CHR$(1))
     NEXT i
 
@@ -228,12 +235,24 @@ SUB LoadGameApply
                 PLAYERS(i).tohit = NextI: PLAYERS(i).ac = NextI
                 PLAYERS(i).dmgdie = NextI: PLAYERS(i).dmgbonus = NextI
                 PLAYERS(i).cx = NextI: PLAYERS(i).cy = NextI: PLAYERS(i).kolor = NextL
+                IF sver >= 6 THEN                    ' v6 added the rest of the seat's kit
+                    PLAYERS(i).armor = NextI: PLAYERS(i).shield = NextI
+                    PLAYERS(i).bow = NextI: PLAYERS(i).boots = NextI: PLAYERS(i).teleport = NextI
+                    PLAYERS(i).pot_sm = NextI: PLAYERS(i).pot_lg = NextI
+                    PLAYERS(i).sp_fire = NextI: PLAYERS(i).sp_bolt = NextI
+                    PLAYERS(i).clevel = NextI: PLAYERS(i).cxp = NextL
+                    PLAYERS(i).t_poison = NextI: PLAYERS(i).t_fire = NextI
+                    PLAYERS(i).t_frost = NextI: PLAYERS(i).t_siren = NextI
+                END IF
                 PLAYERS(i).name = StrSubst$(NextTok$, CHR$(1), " ")
             NEXT i
-            ' The working globals were already restored above for the ACTIVE seat, and
-            ' SaveGame synced that seat before writing -- so the two agree and we must NOT
-            ' call LoadActivePlayer here (the globals carry fields PLAYER has no room for:
-            ' char_level/xp, potions, spells, status timers).
+            ' The working globals were already restored above for the ACTIVE seat, so do NOT
+            ' call LoadActivePlayer here -- for a PRE-v6 save the seat's kit fields are absent
+            ' (they read as 0) while the globals hold the real values, and loading the seat
+            ' would silently wipe that player's potions/spells/XP. Sync the other way instead:
+            ' push the authoritative globals INTO the active seat. For v6 the two already
+            ' agree (SaveGame synced before writing), so this is a harmless no-op.
+            SaveActivePlayer cur_player
         END IF
     END IF
 
@@ -297,12 +316,54 @@ SUB SaveRoundTripTest
     DIM i AS INTEGER, bad AS INTEGER, realpath AS STRING
     DIM wgold(1 TO 4) AS LONG, wname(1 TO 4) AS STRING, wklass(1 TO 4) AS INTEGER
     DIM whp(1 TO 4) AS INTEGER, wcx(1 TO 4) AS INTEGER, wkey(1 TO 4) AS INTEGER
+    DIM wpot(1 TO 4) AS INTEGER, wfire(1 TO 4) AS INTEGER, wxp(1 TO 4) AS LONG
+    DIM wpois(1 TO 4) AS INTEGER, wtel(1 TO 4) AS INTEGER
     _DEST _CONSOLE
-    PRINT "savetest: save/load round-trip (hot-seat PLRS block, save v5)"
+    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v6)"
 
     realpath = SAVE_FILE
     SAVE_FILE = "tests/tmp/savetest.dat"          ' never touch the player's real slot
     IF _DIREXISTS("tests/tmp") = 0 THEN MKDIR "tests/tmp"
+
+    '--- phase 0: SEAT ISOLATION -------------------------------------------------
+    ' The actual bug this fixes: the per-seat kit used to be plain globals with no home in
+    ' the PLAYER record, so passing the turn did NOT swap potions / spell charges / XP /
+    ' status timers -- every hot-seat player shared one inventory. Park and restore two
+    ' seats with distinct kit and prove each keeps its own.
+    num_players = 2
+    PLAYERS(1).klass = 1: PLAYERS(1).maxhp = 20: PLAYERS(1).hp = 20: PLAYERS(1).goal = 10000
+    PLAYERS(1).pot_sm = 3: PLAYERS(1).sp_fire = 0: PLAYERS(1).cxp = 100: PLAYERS(1).clevel = 2
+    PLAYERS(1).t_poison = 0: PLAYERS(1).teleport = 0: PLAYERS(1).name = "Seat One"
+    PLAYERS(2).klass = 4: PLAYERS(2).maxhp = 14: PLAYERS(2).hp = 14: PLAYERS(2).goal = 30000
+    PLAYERS(2).pot_sm = 0: PLAYERS(2).sp_fire = 3: PLAYERS(2).cxp = 900: PLAYERS(2).clevel = 5
+    PLAYERS(2).t_poison = 4: PLAYERS(2).teleport = 2: PLAYERS(2).name = "Seat Two"
+
+    cur_player = 1: LoadActivePlayer 1
+    IF item_potion_small <> 3 THEN PRINT "  FAIL seat1 potions not restored": bad = -1
+    IF spell_fire <> 0 THEN PRINT "  FAIL seat1 should have no spells": bad = -1
+    IF char_xp <> 100 THEN PRINT "  FAIL seat1 xp": bad = -1
+
+    item_potion_small = 1                         ' seat 1 drinks two potions on its turn
+    char_xp = 175
+    SaveActivePlayer 1                            ' end of turn: park seat 1
+
+    cur_player = 2: LoadActivePlayer 2
+    IF item_potion_small <> 0 THEN PRINT "  FAIL LEAK: seat2 sees seat1's potions (" + _TRIM$(STR$(item_potion_small)) + ")": bad = -1
+    IF spell_fire <> 3 THEN PRINT "  FAIL seat2 Wizard spellbook missing": bad = -1
+    IF char_xp <> 900 THEN PRINT "  FAIL LEAK: seat2 sees seat1's xp (" + _TRIM$(STR$(char_xp)) + ")": bad = -1
+    IF poison_turns <> 4 THEN PRINT "  FAIL seat2 poison timer": bad = -1
+    IF item_teleport <> 2 THEN PRINT "  FAIL seat2 teleport charges": bad = -1
+
+    spell_fire = 1                                ' seat 2 casts two Fire Balls
+    SaveActivePlayer 2
+
+    cur_player = 1: LoadActivePlayer 1            ' back to seat 1 -- its own state must persist
+    IF item_potion_small <> 1 THEN PRINT "  FAIL seat1 potion spend did not persist": bad = -1
+    IF char_xp <> 175 THEN PRINT "  FAIL seat1 xp gain did not persist": bad = -1
+    IF spell_fire <> 0 THEN PRINT "  FAIL LEAK: seat1 sees seat2's spell charges": bad = -1
+    IF poison_turns <> 0 THEN PRINT "  FAIL LEAK: seat1 caught seat2's poison": bad = -1
+    IF NOT bad THEN PRINT "  seat isolation OK -- potions/spells/XP/status/teleport swap per seat"
+    _DEST _CONSOLE
 
     '--- build a synthetic 4-player run -------------------------------------
     num_players = 4: cur_player = 3
@@ -330,6 +391,16 @@ SUB SaveRoundTripTest
         PLAYERS(i).cx = wcx(i): PLAYERS(i).cy = 24 * CH
         PLAYERS(i).kolor = PlayerColor~&(i)
         PLAYERS(i).name = wname(i)
+        ' v6 per-seat kit -- DISTINCT per player, which is the whole point: before v6 these
+        ' were shared globals, so every seat saw player 1's potions/spells/XP/poison.
+        wpot(i) = i: wfire(i) = 5 - i: wxp(i) = 250& * i: wpois(i) = i * 2: wtel(i) = i + 1
+        PLAYERS(i).pot_sm = wpot(i): PLAYERS(i).pot_lg = i + 1
+        PLAYERS(i).sp_fire = wfire(i): PLAYERS(i).sp_bolt = i
+        PLAYERS(i).clevel = i: PLAYERS(i).cxp = wxp(i)
+        PLAYERS(i).t_poison = wpois(i): PLAYERS(i).t_fire = 0
+        PLAYERS(i).t_frost = 0: PLAYERS(i).t_siren = 0
+        PLAYERS(i).armor = i: PLAYERS(i).shield = 1: PLAYERS(i).bow = -1
+        PLAYERS(i).boots = 0: PLAYERS(i).teleport = wtel(i)
     NEXT i
     ' the ACTIVE seat lives in the working globals -- SaveGame must sync it before writing
     LoadActivePlayer cur_player
@@ -346,6 +417,8 @@ SUB SaveRoundTripTest
     FOR i = 1 TO 4
         PLAYERS(i).active = 0: PLAYERS(i).klass = 0: PLAYERS(i).gold = 0
         PLAYERS(i).hp = 0: PLAYERS(i).cx = 0: PLAYERS(i).has_key = 0: PLAYERS(i).name = "WIPED"
+        PLAYERS(i).pot_sm = 0: PLAYERS(i).sp_fire = 0: PLAYERS(i).cxp = 0
+        PLAYERS(i).t_poison = 0: PLAYERS(i).teleport = 0: PLAYERS(i).clevel = 0
     NEXT i
     num_players = 1: cur_player = 1
     LoadGameApply
@@ -361,8 +434,14 @@ SUB SaveRoundTripTest
         IF PLAYERS(i).cx <> wcx(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " cx": bad = -1
         IF PLAYERS(i).has_key <> wkey(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " has_key": bad = -1
         IF _TRIM$(PLAYERS(i).name) <> wname(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " name: got [" + _TRIM$(PLAYERS(i).name) + "] want [" + wname(i) + "]": bad = -1
+        IF PLAYERS(i).pot_sm <> wpot(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " potions": bad = -1
+        IF PLAYERS(i).sp_fire <> wfire(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " fireball charges": bad = -1
+        IF PLAYERS(i).cxp <> wxp(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " xp": bad = -1
+        IF PLAYERS(i).clevel <> i THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " char level": bad = -1
+        IF PLAYERS(i).t_poison <> wpois(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " poison timer": bad = -1
+        IF PLAYERS(i).teleport <> wtel(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " teleport charges": bad = -1
     NEXT i
-    IF NOT bad THEN PRINT "  all 4 seats round-tripped (incl. names with spaces)"
+    IF NOT bad THEN PRINT "  all 4 seats round-tripped (names with spaces + per-seat kit: potions/spells/XP/status)"
 
     T_KillSave                                    ' tidy the scratch file
 

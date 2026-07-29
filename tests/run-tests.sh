@@ -94,7 +94,7 @@ if (( $# == 0 )); then
     echo "-- save round-trip + backward compat (dungeon.run savetest) --"
     if [[ -x ./dungeon.run ]]; then
         if sv=$(setsid timeout 90 xvfb-run -a ./dungeon.run savetest 2>&1) && grep -q 'savetest: PASS' <<<"$sv"; then
-            grep -E 'round-tripped|compat:|loaded OK' <<<"$sv" | sed 's/^/  /'
+            grep -E 'seat isolation|round-tripped|compat:|loaded OK' <<<"$sv" | sed 's/^/  /'
         else
             printf '%s\n' "$sv" | sed 's/^/    /'
             (( fail++ )); failed+=("savetest")

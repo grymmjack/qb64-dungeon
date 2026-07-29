@@ -327,11 +327,20 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       whitespace, so "Grognard the Fast" would otherwise become 3 tokens and desync the whole
       positional stream. Verified by `dungeon.run savetest`, which round-trips 4 synthetic seats
       AND loads a copy of the real save to prove the bump did not orphan it.
-    ☐ Per-player inventory gap (found while doing the above): the PLAYER type carries only
-      class/gold/key/sword/secret/esp/crystal/stats/pos. Potions, bow, boots, teleport, shield,
-      armour, spell charges, char_level/xp and the status timers are NOT in it, so in hot-seat
-      those are SHARED between players (cleared per GAME, not per SEAT). Fixing it means
-      extending PLAYER + the save format again -- a gameplay call, not a mechanical one.
+    ✔ Per-player inventory gap @done(26-07-29) -- FIXED. The PLAYER record gained the 15
+      remaining per-seat fields (armour, shield, bow, boots, teleport, both potions, both spell
+      charges, char level + XP, and the four status timers), Load/SaveActivePlayer park and
+      restore them, and save v6 persists them. Before this, passing the turn did NOT swap them:
+      every hot-seat player shared one inventory, one XP total and one poison timer.
+      Two real symptoms this cured:
+        - a Wizard in seat 2+ NEVER got a spellbook. The 3 Fire Ball / 3 Lightning / 2 Teleport
+          grant ran once on the working globals AFTER SetupPlayers, so it only ever landed on
+          whoever was active at init (player 1). It is now granted per Wizard SEAT in SetupPlayers.
+        - potions/XP/poison bled across seats (drink on your turn, the next player is short).
+      `dungeon.run savetest` phase 0 proves the isolation by parking and restoring two seats with
+      distinct kit; reverting the fix makes it fail with the exact player-visible symptoms.
+      NOTE: `loiter` (lingering-danger meter) and `curio_cool` stay RUN-WIDE on purpose -- they
+      read as "how restless the dungeon is", not as something a player carries.
     ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in DUNGEON.BI).
     ☐ Board legend art: add "$ = recoverable treasure" and a "fallen-body = an adventurer died here"
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
