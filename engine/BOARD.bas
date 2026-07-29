@@ -2,59 +2,22 @@
 '  BOARD.bas -- board render, fog-of-war, secret doors, pixel-colour collision
 ' ============================================================================
 
-SUB DoSearch
-    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER, thresh AS INTEGER
-    DIM found_any AS INTEGER, near_hidden AS INTEGER
-    ccx = c.x \ CW: ccy = c.y \ CH
-    ' DUNGEON! convention: roll LOW to find a secret door -- Hero on 1-2, Elf on 1-4
-    ' (double odds), Wizard on 1-3. secret_bonus widens the winning band by that much.
-    roll = DoRoll(1, 0, "SEARCHING for secret doors")   ' a raw d6, shown honestly
-    thresh = 2 + CLASSES(player_class).secret_bonus
-    IF item_secret_card THEN thresh = 6          ' the Secret Door Card never fails (any roll finds)
-    found_any = FALSE: near_hidden = FALSE
-    g_secret_tries = g_secret_tries + 1              ' chronicle: count searches toward the next find
-    FOR i = 1 TO SD_N
-        IF NOT SD_FOUND(i) THEN
-            IF ABS(SD_X(i) - ccx) <= 2 AND ABS(SD_Y(i) - ccy) <= 2 THEN
-                near_hidden = TRUE
-                IF roll <= thresh THEN
-                    SD_FOUND(i) = TRUE
-                    RevealRegionFromDoor i    ' reveal door + the area it connects to
-                    found_any = TRUE
-                END IF
-            END IF
-        END IF
-    NEXT
-
-    IF found_any THEN
-        RecordSecret SECTOR.get_by_xy(c.x, c.y), ROOMAT(ccx, ccy), g_secret_tries
-        g_secret_tries = 0
-        Sfx "secret"
-        Banner "A SECRET DOOR grinds open before you!", "A hidden passage is revealed -- explore what it hides.   [ press any key ]"
-    ELSEIF near_hidden THEN
-        Sfx "search"
-        Banner "Your fingers trace a faint seam in the stone...", "Something is hidden nearby -- keep searching!   [ press any key ]"
-    ELSE
-        Sfx "search"
-        Banner "You search the walls but find no secrets here.", "[ press any key ]"
-    END IF
-    WaitKey
-    cursor_erase: cursor_draw: _DISPLAY
-    LoiterTick                                     ' lingering to search draws danger closer
-END SUB
+' (DoSearch moved to game/PLAY.bas -- the search ODDS are a DUNGEON! rule (class
+'  secret_bonus / Secret Door Card). The engine keeps the doors themselves and
+'  RevealRegionFromDoor, which the game calls.)
 
 
 ' Classify a cell of FULL_BOARD by its centre pixel (caller sets _SOURCE FULL_BOARD):
 ' 0 = wall, 1 = walkable terrain (path/room/door), 2 = secret-door tile.
 
 FUNCTION CellKind% (cx AS INTEGER, cy AS INTEGER)
-    DIM col AS _UNSIGNED LONG, sec AS INTEGER
+    DIM col AS _UNSIGNED LONG, floor AS _UNSIGNED LONG
     col = POINT(cx * CW + CW \ 2, cy * CH + CH \ 2)
     IF col = BRIGHT_BLUE THEN CellKind = 2: EXIT FUNCTION
     IF col = YELLOW OR col = BROWN THEN CellKind = 1: EXIT FUNCTION
-    sec = SECTOR.get_by_xy(cx * CW, cy * CH)
-    IF sec >= 1 THEN
-        IF col = SECTORS(sec).kolor THEN CellKind = 1: EXIT FUNCTION
+    floor = Game_FloorColorAt~&(cx * CW, cy * CH)      ' game hook: what counts as floor here?
+    IF floor <> 0 THEN
+        IF col = floor THEN CellKind = 1: EXIT FUNCTION
     END IF
     CellKind = 0
 END FUNCTION
@@ -110,205 +73,13 @@ END SUB
 ' map (ROOMAT). Every reachable room later gets its own monster + treasure.
 
 
-' Openness of a cell: how many of the surrounding 5x5 cells are walkable (CellKind 1).
-' Chambers are wide-open (approaching 25); corridors are thin (~10). _SOURCE = FULL_BOARD.
-FUNCTION CellOpen% (cx AS INTEGER, cy AS INTEGER)
-    DIM dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, cnt AS INTEGER
-    FOR dy = -2 TO 2
-        FOR dx = -2 TO 2
-            nx = cx + dx: ny = cy + dy
-            IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
-                IF CellKind(nx, ny) = 1 THEN cnt = cnt + 1
-            END IF
-        NEXT
-    NEXT
-    CellOpen% = cnt
-END FUNCTION
-
-' Try to enqueue a chamber cell (walkable + open enough + unassigned) into the BFS.
-SUB ChamberTry (x AS INTEGER, y AS INTEGER, cid AS INTEGER, openmin AS INTEGER, tail AS INTEGER)
-    IF x < 0 OR x > 131 OR y < 0 OR y > 60 THEN EXIT SUB
-    IF CHAMBERAT(x, y) <> 0 THEN EXIT SUB
-    IF tail > 8000 THEN EXIT SUB
-    IF CellKind(x, y) <> 1 THEN EXIT SUB
-    IF CellOpen%(x, y) < openmin THEN EXIT SUB
-    CHAMBERAT(x, y) = cid: QX(tail) = x: QY(tail) = y: tail = tail + 1
-END SUB
-
-' Flood the wide-open region from a seed cell -> chamber cid; record size + centre.
-SUB FloodChamber (sx AS INTEGER, sy AS INTEGER, cid AS INTEGER, openmin AS INTEGER)
-    DIM head AS INTEGER, tail AS INTEGER, x AS INTEGER, y AS INTEGER
-    DIM minx AS INTEGER, maxx AS INTEGER, miny AS INTEGER, maxy AS INTEGER
-    head = 0: QX(0) = sx: QY(0) = sy: CHAMBERAT(sx, sy) = cid: tail = 1
-    minx = sx: maxx = sx: miny = sy: maxy = sy
-    DO WHILE head < tail
-        x = QX(head): y = QY(head): head = head + 1
-        IF x < minx THEN minx = x
-        IF x > maxx THEN maxx = x
-        IF y < miny THEN miny = y
-        IF y > maxy THEN maxy = y
-        ChamberTry x + 1, y, cid, openmin, tail
-        ChamberTry x - 1, y, cid, openmin, tail
-        ChamberTry x, y + 1, cid, openmin, tail
-        ChamberTry x, y - 1, cid, openmin, tail
-    LOOP
-    CHM_CELLS(cid) = tail
-    CHM_CX(cid) = (minx + maxx) \ 2: CHM_CY(cid) = (miny + maxy) \ 2
-END SUB
-
-' Detect the named CHAMBERS -- the large yellow spaces -- by flooding the wide-open area
-' near each chamber label (so thin corridors are excluded). Call AFTER FULL_BOARD is
-' painted. Approach A: openness heuristic, no board recolouring.
-' Load the exact hand-authored chamber map from assets/data/chambers.txt (rectangles in
-' cells; every walkable cell inside becomes a trigger cell). Returns TRUE if it built >=1
-' chamber -- the fixed board means this beats the openness heuristic. Falls through to the
-' heuristic when the file is absent or empty.
-FUNCTION LoadChambers%
-    LoadChambers = 0
-    DIM cf AS STRING: cf = DataPath$("assets/data/chambers.txt")   ' data-pack aware
-    IF NOT _FILEEXISTS(cf) THEN EXIT FUNCTION
-    DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
-    DIM nm AS STRING, c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER
-    DIM x AS INTEGER, y AS INTEGER, cnt AS INTEGER, oldsrc AS LONG
-    FOR y = 0 TO 60: FOR x = 0 TO 131: CHAMBERAT(x, y) = 0: NEXT: NEXT
-    FOR x = 1 TO MAXCHAMBER: CHM_DEAD(x) = 0: NEXT
-    NCHAMBER = 0: cur_chamber = 0
-    whole = _READFILE$(cf)
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
-    p = 1
-    DO WHILE p <= LEN(whole)
-        nl = INSTR(p, whole, CHR$(10))
-        IF nl = 0 THEN ln = MID$(whole, p): p = LEN(whole) + 1 ELSE ln = MID$(whole, p, nl - p): p = nl + 1
-        IF RIGHT$(ln, 1) = CHR$(13) THEN ln = LEFT$(ln, LEN(ln) - 1)   ' strip CR
-        hp = INSTR(ln, "#"): IF hp > 0 THEN ln = LEFT$(ln, hp - 1)     ' strip comment
-        ln = _TRIM$(ln)
-        IF LEN(ln) > 0 AND INSTR(ln, "|") > 0 THEN
-            nm = _TRIM$(NthField$(ln, "|", 1))
-            c1 = VAL(NthField$(ln, "|", 2)): r1 = VAL(NthField$(ln, "|", 3))
-            c2 = VAL(NthField$(ln, "|", 4)): r2 = VAL(NthField$(ln, "|", 5))
-            IF LEN(nm) > 0 AND NCHAMBER < MAXCHAMBER THEN
-                IF c2 < c1 THEN SWAP c1, c2
-                IF r2 < r1 THEN SWAP r1, r2
-                IF c1 < 0 THEN c1 = 0
-                IF r1 < 0 THEN r1 = 0
-                IF c2 > 131 THEN c2 = 131
-                IF r2 > 60 THEN r2 = 60
-                NCHAMBER = NCHAMBER + 1
-                cnt = 0
-                FOR y = r1 TO r2
-                    FOR x = c1 TO c2
-                        IF CHAMBERAT(x, y) = 0 THEN            ' first rectangle wins a shared cell
-                            IF CellKind(x, y) >= 1 THEN CHAMBERAT(x, y) = NCHAMBER: cnt = cnt + 1
-                        END IF
-                    NEXT x
-                NEXT y
-                CHM_NAME(NCHAMBER) = nm: CHM_CELLS(NCHAMBER) = cnt
-                CHM_CX(NCHAMBER) = (c1 + c2) \ 2: CHM_CY(NCHAMBER) = (r1 + r2) \ 2
-                CHM_SEC(NCHAMBER) = SECTOR.get_by_xy(CHM_CX(NCHAMBER) * CW, CHM_CY(NCHAMBER) * CH)
-                IF CHM_SEC(NCHAMBER) < 1 THEN CHM_SEC(NCHAMBER) = 1
-                IF cnt < 1 THEN
-                    NCHAMBER = NCHAMBER - 1                    ' the rectangle held no floor -- drop it
-                ELSE
-                    PickChamberGraves NCHAMBER
-                END IF
-            END IF
-        END IF
-    LOOP
-    _SOURCE oldsrc
-    LoadChambers = (NCHAMBER > 0)
-END FUNCTION
-
-SUB DetectChambers
-    DIM i AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, j AS INTEGER, skp AS INTEGER
-    DIM sx AS INTEGER, sy AS INTEGER, oldsrc AS LONG, seedmin AS INTEGER, floodmin AS INTEGER
-    IF LoadChambers THEN EXIT SUB    ' exact hand-authored map (assets/data/chambers.txt) wins
-    REDIM made(1 TO 40) AS INTEGER   ' which labels actually seeded a chamber (for multi-word skip)
-    seedmin = 18: floodmin = 18      ' wide-open cells only -- keeps chambers off the thin corridors
-    FOR ny = 0 TO 60: FOR nx = 0 TO 131: CHAMBERAT(nx, ny) = 0: NEXT: NEXT
-    FOR i = 1 TO MAXCHAMBER: CHM_DEAD(i) = 0: NEXT
-    NCHAMBER = 0: cur_chamber = 0
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
-    FOR i = 1 TO LBL_N
-        '--- skip a second word of a multi-word chamber name: if an adjacent EARLIER label
-        '    already seeded a chamber, this word belongs to it (THE+CRYPT, TORTURE+CHAMBER) ---
-        skp = 0
-        FOR j = 1 TO i - 1
-            IF made(j) THEN
-                IF ABS(LBL_X(i) - LBL_X(j)) <= 2 AND ABS(LBL_Y(i) - LBL_Y(j)) <= 2 THEN skp = -1: EXIT FOR
-            END IF
-        NEXT
-        IF NOT skp THEN
-        '--- find an open, unassigned seed near this label (labels sit top-left of a chamber) ---
-        sx = -1
-        FOR dy = -1 TO 8
-            FOR dx = -3 TO 10
-                nx = LBL_X(i) + dx: ny = LBL_Y(i) + dy
-                IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
-                    IF CHAMBERAT(nx, ny) = 0 AND CellKind(nx, ny) = 1 THEN
-                        IF CellOpen%(nx, ny) >= seedmin THEN sx = nx: sy = ny
-                    END IF
-                END IF
-                IF sx >= 0 THEN EXIT FOR
-            NEXT
-            IF sx >= 0 THEN EXIT FOR
-        NEXT
-        IF sx >= 0 AND NCHAMBER < MAXCHAMBER THEN
-            NCHAMBER = NCHAMBER + 1
-            FloodChamber sx, sy, NCHAMBER, floodmin
-            CHM_NAME(NCHAMBER) = _TRIM$(LBL_T(i))
-            CHM_SEC(NCHAMBER) = SECTOR.get_by_xy(sx * CW, sy * CH)
-            IF CHM_CELLS(NCHAMBER) < 8 THEN            ' a stray (label on a corridor / tiny pocket) -- drop it
-                FOR dy = 0 TO 60: FOR dx = 0 TO 131: IF CHAMBERAT(dx, dy) = NCHAMBER THEN CHAMBERAT(dx, dy) = 0
-                NEXT: NEXT
-                NCHAMBER = NCHAMBER - 1
-            ELSE
-                made(i) = -1                           ' this label kept a chamber (blocks its 2nd word)
-                PickChamberGraves NCHAMBER              ' 3 spread cells for its eventual monster graves
-            END IF
-        END IF
-        END IF
-    NEXT i
-    _SOURCE oldsrc
-END SUB
-
-' Choose up to 3 well-separated cells inside a chamber (Manhattan distance >= 4 apart) to
-' seat its 3 monster graves. Falls back to the chamber centre if the spread can't be met.
-SUB PickChamberGraves (cid AS INTEGER)
-    DIM x AS INTEGER, y AS INTEGER, n AS INTEGER
-    CHM_GX(cid, 1) = -1: CHM_GX(cid, 2) = -1: CHM_GX(cid, 3) = -1
-    n = 0
-    FOR y = 0 TO 60
-        FOR x = 0 TO 131
-            IF CHAMBERAT(x, y) = cid THEN
-                IF n = 0 THEN
-                    CHM_GX(cid, 1) = x: CHM_GY(cid, 1) = y: n = 1
-                ELSEIF n = 1 THEN
-                    IF ABS(x - CHM_GX(cid, 1)) + ABS(y - CHM_GY(cid, 1)) >= 4 THEN CHM_GX(cid, 2) = x: CHM_GY(cid, 2) = y: n = 2
-                ELSEIF n = 2 THEN
-                    IF ABS(x - CHM_GX(cid, 1)) + ABS(y - CHM_GY(cid, 1)) >= 4 THEN
-                        IF ABS(x - CHM_GX(cid, 2)) + ABS(y - CHM_GY(cid, 2)) >= 4 THEN CHM_GX(cid, 3) = x: CHM_GY(cid, 3) = y: n = 3
-                    END IF
-                END IF
-            END IF
-        NEXT x
-        IF n >= 3 THEN EXIT FOR
-    NEXT y
-    FOR n = 1 TO 3                                          ' any slot never filled -> the centre
-        IF CHM_GX(cid, n) < 0 THEN CHM_GX(cid, n) = CHM_CX(cid): CHM_GY(cid, n) = CHM_CY(cid)
-    NEXT
-END SUB
+' (Chamber detection + the ROOMAT flood helper moved to game/CHAMBERS.bas and
+'  game/SECTOR.bas -- both are DUNGEON! region concepts, claimed via Game_PopulateBoard.)
 
 
 
 
-SUB RoomVisit (x AS INTEGER, y AS INTEGER, sec AS INTEGER, rid AS INTEGER, kol AS _UNSIGNED LONG, tail AS INTEGER)
-    IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT SUB
-    IF ROOMAT(x, y) <> 0 THEN EXIT SUB
-    IF POINT(x * CW + CW \ 2, y * CH + CH \ 2) <> kol THEN EXIT SUB
-    IF SECTOR.get_by_xy(x * CW, y * CH) <> sec THEN EXIT SUB
-    ROOMAT(x, y) = rid
-    QX(tail) = x: QY(tail) = y: tail = tail + 1
-END SUB
+
 
 
 ' Re-roll which doors are "strong" (must be broken) -- about 1 in 6 -- and clear
@@ -354,24 +125,7 @@ END FUNCTION
 
 ' Attempt to break a strong door with a STR check (d20 + STR mod vs DC 13).
 ' Returns TRUE and clears the door if it bursts open.
-FUNCTION BreakDoorAttempt% (idx AS INTEGER)
-    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING
-    Sfx "strongdoor"
-    m = AbilMod(player_str)
-    roll = RollDie(20) + m
-    tag = "  (STR d20" + ModStr$(m) + " = " + _TRIM$(STR$(roll)) + " vs 13)"
-    IF roll >= 13 THEN
-        DOOR_BROKEN(idx) = 1
-        Sfx "breakdoor"
-        Banner "You SMASH through the reinforced door!" + tag, "It bursts off its hinges.   [ press any key ]"
-        BreakDoorAttempt = TRUE
-    ELSE
-        Banner "A REINFORCED DOOR resists your shoulder!" + tag, "It holds firm -- hurl yourself at it again.   [ press any key ]"
-        BreakDoorAttempt = FALSE
-    END IF
-    WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
-END FUNCTION
+' (BreakDoorAttempt% moved to game/PLAY.bas -- the STR check is a game rule.)
 
 
 ' Build the played board from FULL_BOARD: flood-fill the area reachable from
@@ -539,8 +293,7 @@ SUB InitFog
     FOR i = 1 TO SD_N: DOORCELL(SD_X(i), SD_Y(i)) = 1: NEXT i
     DetectDoors                          ' regular (brown) doors -> DOOR arrays
     MarkStrongDoors                      ' re-roll which ones are reinforced this game
-    Game_PopulateBoard                   ' flood-fill the coloured room blocks -> ROOMS / ROOMAT (game hook #8)
-    DetectChambers                       ' flood the large yellow named CHAMBERS (openness heuristic)
+    Game_PopulateBoard                   ' game hook #8: the game claims its regions (ROOMS + CHAMBERS)
 
     IF LoadSecretMask THEN
         ' the hand-painted mask drives the fog: SECRET + MASKREG are set. Public = every
@@ -887,9 +640,8 @@ FUNCTION CanMove%
     IF NOT ok THEN ok = image_is_monochromatic(img, BROWN)               ' solid door
     IF NOT ok THEN ok = image_is_monochromatic(img, BRIGHT_BLUE)         ' solid secret door
     IF NOT ok THEN
-        sec = SECTOR.get_by_xy(c.x, c.y)
-        IF sec >= 1 THEN
-            col = SECTORS(sec).kolor
+        col = Game_FloorColorAt~&(c.x, c.y)            ' game hook: room-floor colour here
+        IF col <> 0 THEN
             ok = image_is_monochromatic(img, col)
             IF NOT ok THEN ok = image_is_diachromatic(img, col, BROWN)
             IF NOT ok THEN ok = image_is_diachromatic(img, col, BRIGHT_BLUE)
@@ -903,10 +655,9 @@ END FUNCTION
 ' TRUE if the cursor cell is a room floor (its sector's color).
 
 FUNCTION InRoomNow%
-    DIM img AS LONG, r AS INTEGER, sec AS INTEGER, col AS _UNSIGNED LONG
-    sec = SECTOR.get_by_xy(c.x, c.y)
-    IF sec < 1 THEN InRoomNow = FALSE: EXIT FUNCTION
-    col = SECTORS(sec).kolor
+    DIM img AS LONG, r AS INTEGER, col AS _UNSIGNED LONG
+    col = Game_FloorColorAt~&(c.x, c.y)                ' game hook: room-floor colour here
+    IF col = 0 THEN InRoomNow = FALSE: EXIT FUNCTION
     img = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     r = image_is_monochromatic(img, col)
@@ -976,44 +727,9 @@ SUB PutLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING, fg AS _UNSIGNED LONG)
     UIFontOff
 END SUB
 
-' The board's room labels live in one data table (LBL_*), used both to render them
-' and to build LABELMASK -- so monster glyphs can be kept off the label cells.
-' Board labels now live in assets/data/labels.txt (col | row | text) -- edit + F5.
-SUB InitLabels
-    LBL_N = 0
-    LoadLabels
-    BuildLabelMask
-END SUB
-
-SUB LoadLabels
-    DIM i AS INTEGER, txt AS STRING
-    ReadDataFile "assets/data/labels.txt"
-    FOR i = 1 TO DLINE_N
-        txt = DField$(DLINE(i), 3)
-        IF LEN(txt) > 0 THEN AddLabel VAL(DField$(DLINE(i), 1)), VAL(DField$(DLINE(i), 2)), txt
-    NEXT i
-END SUB
-
-SUB AddLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING)
-    IF LBL_N >= UBOUND(LBL_X) THEN EXIT SUB
-    LBL_N = LBL_N + 1
-    LBL_X(LBL_N) = cx: LBL_Y(LBL_N) = cy: LBL_T(LBL_N) = txt
-END SUB
-
-' Mark every cell a label prints over (plus one cell of padding) so DrawEntities
-' can steer monster glyphs clear of the level labels.
-SUB BuildLabelMask
-    DIM i AS INTEGER, x AS INTEGER, cx AS INTEGER, cy AS INTEGER
-    FOR cy = 0 TO 60
-        FOR cx = 0 TO 131: LABELMASK(cx, cy) = 0: NEXT cx
-    NEXT cy
-    FOR i = 1 TO LBL_N
-        cy = LBL_Y(i)
-        FOR x = LBL_X(i) - 1 TO LBL_X(i) + LEN(LBL_T(i))    ' -1/+len = one cell of padding each side
-            IF x >= 0 AND x <= 131 AND cy >= 0 AND cy <= 60 THEN LABELMASK(x, cy) = -1
-        NEXT x
-    NEXT i
-END SUB
+' (The label TABLE -- InitLabels/LoadLabels/AddLabel/BuildLabelMask -- moved to
+'  game/OVERLAYS.bas: labels.txt is game content. PutLabel above stays here; it is a
+'  render primitive (UI font + FOV gate), not a data table.)
 
 
 
@@ -1024,12 +740,6 @@ FUNCTION YN$ (b AS INTEGER)
 END FUNCTION
 
 
-' graves so far at a cell, or 0 if it isn't a chamber cell (guards the 0 index)
-FUNCTION ChamberDeadAt% (cx AS INTEGER, cy AS INTEGER)
-    DIM id AS INTEGER
-    id = CHAMBERAT(cx, cy)
-    IF id >= 1 AND id <= NCHAMBER THEN ChamberDeadAt% = CHM_DEAD(id) ELSE ChamberDeadAt% = 0
-END FUNCTION
 
 ' `dungeon.run ansilint [file]` -- lint a MASK ANSI (default: both board masks) for the
 ' art-as-data gotchas we hit: CRLF double-advance ("black bands"), sticky-SGR attribute
@@ -1118,14 +828,14 @@ SUB AnsiLint (pth AS STRING)
     DIM x AS INTEGER, y AS INTEGER, cR AS _UNSIGNED LONG, cN AS _UNSIGNED LONG, diffn AS LONG
     DIM nu AS INTEGER, j AS INTEGER, found AS INTEGER, sid AS INTEGER, unmapped AS LONG
     REDIM ucolr(1 TO 64) AS _UNSIGNED LONG, ucnt(1 TO 64) AS LONG, umap(1 TO 64) AS INTEGER
-    DIM seccnt(0 TO 9) AS LONG
+    DIM seccnt(0 TO 64) AS LONG        ' painted-cell tally per game ZONE (0 = unmapped colour)
     FOR y = 0 TO SH - 1
         FOR x = 0 TO SW - 1
             _SOURCE imgR: cR = MaskSample~&(x, y)
             _SOURCE imgN: cN = MaskSample~&(x, y)
             IF cR <> cN THEN diffn = diffn + 1
             IF cN <> BLACK THEN
-                sid = SectorByColor%(cN)
+                sid = Game_ZoneByColor%(cN)          ' game hook: which zone owns this colour?
                 seccnt(sid) = seccnt(sid) + 1
                 IF sid = 0 THEN unmapped = unmapped + 1
                 found = 0
@@ -1143,32 +853,32 @@ SUB AnsiLint (pth AS STRING)
     ELSE
         PRINT PipeCol$("   cells changed by normalisation: |10" + LTRIM$(STR$(diffn)) + "|07  (already clean)")
     END IF
-    IF issector THEN PRINT PipeCol$("   distinct painted colours (levels): " + LTRIM$(STR$(nu))) ELSE PRINT PipeCol$("   distinct painted colours (regions): " + LTRIM$(STR$(nu)))
+    IF issector THEN PRINT PipeCol$("   distinct painted colours (zones): " + LTRIM$(STR$(nu))) ELSE PRINT PipeCol$("   distinct painted colours (regions): " + LTRIM$(STR$(nu)))
     FOR j = 1 TO nu
         cline = "     " + RIGHT$("000000" + HEX$(ucolr(j) AND &HFFFFFF), 6) + "  x" + LTRIM$(STR$(ucnt(j)))
         IF issector THEN
             IF umap(j) > 0 THEN
-                cline = cline + "  |10-> sector " + LTRIM$(STR$(umap(j))) + " (" + _TRIM$(SECTORS(umap(j)).label) + ")"
+                cline = cline + "  |10-> zone " + LTRIM$(STR$(umap(j))) + " (" + Game_ZoneName$(umap(j)) + ")"
             ELSE
-                cline = cline + "  |12-> !! no sector (reads as 0)"
+                cline = cline + "  |12-> !! no zone (reads as 0)"
             END IF
         ELSE
             cline = cline + "  |08(secret region)"
         END IF
         PRINT PipeCol$(cline)
     NEXT j
-    ' sector-mask-only checks (the secret mask's colours are region ids, not levels)
+    ' zone-mask-only checks (the secret mask's colours are region ids, not zones)
     IF issector THEN
-        IF unmapped > 0 THEN PRINT PipeCol$("   |12!!|07 " + LTRIM$(STR$(unmapped)) + " cell(s) painted a colour that is no level's colour -> sector 0 (unwalkable rooms).")
+        IF unmapped > 0 THEN PRINT PipeCol$("   |12!!|07 " + LTRIM$(STR$(unmapped)) + " cell(s) painted a colour that is no zone's colour -> zone 0 (unwalkable rooms).")
         DIM anyempty AS INTEGER
-        FOR sid = 1 TO 9
+        FOR sid = 1 TO Game_ZoneCount%
             IF seccnt(sid) = 0 THEN
-                IF anyempty = 0 THEN PRINT PipeCol$("   |14!!|07 unpainted level(s) (rooms there fall back to the sectors.txt rects):")
+                IF anyempty = 0 THEN PRINT PipeCol$("   |14!!|07 unpainted zone(s) (rooms there fall back to the game's rect table):")
                 anyempty = -1
-                PRINT PipeCol$("        |14sector " + LTRIM$(STR$(sid)) + " " + _TRIM$(SECTORS(sid).label))
+                PRINT PipeCol$("        |14zone " + LTRIM$(STR$(sid)) + " " + Game_ZoneName$(sid))
             END IF
         NEXT sid
-        IF anyempty = 0 THEN PRINT PipeCol$("   |10all 9 levels painted.")
+        IF anyempty = 0 THEN PRINT PipeCol$("   |10all " + LTRIM$(STR$(Game_ZoneCount%)) + " zones painted.")
     END IF
     PRINT
 END SUB
@@ -1215,199 +925,11 @@ SUB AnsiFix (pth AS STRING)
     PRINT PipeCol$("   |10done|07 -- run |11ansilint " + pth + "|07 to confirm")
 END SUB
 
-' Repaint the board after a debug action takes over the screen.
-SUB DebugMenuClose
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
-END SUB
-
-' [~] debug -> press [0] to open this cheat/test panel: spawn encounters, grant
-' items/potions/HP/gold/key, reveal doors, set up a win. Left-click the board while
-' [~] is on teleports the player. For fast playtesting without grinding there.
-SUB DebugTestMenu
-    DIM k AS STRING, done AS INTEGER, msg AS STRING, rm AS INTEGER, i AS INTEGER
-    DIM bg AS _UNSIGNED LONG
-    bg = _RGB32(&H00, &H00, &H30)
-    DO
-        _LIMIT 60
-        _DEST CANVAS
-        LINE (30 * CW, 7 * CH)-(102 * CW, 42 * CH), bg, BF
-        LINE (30 * CW, 7 * CH)-(102 * CW, 42 * CH), CYANU, B
-        COLOR YELLOWU, bg: PrintCentered 8, "-=  D E B U G   T E S T   M E N U  =-"
-        COLOR WHITE, bg
-        _PRINTSTRING (34 * CW, 11 * CH), "1   Spawn a CURIO here"
-        _PRINTSTRING (34 * CW, 13 * CH), "2   Fight a wandering MONSTER (this level)"
-        _PRINTSTRING (34 * CW, 15 * CH), "3   Spring a TRAP"
-        _PRINTSTRING (34 * CW, 17 * CH), "4   Grant ALL items + the Level Key"
-        _PRINTSTRING (34 * CW, 19 * CH), "5   +3 small & +3 large POTIONS"
-        _PRINTSTRING (34 * CW, 21 * CH), "6   Heal to FULL"
-        _PRINTSTRING (34 * CW, 23 * CH), "7   +5000 GOLD"
-        _PRINTSTRING (34 * CW, 25 * CH), "8   Reveal ALL secret doors (+ key)"
-        _PRINTSTRING (34 * CW, 27 * CH), "9   WIN-READY (goal gold + key; walk to START)"
-        COLOR GREY, bg: _PRINTSTRING (34 * CW, 33 * CH), "left-click the board (with [~] on) = teleport the player"
-        COLOR YELLOWU, bg: PrintCentered 35, "[ESC] close"
-        IF LEN(msg) > 0 THEN COLOR GREENU, bg: PrintCentered 38, msg
-        _DISPLAY
-        k = INKEY$
-        rm = ROOMAT(c.x \ CW, c.y \ CH)
-        SELECT CASE k
-            CASE "1": DebugMenuClose: DoCurio 0: EXIT SUB
-            CASE "2": DebugMenuClose: WanderEncounter: EXIT SUB
-            CASE "3": DebugMenuClose: SpringTrap rm: EXIT SUB
-            CASE "4"
-                item_sword = 1: item_secret_card = -1: item_esp = -1: item_crystal = -1
-                item_bow = -1: item_boots = -1: item_teleport = item_teleport + 3: has_key = -1
-                msg = "granted: sword+1, secret card, ESP, crystal, bow, boots, 3 scrolls, KEY"
-            CASE "5": item_potion_small = item_potion_small + 3: item_potion_large = item_potion_large + 3: msg = "potions +3 small / +3 large"
-            CASE "6": player_hp = player_maxhp: msg = "healed to full (" + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + ")"
-            CASE "7": gold = gold + 5000: msg = "gold now " + _TRIM$(STR$(gold))
-            CASE "8"
-                FOR i = 1 TO SD_N
-                    IF NOT SD_FOUND(i) THEN SD_FOUND(i) = -1: RevealRegionFromDoor i
-                NEXT i
-                has_key = -1: msg = "all secret doors revealed + Level Key granted"
-            CASE "9": gold = target_gold: has_key = -1: msg = "win-ready: " + _TRIM$(STR$(gold)) + " gold + key -- return to START"
-            CASE CHR$(27): done = -1
-        END SELECT
-    LOOP UNTIL done
-    DebugMenuClose
-END SUB
-
-SUB DrawDebug
-    DIM cx AS INTEGER, cy AS INTEGER, sec AS INTEGER, i AS INTEGER
-    DIM onpath AS INTEGER, inroom AS INTEGER, ondoor AS INTEGER, onsecret AS INTEGER, nearsd AS INTEGER
-    DIM img AS LONG, el AS LONG, bg AS _UNSIGNED LONG
-    DIM mx AS INTEGER, my AS INTEGER, mcx AS INTEGER, mcy AS INTEGER, kind AS INTEGER, kn AS STRING
-    DIM fought AS STRING, died AS STRING, boss AS STRING, loot AS STRING, oldsrc AS LONG
-    cx = c.x \ CW: cy = c.y \ CH
-    sec = SECTOR.get_by_xy(c.x, c.y)
-    img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
-    onpath = image_is_monochromatic(img, YELLOW)
-    onsecret = image_is_monochromatic(img, BRIGHT_BLUE)
-    _FREEIMAGE img
-    inroom = InRoomNow
-    ondoor = OnDoorNow
-    FOR i = 1 TO SD_N
-        IF NOT SD_FOUND(i) THEN
-            IF ABS(SD_X(i) - cx) <= 2 AND ABS(SD_Y(i) - cy) <= 2 THEN nearsd = -1
-        END IF
-    NEXT i
-    ' current room flags (the room block under the cursor)
-    DIM rmid AS INTEGER
-    rmid = ROOMAT(cx, cy)
-    IF rmid >= 1 THEN
-        fought = YN$(ROOMS(rmid).monster_fought): died = YN$(ROOMS(rmid).player_died)
-        boss = YN$(ROOMS(rmid).is_boss): loot = YN$(ROOMS(rmid).looted)
-    ELSE
-        fought = "-": died = "-": boss = "-": loot = "-"
-    END IF
-    ' mouse crosshair inspector -- drain queued mouse events, sample the cell under it
-    DO WHILE _MOUSEINPUT: LOOP
-    mx = _MOUSEX: my = _MOUSEY
-    mcx = mx \ CW: mcy = my \ CH
-    ' click-to-place: a left-click teleports the player to the moused cell (debug testing)
-    IF _MOUSEBUTTON(1) THEN
-        IF dbg_click_armed = 0 THEN
-            IF mcx >= 0 AND mcx <= SW - 1 AND mcy >= 0 AND mcy <= SH - 1 THEN
-                c.x = mcx * CW: c.y = mcy * CH: c.prev_x = c.x: c.prev_y = c.y
-            END IF
-            dbg_click_armed = -1
-        END IF
-    ELSE
-        dbg_click_armed = 0
-    END IF
-    oldsrc = _SOURCE: _SOURCE CANVAS_COPY
-    kind = CellKind(mcx, mcy)
-    _SOURCE oldsrc
-    SELECT CASE kind
-        CASE 1: kn = "OPEN"
-        CASE 2: kn = "SECRET"
-        CASE ELSE: kn = "WALL"
-    END SELECT
-    el = TIMER - game_start: IF el < 0 THEN el = el + 86400
-    bg = _RGB32(&H00, &H00, &H40)
-    _DEST CANVAS
-    ' crosshair through the mouse pointer
-    LINE (mx, 0)-(mx, SH * CH - 1), _RGB32(&H00, &HFF, &H00)
-    LINE (0, my)-(SW * CW - 1, my), _RGB32(&H00, &HFF, &H00)
-    LINE (0, 0)-(52 * CW, 6 * CH), bg, BF
-    LINE (0, 0)-(52 * CW, 6 * CH), CYANU, B
-    COLOR YELLOWU, bg
-    _PRINTSTRING (1 * CW, 0 * CH), "DEBUG [~]  [0]=test menu  click=teleport   px " + _TRIM$(STR$(c.x)) + "," + _TRIM$(STR$(c.y)) + "   cell " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy))
-    _PRINTSTRING (1 * CW, 1 * CH), "sector " + _TRIM$(STR$(sec)) + "   moves " + _TRIM$(STR$(moves_made)) + "   time " + MMSS$(el)
-    _PRINTSTRING (1 * CW, 2 * CH), "path:" + YN$(onpath) + " room:" + YN$(inroom) + " onDoor:" + YN$(ondoor) + " nearRD:" + YN$(NearRegularDoor) + " nearStr:" + YN$(NearStrongDoor) + " nearSD:" + YN$(nearsd)
-    _PRINTSTRING (1 * CW, 3 * CH), "room " + _TRIM$(STR$(rmid)) + "/" + _TRIM$(STR$(ROOM_N)) + "  fought:" + fought + " died:" + died + " boss:" + boss + " looted:" + loot
-    _PRINTSTRING (1 * CW, 4 * CH), "doors:" + _TRIM$(STR$(SD_N)) + "  key:" + YN$(has_key) + "  sword:+" + _TRIM$(STR$(item_sword)) + "  realdice:" + YN$(opt_realdice)
-    _PRINTSTRING (1 * CW, 5 * CH), "mouse px " + _TRIM$(STR$(mx)) + "," + _TRIM$(STR$(my)) + "  cell " + _TRIM$(STR$(mcx)) + "," + _TRIM$(STR$(mcy)) + "  " + kn + "  cham:" + _TRIM$(STR$(CHAMBERAT(mcx, mcy))) + " dead:" + _TRIM$(STR$(ChamberDeadAt%(mcx, mcy))) + " sec:" + _TRIM$(STR$(SECTOR.get_by_xy(mcx * CW, mcy * CH))) + " fh:" + YN$(FOGHIDE(mcx, mcy)) + MaskHoverInfo$(mcx, mcy)
-    '--- SECTOR overlay. With a sector mask (SECTORMASK_ON) each cell is tinted by its
-    '    level colour, read straight from SECTORAT (0-based cells -- SAME coords as the
-    '    mouse readout / chambers / mask, no unique -1 offset). Without a mask it falls
-    '    back to drawing the sectors.txt rects (which ARE 1-based, hence the -1 there).
-    DIM sx2 AS INTEGER, sy2 AS INTEGER, ex2 AS INTEGER, ey2 AS INTEGER, lxp AS INTEGER, lyp AS INTEGER
-    DIM scx AS INTEGER, scy AS INTEGER, sid AS INTEGER, sk AS _UNSIGNED LONG
-    IF SECTORMASK_ON THEN
-        FOR scy = 0 TO SH - 1
-            FOR scx = 0 TO SW - 1
-                sid = SECTORAT(scx, scy)
-                IF sid > 0 THEN
-                    sk = SECTORS(sid).kolor
-                    LINE (scx * CW, scy * CH)-(scx * CW + CW - 1, scy * CH + CH - 1), _RGBA32(_RED32(sk), _GREEN32(sk), _BLUE32(sk), 60), BF
-                END IF
-            NEXT scx
-        NEXT scy
-    ELSE
-        FOR i = 1 TO 9
-            sx2 = (SECTORS(i).start_x - 1) * CW: sy2 = (SECTORS(i).start_y - 1) * CH
-            ex2 = (SECTORS(i).end_x - 1) * CW: ey2 = (SECTORS(i).end_y - 1) * CH
-            LINE (sx2, sy2)-(ex2, ey2), SECTORS(i).kolor, B
-            COLOR SECTORS(i).kolor, BLACK: _PRINTSTRING (sx2 + 2, sy2 + 1), "S" + _TRIM$(STR$(i))
-        NEXT i
-    END IF
-    FOR i = 1 TO LBL_N
-        lxp = LBL_X(i) * CW: lyp = LBL_Y(i) * CH + CH \ 2
-        LINE (lxp - 3, lyp)-(lxp + 3, lyp), _RGB32(&HFF, &H00, &HFF)
-        LINE (lxp + CW \ 2, lyp - 3)-(lxp + CW \ 2, lyp + 3), _RGB32(&HFF, &H00, &HFF)
-    NEXT i
-    LINE (START_CX * CW, START_CY * CH)-(START_CX * CW + CW - 1, START_CY * CH + CH - 1), WHITE, B
-    '--- CHAMBER trigger overlay: every cell that fires a chamber encounter (CHAMBERAT > 0),
-    '    tinted translucent so the art shows through. MAGENTA = still spawning monsters,
-    '    GREEN = cleared (3 graves). NOTE: the + crosses above are label SEEDS, not this.
-    '    (local is 'cham', never 'ch' -- 'ch' would shadow the shared font-height CH.)
-    DIM chx AS INTEGER, chy AS INTEGER, cham AS INTEGER, tint AS _UNSIGNED LONG
-    FOR chy = 0 TO 60
-        FOR chx = 0 TO 131
-            cham = CHAMBERAT(chx, chy)
-            IF cham > 0 THEN
-                IF CHM_DEAD(cham) >= 3 THEN tint = _RGBA32(&H00, &HFF, &H00, 55) ELSE tint = _RGBA32(&HFF, &H00, &HFF, 70)
-                LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), tint, BF
-            END IF
-            IF FOGHIDE(chx, chy) THEN                        ' ORANGE = a cell force-blacked by fog-hide.txt
-                LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), _RGBA32(&HFF, &HA0, &H00, 150), BF
-            END IF
-            IF MASK_ON THEN                                  ' each secret-mask REGION its own tint
-                IF MASKREG(chx, chy) > 0 THEN LINE (chx * CW, chy * CH)-(chx * CW + CW - 1, chy * CH + CH - 1), MaskRegionColor~&(MASKREG(chx, chy), 130), BF
-            END IF
-        NEXT chx
-    NEXT chy
-    IF MASK_ON THEN DrawMaskDoors                        ' secret-door markers (level-coloured; red = unmapped)
-END SUB
-
-' Overlay the secret doors on the [~] mask view: a box per door, coloured by nesting level
-' (green = level-1 entry, cyan = nested/deeper, RED = unmapped -> reveals nothing), with the
-' level digit drawn in it. Lets you spot dead doors and see the secret-in-secret structure.
-' Mask readout for the [~] mouse line: region id + its level at the hovered cell, and
-' (if the cell is a secret door) which region it opens. Empty when no mask is loaded.
-FUNCTION MaskHoverInfo$ (mcx AS INTEGER, mcy AS INTEGER)
-    IF NOT MASK_ON THEN MaskHoverInfo$ = "": EXIT FUNCTION
-    DIM s AS STRING, rg AS INTEGER, i AS INTEGER
-    rg = MASKREG(mcx, mcy)
-    s = "  reg:" + _TRIM$(STR$(rg))
-    IF rg > 0 THEN s = s + " lvl:" + _TRIM$(STR$(MASKLVL(rg)))
-    FOR i = 1 TO SD_N
-        IF SD_X(i) = mcx AND SD_Y(i) = mcy THEN s = s + " door->" + _TRIM$(STR$(DOOR_REGION(i))): EXIT FOR
-    NEXT i
-    MaskHoverInfo$ = s
-END FUNCTION
+' (The [~] debug OVERLAY and its [0] cheat panel moved to game/DEBUG.bas -- a dev tool
+'  for THIS game: every row grants a DUNGEON! item and the readout names ROOMS/CHAMBERAT/
+'  SECTORAT. It reads engine state (SD_*/MASKREG/DOOR_REGION) the sanctioned game->engine
+'  way. DrawMaskDoors stays here: it renders ENGINE secret-door state and the engine's own
+'  fogdump dev mode uses it.)
 
 SUB DrawMaskDoors
     DIM i AS INTEGER, px AS INTEGER, py AS INTEGER, rg AS INTEGER, lv AS INTEGER, dc AS _UNSIGNED LONG

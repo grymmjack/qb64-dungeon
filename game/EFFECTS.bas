@@ -33,18 +33,7 @@ SUB AddFX (which AS INTEGER, sy AS STRING, kd AS INTEGER, dd AS INTEGER)
 END SUB
 
 
-' Replace every occurrence of `finds` in `s` with `repl`.
-FUNCTION StrSubst$ (s AS STRING, finds AS STRING, repl AS STRING)
-    DIM buf AS STRING, p AS INTEGER
-    buf = s
-    p = INSTR(buf, finds)
-    DO WHILE p > 0
-        buf = LEFT$(buf, p - 1) + repl + MID$(buf, p + LEN(finds))
-        p = INSTR(p + LEN(repl), buf, finds)
-    LOOP
-    StrSubst$ = buf
-END FUNCTION
-
+' (StrSubst$ moved to engine/TEXT.bas -- engine/UI.bas uses it too.)
 
 ' Fill a saying template's {weapon}/{mon}/{n} tokens.
 FUNCTION ResolveFX$ (tmpl AS STRING, weap AS STRING, mon AS STRING, n AS INTEGER)

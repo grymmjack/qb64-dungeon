@@ -59,6 +59,7 @@ DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (befor
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
 DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER
 DIM SHARED FULL_BOARD AS LONG                     ' pristine board (doors + secret rooms visible)
+CONST START_CX = 59, START_CY = 24                ' entrance cell: where the cursor starts on this board
 DIM SHARED DOOR_X(1 TO 800) AS INTEGER, DOOR_Y(1 TO 800) AS INTEGER
 DIM SHARED DOOR_STRONG(1 TO 800) AS _BYTE, DOOR_BROKEN(1 TO 800) AS _BYTE, DOOR_N AS INTEGER
 ' --- fog-of-war + line-of-sight + secret-region masks ---

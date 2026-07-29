@@ -3,8 +3,13 @@
 '
 '  QB64 compiles as one translation unit, so a "hook" is just a well-named SUB/
 '  FUNCTION the ENGINE calls and the GAME implements here. This file holds the
-'  first two of the ~15-hook contract (see engine/ENGINE.md); the rest are still
-'  inlined in the play loop / renderers and get lifted in later increments.
+'  play-loop + juice hooks; the render hooks live in game/OVERLAYS.bas and the
+'  board-population hook (#8) in game/SECTOR.bas. See engine/ENGINE.md for the full
+'  contract, the debt ledger, and the audit script that keeps them honest.
+'
+'  Shape rule: a hook answers "should I?" / "how much?" -- never "what mode are you
+'  in?". Returning game STATE just relocates the coupling; returning a DECISION is
+'  what lets the engine be lifted out.
 ' ============================================================================
 
 ' Game hook -- "win-ready": the player has enough gold AND holds the Level Key.
@@ -97,4 +102,43 @@ FUNCTION Game_PoisonLevel!
         IF lvl > 1 THEN lvl = 1
     END IF
     Game_PoisonLevel! = lvl
+END FUNCTION
+
+' Game hook -- may the engine draw the near-death blood/vignette? Only rulesets that
+' actually track hit points qualify: classic DUNGEON! resolves a fight on one 2d6 roll,
+' so there is no "wounded" state to bleed for. Keeps `opt_oldschool` out of engine/JUICE.bas.
+FUNCTION Game_ShowWounds%
+    IF opt_oldschool THEN Game_ShowWounds% = 0 ELSE Game_ShowWounds% = -1
+END FUNCTION
+
+' Game hook -- the ROOM-FLOOR colour in force at pixel (px,py), or 0 for "none here".
+'
+' The engine's pixel-colour collision (CellKind / CanMove / InRoomNow) needs to know which
+' colour counts as walkable room floor at a position. It used to derive that itself via
+' SECTOR.get_by_xy + SECTORS().kolor -- i.e. the engine asked "which dungeon LEVEL is this?",
+' a question only this game has. Now it asks "what colour is floor here?" and compares; the
+' mapping from position to level to colour stays entirely game-side.
+'
+' 0 is a safe "no floor colour" sentinel: every real colour is _RGB32(...) with alpha 255
+' (&HFF......), so none of them can be 0.
+FUNCTION Game_FloorColorAt~& (px AS INTEGER, py AS INTEGER)
+    DIM sec AS INTEGER
+    sec = SECTOR.get_by_xy(px, py)
+    IF sec >= 1 THEN Game_FloorColorAt~& = SECTORS(sec).kolor ELSE Game_FloorColorAt~& = 0
+END FUNCTION
+
+' Game hooks -- ZONE identity, for the engine's mask linter (`dungeon.run ansilint`).
+' The linter checks a painted mask's colours against whatever zones the game defines; in
+' DUNGEON! a zone is a dungeon level. Keeps SectorByColor%/SECTORS out of engine/BOARD.bas
+' and lets the linter's wording stay generic.
+FUNCTION Game_ZoneByColor% (col AS _UNSIGNED LONG)
+    Game_ZoneByColor% = SectorByColor%(col)
+END FUNCTION
+
+FUNCTION Game_ZoneName$ (id AS INTEGER)
+    IF id >= 1 AND id <= UBOUND(SECTORS) THEN Game_ZoneName$ = _TRIM$(SECTORS(id).label)
+END FUNCTION
+
+FUNCTION Game_ZoneCount%
+    Game_ZoneCount% = UBOUND(SECTORS)
 END FUNCTION

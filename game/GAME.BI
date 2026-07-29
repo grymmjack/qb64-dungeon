@@ -8,8 +8,9 @@
 '  totals, inventory, chambers, solo modes, the per-run chronicle, and flavor.
 ' ============================================================================
 
-' --- the entrance chamber (cell coords) ---
-CONST START_CX = 59, START_CY = 24
+' (START_CX/START_CY moved to ENGINE.BI -- "where the cursor starts on the board" is
+'  engine state. The GAME still reads it freely: that this is also the win-return point
+'  and the heal spot is a DUNGEON! rule, but the coordinate itself is not.)
 ' --- gameplay tuning (potions, encounters, XP) ---
 DIM SHARED POTION_SMALL_DIE AS INTEGER  ' Small Healing Potion heals 1d4
 DIM SHARED POTION_LARGE_DIE AS INTEGER  ' Large Healing Potion heals 1d8...

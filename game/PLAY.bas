@@ -345,3 +345,71 @@ SUB ChamberEncounter (cid AS INTEGER)
     END IF
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
+
+
+' --- [F] SEARCH for secret doors (moved from engine/BOARD.bas) ----------------
+' The ENGINE owns the doors (SD_*) and revealing what one opens (RevealRegionFromDoor);
+' the RULE is all DUNGEON!: roll low on a d6, the Elf's secret_bonus widens the band,
+' the Secret Door Card never fails, and lingering to search draws danger closer.
+SUB DoSearch
+    DIM i AS INTEGER, ccx AS INTEGER, ccy AS INTEGER, roll AS INTEGER, thresh AS INTEGER
+    DIM found_any AS INTEGER, near_hidden AS INTEGER
+    ccx = c.x \ CW: ccy = c.y \ CH
+    ' DUNGEON! convention: roll LOW to find a secret door -- Hero on 1-2, Elf on 1-4
+    ' (double odds), Wizard on 1-3. secret_bonus widens the winning band by that much.
+    roll = DoRoll(1, 0, "SEARCHING for secret doors")   ' a raw d6, shown honestly
+    thresh = 2 + CLASSES(player_class).secret_bonus
+    IF item_secret_card THEN thresh = 6          ' the Secret Door Card never fails (any roll finds)
+    found_any = FALSE: near_hidden = FALSE
+    g_secret_tries = g_secret_tries + 1              ' chronicle: count searches toward the next find
+    FOR i = 1 TO SD_N
+        IF NOT SD_FOUND(i) THEN
+            IF ABS(SD_X(i) - ccx) <= 2 AND ABS(SD_Y(i) - ccy) <= 2 THEN
+                near_hidden = TRUE
+                IF roll <= thresh THEN
+                    SD_FOUND(i) = TRUE
+                    RevealRegionFromDoor i    ' reveal door + the area it connects to
+                    found_any = TRUE
+                END IF
+            END IF
+        END IF
+    NEXT
+
+    IF found_any THEN
+        RecordSecret SECTOR.get_by_xy(c.x, c.y), ROOMAT(ccx, ccy), g_secret_tries
+        g_secret_tries = 0
+        Sfx "secret"
+        Banner "A SECRET DOOR grinds open before you!", "A hidden passage is revealed -- explore what it hides.   [ press any key ]"
+    ELSEIF near_hidden THEN
+        Sfx "search"
+        Banner "Your fingers trace a faint seam in the stone...", "Something is hidden nearby -- keep searching!   [ press any key ]"
+    ELSE
+        Sfx "search"
+        Banner "You search the walls but find no secrets here.", "[ press any key ]"
+    END IF
+    WaitKey
+    cursor_erase: cursor_draw: _DISPLAY
+    LoiterTick                                     ' lingering to search draws danger closer
+END SUB
+
+' --- bumping a REINFORCED door (moved from engine/BOARD.bas) -------------------
+' Engine owns DOOR_BROKEN and which door is ahead (StrongDoorAhead); the STR check
+' against DC 13 is a game rule reading the character's ability scores.
+FUNCTION BreakDoorAttempt% (idx AS INTEGER)
+    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING
+    Sfx "strongdoor"
+    m = AbilMod(player_str)
+    roll = RollDie(20) + m
+    tag = "  (STR d20" + ModStr$(m) + " = " + _TRIM$(STR$(roll)) + " vs 13)"
+    IF roll >= 13 THEN
+        DOOR_BROKEN(idx) = 1
+        Sfx "breakdoor"
+        Banner "You SMASH through the reinforced door!" + tag, "It bursts off its hinges.   [ press any key ]"
+        BreakDoorAttempt = TRUE
+    ELSE
+        Banner "A REINFORCED DOOR resists your shoulder!" + tag, "It holds firm -- hurl yourself at it again.   [ press any key ]"
+        BreakDoorAttempt = FALSE
+    END IF
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END FUNCTION

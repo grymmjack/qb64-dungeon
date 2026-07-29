@@ -171,8 +171,7 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     DIM AS INTEGER ddx, ddy, ddc
     _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
     DetectSecretDoors
-    Game_PopulateBoard
-    DetectChambers
+    Game_PopulateBoard                   ' rooms + chambers (game hook #8)
     _DEST CANVAS: _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
     FOR ddy = 0 TO 60
         FOR ddx = 0 TO 131
@@ -655,6 +654,9 @@ END FUNCTION
 ' ============================================================================
 '$INCLUDE:'engine/DATA.bas'
 '$INCLUDE:'game/SECTOR.bas'
+'$INCLUDE:'game/CHAMBERS.bas'   ' the big named halls: detection + grave seating (was in engine/BOARD.bas)
+'$INCLUDE:'game/MANIFEST.bas'   ' game audio manifest + the Game_SfxNames$ roster (was in engine/MUSIC.bas)
+'$INCLUDE:'game/DEBUG.bas'      ' [~] dev overlay + [0] cheat panel (was in engine/BOARD.bas)
 '$INCLUDE:'game/HOOKS.bas'      ' engine<->game contract: Game_OnEnterCell% / Game_WinReached% / Game_WinReady%
 '$INCLUDE:'game/OVERLAYS.bas'   ' game-side board overlays (labels/tombstones/graves/entities) + their render hooks
 '$INCLUDE:'game/LOADERS.bas'    ' game data-table loaders (Load*), moved out of engine/DATA.bas
@@ -666,7 +668,7 @@ END FUNCTION
 '$INCLUDE:'game/MENU.bas'       ' game screens: class-select, char-gen, intro, menu/settings, HUD
 '$INCLUDE:'engine/TEXT.bas'     ' reusable string/format utils (NthField$/PadR$/MMSS$)
 '$INCLUDE:'game/LORDS.bas'      ' hall of fame + LOAD A CHARACTER + settings persistence
-'$INCLUDE:'engine/PLAYERS.bas'
+'$INCLUDE:'game/PLAYERS.bas'    ' hot-seat seats: per-player state park/restore + turn passing (was engine/)
 '$INCLUDE:'game/EFFECTS.bas'
 '$INCLUDE:'game/CURIO.bas'
 '$INCLUDE:'engine/ARTPACK.bas'  ' engine pixel-art layer: load/cache/fit sprites + art-pack resolution

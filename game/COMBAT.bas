@@ -8,6 +8,21 @@
 '  log. Rides the engine (dice/Banner/Sfx/render) + game data (ROOMS/SECTORS).
 ' ============================================================================
 
+' Append one fight's outcome to the stats CSV. dlevel = dungeon level, roomid = ROOMS()
+' index, outcome = "killed"/"fled"/"died", dealt/taken = HP totals over the fight.
+'
+' The GAME owns this schema -- which columns exist and what they mean is a DUNGEON!
+' concern (class, char level, XP, gold, oldschool-vs-D&D). The engine only appends the
+' strings (engine/STATS.bas StatAppend), so it names none of that. Header and row must
+' stay in the same order.
+SUB StatLog (dlevel AS INTEGER, roomid AS INTEGER, mon AS STRING, boss AS INTEGER, wander AS INTEGER, outcome AS STRING, rounds AS INTEGER, dealt AS INTEGER, taken AS INTEGER)
+    DIM mode AS STRING, hdr AS STRING, row AS STRING
+    IF opt_oldschool THEN mode = "oldschool" ELSE mode = "dnd"
+    hdr = "date,time,hero,class,mode,char_level,xp,dungeon_level,room,monster,boss,wandering,outcome,rounds,dmg_dealt,dmg_taken,hp_after,maxhp,gold_after"
+    row = DATE$ + "," + TIME$ + "," + CsvCell$(player_name) + "," + CsvCell$(class_name) + "," + mode + "," + _TRIM$(STR$(char_level)) + "," + _TRIM$(STR$(char_xp)) + "," + _TRIM$(STR$(dlevel)) + "," + _TRIM$(STR$(roomid)) + "," + CsvCell$(mon) + "," + Bit$(boss) + "," + Bit$(wander) + "," + outcome + "," + _TRIM$(STR$(rounds)) + "," + _TRIM$(STR$(dealt)) + "," + _TRIM$(STR$(taken)) + "," + _TRIM$(STR$(player_hp)) + "," + _TRIM$(STR$(player_maxhp)) + "," + _TRIM$(STR$(gold))
+    StatAppend "gameplay-data-saves/dungeon-stats.csv", hdr, row
+END SUB
+
 ' A flee attempt fails (the monster grabs you and drags you back) with a chance
 ' that climbs the deeper you are: FLEE_FAIL_BASE on level 1, +FLEE_FAIL_STEP per
 ' level below (level 9 = 55%). TRUE = you are caught; combat continues.

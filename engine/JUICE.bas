@@ -245,7 +245,7 @@ END SUB
 ' falls below half. Cheap: a few dozen alpha lines + fixed discs.
 SUB DrawWounds
     IF NOT opt_juice THEN EXIT SUB
-    IF opt_oldschool THEN EXIT SUB
+    IF NOT Game_ShowWounds% THEN EXIT SUB      ' game hook: does this ruleset even track HP?
     IF player_maxhp <= 0 THEN EXIT SUB
     DIM hpFrac AS SINGLE, wound AS SINGLE, pulse AS SINGLE, band AS INTEGER, i AS INTEGER, a AS INTEGER
     hpFrac = player_hp / player_maxhp

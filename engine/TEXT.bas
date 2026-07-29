@@ -31,3 +31,16 @@ END FUNCTION
 FUNCTION MMSS$ (secs AS LONG)
     MMSS$ = _TRIM$(STR$(secs \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(secs MOD 60)), 2)
 END FUNCTION
+
+' Replace every occurrence of `finds` in `s` with `repl`. (Was in game/EFFECTS.bas;
+' engine/UI.bas reaches for it when re-labelling a banner, so it belongs here.)
+FUNCTION StrSubst$ (s AS STRING, finds AS STRING, repl AS STRING)
+    DIM buf AS STRING, p AS INTEGER
+    buf = s
+    p = INSTR(buf, finds)
+    DO WHILE p > 0
+        buf = LEFT$(buf, p - 1) + repl + MID$(buf, p + LEN(finds))
+        p = INSTR(p + LEN(repl), buf, finds)
+    LOOP
+    StrSubst$ = buf
+END FUNCTION

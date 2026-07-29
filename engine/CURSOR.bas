@@ -81,24 +81,12 @@ END SUB
 
 
 SUB cursor_draw
-    DIM p AS INTEGER
     _DEST CANVAS
-    Game_RenderOverlays                  ' tombstones + chamber graves + monster/body/loot glyphs (game hook)
-    DrawHunter                           ' Monster Prey: the pursuing hunter token
-    ' other hot-seat players' tokens -- drawn as their NUMBER (white on their colour)
-    IF num_players > 1 THEN
-        FOR p = 1 TO num_players
-            IF p <> cur_player AND PLAYERS(p).active THEN
-                IF NOT opt_fov OR LOS_LIT(PLAYERS(p).cx \ CW, PLAYERS(p).cy \ CH) THEN
-                    _FONT CH: COLOR WHITE, PLAYERS(p).kolor
-                    _PRINTSTRING (PLAYERS(p).cx, PLAYERS(p).cy), _TRIM$(STR$(p))
-                END IF
-            END IF
-        NEXT p
-    END IF
-    ' the active player -- their NUMBER, white on legend-blue (the "# Player #" key)
-    _FONT CH: COLOR WHITE, _RGB32(&H55, &H55, &HFF)
-    _PRINTSTRING (c.x, c.y), _TRIM$(STR$(cur_player))
+    ' Everything ON the board is the game's to draw: tombstones + graves + monster/body/
+    ' loot glyphs + the solo hunter, and then the player TOKENS (rivals, then the active
+    ' one at the cursor). The engine owns only where the cursor IS -- not what it looks
+    ' like, or that a token carries a seat number.
+    Game_RenderOverlays
     ' proximity ring: highlight the cursor when a door of interest is adjacent
     DIM ring AS _UNSIGNED LONG, hasring AS INTEGER
     hasring = FALSE

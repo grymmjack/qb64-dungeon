@@ -1,8 +1,13 @@
 ' ============================================================================
-'  PLAYERS.bas -- hot-seat multiplayer (up to 4). The ACTIVE player's state
-'  lives in the working globals (gold, c, player_hp, items, ...); PLAYERS(1..4)
-'  parks each player's state between turns. Load/Save swap at turn boundaries so
-'  every other routine keeps operating on "the current player" unchanged.
+'  PLAYERS.bas -- GAME hot-seat seats (up to 4): park/restore each player's state
+'  between turns, and pass the seat.
+'
+'  Moved from engine/: the active player's state IS the working globals, and those
+'  globals are DUNGEON! (class, gold, Level Key, sword/ESP/crystal/secret card,
+'  ability scores). Load/SaveActivePlayer copy that whole record in and out, so this
+'  is game state management, not engine machinery -- "N players take turns" is the
+'  only generic part, and it is a handful of lines. No engine module calls anything
+'  here; dungeon.bas and game/ do.
 ' ============================================================================
 
 ' Distinct board-token colour per player (semi-transparent).

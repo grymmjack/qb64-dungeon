@@ -53,8 +53,14 @@ the `qb64pe.compilerPath` setting (provided by the `grymmjack.qb64pe` extension)
 To compile a single file by hand: `qb64pe -w -x <path/to/file.bas> -o <path/to/file.run>`
 (needs a local QB64PE install; the exact binary path is machine-specific).
 
-There are no automated tests. The `TEST-*.bas` files in `scratchpads/` are manual,
-runnable prototypes, not a test suite.
+**Tests:** `tests/run-tests.sh` (VS Code task **TEST: Run engine tests**) compiles and runs
+the headless assert suites in `tests/TEST-*.bas` — currently `engine/TEXT.bas`,
+`engine/STATS.bas`, and the pure half of `engine/DATA.bas` (94 assertions). Only *game-free*
+engine modules that touch nothing but QB64 built-ins can be tested this way; everything else is
+verified through the binary's dev modes (`chamberdump`, `audiomanifest`, `ansilint`) or a
+play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
+QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are unrelated —
+manual runnable prototypes, not suites.)
 
 ## Screenshotting the apps
 
@@ -303,7 +309,9 @@ Environment specifics that dictate this approach:
   `GESTURE` / `STATS` / `DATA` (game-free reader) / `PLAYERS` / `UI` (fades + UI primitives + sound +
   the dice subsystem) / `ARTPACK` (pixel-art load/fit/pack) / `SAVEIO` (save plumbing) / `MARKDOWN`
   (md→text renderer) / `TEXT` (string utils)), a swappable **`game/`** (`GAME.BI` header + `HOOKS` /
-  `LOADERS` / `COMBAT` (combat/treasure) / `PLAY` (drops/loiter/encounters) / `MENU` (screens +
+  `OVERLAYS` (board overlays + render hooks) / `LOADERS` / `CHAMBERS` (named-hall detection) /
+  `MANIFEST` (audio manifest + SFX roster) /
+  `COMBAT` (combat/treasure) / `PLAY` (drops/loiter/encounters) / `MENU` (screens +
   char-gen + HUD) / `SPRITES` (entity→sprite + manifests) / `SECTOR` / `SOLO` / `FLAVOR` / `CTEXT` /
   `CURIO` / `EFFECTS` / `SAVEGAME` / `CHRONICLE` / `LORDS`). `dungeon.bas` is now a thin assembly
   (setup + state machine + `PlayGame` + the `$INCLUDE` block). Only the **vendored** `include/ansi/`

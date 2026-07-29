@@ -1,17 +1,47 @@
 # The engine / game split
 
-This repo is being refactored from *"a game with a lot of reusable machinery"* into a
+This repo was refactored from *"a game with a lot of reusable machinery"* into a
 **reusable engine** (`engine/`) + a **swappable game** (`game/`), per
-[PLANS.todo](../PLANS.todo). The end goal (north star) is a *separable* engine — one that
-could be lifted into its own repo/submodule so the next game starts from it. This file is the
-map of that boundary and the ledger of work remaining to make it real.
+[PLANS.todo](../plans/PLANS.todo). The goal was a *separable* engine — one that could be lifted
+into its own repo/submodule so the next game starts from it. **That goal is met**: this file is
+the map of the boundary, the hook contract, and the record of how each leak was closed.
 
 > **QB64 reality.** The whole program compiles as **one translation unit**: `dungeon.bas`
 > `'$INCLUDE`s every module, and QB64 resolves all SUBs/FUNCTIONs and `DIM SHARED` globals
 > globally. So the engine/game split is **organizational + conventional**, not enforced by a
-> linker. A "hook" is just a well-named SUB the engine calls and the game defines. Separability
-> is enforced by discipline (engine code names no game symbol except a `Game_*` hook; the engine
-> header declares no game data) and tracked by the **debt ledger** below — not by the compiler.
+> linker. A "hook" is just a well-named SUB the engine calls and the game defines. Nothing stops
+> a future edit from reaching straight into `ROOMS()` from `engine/` and compiling fine — which is
+> why the boundary is enforced by a **script** (`tests/audit-boundary.sh`), not by good intentions.
+
+## Status: the engine is CLEAN
+
+**No file in `engine/` names a game symbol.** Every remaining engine→game reference goes through
+a `Game_*` hook. That is the milestone the ledger below was burning down toward — `engine/` can
+now be lifted into its own repo/submodule, with `game/` as one implementation of its hooks.
+
+Verify it yourself, any time — do not trust this paragraph, re-derive it:
+
+```sh
+tests/audit-boundary.sh -v      # exit 0 = clean; -v lists offending symbols per file
+```
+
+## Auditing the boundary (do this before trusting any claim here)
+
+Because no linker enforces the split, a hand-maintained ledger **drifts** — this one did, twice,
+and both times the audit caught what the prose had got wrong. So the audit is a script
+(`tests/audit-boundary.sh`), not a paragraph: it collects every symbol `game/` owns (each
+`SUB`/`FUNCTION` in `game/*.bas`, each `DIM SHARED`/`CONST`/`TYPE` in `GAME.BI`), then intersects
+that with the identifiers in each `engine/` file. Anything back — other than a `Game_*` hook — is
+boundary debt. It strips comments and string literals, and filters QB64 keywords and shared type
+names.
+
+> **Why a script, not a one-liner.** The obvious `grep '^ *DIM SHARED +\w+'` captures only the
+> **first** name on a line, so `DIM SHARED num_players AS INTEGER, cur_player AS INTEGER` hides
+> `cur_player` — which is exactly how this audit missed three real leaks mid-refactor. The script
+> splits on commas outside parentheses (so array bounds don't confuse it) and handles the
+> `DIM SHARED AS INTEGER a, b, c` prefix form.
+
+Add it to any pre-commit check you like; it exits non-zero when the engine is dirty.
 
 ## Layout
 
@@ -21,23 +51,31 @@ engine/
   ENGINE.BI          reusable globals/types/consts (loaded FIRST)
   ENGINE.md          this file
   ansi/  DICE3D/      vendored ANSI renderer + 3D dice (logically engine; still under include/)
-  BOARD CURSOR MUSIC JUICE GESTURE STATS DATA PLAYERS   .bas modules
+  BOARD              board render, fog/FOV, secret doors + masks, pixel-colour collision
+  CURSOR             movement + draw/erase
+  MUSIC JUICE GESTURE DATA   .bas modules
   UI                 presentation: fades + UI primitives + sound dispatcher + dice subsystem
   ARTPACK            pixel-art layer: load/cache/fit sprites + art-pack resolution
   SAVEIO             save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
+  STATS              append-only CSV plumbing + the schema-drift rotate guard
   MARKDOWN           markdown -> text-mode renderer (was inside CHRONICLE)
-  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$)
+  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$)
 game/
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
-  OVERLAYS.bas       game-side board overlays (labels/tombstones/graves/entities) + render hooks
+  OVERLAYS.bas       board overlays (label table + tombstones/graves/entities/hunter/tokens) + render hooks
   LOADERS.bas        game data-table loaders (Load*), moved out of engine/DATA.bas
-  COMBAT PLAY        the combat/treasure system + play-loop support (drops/loiter/encounters)
+  CHAMBERS.bas       the big named halls: detect/flood/grave-seat (was in engine/BOARD.bas)
+  MANIFEST.bas       audio manifest dump + Game_SfxNames$ roster (was in engine/MUSIC.bas)
+  DEBUG.bas          [~] dev overlay + [0] cheat panel (was in engine/BOARD.bas)
+  PLAYERS.bas        hot-seat seats: park/restore player state + turn passing (was engine/)
+  COMBAT PLAY        combat/treasure + play-loop support (drops/loiter/encounters/search/doors)
   MENU               game screens: class-select, char-gen, intro, menu/settings, HUD
   SPRITES            entity->sprite mapping + popups + manifests
   SAVEGAME CHRONICLE LORDS   .bas  (save payload / per-run journal / hall of fame + settings)
   SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS   .bas modules
 include/             not-yet-split: DICE3D_GAME (dice glue) + the vendored ansi/ + DICE3D/ dirs
+tests/               headless assert suites for the game-free engine modules + the boundary audit
 ```
 
 Header include order (top of `dungeon.bas`): **`engine/ENGINE.BI` then `game/GAME.BI`** — engine
@@ -49,17 +87,21 @@ primitives/types first; game types may build on engine ones, never the reverse.
   state; audio + pack/narration/art-pack globals; engine `opt_*` (a/v, dice, FOV, char-gen,
   msgdelay, smooth…); fog/FOV + secret-door/mask detection arrays; near-death juice bake data
   (blood/vignette/poison); **active-character stat scaffolding** (`player_hp/maxhp`, ability
-  scores, derived to-hit/ac/dmg); save-token stream; data-loader scratch; flood-fill queue.
+  scores, derived to-hit/ac/dmg); save-token stream; data-loader scratch; flood-fill queue;
+  `START_CX`/`START_CY` (where the cursor starts on this board).
 - **GAME.BI** — `SECTOR`/`ROOM`/`PCLASS`/`PLAYER`/`CURIO_T`/`FXROW`/`TRAPROW`/`EVTROW` types;
   `SECTORS`/`ROOMS` + monster/treasure/item pools; inventory + spell charges + Level Key;
-  Dungeon! tuning; chambers; solo/hunt state; **ruleset switches** (`opt_oldschool`,
+  Dungeon! tuning; chambers; room labels (`LBL_*`/`LABELMASK`); hot-seat seats
+  (`PLAYERS`/`num_players`/`cur_player`); solo/hunt state; **ruleset switches** (`opt_oldschool`,
   `opt_boardgame`, `opt_movedice`, `MOVE_MAX`, `opt_lootrecovery`, `opt_maxdeaths`); flavor
   arrays; `FX_*` combat context; the per-run chronicle tallies.
 
-## The engine ↔ game contract (~15 hooks)
+## The engine ↔ game contract
 
-A hook is a `Game_*` SUB/FUNCTION the engine calls and `game/` implements. **2 of 15 are done;**
-the rest are still inlined in the play loop / renderers and get lifted in later increments.
+A hook is a `Game_*` SUB/FUNCTION the engine calls and `game/` implements. **12 are live** — and
+they are now the *only* way engine code reaches game code. The still-"planned" rows are not debt:
+they are inlined in `dungeon.bas`, the **assembly**, which is allowed to name both sides. Lifting
+them would make `dungeon.bas` itself reusable; it is not required for `engine/` to be separable.
 
 | # | Hook | Status | Was inlined at |
 |---|------|--------|----------------|
@@ -67,12 +109,16 @@ the rest are still inlined in the play loop / renderers and get lifted in later 
 | 2 | `Game_OnEnterCell%(cx,cy)` — movement→consequence (encounter/loot/heal/win) | ✅ done | `dungeon.bas` play loop |
 | — | `Game_WinReady%()` — shared "gold+key" sub-predicate (HUD hint + #1) | ✅ done | 2 copies (loop + HUD) |
 | — | `Game_PoisonLevel!()` — poison overlay intensity 0..1 (JUICE decouple) | ✅ done | `DrawPoison` read of `poison_turns` |
+| — | `Game_ShowWounds%()` — may the engine draw near-death blood/vignette? | ✅ done | `DrawWounds` read of `opt_oldschool` |
+| — | `Game_SfxNames$()` — the roster of themeable effect names to register | ✅ done | `SfxNameList$` in `engine/MUSIC.bas` |
+| — | `Game_FloorColorAt~&(px,py)` — **what colour counts as room floor here** (0 = none) | ✅ done | `SECTOR.get_by_xy`+`SECTORS().kolor` inside `CellKind`/`CanMove`/`InRoomNow` |
+| — | `Game_ZoneByColor%` / `Game_ZoneName$` / `Game_ZoneCount%` — zone identity for the mask linter | ✅ done | `SectorByColor%`/`SECTORS().label` inside `AnsiLint` |
 | 3 | `Game_Play%()` / `Game_ShowIntro` / `Game_ShowEnd(win)` — state-machine bodies | planned | `dungeon.bas` state machine |
 | 4 | `Game_RunOver%()` — lose/forfeit predicate (`player_out`/`solo_result`) | planned | play loop |
 | 5 | `Game_HUDText$()` / `Game_DrawHUDExtra` — HUD content injection | planned | `DrawHUD` (MENU.bas) |
-| 6 | `Game_RenderMapLabels`/`Game_RenderOverlays` — board labels + tombstone/grave/entity overlays (superseded the guessed per-cell `Game_CellMarker%`) | ✅ done | `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/`DrawEntities` |
+| 6 | `Game_RenderMapLabels`/`Game_RenderOverlays` — board labels + tombstone/grave/entity/hunter overlays (superseded the guessed per-cell `Game_CellMarker%`) | ✅ done | `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/`DrawEntities`/`DrawHunter` |
 | 7 | `Game_OnRoomDiscovered(rm)` — first-entry (`RoomFlavor`+chronicle) | planned | play loop (now inside #2) |
-| 8 | `Game_PopulateBoard()` — detect the board's ROOMS from the coloured blocks | ✅ done | `DetectRooms`/`FloodRoom` in `engine/BOARD.bas` |
+| 8 | `Game_PopulateBoard()` — the game claims **both** its region kinds: ROOMS (coloured blocks) **and** CHAMBERS (named halls) | ✅ done | `DetectRooms`/`FloodRoom`/`RoomVisit` + `DetectChambers` & co. in `engine/BOARD.bas` |
 | 9 | `Game_ResolveEncounter%(rm)` — combat entry (`DoCombat`) | planned | `dungeon.bas` |
 | 10 | `Game_MonsterAttack(rm)` — Monster Attack Table (death/gold/retreat) | planned | `dungeon.bas` |
 | 11 | `Game_AwardTreasure(rm,sm)` — item table + Level Key (`ClaimTreasure`) | planned | `dungeon.bas` |
@@ -80,52 +126,139 @@ the rest are still inlined in the play loop / renderers and get lifted in later 
 | 13 | `Game_OnIdle()` — idle-danger (`LoiterTick`) | planned | play loop |
 | 14 | `Game_StartTurn()`/`Game_MoveCost%()` — turn budget (boardgame/boots) | planned | play loop |
 | 15 | `Game_OnEnterCleanCell(cx,cy)` — loot recovery (now inside #2) | planned | play loop |
+| ~~16~~ | ~~`Game_DebugSpawn%`~~ — **not needed**: the cheat panel moved to `game/DEBUG.bas` and `dungeon.bas` calls it directly | n/a | `DebugTestMenu` (`engine/BOARD.bas`) |
 
 The two indispensable ones (#1, #2) are done — they were the tightest and most central seams.
 
-## Boundary-debt ledger (burn-down toward a separable engine)
+### Two lessons about hook design
 
-Engine-side code that still names game symbols directly. Each line is a future hook/refactor.
-"Cleared" = the leak is gone. Until all are cleared, `engine/` cannot be lifted out standalone.
+**Prefer a decision to a state read.** The engine should never ask *"what mode is the game in?"*,
+only *"should I?"* (`Game_ShowWounds%`), *"how much?"* (`Game_PoisonLevel!`), or *"what value?"*
+(`Game_FloorColorAt~&`). A hook returning game *state* just relocates the coupling; one returning
+a *decision* survives a game swap. The collision fix is the clearest case: three functions asked
+`SECTOR.get_by_xy` → *"which dungeon level is this?"*, a question only DUNGEON! can answer. What
+they actually needed was *"what colour is floor here?"* — a plain value. One hook replaced all
+three, and the engine stopped knowing that dungeon levels exist.
+
+**Not every leak wants a hook — check who calls it first.** Several planned hooks turned out to be
+unnecessary because the leaking code was only ever called from `dungeon.bas`, the assembly. The
+`[0]` cheat panel, `DoSearch`, and `BreakDoorAttempt` all lived in `engine/` while naming a dozen
+game symbols, but no *engine* module called them. Moving the code to `game/` cleared each leak
+with **zero** new contract surface. A hook is only warranted when engine code genuinely must call
+into the game mid-algorithm. Adding one where a move would do inflates the contract you have to
+keep stable forever.
+
+## Boundary-debt ledger — burned down
+
+Engine-side code that named game symbols directly. **All cleared** as of 2026-07-29; every
+`engine/*.bas` and `ENGINE.BI` passes `tests/audit-boundary.sh`. Kept as a record of what moved
+and why, because the *reasoning* is what makes the next call easy.
 
 **Cleared:**
 - ~~JUICE ← player HP~~ — `player_hp/maxhp` moved into ENGINE.BI (engine→engine) in split B.
 - ~~JUICE ← poison~~ — `DrawPoison` takes a pure `intensity` (0..1) param; the game supplies it
-  via the `Game_PoisonLevel!()` hook. `engine/JUICE.bas` now names no game symbol.
+  via the `Game_PoisonLevel!()` hook.
+- ~~JUICE ← ruleset~~ — `DrawWounds` gated on `opt_oldschool` (a game switch the ledger had
+  already wrongly marked cleared). Now the `Game_ShowWounds%()` hook; `engine/JUICE.bas` is clean.
 - ~~DATA ← loaders~~ — `Load*` moved to `game/LOADERS.bas`; `engine/DATA.bas` is game-free.
 - ~~SAVE plumbing~~ — `engine/SAVEIO.bas` (game-free) + `game/SAVEGAME.bas` (payload).
 - ~~CHRONICLE md~~ — reusable md renderer lifted to `engine/MARKDOWN.bas`.
 - ~~PadR$/utils~~ — moved to `engine/TEXT.bas` (engine no longer reaches into a game file).
+- ~~UI ← StrSubst$~~ — `engine/UI.bas` reached into `game/EFFECTS.bas` for a pure string helper;
+  `StrSubst$` moved to `engine/TEXT.bas`. `engine/UI.bas` is now clean.
 - ~~SPRITES~~ — split `engine/ARTPACK.bas` (game-free) vs `game/SPRITES.bas` (entity sprites).
 - ~~combat rules in `dungeon.bas`~~ — extracted to `game/COMBAT.bas` + `game/PLAY.bas`.
 - ~~MENU presentation~~ — the fades/UI/sound/dice runtime lifted to `engine/UI.bas` (game-free).
 - ~~BOARD/CURSOR ← rooms (overlays)~~ — `render_room_labels`/`DrawTombstones`/`DrawChamberGraves`/
   `DrawEntities` (+ `EntityDrawX/Y`/`EntityShiftFind`) moved to **`game/OVERLAYS.bas`**; the engine's
   `cursor_erase`/`cursor_draw` reach them only via the `Game_RenderMapLabels`/`Game_RenderOverlays`
-  hooks. `engine/BOARD.bas` + `engine/CURSOR.bas` no longer name `ROOMS`/`CHM_*`/`LBL_*` for rendering.
+  hooks.
+- ~~CURSOR ← hunter~~ — `cursor_draw` called `DrawHunter` (a Solo-mode game token) directly; it is
+  now the 4th call inside `Game_RenderOverlays`, so the engine's draw path names no game renderer.
 - ~~region detect → game~~ — `DetectRooms` + `FloodRoom` moved to `game/SECTOR.bas`; the engine's board
-  setup calls the `Game_PopulateBoard()` hook (#8) instead. `engine/BOARD.bas` no longer fills `ROOMS`/
-  `ROOMAT`. (Verified: `chamberdump` still detects 93 rooms.)
+  setup calls the `Game_PopulateBoard()` hook (#8) instead.
+- ~~BOARD ← RoomVisit~~ — the room-flood *helper* was left behind in `engine/BOARD.bas` by the move
+  above, so `game/SECTOR.bas` reached back into the engine to call it (and the engine still wrote
+  `ROOMAT`). Moved beside its only caller in `game/SECTOR.bas`. **Lesson: move the whole call graph,
+  then re-audit — a partial move reads as "cleared" but silently inverts the dependency.**
+- ~~BOARD ← chambers~~ — `CellOpen%`/`ChamberTry`/`FloodChamber`/`LoadChambers%`/`DetectChambers`/
+  `PickChamberGraves`/`ChamberDeadAt%` (~190 lines) moved to **`game/CHAMBERS.bas`**. Rather than a
+  new hook, chamber detection folded into the **existing** `Game_PopulateBoard()` — chambers are just
+  the game's *other* region kind, so the engine keeps one "claim your regions" seam instead of two.
+  `InitFog` and the `chamberdump` dev mode both dropped their direct `DetectChambers` call.
+  (Verified: `chamberdump` still reports 43 secret doors / 93 rooms / 12 chambers.)
+- ~~MUSIC ← flavor tables~~ — `DumpAudioManifest` (+ its `LookupDesc$` helper) moved to
+  **`game/MANIFEST.bas`**: a manifest *is* a listing of this game's content, so it necessarily
+  names `REG_FLAV`/`SP_*`/`CHM_FLAV_*`/`CURIOS`. `SfxNameList$` went with it as the
+  **`Game_SfxNames$()`** hook — the effect roster (`fireball`, `monster-pain`, …) is game content,
+  and `InitSfxFiles` now asks the game for it. `engine/MUSIC.bas` is clean.
+  (Verified: `dungeon.run audiomanifest` output is byte-identical, 216 lines.)
+- ~~STATS ← run schema~~ — split by *ownership of the columns*: `engine/STATS.bas` keeps
+  `CsvCell$`/`Bit$` and a pure `StatAppend(path, header, row)`; the DUNGEON! schema (class, char
+  level, XP, gold, oldschool-vs-D&D) moved to `StatLog` in `game/COMBAT.bas`, beside its only
+  callers. The engine appends strings and names none of it. `engine/STATS.bas` is clean.
+  Because the game now owns the header, `StatHeaderReady%` guards **schema drift**: if an existing
+  csv's first line differs from the header about to be written, the stale file is renamed aside
+  (`.old`, `.old2`, …) and a fresh one started — so old runs stay readable *and* new runs keep
+  logging, instead of misaligned columns (append-anyway) or silent data loss (skip).
+  **Gotcha this exposed:** "is the file new?" must be evaluated *after* the guard runs, or a
+  rotation leaves the fresh file with no header at all — hence `LOF(f) = 0` on the opened handle
+  rather than an `_FILEEXISTS` captured up front.
 
-**Remaining** (each needs a render/visual play-test, so parked for the user):
-
-| Debt | Where (engine side) | Reads game symbol | Fix |
-|------|--------------------|-------------------|-----|
-| BOARD debug menu | `engine/BOARD.bas` `DebugTestMenu` | calls `WanderEncounter`/`DoCurio`/`SpringTrap`/`LoiterTick` | a `Game_DebugSpawn` hook |
-| PLAYERS ← inventory | `engine/PLAYERS.bas` | `PLAYER` game fields | game-defined player-state blob |
-| MENU widget cores | `game/MENU.bas` `RunMenu`/`RunSettings` | still fuse a generic widget with game option/action lists | widget core (engine) + game-supplied lists (MENU-B) |
-| SETTINGS schema | `game/LORDS.bas` `SaveSettings`/`LoadSettings` | enumerate game `opt_*` + solo | game-injected save schema |
-| `FX_*` context (fine) | `game/*` | `FX_*` | already game→game after the moves; keep in GAME.BI |
+- ~~BOARD ← labels~~ — `InitLabels`/`LoadLabels`/`AddLabel`/`BuildLabelMask` moved to
+  **`game/OVERLAYS.bas`**, beside `render_room_labels` which consumes them: `labels.txt` is game
+  content. `PutLabel` stayed in the engine — it is a draw primitive (UI font + FOV gate), not data.
+- ~~BOARD debug menu~~ — `DebugTestMenu`/`DebugMenuClose`/`DrawDebug`/`MaskHoverInfo$` (~190 lines)
+  moved to **`game/DEBUG.bas`**. **No hook was needed:** `dungeon.bas` was the only caller, so the
+  panel simply moved to the side that owns it. It reads engine state (`SD_*`/`MASKREG`/`FOGHIDE`)
+  the sanctioned game→engine way. `DrawMaskDoors` stayed — it renders engine secret-door state and
+  the engine's own `fogdump` mode uses it.
+- ~~BOARD ← search / strong doors~~ — `DoSearch` and `BreakDoorAttempt%` moved to `game/PLAY.bas`.
+  Also caller-only-in-`dungeon.bas`, so again no hook. The engine keeps the doors themselves
+  (`SD_*`, `DOOR_BROKEN`, `RevealRegionFromDoor`, `StrongDoorAhead`) and the game calls in; the
+  *rules* — search odds, the Elf's `secret_bonus`, the Secret Door Card, the DC-13 STR check — left.
+- ~~BOARD ← sectors (collision)~~ — the deep one. `CellKind`/`CanMove`/`InRoomNow` derived the
+  room-floor colour themselves via `SECTOR.get_by_xy` + `SECTORS().kolor`, i.e. the engine asked
+  *"which dungeon level is this?"*. Replaced by the **`Game_FloorColorAt~&(px,py)`** hook — the
+  engine asks *"what colour is floor here?"* and compares; 0 means none (safe sentinel, since every
+  real colour has alpha 255). `AnsiLint`'s colour→level report went to `Game_ZoneByColor%` /
+  `Game_ZoneName$` / `Game_ZoneCount%`, and its wording is now generic ("zones", not "levels").
+- ~~START_CX/START_CY~~ — moved from GAME.BI to ENGINE.BI. Where the cursor starts on the board is
+  engine state; that it is *also* the win-return point and the heal spot is a DUNGEON! rule, and
+  the game still reads the constant freely.
+- ~~CURSOR ← players~~ / ~~PLAYERS ← inventory~~ — the last two, and the same debt twice. The
+  rival/active seat tokens moved out of `cursor_draw` into `DrawPlayerTokens` (called from
+  `Game_RenderOverlays`): the engine owns where the cursor *is*, not what the marker looks like or
+  that it carries a seat number. `engine/PLAYERS.bas` moved wholesale to **`game/PLAYERS.bas`** —
+  the active player's state *is* the working globals, and those are DUNGEON! (class, gold, Level
+  Key, items, ability scores), so `Load/SaveActivePlayer` are game state management. No engine
+  module called anything in it.
 
 ## Verifying a change
 
-The whole point is that the game keeps working at every step:
+The whole point is that the game keeps working at every step. The full sweep — each line catches
+something the others don't:
 
-```
-qb64pe -w -x dungeon.bas -o dungeon.run          # must print "Output:", no errors
-setsid timeout 8 xvfb-run -a ./dungeon.run       # must boot to the menu, no runtime error
+```sh
+qb64pe -w -x dungeon.bas -o dungeon.run       # must print "Output:" AND leave a fresh binary
+setsid timeout 12 xvfb-run -a ./dungeon.run   # boots to the menu (exit 124 = still up = OK)
+./dungeon.run chamberdump                     # regions unchanged: 43 doors / 93 rooms / 12 chambers
+./dungeon.run audiomanifest | wc -l           # content manifest unchanged: 216 lines
+./dungeon.run ansilint                        # masks lint clean; all 9 zones painted
+tests/run-tests.sh                            # engine unit suites (94 assertions)
+tests/audit-boundary.sh                       # exit 0 = no engine file names a game symbol
 ```
 
-For a header split, "compiles" is necessary but not sufficient (a dropped-but-unreferenced global
-won't error). Prove completeness independently — e.g. strip comments and set-diff the declaration
-lines against the pre-split file.
+`chamberdump` is the cheap regression test for any board-region or collision change — it runs
+detection headlessly and writes counts + bounding boxes, so a move that silently loses a region is
+caught without a play-test. `audiomanifest` does the same for content tables.
+
+**Compiling proves almost nothing here.** QB64 resolves every symbol globally, so a move that
+inverts the dependency direction still builds; and for a *header* split, a dropped-but-unreferenced
+global won't error either. Prove those independently: `tests/audit-boundary.sh` for the boundary,
+and for a header split, strip comments and set-diff the declaration lines against the pre-split
+file.
+
+**Still needs a human at the keyboard:** anything whose only symptom is visual or interactive —
+the `[~]` overlay and `[0]` cheat panel, hot-seat token rendering with 2+ players, `[F]` searching,
+and bumping a reinforced door. The headless checks above cover their *wiring*, not their look.

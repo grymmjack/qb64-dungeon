@@ -299,12 +299,16 @@ END FUNCTION
 '  HUD + UI HELPERS
 ' ============================================================================
 
-' Game hook (#8) -- detect the board's ROOMS from the sector-coloured blocks. The engine's
-' board setup calls this; the game owns "what a room is" (flood-fill each sector-colour block
-' into ROOMS/ROOMAT, skipping the entrance chamber + tiny label blocks -- see DetectRooms).
-' Moved out of engine/BOARD.bas so the engine no longer writes the game ROOMS array.
+' Game hook (#8) -- the game claims its regions on the freshly-painted board. The engine's
+' board setup calls this ONE hook and stays out of "what a region is"; the game owns both of
+' its region kinds:
+'   ROOMS    -- flood-fill each sector-colour block (DetectRooms, below); monster + treasure.
+'   CHAMBERS -- the big named halls (game/CHAMBERS.bas); 3 monsters, no treasure.
+' Both were once inlined in engine/BOARD.bas, which meant the engine wrote the game's
+' ROOMS/CHAMBERAT arrays directly. Order matters: rooms first (chambers read SECTOR/label state).
 SUB Game_PopulateBoard
     DetectRooms
+    DetectChambers
 END SUB
 
 SUB DetectRooms
@@ -333,6 +337,18 @@ SUB DetectRooms
     _SOURCE oldsrc
 END SUB
 
+
+' Enqueue one room cell if it is unclaimed, the right colour, and in the right sector.
+' (Was left behind in engine/BOARD.bas when DetectRooms/FloodRoom moved here -- it writes
+' ROOMAT, so it is game code and belongs beside its only caller.)
+SUB RoomVisit (x AS INTEGER, y AS INTEGER, sec AS INTEGER, rid AS INTEGER, kol AS _UNSIGNED LONG, tail AS INTEGER)
+    IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT SUB
+    IF ROOMAT(x, y) <> 0 THEN EXIT SUB
+    IF POINT(x * CW + CW \ 2, y * CH + CH \ 2) <> kol THEN EXIT SUB
+    IF SECTOR.get_by_xy(x * CW, y * CH) <> sec THEN EXIT SUB
+    ROOMAT(x, y) = rid
+    QX(tail) = x: QY(tail) = y: tail = tail + 1
+END SUB
 
 ' BFS one room block (same sector + colour, 4-connected); record its centre cell.
 SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
