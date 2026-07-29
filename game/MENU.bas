@@ -1106,20 +1106,8 @@ SUB DrawDicePreview (gxc AS INTEGER, lbl AS STRING)
 END SUB
 
 
-' Apply the fullscreen + pixel-smoothing preferences to the display. _SMOOTH gives
-' bilinear-filtered scaling (soft, and it makes the tumbling dice shimmer); without
-' it the canvas is pixel-doubled crisp -- better suited to the ANSI/text art.
-SUB ApplyDisplay
-    IF opt_fullscreen THEN
-        IF opt_smooth THEN
-            _FULLSCREEN _SQUAREPIXELS, _SMOOTH
-        ELSE
-            _FULLSCREEN _SQUAREPIXELS
-        END IF
-    ELSE
-        _FULLSCREEN _OFF
-    END IF
-END SUB
+' (ApplyDisplay moved to engine/UI.bas -- it only touches _FULLSCREEN + smoothing,
+'  which is engine display config, and opt_fullscreen/opt_smooth live in ENGINE.BI.)
 
 
 ' Spell out where the D&D combat bonuses come from: to-hit = class base + the

@@ -351,3 +351,35 @@ DIM SHARED SLH_COL(1 TO 24) AS INTEGER, SLH_ROW(1 TO 24) AS INTEGER
 DIM SHARED SLH_TXT(1 TO 24) AS STRING
 DIM SHARED SORD(1 TO 64) AS INTEGER              ' option ids in reading order (col1 top-down, col2, col3) for up/down nav
 DIM SHARED SORD_N AS INTEGER
+
+
+' ============================================================================
+'  Moved here from engine/ENGINE.BI (2026-07-29).
+'
+'  These were declared in the ENGINE header but NO engine/ file referenced them -- only
+'  game/ and dungeon.bas did. The boundary audit could not see it: it checks "does engine
+'  name a game symbol", so anything misfiled INTO the engine header is engine-owned by
+'  definition and invisible. `audit-boundary.sh` now also reports ENGINE.BI globals with
+'  zero engine references, which is the sharper question.
+'
+'  Most are plainly game-shaped: D&D ability scores and combat derivation (a non-RPG game
+'  on this engine has no STR), the ruleset switches, run identity, and the turn machinery
+'  (whose ENGINE.BI comment already conceded "rules that fill it live in game/").
+' ============================================================================
+DIM SHARED opt_artstyle AS INTEGER        ' 0 = ANSI only, 1 = Pixel Art, 2 = Hybrid (ANSI board + pixel portraits)
+DIM SHARED AS INTEGER turn_num, steps_left, need_roll    ' turn machinery (rules that fill it live in game/)
+DIM SHARED opt_flexstats AS INTEGER   ' 0 = OFF (rolled order), 1 = Assign roll (swap), 2 = Point distribution
+DIM SHARED opt_gestures AS INTEGER     ' SETTINGS "Action Gestures": timing-bar mini-game (second-wind + crit flourish)
+DIM SHARED opt_combatspeed AS INTEGER ' (legacy, kept for save compat) -- superseded by opt_msgdelay
+DIM SHARED opt_hardcore AS INTEGER    ' TRUE: time passes while idle -> wandering monsters can find you
+DIM SHARED opt_critfumble AS INTEGER  ' TRUE: the crit/fumble effects engine runs (cinematic + bonus/penalty rolls)
+DIM SHARED run_seed AS DOUBLE          ' the RNG seed the current dungeon was built from (save/load reproduces it)
+DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
+DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
+DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
+DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
+DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
+DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter
+DIM SHARED settingsshot_on AS INTEGER                 ' dev: `settingsshot` -- save the SETTINGS render to PNG + exit (layout check)
+DIM SHARED dbg_click_armed AS INTEGER                 ' debounce for debug click-to-place
+DIM SHARED player_dmgbonus AS INTEGER  ' STR/INT damage mod

@@ -54,8 +54,16 @@ and both times the audit caught what the prose had got wrong. So the audit is a 
 `SUB`/`FUNCTION` in `game/*.bas`, each `DIM SHARED`/`CONST`/`TYPE` in `GAME.BI`), then intersects
 that with the identifiers in each `engine/` file. Anything back — other than a `Game_*` hook — is
 boundary debt. It strips comments and string literals, and filters QB64 keywords and shared type
-names. It then checks **contract completeness**: every `Game_*` hook the engine calls must be
-implemented by both `game/` and `examples/minimal/`.
+names. It then checks **contract completeness** (every `Game_*` hook the engine calls must be
+implemented by both `game/` and `examples/minimal/`) and **ENGINE.BI hoarding** (see below).
+
+> **The name-matching check is ONE-DIRECTIONAL, and that hid real debt.** Asking "does `engine/`
+> name a `game/` symbol" can never flag something misfiled *into* the engine header — it is
+> engine-owned by definition. 27 of ENGINE.BI's globals turned out to be referenced by no
+> `engine/` file at all (D&D ability scores, ruleset switches, turn machinery). The sharper
+> question is just **"does any `engine/` file actually use this?"**, and zero-use is a far
+> cleaner signal than name-matching. That check now runs too. When it fires you have two honest
+> options: move the declaration to GAME.BI, or move its *consumer* into `engine/`.
 
 > **Why a script, not a one-liner.** The obvious `grep '^ *DIM SHARED +\w+'` captures only the
 > **first** name on a line, so `DIM SHARED num_players AS INTEGER, cur_player AS INTEGER` hides
@@ -109,11 +117,19 @@ primitives/types first; game types may build on engine ones, never the reverse.
 ## Header ownership (ENGINE.BI vs GAME.BI)
 
 - **ENGINE.BI** — screen grid + canvas + palette; `CURSOR` type; dice config/fonts + tumbler
-  state; audio + pack/narration/art-pack globals; engine `opt_*` (a/v, dice, FOV, char-gen,
-  msgdelay, smooth…); fog/FOV + secret-door/mask detection arrays; near-death juice bake data
-  (blood/vignette/poison); **active-character stat scaffolding** (`player_hp/maxhp`, ability
-  scores, derived to-hit/ac/dmg); save-token stream; data-loader scratch; flood-fill queue;
-  `START_CX`/`START_CY` (where the cursor starts on this board).
+  state; audio + pack/narration/art-pack globals; engine `opt_*` (a/v, dice, FOV, msgdelay,
+  fullscreen/smooth); fog/FOV + secret-door/mask detection arrays; near-death juice bake data
+  (blood/vignette/poison); `player_hp`/`player_maxhp` + `player_dmgdie` (the only character
+  fields any engine module reads — JUICE bleeds for HP, GESTURE rolls the damage die);
+  save-token stream + `SAVE_FILE`; data-loader scratch; flood-fill queue; `START_CX`/`START_CY`.
+
+  **Every global here is used by at least one `engine/` file, and `audit-boundary.sh` enforces
+  that.** 27 were not: the D&D ability scores and derived to-hit/AC, the ruleset switches
+  (`opt_flexstats`/`opt_critfumble`/`opt_hardcore`/`opt_combatspeed`/`opt_gestures`/`opt_artstyle`),
+  run identity (`run_seed`/`game_start`/`player_name`), the turn machinery
+  (`turn_num`/`steps_left`/`need_roll`/`moves_made`) and the dev flags — all moved to GAME.BI.
+  Two (`opt_fullscreen`/`opt_smooth`) were legitimately engine config whose only *consumer* was
+  misfiled: `ApplyDisplay` moved from `game/MENU.bas` into `engine/UI.bas` instead.
 - **GAME.BI** — `SECTOR`/`ROOM`/`PCLASS`/`PLAYER`/`CURIO_T`/`FXROW`/`TRAPROW`/`EVTROW` types;
   `SECTORS`/`ROOMS` + monster/treasure/item pools; inventory + spell charges + Level Key;
   Dungeon! tuning; chambers; room labels (`LBL_*`/`LABELMASK`); hot-seat seats

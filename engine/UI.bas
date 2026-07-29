@@ -1183,3 +1183,24 @@ FUNCTION AskContinue%
         IF k = "N" OR k = CHR$(27) THEN AskContinue = 0: EXIT FUNCTION
     LOOP
 END FUNCTION
+
+
+' Apply the display SETTINGS (the one place the _FULLSCREEN calls route through).
+' Moved from game/MENU.bas: it reads only opt_fullscreen / opt_smooth, both ENGINE.BI
+' globals, and touches nothing game-specific. Those two options showed up as
+' "declared in ENGINE.BI but never used by engine/" purely because their one consumer
+' sat on the game side -- here the global was right and the CODE was misfiled.
+' Apply the fullscreen + pixel-smoothing preferences to the display. _SMOOTH gives
+' bilinear-filtered scaling (soft, and it makes the tumbling dice shimmer); without
+' it the canvas is pixel-doubled crisp -- better suited to the ANSI/text art.
+SUB ApplyDisplay
+    IF opt_fullscreen THEN
+        IF opt_smooth THEN
+            _FULLSCREEN _SQUAREPIXELS, _SMOOTH
+        ELSE
+            _FULLSCREEN _SQUAREPIXELS
+        END IF
+    ELSE
+        _FULLSCREEN _OFF
+    END IF
+END SUB

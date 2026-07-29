@@ -112,5 +112,51 @@ for label, have in (("game/", game_have), ("examples/minimal/", mini_have)):
     else:
         print(f"  {label} implements all of them")
 
+# ---- ENGINE.BI must not hoard game data -----------------------------------
+# The check above is ONE-DIRECTIONAL: it asks "does engine name a game symbol". Anything
+# misfiled INTO ENGINE.BI is engine-owned by definition and stays invisible to it -- which
+# is how 27 globals (D&D ability scores, ruleset switches, turn machinery) sat in the engine
+# header unnoticed. The sharper question is simply: does any engine/ file actually USE this?
+decls = []
+for l in open("engine/ENGINE.BI", encoding="utf-8", errors="replace"):
+    if l.strip().startswith("'"): continue
+    l = re.sub(r"'.*$", "", l)
+    m = re.match(r'\s*DIM\s+SHARED\s+(.*)$', l, re.I)
+    if not m: continue
+    body = m.group(1)
+    pre = re.match(r'\s*AS\s+(?:_UNSIGNED\s+)?[\w_]+\s+(.*)$', body, re.I)
+    if pre: body = pre.group(1)
+    d = 0; cur = ""; parts = []
+    for ch in body:
+        if ch == "(": d += 1
+        elif ch == ")": d -= 1
+        if ch == "," and d == 0: parts.append(cur); cur = ""
+        else: cur += ch
+    parts.append(cur)
+    for pt in parts:
+        n = re.match(r'\s*([A-Za-z_][\w.]*)', pt)
+        if n: decls.append(n.group(1))
+
+engine_src = glob.glob("engine/*.bas")
+engine_txt = []
+for f in engine_src:
+    for l in open(f, encoding="utf-8", errors="replace"):
+        if l.strip().startswith("'"): continue
+        engine_txt.append(re.sub(r"'.*$", "", l))
+engine_blob = "".join(engine_txt)
+
+orphan = [n for n in decls
+          if not re.search(r'\b%s\b' % re.escape(n), engine_blob, re.I)]
+
+print()
+print(f"ENGINE.BI hoarding check: {len(decls)} globals declared")
+if orphan:
+    bad += 1
+    print(f"  {len(orphan)} declared in ENGINE.BI but used by NO engine/ file:")
+    print("      " + " ".join(sorted(orphan)))
+    print("  Either move the declaration to game/GAME.BI, or move its consumer into engine/.")
+else:
+    print("  every ENGINE.BI global is used by at least one engine/ file")
+
 sys.exit(1 if bad else 0)
 PY

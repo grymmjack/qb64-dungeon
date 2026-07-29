@@ -12,7 +12,9 @@
 '    * CRIT FLOURISH -- on a natural-20 crit, the gauge grants +0/+1/+2 EXTRA damage
 '      dice (miss/hit/crit zone), rolled normally on top of the doubled crit.
 '
-'  All gated by opt_gestures; when off the game plays exactly as before.
+'  NOTE: this module does NOT read opt_gestures itself -- its game-side CALLERS gate on
+'  it (the toggle is a game ruleset switch and lives in GAME.BI). The old comment here
+'  claimed "all gated by opt_gestures", which read as if the gate were internal.
 ' ============================================================================
 
 CONST GESTURE_FUSE = 1.7          ' seconds on the countdown -- tight: about one good sweep
