@@ -195,6 +195,30 @@ T_True "quality adds damage within a zone", GaugeDamage&(5, 1, 1) > GaugeDamage&
 T_EqI "strength 0 still deals a hit", GaugeDamage&(0, 1, 0), 2
 T_True "more strength = more damage", GaugeDamage&(9, 1, 0) > GaugeDamage&(3, 1, 0)
 
+T_Group "the OPT-IN GAMBLE: baseline vs gesture must not be dominated either way"
+' The relation that has to hold:  blind gesture play  <  baseline  <  well-played gesture.
+' A tuning change to zone widths or the damage curve can flip it with NO other symptom --
+' the gesture silently becomes either a free upgrade or a trap, and only long play reveals it.
+DIM baseDmg AS LONG, blindEV AS SINGLE, critDmg AS LONG
+baseDmg = GaugeBaselineDamage&(5)
+T_True "the baseline always deals damage (never a whiff -- that is the point)", baseDmg > 0
+T_EqI "  a plain attack is a mid-quality HIT, not a crit", baseDmg, GaugeDamage&(5, 1, GAUGE_BASE_Q)
+T_True "  and it is strictly worse than a crit", baseDmg < GaugeDamage&(5, 2, 0)
+critDmg = GaugeDamage&(5, 2, 1)
+T_True "a well-played crit pays MEANINGFULLY more (>1.5x baseline), so the gamble is worth taking", critDmg > baseDmg * 1.5
+
+FreshK k, 1, 5                                 ' average skill, mid depth
+blindEV = GaugeBlindEV!(k, 5, 4000)
+T_True "blind gesture play (EV " + _TRIM$(STR$(INT(blindEV * 10) / 10)) + ") is WORSE than the baseline (" + _TRIM$(STR$(baseDmg)) + ")", blindEV < baseDmg
+T_True "  but not worthless -- it still lands sometimes", blindEV > 0
+' Skill must move that EV, or the gesture is a coin-flip dressed as a skill check.
+FreshK lo, 0, 5
+FreshK hi, 2, 5
+T_True "high skill blind-EV beats low skill blind-EV", GaugeBlindEV!(hi, 5, 3000) > GaugeBlindEV!(lo, 5, 3000)
+' Even at the TOP tier, blind play must not beat the baseline -- otherwise a high-level player
+' could opt in mindlessly and never lose anything by ignoring the bar.
+T_True "even top-tier BLIND play stays under the baseline", GaugeBlindEV!(hi, 5, 4000) < baseDmg
+
 T_Group "GaugeOutOfSweeps% -- low skill gets a limited read"
 FreshK lo, 0, 1
 T_EqI "low skill gets 2 sweeps", lo.maxsweeps, 2

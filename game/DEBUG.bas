@@ -46,6 +46,7 @@ SUB DebugTestMenu
         _PRINTSTRING (34 * CW, 23 * CH), "7   +5000 GOLD"
         _PRINTSTRING (34 * CW, 25 * CH), "8   Reveal ALL secret doors (+ key)"
         _PRINTSTRING (34 * CW, 27 * CH), "9   WIN-READY (goal gold + key; walk to START)"
+        _PRINTSTRING (34 * CW, 29 * CH), "T   TACTICAL FIGHT vs 4 foes (this level)  [F]=1 foe"
         COLOR GREY, bg: _PRINTSTRING (34 * CW, 33 * CH), "left-click the board (with [~] on) = teleport the player"
         COLOR YELLOWU, bg: PrintCentered 35, "[ESC] close"
         IF LEN(msg) > 0 THEN COLOR GREENU, bg: PrintCentered 38, msg
@@ -56,6 +57,12 @@ SUB DebugTestMenu
             CASE "1": DebugMenuClose: DoCurio 0: EXIT SUB
             CASE "2": DebugMenuClose: WanderEncounter: EXIT SUB
             CASE "3": DebugMenuClose: SpringTrap rm: EXIT SUB
+            CASE "T", "F"
+                ' Jump straight into the tactical screen from play, so it can be exercised in
+                ' situ (real class, real HP, real level) rather than only via `fightshot`.
+                DebugMenuClose
+                DebugStartFight k
+                EXIT SUB
             CASE "4"
                 item_sword = 1: item_secret_card = -1: item_esp = -1: item_crystal = -1
                 item_bow = -1: item_boots = -1: item_teleport = item_teleport + 3: has_key = -1
@@ -354,6 +361,7 @@ SUB DumpFightShot
         EXIT SUB
     END IF
     PRINT PipeCol$("|15fightshot|07 -- seeding a synthetic 1-vs-4 encounter")
+    DevPackOverride
 
     FightReset
     lvl = 5
@@ -361,6 +369,7 @@ SUB DumpFightShot
     '--- the player (slot 0) -------------------------------------------------
     nm = _TRIM$(CLASSES(player_class).name)
     FightSetActor 0, "GRYMMJACK", "1st Level " + nm, "classes/" + SpriteBase$(nm), 18, 24
+    FightSetArtFallback 0, ClassSprite$(player_class)   ' takes a class INDEX, not a name
     FightSetStat 0, 1, "MELEE:", "+3"
     FightSetStat 0, 2, "RANGED:", "+1"
     FightSetStat 0, 3, "ARMOR:", "AC4"
@@ -378,6 +387,7 @@ SUB DumpFightShot
         nm = _TRIM$(MON_NAME(lvl, ((a - 1) MOD 3) + 1))
         IF LEN(nm) = 0 THEN nm = "MONSTER" + LTRIM$(STR$(a))
         FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), hp(a), mx(a)
+        FightSetArtFallback a, MonsterSprite$(nm)
         FightSetStat a, 1, "MELEE:", "+" + LTRIM$(STR$(2 + a))
         FightSetStat a, 2, "RANGED:", "-"
         FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + a))
@@ -434,15 +444,68 @@ END SUB
 ' blank-looking screen is immediately distinguishable from a broken renderer: 0 of 5 means the
 ' art is not generated yet, 5 of 5 with a blank screen means the renderer is at fault.
 FUNCTION FightShotArtCount%
-    DIM a AS INTEGER, n AS INTEGER
+    DIM a AS INTEGER, n AS INTEGER, fallbacks AS INTEGER
+    ' Mirrors FightPortrait&'s resolution order exactly -- including step 3, the general art
+    ' fallback. A counter that checked fewer steps than the renderer would report "0 of 5" over a
+    ' screen full of art, which is worse than no counter at all.
     FOR a = 0 TO FIGHT_MAXFOE
         IF FA_USED(a) THEN
             IF LEN(AnsiFile$("strategic-combat/" + _TRIM$(FA_ART(a)) + ".ans")) > 0 THEN
                 n = n + 1
             ELSEIF LEN(ArtFile$("strategic-combat/" + _TRIM$(FA_ART(a)) + ".png")) > 0 THEN
                 n = n + 1
+            ELSEIF LEN(_TRIM$(FA_ART2(a))) > 0 THEN
+                n = n + 1
+                fallbacks = fallbacks + 1
             END IF
         END IF
     NEXT a
+    IF fallbacks > 0 THEN PRINT PipeCol$("  |14" + LTRIM$(STR$(fallbacks)) + "|07 of those fell back to the GENERAL art (no fight-sized art yet)")
     FightShotArtCount% = n
 END FUNCTION
+
+' Launch a tactical fight from the [0] panel and put the board back afterwards.
+'
+' The level comes from the player's position (SECTOR.get_by_xy), the same derivation the rest of
+' the game uses -- there is no "current level" global to go stale. On return the board has to be
+' fully repainted: RunFight% CLS'd CANVAS and left it at the 8x8 font, so without the repaint the
+' player would be dropped onto a blank screen with half-height text.
+SUB DebugStartFight (which AS STRING)
+    DIM lvl AS INTEGER, nfoes AS INTEGER, res AS INTEGER
+    lvl = SECTOR.get_by_xy(c.x, c.y)
+    IF lvl < 1 THEN lvl = 1
+    IF which = "F" THEN nfoes = 1 ELSE nfoes = 4
+    res = RunFight%(lvl, nfoes)
+    ' Back to the board: restore the font and repaint everything the fight screen wiped.
+    _FONT CH
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+' Let a dev mode preview an ART PACK without touching the player's saved settings.
+'
+' Scans the command line for any argument that names an existing subfolder of
+' assets/ansi-art/ or assets/pixel-art/ and selects it for this run only. Nothing is written to
+' dungeon-settings.dat -- that file is the player's live, unrecoverable preferences, and a dev
+' mode has no business editing it just to look at a pack.
+'
+'   dungeon.run fightshot ansimon-1     render the fight screen using that ANSI pack
+'   dungeon.run fight 7 3 ansimon-1     play a fight using it
+'
+' Reports what it picked, because "0 of 5 portraits" is otherwise ambiguous between "the pack
+' has no art" and "the pack name was misspelt so the default is still selected".
+SUB DevPackOverride
+    DIM i AS INTEGER, arg AS STRING
+    FOR i = 1 TO _COMMANDCOUNT
+        arg = _TRIM$(COMMAND$(i))
+        IF LEN(arg) > 0 THEN
+            IF _DIREXISTS("assets/ansi-art/" + arg) THEN
+                opt_ansipack = arg
+                PRINT PipeCol$("  ANSI pack -> |15" + arg + "|07 (this run only; settings not written)")
+            END IF
+            IF _DIREXISTS("assets/pixel-art/" + arg) THEN
+                opt_artpack = arg
+                PRINT PipeCol$("  pixel pack -> |15" + arg + "|07 (this run only; settings not written)")
+            END IF
+        END IF
+    NEXT i
+END SUB

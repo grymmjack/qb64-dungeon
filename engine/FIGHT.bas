@@ -54,6 +54,7 @@ SUB FightReset
         FA_USED(a) = 0: FA_ALIVE(a) = 0
         FA_NAME(a) = "": FA_SUB(a) = "": FA_ART(a) = ""
         FA_HP(a) = 0: FA_MAXHP(a) = 0: FA_FUSE(a) = 0
+        FA_ART2(a) = ""
         FOR r = 1 TO FIGHT_STATROWS
             FA_LAB(a, r) = "": FA_VAL(a, r) = ""
             FA_SLAB(a, r) = "": FA_SVAL(a, r) = ""
@@ -71,6 +72,14 @@ SUB FightSetActor (a AS INTEGER, nm AS STRING, subt AS STRING, artbase AS STRING
     FA_NAME(a) = nm: FA_SUB(a) = subt: FA_ART(a) = artbase
     FA_HP(a) = hp: FA_MAXHP(a) = mx
     IF hp > 0 THEN FA_ALIVE(a) = -1 ELSE FA_ALIVE(a) = 0
+END SUB
+
+' Supply an already-resolved fallback image for a slot, used when no fight-sized art exists.
+' Pass a real path (what MonsterSprite$ etc. return), not a basename -- the engine does not know
+' the game's category layout and must not have to guess it.
+SUB FightSetArtFallback (a AS INTEGER, path AS STRING)
+    IF a < 0 OR a > FIGHT_MAXFOE THEN EXIT SUB
+    FA_ART2(a) = path
 END SUB
 
 ' One of the three generic stat rows (DUNGEON! uses MELEE / RANGED / ARMOR).
@@ -134,17 +143,43 @@ END SUB
 ' Resolve an actor's portrait and hand back a ready-to-blit image at the region's exact pixel
 ' size, or 0 if there is no art for it yet.
 '
-' ANSI is preferred over pixel art because this screen IS text-mode art and a .ans lands at
-' native size with no resampling; the .png is the fallback. Both come from the pack layers
-' (AnsiFile$ / ArtFile$), so an art pack overrides only the portraits it actually ships.
-FUNCTION FightPortrait& (artbase AS STRING, pxw AS INTEGER, pxh AS INTEGER)
-    DIM p AS STRING
+' Resolution order, each step already falling back pack -> default per file (AnsiFile$/ArtFile$):
+'   1. strategic-combat/<name>.ans   fight-sized ANSI -- blits 1:1, no resampling
+'   2. strategic-combat/<name>.png   fight-sized pixel art
+'   3. <name>.png                    the general art the game already ships, stretched
+' ANSI leads because this screen IS text-mode art. Step 3 is what keeps the screen looking
+' finished while a fight-sized pack is still mostly unmade.
+FUNCTION FightPortrait& (artbase AS STRING, resolved AS STRING, pxw AS INTEGER, pxh AS INTEGER)
+    DIM p AS STRING, b AS STRING
     FightPortrait& = 0
-    IF LEN(_TRIM$(artbase)) = 0 THEN EXIT FUNCTION
-    p = AnsiFile$("strategic-combat/" + _TRIM$(artbase) + ".ans")
+    b = _TRIM$(artbase)
+    IF LEN(b) = 0 AND LEN(_TRIM$(resolved)) = 0 THEN EXIT FUNCTION
+    IF LEN(b) = 0 THEN GOTO tryResolved
+
+    ' 1. FIGHT-SIZED ANSI. Authored at exactly the region size, so it blits 1:1 with no
+    '    resampling -- the best case, and why ANSI is preferred on a text-mode screen.
+    p = AnsiFile$("strategic-combat/" + b + ".ans")
     IF LEN(p) > 0 THEN FightPortrait& = FightAnsiTile&(p, pxw, pxh): EXIT FUNCTION
-    p = ArtFile$("strategic-combat/" + _TRIM$(artbase) + ".png")
-    IF LEN(p) > 0 THEN FightPortrait& = Sprite&(p)
+
+    ' 2. FIGHT-SIZED PIXEL ART, same subfolder.
+    p = ArtFile$("strategic-combat/" + b + ".png")
+    IF LEN(p) > 0 THEN FightPortrait& = Sprite&(p): EXIT FUNCTION
+
+    ' 3. THE GENERAL ART THE GAME ALREADY SHIPS, resolved BY the game (FightSetArtFallback) and
+    '    stretched into the box. This is the fallback that matters: a fight-sized pack will be
+    '    incomplete for a long time -- most of it wants to be hand-drawn -- while every category
+    '    already has general art. A slightly stretched real goblin beats "[ no art ]".
+    tryResolved:
+    p = _TRIM$(resolved)
+    IF LEN(p) > 0 THEN
+        IF _FILEEXISTS(p) THEN FightPortrait& = Sprite&(p): EXIT FUNCTION
+    END IF
+
+    ' NOT tried: the general ANSI art ("monsters/goblin.ans"). Those are authored at other
+    ' character sizes (18x12 for the combat panel), and ANSI_Print auto-wraps at the target
+    ' image's width -- so rendering 18-column art into a 33-column tile does not scale it, it
+    ' REFLOWS it into garbage. Pixel art stretches cleanly and covers the same entities, so it
+    ' is the honest fallback. A fight-sized .ans has to be authored as one.
 END FUNCTION
 
 ' Render a .ans into a cached image of exactly (pxw x pxh) pixels. Cached by path: ANSI_Print
@@ -303,6 +338,7 @@ SUB FightRender
         IF FA_USED(a) THEN FightDrawActor a
     NEXT a
     FightDrawLog
+    FightDrawMenu
     FightDrawDivider "rule.mid"
     FightDrawDivider "rule.split"
 
@@ -333,7 +369,7 @@ SUB FightDrawActor (a AS INTEGER)
     art = FaRgn$(a, "art")
     IF LayHas%(art) THEN
         px = LayPX%(art): py = LayPY%(art): pxw = LayPW%(art): pxh = LayPH%(art)
-        img = FightPortrait&(FA_ART(a), pxw, pxh)
+        img = FightPortrait&(FA_ART(a), FA_ART2(a), pxw, pxh)
         IF img < -1 THEN
             ' An ANSI tile is authored at exactly the region size, so it blits 1:1; a pixel-art
             ' fallback may be any size, so stretch it into the box.
@@ -408,4 +444,48 @@ SUB FightDrawChrome
     IF LayHas%("log.panel") THEN FightFrame "log.panel", BOXBG
     IF LayHas%("dice.tray") THEN FightFrame "dice.tray", BOXBG
     IF LayHas%("menu.sub") THEN FightFrame "menu.sub", BOXBG
+END SUB
+
+' The action menu + hint line. Labels are whatever the game put in FMENU(); the selected one is
+' bracketed AND recoloured, because on a CP437 grid at 8x8 a colour change alone is easy to miss
+' against four bright foe panels competing for attention.
+SUB FightDrawMenu
+    DIM i AS INTEGER, x AS INTEGER, lbl AS STRING, wide AS INTEGER
+    IF LEN(_TRIM$(FMENU_HINT)) > 0 THEN FightText "hint.bar", 0, _TRIM$(FMENU_HINT), GREY
+    IF FMENU_N < 1 THEN EXIT SUB
+    IF LayHas%("menu.root") = 0 THEN EXIT SUB
+    wide = LayCols%("menu.root")
+    x = 0
+    FOR i = 1 TO FMENU_N
+        lbl = _TRIM$(FMENU(i))
+        IF i = FMENU_SEL THEN lbl = "[" + lbl + "]" ELSE lbl = " " + lbl + " "
+        ' Stop before overflowing the region rather than clipping mid-label, which would leave a
+        ' half-drawn word reading as a different (shorter) action.
+        IF x + LEN(lbl) > wide THEN EXIT FOR
+        IF i = FMENU_SEL THEN
+            COLOR YELLOWU, BLACK
+        ELSE
+            COLOR GREY, BLACK
+        END IF
+        _PRINTSTRING (LayPX%("menu.root") + x * 8, LayPY%("menu.root")), lbl
+        x = x + LEN(lbl)
+    NEXT i
+    ' The submenu, one label per row.
+    IF FMENU_SUBN < 1 OR LayHas%("menu.sub") = 0 THEN EXIT SUB
+    FOR i = 1 TO FMENU_SUBN
+        IF i > LayRows%("menu.sub") THEN EXIT FOR
+        FightText "menu.sub", i - 1, _TRIM$(FMENU_SUB(i)), GREY
+    NEXT i
+END SUB
+
+' Bracket the CANVAS target + 8x8 font for a caller that needs to draw its own extras on top of
+' FightRender. Pairs with FightEndDraw -- which restores _FONT CH, the thing that must not be
+' forgotten (see the FONT TRAP note at the top of this file).
+SUB FightBeginDraw
+    _DEST CANVAS
+    _FONT 8
+END SUB
+
+SUB FightEndDraw
+    _FONT CH
 END SUB

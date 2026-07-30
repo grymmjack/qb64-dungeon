@@ -85,6 +85,9 @@ TYPE GAUGEK
 END TYPE
 
 CONST GESTURE_FUSE = 1.7          ' action-gesture countdown, seconds -- tight: about one good sweep
+CONST GAUGE_BASE_Q = 0.5          ' quality of a PLAIN (no-gesture) attack: mid-band, so it reads
+'                                   as "solid but unremarkable". The opt-in gesture is then a
+'                                   gamble around it -- see the dominance note in GAUGE.bas.
 CONST LAY_MAX = 200
 DIM SHARED LAY_N AS INTEGER
 DIM SHARED LAY_NAME(1 TO LAY_MAX) AS STRING, LAY_KIND(1 TO LAY_MAX) AS STRING
@@ -115,6 +118,13 @@ DIM SHARED FA_ALIVE(0 TO FIGHT_MAXFOE) AS INTEGER     ' occupied but dead -> dra
 DIM SHARED FA_NAME(0 TO FIGHT_MAXFOE) AS STRING
 DIM SHARED FA_SUB(0 TO FIGHT_MAXFOE) AS STRING        ' "1st Level Fighter" / a monster's level line
 DIM SHARED FA_ART(0 TO FIGHT_MAXFOE) AS STRING        ' art basename, e.g. "monsters/goblin"
+' A FULLY-RESOLVED fallback image path the game may supply per actor, tried after the
+' fight-sized art. It exists because resolving general art needs game knowledge the engine
+' does not have: DUNGEON! files monsters under category subfolders (monsters/beasts/wolf.png)
+' and falls back to event props for a mimic. That taxonomy is the game's, so the game resolves
+' it (MonsterSprite$/ClassSprite$/TreasureSprite$) and hands over a path -- rather than the
+' engine learning what a "beast" is, or a hook being invented for one string.
+DIM SHARED FA_ART2(0 TO FIGHT_MAXFOE) AS STRING
 DIM SHARED FA_HP(0 TO FIGHT_MAXFOE) AS INTEGER, FA_MAXHP(0 TO FIGHT_MAXFOE) AS INTEGER
 DIM SHARED FA_LAB(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
 DIM SHARED FA_VAL(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
@@ -128,6 +138,16 @@ DIM SHARED FLOG(1 TO FIGHT_LOGMAX) AS STRING, FLOG_MARK(1 TO FIGHT_LOGMAX) AS ST
 DIM SHARED FLOG_N AS INTEGER
 DIM SHARED FIGHT_LAYOUT_OK AS INTEGER                 ' the layout file loaded; 0 = cannot draw
 DIM SHARED FIGHT_CHROME AS INTEGER                    ' authored frame.ans was drawn this frame
+
+' The action menu, as GENERIC strings the renderer draws -- same reasoning as the stat rows.
+' The engine paints "a horizontal row of labels with one highlighted"; what the labels SAY and
+' what choosing one does are entirely the game's business. Keeping it here rather than letting
+' the game draw over the screen afterwards means the 8x8 font bracket stays in ONE place
+' (FightRender), instead of every caller having to remember to re-enter and restore it.
+CONST FIGHT_MENUMAX = 8
+DIM SHARED FMENU(1 TO FIGHT_MENUMAX) AS STRING, FMENU_N AS INTEGER, FMENU_SEL AS INTEGER
+DIM SHARED FMENU_SUB(1 TO FIGHT_MENUMAX) AS STRING, FMENU_SUBN AS INTEGER
+DIM SHARED FMENU_HINT AS STRING
 
 ' --- parallel attack FUSES (engine/FUSE.bas) ----------------------------------
 ' The tactical layer: every foe runs its OWN countdown, all at the same time, and the player

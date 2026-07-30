@@ -43,6 +43,8 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
     PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
     PRINT PipeCol$("  |10fightshot|07     render the tactical-combat screen with a synthetic 1-vs-4 encounter -> |14fightshot.png|07")
+    PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
+    PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
@@ -179,6 +181,40 @@ IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN settingsshot_on = -1: RunSet
 ' Seeds a synthetic 1-vs-4 encounter, so the screen and its art are verifiable with no
 ' combat loop in existence (see game/DEBUG.bas: DumpFightShot).
 IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
+
+'--- dev: `dungeon.run fight [lvl] [foes]` drops STRAIGHT into a playable tactical fight ---
+' Unlike `fightshot` (which writes a PNG and exits) this is INTERACTIVE: it shows the window and
+' runs the real loop, so the fight UI can be played and felt without walking the board to find an
+' encounter first. Defaults to level 5 with 4 foes; `fight 9 2` overrides both.
+'   dungeon.run fight        level 5, 4 foes
+'   dungeon.run fight 1      level 1, 4 foes
+'   dungeon.run fight 9 2    level 9, 2 foes
+IF INSTR(UCASE$(COMMAND$), "FIGHT ") > 0 OR UCASE$(_TRIM$(COMMAND$)) = "FIGHT" THEN
+    DIM AS INTEGER fgLvl, fgFoes, fgArg, fgSeen
+    fgLvl = 5: fgFoes = 4: fgSeen = 0
+    FOR fgArg = 1 TO _COMMANDCOUNT
+        IF VAL(COMMAND$(fgArg)) > 0 THEN
+            fgSeen = fgSeen + 1
+            IF fgSeen = 1 THEN fgLvl = VAL(COMMAND$(fgArg))
+            IF fgSeen = 2 THEN fgFoes = VAL(COMMAND$(fgArg))
+        END IF
+    NEXT fgArg
+    IF fgLvl < 1 THEN fgLvl = 1
+    IF fgLvl > 9 THEN fgLvl = 9
+    IF fgFoes < 1 THEN fgFoes = 1
+    IF fgFoes > FIGHT_MAXFOE THEN fgFoes = FIGHT_MAXFOE
+    ' A fight needs a character. Nothing has rolled one on this path, so use the baseline HERO
+    ' that InitDefaultChar already set up -- same stats a player gets before CREATE A CHARACTER.
+    IF LEN(_TRIM$(player_name)) = 0 THEN player_name = "TESTER"
+    IF player_maxhp < 1 THEN InitDefaultChar player_class
+    player_hp = player_maxhp
+    DevPackOverride                                       ' `fight 5 4 ansimon-1` previews a pack
+    _SCREENSHOW
+    ApplyDisplay
+    DIM AS INTEGER fgRes
+    fgRes = RunFight%(fgLvl, fgFoes)                      ' QB64 needs a FUNCTION result consumed
+    SYSTEM
+END IF
 
 '--- dev: `dungeon.run savetest` round-trips a synthetic 4-player save and exits ---
 IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest

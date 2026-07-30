@@ -40,6 +40,41 @@ FUNCTION MonsterSprite$ (nm AS STRING)
     IF LEN(p) > 0 THEN MonsterSprite$ = p
 END FUNCTION
 
+' Which CATEGORY subfolder a monster's art belongs in.
+'
+' MonsterSprite$ SEARCHES all six categories at load time, so the game does not care which one
+' a sprite sits in -- but a MANIFEST does: it has to tell the generator where to WRITE the file,
+' and art written to `monsters/goblin.png` instead of `monsters/beasts/goblin.png` is invisible
+' to the game forever. That was a real bug: the manifest emitted category-less monster paths, so
+' every one of the 25 existing monster sprites looked orphaned and any newly generated monster
+' would have landed somewhere nothing reads.
+'
+' Resolution order:
+'   1. If art already exists in some category, USE THAT category -- never relocate existing art.
+'   2. Otherwise classify by name, so a new monster lands somewhere sensible.
+'   3. Otherwise "misc".
+FUNCTION MonsterCat$ (nm AS STRING)
+    DIM sbase AS STRING, i AS INTEGER
+    DIM cats(1 TO 6) AS STRING
+    cats(1) = "humanoids": cats(2) = "animals": cats(3) = "insects"
+    cats(4) = "misc": cats(5) = "beasts": cats(6) = "undead"
+    sbase = SpriteBase$(nm)
+    ' 1. wherever it already lives
+    FOR i = 1 TO 6
+        IF LEN(ArtFile$("monsters/" + cats(i) + "/" + sbase + ".png")) > 0 THEN MonsterCat$ = cats(i): EXIT FUNCTION
+        IF LEN(AnsiFile$("monsters/" + cats(i) + "/" + sbase + ".ans")) > 0 THEN MonsterCat$ = cats(i): EXIT FUNCTION
+    NEXT i
+    ' 2. classify by name
+    IF InStrAny%(sbase, "skeleton zombie mummy vampire ghoul ghost wraith lich spectre specter wight") THEN MonsterCat$ = "undead": EXIT FUNCTION
+    IF InStrAny%(sbase, "spider worm insect beetle centipede scorpion ant wasp") THEN MonsterCat$ = "insects": EXIT FUNCTION
+    IF InStrAny%(sbase, "rat bat snake lizard wolf bear boar ape crocodile") THEN MonsterCat$ = "animals": EXIT FUNCTION
+    IF InStrAny%(sbase, "hero wizard witch thief warrior knight vetch king queen priest") THEN MonsterCat$ = "humanoids": EXIT FUNCTION
+    IF InStrAny%(sbase, "dragon troll ogre giant goblin kobold hobgoblin gargoyle werewolf minotaur hydra") THEN MonsterCat$ = "beasts": EXIT FUNCTION
+    IF InStrAny%(sbase, "slime pudding blob ooze mold jelly") THEN MonsterCat$ = "misc": EXIT FUNCTION
+    ' 3.
+    MonsterCat$ = "misc"
+END FUNCTION
+
 ' Filename base for a TREASURE/ITEM name: lowercase, drop any "(...)" qualifier
 ' (e.g. "Magic Sword (+1)" / "Elf Boots (spare)"), spaces & slashes -> '-'. Unlike
 ' SpriteBase$ this does NOT strip a trailing 's', because the treasure art is plural
@@ -308,27 +343,52 @@ SUB DumpImageManifest
     PRINT "# DUNGEON! image manifest  (path | WxH | prompt)  -- pixel art AND ansi art, same entities."
     PRINT "# WxH: pixel-art in PIXELS ; ansi-art in CHARACTER cols x rows (fit-scaled to its box in-game)."
     PRINT "# grep '^pixel-art/' for pixelmon (.png) ; '^ansi-art/' for the ANSI generator (.ans)."
-    PRINT "# monster sprites go UNDER a category subfolder: humanoids|animals|insects|misc|beasts|undead."
+    PRINT "# monster paths ALREADY INCLUDE their category subfolder (humanoids|animals|insects|misc|beasts|undead)."
+    PRINT "# Write each file exactly at the path given -- the game only looks inside those subfolders."
     PRINT
     seen = " "
     PRINT "# --- monsters ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
-            nm = _TRIM$(MON_NAME(lvl, sl)): IF LEN(nm) > 0 THEN PutArtBoth "monsters", SpriteBase$(nm), LCASE$(nm), "a dungeon monster", "512x512", "18x12", seen
+            nm = _TRIM$(MON_NAME(lvl, sl)): IF LEN(nm) > 0 THEN PutArtBoth "monsters/" + MonsterCat$(nm), SpriteBase$(nm), LCASE$(nm), "a dungeon monster", "512x512", "18x12", seen
         NEXT sl
     NEXT lvl
-    FOR i = 1 TO 4: nm = _TRIM$(BOSS_NAME(i)): IF LEN(nm) > 0 THEN PutArtBoth "monsters", SpriteBase$(nm), LCASE$(nm), "a fearsome boss monster", "512x512", "18x12", seen
+    FOR i = 1 TO 4: nm = _TRIM$(BOSS_NAME(i)): IF LEN(nm) > 0 THEN PutArtBoth "monsters/" + MonsterCat$(nm), SpriteBase$(nm), LCASE$(nm), "a fearsome boss monster", "512x512", "18x12", seen
     NEXT i
     PRINT
     PRINT "# --- treasures & items ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
             nm = _TRIM$(TRE_NAME(lvl, sl))
-            IF LEN(nm) > 0 THEN
-                IF TRE_ITEM(lvl, sl) > 0 THEN PutArtBoth "items", TreBase$(nm), LCASE$(nm), "a magic item", "256x256", "16x12", seen ELSE PutArtBoth "treasures", TreBase$(nm), LCASE$(nm), "a treasure", "256x256", "16x12", seen
-            END IF
+            IF LEN(nm) > 0 THEN PutArtBoth "treasures", TreBase$(nm), LCASE$(nm), "a treasure", "256x256", "16x12", seen
         NEXT sl
     NEXT lvl
+    PRINT
+    ' SPECIAL ITEMS come from the ITM_* weighted pool (assets/data/items.txt), NOT from the
+    ' treasures table. The old code asked `IF TRE_ITEM(lvl, sl) > 0`, but treasures.txt carries
+    ' no item-code column in the current format, so that branch never fired and every item
+    ' sprite went unlisted -- present on disk, invisible to the generators.
+    PRINT "# --- special items (Magic Sword, ESP Medallion, scrolls, ...) ---"
+    FOR lvl = 1 TO 9
+        FOR sl = 1 TO ITM_N(lvl)
+            nm = _TRIM$(ITM_NAME(lvl, sl))
+            IF LEN(nm) > 0 THEN PutArtBoth "items", TreBase$(nm), LCASE$(nm), "a magic item", "256x256", "16x12", seen
+        NEXT sl
+    NEXT lvl
+    PRINT
+    ' MARKERS -- the board overlays (headstone on a cleared room, the body you dropped loot at,
+    ' a cursed rune, a lost cache). Four sprites shipped in pixel-art/default/markers/ and NO
+    ' manifest had ever mentioned them, so an art pack had no way to know they existed.
+    ' The LEVEL KEY is not a row in items.txt -- it is granted by ClaimTreasure (item code 6) --
+    ' but TreasureSprite$ resolves any name containing "KEY" to items/key-medallion. Real art the
+    ' game uses, which no manifest had ever asked for.
+    PutArtBoth "items", "key-medallion", "a level key medallion", "a magic item", "256x256", "16x12", seen
+    PRINT
+    PRINT "# --- markers (board overlays) ---"
+    lst = "gravestone player-body lost-cache cursed-rune ": p = 1
+    FOR i = 1 TO LEN(lst)
+        IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "markers", w, "a " + UnSlug$(w), "a small board marker icon, top-down, transparent background", "128x128", "6x3", seen
+    NEXT i
     PRINT
     PRINT "# --- classes (tall portraits) ---"
     PutArtBoth "classes", "hero", "a heroic warrior", "a fantasy hero character portrait", "512x768", "16x16", seen
@@ -342,10 +402,26 @@ SUB DumpImageManifest
         IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "rooms", w, "the " + UnSlug$(w), "a dungeon location scene, wide establishing shot", "512x320", "30x10", seen
     NEXT i
     PRINT
-    PRINT "# --- events (curio props) ---"
-    lst = "curio-chest fountain shrine gamblers-altar hooded-peddler idol fallen-adventurer glowing-mushrooms rune-obelisk weapon-cache ": p = 1
-    FOR i = 1 TO LEN(lst)
-        IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "events", w, "a " + UnSlug$(w), "a dungeon curio prop", "384x384", "18x12", seen
+    ' EVENTS (curio props) are DERIVED from the loaded curio table through CurioSprite$ -- the
+    ' same function the game resolves with -- rather than a hardcoded list. A data pack that adds
+    ' a curio kind then gets its prop listed automatically, and a pack that removes one stops
+    ' asking for art it will never draw. (CurioSprite$ maps `mimic` to curio-chest on purpose --
+    ' a mimic must look exactly like a chest until opened -- and the `seen` dedupe collapses it,
+    ' which is why deriving beats listing: the aliasing is expressed once, in the resolver.)
+    PRINT "# --- events (curio props, derived from assets/data/curios.txt) ---"
+    FOR i = 1 TO NCURIO
+        w = CurioSprite$(_TRIM$(CURIOS(i).kind))
+        ' CurioSprite$ returns a resolved PATH or "" -- reduce it to the bare basename.
+        IF LEN(w) > 0 THEN
+            w = MID$(w, _INSTRREV(w, "/") + 1)
+            IF RIGHT$(LCASE$(w), 4) = ".png" THEN w = LEFT$(w, LEN(w) - 4)
+            PutArtBoth "events", w, "a " + UnSlug$(w), "a dungeon curio prop", "384x384", "18x12", seen
+        ELSE
+            ' No art mapping for this kind yet: still ask for one, named after the kind, so a new
+            ' curio is visible as missing art instead of silently having none.
+            w = _TRIM$(CURIOS(i).kind)
+            IF LEN(w) > 0 THEN PutArtBoth "events", w, "a " + UnSlug$(w), "a dungeon curio prop", "384x384", "18x12", seen
+        END IF
     NEXT i
 END SUB
 

@@ -151,21 +151,30 @@ SUB DumpFightManifest
     PRINT "# Sizes derive from assets/data/ui-fight-layout.txt -- edit the layout, not this list."
     PRINT
 
-    PRINT "# --- the screen frame (chrome only: rules, panel borders, static labels) ---"
-    PRINT "ansi-art/strategic-combat/frame.ans | ansi | " + fcell + " chars @8x8 | ANSI tactical-combat screen frame, " + fcell + " CP437 16-colour: four vertical foe panels on a 33-column pitch, a horizontal rule under the portrait band, a full-width rule at mid-screen, a vertical rule splitting the lower half; carved stone UI chrome, leave the portrait boxes EMPTY, no creatures"
-    PRINT
+    ' NO frame.ans ENTRY, ON PURPOSE.
+    '
+    ' A 132x100 UI frame is the wrong thing to ask a diffusion model for. It needs pixel-exact
+    ' rules at rows 29/42 and column 35, and large regions left deliberately EMPTY for the log,
+    ' the menu and the dice tray. What a generator returns instead is plausible "carved stone"
+    ' TEXTURE across the whole screen -- which the renderer then draws UNDER everything, so the
+    ' log and menu become unreadable noise. (Observed exactly that with the first generated pack.)
+    '
+    ' engine/FIGHT.bas draws this chrome itself (FightDrawChrome), precisely, from the layout.
+    ' It still LOADS strategic-combat/frame.ans if one exists, because a HAND-authored frame in an
+    ' ANSI editor is a fine thing to want -- it is just not a generator job. Delete a generated
+    ' frame.ans rather than shipping it.
 
     PRINT "# --- foe portraits (fill enemy1..4.art, and reusable for player.art) ---"
     seen = " "
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
             nm = _TRIM$(MON_NAME(lvl, sl))
-            IF LEN(nm) > 0 THEN PutFightArt "monsters", SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a dungeon monster of level " + LTRIM$(STR$(lvl)), seen
+            IF LEN(nm) > 0 THEN PutFightArt "monsters/" + MonsterCat$(nm), SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a dungeon monster of level " + LTRIM$(STR$(lvl)), seen
         NEXT sl
     NEXT lvl
     FOR i = 1 TO 4
         nm = _TRIM$(BOSS_NAME(i))
-        IF LEN(nm) > 0 THEN PutFightArt "monsters", SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a fearsome dungeon boss", seen
+        IF LEN(nm) > 0 THEN PutFightArt "monsters/" + MonsterCat$(nm), SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a fearsome dungeon boss", seen
     NEXT i
     PRINT
 
@@ -176,17 +185,23 @@ SUB DumpFightManifest
     NEXT i
     PRINT
 
-    PRINT "# --- treasures & items (shown in a portrait slot on a reward reveal) ---"
+    PRINT "# --- treasures (shown in a portrait slot on a reward reveal) ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
             nm = _TRIM$(TRE_NAME(lvl, sl))
-            IF LEN(nm) > 0 THEN
-                IF TRE_ITEM(lvl, sl) > 0 THEN
-                    PutFightArt "items", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- a magic item presented on a pedestal", seen
-                ELSE
-                    PutFightArt "treasures", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- dungeon treasure presented as a hoard", seen
-                END IF
-            END IF
+            IF LEN(nm) > 0 THEN PutFightArt "treasures", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- dungeon treasure presented as a hoard", seen
+        NEXT sl
+    NEXT lvl
+    PRINT
+
+    ' SPECIAL ITEMS live in the ITM_* weighted pool (assets/data/items.txt), NOT in the
+    ' treasures table -- treasures.txt carries no item-code column in the current format. The
+    ' old `IF TRE_ITEM(lvl, sl) > 0` test therefore never fired, and every item went unlisted.
+    PRINT "# --- special items (also shown in a portrait slot on a reward reveal) ---"
+    FOR lvl = 1 TO 9
+        FOR sl = 1 TO ITM_N(lvl)
+            nm = _TRIM$(ITM_NAME(lvl, sl))
+            IF LEN(nm) > 0 THEN PutFightArt "items", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- a magic item presented on a pedestal", seen
         NEXT sl
     NEXT lvl
 END SUB

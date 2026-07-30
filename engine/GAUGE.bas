@@ -217,3 +217,47 @@ FUNCTION GaugeOutOfSweeps% (k AS GAUGEK)
     GaugeOutOfSweeps% = 0
     IF k.maxsweeps > 0 AND k.sweeps >= k.maxsweeps THEN GaugeOutOfSweeps% = -1
 END FUNCTION
+
+' ============================================================================
+'  The OPT-IN GAMBLE seam.
+'
+'  A plain attack does NOT play the gesture: it resolves at a safe baseline -- a guaranteed
+'  middling hit, never a crit and never a whiff. Playing the gesture is then a CHOICE with a
+'  higher ceiling and a real fail tail.
+'
+'  The design constraint that matters is DOMINANCE: if the gesture paid more on average than
+'  the baseline regardless of how well it was played, nobody would ever take the plain attack
+'  and the "choice" would be a chore tax. So the invariant is:
+'
+'      blind gesture play  <  baseline  <  well-played gesture
+'
+'  The left half is testable directly -- GaugeSample% IS blind play (it draws a random phase
+'  and scores wherever the marker happened to be), so its expected damage must come out BELOW
+'  the baseline. The right half follows because a human can SEE the bar, so any skill above
+'  random beats random. Together that makes the gesture a variance choice for someone who can
+'  play it and a genuine cost for someone who cannot -- rather than a free upgrade.
+'
+'  tests/TEST-GAUGE.bas asserts both halves as properties, because a tuning change to the zone
+'  widths or the damage curve can flip the relation with no other symptom.
+' ============================================================================
+
+' (GAUGE_BASE_Q lives in ENGINE.BI -- body files declare nothing at file scope.)
+
+' Damage for a plain, no-gesture attack. Always a hit, never a crit, never zero -- that
+' reliability is the entire reason to offer it.
+FUNCTION GaugeBaselineDamage& (strength AS INTEGER)
+    GaugeBaselineDamage& = GaugeDamage&(strength, 1, GAUGE_BASE_Q)
+END FUNCTION
+
+' Expected damage from BLIND gesture play at this actor's knobs, over `trials` samples.
+' Used by the dominance assertion, and available to a difficulty/balance dump.
+FUNCTION GaugeBlindEV! (k AS GAUGEK, strength AS INTEGER, trials AS INTEGER)
+    DIM i AS INTEGER, z AS INTEGER, total AS LONG, q AS SINGLE, kk AS GAUGEK
+    IF trials < 1 THEN EXIT FUNCTION
+    kk = k
+    FOR i = 1 TO trials
+        z = GaugeSample%(kk, q)
+        total = total + GaugeDamage&(strength, z, q)
+    NEXT i
+    GaugeBlindEV! = total / trials
+END FUNCTION
