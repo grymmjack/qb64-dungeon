@@ -46,6 +46,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
+    PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
@@ -176,6 +177,9 @@ IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 
 '--- dev: `dungeon.run datalint` validates the loaded content tables and exits ---
 IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
+
+'--- dev: `dungeon.run econdump` reports the expected gold economy + win pacing, then exits ---
+IF INSTR(UCASE$(COMMAND$), "ECONDUMP") > 0 THEN EconDump
 
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---
 IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN

@@ -30,6 +30,10 @@ RISKY = {
     "black","white","grey","yellow","brown","bright_blue",     # collision palette
     "redu","greenu","yellowu","cyanu","boxbg",                 # ui palette
     "canvas","canvas_copy","full_board",                       # image handles
+    # The big shared UDT arrays. Shadowing one does not just read the wrong value -- the
+    # local has no fields, so `ROOMS(r).sec` becomes "Invalid expression" and the compiler
+    # points at the USE site, not the DIM. Cheap to catch here instead.
+    "rooms","players","sectors","classes","curios","traps",
 }
 
 hits = []

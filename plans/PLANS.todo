@@ -388,7 +388,22 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       distinct kit; reverting the fix makes it fail with the exact player-visible symptoms.
       NOTE: `loiter` (lingering-danger meter) and `curio_cool` stay RUN-WIDE on purpose -- they
       read as "how restless the dungeon is", not as something a player carries.
-    ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in DUNGEON.BI).
+    ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in
+      assets/data/<pack>/tuning.txt now, not DUNGEON.BI).
+    ☐ GOLD TARGETS ARE NOT A CONSTRAINT (measured 26-07-29 with `dungeon.run econdump`).
+      Expected treasure gold on the whole board is ~357,000, so:
+         HERO/ELF   10,000 -- affordable by clearing LEVEL 1 alone
+         SUPERHERO  20,000 -- by clearing through level 2
+         WIZARD     30,000 -- by clearing through level 2
+      The binding constraint is finding the Level Key and surviving, not gathering gold; the
+      class win totals barely differentiate the classes. This PREDATES the item-odds change
+      (which roughly doubled gold on levels 3-9 by substituting fewer items -- before it the
+      board held ~183,000, still enough to fund a Wizard by level 3).
+      Levers, all data-only, re-measure with econdump after each: raise the class targets,
+      cut treasures.txt gold values, or raise ITEM_PCT so more rooms pay an item instead of
+      gold. A DESIGN call -- econdump makes it a 2-second check instead of a playthrough.
+    ☐ treasures.txt: level 9 averages LESS gold per slot than level 8 (8333 vs 9000), so the
+      deepest floor pays worst. Possibly deliberate, probably a slip -- worth a look.
     ☐ Board legend art: add "$ = recoverable treasure" and a "fallen-body = an adventurer died here"
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
 
