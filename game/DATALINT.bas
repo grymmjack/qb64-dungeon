@@ -10,12 +10,13 @@
 '  Balance ("is a Fire Ball scroll too strong for level 2?") is a design call and is
 '  deliberately not linted.
 '
-'  The check that motivated this: items.txt OVERRIDES a treasure slot, and a room rolls
-'  1 of its level's 3 slots uniformly (RollDie(3) in RandomizeRooms). So if all 3 slots
-'  of a level hold magic items, that level can NEVER yield a gold treasure card and its
-'  treasures.txt rows are dead data. That had happened to levels 5, 6 and 8 -- the deck
-'  grew until it saturated them, silently, against items.txt's own documented intent
-'  ("an item in slot 3 turns up in ~1/3 of that level's rooms").
+'  The check that motivated this: items.txt used to OVERRIDE a treasure slot, and a room
+'  rolls 1 of its level's 3 slots uniformly -- so a level whose 3 slots were all items could
+'  NEVER yield a gold treasure card, and its treasures.txt rows were dead data. That had
+'  silently happened to levels 5, 6 and 8. Items now live in a separate per-level POOL with
+'  its own drop chance (ITEM_PCT_<n>), which removes that failure mode by construction; the
+'  checks here cover the new ones -- a chance with no pool, a pool with no chance, a
+'  zero-weight entry that can never be drawn, and a 100% chance that starves gold.
 ' ============================================================================
 
 SUB DataLint
@@ -25,20 +26,44 @@ SUB DataLint
     PRINT PipeCol$("|15datalint|07 -- validating the loaded content tables (data pack: |11" + _TRIM$(opt_datapack) + "|07)")
     PRINT
 
-    '--- treasure slots vs magic-item overrides -------------------------------
-    PRINT PipeCol$("|11treasure slots|07 (a room rolls 1 of 3 uniformly; items override a slot)")
+    '--- treasure slots + the magic-item POOL ---------------------------------
+    ' Items no longer override a treasure slot, so every treasures.txt row is reachable by
+    ' construction. What CAN go wrong now: a level with a drop chance but no pool to draw
+    ' from (silently never yields an item), or a pool with no chance (dead rows).
+    PRINT PipeCol$("|11item drop odds|07 (ITEM_PCT_<n> = how often; items.txt weight = which)")
+    IF ITEMS_OLDFMT THEN
+        PRINT PipeCol$("  |14!!|07 items.txt uses the LEGACY `lvl | slot | name | gold | type` layout.")
+        PRINT PipeCol$("       It still loads (slot ignored, equal weights), but migrate to")
+        PRINT PipeCol$("       `lvl | name | gold | type | weight` to control rarity.")
+        warns = warns + 1
+    END IF
     FOR lvl = 1 TO 9
-        nitem = 0: goldslots = 0
-        FOR slot = 1 TO 3
-            IF TRE_ITEM(lvl, slot) <> 0 THEN nitem = nitem + 1 ELSE goldslots = goldslots + 1
-        NEXT slot
-        IF goldslots = 0 THEN
-            PRINT PipeCol$("  |12!! level " + LTRIM$(STR$(lvl)) + "|07: all 3 slots are magic ITEMS -- this level can never yield a gold")
-            PRINT PipeCol$("       treasure card, and its treasures.txt rows are unreachable. Free at least one slot.")
+        nitem = ITM_N(lvl)
+        IF ITEM_PCT(lvl) > 0 AND nitem = 0 THEN
+            PRINT PipeCol$("  |12!! level " + LTRIM$(STR$(lvl)) + "|07: ITEM_PCT is " + LTRIM$(STR$(ITEM_PCT(lvl))) + "% but the item pool is EMPTY -- it can never yield an item")
+            errs = errs + 1
+        ELSEIF ITEM_PCT(lvl) = 0 AND nitem > 0 THEN
+            PRINT PipeCol$("  |14!! level " + LTRIM$(STR$(lvl)) + "|07: " + LTRIM$(STR$(nitem)) + " item(s) in the pool but ITEM_PCT is 0 -- those rows are dead")
+            warns = warns + 1
+        ELSEIF ITEM_PCT(lvl) >= 100 THEN
+            PRINT PipeCol$("  |12!! level " + LTRIM$(STR$(lvl)) + "|07: ITEM_PCT is " + LTRIM$(STR$(ITEM_PCT(lvl))) + "% -- this level can never yield a GOLD treasure card")
             errs = errs + 1
         ELSE
-            PRINT PipeCol$("  |10ok|07 level " + LTRIM$(STR$(lvl)) + ": " + LTRIM$(STR$(nitem)) + " item slot(s), " + LTRIM$(STR$(goldslots)) + " gold slot(s)  (item chance " + LTRIM$(STR$(INT(nitem * 100 / 3))) + "%)")
+            PRINT PipeCol$("  |10ok|07 level " + LTRIM$(STR$(lvl)) + ": " + LTRIM$(STR$(ITEM_PCT(lvl))) + "% item chance from a pool of " + LTRIM$(STR$(nitem)))
         END IF
+        ' a pool entry that can never be drawn
+        FOR slot = 1 TO nitem
+            IF ITM_W(lvl, slot) <= 0 THEN
+                PRINT PipeCol$("  |14!!|07 " + _TRIM$(ITM_NAME(lvl, slot)) + " (level " + LTRIM$(STR$(lvl)) + ") has weight 0 -- never drawn")
+                warns = warns + 1
+            END IF
+            code = ITM_CODE(lvl, slot)
+            ' 1..5, 7..13 are handled by ClaimTreasure; 6 (Level Key) is placed dynamically
+            IF code < 1 OR code > 13 OR code = 6 THEN
+                PRINT PipeCol$("  |12!!|07 " + _TRIM$(ITM_NAME(lvl, slot)) + " (level " + LTRIM$(STR$(lvl)) + ") has unhandled type code " + LTRIM$(STR$(code)))
+                errs = errs + 1
+            END IF
+        NEXT slot
     NEXT lvl
     PRINT
 
@@ -67,19 +92,7 @@ SUB DataLint
         NEXT slot
     NEXT lvl
 
-    '--- item type codes the game actually implements --------------------------
-    FOR lvl = 1 TO 9
-        FOR slot = 1 TO 3
-            code = TRE_ITEM(lvl, slot)
-            IF code <> 0 THEN
-                ' 1..5, 7..13 are handled by ClaimTreasure; 6 (Level Key) is placed dynamically
-                IF code < 1 OR code > 13 OR code = 6 THEN
-                    PRINT PipeCol$("  |12!!|07 item " + LTRIM$(STR$(lvl)) + "/" + LTRIM$(STR$(slot)) + " (" + _TRIM$(TRE_NAME(lvl, slot)) + ") has unhandled type code " + LTRIM$(STR$(code)))
-                    errs = errs + 1
-                END IF
-            END IF
-        NEXT slot
-    NEXT lvl
+    ' (item type codes are checked per POOL entry above -- treasure slots are always gold)
 
     '--- chamber event table --------------------------------------------------
     ' Mechanics are keyed by `kind`; a typo'd kind silently never fires (ChamberEventKind$

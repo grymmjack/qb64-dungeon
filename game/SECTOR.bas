@@ -70,7 +70,8 @@ END SUB
 SUB InitMonsterTables
     ' The bestiary, treasure pools, magic items and boss names now live in the
     ' editable files under assets/data/ -- edit those and press F5. LoadTreasures
-    ' fills every slot; LoadItems then overrides slots that hold a magic-item card.
+    ' fills the 3 gold slots per level; LoadItems fills each level's separate weighted
+    ' ITEM POOL (items no longer override a slot -- see items.txt / tuning.txt ITEM_PCT_n).
     LoadMonsters
     LoadTreasures
     LoadItems
@@ -111,6 +112,7 @@ END SUB
 ' treasure from that level's pool; one deep room becomes the boss lair.
 
 SUB RandomizeRooms
+    DIM ip AS INTEGER, ipick AS INTEGER          ' item-pool draw (see the treasure block below)
     ' EVERY detected room gets its own monster + treasure from its level's pool.
     ' (Call DetectRooms first -- done in StartBoard/InitFog -- so ROOMS is populated.)
     DIM r AS INTEGER, sec AS INTEGER, m AS INTEGER, t AS INTEGER, startroom AS INTEGER
@@ -139,8 +141,28 @@ SUB RandomizeRooms
                 ROOMS(r).monster = MON_NAME(sl, m): ROOMS(r).mslot = m
             END IF
             ROOMS(r).malive = TRUE
+            ' Gold treasure by default; a magic ITEM instead with ITEM_PCT(sec) chance,
+            ' drawn from that level's weighted pool. HOW OFTEN (tuning.txt ITEM_PCT_<n>) and
+            ' WHICH (the item's `weight` in items.txt) are now independent knobs -- items used
+            ' to OVERRIDE a treasure slot, so frequency was a slot POSITION: only 0/33/66/100%
+            ' was expressible, and a level with 3 item slots could never yield gold at all.
+            ' Nested IFs, not `AND`: QB64's AND does not short-circuit, and PctChance% consumes
+            ' a die roll -- inside an AND it would burn one even when the pool is empty, which
+            ' would shift the seeded RNG sequence that save/load relies on to rebuild the board.
             ROOMS(r).treasure_name = TRE_NAME(sec, t): ROOMS(r).treasure = TRE_GOLD(sec, t)
-            ROOMS(r).treasure_item = TRE_ITEM(sec, t)
+            ROOMS(r).treasure_item = 0
+            IF ITM_N(sec) > 0 THEN
+                IF PctChance%(ITEM_PCT(sec)) THEN
+                    REDIM iw(1 TO ITM_N(sec)) AS INTEGER
+                    FOR ip = 1 TO ITM_N(sec): iw(ip) = ITM_W(sec, ip): NEXT ip
+                    ipick = WeightPick%(iw(), ITM_N(sec))
+                    IF ipick >= 1 THEN
+                        ROOMS(r).treasure_name = ITM_NAME(sec, ipick)
+                        ROOMS(r).treasure = ITM_GOLD(sec, ipick)
+                        ROOMS(r).treasure_item = ITM_CODE(sec, ipick)
+                    END IF
+                END IF
+            END IF
             ' hit-dice HP: a level-scaled range, not a fixed value. min = sec*4+1, and the
             ' die grows with depth (L1 rolls a d6, L9 a d22), so deeper monsters vary more.
             ROOMS(r).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(r).mhp_now = ROOMS(r).mhp

@@ -187,6 +187,21 @@ DIM SHARED CHM_NAME(1 TO MAXCHAMBER) AS STRING
 ' so re-entering cannot farm boons. Saved (v7) alongside CHM_DEAD.
 DIM SHARED CHM_EVDONE(1 TO MAXCHAMBER) AS INTEGER
 
+' --- per-level MAGIC ITEM pool (assets/data/<pack>/items.txt) ---
+' Items used to OVERRIDE a treasures.txt slot, which meant an item's frequency was encoded
+' as a slot POSITION -- so odds could only be 0/33/66/100%, and a level whose 3 slots were
+' all items could never yield gold treasure at all (that silently happened to levels 5/6/8).
+' Now the two are independent: ITEM_PCT decides HOW OFTEN a level yields an item, and the
+' pool's weights decide WHICH. treasures.txt slots are always plain gold.
+CONST MAXITEMPL = 12                               ' items one level may offer
+DIM SHARED ITM_NAME(1 TO 9, 1 TO MAXITEMPL) AS STRING
+DIM SHARED ITM_GOLD(1 TO 9, 1 TO MAXITEMPL) AS INTEGER
+DIM SHARED ITM_CODE(1 TO 9, 1 TO MAXITEMPL) AS INTEGER
+DIM SHARED ITM_W(1 TO 9, 1 TO MAXITEMPL) AS INTEGER
+DIM SHARED ITM_N(1 TO 9) AS INTEGER
+DIM SHARED ITEM_PCT(1 TO 9) AS INTEGER             ' % of this level's rooms that yield an item
+DIM SHARED ITEMS_OLDFMT AS INTEGER                 ' TRUE if items.txt used the legacy slot form
+
 ' --- CHAMBER EVENT table (assets/data/<pack>/chamber-events.txt) ---
 ' Mechanics are keyed by `kind` in code; weight + depth band + prose are data. Drawn with
 ' the engine's WeightPickLvl% (engine/TABLE.bas), the same primitive the curio deck uses.

@@ -35,3 +35,18 @@ FLEE_FAIL_STEP        | 5     # + this % per level deeper (level 9 = 15 + 8*5 = 
 
 # --- movement ---
 MOVE_MAX              | 5     # spaces per turn in Boardgame mode (>=1)
+
+# --- magic-item drop odds (% of a level's rooms that yield an ITEM instead of gold) ---
+# These replace the old trick of encoding frequency as a treasure-slot position, which
+# could only express 0/33/66/100% and starved levels 5/6/8 of gold entirely. WHICH item
+# drops is the per-item `weight` column in items.txt; how OFTEN is here.
+# Level 1 stays at 0 so the opening floor is plain gold and teaches the basic loop.
+ITEM_PCT_1            | 0     # starting floor: no magic
+ITEM_PCT_2            | 12
+ITEM_PCT_3            | 16
+ITEM_PCT_4            | 20
+ITEM_PCT_5            | 24
+ITEM_PCT_6            | 28
+ITEM_PCT_7            | 30
+ITEM_PCT_8            | 33
+ITEM_PCT_9            | 36    # deepest floor: richest, but gold still dominates

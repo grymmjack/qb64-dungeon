@@ -324,9 +324,23 @@ Refinement backlog (from playtest 26-07-24):
       Lightning, L8 Magic Bow -- each still available elsewhere). Deck 18 -> 15; every level now
       keeps >=1 gold slot. items.txt records the invariant and `dungeon.run datalint` fails the
       build if it is ever broken again.
-    ☐ Item drop ODDS are still uniform-by-slot: levels 3-9 all sit at 66% item chance (2 of 3
-      slots). The manual implies magic cards are a minority of the deck. Consider thinning to 1
-      item slot on the mid levels, or weighting the slot roll -- a balance call, wants playtesting.
+    ✔ Item drop ODDS decoupled from slot position @done(26-07-29)
+      Items no longer OVERRIDE a treasures.txt slot, which was what forced frequency to be a slot
+      POSITION (only 0/33/66/100% expressible, and a fully-overridden level yielded no gold at
+      all). Two independent knobs now:
+        HOW OFTEN  tuning.txt ITEM_PCT_1..9  -- per level, keyed so a pack can override one level
+        WHICH      items.txt `weight` column -- relative rarity within that level's pool
+      items.txt migrated to `lvl | name | gold | type | weight`; legacy `lvl | slot | ...` packs
+      still load (slot ignored, equal weights) and datalint reports the format.
+      BALANCE CHANGE: levels 3-9 were effectively 66% items; the new ramp is 0% on level 1 then
+      12% -> 36% with depth. Magic items are now clearly a minority, per the manual, and every
+      treasures.txt gold row is reachable again -- including levels 5/6/8, whose rows had been
+      dead data. WANTS A PLAYTEST: the gold economy just changed shape (more treasure cards,
+      fewer items, and fewer duplicate-item sales), so win pacing against 10k/20k/30k may need
+      the ITEM_PCT ramp or the treasure values retuned.
+      NOTE: the drop draw uses the engine's WeightPick% and nests its IFs rather than using AND --
+      PctChance% consumes a die roll, and QB64's AND does not short-circuit, so an AND would burn
+      a roll even with an empty pool and shift the seeded RNG that save/load rebuilds the board from.
     ~ To-hit is class base + attribute mod (STR fighters / INT wizard) -- e.g. Hero +7 = +4 class +3 STR;
       shown by CombatDerivation$. Working as designed; revisit class base values if combat stays too easy.
 

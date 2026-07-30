@@ -18,8 +18,12 @@ SUB LoadTuning
     XP_PER_KILL_LVL = 10: CHEST_PCT = 20: CHEST_TRAP_PCT = 25
     CURIO_PATH_PCT = 3: CURIO_COOLDOWN = 16
     SIREN_ENCOUNTER_BOOST = 20: SIREN_MOVE_PCT = 15
+    ' item-drop odds per level; defaults ramp with depth (level 1 stays plain gold)
+    DIM tl AS INTEGER
+    ITEM_PCT(1) = 0
+    FOR tl = 2 TO 9: ITEM_PCT(tl) = 8 + tl * 3: NEXT tl
     FLEE_FAIL_BASE = 15: FLEE_FAIL_STEP = 5: MOVE_MAX = 5
-    DIM i AS INTEGER, k AS STRING, v AS INTEGER
+    DIM i AS INTEGER, k AS STRING, v AS INTEGER, lv AS INTEGER
     ReadDataFile "assets/data/tuning.txt"
     FOR i = 1 TO DLINE_N
         k = UCASE$(DField$(DLINE(i), 1)): v = VAL(DField$(DLINE(i), 2))
@@ -43,6 +47,17 @@ SUB LoadTuning
             CASE "FLEE_FAIL_BASE": FLEE_FAIL_BASE = v
             CASE "FLEE_FAIL_STEP": FLEE_FAIL_STEP = v
             CASE "MOVE_MAX": IF v >= 1 THEN MOVE_MAX = v
+            CASE ELSE
+                ' ITEM_PCT_<n> -- per-level magic-item drop chance (see items.txt).
+                ' Keyed rather than positional so a pack can override one level only.
+                IF LEFT$(k, 9) = "ITEM_PCT_" THEN
+                    lv = VAL(MID$(k, 10))
+                    IF lv >= 1 AND lv <= 9 THEN
+                        IF v < 0 THEN v = 0
+                        IF v > 100 THEN v = 100
+                        ITEM_PCT(lv) = v
+                    END IF
+                END IF
         END SELECT
     NEXT i
 END SUB
@@ -67,12 +82,54 @@ END SUB
 
 ' -- magic items (override a treasure slot): lvl | slot | name | gold | type --
 SUB LoadItems
-    DIM i AS INTEGER
+    DIM i AS INTEGER, lvl AS INTEGER, f2 AS STRING, nm AS STRING
+    DIM g AS INTEGER, code AS INTEGER, wt AS INTEGER, old AS INTEGER
+    FOR lvl = 1 TO 9: ITM_N(lvl) = 0: NEXT lvl
+    ITEMS_OLDFMT = FALSE
     ReadDataFile "assets/data/items.txt"
     FOR i = 1 TO DLINE_N
-        SetItem VAL(DField$(DLINE(i), 1)), VAL(DField$(DLINE(i), 2)), DField$(DLINE(i), 3), VAL(DField$(DLINE(i), 4)), VAL(DField$(DLINE(i), 5))
+        lvl = VAL(DField$(DLINE(i), 1))
+        f2 = DField$(DLINE(i), 2)
+        ' Two accepted layouts, told apart by whether field 2 is a bare NUMBER:
+        '   LEGACY: lvl | slot | name | gold | type      (slot encoded the frequency)
+        '   CURRENT: lvl | name | gold | type | weight
+        ' A legacy pack still loads -- its slot is simply ignored and every item gets an
+        ' equal weight, since a slot no longer means anything. datalint flags the format.
+        old = IsAllDigits%(f2)
+        IF old THEN
+            ITEMS_OLDFMT = TRUE
+            nm = DField$(DLINE(i), 3): g = VAL(DField$(DLINE(i), 4))
+            code = VAL(DField$(DLINE(i), 5)): wt = 10
+        ELSE
+            nm = f2: g = VAL(DField$(DLINE(i), 3))
+            code = VAL(DField$(DLINE(i), 4)): wt = VAL(DField$(DLINE(i), 5))
+            IF wt <= 0 THEN wt = 10                     ' omitted weight = ordinary rarity
+        END IF
+        IF lvl >= 1 AND lvl <= 9 AND LEN(nm) > 0 THEN
+            IF ITM_N(lvl) < MAXITEMPL THEN
+                ITM_N(lvl) = ITM_N(lvl) + 1
+                ITM_NAME(lvl, ITM_N(lvl)) = nm
+                ITM_GOLD(lvl, ITM_N(lvl)) = g
+                ITM_CODE(lvl, ITM_N(lvl)) = code
+                ITM_W(lvl, ITM_N(lvl)) = wt
+            END IF
+        END IF
     NEXT i
 END SUB
+
+' TRUE if s is non-empty and all digits -- how LoadItems tells the legacy `slot` column
+' (a bare 1..3) from a current-format item NAME.
+FUNCTION IsAllDigits% (s AS STRING)
+    DIM i AS INTEGER, t AS STRING, ch2 AS STRING
+    t = _TRIM$(s)
+    IsAllDigits% = 0
+    IF LEN(t) = 0 THEN EXIT FUNCTION
+    FOR i = 1 TO LEN(t)
+        ch2 = MID$(t, i, 1)
+        IF ch2 < "0" OR ch2 > "9" THEN EXIT FUNCTION
+    NEXT i
+    IsAllDigits% = -1
+END FUNCTION
 
 ' -- boss lair names: slot (1-4) | name --
 SUB LoadBosses

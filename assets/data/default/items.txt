@@ -1,34 +1,44 @@
-# items.txt -- magic-item cards seeded into the treasure pools. One item per line.
-# An item OVERRIDES the treasure slot it names (see treasures.txt): put a MAGIC SWORD in
-# level 2 / slot 3 and that slot yields the sword instead of its gold treasure. Because a
-# room rolls 1 of its 3 slots, an item in slot 3 turns up in ~1/3 of that level's rooms.
-# Deeper levels seed rarer, stronger items. Lines starting with # are comments.
-# Re-read at launch (F5).
+# items.txt -- the magic-item cards each dungeon level can yield. One item per line.
 #
-# INVARIANT: never fill all 3 slots of a level. A room rolls 1 of its level's 3 slots
-# UNIFORMLY (RollDie(3) in RandomizeRooms), so a level whose every slot holds an item can
-# never yield a gold treasure card and its treasures.txt rows become dead data. That had
-# happened to levels 5, 6 and 8 -- the deck grew until it saturated them, silently.
-# `dungeon.run datalint` now fails the build if it happens again. Max 2 items per level.
+# FORMAT:  lvl | name | gold | type | weight
+#   lvl     which dungeon level offers it (1-9)
+#   name    display name (also used to find its sprite)
+#   gold    sale value -- what a duplicate is worth when you already hold one
+#   type    the mechanic (see the code table below)
+#   weight  RELATIVE rarity WITHIN that level's pool (bigger = commoner). Not a percentage.
+#
+# HOW OFTEN a level yields an item at all is separate: tuning.txt ITEM_PCT_<n>. That split
+# is the point. Items used to OVERRIDE a treasures.txt slot, so an item's frequency was
+# encoded as a slot POSITION -- odds could only be 0/33/66/100%, and any level whose three
+# slots were all items could never yield a gold treasure card. That silently happened to
+# levels 5, 6 and 8, making their treasures.txt rows dead data. Now treasure slots are
+# always gold, ITEM_PCT decides how often an item replaces one, and these weights decide
+# which item it is. `dungeon.run datalint` checks both halves.
+#
+# LEGACY packs using the old `lvl | slot | name | gold | type` layout still load -- the
+# loader tells them apart by whether field 2 is a bare number, ignores the slot, and gives
+# every item an equal weight. datalint reports the format so you know to migrate.
 #
 # type codes: 1=MagicSword+1  2=MagicSword+2  3=SecretDoorCard  4=ESP Medallion
 #             5=CrystalBall   7=Shield(+2 AC) 8=MagicArmor(+3 AC) 9=MagicBow(+2 hit)
 #             10=ElfBoots(+2 move) 11=TeleportScroll   (6=LevelKey is placed dynamically)
 #             12=FireBallScroll  13=LightningBoltScroll  (Wizard scribes 2 charges; others sell)
 #
-# lvl | slot | name             | gold | type
-2 | 3 | MAGIC SWORD +1   | 500  | 1
-3 | 3 | ESP MEDALLION    | 500  | 4
-3 | 2 | SHIELD           | 800  | 7
-4 | 3 | SECRET DOOR CARD | 0    | 3
-4 | 2 | ELF BOOTS        | 900  | 10
-5 | 3 | CRYSTAL BALL     | 1000 | 5
-5 | 2 | MAGIC BOW        | 1200 | 9
-6 | 3 | MAGIC SWORD +2   | 500  | 2
-6 | 2 | TELEPORT SCROLL  | 400  | 11
-7 | 3 | MAGIC ARMOR      | 1500 | 8
-7 | 2 | TELEPORT SCROLL  | 400  | 11
-8 | 3 | SHIELD           | 800  | 7
-8 | 1 | FIRE BALL SCROLL | 500  | 12
-9 | 3 | MAGIC ARMOR      | 1500 | 8
-9 | 1 | LIGHTNING SCROLL | 500  | 13
+# Re-read at launch (F5).
+#
+# lvl | name             | gold | type | weight
+2     | MAGIC SWORD +1   | 500  | 1    | 10
+3     | ESP MEDALLION    | 500  | 4    | 10
+3     | SHIELD           | 800  | 7    | 12
+4     | ELF BOOTS        | 900  | 10   | 10
+4     | SECRET DOOR CARD | 0    | 3    | 8
+5     | CRYSTAL BALL     | 1000 | 5    | 7
+5     | MAGIC BOW        | 1200 | 9    | 9
+6     | MAGIC SWORD +2   | 500  | 2    | 6
+6     | TELEPORT SCROLL  | 400  | 11   | 12
+7     | MAGIC ARMOR      | 1500 | 8    | 6
+7     | TELEPORT SCROLL  | 400  | 11   | 12
+8     | FIRE BALL SCROLL | 500  | 12   | 9
+8     | SHIELD           | 800  | 7    | 12
+9     | LIGHTNING SCROLL | 500  | 13   | 9
+9     | MAGIC ARMOR      | 1500 | 8    | 6
