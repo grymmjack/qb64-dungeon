@@ -213,13 +213,20 @@ FUNCTION StanceName$ (st AS INTEGER)
     END SELECT
 END FUNCTION
 
+' A tuned percentage, or the built-in default when unset. Zero means "not configured" rather than
+' "scale to nothing" -- a genuine 0%% stance would make an actor deal literally no damage, which is
+' never what an unset config value should mean.
+FUNCTION TunePct% (v AS INTEGER, dflt AS INTEGER)
+    IF v > 0 THEN TunePct% = v ELSE TunePct% = dflt
+END FUNCTION
+
 ' Percent scaling applied to damage this actor DEALS, by stance. Committed attack hits harder,
 ' guarding trades offence for safety, staggered barely connects.
 FUNCTION StanceOutPct% (st AS INTEGER)
     SELECT CASE st
-        CASE STANCE_ATTACK: StanceOutPct% = 125
-        CASE STANCE_GUARD: StanceOutPct% = 65
-        CASE STANCE_STAGGER: StanceOutPct% = 50
+        CASE STANCE_ATTACK: StanceOutPct% = TunePct%(TUNE_ST_ATK_OUT, 125)
+        CASE STANCE_GUARD: StanceOutPct% = TunePct%(TUNE_ST_GRD_OUT, 65)
+        CASE STANCE_STAGGER: StanceOutPct% = TunePct%(TUNE_ST_STG_OUT, 50)
         CASE ELSE: StanceOutPct% = 100
     END SELECT
 END FUNCTION
@@ -229,9 +236,9 @@ END FUNCTION
 ' throwing away its wind-up.
 FUNCTION StanceInPct% (st AS INTEGER)
     SELECT CASE st
-        CASE STANCE_ATTACK: StanceInPct% = 125
-        CASE STANCE_GUARD: StanceInPct% = 50
-        CASE STANCE_STAGGER: StanceInPct% = 160
+        CASE STANCE_ATTACK: StanceInPct% = TunePct%(TUNE_ST_ATK_IN, 125)
+        CASE STANCE_GUARD: StanceInPct% = TunePct%(TUNE_ST_GRD_IN, 50)
+        CASE STANCE_STAGGER: StanceInPct% = TunePct%(TUNE_ST_STG_IN, 160)
         CASE ELSE: StanceInPct% = 100
     END SELECT
 END FUNCTION

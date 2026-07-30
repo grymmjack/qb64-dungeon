@@ -438,3 +438,10 @@ DIM SHARED AP_N AS INTEGER
 CONST MAN_MAX = 600
 DIM SHARED MAN_BUF(1 TO MAN_MAX) AS STRING, MAN_N AS INTEGER
 DIM SHARED MAN_ENTRIES AS INTEGER          ' emitted asset lines (excludes comments/blanks)
+
+' Health-tier thresholds (assets/data/tuning.txt), % of max HP. GAME-side: the engine has no
+' opinion on what "BLOODIED" means -- only HealthWord$ reads these. audit-boundary.sh caught them
+' in ENGINE.BI with no engine consumer.
+DIM SHARED TUNE_HP_GRAZED AS INTEGER
+DIM SHARED TUNE_HP_WOUNDED AS INTEGER
+DIM SHARED TUNE_HP_BLOODIED AS INTEGER

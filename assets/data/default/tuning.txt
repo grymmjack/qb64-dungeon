@@ -50,3 +50,35 @@ ITEM_PCT_6            | 28
 ITEM_PCT_7            | 30
 ITEM_PCT_8            | 33
 ITEM_PCT_9            | 36    # deepest floor: richest, but gold still dominates
+
+# ---------------------------------------------------------------------------
+#  TACTICAL COMBAT (the fight screen). Sub-second values are in MILLISECONDS,
+#  because tuning.txt is read as integers.
+#
+#  Every row here is an OVERRIDE: delete it (or set 0) and the engine's built-in
+#  default applies. That is deliberate -- examples/minimal drives the engine with
+#  no game and never reads this file, so the defaults have to stand alone.
+# ---------------------------------------------------------------------------
+FUSE_MIN_MS           | 900   # FLOOR on any attack fuse. Never let depth+tier squeeze the
+                              # window below a human reaction time: an unavoidable hit reads
+                              # as a bug, not as difficulty, and no skill answers it.
+FUSE_BASE_MS          | 4200  # fuse length at menace tier 0, dungeon level 1
+FUSE_TIER_MS          | 550   # subtracted per menace tier (slot 3 monsters wind up fastest)
+FUSE_DEPTH_MS         | 180   # subtracted per dungeon level
+GESTURE_MS            | 1700  # the player's commit deadline on a FLOURISH -- about one sweep
+DODGE_MS              | 850   # window to answer an incoming blow's arrow prompt
+
+# Stance damage scaling, whole percent. OUT = dealt by this actor, IN = taken by it.
+# Attacking is a TRADE (hits harder, takes harder); staggered is the punish window.
+STANCE_ATTACK_OUT_PCT  | 125
+STANCE_ATTACK_IN_PCT   | 125
+STANCE_GUARD_OUT_PCT   | 65
+STANCE_GUARD_IN_PCT    | 50
+STANCE_STAGGER_OUT_PCT | 50
+STANCE_STAGGER_IN_PCT  | 160
+
+# Health-tier thresholds, % of max HP. Above GRAZED = GRAZED, above WOUNDED = WOUNDED,
+# above BLOODIED = BLOODIED, at or below it = NEAR DEATH. (Full HP always reads UNHURT.)
+HP_GRAZED_PCT         | 60
+HP_WOUNDED_PCT        | 35
+HP_BLOODIED_PCT       | 15

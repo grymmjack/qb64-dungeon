@@ -60,6 +60,30 @@ T_EqI "tier is clamped, not wrapped (99 == 2)", INT(FuseDur!(99, 1) * 100), INT(
 T_EqI "depth is clamped low (0 == 1)", INT(FuseDur!(1, 0) * 100), INT(FuseDur!(1, 1) * 100)
 T_EqI "depth is clamped high (99 == 9)", INT(FuseDur!(1, 99) * 100), INT(FuseDur!(1, 9) * 100)
 
+T_Group "tuning OVERRIDES, and zero means DEFAULT (examples/minimal never loads tuning.txt)"
+' The engine must work with no game attached. If these read the tuning globals directly, a game
+' that never calls LoadTuning gets a 0-second reaction window and every fuse fires instantly.
+TUNE_FUSE_MIN_MS = 0: TUNE_GESTURE_MS = 0: TUNE_DODGE_MS = 0
+T_EqI "unset fuse floor falls back to the built-in", INT(FuseMinSecs! * 1000), INT(FUSE_MIN * 1000)
+T_EqI "unset gesture window falls back", INT(GestureSecs! * 1000), INT(GESTURE_FUSE * 1000)
+T_EqI "unset dodge window falls back", INT(DodgeSecs! * 1000), INT(DODGE_WINDOW * 1000)
+TUNE_FUSE_MIN_MS = 1500: TUNE_GESTURE_MS = 2500: TUNE_DODGE_MS = 400
+T_EqI "a set fuse floor is used (ms -> s)", INT(FuseMinSecs! * 1000), 1500
+T_EqI "  gesture window", INT(GestureSecs! * 1000), 2500
+T_EqI "  dodge window", INT(DodgeSecs! * 1000), 400
+' The floor must actually FLOOR, using the tuned value.
+T_True "the tuned floor bounds the worst case", FuseDur!(2, 9) >= 1.5
+SeatFoes 1
+FuseArm 1, 0.1
+T_True "arming below the tuned floor is raised to it", FF_DUR(1) >= 1.5
+TUNE_FUSE_BASE_MS = 9000: TUNE_FUSE_TIER_MS = 0: TUNE_FUSE_DEPTH_MS = 0
+T_EqI "a tuned base length is used", INT(FuseDur!(0, 1) * 1000), 9000
+TUNE_FUSE_MIN_MS = 0: TUNE_GESTURE_MS = 0: TUNE_DODGE_MS = 0
+TUNE_FUSE_BASE_MS = 0: TUNE_FUSE_TIER_MS = 0: TUNE_FUSE_DEPTH_MS = 0
+' Rounded, not truncated: 4.2 is not exactly representable in SINGLE (4.19999...), so INT()
+' of it * 100 is 419. Comparing truncated floats asserts the float format, not the value.
+T_EqI "cleared again, back to the default base", INT(FuseDur!(0, 1) * 100 + 0.5), 420
+
 T_Group "FuseArm -- arming resets from zero, and never below the floor"
 SeatFoes 4
 FuseArm 1, 3

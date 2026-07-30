@@ -200,6 +200,21 @@ T_EqI "125%% of 8", ScaleDmg&(8, 125), 10
 T_EqI "1 damage halved is still 1, never 0", ScaleDmg&(1, 50), 1
 T_EqI "  even at 10%%", ScaleDmg&(1, 10), 1
 
+T_Group "TunePct% -- zero means DEFAULT, not zero percent"
+' A genuine 0%% stance would make an actor deal literally no damage. An unset config value must
+' never mean that, or a game that skips tuning.txt silently disables combat.
+T_EqI "unset uses the default", TunePct%(0, 125), 125
+T_EqI "set wins", TunePct%(80, 125), 80
+T_EqI "negative is treated as unset", TunePct%(-5, 125), 125
+TUNE_ST_ATK_OUT = 0: TUNE_ST_GRD_IN = 0
+T_EqI "unset ATTACK-out is the built-in 125", StanceOutPct%(STANCE_ATTACK), 125
+T_EqI "unset GUARD-in is the built-in 50", StanceInPct%(STANCE_GUARD), 50
+TUNE_ST_ATK_OUT = 200: TUNE_ST_GRD_IN = 10
+T_EqI "tuned ATTACK-out is used", StanceOutPct%(STANCE_ATTACK), 200
+T_EqI "tuned GUARD-in is used", StanceInPct%(STANCE_GUARD), 10
+T_EqI "  and still floors a connected blow at 1", ScaleDmg&(5, 10), 1
+TUNE_ST_ATK_OUT = 0: TUNE_ST_GRD_IN = 0
+
 T_Group "StaggerActor / StanceSync -- a stagger wears off by itself"
 ' Modelled as a STATUS rather than a flag, so it expires through the normal tick. As a flag it
 ' would need clearing by hand, and a missed clear leaves a foe permanently STAGGERED -- invisible

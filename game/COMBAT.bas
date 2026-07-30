@@ -464,7 +464,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
                 dmg = GameRoll(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
-                IF opt_gestures THEN dmg = dmg + CritFlourish(mon, sec)   ' Action Gestures: time the gauge for +0/1/2 bonus dice
+                IF opt_gestures THEN dmg = dmg + CritFlourish(mon, sec, SkillTier%)   ' Action Gestures: time the gauge for +0/1/2 bonus dice
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
@@ -582,7 +582,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ' Action Gestures: one clutch attempt to rise. Nail the crit zone and you
                 ' claw back with 1d6 HP in place -- keep your gold, no life spent, fight on.
                 saved = 0
-                IF opt_gestures THEN saved = SecondWind%(mon, sec)
+                IF opt_gestures THEN saved = SecondWind%(mon, sec, SkillTier%)
                 IF saved THEN
                     dirty = -1                    ' rose where you stand; the fight continues
                 ELSE

@@ -35,8 +35,13 @@ if [ -n "$MANIFEST_SRC" ] && [ -s "$MANIFEST_SRC" ]; then
   echo "manifest : $MANIFEST_SRC (pre-captured)"
 else
   [ -x "$GAME/dungeon.run" ] || { echo "no $GAME/dungeon.run - build it first (F5)"; exit 1; }
-  ( cd "$GAME" && ./dungeon.run imagemanifest nocolor ) > "$MANIFEST" 2>/dev/null
-  echo "manifest : dungeon.run imagemanifest  ($(grep -m1 '^# ENTRIES:' "$MANIFEST"))"
+  # BOTH manifests. They cover different halves and a generator that reads one produces half a
+  # pack: imagemanifest is the GENERAL art (regular fights, combat panel, char sheet, treasury),
+  # fightmanifest is the strategic-combat art (the tactical screen's 264x200 portraits). The
+  # pixel-art/ prefix filter below keeps only our media from each.
+  ( cd "$GAME" && ./dungeon.run imagemanifest nocolor ) >  "$MANIFEST" 2>/dev/null
+  ( cd "$GAME" && ./dungeon.run fightmanifest nocolor ) >> "$MANIFEST" 2>/dev/null
+  echo "manifest : dungeon.run imagemanifest + fightmanifest  ($(grep -c '^pixel-art/' "$MANIFEST") pixel-art assets)"
 fi
 grep -q '^pixel-art/' "$MANIFEST" || { echo "manifest has no pixel-art rows - aborting"; exit 1; }
 
@@ -122,7 +127,11 @@ gen_one() {  # $1 = manifest index, $2 = node name
   if [ -f "$dir/${nm}.png" ]; then echo "  skip $PACK/${folders[$i]}/${nm}"; return; fi
   local style; style="$(combine_style "${styles[$i]}")"
   echo "  [$node] $PACK/${folders[$i]}/${nm}  ($style)  <- ${prompts[$i]:0:46}..."
-  if "$PIXELMON" "${prompts[$i]}" --style "$style" --size "${sizes[$i]}" --transparent \
+  # --no-open is REQUIRED for batch use: pixelmon otherwise runs `xdg-open` on its raw "_sprite_"
+  # output after every render (pixelmon.py). On KDE that hits KIO -- but we rename the temp to the
+  # clean <name>.png right after, so KIO opens a path that no longer exists -> a "file does not
+  # exist" popup per asset. Suppressing pixelmon's auto-open is the actual fix.
+  if "$PIXELMON" "${prompts[$i]}" --style "$style" --size "${sizes[$i]}" --transparent --no-open \
         --server "$node" --output-to "$dir" --name "$nm" --create-dirs >/dev/null 2>&1; then
     local produced; produced="$(ls -t "$dir/${nm}"_*.png 2>/dev/null | head -1)"
     if [ -n "$produced" ]; then

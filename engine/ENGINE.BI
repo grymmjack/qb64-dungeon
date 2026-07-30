@@ -84,6 +84,26 @@ TYPE GAUGEK
     ehit      AS SINGLE    ' effective hit half-width THIS frame
 END TYPE
 
+' --- TACTICAL COMBAT tuning (assets/data/tuning.txt) ---------------------------
+' Stored as INTEGERS because that is what LoadTuning reads -- so sub-second values are in
+' MILLISECONDS and percentages are whole percents.
+'
+' Each is an OVERRIDE, not the value itself: zero means "use the built-in default" (the CONSTs
+' below and in FUSE.bas). That matters because examples/minimal drives the engine WITHOUT the
+' game, so it never calls LoadTuning -- reading these directly would hand it a 0-second reaction
+' window. It also makes the load order irrelevant: no init call has to run before or after
+' LoadTuning to get sane numbers.
+DIM SHARED TUNE_FUSE_MIN_MS AS INTEGER      ' floor on any attack fuse
+DIM SHARED TUNE_GESTURE_MS AS INTEGER       ' the player's commit deadline on a gesture
+DIM SHARED TUNE_DODGE_MS AS INTEGER         ' window to answer an incoming blow's arrow
+DIM SHARED TUNE_FUSE_BASE_MS AS INTEGER     ' fuse length at tier 0 / depth 1
+DIM SHARED TUNE_FUSE_TIER_MS AS INTEGER     ' subtracted per menace tier
+DIM SHARED TUNE_FUSE_DEPTH_MS AS INTEGER    ' subtracted per dungeon level
+DIM SHARED TUNE_ST_ATK_OUT AS INTEGER, TUNE_ST_ATK_IN AS INTEGER   ' stance damage scaling, %
+DIM SHARED TUNE_ST_GRD_OUT AS INTEGER, TUNE_ST_GRD_IN AS INTEGER
+DIM SHARED TUNE_ST_STG_OUT AS INTEGER, TUNE_ST_STG_IN AS INTEGER
+' (health-tier thresholds live in game/GAME.BI -- only the game's HealthWord$ reads them)
+
 CONST GESTURE_FUSE = 1.7          ' action-gesture countdown, seconds -- tight: about one good sweep
 CONST DODGE_WINDOW = 0.85         ' seconds to answer an incoming blow's arrow prompt --
 '                                   short enough to be a reflex, long enough to be fair

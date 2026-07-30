@@ -371,9 +371,7 @@ SUB FightDrawActor (a AS INTEGER)
         px = LayPX%(art): py = LayPY%(art): pxw = LayPW%(art): pxh = LayPH%(art)
         img = FightPortrait&(FA_ART(a), FA_ART2(a), pxw, pxh)
         IF img < -1 THEN
-            ' An ANSI tile is authored at exactly the region size, so it blits 1:1; a pixel-art
-            ' fallback may be any size, so stretch it into the box.
-            _PUTIMAGE (px, py)-(px + pxw - 1, py + pxh - 1), img, CANVAS
+            FightBlitFit img, px, py, pxw, pxh
         ELSE
             LINE (px, py)-(px + pxw - 1, py + pxh - 1), BOXBG, BF          ' placeholder: no art yet
         END IF
@@ -667,3 +665,23 @@ FUNCTION FightDodgeRun% (attacker AS INTEGER, secs AS SINGLE)
     LOOP
     FuseDisarm 0
 END FUNCTION
+
+' Blit an image into a box. 1:1 when it already matches the box exactly (an ANSI tile authored at
+' the region size), otherwise SCALED TO FIT and centred -- never stretched to fill.
+'
+' The generators produce SQUARE sprites and the portrait box is 33x25 cells (1.32:1), so a
+' stretch-to-fill would visibly distort every pixel-art portrait. Fitting letterboxes instead,
+' which is why the manifest asks for a square pixel source rather than a 264x200 one.
+SUB FightBlitFit (img AS LONG, px AS INTEGER, py AS INTEGER, pxw AS INTEGER, pxh AS INTEGER)
+    DIM iw AS INTEGER, ih AS INTEGER, sc AS SINGLE, dw AS INTEGER, dh AS INTEGER
+    IF img >= -1 THEN EXIT SUB
+    iw = _WIDTH(img): ih = _HEIGHT(img)
+    IF iw < 1 OR ih < 1 THEN EXIT SUB
+    IF iw = pxw AND ih = pxh THEN _PUTIMAGE (px, py), img, CANVAS: EXIT SUB
+    sc = pxw / iw
+    IF pxh / ih < sc THEN sc = pxh / ih
+    dw = INT(iw * sc): dh = INT(ih * sc)
+    IF dw < 1 THEN dw = 1
+    IF dh < 1 THEN dh = 1
+    _PUTIMAGE (px + (pxw - dw) \ 2, py + (pxh - dh) \ 2)-STEP(dw - 1, dh - 1), img, CANVAS
+END SUB

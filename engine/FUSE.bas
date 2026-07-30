@@ -20,6 +20,20 @@
 '  would silently mean "the player fired".
 ' ============================================================================
 
+' --- tuning accessors. Each returns the DATA value when set, else the built-in default, so the
+' engine works with or without a game that loads tuning.txt (examples/minimal does not).
+FUNCTION FuseMinSecs!
+    IF TUNE_FUSE_MIN_MS > 0 THEN FuseMinSecs! = TUNE_FUSE_MIN_MS / 1000! ELSE FuseMinSecs! = FUSE_MIN
+END FUNCTION
+
+FUNCTION GestureSecs!
+    IF TUNE_GESTURE_MS > 0 THEN GestureSecs! = TUNE_GESTURE_MS / 1000! ELSE GestureSecs! = GESTURE_FUSE
+END FUNCTION
+
+FUNCTION DodgeSecs!
+    IF TUNE_DODGE_MS > 0 THEN DodgeSecs! = TUNE_DODGE_MS / 1000! ELSE DodgeSecs! = DODGE_WINDOW
+END FUNCTION
+
 ' Clear every fuse. Called when an encounter starts.
 SUB FuseReset
     DIM a AS INTEGER
@@ -44,9 +58,14 @@ FUNCTION FuseDur! (tier AS INTEGER, depth AS INTEGER)
     dp = depth
     IF dp < 1 THEN dp = 1
     IF dp > 9 THEN dp = 9
-    ' 4.2s at tier 0 / depth 1, down toward the floor: -0.55s per tier, -0.18s per level.
-    d = 4.2 - 0.55 * tt - 0.18 * (dp - 1)
-    IF d < FUSE_MIN THEN d = FUSE_MIN
+    ' Data-tuned (assets/data/tuning.txt), defaulting to 4.2s at tier 0 / depth 1, less 0.55s per
+    ' menace tier and 0.18s per level -- then floored so a reaction window always exists.
+    DIM bas AS SINGLE, per AS SINGLE, dep AS SINGLE   ' `bas`, not `base` -- BASE is reserved
+    IF TUNE_FUSE_BASE_MS > 0 THEN bas = TUNE_FUSE_BASE_MS / 1000! ELSE bas = 4.2
+    IF TUNE_FUSE_TIER_MS > 0 THEN per = TUNE_FUSE_TIER_MS / 1000! ELSE per = 0.55
+    IF TUNE_FUSE_DEPTH_MS > 0 THEN dep = TUNE_FUSE_DEPTH_MS / 1000! ELSE dep = 0.18
+    d = bas - per * tt - dep * (dp - 1)
+    IF d < FuseMinSecs! THEN d = FuseMinSecs!
     FuseDur! = d
 END FUNCTION
 
@@ -55,7 +74,7 @@ END FUNCTION
 SUB FuseArm (a AS INTEGER, secs AS SINGLE)
     IF a < 0 OR a > FIGHT_MAXFOE THEN EXIT SUB
     FF_DUR(a) = secs
-    IF FF_DUR(a) < FUSE_MIN THEN FF_DUR(a) = FUSE_MIN
+    IF FF_DUR(a) < FuseMinSecs! THEN FF_DUR(a) = FuseMinSecs!
     FF_T(a) = 0: FF_ARMED(a) = -1: FF_PEND(a) = 0
     FA_FUSE(a) = 0
 END SUB

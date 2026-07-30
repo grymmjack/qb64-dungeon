@@ -28,7 +28,14 @@
 #                         renders .ans directly, so a twin only clutters)
 #   SEED=4242             fixed so a re-run reproduces the pack
 #   STEPS=30              sampler steps
+#   ROUNDS=3              audit/re-roll attempts before giving up
 #   LORA / STRENGTH       override ansimon's defaults
+#   EXTRA="..."           extra ansimon flags, e.g. a pack's whole colour
+#                         identity. Word-split, so no argument may contain a
+#                         space. Put it in <pack>/pack.conf and the pack
+#                         describes its own look:
+#                             EXTRA="--truecolor --lock-palette
+#                                    --palette Custom --custom-hex aabbcc,ddeeff"
 set -uo pipefail
 
 ASSETS="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -53,9 +60,14 @@ if [ -n "${MANIFEST:-}" ] && [ -s "$MANIFEST" ]; then
     cp "$MANIFEST" "$MAN"
 else
     [ -x "$GAME/dungeon.run" ] || { echo "no $GAME/dungeon.run — build it first (F5)"; exit 1; }
-    ( cd "$GAME" && ./dungeon.run fightmanifest ) > "$MAN" 2>/dev/null
+    # BOTH manifests. They cover different halves and reading one produces half a pack:
+    # imagemanifest is the GENERAL art (regular fights, combat panel, char sheet, treasury),
+    # fightmanifest is the strategic-combat art (the tactical screen). Both now share the same
+    # `path | style | size | prompt` shape, and the ansi-art/ prefix filters our medium.
+    ( cd "$GAME" && ./dungeon.run imagemanifest nocolor ) >  "$MAN" 2>/dev/null
+    ( cd "$GAME" && ./dungeon.run fightmanifest nocolor ) >> "$MAN" 2>/dev/null
 fi
-grep -qE '\| *ansi *\|' "$MAN" || { echo "manifest has no ansi rows — aborting"; exit 1; }
+grep -q '^ansi-art/' "$MAN" || { echo "manifest has no ansi-art rows - aborting"; exit 1; }
 
 trim() { local v="$*"; v="${v#"${v%%[![:space:]]*}"}"; printf '%s' "${v%"${v##*[![:space:]]}"}"; }
 want() {
@@ -119,6 +131,13 @@ run_box() {
         [ "$cell" = "8x8" ] && set -- "$@" --vga50
         [ -n "${LORA:-}" ] && set -- "$@" --lora "$LORA"
         [ -n "${STRENGTH:-}" ] && set -- "$@" --lora-strength "$STRENGTH"
+        # EXTRA is how a pack declares its look — see pack.conf. Word-split, so
+        # no argument may contain a space; ansimon accepts comma-separated hex
+        # lists for exactly this reason (--custom-hex aabbcc,ddeeff,...).
+        if [ -n "${EXTRA:-}" ]; then
+            read -ra _extra <<< "$EXTRA"
+            set -- "$@" "${_extra[@]}"
+        fi
         if ansimon "$prompt" --server "$srv" "$@" >"$td/log" 2>&1; then
             out="$(find "$td" -maxdepth 1 -name '*.ans' | head -1)"
         else

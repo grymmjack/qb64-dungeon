@@ -143,7 +143,10 @@ SUB DumpFightManifest
     ManOut "# DUNGEON! strategic-combat art manifest   (path | kind | size | prompt)"
     ManOut "# tag: strategic-combat   -- `grep strategic-combat` selects every line below."
     ManOut "#"
-    ManOut "# kind `ansi`  -> size is CHARACTER cols x rows (with the font cell it is drawn on)."
+    ManOut "# FORMAT: path | style | size | prompt   (same shape as imagemanifest)"
+    ManOut "#   ansi-art size = CHARACTER cols x rows, authored at exactly that (blits 1:1)."
+    ManOut "#   pixel-art size = a SQUARE dimension; the renderer FITS it into the 33x25 box"
+    ManOut "#   preserving aspect, so a square source is correct rather than a compromise."
     ManOut "#                 Author CP437 16-colour, CRLF line endings, exactly that many columns."
     ManOut "# kind `pixel` -> size is PIXELS, the region's exact on-screen box. 1:1, no scaling,"
     ManOut "#                 no letterboxing, no aspect to reconcile."
@@ -241,8 +244,12 @@ SUB PutFightArt (cat AS STRING, artbase AS STRING, pcell AS STRING, ppix AS STRI
     IF INSTR(seen, tag) > 0 THEN EXIT SUB
     seen = seen + _TRIM$(tag) + " "
     p = "strategic-combat/" + cat + "/" + artbase
-    ManAsset "ansi-art/" + p + ".ans | ansi | " + pcell + " chars @8x8 | ANSI " + pcell + " CP437 16-colour portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, no border and no text"
-    ManAsset "pixel-art/" + p + ".png | pixel | " + ppix + " px | pixel-art portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, transparent or black background, no border and no text"
+    ' Same `path | style | size | prompt` shape as imagemanifest, so one parser reads both.
+    ' ANSI size is the exact cell box (it blits 1:1). PIXEL size is a SQUARE, because the
+    ' generators produce square sprites -- the renderer FITS it into the 33x25 box preserving
+    ' aspect rather than stretching, so a square source is correct, not a compromise.
+    ManAsset "ansi-art/" + p + ".ans | darkest | " + pcell + " | ANSI " + pcell + " CP437 16-colour portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, no border and no text"
+    ManAsset "pixel-art/" + p + ".png | darkest | 320 | pixel-art portrait of " + subject + ", dark dungeon palette, transparent background, centered, crisp pixels"
 END SUB
 
 ' ============================================================================

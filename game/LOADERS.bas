@@ -28,6 +28,22 @@ SUB LoadTuning
     FOR i = 1 TO DLINE_N
         k = UCASE$(DField$(DLINE(i), 1)): v = VAL(DField$(DLINE(i), 2))
         SELECT CASE k
+            ' --- tactical combat (engine/FUSE.bas, STATUS.bas). Sub-second values are in ms. ---
+            CASE "FUSE_MIN_MS": TUNE_FUSE_MIN_MS = v
+            CASE "GESTURE_MS": TUNE_GESTURE_MS = v
+            CASE "DODGE_MS": TUNE_DODGE_MS = v
+            CASE "FUSE_BASE_MS": TUNE_FUSE_BASE_MS = v
+            CASE "FUSE_TIER_MS": TUNE_FUSE_TIER_MS = v
+            CASE "FUSE_DEPTH_MS": TUNE_FUSE_DEPTH_MS = v
+            CASE "STANCE_ATTACK_OUT_PCT": TUNE_ST_ATK_OUT = v
+            CASE "STANCE_ATTACK_IN_PCT": TUNE_ST_ATK_IN = v
+            CASE "STANCE_GUARD_OUT_PCT": TUNE_ST_GRD_OUT = v
+            CASE "STANCE_GUARD_IN_PCT": TUNE_ST_GRD_IN = v
+            CASE "STANCE_STAGGER_OUT_PCT": TUNE_ST_STG_OUT = v
+            CASE "STANCE_STAGGER_IN_PCT": TUNE_ST_STG_IN = v
+            CASE "HP_GRAZED_PCT": TUNE_HP_GRAZED = v
+            CASE "HP_WOUNDED_PCT": TUNE_HP_WOUNDED = v
+            CASE "HP_BLOODIED_PCT": TUNE_HP_BLOODIED = v
             CASE "POTION_SMALL_DIE": POTION_SMALL_DIE = v
             CASE "POTION_LARGE_DIE": POTION_LARGE_DIE = v
             CASE "POTION_LARGE_BONUS": POTION_LARGE_BONUS = v

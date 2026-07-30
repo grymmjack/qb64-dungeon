@@ -85,9 +85,13 @@ FUNCTION ResolveMusicIn$ (dir AS STRING, b AS STRING)
     exts(1) = ".mid": exts(2) = ".rad": exts(3) = ".s3m": exts(4) = ".mod": exts(5) = ".xm"
     exts(6) = ".it": exts(7) = ".ogg": exts(8) = ".mp3": exts(9) = ".flac": exts(10) = ".wav"
     chosen = ""
+    ' EXIT FOR on the FIRST hit -- the array order is a PREFERENCE order (trackers, then
+    ' ogg | mp3 | flac | wav). Without the early exit `chosen` was overwritten on every match, so
+    ' the LAST extension present won: a stray .wav silently beat a hand-authored .rad tracker
+    ' module, and .ogg could never win against anything later in the list.
     FOR i = 1 TO 10
         p = dir + b + exts(i)
-        IF _FILEEXISTS(p) THEN chosen = p
+        IF _FILEEXISTS(p) THEN chosen = p: EXIT FOR
     NEXT
     ResolveMusicIn$ = chosen
 END FUNCTION
@@ -290,10 +294,14 @@ END SUB
 FUNCTION OpenSfx& (bpath AS STRING)
     DIM h AS LONG
     h = 0
+    ' PREFERENCE ORDER: ogg, mp3, flac, wav -- lossy-compact first, then lossless, then raw.
+    ' _SNDOPEN is miniaudio-backed, so all four decode natively. NOTE the consequence of an order:
+    ' if two formats of the same sound both exist, the EARLIER one wins and the other is silently
+    ' never played -- so after converting a pack, delete the old files or the switch does nothing.
     IF _FILEEXISTS(bpath + ".ogg") THEN h = _SNDOPEN(bpath + ".ogg")
     IF h <= 0 THEN IF _FILEEXISTS(bpath + ".mp3") THEN h = _SNDOPEN(bpath + ".mp3")
-    IF h <= 0 THEN IF _FILEEXISTS(bpath + ".wav") THEN h = _SNDOPEN(bpath + ".wav")
     IF h <= 0 THEN IF _FILEEXISTS(bpath + ".flac") THEN h = _SNDOPEN(bpath + ".flac")
+    IF h <= 0 THEN IF _FILEEXISTS(bpath + ".wav") THEN h = _SNDOPEN(bpath + ".wav")
     OpenSfx& = h
 END FUNCTION
 
@@ -443,10 +451,12 @@ END SUB
 
 ' Path of the first existing <base>.<ext> (ogg/mp3/wav/flac), or "" if none.
 FUNCTION FirstAudioFile$ (bpath AS STRING)
+    ' ogg | mp3 | flac | wav -- the same order as OpenSfx& and ResolveMusicIn$, so a pack behaves
+    ' identically whichever kind of asset it ships.
     IF _FILEEXISTS(bpath + ".ogg") THEN FirstAudioFile$ = bpath + ".ogg": EXIT FUNCTION
     IF _FILEEXISTS(bpath + ".mp3") THEN FirstAudioFile$ = bpath + ".mp3": EXIT FUNCTION
-    IF _FILEEXISTS(bpath + ".wav") THEN FirstAudioFile$ = bpath + ".wav": EXIT FUNCTION
     IF _FILEEXISTS(bpath + ".flac") THEN FirstAudioFile$ = bpath + ".flac": EXIT FUNCTION
+    IF _FILEEXISTS(bpath + ".wav") THEN FirstAudioFile$ = bpath + ".wav": EXIT FUNCTION
     FirstAudioFile$ = ""
 END FUNCTION
 

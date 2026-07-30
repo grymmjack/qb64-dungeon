@@ -1,10 +1,15 @@
 ' ============================================================================
 '  GESTURE.bas -- optional ACTION-GESTURE mini-game (SETTINGS "Action Gestures").
 '
-'  A Greywood-style timing gauge (grymmjack's qb64pe-lab/greywood): a marker sweeps
-'  a bar on a sine wave; press SPACE to lock it. Where it lands scores a ZONE --
-'  crit (purple centre), hit (green band), miss (dark). A TIGHT fuse counts down; let
-'  it run out and the attempt is forfeit. The sweet spot NARROWS as you descend.
+'  A Greywood-style timing gauge: a marker sweeps a bar; press SPACE to lock it. Where it lands
+'  scores a ZONE -- crit (purple centre), hit (green band), miss (dark). A TIGHT fuse counts down;
+'  let it run out and the attempt is forfeit.
+'
+'  THE MATH IS engine/GAUGE.bas -- the same unit-tested model the tactical fight screen and the
+'  auto-resolve twin GaugeSample% run on. This file is one of its two PRESENTATIONS (the framed
+'  box overlay); engine/FIGHT.bas draws the other (the inline bar). It used to carry its own
+'  private width/speed math, which meant a tuning change to GAUGE.bas silently did not reach
+'  SECOND WIND -- and that wounds and crowd pressure narrowed one gauge but not the other.
 '
 '  Two moments use it (D&D mode only; both lean on hit points):
 '    * SECOND WIND -- on a downing blow, one clutch attempt: nail the CRIT zone to
@@ -20,39 +25,52 @@
 ' Run the timing gauge. title/prompt frame it; depth (1-9) narrows the zones. Returns
 ' the zone locked: 2 crit, 1 hit, 0 miss, -1 fuse expired (no lock). Sets gauge_quality
 ' (0..1 = closeness to dead-centre) for callers that want to reward precision.
-FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth AS INTEGER)
-    DIM phase AS SINGLE, p AS SINGLE, d AS SINGLE, spd AS SINGLE, df AS SINGLE
-    DIM critHW AS SINGLE, hitHW AS SINGLE, t0 AS SINGLE, fuseLeft AS SINGLE
-    DIM k AS STRING, z AS INTEGER, locked AS INTEGER, lockP AS SINGLE, fl AS SINGLE
-    df = (depth - 1) / 8: IF df < 0 THEN df = 0
-    IF df > 1 THEN df = 1
-    critHW = 0.07 - 0.035 * df                   ' sweet spot: 14% of the bar up top, 7% at the bottom
-    hitHW = 0.24 - 0.11 * df
-    spd = 0.055 + 0.02 * df                       ' and the sweep quickens a touch deeper down
-    phase = RND * 6.28318                         ' random start phase -- no metronome
+FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth AS INTEGER, skill AS INTEGER)
+    DIM k AS GAUGEK, kk AS STRING, z AS INTEGER, q AS SINGLE
+    DIM t0 AS SINGLE, fuseLeft AS SINGLE, fl AS SINGLE, gsecs AS SINGLE
+
+    ' ONE MODEL, TWO PRESENTATIONS. The zone widths, the sweep and the marker all come from
+    ' engine/GAUGE.bas now -- the same unit-tested math the tactical screen and the auto-resolve
+    ' twin GaugeSample% use. This function is purely the BOX presentation: it owns the framed
+    ' overlay, the result freeze and the sounds.
+    '
+    ' What changed by unifying: WOUNDS and CROWD now narrow this gauge too (GaugeKnobs reads
+    ' hp/maxhp and press), and SKILL widens it with character level. Previously the widths came
+    ' only from `depth`, so a dying hero read the bar exactly as well as a healthy one. The
+    ' feel is close but no longer identical -- that is the point of sharing the model.
+    ' `skill` is passed IN, not derived here: it comes from the game's character level, and
+    ' char_level is a GAME symbol -- engine/ naming it broke examples/minimal (which drives the
+    ' engine with no game at all) and tripped tests/audit-boundary.sh.
+    k.skill = skill
+    IF k.skill < 0 THEN k.skill = 0
+    IF k.skill > 2 THEN k.skill = 2
+    k.hp = player_hp: k.maxhp = player_maxhp
+    k.willmax = 0: k.will = 0          ' no willpower spend in the board-game overlay
+    k.wobble = 0: k.press = 0
+    k.depth = depth
+    GaugeKnobs k
+    GaugeBegin k
+
+    gsecs = GestureSecs!
     t0 = TIMER: gauge_quality = 0
-    _KEYCLEAR                                      ' drop the SPACE that opened this so it can't instant-lock
+    _KEYCLEAR                          ' drop the SPACE that opened this so it cannot instant-lock
     Sfx "diceroll"
     DO
-        fuseLeft = GESTURE_FUSE - (TIMER - t0)
+        fuseLeft = gsecs - (TIMER - t0)
+        ' TIMER wraps at midnight; without this the fuse would read as expired instantly.
+        IF TIMER - t0 < 0 THEN t0 = TIMER: fuseLeft = gsecs
         IF fuseLeft <= 0 THEN GaugeLock% = -1: EXIT FUNCTION
-        phase = phase + spd
-        p = (SIN(phase) + 1) / 2
-        DrawGauge title, prompt, swMode, p, critHW, hitHW, fuseLeft / GESTURE_FUSE
+        GaugeStep k
+        ' Draw at EXACTLY the numbers GaugeScore% will read -- WYSIWYG, so the zone can never
+        ' score somewhere the player cannot see.
+        DrawGauge title, prompt, swMode, k.p, k.ecrit, k.ehit, fuseLeft / gsecs
         _DISPLAY
         _LIMIT 60
-        k = INKEY$
-        IF k = CHR$(27) THEN GaugeLock% = 0: EXIT FUNCTION      ' ESC forfeits (counts as a miss)
-        IF k = " " OR k = CHR$(13) THEN
-            d = ABS(p - 0.5)
-            IF d <= critHW THEN
-                z = 2: gauge_quality = 1 - d / critHW
-            ELSEIF d <= hitHW THEN
-                z = 1: gauge_quality = 1 - (d - critHW) / (hitHW - critHW)
-            ELSE
-                z = 0: gauge_quality = 0
-            END IF
-            ' freeze a beat on the locked marker so the result reads
+        kk = INKEY$
+        IF kk = CHR$(27) THEN GaugeLock% = 0: EXIT FUNCTION      ' ESC forfeits (counts as a miss)
+        IF kk = " " OR kk = CHR$(13) THEN
+            z = GaugeScore%(k, q)
+            gauge_quality = q
             IF z = 2 THEN
                 Sfx "crit"
             ELSEIF z = 1 THEN
@@ -60,12 +78,13 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
             ELSE
                 Sfx "bump"
             END IF
+            ' freeze a beat on the locked marker so the result reads
             fl = TIMER
             DO
-                DrawGauge title, GaugeResult$(z, swMode), swMode, p, critHW, hitHW, fuseLeft / GESTURE_FUSE
-                DrawGaugeLock p, z
+                DrawGauge title, GaugeResult$(z, swMode), swMode, k.p, k.ecrit, k.ehit, fuseLeft / gsecs
+                DrawGaugeLock k.p, z
                 _DISPLAY: _LIMIT 60
-            LOOP UNTIL TIMER - fl >= 0.6
+            LOOP UNTIL TIMER - fl >= 0.6 OR TIMER - fl < 0
             GaugeLock% = z
             EXIT FUNCTION
         END IF
@@ -128,9 +147,9 @@ END SUB
 ' SECOND WIND: one clutch attempt on a downing blow. Nail the CRIT zone -> rise in
 ' place with 1d6 HP. Anything else (or the fuse) -> the save fails. Returns TRUE on the
 ' rise (player_hp is set); the caller then simply keeps fighting.
-FUNCTION SecondWind% (mon AS STRING, depth AS INTEGER)
+FUNCTION SecondWind% (mon AS STRING, depth AS INTEGER, skill AS INTEGER)
     DIM z AS INTEGER, hp AS INTEGER
-    z = GaugeLock%("FIGHT FOR YOUR LIFE", "SPACE in the PURPLE to rise -- one chance!", -1, depth)
+    z = GaugeLock%("FIGHT FOR YOUR LIFE", "SPACE in the PURPLE to rise -- one chance!", -1, depth, skill)
     IF z = 2 THEN
         hp = RollDie(6): player_hp = hp
         Sfx "levelup"
@@ -145,9 +164,9 @@ END FUNCTION
 ' CRIT FLOURISH: the gauge on a natural-20 crit. Crit zone = +2 bonus damage dice, hit
 ' zone = +1, miss/timeout = +0. The bonus dice roll through the normal dice system (so
 ' Real Dice / 3D dice all apply). Returns the extra damage to add to the crit.
-FUNCTION CritFlourish% (mon AS STRING, depth AS INTEGER)
+FUNCTION CritFlourish% (mon AS STRING, depth AS INTEGER, skill AS INTEGER)
     DIM z AS INTEGER, xn AS INTEGER
-    z = GaugeLock%("CRITICAL FLOURISH!", "SPACE to land the follow-through", 0, depth)
+    z = GaugeLock%("CRITICAL FLOURISH!", "SPACE to land the follow-through", 0, depth, skill)
     xn = 0
     IF z = 2 THEN xn = 2
     IF z = 1 THEN xn = 1

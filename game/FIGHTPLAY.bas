@@ -219,14 +219,16 @@ FUNCTION HealthWord$ (hp AS INTEGER, mx AS INTEGER)
     DIM f AS SINGLE
     IF mx <= 0 THEN HealthWord$ = "--": EXIT FUNCTION
     IF hp <= 0 THEN HealthWord$ = "SLAIN": EXIT FUNCTION
-    f = hp / mx
-    IF f >= 1 THEN
+    ' Thresholds are data (tuning.txt), defaulting to 60/35/15%. Compared as whole percent so the
+    ' tuning file reads in the same units the designer thinks in.
+    f = (hp * 100) / mx
+    IF hp >= mx THEN
         HealthWord$ = "UNHURT"
-    ELSEIF f > 0.6 THEN
+    ELSEIF f > TunePct%(TUNE_HP_GRAZED, 60) THEN
         HealthWord$ = "GRAZED"
-    ELSEIF f > 0.35 THEN
+    ELSEIF f > TunePct%(TUNE_HP_WOUNDED, 35) THEN
         HealthWord$ = "WOUNDED"
-    ELSEIF f > 0.15 THEN
+    ELSEIF f > TunePct%(TUNE_HP_BLOODIED, 15) THEN
         HealthWord$ = "BLOODIED"
     ELSE
         HealthWord$ = "NEAR DEATH"
@@ -236,11 +238,22 @@ END FUNCTION
 ' Fill a GAUGEK from the player's actual condition. Everything the composure model needs is
 ' derived here rather than stored, so it always reflects the CURRENT fight: wounds narrow the
 ' window, and `press` is the live-foe crowd squeeze that makes 1-vs-4 harder than 1-vs-1.
+' The player's felt SKILL TIER (0..2) from their character level. Game-side, because character
+' level is a DUNGEON! concept -- the engine takes the tier as a number and never asks how it was
+' derived. Shared by the fight screen and the board's SECOND WIND / CRIT FLOURISH.
+FUNCTION SkillTier%
+    IF char_level <= 1 THEN
+        SkillTier% = 0
+    ELSEIF char_level >= 5 THEN
+        SkillTier% = 2
+    ELSE
+        SkillTier% = 1
+    END IF
+END FUNCTION
+
 SUB FightBuildGauge (k AS GAUGEK, depth AS INTEGER)
     DIM lf AS INTEGER
-    k.skill = 1
-    IF char_level <= 1 THEN k.skill = 0
-    IF char_level >= 5 THEN k.skill = 2
+    k.skill = SkillTier%
     k.hp = player_hp: k.maxhp = player_maxhp
     k.willmax = 3: k.will = 3
     k.wobble = 0
@@ -262,7 +275,7 @@ SUB FightFlourish (depth AS INTEGER)
     a = FA_TARGET
     IF TargetOk%(a) = 0 THEN FightLog "", "Nothing there to strike.": EXIT SUB
     FightBuildGauge k, depth
-    z = FightGaugeRun%(k, GESTURE_FUSE, q)
+    z = FightGaugeRun%(k, GestureSecs!, q)
     IF z = FUSE_NONE THEN
         FightLog "!", "You hesitate -- the moment is gone."
         Sfx "miss"
@@ -345,7 +358,7 @@ SUB FightFoeAttack (a AS INTEGER, depth AS INTEGER, guarding AS INTEGER)
         dmg = dmg \ 2
         IF dmg < 1 THEN dmg = 1
     ELSEIF opt_gestures THEN
-        IF FightDodgeRun%(a, DODGE_WINDOW) THEN
+        IF FightDodgeRun%(a, DodgeSecs!) THEN
             FightLog "+", "You slip aside -- " + _TRIM$(FA_NAME(a)) + " hits nothing."
             Sfx "miss"
             EXIT SUB
@@ -418,7 +431,7 @@ FUNCTION FightDeathSave% (depth AS INTEGER)
     Sfx "heartbeat"
     FightBuildGauge k, depth
     ' The crit band only: a hit is not enough to cheat death.
-    z = FightGaugeRun%(k, GESTURE_FUSE * 0.8, q)
+    z = FightGaugeRun%(k, GestureSecs! * 0.8, q)   ' tighter than a normal flourish
     IF z = 2 THEN
         hp = RollDie(6)
         player_hp = hp
