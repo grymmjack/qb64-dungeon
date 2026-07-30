@@ -11,6 +11,14 @@
 # Unignore include
 !include/*
 
+# Python bytecode caches (the asset generators are python).
+# NOTE this file inverts the usual scheme -- `*` ignores everything, then `!*.*` unignores
+# anything with an extension and `!*/` unignores directories. So __pycache__/*.pyc would be
+# UNIGNORED by those rules; it needs an explicit re-ignore here, after them.
+__pycache__/
+*.pyc
+*.pyo
+
 # Ignore VS Code stuff
 .vscode
 .DS_Store
