@@ -84,6 +84,18 @@ TYPE GAUGEK
     ehit      AS SINGLE    ' effective hit half-width THIS frame
 END TYPE
 
+' --- AUDIO FORMAT PRECEDENCE (SETTINGS row 53) ---------------------------------
+' Which container wins when the SAME asset exists in several formats. This has to be the
+' PLAYER's choice, not a hardcoded order: a pack that ships both .ogg and .flac would otherwise
+' have half its files silently unreachable, and nothing on screen would say why.
+'   0 = auto (ogg, mp3, flac, wav -- smallest-first, the historical order)
+'   1 = ogg   2 = mp3   3 = flac   4 = wav      (the named one goes FIRST, rest follow in auto order)
+' Tracker modules (.mid/.rad/.s3m/.mod/.xm/.it) always precede all of these for MUSIC -- they are
+' a different kind of asset, not a container choice.
+CONST AUDIOPREF_AUTO = 0
+CONST AUDIOPREF_N = 4
+DIM SHARED opt_audiopref AS INTEGER
+
 ' --- TACTICAL COMBAT tuning (assets/data/tuning.txt) ---------------------------
 ' Stored as INTEGERS because that is what LoadTuning reads -- so sub-second values are in
 ' MILLISECONDS and percentages are whole percents.

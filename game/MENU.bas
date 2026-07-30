@@ -574,6 +574,7 @@ SUB BuildSetLayout
     SetLayRow 1, 1, prow(): SetLayRow 1, 2, prow(): SetLayRow 1, 3, prow(): SetLayRow 1, 4, prow()
     SetLayRow 1, 5, prow(): SetLayRow 1, 6, prow(): SetLayRow 1, 48, prow()
     SetLayRow 1, 45, prow(): SetLayRow 1, 47, prow(): SetLayRow 1, 43, prow(): SetLayRow 1, 44, prow()
+    SetLayRow 1, 53, prow()                          ' Audio Format -- belongs with the packs
     ' Column 2 -- DICE, then MONSTER DICE
     SetLayHdr 2, "DICE", prow()
     SetLayRow 2, 7, prow(): SetLayRow 2, 30, prow(): SetLayRow 2, 10, prow(): SetLayRow 2, 11, prow()
@@ -643,7 +644,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 52                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 53                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -758,6 +759,14 @@ SUB RunSettings
                     Sfx "select"
                 CASE 43: CycleSfxPack delta
                 CASE 44: CycleMusicPack delta
+                CASE 53
+                    opt_audiopref = opt_audiopref + delta
+                    IF opt_audiopref > AUDIOPREF_N THEN opt_audiopref = AUDIOPREF_AUTO
+                    IF opt_audiopref < AUDIOPREF_AUTO THEN opt_audiopref = AUDIOPREF_N
+                    ' SFX handles are already open, so re-resolve them now -- otherwise the
+                    ' preference appears to do nothing until the next launch.
+                    ReloadSfxPack
+                    music_curfile = ""        ' force PlayLevelMusic to re-resolve the track
                 CASE 45: CycleNarration delta
                 CASE 46: CycleArtPack delta
                 CASE 47
@@ -789,6 +798,11 @@ SUB RunSettings
                     IF opt_dicespeed > 3 THEN opt_dicespeed = 0
                 CASE 14: opt_oldschool = NOT opt_oldschool
                 CASE 52: opt_tactical = NOT opt_tactical
+                CASE 53
+                    opt_audiopref = opt_audiopref + 1
+                    IF opt_audiopref > AUDIOPREF_N THEN opt_audiopref = AUDIOPREF_AUTO
+                    ReloadSfxPack
+                    music_curfile = ""        ' force PlayLevelMusic to re-resolve the track
                 CASE 15
                     opt_boardgame = NOT opt_boardgame
                     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
@@ -907,6 +921,9 @@ SUB RunSettings
                 CASE 14
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
+                CASE 53
+                    lbl = "Audio Format"
+                    vtxt = AudioPrefName$(opt_audiopref)
                 CASE 52
                     lbl = "Tactical Screen"
                     IF opt_tactical THEN vtxt = "ON (1-vs-4)" ELSE vtxt = "off"

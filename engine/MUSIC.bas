@@ -83,7 +83,10 @@ END FUNCTION
 FUNCTION ResolveMusicIn$ (dir AS STRING, b AS STRING)
     DIM exts(1 TO 10) AS STRING, i AS INTEGER, chosen AS STRING, p AS STRING
     exts(1) = ".mid": exts(2) = ".rad": exts(3) = ".s3m": exts(4) = ".mod": exts(5) = ".xm"
-    exts(6) = ".it": exts(7) = ".ogg": exts(8) = ".mp3": exts(9) = ".flac": exts(10) = ".wav"
+    exts(6) = ".it"
+    ' Tracker modules always outrank the sampled containers -- they are a different kind of asset,
+    ' not a container choice. The four sampled slots follow the player's preference.
+    FOR i = 1 TO AUDIOPREF_N: exts(6 + i) = AudioExt$(i): NEXT i
     chosen = ""
     ' EXIT FOR on the FIRST hit -- the array order is a PREFERENCE order (trackers, then
     ' ogg | mp3 | flac | wav). Without the early exit `chosen` was overwritten on every match, so
@@ -290,7 +293,41 @@ SUB RegisterSfx (nm AS STRING)
     END IF
 END SUB
 
-' Open the first existing <bpath>.<ext> (ogg/mp3/wav/flac) -> handle, or 0 if none exist.
+' The Nth sampled-audio extension in PREFERENCE order (n = 1..AUDIOPREF_N).
+'
+' Base order is ogg, mp3, flac, wav. `opt_audiopref` promotes one of them to the front and the
+' rest keep their relative order -- so the setting expresses "prefer THIS", not a full ranking
+' the player would have to spell out.
+'
+' All three resolvers (OpenSfx&, FirstAudioFile$, ResolveMusicIn$) go through here, so a pack
+' behaves identically whichever kind of asset it ships, and the preference cannot drift between
+' sfx, music and narration.
+FUNCTION AudioExt$ (n AS INTEGER)
+    DIM bas(1 TO 4) AS STRING, ord(1 TO 4) AS STRING, i AS INTEGER, k AS INTEGER, pref AS INTEGER   ' `bas` -- BASE is reserved
+    bas(1) = ".ogg": bas(2) = ".mp3": bas(3) = ".flac": bas(4) = ".wav"
+    IF n < 1 OR n > AUDIOPREF_N THEN EXIT FUNCTION
+    pref = opt_audiopref
+    IF pref < 1 OR pref > AUDIOPREF_N THEN AudioExt$ = bas(n): EXIT FUNCTION   ' auto
+    ord(1) = bas(pref)
+    k = 1
+    FOR i = 1 TO 4
+        IF i <> pref THEN k = k + 1: ord(k) = bas(i)
+    NEXT i
+    AudioExt$ = ord(n)
+END FUNCTION
+
+' Human-readable name of the current preference, for the SETTINGS row.
+FUNCTION AudioPrefName$ (v AS INTEGER)
+    SELECT CASE v
+        CASE 1: AudioPrefName$ = "OGG first"
+        CASE 2: AudioPrefName$ = "MP3 first"
+        CASE 3: AudioPrefName$ = "FLAC first"
+        CASE 4: AudioPrefName$ = "WAV first"
+        CASE ELSE: AudioPrefName$ = "auto (ogg>mp3>flac>wav)"
+    END SELECT
+END FUNCTION
+
+' Open the first existing <bpath>.<ext> in the player's preferred order -> handle, or 0.
 FUNCTION OpenSfx& (bpath AS STRING)
     DIM h AS LONG
     h = 0
@@ -298,10 +335,12 @@ FUNCTION OpenSfx& (bpath AS STRING)
     ' _SNDOPEN is miniaudio-backed, so all four decode natively. NOTE the consequence of an order:
     ' if two formats of the same sound both exist, the EARLIER one wins and the other is silently
     ' never played -- so after converting a pack, delete the old files or the switch does nothing.
-    IF _FILEEXISTS(bpath + ".ogg") THEN h = _SNDOPEN(bpath + ".ogg")
-    IF h <= 0 THEN IF _FILEEXISTS(bpath + ".mp3") THEN h = _SNDOPEN(bpath + ".mp3")
-    IF h <= 0 THEN IF _FILEEXISTS(bpath + ".flac") THEN h = _SNDOPEN(bpath + ".flac")
-    IF h <= 0 THEN IF _FILEEXISTS(bpath + ".wav") THEN h = _SNDOPEN(bpath + ".wav")
+    DIM ax AS INTEGER, px AS STRING
+    FOR ax = 1 TO AUDIOPREF_N
+        px = bpath + AudioExt$(ax)
+        IF _FILEEXISTS(px) THEN h = _SNDOPEN(px)
+        IF h > 0 THEN EXIT FOR
+    NEXT ax
     OpenSfx& = h
 END FUNCTION
 
@@ -451,12 +490,12 @@ END SUB
 
 ' Path of the first existing <base>.<ext> (ogg/mp3/wav/flac), or "" if none.
 FUNCTION FirstAudioFile$ (bpath AS STRING)
-    ' ogg | mp3 | flac | wav -- the same order as OpenSfx& and ResolveMusicIn$, so a pack behaves
-    ' identically whichever kind of asset it ships.
-    IF _FILEEXISTS(bpath + ".ogg") THEN FirstAudioFile$ = bpath + ".ogg": EXIT FUNCTION
-    IF _FILEEXISTS(bpath + ".mp3") THEN FirstAudioFile$ = bpath + ".mp3": EXIT FUNCTION
-    IF _FILEEXISTS(bpath + ".flac") THEN FirstAudioFile$ = bpath + ".flac": EXIT FUNCTION
-    IF _FILEEXISTS(bpath + ".wav") THEN FirstAudioFile$ = bpath + ".wav": EXIT FUNCTION
+    ' Player-preferred order, shared with OpenSfx& and ResolveMusicIn$ via AudioExt$.
+    DIM ax AS INTEGER, px AS STRING
+    FOR ax = 1 TO AUDIOPREF_N
+        px = bpath + AudioExt$(ax)
+        IF _FILEEXISTS(px) THEN FirstAudioFile$ = px: EXIT FUNCTION
+    NEXT ax
     FirstAudioFile$ = ""
 END FUNCTION
 
