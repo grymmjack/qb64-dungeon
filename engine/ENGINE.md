@@ -321,23 +321,28 @@ with **zero** new contract surface. A hook is only warranted when engine code ge
 into the game mid-algorithm. Adding one where a move would do inflates the contract you have to
 keep stable forever.
 
-## Open debt: TWO interactive gauges
+## The gauge: one model, two presentations — RESOLVED
 
 `engine/GAUGE.bas` is the composure **model** — pure steps, unit-tested (`tests/TEST-GAUGE.bas`),
-and shared by the played gesture and the auto-resolve twin `GaugeSample%`, so the two cannot drift.
-`engine/FIGHT.bas` draws the tactical presentation over it (`FightGaugeRun%`).
+shared by every consumer so none can drift:
 
-But `engine/GESTURE.bas`'s `GaugeLock%` is a **second interactive gauge with its own private
-math** (`critHW`/`hitHW` computed from depth inline), shipping for **SECOND WIND** and **CRIT
-FLOURISH**. It predates the model port.
+| presentation | where | used by |
+|---|---|---|
+| framed box overlay | `engine/GESTURE.bas` `GaugeLock%` | SECOND WIND, CRIT FLOURISH (board combat) |
+| inline bar in `player.gauge` | `engine/FIGHT.bas` `FightGaugeRun%` | FLOURISH, the tactical death-save |
+| none — auto-resolve twin | `GaugeSample%` | blind/unplayed resolution, the dominance guard |
 
-Migrating those two onto the GAUGE.bas model would leave one model and two presentations — the
-stated intent, and it would hand both features willpower, the crowd squeeze and skill tiers for
-free. It is **not** done because it changes the *feel* of two live features, which is a decision
-to make deliberately rather than as a side effect of unrelated work.
+`GaugeLock%` **used to carry its own private width/speed math** (`critHW`/`hitHW` computed from
+depth inline). Unified 2026-07-30. Two consequences worth knowing:
 
-If you touch either: they are separate systems today. Do not assume a tuning change to
-`GAUGE.bas` reaches SECOND WIND.
+- A tuning change to `GAUGE.bas` now **does** reach SECOND WIND. Before, it silently did not.
+- **Wounds and crowd pressure narrow that gauge too, and character level widens it.** Previously
+  its widths came only from `depth`, so a dying hero read the bar exactly as well as a healthy one.
+
+Unifying it broke `examples/minimal`, correctly: `GaugeLock%` had started reading `char_level`, a
+**game** symbol. The skill tier now flows **in** as a parameter (`GaugeLock%` / `SecondWind%` /
+`CritFlourish%` each take it) and the game derives it with `SkillTier%` — no new hook, per the
+"check who calls it first" lesson below.
 
 ## Boundary-debt ledger — burned down
 
