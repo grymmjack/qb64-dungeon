@@ -176,6 +176,15 @@ SUB DumpFightManifest
         nm = _TRIM$(BOSS_NAME(i))
         IF LEN(nm) > 0 THEN PutFightArt "monsters/" + MonsterCat$(nm), SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a fearsome dungeon boss", seen
     NEXT i
+    ' Transforming curios fight too, and they are in no monster table -- a mimic is a row in
+    ' curios.txt that sets ROOMS().monster when opened. Its portrait slot needs fight-sized art
+    ' like any other foe, so derive it from the same place the reveal art comes from.
+    FOR i = 1 TO NCURIO
+        IF CurioBecomesMonster%(CURIOS(i).kind) THEN
+            nm = LCASE$(_TRIM$(CURIOS(i).kind))
+            PutFightArt "events", nm, pcell, ppix, nm + " -- a treasure chest lunging open mid-ambush, rows of teeth inside the lid", seen
+        END IF
+    NEXT i
     PRINT
 
     PRINT "# --- player portraits (one per class) ---"

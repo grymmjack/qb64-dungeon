@@ -40,6 +40,21 @@ FUNCTION MonsterSprite$ (nm AS STRING)
     IF LEN(p) > 0 THEN MonsterSprite$ = p
 END FUNCTION
 
+' TRUE if this curio kind turns into a FIGHT when opened, so it needs REVEAL art of its own
+' on top of the disguise CurioSprite$ returns.
+'
+' The mimic is the case that exists today: curios.txt gives it the same name, prompt and art as
+' an ordinary Curio Chest so it is indistinguishable until opened, then CurioMimic sets
+' ROOMS().monster = "MIMIC" and a fight starts. MonsterSprite$ resolves that through its
+' events/ fallback -- so the reveal slot is `events/<kind>.png`.
+'
+' Kept as an explicit list rather than inferred: "CurioSprite$ returned a different name" is
+' true of nearly every kind (chest -> curio-chest) and would over-list. Adding another
+' transforming curio is one entry here.
+FUNCTION CurioBecomesMonster% (kd AS STRING)
+    IF InStrAny%(LCASE$(_TRIM$(kd)), "mimic") THEN CurioBecomesMonster% = -1
+END FUNCTION
+
 ' Which CATEGORY subfolder a monster's art belongs in.
 '
 ' MonsterSprite$ SEARCHES all six categories at load time, so the game does not care which one
@@ -421,6 +436,12 @@ SUB DumpImageManifest
             ' curio is visible as missing art instead of silently having none.
             w = _TRIM$(CURIOS(i).kind)
             IF LEN(w) > 0 THEN PutArtBoth "events", w, "a " + UnSlug$(w), "a dungeon curio prop", "384x384", "18x12", seen
+        END IF
+        ' A transforming curio also needs the thing it BECOMES -- a separate sprite from the
+        ' disguise, and the one the fight draws. Prompted as the reveal, not as a prop.
+        IF CurioBecomesMonster%(CURIOS(i).kind) THEN
+            w = LCASE$(_TRIM$(CURIOS(i).kind))
+            PutArtBoth "events", w, "a " + UnSlug$(w) + " revealing itself -- a treasure chest lunging open, rows of teeth inside the lid, tongue lashing out", "a dungeon monster mid-ambush", "384x384", "18x12", seen
         END IF
     NEXT i
 END SUB
