@@ -1,0 +1,29 @@
+$INCLUDEONCE
+' ============================================================================
+'  game/_ALL.BM -- every GAME body, in one include. Put this at the BOTTOM,
+'  after engine/_ALL.BM.
+'
+'  As with the engine roll-up, order is for reading only -- QB64 resolves procedures
+'  globally and no body declares anything at file scope.
+' ============================================================================
+'$INCLUDE:'HOOKS.bas'
+'$INCLUDE:'SECTOR.bas'
+'$INCLUDE:'CHAMBERS.bas'
+'$INCLUDE:'CHRONICLE.bas'
+'$INCLUDE:'COMBAT.bas'
+'$INCLUDE:'CTEXT.bas'
+'$INCLUDE:'CURIO.bas'
+'$INCLUDE:'DATALINT.bas'
+'$INCLUDE:'DEBUG.bas'
+'$INCLUDE:'EFFECTS.bas'
+'$INCLUDE:'FLAVOR.bas'
+'$INCLUDE:'LOADERS.bas'
+'$INCLUDE:'LORDS.bas'
+'$INCLUDE:'MANIFEST.bas'
+'$INCLUDE:'MENU.bas'
+'$INCLUDE:'OVERLAYS.bas'
+'$INCLUDE:'PLAY.bas'
+'$INCLUDE:'PLAYERS.bas'
+'$INCLUDE:'SAVEGAME.bas'
+'$INCLUDE:'SOLO.bas'
+'$INCLUDE:'SPRITES.bas'

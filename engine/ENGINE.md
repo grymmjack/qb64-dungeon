@@ -90,8 +90,9 @@ Add it to any pre-commit check you like; it exits non-zero when the engine is di
 ## Layout
 
 ```
-dungeon.bas          thin assembly: screen/CLI setup + state machine + PlayGame + $INCLUDE block
+dungeon.bas          thin assembly: screen/CLI setup + state machine + PlayGame + FOUR includes
 engine/
+  _ALL.BI  _ALL.BM   roll-ups: every engine header / every engine body, one line each
   ENGINE.BI          reusable globals/types/consts (loaded FIRST)
   ENGINE.md          this file
   ansi/              vendored ANSI renderer (ANSI_Print) -- moved in from include/
@@ -107,6 +108,7 @@ engine/
   MARKDOWN           markdown -> text-mode renderer (was inside CHRONICLE)
   TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$/PackIndex%)
 game/
+  _ALL.BI  _ALL.BM   roll-ups: every game header / every game body, one line each
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
   HOOKS.bas          the game side of the engine<->game contract
   OVERLAYS.bas       board overlays (label table + tombstones/graves/entities/hunter/tokens) + render hooks
@@ -126,8 +128,28 @@ tests/               headless assert suites + the boundary/shadow audits (tests/
 examples/minimal/    a SECOND game on engine/ alone -- the separability proof
 ```
 
-Header include order (top of `dungeon.bas`): **`engine/ENGINE.BI` then `game/GAME.BI`** — engine
-primitives/types first; game types may build on engine ones, never the reverse.
+Assembling a program is **four lines** — the roll-ups make engine/ and game/ drop-in units:
+
+```basic
+'$INCLUDE:'engine/_ALL.BI'    ' every engine header  -- FIRST, before any executable line
+'$INCLUDE:'game/_ALL.BI'      ' every game header    -- engine before game, never the reverse
+   ... setup + state machine + the play loop ...
+'$INCLUDE:'engine/_ALL.BM'    ' every engine body    -- at the BOTTOM
+'$INCLUDE:'game/_ALL.BM'      ' every game body
+```
+
+Nested `'$INCLUDE` paths resolve **relative to the including file's own directory**, which is
+what lets the roll-ups list bare filenames and keeps `engine/` copy-out-able as a directory.
+(`engine/DICE3D/_ALL.BI` and `engine/ansi/ANSIPrint.bi` already relied on this.)
+
+**Why body order is safe to collapse:** QB64 resolves every SUB/FUNCTION globally, and **no
+body file declares anything at file scope** — no `DIM SHARED`, no file-scope `CONST` or `TYPE`;
+those live only in the `.BI` headers. That invariant is what makes the roll-up correct rather
+than lucky, so keep it: put a new shared global or CONST in a header, never in a `.bas`.
+(`GESTURE_FUSE` was the last file-scope `CONST` in a body and moved to ENGINE.BI for this.)
+
+The only ordering rule left is the original one: **headers before any executable line, bodies
+at the bottom, engine before game.**
 
 ## Header ownership (ENGINE.BI vs GAME.BI)
 

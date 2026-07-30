@@ -108,7 +108,7 @@ Environment specifics that dictate this approach:
 ## Where the code lives
 
 - **`dungeon.bas`** (repo root) — the playable game. The main file is now thin (~290 lines):
-  top includes the split header **`engine/ENGINE.BI` then `game/GAME.BI`** (all `CONST`s,
+  top includes the header roll-ups **`engine/_ALL.BI` then `game/_ALL.BI`** (all `CONST`s,
   `TYPE`s, and `DIM SHARED` globals — must load first, **engine before game**), then the
   screen/init setup, the `INTRO → MENU → PLAY → WIN/LOSE` state machine (`SELECT CASE
   game_state`), the **core game loop** (`PlayGame` / `DoCombat` / `MonsterAttack` /
@@ -126,7 +126,11 @@ Environment specifics that dictate this approach:
   `dungeon-lords.dat`), and **`include/CHRONICLE.bas`** (the in-game **Game Menu** `[M]` reference
   suite). QB64 resolves
   SUBs globally, so the main-file loop can call any module SUB regardless of include order;
-  the only ordering rule is that the header (`ENGINE.BI` then `GAME.BI`) comes before the executable setup. Encounters ride the existing pixel-color collision:
+  the only ordering rule is that the headers (`engine/_ALL.BI` then `game/_ALL.BI`) come before
+  the executable setup, and the bodies (`engine/_ALL.BM` then `game/_ALL.BM`) go at the bottom.
+  Assembling a program is those FOUR lines. Body order is irrelevant because QB64 resolves
+  procedures globally AND no body file declares anything at file scope — keep that invariant:
+  a new shared global or `CONST` belongs in a `.BI` header, never in a `.bas`. Encounters ride the existing pixel-color collision:
   each `SECTOR` carries an optional monster, and stepping onto a room floor (`InRoomNow`)
   in a sector with a live monster triggers combat (`DoCombat`). **Dice** — every d6 roll
   (movement 1d6, combat 2d6, the 3d6 ability rolls) animates hand-drawn pip dice

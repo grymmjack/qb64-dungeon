@@ -41,6 +41,7 @@ DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door 
 ' a region by name instead of hardcoding coordinates. Each region carries its own cell size
 ' because one game can mix metrics -- the tactical fight screen is 132x100 on an 8x8 cell
 ' while the board is 132x51 on 8x16, both on the same 1056-wide canvas.
+CONST GESTURE_FUSE = 1.7          ' action-gesture countdown, seconds -- tight: about one good sweep
 CONST LAY_MAX = 200
 DIM SHARED LAY_N AS INTEGER
 DIM SHARED LAY_NAME(1 TO LAY_MAX) AS STRING, LAY_KIND(1 TO LAY_MAX) AS STRING

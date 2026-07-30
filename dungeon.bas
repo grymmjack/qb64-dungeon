@@ -7,12 +7,8 @@
 ' ============================================================================
 ' a console (hidden in normal play) so `dungeon.run --help` can print to the terminal:
 $CONSOLE
-'$INCLUDE:'engine/ansi/ANSIPrint.bi'   ' vendored ANSI renderer (decoupled from Toolbox64 submodule); file reads use _READFILE$
-
-'$INCLUDE:'engine/ENGINE.BI'    ' reusable engine globals/types/consts (must load first)
-'$INCLUDE:'game/GAME.BI'        ' DUNGEON!-specific globals/types/consts (the swappable layer)
-'$INCLUDE:'engine/DICE3D/_ALL.BI'      ' 3D polyhedral dice (types + globals; bodies at bottom)
-'$INCLUDE:'engine/DICE3D_GAME.bi'      ' dungeon-side 3D dice sets (needs DICE3D_CONFIG from _ALL.BI)
+'$INCLUDE:'engine/_ALL.BI'      ' ALL engine headers (globals/types/consts + vendored ansi/DICE3D) -- must load FIRST
+'$INCLUDE:'game/_ALL.BI'        ' ALL game headers (the swappable DUNGEON! layer) -- engine before game
 SW = 132: SH = 51: CW = 8: CH = 16
 
 ' --- CLI: `dungeon.run --help` (or -h) lists the command-line modes, then exits ---
@@ -698,44 +694,8 @@ END FUNCTION
 ' ============================================================================
 '  MODULES
 ' ============================================================================
-'$INCLUDE:'engine/DATA.bas'
-'$INCLUDE:'game/SECTOR.bas'
-'$INCLUDE:'game/CHAMBERS.bas'   ' the big named halls: detection + grave seating (was in engine/BOARD.bas)
-'$INCLUDE:'game/MANIFEST.bas'   ' game audio manifest + the Game_SfxNames$ roster (was in engine/MUSIC.bas)
-'$INCLUDE:'game/DEBUG.bas'      ' [~] dev overlay + [0] cheat panel (was in engine/BOARD.bas)
-'$INCLUDE:'game/DATALINT.bas'   ' `datalint` dev mode: validate the loaded content tables
-'$INCLUDE:'game/HOOKS.bas'      ' engine<->game contract: Game_OnEnterCell% / Game_WinReached% / Game_WinReady%
-'$INCLUDE:'game/OVERLAYS.bas'   ' game-side board overlays (labels/tombstones/graves/entities) + their render hooks
-'$INCLUDE:'game/LOADERS.bas'    ' game data-table loaders (Load*), moved out of engine/DATA.bas
-'$INCLUDE:'game/COMBAT.bas'    ' combat + spells + treasure + potions + turn/revive (was in dungeon.bas)
-'$INCLUDE:'game/PLAY.bas'      ' loot drops + loiter/danger + wander + chamber encounters (was in dungeon.bas)
-'$INCLUDE:'engine/BOARD.bas'
-'$INCLUDE:'engine/CURSOR.bas'
-'$INCLUDE:'engine/UI.bas'       ' engine presentation: fades + UI primitives + sound + dice subsystem
-'$INCLUDE:'game/MENU.bas'       ' game screens: class-select, char-gen, intro, menu/settings, HUD
-'$INCLUDE:'engine/LAYOUT.bas'   ' named screen regions from data (tactical fight screen; Phase B)
-'$INCLUDE:'engine/TABLE.bas'    ' engine random-table primitives (PctChance/WeightPick/WeightPickLvl)
-'$INCLUDE:'engine/TEXT.bas'     ' reusable string/format utils (NthField$/PadR$/MMSS$)
-'$INCLUDE:'game/LORDS.bas'      ' hall of fame + LOAD A CHARACTER + settings persistence
-'$INCLUDE:'game/PLAYERS.bas'    ' hot-seat seats: per-player state park/restore + turn passing (was engine/)
-'$INCLUDE:'game/EFFECTS.bas'
-'$INCLUDE:'game/CURIO.bas'
-'$INCLUDE:'engine/ARTPACK.bas'  ' engine pixel-art layer: load/cache/fit sprites + art-pack resolution
-'$INCLUDE:'game/SPRITES.bas'    ' game entity->sprite mapping + popups + manifests
-'$INCLUDE:'engine/GESTURE.bas'
-'$INCLUDE:'engine/JUICE.bas'
-'$INCLUDE:'engine/STATS.bas'
-'$INCLUDE:'engine/MARKDOWN.bas' ' reusable markdown -> text-mode renderer (was inside CHRONICLE.bas)
-'$INCLUDE:'game/CHRONICLE.bas'  ' per-run journal + Bestiary/Treasury/Rules/Game Menu
-'$INCLUDE:'game/SOLO.bas'
-'$INCLUDE:'engine/SAVEIO.bas'   ' engine save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
-'$INCLUDE:'game/SAVEGAME.bas'   ' game save payload (SaveGame/LoadGameApply/SaveAndToast)
-'$INCLUDE:'game/FLAVOR.bas'
-'$INCLUDE:'game/CTEXT.bas'
-'$INCLUDE:'engine/MUSIC.bas'
-
-'$INCLUDE:'engine/DICE3D/_ALL.BM'      ' 3D dice implementation (bottom, per the module's contract)
-'$INCLUDE:'engine/DICE3D_GAME.bas'     ' dungeon<->DICE3D glue (LoadDiceSets, Show3DRoll)
-
-'$INCLUDE:'engine/ansi/ANSIPrint.bas'  ' vendored ANSI renderer bodies (Toolbox64 8c5d57d, works on 4.4.0/4.5.0)
+' --- module bodies. Order is irrelevant (QB64 resolves procedures globally and no body
+'     declares anything at file scope); the roll-ups keep this assembly to two lines. ---
+'$INCLUDE:'engine/_ALL.BM'      ' ALL engine bodies
+'$INCLUDE:'game/_ALL.BM'        ' ALL game bodies
 

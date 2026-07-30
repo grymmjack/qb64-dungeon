@@ -17,8 +17,6 @@
 '  claimed "all gated by opt_gestures", which read as if the gate were internal.
 ' ============================================================================
 
-CONST GESTURE_FUSE = 1.7          ' seconds on the countdown -- tight: about one good sweep
-
 ' Run the timing gauge. title/prompt frame it; depth (1-9) narrows the zones. Returns
 ' the zone locked: 2 crit, 1 hit, 0 miss, -1 fuse expired (no lock). Sets gauge_quality
 ' (0..1 = closeness to dead-centre) for callers that want to reward precision.

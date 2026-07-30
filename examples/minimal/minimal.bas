@@ -14,10 +14,8 @@
 ' ============================================================================
 $CONSOLE:ONLY
 
-'$INCLUDE:'../../engine/ansi/ANSIPrint.bi'
-'$INCLUDE:'../../engine/ENGINE.BI'
-'$INCLUDE:'../../engine/DICE3D/_ALL.BI'
-'$INCLUDE:'../../engine/DICE3D_GAME.bi'
+'$INCLUDE:'../../engine/_ALL.BI'   ' ALL engine headers, one line -- if this roll-up ever
+'                                   pulls in game/, this demo stops building.
 
 ' QB64 chdirs to the EXECUTABLE's dir at startup, so "assets/..." would resolve
 ' under examples/minimal/. Fix cwd to the repo root once, up front (same trick as
@@ -112,23 +110,5 @@ DO
 LOOP
 SYSTEM
 
-'$INCLUDE:'HOOKS.bas'
-
-'$INCLUDE:'../../engine/LAYOUT.bas'
-'$INCLUDE:'../../engine/TABLE.bas'
-'$INCLUDE:'../../engine/TEXT.bas'
-'$INCLUDE:'../../engine/DATA.bas'
-'$INCLUDE:'../../engine/ARTPACK.bas'
-'$INCLUDE:'../../engine/BOARD.bas'
-'$INCLUDE:'../../engine/CURSOR.bas'
-'$INCLUDE:'../../engine/JUICE.bas'
-'$INCLUDE:'../../engine/GESTURE.bas'
-'$INCLUDE:'../../engine/STATS.bas'
-'$INCLUDE:'../../engine/SAVEIO.bas'
-'$INCLUDE:'../../engine/MARKDOWN.bas'
-'$INCLUDE:'../../engine/MUSIC.bas'
-'$INCLUDE:'../../engine/UI.bas'
-
-'$INCLUDE:'../../engine/DICE3D/_ALL.BM'
-'$INCLUDE:'../../engine/DICE3D_GAME.bas'
-'$INCLUDE:'../../engine/ansi/ANSIPrint.bas'
+'$INCLUDE:'HOOKS.bas'             ' this game's 11 Game_* hooks -- the whole contract
+'$INCLUDE:'../../engine/_ALL.BM'  ' ALL engine bodies, one line

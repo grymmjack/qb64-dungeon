@@ -1,0 +1,27 @@
+$INCLUDEONCE
+' ============================================================================
+'  engine/_ALL.BM -- every ENGINE body, in one include. Put this at the BOTTOM.
+'
+'  ORDER DOES NOT MATTER for correctness: QB64 resolves all SUBs/FUNCTIONs globally, and
+'  no body file declares anything at file scope (no DIM SHARED, no file-scope CONST or
+'  TYPE -- those all live in the .BI headers, which is what makes this roll-up safe).
+'  The order below is for READING: pure utilities, then world, then presentation, then the
+'  vendored modules last, matching their own "bodies at the bottom" contract.
+' ============================================================================
+'$INCLUDE:'TEXT.bas'
+'$INCLUDE:'TABLE.bas'
+'$INCLUDE:'LAYOUT.bas'
+'$INCLUDE:'DATA.bas'
+'$INCLUDE:'ARTPACK.bas'
+'$INCLUDE:'BOARD.bas'
+'$INCLUDE:'CURSOR.bas'
+'$INCLUDE:'GESTURE.bas'
+'$INCLUDE:'JUICE.bas'
+'$INCLUDE:'MARKDOWN.bas'
+'$INCLUDE:'MUSIC.bas'
+'$INCLUDE:'SAVEIO.bas'
+'$INCLUDE:'STATS.bas'
+'$INCLUDE:'UI.bas'
+'$INCLUDE:'DICE3D_GAME.bas'
+'$INCLUDE:'DICE3D/_ALL.BM'
+'$INCLUDE:'ansi/ANSIPrint.bas'
