@@ -72,7 +72,9 @@ Roadmap (future / bigger efforts):
         ☐ Colour-coded polyhedral dice tray (d20/d12/d10/d8/d6/d4) -- extend the tumbler
         This is the flagship consumer of the reusable engine's combat subsystem.
 
-    ☐ Special rooms = CHAMBERS with elaborate encounters (Darkest-Dungeon-style):
+    ✔ Special rooms = CHAMBERS with elaborate encounters @done(26-07-29) -- all three
+      sub-items below are done. Remaining chamber ambition (multi-pawn / a bigger
+      Darkest-Dungeon presentation) folds into the DEEP TACTICAL COMBAT item.
         Per the manual, Dungeon! Rooms hold 1 monster + 1 treasure; CHAMBERS hold a
         3-monster gauntlet and NO treasure (only dropped loot), and allow multiple
         pawns. Build on the existing room detection:
