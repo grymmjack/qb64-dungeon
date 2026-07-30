@@ -147,6 +147,8 @@ DIM SHARED FIGHT_CHROME AS INTEGER                    ' authored frame.ans was d
 ' the game draw over the screen afterwards means the 8x8 font bracket stays in ONE place
 ' (FightRender), instead of every caller having to remember to re-enter and restore it.
 CONST FIGHT_MENUMAX = 8
+CONST MENU_ROWS = 2               ' rows the root action menu may wrap across before
+'                                   it would run down over the player portrait
 DIM SHARED FMENU(1 TO FIGHT_MENUMAX) AS STRING, FMENU_N AS INTEGER, FMENU_SEL AS INTEGER
 DIM SHARED FMENU_SUB(1 TO FIGHT_MENUMAX) AS STRING, FMENU_SUBN AS INTEGER
 DIM SHARED FMENU_HINT AS STRING

@@ -450,26 +450,41 @@ END SUB
 ' bracketed AND recoloured, because on a CP437 grid at 8x8 a colour change alone is easy to miss
 ' against four bright foe panels competing for attention.
 SUB FightDrawMenu
-    DIM i AS INTEGER, x AS INTEGER, lbl AS STRING, wide AS INTEGER
+    DIM i AS INTEGER, x AS INTEGER, lbl AS STRING, wide AS INTEGER, row AS INTEGER
     IF LEN(_TRIM$(FMENU_HINT)) > 0 THEN FightText "hint.bar", 0, _TRIM$(FMENU_HINT), GREY
     IF FMENU_N < 1 THEN EXIT SUB
     IF LayHas%("menu.root") = 0 THEN EXIT SUB
     wide = LayCols%("menu.root")
     x = 0
+    row = 0
     FOR i = 1 TO FMENU_N
         lbl = _TRIM$(FMENU(i))
         IF i = FMENU_SEL THEN lbl = "[" + lbl + "]" ELSE lbl = " " + lbl + " "
-        ' Stop before overflowing the region rather than clipping mid-label, which would leave a
-        ' half-drawn word reading as a different (shorter) action.
-        IF x + LEN(lbl) > wide THEN EXIT FOR
+        ' WRAP rather than clip. Seven actions total ~49 columns and the region is 34 wide, so a
+        ' stop-at-the-edge loop silently DROPPED the last two -- and a menu that hides an action
+        ' the player can still select with the arrows is worse than an ugly one. Bounded to
+        ' MENU_ROWS so it can never run down over the portrait below.
+        IF x + LEN(lbl) > wide THEN
+            row = row + 1
+            x = 0
+            IF row >= MENU_ROWS THEN EXIT FOR          ' genuinely out of room; reported below
+        END IF
         IF i = FMENU_SEL THEN
             COLOR YELLOWU, BLACK
         ELSE
             COLOR GREY, BLACK
         END IF
-        _PRINTSTRING (LayPX%("menu.root") + x * 8, LayPY%("menu.root")), lbl
+        _PRINTSTRING (LayPX%("menu.root") + x * 8, LayPY%("menu.root") + row * 8), lbl
         x = x + LEN(lbl)
     NEXT i
+    ' If the loop ran to completion, i is FMENU_N + 1. Anything less means EXIT FOR fired and there
+    ' are actions the player cannot see -- say so on screen rather than leaving them invisible; it
+    ' is a layout bug and should look like one. (Do NOT `EXIT FOR` on the last item to "finish
+    ' early": that leaves i AT FMENU_N and makes this warning fire on every single draw.)
+    IF i <= FMENU_N THEN
+        COLOR REDU, BLACK
+        _PRINTSTRING (LayPX%("menu.root"), LayPY%("menu.root") + (MENU_ROWS - 1) * 8), "!! " + LTRIM$(STR$(FMENU_N - i + 1)) + " action(s) do not fit"
+    END IF
     ' The submenu, one label per row.
     IF FMENU_SUBN < 1 OR LayHas%("menu.sub") = 0 THEN EXIT SUB
     FOR i = 1 TO FMENU_SUBN

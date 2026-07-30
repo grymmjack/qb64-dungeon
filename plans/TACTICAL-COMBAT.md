@@ -345,8 +345,34 @@ skill so it is a variance choice, not a free upgrade.
 - **Juice reused, not rewritten:** `ImpactFX`/`CritBoom`/`ShakeMag!` already existed in
   `engine/JUICE.bas` — the fight calls them.
 
-**Still open in Phase E:** archery (a ranged action), the death-save on the tactical screen, and
-per-level health-tier tuning.
+**Phase E slice 2 — DONE.** Archery, the tactical death-save, and health tiers made visible.
+
+- **`SHOOT`** (Magic Bow only, so the row appears only when the player holds it): 70% damage +1,
+  but it leaves the player in **READY** rather than **ATTACK** stance — so it does *not* open the
+  125%-incoming window a committed swing does. That is the whole point: with four foes on staggered
+  fuses there are moments when chipping safely beats swinging hard. It is neither strictly better
+  nor strictly worse than `ATTACK` — the trade is damage for exposure, decided by how close the
+  nearest fuse is.
+- **The death-save**, offered ONCE per encounter: the crit band only — a hit is not enough to cheat
+  death — for 1d6 HP and a cleared status list. Checked in the loop's end-condition block rather
+  than inside each damage path, so no source of damage (including poison) can forget to offer it.
+  Gated on Action Gestures like every other gesture: with them off the blow simply kills, which is
+  the plain-rules outcome rather than a silent free life. Once-only because a repeatable save is not
+  a save, it is immortality — and with parallel fuses the player would be offered one every few
+  seconds.
+- **Health tiers are now felt, not just named:** the fight draws the board's own `DrawWounds` blood
+  and vignette under 50% HP, after the screen and before the flip (board → blood → text, matching
+  the board's order).
+
+**One bug found by drawing it:** the action menu was **silently clipping**. Seven actions total ~49
+columns and `menu.root` is 34 wide, so a stop-at-the-edge loop dropped `FLOURISH` and `SHOOT`
+entirely — while the arrows could still select them. It now wraps across `MENU_ROWS`, and if
+something genuinely will not fit it says so on screen in red, because that is a layout bug and
+should look like one. (The first version of that warning fired on *every* draw: `EXIT FOR` on the
+last item left the counter at `FMENU_N` instead of `FMENU_N + 1`.)
+
+**Still open:** per-level health-tier tuning to `tuning.txt`, and the `GESTURE.bas` / `GAUGE.bas`
+duplication (SECOND WIND and CRIT FLOURISH still run on the older private math).
 
 ### Phase E — original plan
 Health tiers, stances, per-actor status durations, then the juice port (typed screenshake,

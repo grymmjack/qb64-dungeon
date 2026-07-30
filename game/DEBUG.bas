@@ -368,14 +368,22 @@ SUB DumpFightShot
 
     '--- the player (slot 0) -------------------------------------------------
     nm = _TRIM$(CLASSES(player_class).name)
-    FightSetActor 0, "GRYMMJACK", "1st Level " + nm, "classes/" + SpriteBase$(nm), 18, 24
+    ' Deliberately BLOODIED (7/24 = 29%), so the health-tier blood + vignette actually render --
+    ' DrawWounds only kicks in under 50%, and a shot at full health would show none of it.
+    player_hp = 7: player_maxhp = 24
+    item_bow = -1                                     ' so the SHOOT row appears in the menu
+    FightSetActor 0, "GRYMMJACK", "1st Level " + nm, "classes/" + SpriteBase$(nm), 7, 24
     FightSetArtFallback 0, ClassSprite$(player_class)   ' takes a class INDEX, not a name
     FightSetStat 0, 1, "MELEE:", "+3"
     FightSetStat 0, 2, "RANGED:", "+1"
     FightSetStat 0, 3, "ARMOR:", "AC4"
-    FightSetStatus 0, 1, "HEALTH:", "WOUNDED"
-    FightSetStatus 0, 2, "STANCE:", "ATTACKING"
-    FightSetStatus 0, 3, "EFFECT:", "-"
+    FightSetStatus 0, 1, "HEALTH:", HealthWord$(player_hp, player_maxhp)
+    FA_STANCE(0) = STANCE_ATTACK
+    FightSetStatus 0, 2, "STANCE:", StanceName$(FA_STANCE(0))
+    ' A real status effect, so the EFFECT: row shows the live model rather than a placeholder.
+    StatusClearAll
+    IF StatusApply%(0, "poison", 4.5, 1, -1) > 0 THEN FightSetStatus 0, 3, "EFFECT:", StatusText$(0)
+    FightMenuRoot                                     ' the action menu + hint line
     FightSetFuse 0, 0.62
 
     '--- four foes, one per visual state ------------------------------------
@@ -406,6 +414,7 @@ SUB DumpFightShot
     NEXT a
     a = FuseStep%(1.4)                                      ' 1.4s of deliberation has passed
     FA_TARGET = 3
+    IF FA_ALIVE(2) THEN StaggerActor 2, 2.5           ' show the STAGGERED punish state
     TargetValidate                                          ' never leave the aim on a corpse
     FuseSyncInitiative                                      ' ribbon reads off the live fuses
 
@@ -421,7 +430,15 @@ SUB DumpFightShot
     FightLog "M", _TRIM$(FA_NAME(1)) + " lunges past your guard."
     FightLog "", "You give ground, breathing hard."
 
+    ' Drive the display off the LIVE model rather than hand-set rows, so the shot cannot show
+    ' something the fight itself would not (foe 2's stagger, the poison countdown, health words).
+    FightSyncStatus
     FightRender
+    ' Health tiers, visible: the same blood + vignette the board uses. Only renders under 50% HP,
+    ' which is why the seeded player is deliberately BLOODIED.
+    FightBeginDraw
+    DrawWounds
+    FightEndDraw
     _SAVEIMAGE "fightshot.png", CANVAS
     _DEST _CONSOLE
     PRINT PipeCol$("  actors: |15" + LTRIM$(STR$(FightLiveFoes%)) + "|07 live foes + the player, target = slot |15" + LTRIM$(STR$(FA_TARGET)) + "|07")

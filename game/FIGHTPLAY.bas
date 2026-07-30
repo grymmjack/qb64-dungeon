@@ -31,6 +31,7 @@ CONST FACT_CAST = 3
 CONST FACT_USE = 4
 CONST FACT_FLEE = 5
 CONST FACT_FLOURISH = 6
+CONST FACT_SHOOT = 7
 
 ' The player's effective "strength" for the shared damage seam.
 '
@@ -142,6 +143,12 @@ SUB FightMenuRoot
     IF opt_gestures THEN
         FMENU_N = 6
         FMENU(FACT_FLOURISH) = "FLOURISH"
+    END IF
+    ' SHOOT needs the Magic Bow, per DUNGEON!'s rules -- so the row appears only when the player
+    ' actually holds it, rather than being offered and then refused.
+    IF item_bow THEN
+        FMENU_N = 7
+        FMENU(FACT_SHOOT) = "SHOOT"
     END IF
     IF FMENU_SEL < 1 OR FMENU_SEL > FMENU_N THEN FMENU_SEL = FACT_ATTACK
     FMENU_SUBN = 0
@@ -362,6 +369,72 @@ SUB FightFoeAttack (a AS INTEGER, depth AS INTEGER, guarding AS INTEGER)
     END IF
 END SUB
 
+' ARCHERY. Less damage than a melee swing, but it leaves the player in READY rather than ATTACK
+' stance -- so it does not open the 125%-incoming window a committed swing does.
+'
+' That is the whole tactical point: with four foes on staggered fuses there are moments when
+' chipping safely beats swinging hard, and this is the action for them. It is NOT strictly worse
+' than ATTACK and NOT strictly better -- the trade is damage for exposure, decided by how close
+' the nearest fuse is.
+'
+' The Magic Bow's +2 to-hit becomes +1 damage here, since the tactical screen has no to-hit roll.
+SUB FightShoot (depth AS INTEGER)
+    DIM dmg AS LONG, a AS INTEGER
+    a = FA_TARGET
+    IF TargetOk%(a) = 0 THEN FightLog "", "Nothing there to shoot.": EXIT SUB
+    IF item_bow = 0 THEN FightLog "", "You have no bow.": EXIT SUB
+    FA_STANCE(0) = STANCE_READY                       ' shooting does not expose you
+    dmg = GaugeBaselineDamage&(FightPlayerStrength%)
+    dmg = ScaleDmg&(dmg, 70)                          ' the cost of staying safe
+    dmg = dmg + 1                                     ' the bow's bonus
+    dmg = ScaleDmg&(dmg, StanceInPct%(FA_STANCE(a)))  ' a staggered foe is still a soft target
+    FightSetHp a, FA_HP(a) - dmg
+    Sfx "hit"
+    ImpactFX ShakeMag!(dmg), 0
+    FightLog "*", "Your arrow takes " + _TRIM$(FA_NAME(a)) + " for " + LTRIM$(STR$(dmg)) + "."
+    IF FA_ALIVE(a) = 0 THEN
+        FightLog "!", _TRIM$(FA_NAME(a)) + " falls."
+        Sfx "monster-death"
+        FuseDisarm a
+        StatusClear a
+        TargetValidate
+    END IF
+END SUB
+
+' THE TACTICAL DEATH-SAVE. One clutch gesture when the player would drop -- nail the crit band and
+' rise with 1d6 HP instead of losing the fight.
+'
+' ONCE PER ENCOUNTER, tracked by the caller: a repeatable save is not a save, it is immortality,
+' and with parallel fuses the player would be offered one every few seconds. The window is
+' deliberately tighter than a normal FLOURISH.
+'
+' Gated on Action Gestures like every other gesture: with them off the blow simply kills, which is
+' the plain-rules outcome rather than a silent free life.
+FUNCTION FightDeathSave% (depth AS INTEGER)
+    DIM k AS GAUGEK, z AS INTEGER, q AS SINGLE, hp AS INTEGER
+    IF NOT opt_gestures THEN EXIT FUNCTION
+    FIGHT_BANNER = "FIGHT FOR YOUR LIFE"
+    FightLog "!", "You are going down -- one chance!"
+    Sfx "heartbeat"
+    FightBuildGauge k, depth
+    ' The crit band only: a hit is not enough to cheat death.
+    z = FightGaugeRun%(k, GESTURE_FUSE * 0.8, q)
+    IF z = 2 THEN
+        hp = RollDie(6)
+        player_hp = hp
+        FightSetHp 0, hp
+        FA_STANCE(0) = STANCE_READY
+        StatusClear 0                                 ' the brush with death burns off what was on you
+        FIGHT_BANNER = "** SECOND WIND! **"
+        FightLog "+", "You claw back with " + LTRIM$(STR$(hp)) + " HP -- fight on!"
+        Sfx "levelup"
+        FightDeathSave% = -1
+    ELSE
+        FIGHT_BANNER = "YOU FALL"
+        Sfx "death"
+    END IF
+END FUNCTION
+
 '--- the loop --------------------------------------------------------------
 
 ' Run a tactical fight to a conclusion. Returns OUT_WIN / OUT_LOSE / OUT_FLEE.
@@ -370,7 +443,7 @@ END SUB
 FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
     DIM k AS STRING, nk AS STRING, a AS INTEGER
     DIM tprev AS DOUBLE, dt AS SINGLE
-    DIM guarding AS INTEGER, outcome AS INTEGER, banner_t AS SINGLE
+    DIM guarding AS INTEGER, outcome AS INTEGER, banner_t AS SINGLE, saved AS INTEGER
 
     IF FIGHT_LAYOUT_OK = 0 THEN
         IF FightInit%("assets/data/ui-fight-layout.txt") = 0 THEN RunFight% = OUT_FLEE: EXIT FUNCTION
@@ -450,6 +523,9 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
                             a = FuseTakePending%
                         LOOP
                         tprev = TIMER                     ' do not bill the gesture as one frame
+                    CASE FACT_SHOOT
+                        FightShoot lvl
+                        FIGHT_ROUND = FIGHT_ROUND + 1
                     CASE FACT_FLEE
                         outcome = OUT_FLEE
                 END SELECT
@@ -461,6 +537,12 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
         IF FightTickStatus%(dt) THEN outcome = OUT_LOSE
 
         '--- end conditions ------------------------------------------------
+        ' The death-save is offered ONCE, and only when something actually dropped the player --
+        ' checked here rather than inside each damage path, so no source of damage can forget it.
+        IF player_hp <= 0 AND saved = 0 THEN
+            saved = -1
+            IF FightDeathSave%(lvl) THEN tprev = TIMER
+        END IF
         IF player_hp <= 0 THEN outcome = OUT_LOSE
         IF FightLiveFoes% = 0 THEN outcome = OUT_WIN
 
@@ -468,6 +550,12 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
         FightSyncStatus
         IF guarding THEN FightSetStatus 0, 2, "STANCE:", "GUARDING"
         FightRender
+        ' Health TIERS, visible rather than merely named: the same blood + vignette the board uses,
+        ' so "NEAR DEATH" is felt at a glance instead of read off a row. Drawn after the screen and
+        ' before the flip, matching the board's board -> blood -> text order.
+        FightBeginDraw
+        DrawWounds
+        FightEndDraw
         _DISPLAY
     LOOP UNTIL outcome <> 0
 
