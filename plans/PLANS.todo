@@ -6,6 +6,7 @@ Bugs:
   ☐ When playing in window mode, resize sometimes hides UI parts
     ☐ Implement same fix as done in DRAW for this to make it always render properly
   ☐ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc.
+  ☐ Character sheet portrait art is being overwritten by text
 
 Needs Thorough Testing:
   ☐ Strategic Combat
@@ -35,18 +36,40 @@ SFX Tweaks:
       ☐ Whispers
 
 Narration Small Tweaks:
-  ☐ When character levels up - add 10 flavor texts:
-    ☐ You have learned much and conquered more! You are emboldened and filled with vigor
-    ☐ Everything that has stood between you and your goal has been ... handled. Well done.
-    ☐ You feel as if nothing can stop you and you are determined to push ahead even if it means your end.
-    ☐ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more.
-    ☐ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
-    ☐ Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
-    ☐ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them.
-    ☐ What is life without achievement? What is existence without testing the limits of such? Press on hero!
-    ☐ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
-    ☐ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.
   ☐ Add additional narrations for combat - stop the repeat of "blood runs..."
+    ☐ Player kills monster:
+      ☐ Your foe falls before you and you breathe a sigh of relief.. for now.
+      ☐ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly.
+      ☐ The creature looks pathetic and harmless in it's state of frozen pain and death.
+      ☐ Exasperated and grateful you step over your opponent and carry on.
+      ☐ The place wreaks of blood and bits and sweat and pain and you smile in victory.
+      ☐ With a deep sigh and a gathering of courage you press on.
+      ☐ You wipe yourself clean of the fluids your enemy shared with you in their dance of death.
+      ☐ Twitching and breathing a final breath your foe perishes from this realm.
+      ☐ Another one meets the clearing at the end of the path. You strengthen your resolve for more.
+      ☐ Death. Dealt. The cards to come unknown but the dealer you are just the same.
+    ☐ Player kills monster with critical:
+      ☐ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise.
+      ☐ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred?
+      ☐ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away.
+      ☐ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin.
+      ☐ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood.
+      ☐ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success.
+      ☐ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy.
+      ☐ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS!
+      ☐ Shivering and careful you survey your surroundings; a grim visage of death and destruction.
+      ☐ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness.
+    ☐ When character levels up - add 10 flavor texts:
+      ☐ You have learned much and conquered more! You are emboldened and filled with vigor
+      ☐ Everything that has stood between you and your goal has been ... handled. Well done.
+      ☐ You feel as if nothing can stop you and you are determined to push ahead even if it means your end.
+      ☐ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more.
+      ☐ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
+      ☐ Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
+      ☐ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them.
+      ☐ What is life without achievement? What is existence without testing the limits of such? Press on hero!
+      ☐ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
+      ☐ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.
     ☐ Player hits monster:
       ☐ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost.
       ☐ With precision timing and strategy you bring death and harbor no mercy.
@@ -172,16 +195,18 @@ Big UI Tweaks:
   ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern
   ☐ Create item display frames for monsters, curios, and locations
   ☐ Add stats box (resets per game) - also tracked in game summary and stats log:
-    ☐ Crits
-    ☐ Flourishes
-    ☐ Fumbles
-    ☐ Items Found
-    ☐ Items Used
+    ☐ Time elapsed
+    ☐ Turns taken
+    ☐ Distance Traveled
     ☐ Rooms Explored
     ☐ Rooms Cleared
     ☐ Chambers Cleared
-    ☐ Distance Traveled
     ☐ Max Level Reached
+    ☐ Items Found
+    ☐ Items Used
+    ☐ Crits
+    ☐ Flourishes
+    ☐ Fumbles
     ☐ Damage Dealt
     ☐ Damage Healed
     ☐ Deaths
@@ -249,11 +274,14 @@ Roadmap (future / bigger efforts):
       ☐ Pits
       ☐ Traps
       ☐ Poison pools
+      ☐ Webs the player can get caught in
+      ☐ Eggs of creatures they stubmle into clutches can be explored at a risk
+      ☐ Messages near dead adventurer remains - true or false 50%
       ☐ Arrow slits - gesture based - left, right, up, down - dodges
       ☐ Acid darts - impacting -1 on AC
       ☐ Rock falls - save DEX
       ☐ Boulder rolls - save DEX
-      ☐ Magic mouths - save WIS - mini-game riddles
+      ☐ Magic mouths - save WIS - mini-game riddles (https://github.com/crawsome/riddles - riddles.csv)
       ☐ Magic sirens - save WIS - mini-game disarm maze
     ☐ Random dungeon generation
     ☐ Post dungeon crawl success back to town
