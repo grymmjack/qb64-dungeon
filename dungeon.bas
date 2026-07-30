@@ -264,8 +264,39 @@ IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
     FOR fdx = 1 TO SD_N
         PRINT #fdf, "  door " + _TRIM$(STR$(fdx)) + " @ (" + _TRIM$(STR$(SD_X(fdx))) + "," + _TRIM$(STR$(SD_Y(fdx))) + ") -> region " + _TRIM$(STR$(DOOR_REGION(fdx))) + " lvl " + _TRIM$(STR$(MASKLVL(DOOR_REGION(fdx))))
     NEXT
+
+    ' VERDICT, not just data. A secret REGION that no door opens is unreachable forever, and
+    ' the mask is hand-painted ART -- an edit can orphan a region with no other symptom. That
+    ' matters because killing the monster in key_room is the ONLY way to get the Level Key, so
+    ' an orphaned region holding the key would make the run quietly unwinnable. RandomizeRooms
+    ' now refuses to place the key in an unreachable room (RoomReachable%), but the region is
+    ' still dead board -- its rooms, monsters and treasure can never be reached.
+    DIM fdorph AS INTEGER, fdlist AS STRING, fdrooms AS INTEGER
+    fdorph = 0: fdlist = ""
+    FOR fdi = 1 TO fdreg
+        IF NOT RegionHasDoor%(fdi) THEN fdorph = fdorph + 1: fdlist = fdlist + " " + _TRIM$(STR$(fdi))
+    NEXT fdi
+    fdrooms = 0
+    FOR fdx = 1 TO ROOM_N
+        IF NOT RoomReachable%(fdx) THEN fdrooms = fdrooms + 1
+    NEXT fdx
+    PRINT #fdf, ""
+    IF fdorph > 0 THEN
+        PRINT #fdf, "!! " + _TRIM$(STR$(fdorph)) + " ORPHANED region(s) -- no secret door opens them:" + fdlist
+        PRINT #fdf, "!! " + _TRIM$(STR$(fdrooms)) + " room(s) inside them are unreachable (dead monsters + treasure)."
+        PRINT #fdf, "!! Paint a door (bright blue) touching each, or repaint the region as public (black)."
+        PRINT #fdf, "VERDICT: MASK HAS ORPHANED REGIONS"
+    ELSE
+        PRINT #fdf, "VERDICT: every secret region is opened by at least one door (" + _TRIM$(STR$(fdreg)) + " regions, " + _TRIM$(STR$(SD_N)) + " doors)"
+    END IF
     CLOSE #fdf
-    SYSTEM
+    _DEST _CONSOLE
+    IF fdorph > 0 THEN
+        PRINT PipeCol$("|12fogdump: " + LTRIM$(STR$(fdorph)) + " ORPHANED secret region(s)|07 -- see fogdump.txt")
+        SYSTEM 1
+    END IF
+    PRINT PipeCol$("|10fogdump: mask OK|07 -- all " + LTRIM$(STR$(fdreg)) + " secret regions have a door")
+    SYSTEM 0
 END IF
 
 '--- dev: `dungeon.run maskgen` writes a STARTER secret-mask .ans from the current flood

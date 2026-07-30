@@ -53,28 +53,42 @@ the `qb64pe.compilerPath` setting (provided by the `grymmjack.qb64pe` extension)
 To compile a single file by hand: `qb64pe -w -x <path/to/file.bas> -o <path/to/file.run>`
 (needs a local QB64PE install; the exact binary path is machine-specific).
 
-**Tests:** `tests/run-tests.sh` (VS Code task **TEST: Run engine tests**) is the gate. It runs
-the headless assert suites in `tests/TEST-*.bas` (`engine/TEXT.bas`, `engine/STATS.bas`,
-`MARKDOWN`, `SAVEIO`, `ARTPACK`, and the pure half of `engine/DATA.bas` — 200 assertions across
-6 suites), then three audits: **`audit-boundary.sh`** (no `engine/` file may name a `game/`
-symbol), **`audit-shadow.sh`** (no local may be named after a high-risk shared global — QB64
-identifiers are case-insensitive, and a local `brown` shadowing the shared `BROWN` made
-`DetectDoors` return zero doors forever, silently disabling reinforced doors), and
-**`audit-shortcircuit.sh`** (QB64's `AND`/`OR` always evaluate both sides, so a bounds guard
-like `IF n > 0 AND ROOMS(n).x` still reads `ROOMS(0)`). Finally it builds + selftests
-**`examples/minimal`**, a second game on `engine/` alone that proves the engine carries no
-hidden DUNGEON! dependency, and runs **`dungeon.run savetest`** (save/load round-trip for the
-positional token stream, plus a read-only load of a COPY of the player's real save to prove a
-format bump has not orphaned it) and **`dungeon.run datalint`** (validates the loaded content
-tables of the ACTIVE data pack: a level must keep at least one gold treasure slot, since items
-override slots and a room rolls 1 of 3 uniformly — levels 5/6/8 had silently become
-item-only, making their `treasures.txt` rows dead data). Only *game-free* engine modules
-that touch nothing but QB64 built-ins can be unit-tested; everything else is verified through the
-binary's dev modes (`chamberdump`, `audiomanifest`, `imagemanifest`, `ansilint`, `settingsshot`,
-`savetest`, `datalint`)
-or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert API, and the
-QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are unrelated —
-manual runnable prototypes, not suites.)
+**Tests:** `tests/run-tests.sh` (VS Code task **TEST: Run engine tests**) is the gate — run it
+after any structural change. It runs, in order:
+
+- the headless assert suites in `tests/TEST-*.bas` — `engine/TEXT.bas`, `STATS`, `MARKDOWN`,
+  `SAVEIO`, `ARTPACK`, `TABLE`, and the pure half of `DATA` (**228 assertions, 7 suites**).
+- **`audit-boundary.sh`** — no `engine/` file may name a `game/` symbol; every `Game_*` hook the
+  engine CALLS must be DEFINED by both `game/` and `examples/minimal/`; and no ENGINE.BI global
+  may be unused by all of `engine/` (that last one is the sharper question — a *one-directional*
+  name check can never see something misfiled INTO the engine header).
+- **`audit-shadow.sh`** — no local named after a high-risk shared global. QB64 identifiers are
+  case-insensitive, so a local `brown` shadowed the shared `BROWN` and made `DetectDoors` return
+  zero doors forever, silently disabling reinforced doors. Also covers the big UDT arrays
+  (`ROOMS`/`PLAYERS`/…), where the compiler blames the *use* site rather than the `DIM`.
+- **`audit-shortcircuit.sh`** — QB64's `AND`/`OR` always evaluate both sides, so `IF n > 0 AND
+  ROOMS(n).x` still reads `ROOMS(0)`, and an `AND` around anything with a side effect (a die
+  roll) is a correctness bug, not just a bounds risk.
+- **`dungeon.run datalint`** — validates the ACTIVE data pack's content tables: item drop odds vs
+  pool contents, unhandled item codes, chamber-event kinds with no mechanic, unwinnable class goals.
+- **`dungeon.run fogdump`** — VERDICTS on secret-mask reachability. A hand-painted region that no
+  door opens is unreachable forever, and killing the monster in `key_room` is the ONLY way to get
+  the Level Key, so an art edit could otherwise strand it and make runs quietly unwinnable.
+- **`dungeon.run savetest`** — save/load round-trip of the positional token stream (hot-seat seat
+  isolation, 4-seat round-trip incl. names with spaces, chamber progress), plus a read-only load
+  of a COPY of the player's real save to prove a format bump has not orphaned it.
+- **`examples/minimal`** — builds + selftests a second game on `engine/` alone, proving the engine
+  carries no hidden DUNGEON! dependency.
+
+Also useful, not in the gate: **`dungeon.run econdump`** reports the expected gold economy and
+win pacing per class, so a balance change can be measured instead of playtested.
+
+Only *game-free* engine modules that touch nothing but QB64 built-ins can be unit-tested;
+everything else is verified through the binary's dev modes (`chamberdump`, `audiomanifest`,
+`imagemanifest`, `uimanifest`, `ansilint`, `settingsshot`, `savetest`, `datalint`, `econdump`,
+`fogdump`) or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert
+API, and the QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are
+unrelated — manual runnable prototypes, not suites.)
 
 ## Screenshotting the apps
 
@@ -248,7 +262,13 @@ Environment specifics that dictate this approach:
   hidden doors read as ordinary wall and the base map matches the no-secrets layout. `[F]`
   `DoSearch` (Elf's `secret_bonus` helps) flood-fills outward from a found door
   (`RevealRegionFromDoor`), copying just that region back from `FULL_BOARD` — revealing the
-  door and only what it connects to. The first door found grants the Level Key; the win
+  door and only what it connects to. (`DoSearch` does NOT grant the Level Key -- the only way
+  to get it is killing the monster in `key_room`, via `ClaimTreasure` item code 6. Because that
+  is the single path, `RandomizeRooms` refuses to place the key in a room it cannot reach:
+  a room inside a hand-painted secret REGION that no door opens is skipped as a candidate
+  (`RoomReachable%`), or the run would be quietly unwinnable. `dungeon.run fogdump` gives a
+  VERDICT on that -- it exits non-zero and names any orphaned region, since the mask is art and
+  an edit can strand one with no other symptom.) The win
   requires gold **and** `has_key` **and** returning to START.
 - **Secret-region MASK** (the exact, art-as-data replacement for the flood above).
   `LoadSecretMask` (BOARD.bas) loads a same-size painted ANSI, `assets/ansi/board-132x50-secret-mask.ans`:

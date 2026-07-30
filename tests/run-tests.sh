@@ -101,6 +101,22 @@ if (( $# == 0 )); then
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # Secret-mask reachability. The mask is hand-painted ART, and a region no door opens is
+    # unreachable forever -- which matters because killing the monster in key_room is the ONLY
+    # way to get the Level Key. Cheap insurance against an art edit stranding a region.
+    echo "-- secret-mask reachability (dungeon.run fogdump) --"
+    if [[ -x ./dungeon.run ]]; then
+        if fg=$(setsid timeout 60 xvfb-run -a ./dungeon.run fogdump nocolor 2>&1) && grep -q 'mask OK' <<<"$fg"; then
+            grep -E 'mask OK' <<<"$fg" | sed 's/^/  /'
+        else
+            grep -E '^!!|VERDICT|ORPHAN' <<<"$fg" fogdump.txt 2>/dev/null | head -5 | sed 's/^/    /'
+            (( fail++ )); failed+=("fogdump (orphaned mask region)")
+        fi
+        rm -f fogdump.png fogdump-regions.png fogdump.txt
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Save-format round-trip: the stream is positional, so a field added on one side and
     # not the other silently shifts everything after it. Also loads a COPY of the player's
     # real save to prove a format bump did not orphan it.

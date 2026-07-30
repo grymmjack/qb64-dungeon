@@ -188,12 +188,26 @@ SUB RandomizeRooms
     ' room is pinpointed by the Crystal Ball; otherwise only its level is hinted.
     DIM kcand(1 TO 400) AS INTEGER, nk AS INTEGER
     key_room = 0: key_level = 0: nk = 0
+    ' REACHABILITY GUARD. Killing the monster in key_room is the ONLY way to get the key
+    ' (ClaimTreasure code 6 -- DoSearch does not grant it), so a key in an unreachable room
+    ' makes the run unwinnable with no feedback. A room can be unreachable if it sits in a
+    ' hand-painted secret REGION that no secret door opens; the mask is art, so an edit can
+    ' orphan a region silently. `dungeon.run fogdump` reports any such region.
     FOR r = 1 TO ROOM_N
-        IF ROOMS(r).malive AND ROOMS(r).sec >= 2 AND NOT ROOMS(r).is_boss THEN nk = nk + 1: kcand(nk) = r
+        IF ROOMS(r).malive AND ROOMS(r).sec >= 2 AND NOT ROOMS(r).is_boss THEN
+            IF RoomReachable%(r) THEN nk = nk + 1: kcand(nk) = r
+        END IF
     NEXT r
-    IF nk = 0 THEN                               ' fallback: any live monster room that isn't the boss
+    IF nk = 0 THEN                               ' relax the depth rule, keep the reachability rule
         FOR r = 1 TO ROOM_N
-            IF ROOMS(r).malive AND NOT ROOMS(r).is_boss THEN nk = nk + 1: kcand(nk) = r
+            IF ROOMS(r).malive AND NOT ROOMS(r).is_boss THEN
+                IF RoomReachable%(r) THEN nk = nk + 1: kcand(nk) = r
+            END IF
+        NEXT r
+    END IF
+    IF nk = 0 THEN                               ' last resort: any live room at all, reachable or not
+        FOR r = 1 TO ROOM_N                      ' (better an awkward key than no key placed)
+            IF ROOMS(r).malive THEN nk = nk + 1: kcand(nk) = r
         NEXT r
     END IF
     IF nk > 0 THEN
@@ -409,3 +423,28 @@ SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
     NEXT qi
     ROOMS(rid).cx = QX(bi): ROOMS(rid).cy = QY(bi)
 END SUB
+
+
+' Can the player actually get to this room? A room in the PUBLIC area always yes. A room
+' inside a hand-painted secret REGION needs some secret door to open that region -- if the
+' mask paints a region no door touches, nothing in it is ever reachable.
+' Only meaningful when the secret MASK is in use; with the flood fallback every sealed cell
+' is door-connected by construction, so everything is reachable.
+FUNCTION RoomReachable% (r AS INTEGER)
+    DIM reg AS INTEGER
+    RoomReachable% = -1
+    IF NOT MASK_ON THEN EXIT FUNCTION
+    IF r < 1 OR r > ROOM_N THEN EXIT FUNCTION
+    reg = MASKREG(ROOMS(r).cx, ROOMS(r).cy)
+    IF reg <= 0 THEN EXIT FUNCTION                    ' public area
+    IF NOT RegionHasDoor%(reg) THEN RoomReachable% = 0
+END FUNCTION
+
+' Does any detected secret door open region `reg`? (DOOR_REGION is filled by InitFog.)
+FUNCTION RegionHasDoor% (reg AS INTEGER)
+    DIM i AS INTEGER
+    RegionHasDoor% = 0
+    FOR i = 1 TO SD_N
+        IF DOOR_REGION(i) = reg THEN RegionHasDoor% = -1: EXIT FUNCTION
+    NEXT i
+END FUNCTION

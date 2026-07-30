@@ -40,6 +40,9 @@ assets/music/bitwig/**/auto-backups/
 
 chamberdump.png
 chamberdump.txt
+fogdump.png
+fogdump-regions.png
+fogdump.txt
 
 # generation run logs (noise; regenerate any time)
 *.log
