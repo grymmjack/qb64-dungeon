@@ -76,8 +76,11 @@ Roadmap (future / bigger efforts):
         Per the manual, Dungeon! Rooms hold 1 monster + 1 treasure; CHAMBERS hold a
         3-monster gauntlet and NO treasure (only dropped loot), and allow multiple
         pawns. Build on the existing room detection:
-        ☐ Tag room-blocks as ROOM vs CHAMBER (the named big ones = chambers)
-        ☐ Rooms keep 1-monster + treasure; Chambers run a 3-monster gauntlet
+        ✔ Tag room-blocks as ROOM vs CHAMBER @done -- game/CHAMBERS.bas fills CHAMBERAT from
+          the hand-authored assets/data/chambers.txt (12 named halls; `chamberdump` verifies).
+        ✔ Rooms keep 1-monster + treasure; Chambers run a 3-monster gauntlet @done --
+          ChamberEncounter (game/PLAY.bas) raises one monster per entry until CHM_DEAD = 3, and
+          is_chamber makes ClaimTreasure grant no treasure, per the board-game rule.
         ☐ Chamber EVENT table: gauntlet, curios (shrine/altar risk-reward choices),
           traps/hazards, and "LORD" random events (scripted encounters)
 
