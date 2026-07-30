@@ -414,3 +414,27 @@ DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move
 DIM SHARED settingsshot_on AS INTEGER                 ' dev: `settingsshot` -- save the SETTINGS render to PNG + exit (layout check)
 DIM SHARED dbg_click_armed AS INTEGER                 ' debounce for debug click-to-place
 DIM SHARED player_dmgbonus AS INTEGER  ' STR/INT damage mod
+
+' ============================================================================
+'  Manifest generation state. GAME-side: a manifest is a listing of THIS game's content,
+'  and the art direction is direction for THIS game's assets. tests/audit-boundary.sh
+'  caught these in ENGINE.BI where no engine/ file used them -- the ENGINE.BI hoarding
+'  check, which is the one a one-directional name scan cannot see.
+' ============================================================================
+' --- authored ART DIRECTION, merged into the image manifest (assets/data/art-prompts.txt) ---
+' The manifest's entity LIST is derived from the content tables so it cannot drift. But a derived
+' list can only invent generic prompts, so the authored style/size/prompt per asset lives in data
+' and is merged in by path. An asset with no row still appears, with a generic prompt.
+CONST APROMPT_MAX = 300
+DIM SHARED AP_PATH(1 TO APROMPT_MAX) AS STRING, AP_STYLE(1 TO APROMPT_MAX) AS STRING
+DIM SHARED AP_SIZE(1 TO APROMPT_MAX) AS STRING, AP_TEXT(1 TO APROMPT_MAX) AS STRING
+DIM SHARED AP_N AS INTEGER
+
+' --- manifest output BUFFER (game/SPRITES.bas, game/MANIFEST.bas) -------------
+' A manifest's TOTAL has to be printed BEFORE the list, so a generator can read one line and
+' decide whether anything changed -- without a human comparing outputs. But the total is only
+' known after walking the content tables. So the body appends into this buffer and the total is
+' printed in front of it: ONE pass, so the number can never disagree with the list under it.
+CONST MAN_MAX = 600
+DIM SHARED MAN_BUF(1 TO MAN_MAX) AS STRING, MAN_N AS INTEGER
+DIM SHARED MAN_ENTRIES AS INTEGER          ' emitted asset lines (excludes comments/blanks)

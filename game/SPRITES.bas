@@ -1,3 +1,64 @@
+' Load the authored art direction (assets/data/art-prompts.txt) -- style / size / prompt keyed
+' by asset path. Routed through DataPath$ like every other table, so a data pack can ship its own
+' art direction alongside its own monsters.
+SUB LoadArtPrompts
+    DIM i AS INTEGER, k AS STRING
+    AP_N = 0
+    ReadDataFile "assets/data/art-prompts.txt"
+    FOR i = 1 TO DLINE_N
+        k = LCASE$(DField$(DLINE(i), 1))
+        IF LEN(k) > 0 AND AP_N < APROMPT_MAX THEN
+            AP_N = AP_N + 1
+            AP_PATH(AP_N) = k
+            AP_STYLE(AP_N) = DField$(DLINE(i), 2)
+            AP_SIZE(AP_N) = DField$(DLINE(i), 3)
+            AP_TEXT(AP_N) = DField$(DLINE(i), 4)
+        END IF
+    NEXT i
+END SUB
+
+' Row index for an asset path (no media prefix, no extension), or 0.
+FUNCTION ArtPromptSlot% (pth AS STRING)
+    DIM i AS INTEGER, t AS STRING
+    t = LCASE$(_TRIM$(pth))
+    FOR i = 1 TO AP_N
+        IF _TRIM$(AP_PATH(i)) = t THEN ArtPromptSlot% = i: EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
+' Authored prompt for an asset, or "" -- callers fall back to their generic description.
+FUNCTION ArtPromptText$ (pth AS STRING)
+    DIM i AS INTEGER
+    i = ArtPromptSlot%(pth): IF i > 0 THEN ArtPromptText$ = _TRIM$(AP_TEXT(i))
+END FUNCTION
+
+' Authored pixelmon style key, or the category default -- so a new asset with no row still gets a
+' sensible look instead of an empty column the generator has to guess at.
+FUNCTION ArtPromptStyle$ (pth AS STRING, cat AS STRING)
+    DIM i AS INTEGER
+    i = ArtPromptSlot%(pth)
+    IF i > 0 THEN
+        IF LEN(_TRIM$(AP_STYLE(i))) > 0 THEN ArtPromptStyle$ = _TRIM$(AP_STYLE(i)): EXIT FUNCTION
+    END IF
+    SELECT CASE LCASE$(cat)
+        CASE "classes": ArtPromptStyle$ = "portrait"
+        CASE "items", "treasures": ArtPromptStyle$ = "item"
+        CASE "markers": ArtPromptStyle$ = "dark"
+        CASE "rooms": ArtPromptStyle$ = "dosrpg"
+        CASE ELSE: ArtPromptStyle$ = "darkest"
+    END SELECT
+END FUNCTION
+
+' Authored pixelmon size, or the category default.
+FUNCTION ArtPromptSize$ (pth AS STRING, cat AS STRING)
+    DIM i AS INTEGER
+    i = ArtPromptSlot%(pth)
+    IF i > 0 THEN
+        IF LEN(_TRIM$(AP_SIZE(i))) > 0 THEN ArtPromptSize$ = _TRIM$(AP_SIZE(i)): EXIT FUNCTION
+    END IF
+    IF LCASE$(cat) = "rooms" THEN ArtPromptSize$ = "192" ELSE ArtPromptSize$ = "128"
+END FUNCTION
+
 ' ============================================================================
 '  SPRITES.bas -- GAME entity->sprite mapping + pixel-art popups + manifests.
 '
@@ -341,13 +402,21 @@ END FUNCTION
 ' Emit both the pixel-art (.png) and ansi-art (.ans) line for one entity, deduped by cat/slug
 ' via `seen`. Format: path | WxH | prompt -- pxdim in PIXELS, ansidim in CHARACTER cols x rows.
 SUB PutArtBoth (cat AS STRING, slug AS STRING, nm AS STRING, kd AS STRING, pxdim AS STRING, ansidim AS STRING, seen AS STRING)
-    DIM keyp AS STRING
+    DIM keyp AS STRING, sty AS STRING, psz AS STRING, pr AS STRING, cat0 AS STRING
     IF LEN(slug) = 0 THEN EXIT SUB
     keyp = cat + "/" + slug
     IF INSTR(seen, " " + keyp + " ") > 0 THEN EXIT SUB
     seen = seen + keyp + " "
-    PRINT "pixel-art/" + keyp + ".png | " + pxdim + " | pixel-art sprite of " + nm + ", " + kd + ", dark-fantasy dungeon crawler, transparent background, centered, crisp pixels"
-    PRINT "ansi-art/" + keyp + ".ans | " + ansidim + " | ANSI text-mode art of " + nm + ", " + kd + ", CP437 block characters, 16-colour DOS palette, on black"
+    cat0 = cat
+    IF INSTR(cat0, "/") > 0 THEN cat0 = LEFT$(cat0, INSTR(cat0, "/") - 1)   ' monsters/beasts -> monsters
+    sty = ArtPromptStyle$(keyp, cat0)
+    psz = ArtPromptSize$(keyp, cat0)
+    pr = ArtPromptText$(keyp)
+    ' The AUTHORED prompt wins; the derived generic one is only the fallback. That is the whole
+    ' point of the split: canonical list, authored direction.
+    IF LEN(pr) = 0 THEN pr = nm + ", " + kd
+    ManAsset "pixel-art/" + keyp + ".png | " + sty + " | " + psz + " | " + pr + ", pixel art, dark-fantasy dungeon crawler, transparent background, centered, crisp pixels"
+    ManAsset "ansi-art/" + keyp + ".ans | " + sty + " | " + ansidim + " | " + pr + ", ANSI text-mode art, CP437 block characters, 16-colour DOS palette, on black"
 END SUB
 
 ' `dungeon.run imagemanifest` -- pixel-art AND ansi-art paths + dimensions + prompts for every
@@ -355,14 +424,29 @@ END SUB
 SUB DumpImageManifest
     DIM lvl AS INTEGER, sl AS INTEGER, i AS INTEGER, nm AS STRING, seen AS STRING, lst AS STRING, p AS INTEGER, w AS STRING
     _DEST _CONSOLE
-    PRINT "# DUNGEON! image manifest  (path | WxH | prompt)  -- pixel art AND ansi art, same entities."
-    PRINT "# WxH: pixel-art in PIXELS ; ansi-art in CHARACTER cols x rows (fit-scaled to its box in-game)."
-    PRINT "# grep '^pixel-art/' for pixelmon (.png) ; '^ansi-art/' for the ANSI generator (.ans)."
-    PRINT "# monster paths ALREADY INCLUDE their category subfolder (humanoids|animals|insects|misc|beasts|undead)."
-    PRINT "# Write each file exactly at the path given -- the game only looks inside those subfolders."
-    PRINT
+    ' The body fills MAN_BUF; the TOTAL is printed in front of it. Machine-readable first line,
+    ' so a generator can `grep -m1 "^# ENTRIES:"` and skip the whole run when nothing has changed --
+    ' no human comparing outputs.
+    ManReset
+    DumpImageBody
+    ManHeader "DUNGEON! image manifest"
+    ManFlush
+END SUB
+
+' The manifest body. Run twice: once with ART_COUNTING set (counts subjects, prints nothing) and
+' once to emit. One code path, so the printed total can never disagree with the printed list.
+SUB DumpImageBody
+    DIM lvl AS INTEGER, sl AS INTEGER, i AS INTEGER, nm AS STRING, seen AS STRING, lst AS STRING, p AS INTEGER, w AS STRING
+    ManOut "# FORMAT: path | style | size | prompt"
+    ManOut "#   style = a pixelmon styles.json key.  size = pixelmon --size for pixel-art,"
+    ManOut "#           CHARACTER cols x rows for ansi-art.  Both from assets/data/art-prompts.txt."
+    ManOut "# grep '^pixel-art/' for pixelmon (.png) ; '^ansi-art/' for ansimon (.ans)."
+    ManOut ""
+    ManOut "# monster paths ALREADY INCLUDE their category subfolder (humanoids|animals|insects|misc|beasts|undead)."
+    ManOut "# Write each file exactly at the path given -- the game only looks inside those subfolders."
+    ManOut ""
     seen = " "
-    PRINT "# --- monsters ---"
+    ManOut "# --- monsters ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
             nm = _TRIM$(MON_NAME(lvl, sl)): IF LEN(nm) > 0 THEN PutArtBoth "monsters/" + MonsterCat$(nm), SpriteBase$(nm), LCASE$(nm), "a dungeon monster", "512x512", "18x12", seen
@@ -370,27 +454,27 @@ SUB DumpImageManifest
     NEXT lvl
     FOR i = 1 TO 4: nm = _TRIM$(BOSS_NAME(i)): IF LEN(nm) > 0 THEN PutArtBoth "monsters/" + MonsterCat$(nm), SpriteBase$(nm), LCASE$(nm), "a fearsome boss monster", "512x512", "18x12", seen
     NEXT i
-    PRINT
-    PRINT "# --- treasures & items ---"
+    ManOut ""
+    ManOut "# --- treasures & items ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
             nm = _TRIM$(TRE_NAME(lvl, sl))
             IF LEN(nm) > 0 THEN PutArtBoth "treasures", TreBase$(nm), LCASE$(nm), "a treasure", "256x256", "16x12", seen
         NEXT sl
     NEXT lvl
-    PRINT
+    ManOut ""
     ' SPECIAL ITEMS come from the ITM_* weighted pool (assets/data/items.txt), NOT from the
     ' treasures table. The old code asked `IF TRE_ITEM(lvl, sl) > 0`, but treasures.txt carries
     ' no item-code column in the current format, so that branch never fired and every item
     ' sprite went unlisted -- present on disk, invisible to the generators.
-    PRINT "# --- special items (Magic Sword, ESP Medallion, scrolls, ...) ---"
+    ManOut "# --- special items (Magic Sword, ESP Medallion, scrolls, ...) ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO ITM_N(lvl)
             nm = _TRIM$(ITM_NAME(lvl, sl))
             IF LEN(nm) > 0 THEN PutArtBoth "items", TreBase$(nm), LCASE$(nm), "a magic item", "256x256", "16x12", seen
         NEXT sl
     NEXT lvl
-    PRINT
+    ManOut ""
     ' MARKERS -- the board overlays (headstone on a cleared room, the body you dropped loot at,
     ' a cursed rune, a lost cache). Four sprites shipped in pixel-art/default/markers/ and NO
     ' manifest had ever mentioned them, so an art pack had no way to know they existed.
@@ -398,32 +482,32 @@ SUB DumpImageManifest
     ' but TreasureSprite$ resolves any name containing "KEY" to items/key-medallion. Real art the
     ' game uses, which no manifest had ever asked for.
     PutArtBoth "items", "key-medallion", "a level key medallion", "a magic item", "256x256", "16x12", seen
-    PRINT
-    PRINT "# --- markers (board overlays) ---"
+    ManOut ""
+    ManOut "# --- markers (board overlays) ---"
     lst = "gravestone player-body lost-cache cursed-rune ": p = 1
     FOR i = 1 TO LEN(lst)
         IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "markers", w, "a " + UnSlug$(w), "a small board marker icon, top-down, transparent background", "128x128", "6x3", seen
     NEXT i
-    PRINT
-    PRINT "# --- classes (tall portraits) ---"
+    ManOut ""
+    ManOut "# --- classes (tall portraits) ---"
     PutArtBoth "classes", "hero", "a heroic warrior", "a fantasy hero character portrait", "512x768", "16x16", seen
     PutArtBoth "classes", "elf", "an elf ranger", "a fantasy elf character portrait", "512x768", "16x16", seen
     PutArtBoth "classes", "superhero", "a mighty superhero warrior", "a fantasy champion character portrait", "512x768", "16x16", seen
     PutArtBoth "classes", "wizard", "a robed wizard", "a fantasy wizard character portrait", "512x768", "16x16", seen
-    PRINT
-    PRINT "# --- rooms (wide location scenes) ---"
+    ManOut ""
+    ManOut "# --- rooms (wide location scenes) ---"
     lst = "main-gallery barracks armory stone-room store-room torture-chamber kitchen wizards-lab wizards-treasure kings-library kings-treasure queens-armor queens-treasure the-crypt ": p = 1
     FOR i = 1 TO LEN(lst)
         IF MID$(lst, i, 1) = " " THEN w = _TRIM$(MID$(lst, p, i - p)): p = i + 1: IF LEN(w) > 0 THEN PutArtBoth "rooms", w, "the " + UnSlug$(w), "a dungeon location scene, wide establishing shot", "512x320", "30x10", seen
     NEXT i
-    PRINT
+    ManOut ""
     ' EVENTS (curio props) are DERIVED from the loaded curio table through CurioSprite$ -- the
     ' same function the game resolves with -- rather than a hardcoded list. A data pack that adds
     ' a curio kind then gets its prop listed automatically, and a pack that removes one stops
     ' asking for art it will never draw. (CurioSprite$ maps `mimic` to curio-chest on purpose --
     ' a mimic must look exactly like a chest until opened -- and the `seen` dedupe collapses it,
     ' which is why deriving beats listing: the aliasing is expressed once, in the resolver.)
-    PRINT "# --- events (curio props, derived from assets/data/curios.txt) ---"
+    ManOut "# --- events (curio props, derived from assets/data/curios.txt) ---"
     FOR i = 1 TO NCURIO
         w = CurioSprite$(_TRIM$(CURIOS(i).kind))
         ' CurioSprite$ returns a resolved PATH or "" -- reduce it to the bare basename.
@@ -452,13 +536,17 @@ END SUB
 SUB DumpUiManifest
     DIM i AS INTEGER
     _DEST _CONSOLE
-    PRINT "# DUNGEON! UI manifest  (path | WxH-chars | prompt)  -- decorative ANSI chrome in assets/ansi/."
-    PRINT "# WxH is CHARACTER cols x rows (author the .ans at exactly that size -- ANSI is a fixed grid)."
-    PRINT "# EXCLUDED on purpose: board-*.ans and *-mask.ans are functional collision/data maps."
-    PRINT
-    PRINT "ansi/vermin-radioactive-logo.ans | 132x50 | ANSI full-screen splash for a studio logo, 'VERMIN RADIOACTIVE', dark and glitchy, CP437, 16-colour"
-    PRINT "ansi/dungeon-menu-logo.ans | 102x15 | ANSI title logo reading 'DUNGEON', heavy stone-carved letters, torch-lit, CP437 block art, 16-colour"
-    FOR i = 1 TO 4: PRINT "ansi/dungeon-menu-left-wall-" + LTRIM$(STR$(i)) + ".ans | 15x51 | ANSI dungeon wall border panel (left side), stone bricks and torches, full height, CP437, 16-colour": NEXT i
-    FOR i = 1 TO 4: PRINT "ansi/dungeon-menu-right-wall-" + LTRIM$(STR$(i)) + ".ans | 16x51 | ANSI dungeon wall border panel (right side), stone bricks and torches, full height, CP437, 16-colour": NEXT i
-    FOR i = 1 TO 6: PRINT "ansi/dungeon-menu-block-" + LTRIM$(STR$(i)) + ".ans | 95x31 | ANSI menu panel / plaque background for a menu item, carved stone, CP437, 16-colour": NEXT i
+    ManReset
+    ManOut "# DUNGEON! UI manifest  (path | WxH-chars | prompt)  -- decorative ANSI chrome."
+    ManOut "# Paths are ansi-art/<file>; the generator inserts the PACK dir -> assets/ansi-art/<pack>/<file>."
+    ManOut "# WxH is CHARACTER cols x rows (author the .ans at exactly that size -- ANSI is a fixed grid)."
+    ManOut "# EXCLUDED on purpose: board-*.ans and *-mask.ans are functional collision/data maps."
+    ManOut ""
+    ManAsset "ansi-art/vermin-radioactive-logo.ans | 132x50 | ANSI full-screen splash for a studio logo, 'VERMIN RADIOACTIVE', dark and glitchy, CP437, 16-colour"
+    ManAsset "ansi-art/dungeon-menu-logo.ans | 102x15 | ANSI title logo reading 'DUNGEON', heavy stone-carved letters, torch-lit, CP437 block art, 16-colour"
+    FOR i = 1 TO 4: ManAsset "ansi-art/dungeon-menu-left-wall-" + LTRIM$(STR$(i)) + ".ans | 15x51 | ANSI dungeon wall border panel (left side), stone bricks and torches, full height, CP437, 16-colour": NEXT i
+    FOR i = 1 TO 4: ManAsset "ansi-art/dungeon-menu-right-wall-" + LTRIM$(STR$(i)) + ".ans | 16x51 | ANSI dungeon wall border panel (right side), stone bricks and torches, full height, CP437, 16-colour": NEXT i
+    FOR i = 1 TO 6: ManAsset "ansi-art/dungeon-menu-block-" + LTRIM$(STR$(i)) + ".ans | 95x31 | ANSI menu panel / plaque background for a menu item, carved stone, CP437, 16-colour": NEXT i
+    ManHeader "DUNGEON! UI manifest"
+    ManFlush
 END SUB

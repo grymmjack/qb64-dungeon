@@ -146,6 +146,7 @@ LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- S
 InitSectors
 InitClasses
 InitMonsterTables
+LoadArtPrompts                   ' authored art direction merged into imagemanifest
 InitDice
 InitJuice                        ' build the screen-shake buffer + the near-death blood-grime pattern
 LoadUIFonts                      ' per-region TTF UI fonts (assets/data/ui-fonts.txt)

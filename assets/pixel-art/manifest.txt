@@ -1,3 +1,18 @@
+# ============================================================================
+#  SUPERSEDED -- THIS FILE IS NO LONGER READ BY ANYTHING.
+#
+#  generate.sh now reads the CANONICAL manifest from the game itself:
+#      dungeon.run imagemanifest        (format: path | style | size | prompt)
+#  so the asset LIST is derived from the content tables and cannot drift from what the game
+#  actually loads. This file had drifted: it listed monsters that no longer exist (kobold,
+#  vetch) and was missing 11 assets that do -- including every special item.
+#
+#  The authored style/size/prompt rows were lifted OUT of here into:
+#      assets/data/default/art-prompts.txt
+#  which the manifest merges in by path. Edit prompts THERE.
+#
+#  Kept only as a record. Safe to delete.
+# ============================================================================
 # PIXEL-ART ASSET MANIFEST  --  folder | name | style | size | prompt
 #
 # Every art node from the game UI mindmap, with a best-effort pixel-art prompt.

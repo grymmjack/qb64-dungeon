@@ -34,15 +34,16 @@ END FUNCTION
 ' subfolder overrides. regular/chamber/curio lines are the exact on-screen text; room lines are a
 ' representative sample; intro/titles are clean spoken versions.
 SUB DumpAudioManifest
+    ManReset
     DIM i AS INTEGER, lvl AS INTEGER, si AS INTEGER, lst AS STRING, p AS INTEGER, nm AS STRING, seen AS STRING
     DIM dkey(1 TO 300) AS STRING, dval(1 TO 300) AS STRING, dn AS INTEGER
     _DEST _CONSOLE
-    PRINT "# DUNGEON! audio manifest  -- feed to the generators. path is under assets/ , add"
-    PRINT "# .ogg/.mp3/.wav/.flac ; a pack subfolder overrides. sfx/music: path | length | prompt"
-    PRINT "# (length is a TARGET/MAX -- keep sfx at or under it); narration: path | line to speak."
-    PRINT
+    ManOut "# DUNGEON! audio manifest  -- feed to the generators. path is under assets/ , add"
+    ManOut "# .ogg/.mp3/.wav/.flac ; a pack subfolder overrides. sfx/music: path | length | prompt"
+    ManOut "# (length is a TARGET/MAX -- keep sfx at or under it); narration: path | line to speak."
+    ManOut ""
 
-    PRINT "# --- SFX (assets/sfx/[pack]/) : path | max-seconds | generation prompt ---"
+    ManOut "# --- SFX (assets/sfx/[pack]/) : path | max-seconds | generation prompt ---"
     dn = 0: ReadDataFile "assets/sfx/descriptions.txt"
     FOR i = 1 TO DLINE_N
         IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2)) + " | " + _TRIM$(DField$(DLINE(i), 3))
@@ -51,12 +52,12 @@ SUB DumpAudioManifest
     FOR i = 1 TO LEN(lst)
         IF MID$(lst, i, 1) = " " THEN
             nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1
-            IF LEN(nm) > 0 THEN PRINT "sfx/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm)
+            IF LEN(nm) > 0 THEN ManAsset "sfx/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm)
         END IF
     NEXT i
-    PRINT
+    ManOut ""
 
-    PRINT "# --- MUSIC (assets/music/[pack]/) : path | length | generation prompt ---"
+    ManOut "# --- MUSIC (assets/music/[pack]/) : path | length | generation prompt ---"
     dn = 0: ReadDataFile "assets/music/descriptions.txt"
     FOR i = 1 TO DLINE_N
         IF dn < 300 THEN dn = dn + 1: dkey(dn) = UCASE$(_TRIM$(DField$(DLINE(i), 1))): dval(dn) = _TRIM$(DField$(DLINE(i), 2)) + " | " + _TRIM$(DField$(DLINE(i), 3))
@@ -64,41 +65,43 @@ SUB DumpAudioManifest
     seen = " "
     FOR lvl = 1 TO 9                                    ' per-level tracks (unique bare names from playlist)
         nm = _TRIM$(MUSIC_FILE(lvl))
-        IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
+        IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN ManAsset "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
     NEXT lvl
     lst = "vr-theme introsplash everdark victory lose combat-low combat-high combat-intense settings chargen treasury bestiary curio lords gamemenu ": p = 1
     FOR i = 1 TO LEN(lst)                               ' fixed intro/menu/cue tracks (deduped vs level names)
         IF MID$(lst, i, 1) = " " THEN
             nm = _TRIM$(MID$(lst, p, i - p)): p = i + 1
-            IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN PRINT "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
+            IF LEN(nm) > 0 AND INSTR(seen, " " + nm + " ") = 0 THEN ManAsset "music/" + nm + " | " + LookupDesc$(dkey(), dval(), dn, nm): seen = seen + nm + " "
         END IF
     NEXT i
-    PRINT
+    ManOut ""
 
-    PRINT "# --- NARRATION (assets/narration/[pack]/) : path | line to speak ---"
-    PRINT "narration/intro.descent | Torchlight gutters as you cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies the Level Key -- claim it, gather a fortune in gold, and return alive to this entrance. Few ever escape. Let the delving begin."
-    PRINT "narration/win.title | Victory."
-    PRINT "narration/win.subtitle | " + _TRIM$(Say$("win.subtitle"))
-    PRINT "narration/lose.title | You died."
-    PRINT "narration/lose.subtitle | " + _TRIM$(Say$("lose.subtitle"))
+    ManOut "# --- NARRATION (assets/narration/[pack]/) : path | line to speak ---"
+    ManAsset "narration/intro.descent | Torchlight gutters as you cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. Somewhere in the depths lies the Level Key -- claim it, gather a fortune in gold, and return alive to this entrance. Few ever escape. Let the delving begin."
+    ManAsset "narration/win.title | Victory."
+    ManAsset "narration/win.subtitle | " + _TRIM$(Say$("win.subtitle"))
+    ManAsset "narration/lose.title | You died."
+    ManAsset "narration/lose.subtitle | " + _TRIM$(Say$("lose.subtitle"))
     FOR lvl = 1 TO 9                                    ' ambient one-liners: exact per-line text
         FOR i = 1 TO REG_N(lvl)
-            PRINT "narration/regular." + LTRIM$(STR$(lvl)) + "." + LTRIM$(STR$(i)) + " | " + _TRIM$(REG_FLAV(lvl, i))
+            ManAsset "narration/regular." + LTRIM$(STR$(lvl)) + "." + LTRIM$(STR$(i)) + " | " + _TRIM$(REG_FLAV(lvl, i))
         NEXT i
     NEXT lvl
     FOR si = 1 TO SP_N                                  ' named rooms (representative line)
-        IF SP_FN(si) > 0 THEN PRINT "narration/room." + NarrSlug$(_TRIM$(SP_KEY(si))) + " | " + _TRIM$(SP_FLAV(si, 1))
+        IF SP_FN(si) > 0 THEN ManAsset "narration/room." + NarrSlug$(_TRIM$(SP_KEY(si))) + " | " + _TRIM$(SP_FLAV(si, 1))
     NEXT si
-    FOR i = 1 TO CHM_FLAV_N: PRINT "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))) + " | " + _TRIM$(CHM_FLAV_TXT(i)): NEXT i
-    FOR i = 1 TO NCURIO: PRINT "narration/curio." + _TRIM$(CURIOS(i).kind) + " | " + _TRIM$(CURIOS(i).prompt): NEXT i
+    FOR i = 1 TO CHM_FLAV_N: ManAsset "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))) + " | " + _TRIM$(CHM_FLAV_TXT(i)): NEXT i
+    FOR i = 1 TO NCURIO: ManAsset "narration/curio." + _TRIM$(CURIOS(i).kind) + " | " + _TRIM$(CURIOS(i).prompt): NEXT i
     ' combat narration -- generic per-event voiced lines (Combat tier; see NarrateT / game/COMBAT.bas).
     ' Keep them short and atmospheric; they play OVER the combat banners, so they set mood, not detail.
-    PRINT "narration/combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself."
-    PRINT "narration/combat.reface | The creature still stands between you and your goal. You must face it."
-    PRINT "narration/combat.slay | Your foe crumples and falls still. The way is clear."
-    PRINT "narration/combat.flee | You break away and slip back into the shadows, the fight unfinished."
-    PRINT "narration/combat.hurt | Pain sears through you as the blow lands. Blood runs."
-    PRINT "narration/combat.downed | Your strength fails you. The world tilts, darkens -- and you fall."
+    ManAsset "narration/combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself."
+    ManAsset "narration/combat.reface | The creature still stands between you and your goal. You must face it."
+    ManAsset "narration/combat.slay | Your foe crumples and falls still. The way is clear."
+    ManAsset "narration/combat.flee | You break away and slip back into the shadows, the fight unfinished."
+    ManAsset "narration/combat.hurt | Pain sears through you as the blow lands. Blood runs."
+    ManAsset "narration/combat.downed | Your strength fails you. The world tilts, darkens -- and you fall."
+    ManHeader "DUNGEON! audio manifest"
+    ManFlush
 END SUB
 
 
@@ -123,33 +126,34 @@ END SUB
 ' One portrait size covers EVERY actor -- the mockup's four foe panels and its player box are all
 ' 33x25 -- so a monster portrait drops straight into the player slot and vice versa.
 SUB DumpFightManifest
+    ManReset
     DIM lvl AS INTEGER, sl AS INTEGER, i AS INTEGER, nm AS STRING, seen AS STRING
     DIM pcell AS STRING, ppix AS STRING, fcell AS STRING, fpix AS STRING
 
     _DEST _CONSOLE
     IF LoadLayout%("assets/data/ui-fight-layout.txt", 8, 8) = 0 THEN
-        PRINT "fightmanifest: assets/data/ui-fight-layout.txt missing or empty -- nothing to size against."
+        ManOut "fightmanifest: assets/data/ui-fight-layout.txt missing or empty -- nothing to size against."
         EXIT SUB
     END IF
-    IF LayHas%("enemy1.art") = 0 THEN PRINT "fightmanifest: layout has no 'enemy1.art' region.": EXIT SUB
+    IF LayHas%("enemy1.art") = 0 THEN ManOut "fightmanifest: layout has no 'enemy1.art' region.": EXIT SUB
 
     pcell = CellSize$("enemy1.art"): ppix = PixSize$("enemy1.art")
     fcell = CellSize$("screen"): fpix = PixSize$("screen")
 
-    PRINT "# DUNGEON! strategic-combat art manifest   (path | kind | size | prompt)"
-    PRINT "# tag: strategic-combat   -- `grep strategic-combat` selects every line below."
-    PRINT "#"
-    PRINT "# kind `ansi`  -> size is CHARACTER cols x rows (with the font cell it is drawn on)."
-    PRINT "#                 Author CP437 16-colour, CRLF line endings, exactly that many columns."
-    PRINT "# kind `pixel` -> size is PIXELS, the region's exact on-screen box. 1:1, no scaling,"
-    PRINT "#                 no letterboxing, no aspect to reconcile."
-    PRINT "#"
-    PRINT "# The fight screen is " + fcell + " cells @8x8 = " + fpix + " px. The board canvas is 132x51"
-    PRINT "# @8x16 = 1056x816, so this is exactly as WIDE and 16px shorter -- it fits inside the"
-    PRINT "# existing canvas, and entering a fight is a redraw, not a window resize."
-    PRINT "# EVERY portrait (player and all four foes) is " + pcell + " cells / " + ppix + " px."
-    PRINT "# Sizes derive from assets/data/ui-fight-layout.txt -- edit the layout, not this list."
-    PRINT
+    ManOut "# DUNGEON! strategic-combat art manifest   (path | kind | size | prompt)"
+    ManOut "# tag: strategic-combat   -- `grep strategic-combat` selects every line below."
+    ManOut "#"
+    ManOut "# kind `ansi`  -> size is CHARACTER cols x rows (with the font cell it is drawn on)."
+    ManOut "#                 Author CP437 16-colour, CRLF line endings, exactly that many columns."
+    ManOut "# kind `pixel` -> size is PIXELS, the region's exact on-screen box. 1:1, no scaling,"
+    ManOut "#                 no letterboxing, no aspect to reconcile."
+    ManOut "#"
+    ManOut "# The fight screen is " + fcell + " cells @8x8 = " + fpix + " px. The board canvas is 132x51"
+    ManOut "# @8x16 = 1056x816, so this is exactly as WIDE and 16px shorter -- it fits inside the"
+    ManOut "# existing canvas, and entering a fight is a redraw, not a window resize."
+    ManOut "# EVERY portrait (player and all four foes) is " + pcell + " cells / " + ppix + " px."
+    ManOut "# Sizes derive from assets/data/ui-fight-layout.txt -- edit the layout, not this list."
+    ManOut ""
 
     ' NO frame.ans ENTRY, ON PURPOSE.
     '
@@ -164,7 +168,7 @@ SUB DumpFightManifest
     ' ANSI editor is a fine thing to want -- it is just not a generator job. Delete a generated
     ' frame.ans rather than shipping it.
 
-    PRINT "# --- foe portraits (fill enemy1..4.art, and reusable for player.art) ---"
+    ManOut "# --- foe portraits (fill enemy1..4.art, and reusable for player.art) ---"
     seen = " "
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
@@ -185,34 +189,36 @@ SUB DumpFightManifest
             PutFightArt "events", nm, pcell, ppix, nm + " -- a treasure chest lunging open mid-ambush, rows of teeth inside the lid", seen
         END IF
     NEXT i
-    PRINT
+    ManOut ""
 
-    PRINT "# --- player portraits (one per class) ---"
+    ManOut "# --- player portraits (one per class) ---"
     FOR i = 1 TO 4
         nm = _TRIM$(CLASSES(i).name)
         IF LEN(nm) > 0 THEN PutFightArt "classes", SpriteBase$(nm), pcell, ppix, "a " + LCASE$(nm) + " adventurer -- heroic front-facing battle portrait", seen
     NEXT i
-    PRINT
+    ManOut ""
 
-    PRINT "# --- treasures (shown in a portrait slot on a reward reveal) ---"
+    ManOut "# --- treasures (shown in a portrait slot on a reward reveal) ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO 3
             nm = _TRIM$(TRE_NAME(lvl, sl))
             IF LEN(nm) > 0 THEN PutFightArt "treasures", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- dungeon treasure presented as a hoard", seen
         NEXT sl
     NEXT lvl
-    PRINT
+    ManOut ""
 
     ' SPECIAL ITEMS live in the ITM_* weighted pool (assets/data/items.txt), NOT in the
     ' treasures table -- treasures.txt carries no item-code column in the current format. The
     ' old `IF TRE_ITEM(lvl, sl) > 0` test therefore never fired, and every item went unlisted.
-    PRINT "# --- special items (also shown in a portrait slot on a reward reveal) ---"
+    ManOut "# --- special items (also shown in a portrait slot on a reward reveal) ---"
     FOR lvl = 1 TO 9
         FOR sl = 1 TO ITM_N(lvl)
             nm = _TRIM$(ITM_NAME(lvl, sl))
             IF LEN(nm) > 0 THEN PutFightArt "items", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- a magic item presented on a pedestal", seen
         NEXT sl
     NEXT lvl
+    ManHeader "DUNGEON! strategic-combat art manifest"
+    ManFlush
 END SUB
 
 ' "COLSxROWS" for a layout region -- the unit ANSI art is authored in.
@@ -235,6 +241,47 @@ SUB PutFightArt (cat AS STRING, artbase AS STRING, pcell AS STRING, ppix AS STRI
     IF INSTR(seen, tag) > 0 THEN EXIT SUB
     seen = seen + _TRIM$(tag) + " "
     p = "strategic-combat/" + cat + "/" + artbase
-    PRINT "ansi-art/" + p + ".ans | ansi | " + pcell + " chars @8x8 | ANSI " + pcell + " CP437 16-colour portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, no border and no text"
-    PRINT "pixel-art/" + p + ".png | pixel | " + ppix + " px | pixel-art portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, transparent or black background, no border and no text"
+    ManAsset "ansi-art/" + p + ".ans | ansi | " + pcell + " chars @8x8 | ANSI " + pcell + " CP437 16-colour portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, no border and no text"
+    ManAsset "pixel-art/" + p + ".png | pixel | " + ppix + " px | pixel-art portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, transparent or black background, no border and no text"
+END SUB
+
+' ============================================================================
+'  Manifest output buffering.
+'
+'  Every manifest prints its TOTAL as the first line so a generator can read one line and decide
+'  whether anything changed -- `grep -m1 '^# ENTRIES:'` -- instead of a human diffing two runs.
+'  The total is only known after walking the content tables, so the body appends here and the
+'  header is printed in front of it. ONE pass, so the number can never disagree with the list.
+' ============================================================================
+
+SUB ManReset
+    MAN_N = 0: MAN_ENTRIES = 0
+END SUB
+
+' A comment / blank / section line: buffered, NOT counted.
+SUB ManOut (s AS STRING)
+    IF MAN_N >= MAN_MAX THEN EXIT SUB
+    MAN_N = MAN_N + 1: MAN_BUF(MAN_N) = s
+END SUB
+
+' An ASSET line: buffered AND counted. Only these are entries a generator has to make.
+SUB ManAsset (s AS STRING)
+    MAN_ENTRIES = MAN_ENTRIES + 1
+    ManOut s
+END SUB
+
+' Print the machine-readable header. FIRST LINE IS THE COUNT, deliberately: fetchable with
+' `head -1`, comparable with a stored value, no parsing required.
+SUB ManHeader (title AS STRING)
+    PRINT "# ENTRIES: " + LTRIM$(STR$(MAN_ENTRIES))
+    PRINT "# " + title
+    IF MAN_N >= MAN_MAX THEN PRINT "# !! TRUNCATED at " + LTRIM$(STR$(MAN_MAX)) + " lines -- raise MAN_MAX in ENGINE.BI"
+END SUB
+
+SUB ManFlush
+    DIM i AS INTEGER
+    FOR i = 1 TO MAN_N
+        PRINT MAN_BUF(i)
+    NEXT i
+    MAN_N = 0
 END SUB
