@@ -33,9 +33,23 @@ SOUNDMON = os.path.expanduser("~/git/soundmon")
 
 
 def manifest(section):
-    """(name, length, prompt) for a section, from the game itself."""
-    out = subprocess.run([os.path.join(GAME, "dungeon.run"), "audiomanifest"],
-                         cwd=GAME, capture_output=True, text=True).stdout
+    """(name, length, prompt) for a section, from the game itself.
+
+    $MANIFEST overrides the live binary, and you almost always want it for a
+    multi-step run. dungeon.run is a compiled binary that F5 REPLACES, so it is
+    briefly absent during a rebuild — and a run that reads it twenty minutes
+    apart can find it missing the second time. That has now killed two separate
+    batches. generate-from-manifest.sh already honours $MANIFEST; this reads the
+    same variable so a caller can snapshot once and have every stage agree.
+    """
+    if os.environ.get("MANIFEST") and os.path.exists(os.environ["MANIFEST"]):
+        out = open(os.environ["MANIFEST"]).read()
+    else:
+        exe = os.path.join(GAME, "dungeon.run")
+        if not os.path.exists(exe):
+            sys.exit(f"no {exe} — build it first (F5), or set $MANIFEST to a snapshot")
+        out = subprocess.run([exe, "audiomanifest"],
+                             cwd=GAME, capture_output=True, text=True).stdout
     rows = []
     for line in out.splitlines():
         if not line.startswith(section + "/"):

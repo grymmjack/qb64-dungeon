@@ -1,0 +1,27 @@
+# name | seconds | bpm | key | mood  -- theme defaults, edit freely
+# mood is OPTIONAL: blank means infer it from the manifest description.
+# soundmon --list-moods shows the set.
+bestiary | 60 | 125 | A minor | 
+chargen | 60 | 125 | A minor | 
+combat-high | 60 | 125 | A minor | 
+combat-intense | 60 | 125 | A minor | 
+combat-low | 60 | 125 | A minor | 
+curio | 60 | 125 | A minor | 
+everdark | 60 | 125 | A minor | 
+gamemenu | 60 | 125 | A minor | 
+introsplash | 60 | 125 | A minor | 
+level1 | 60 | 125 | A minor | 
+level2 | 60 | 125 | A minor | 
+level3 | 60 | 125 | A minor | 
+level4 | 60 | 125 | A minor | 
+level5 | 60 | 125 | A minor | 
+level6 | 60 | 125 | A minor | 
+level7 | 60 | 125 | A minor | 
+level8 | 60 | 125 | A minor | 
+level9 | 60 | 125 | A minor | 
+lords | 60 | 125 | A minor | 
+lose | 60 | 125 | A minor | 
+settings | 60 | 125 | A minor | 
+treasury | 60 | 125 | A minor | 
+victory | 60 | 125 | A minor | 
+vr-theme | 60 | 125 | A minor | 

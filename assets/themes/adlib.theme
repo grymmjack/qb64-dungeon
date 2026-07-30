@@ -1,0 +1,34 @@
+# adlib -- DOS PC FM synthesis. AdLib OPL2 / Sound Blaster OPL3, 1991-1995.
+#
+# NOT the same sound as `chiptune`, despite both being "retro game music":
+#
+#   chiptune  Amiga MOD -- SAMPLED instruments played back from a tracker
+#   adlib     OPL2/OPL3 -- FM SYNTHESIS, nothing sampled, nasal and metallic
+#
+# That distinction is the whole point of this theme. FM has a characteristic
+# hollow, buzzy, slightly detuned brass-and-bell quality that a sample-based
+# tracker never has, and naming the actual Yamaha part in the prompt is what
+# makes the model produce it -- "8-bit retro" alone gets you neither.
+MATCH="adlib opl opl2 opl3 fm dos soundblaster sb16 ymf262 ym3812 doom keen wolf3d"
+SFX_ADD="AdLib OPL FM synthesis sound effect, 2-operator Yamaha YM3812, buzzy metallic FM tone, early 90s DOS PC game, dry and mono, no reverb"
+SFX_ENGINE=opl
+SFX_SECONDS=2
+MUSIC_ADD="Sound Blaster OPL3 FM synthesis music, 4-operator Yamaha YMF262, nasal FM brass stabs, metallic bell leads, detuned synth strings, punchy FM drums, driving mid-90s DOS dungeon crawler soundtrack, no live instruments, no sampled instruments"
+MUSIC_SECONDS=60
+# Music is SYNTHESIZED, not diffused -- Nuked OPL3 FM. SA3 cannot honour a
+# channel count or an operator ratio, so it produced modern chiptune-flavoured
+# music instead of chip music. This is authentic by construction.
+MUSIC_ENGINE=opl
+MUSIC_BPM=110
+MUSIC_KEY="D minor"
+
+# Spoken, not blipped -- and that IS period-correct. AdLib itself was FM-only
+# with no digital audio, but the Sound Blaster that shipped the same OPL chip
+# added a DAC, and DOS games used it for exactly this: gravelly digitized
+# narration over FM music. It also gives this pack a clear contrast with
+# `chiptune`, which blips.
+#   To blip instead:  NARR_MODE=blip, BLIP_WAVE=sine, BLIP_RATE=12
+NARR_MODE=narrate
+VOICE=bm_lewis
+PITCH=-3
+SPEED=0.9

@@ -30,7 +30,9 @@ PACK="${2:?usage: $0 <sfx|music|narration> <pack> [name ...]}"
 shift 2 || true
 WANT=("$@")
 
-BOXES="${BOXES:-local,titan,mac,rtx}"
+# titan removed from the default pool: it draws enough power to trouble the UPS.
+# Add it back explicitly with BOXES=... if that changes.
+BOXES="${BOXES:-local,mac,rtx}"
 OGG_ARG="${OGG:+--ogg}"
 # Keep lossless masters under <pack>/masters/ when asked. They are deliberately
 # NOT left beside the pack files: assets/music resolves .wav as the HIGHEST
@@ -50,6 +52,20 @@ fi
 # Pack identity (optional)
 STYLE=""; PROMPT_ADD=""; SECONDS_DEF=""
 VOICE="${VOICE:-bm_george}"; PITCH="${PITCH:--3}"; SPEED="${SPEED:-0.92}"
+# Narration can be spoken (Kokoro) or blipped (JRPG text-box). A chiptune pack
+# wants a chiptune voice; a cinematic one wants a narrator. Set NARR_MODE=blip
+# in the theme / pack.conf to switch.
+SFX_ENGINE="${SFX_ENGINE:-sa3}"       # sa3 | chip | opl
+# MUSIC_SOURCE names another pack to TRANSCRIBE from. With it set, chip/opl take
+# their tempo, key, chords, melody and bass from that pack's SA3 recording of the
+# same track -- the composition is SA3's, the sound is the chip's. Measured, this
+# inherits nearly all of the source pack's diversity (0.847 -> 0.798 against a
+# source of 0.782), which procedural composition could not reach.
+MUSIC_SOURCE="${MUSIC_SOURCE:-}"
+MUSIC_ENGINE="${MUSIC_ENGINE:-sa3}"   # sa3 | chip | opl
+NARR_MODE="${NARR_MODE:-narrate}"
+BLIP_STYLE="${BLIP_STYLE:-synth}"; BLIP_WAVE="${BLIP_WAVE:-square}"
+BLIP_RATE="${BLIP_RATE:-14}"; BLIP_PITCH="${BLIP_PITCH:-0}"; BLIP_JITTER="${BLIP_JITTER:-1.5}"
 [ -f "$DEST/pack.conf" ] && . "$DEST/pack.conf"
 
 MAN="$(mktemp)"; QUEUE="$(mktemp)"; LOCK="$(mktemp)"
@@ -121,9 +137,20 @@ echo "▶ $SECTION/$PACK: $total to generate, $skipped already present"
 # --- narration: one batched CPU run (Kokoro loads once, ~1s a line) ------
 if [ "$SECTION" = narration ]; then
     awk -F'|' 'BEGIN{OFS=" | "} {print $1, $3}' "$QUEUE" > "$QUEUE.lines"
-    echo "  voice $VOICE  pitch $PITCH  speed $SPEED  (CPU, no farm)"
-    soundmon --narrate-file "$QUEUE.lines" --voice "$VOICE" --pitch "$PITCH" \
-             --speed "$SPEED" $OGG_ARG --output-to "$DEST" --create-dirs
+    if [ "$NARR_MODE" = "blip" ]; then
+        echo "  blip/$BLIP_STYLE  $BLIP_WAVE  ${BLIP_RATE}ch/s  pitch $BLIP_PITCH  (CPU, no farm)"
+    else
+        echo "  voice $VOICE  pitch $PITCH  speed $SPEED  (CPU, no farm)"
+    fi
+    if [ "$NARR_MODE" = "blip" ]; then
+        soundmon --blip --blip-file "$QUEUE.lines" --blip-style "$BLIP_STYLE" \
+                 --blip-wave "$BLIP_WAVE" --blip-rate "$BLIP_RATE" \
+                 --blip-pitch "$BLIP_PITCH" --blip-jitter "$BLIP_JITTER" \
+                 --voice "$VOICE" $OGG_ARG --output-to "$DEST" --create-dirs
+    else
+        soundmon --narrate-file "$QUEUE.lines" --voice "$VOICE" --pitch "$PITCH" \
+                 --speed "$SPEED" $OGG_ARG --output-to "$DEST" --create-dirs
+    fi
     # narrate.py writes <key>.wav next to <key>.ogg under --keep-wav; this
     # branch returns before run_box's masters/ move, so do it here. Narration
     # resolves .ogg first so a stray wav does not break playback, but it doubles
@@ -171,9 +198,14 @@ run_box() {
             # SA3 has no bpm/key inputs, so those move into the PROMPT text.
             # Losing them as hard conditioning is worth full bandwidth and a
             # 20-50x speedup for instrumental game loops.
-            local bpm key secs
+            local bpm key secs mood
             bpm="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/ /,"",$3); print $3; exit}' "$DEST/tracks.txt" 2>/dev/null)"
             key="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/^ +| +$/,"",$4); print $4; exit}' "$DEST/tracks.txt" 2>/dev/null)"
+            # Optional 5th column: mood. Inference from the description is good
+            # but not always right -- "a memorial to triumphant champions" reads
+            # as triumphant when it wants to be solemn. This is where you
+            # disagree with it, per track, without touching the manifest.
+            mood="$(awk -F'|' -v n="$name" '$1 ~ n {gsub(/^ +| +$/,"",$5); print $5; exit}' "$DEST/tracks.txt" 2>/dev/null)"
             # "30-60s loop" -> 60 ; "3s one-shot" -> 3 ; anything else -> pack default
             secs="$(printf '%s' "$length" | grep -oE '[0-9]+' | tail -1)"
             secs="${secs:-${SECONDS_DEF:-60}}"
@@ -198,9 +230,35 @@ run_box() {
             case "$length" in
                 *loop*) loopargs="--loop" ;;   # "3s one-shot" never matches
             esac
-            soundmon "$musicprompt" --music --seconds "$secs" $loopargs \
-                     --name "$name" --server "$srv" $OGG_ARG \
-                     --output-to "$DEST" --no-open >/dev/null 2>&1
+            if [ "$MUSIC_ENGINE" = chip ] || [ "$MUSIC_ENGINE" = opl ]; then
+                # Real chip synthesis. No model, no GPU, no server -- and bpm/key
+                # become HARD conditioning instead of words in a prompt, because
+                # these engines actually compose in a key at a tempo. The rewritten
+                # SA3 prompt is irrelevant here and deliberately unused; only the
+                # musical parameters matter.
+                #
+                # Also no $loopargs: both engines compose in whole bars and already
+                # loop sample-accurately (verified: seam step smaller than the
+                # worst step inside the track). soundmon ignores --loop for them.
+                # Transcribe from a reference pack when asked and the file exists.
+                local ref=""
+                if [ -n "$MUSIC_SOURCE" ]; then
+                    for cand in "$ASSETS/music/$MUSIC_SOURCE/$name.ogg" \
+                                "$ASSETS/music/$MUSIC_SOURCE/$name.wav"; do
+                        [ -f "$cand" ] && { ref="$cand"; break; }
+                    done
+                    [ -z "$ref" ] && echo "   ⚠ no reference for $name in $MUSIC_SOURCE — composing"
+                fi
+                soundmon "$prompt" "--$MUSIC_ENGINE" --seconds "$secs" \
+                         --bpm "${bpm:-120}" --key "${key:-C minor}" \
+                         ${mood:+--mood "$mood"} ${ref:+--from-audio "$ref"} \
+                         --name "$name" $OGG_ARG \
+                         --output-to "$DEST" --no-open >/dev/null 2>&1
+            else
+                soundmon "$musicprompt" --music --seconds "$secs" $loopargs \
+                         --name "$name" --server "$srv" $OGG_ARG \
+                         --output-to "$DEST" --no-open >/dev/null 2>&1
+            fi
         else
             # Generate with headroom, then hard-cap. The model needs a couple of
             # seconds of canvas to produce a convincing event; asking it for
@@ -217,10 +275,23 @@ run_box() {
             local sfxtext="$prompt. Length: ${sfxsecs%.*} seconds"
             local cp; cp="$(cached_prompt "$name")"
             [ -n "$cp" ] && sfxtext="$cp"
-            soundmon "$sfxtext" ${STYLE:+--style "$STYLE"} \
-                     --seconds "$sfxsecs" \
-                     $cap --name "$name" --server "$srv" $OGG_ARG \
-                     --output-to "$DEST" --no-open >/dev/null 2>&1
+            if [ "$SFX_ENGINE" = chip ] || [ "$SFX_ENGINE" = opl ]; then
+                # Synthesized effect. The ARCHETYPE is inferred from the manifest
+                # key ("door" -> creak, "boom" -> explosion), so the game's own
+                # naming drives the sound design and there is no prompt at all.
+                # $cap carries the manifest's target length, which for an effect
+                # is the real duration rather than a ceiling.
+                local fxflag="--chipfx"
+                [ "$SFX_ENGINE" = opl ] && fxflag="--oplfx"
+                soundmon "$prompt" $fxflag --seconds "$sfxsecs" \
+                         $cap --name "$name" $OGG_ARG \
+                         --output-to "$DEST" --no-open >/dev/null 2>&1
+            else
+                soundmon "$sfxtext" ${STYLE:+--style "$STYLE"} \
+                         --seconds "$sfxsecs" \
+                         $cap --name "$name" --server "$srv" $OGG_ARG \
+                         --output-to "$DEST" --no-open >/dev/null 2>&1
+            fi
         fi
         # soundmon names files <name>_<...>_00001_.<ext>; the game wants <name>.<ext>
         # Prefer the ogg when both exist (--keep-wav leaves a sibling wav).

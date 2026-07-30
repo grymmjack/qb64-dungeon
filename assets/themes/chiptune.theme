@@ -1,0 +1,32 @@
+# chiptune -- Amiga MOD tracker demoscene, the sound of a .mod file on a 1992 PC.
+#
+# The odd one out among the themes: its narration is BLIPPED, not spoken. A
+# tracker-era dungeon crawler had no room for digitized speech, so the text box
+# talked in square waves. NARR_MODE=blip swaps Kokoro for the oscillator, which
+# also means this pack's narration needs no model and renders in seconds.
+MATCH="chiptune chip tracker mod demoscene amiga 8bit 8-bit nes gameboy retro"
+SFX_ADD="8-bit chiptune sound effect, square wave and noise channel, tracker sample, short and dry, no reverb"
+SFX_ENGINE=chip
+SFX_SECONDS=2
+MUSIC_ADD="Amiga MOD tracker music, demoscene, sampled 8-bit instruments, square and pulse leads, tight sequenced drums, hard-panned stereo channels, early 90s computer game music, no live instruments"
+MUSIC_SECONDS=60
+# Music is SYNTHESIZED, not diffused -- 2A03 PSG synthesis. SA3 cannot honour a
+# channel count or an operator ratio, so it produced modern chiptune-flavoured
+# music instead of chip music. This is authentic by construction.
+MUSIC_ENGINE=chip
+MUSIC_BPM=125
+MUSIC_KEY="A minor"
+
+# Blipped narration -- the text-box voice, not a narrator.
+NARR_MODE=blip
+BLIP_STYLE=synth
+BLIP_WAVE=square
+BLIP_RATE=16
+BLIP_PITCH=-4
+BLIP_JITTER=1.5
+
+# Unused while NARR_MODE=blip, but kept so `--voice x` overrides still work if
+# you flip this pack back to spoken narration.
+VOICE=bm_daniel
+PITCH=-2
+SPEED=0.95
