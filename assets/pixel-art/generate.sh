@@ -112,6 +112,14 @@ total=${#names[@]}
 [ "$total" -eq 0 ] && { echo "Nothing to generate (filter: '${FILTER:-none}')."; exit 0; }
 echo "-> pack '$PACK': $total asset(s) across ${#UP[@]} node(s): ${UP[*]}${STYLE_PREFIX:+  [style-prefix: $STYLE_PREFIX]}"
 
+# Reproducibility log: the seed pixelmon actually used for each render, so any sprite can be
+# regenerated (or iterated with a tweaked prompt) deterministically -- `pixelmon "<prompt>" --seed N`.
+# pixelmon picks a random seed per render and encodes it in the raw filename (..._s<SEED>_sprite_...);
+# we scrape it before deleting the temp. Skipped (already-done) assets are NOT re-logged.
+SEEDS="$ROOT/$PACK/SEEDS.tsv"
+mkdir -p "$ROOT/$PACK"
+[ -f "$SEEDS" ] || printf '# path\tseed\tstyle\tsize\n' > "$SEEDS"
+
 # prepend STYLE_PREFIX to a row's style, dropping duplicate comma tokens (order preserved)
 combine_style() {
   [ -z "$STYLE_PREFIX" ] && { printf '%s' "$1"; return; }
@@ -135,8 +143,11 @@ gen_one() {  # $1 = manifest index, $2 = node name
         --server "$node" --output-to "$dir" --name "$nm" --create-dirs >/dev/null 2>&1; then
     local produced; produced="$(ls -t "$dir/${nm}"_*.png 2>/dev/null | head -1)"
     if [ -n "$produced" ]; then
+      # scrape the seed pixelmon used out of the raw filename (..._s<SEED>_sprite_...) BEFORE deleting
+      local seed; seed="$(basename "$produced" | sed -n 's/.*_s\([0-9][0-9]*\)_sprite_.*/\1/p')"
       cp -f "$produced" "$dir/${nm}.png"   # clean name for the game to load
       rm -f "$dir/${nm}"_*.png             # tidy up the raw pixelmon temp(s)
+      printf '%s/%s.png\t%s\t%s\t%s\n' "${folders[$i]}" "$nm" "${seed:-unknown}" "$style" "${sizes[$i]}" >> "$SEEDS"
     else
       echo "  WARN  no output produced for ${nm} on $node"
     fi

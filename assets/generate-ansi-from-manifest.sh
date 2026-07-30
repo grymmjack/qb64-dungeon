@@ -15,11 +15,13 @@
 #
 # The manifest rows this consumes look like:
 #
-#   ansi-art/strategic-combat/monsters/goblin.ans | ansi | 33x25 chars @8x8 | <prompt>
+#   ansi-art/monsters/animals/giant-rat.ans | darkest | 18x12 | <prompt>
 #
 # `path` minus the leading `ansi-art/` is exactly the subpath AnsiFile$() asks
 # for (engine/ARTPACK.bas), so the pack layout falls out of the manifest and
-# needs no mapping table. @8x8 becomes ansimon's --vga50; @8x16 is its default.
+# needs no mapping table. `style` is a styles.json key that ansimon now shares.
+# `size` is a bare CHARACTER grid; the font cell comes from the group —
+# strategic-combat/* is 8x8 (--vga50), everything else 8x16.
 #
 # Env:
 #   BOXES=local,mac,rtx   farm pool (any down box is skipped)
@@ -83,17 +85,22 @@ REJECTS="$(mktemp)"; trap 'rm -f "$MAN" "$QUEUE" "$LOCK" "$REJECTS"' EXIT
 
 build_queue() {   # $1 = "all" | path to a reject list
     : > "$QUEUE"; total=0; skipped=0
-    while IFS='|' read -r f_path f_kind f_size f_prompt; do
-    [ "$(trim "$f_kind")" = ansi ] || continue
+    while IFS='|' read -r f_path f_style f_size f_prompt; do
+    # Row shape is `path | style | size | prompt`, and the MEDIUM is the path
+    # prefix — field 2 is a styles.json key (dark, darkest, dosrpg, item,
+    # portrait), never the string "ansi". Filtering on field 2 matched nothing.
     path="$(trim "$f_path")"
-    case "$path" in ansi-art/*) sub="${path#ansi-art/}";; *) sub="$path";; esac
-    size="$(trim "$f_size")"; prompt="$(trim "$f_prompt")"
+    case "$path" in ansi-art/*) sub="${path#ansi-art/}";; *) continue;; esac
+    style="$(trim "$f_style")"; size="$(trim "$f_size")"; prompt="$(trim "$f_prompt")"
     [ -z "$sub" ] || [ -z "$prompt" ] && continue
-    # "33x25 chars @8x8" -> cols, rows, cell
+    # size is bare CHARACTER cols x rows now — no "@cell" suffix to read.
     cols="${size%%x*}"
     rest="${size#*x}"; rows="${rest%% *}"
-    cell="${size##*@}"
     case "$cols$rows" in ''|*[!0-9]*) echo "  ?? bad size '$size' for $sub"; continue;; esac
+    # The font cell comes from the GROUP: the tactical screen is 132x100 @8x8,
+    # everything else sits on the 8x16 board canvas. Getting this wrong halves
+    # or doubles the height of every piece, so it is derived, never assumed.
+    case "$sub" in strategic-combat/*) cell=8x8;; *) cell=8x16;; esac
     want "$sub" || continue
     if [ "$1" != all ]; then
         # Re-roll round: only what the audit rejected.
@@ -101,7 +108,7 @@ build_queue() {   # $1 = "all" | path to a reject list
     elif [ -z "${FORCE:-}" ] && [ -f "$DEST/$sub" ]; then
         skipped=$((skipped+1)); continue
     fi
-    printf '%s|%s|%s|%s|%s\n' "$sub" "$cols" "$rows" "$cell" "$prompt" >> "$QUEUE"
+    printf '%s|%s|%s|%s|%s|%s\n' "$sub" "$cols" "$rows" "$cell" "$style" "$prompt" >> "$QUEUE"
     total=$((total+1))
     done < "$MAN"
 }
@@ -110,10 +117,10 @@ IFS=',' read -ra POOL <<< "$BOXES"
 take() { ( flock 9; head -n 1 "$QUEUE"; sed -i '1d' "$QUEUE" ) 9>"$LOCK"; }
 
 run_box() {
-    local srv="$1" job sub cols rows cell prompt td out fails=0 t0
+    local srv="$1" job sub cols rows cell style prompt td out fails=0 t0
     while :; do
         job="$(take)"; [ -z "$job" ] && break
-        IFS='|' read -r sub cols rows cell prompt <<< "$job"
+        IFS='|' read -r sub cols rows cell style prompt <<< "$job"
         t0=$SECONDS
         td="$(mktemp -d)"
         # Per-asset seed, derived from the subpath so it stays reproducible.
@@ -129,6 +136,10 @@ run_box() {
                --title "$(basename "${sub%.ans}")" --author grymmjack \
                --group "$PACK" --name out --output-to "$td"
         [ "$cell" = "8x8" ] && set -- "$@" --vga50
+        # The manifest names a styles.json key per asset; ansimon now shares
+        # that vocabulary (dark, darkest, dosrpg, item, portrait), so the
+        # look is content from the manifest rather than a pack-wide coat.
+        [ -n "$style" ] && set -- "$@" --style "$style"
         [ -n "${LORA:-}" ] && set -- "$@" --lora "$LORA"
         [ -n "${STRENGTH:-}" ] && set -- "$@" --lora-strength "$STRENGTH"
         # EXTRA is how a pack declares its look — see pack.conf. Word-split, so

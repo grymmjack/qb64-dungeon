@@ -49,7 +49,19 @@ def strip_sauce(raw):
     and reported a control byte in a perfectly good file.
     """
     if len(raw) >= 128 and raw[-128:-123] == b"SAUCE":
+        n_comments = raw[-128:][104]     # SAUCE offset 104 = comment line count
         raw = raw[:-128]
+        # A COMNT block sits BETWEEN the EOF marker and the record, so once the
+        # record is gone the 0x1A is no longer trailing and a naive
+        # strip-the-last-0x1A leaves it in the "body" — reported as a stray
+        # control byte in every commented file. This is the second time SAUCE
+        # framing has produced a false positive here; the count byte is the only
+        # thing that says how long the block is, which is exactly why the writer
+        # derives it from the same list that builds the block.
+        if n_comments:
+            blk = 5 + n_comments * 64
+            if len(raw) >= blk and raw[-blk:][:5] == b"COMNT":
+                raw = raw[:-blk]
         if raw.endswith(b"\x1a"):
             raw = raw[:-1]
     return raw
@@ -77,34 +89,55 @@ DUP_DIST = 0.075        # mean per-channel distance on a 16x16 thumbnail.
 
 
 def manifest_rows(path):
+    """Rows of `path | style | size | prompt` that name an ansi-art asset.
+
+    The MEDIUM is the path prefix, not a field: field 2 is a styles.json key
+    (dark, darkest, dosrpg, item, portrait). Size is a bare CHARACTER grid with
+    no cell suffix, so the font cell is derived from the group — the tactical
+    screen is 8x8, everything else sits on the 8x16 board canvas. Assume wrong
+    and every expected dimension is out by 2x, which would fail the whole pack.
+    """
     rows = []
     for line in open(path, encoding="utf-8"):
-        parts = line.split("|")
-        if len(parts) < 4 or parts[1].strip() != "ansi":
+        if not line.startswith("ansi-art/"):
             continue
-        p = parts[0].strip()
-        size = parts[2].strip()                     # "33x25 chars @8x8"
+        parts = line.split("|")
+        if len(parts) < 4:
+            continue
+        sub = parts[0].strip()[len("ansi-art/"):]
         try:
-            grid, cell = size.split("@")
-            cols, rows_ = (int(v) for v in grid.strip().split()[0].split("x"))
-            cw, chh = (int(v) for v in cell.strip().split("x"))
+            cols, rows_ = (int(v) for v in parts[2].strip().split()[0].split("x"))
         except Exception:
             continue
-        sub = p[len("ansi-art/"):] if p.startswith("ansi-art/") else p
-        rows.append(dict(sub=sub, cols=cols, rows=rows_, cw=cw, ch=chh))
+        cw, chh = (8, 8) if sub.startswith("strategic-combat/") else (8, 16)
+        rows.append(dict(sub=sub, cols=cols, rows=rows_, cw=cw, ch=chh,
+                         style=parts[1].strip()))
     return rows
 
 
-def measure(png):
+def measure(png, want=None):
+    """Measure a rendered asset, ignoring pixelview's 25-row screen padding.
+
+    `want` is the (w, h) the manifest asked for. Everything except the reported
+    dimensions is measured on the ART REGION only — including the padding would
+    count hundreds of blank rows as background and inflate every ink and
+    flat-region figure, making the thresholds meaningless on small assets.
+    """
     a = np.asarray(Image.open(png).convert("RGB"))
-    flat = a.reshape(-1, 3)
+    h, w = a.shape[:2]
+    pad_ink = False
+    art = a
+    if want and w == want[0] and h > want[1]:
+        art, pad = a[:want[1]], a[want[1]:]
+        pad_ink = bool(pad.any())
+    flat = art.reshape(-1, 3)
     cols, counts = np.unique(flat, axis=0, return_counts=True)
     bg = cols[counts.argmax()]
-    return dict(w=a.shape[1], h=a.shape[0],
+    return dict(w=w, h=h, pad_ink=pad_ink,
                 colours=len(cols),
                 ink=float((flat != bg).any(1).mean()),
                 flat=float(counts.max() / len(flat)),
-                thumb=np.asarray(Image.fromarray(a).resize((16, 16), Image.BOX),
+                thumb=np.asarray(Image.fromarray(art).resize((16, 16), Image.BOX),
                                  np.float64) / 255.0)
 
 
@@ -122,9 +155,13 @@ def main():
     if not man:
         game = os.path.dirname(a.assets)
         man = tempfile.mktemp()
+        # BOTH manifests, matching the generator: imagemanifest is the general
+        # art, fightmanifest the tactical screen. Reading one audits half a pack
+        # and reports every missing asset from the other half as a failure.
         with open(man, "w") as f:
-            subprocess.run([os.path.join(game, "dungeon.run"), "fightmanifest"],
-                           cwd=game, stdout=f, stderr=subprocess.DEVNULL)
+            for sub in ("imagemanifest", "fightmanifest"):
+                subprocess.run([os.path.join(game, "dungeon.run"), sub, "nocolor"],
+                               cwd=game, stdout=f, stderr=subprocess.DEVNULL)
     rows = manifest_rows(man)
     if not rows:
         print("  audit: manifest had no ansi rows"); return 2
@@ -146,13 +183,27 @@ def main():
             p = subprocess.run(cmd, capture_output=True, timeout=300)
             if p.returncode != 0 or not os.path.exists(png):
                 bad[r["sub"]] = "unreadable"; continue
-            m = measure(png)
             want = (r["cols"] * r["cw"], r["rows"] * r["ch"])
+            m = measure(png, want)
             m.update(sub=r["sub"], want=f"{want[0]}x{want[1]}", ctrl=ctrl)
             metrics.append(m)
 
+            # A .ANS cannot state its height — it is a stream, and a viewer picks
+            # a screen. pixelview uses the classic 25-row minimum, so anything
+            # shorter comes back PADDED. Almost every asset here is 3-16 rows, so
+            # a strict equality check fails the entire pack: the first version of
+            # this script did exactly that, reported 0/139, and the generator
+            # dutifully re-rolled all 278 assets three times over. The art was
+            # never wrong. Require the art region to match exactly AND the
+            # padding to be blank; anything else is a real failure.
             if (m["w"], m["h"]) != want:
-                bad[r["sub"]] = f"wrong-size {m['w']}x{m['h']} want {want[0]}x{want[1]}"
+                taller = (m["w"] == want[0] and m["h"] > want[1]
+                          and not m["pad_ink"])
+                if not taller:
+                    bad[r["sub"]] = (f"wrong-size {m['w']}x{m['h']} "
+                                     f"want {want[0]}x{want[1]}"
+                                     + ("" if m["w"] != want[0] or m["h"] <= want[1]
+                                        else " (padding not blank)"))
             elif ctrl:
                 bad[r["sub"]] = f"control ({ctrl} raw bytes < 0x20)"
             elif m["colours"] < MIN_COLOURS or m["ink"] < MIN_INK:
