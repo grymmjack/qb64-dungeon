@@ -195,6 +195,34 @@ that renders labelled region boxes to a PNG so placement can be iterated against
 **without running a fight**. Combat still resolves via `GaugeSample` only — no gestures yet.
 This is where the screen becomes real and where the art work plugs in.
 
+**B.1 — the screen description: DONE.** `engine/LAYOUT.bas` + `assets/data/default/ui-fight-layout.txt`
+(48 named regions) + `dungeon.run fightlayout` + `dungeon.run fightmanifest`, all measured off the
+hand-drawn mockup `assets/ansi-art/default/ui-fight.xb` (XBIN 132×100). Numbers that came out of the art:
+
+| what | value |
+|---|---|
+| screen | **132 × 100** cells on an **8 × 8** cell = **1056 × 800 px**. The board canvas is 132 × 51 @ 8 × 16 = 1056 × **816**, so the fight screen is **exactly as wide and 16 px shorter** — it fits inside the existing canvas, and entering a fight is a **redraw, not a window resize / re-fullscreen**. Same *width* is the load-bearing part: a different width would letterbox horizontally, which is where the four 33-col panels are pitched. The renderer has 16 px (two 8 px rows) spare at the bottom. |
+| foe panels | 4 columns on a **33-col pitch** (4 × 33 = exactly 132) |
+| **every portrait** | **33 × 25 cells = 264 × 200 px** — player and all four foes are the *same size*, so one portrait is interchangeable between any actor slot |
+| structural rules in the art | row 29 (under the portrait band), row 42 (full-width split), col 35 (vertical split of the lower half) |
+
+Three properties worth keeping as the fight gets built:
+
+- **The manifest derives its sizes from the layout file**, it does not restate them. `fightmanifest`
+  asks the layout how big `enemy1.art` and `screen` are, so moving a box moves the art-generation
+  target with it and art can never be authored to a stale size.
+- **ANSI and pixel art are listed as separate entries with a `kind` column**, because their sizes are
+  not in the same unit: `ansi` is character cols × rows (plus the cell metric, `@8x8`), `pixel` is the
+  region's exact on-screen pixel box — 1:1, so a `.png` blits with no scaling, no letterboxing, and no
+  aspect for a generator to guess at. Everything sits under `strategic-combat/`, so
+  `grep strategic-combat` selects the whole set.
+- **`tests/TEST-LAYOUT.bas` asserts the real shipped layout**, not just the API: every region on-screen,
+  all four foe panels identical and evenly pitched, the player portrait equal to a foe's, no two `art`
+  regions overlapping, every `kind` known, and every region the code names by string actually present.
+  The `fightlayout` lint reports the same things, but only if someone runs it — these run in the gate.
+
+**Still open in Phase B:** the `ACTOR` array and the renderer that draws the layout for real.
+
 ### Phase C — the tactical read
 Enemy columns with **parallel fuses**, target selection, initiative order, and the dodge
 naming its attacker. This is the doc's "strategic layer": triage under time pressure — which

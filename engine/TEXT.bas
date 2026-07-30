@@ -57,3 +57,21 @@ FUNCTION PackIndex% (packs() AS STRING, cnt AS INTEGER, want AS STRING)
         IF packs(i) = want THEN PackIndex = i: EXIT FUNCTION
     NEXT i
 END FUNCTION
+
+' Replace EVERY occurrence of finds with repl. A generic string utility -- it lived in
+' MARKDOWN.bas because the markdown renderer was its first caller, but LAYOUT.bas needs it
+' too (LayN$ substitutes '#' for a panel index), and reaching into the markdown renderer for
+' one substitution would have made every layout consumer depend on the whole md->text stack.
+' An empty needle returns the input unchanged rather than looping forever.
+FUNCTION SubstAll$ (s AS STRING, finds AS STRING, repl AS STRING)
+    DIM acc AS STRING, rest AS STRING, p AS LONG
+    IF LEN(finds) = 0 THEN SubstAll$ = s: EXIT FUNCTION
+    rest = s: acc = ""
+    DO
+        p = INSTR(rest, finds)
+        IF p = 0 THEN acc = acc + rest: EXIT DO
+        acc = acc + LEFT$(rest, p - 1) + repl
+        rest = MID$(rest, p + LEN(finds))
+    LOOP
+    SubstAll$ = acc
+END FUNCTION

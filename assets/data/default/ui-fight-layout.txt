@@ -1,0 +1,100 @@
+# ============================================================================
+#  ui-fight-layout.txt -- named screen regions for the TACTICAL COMBAT screen.
+#
+#  Loaded by engine/LAYOUT.bas (`LoadLayout%`), which is game-agnostic: drawing code
+#  asks for a region by NAME (`LayC%("player.art")`, `LayPX%("log.body")`) instead of
+#  hardcoding coordinates. Move a box here and the renderer follows -- that is what
+#  makes it practical to iterate placement against hand-drawn art.
+#
+#  FORMAT:  name | col | row | cols | rows | kind | note
+#    col/row  0-based CHARACTER cell of the top-left corner
+#    cols/rows  size in CHARACTER cells
+#    kind     art | text | box | bar | menu | log   (for the renderer to dispatch on
+#             and for `fightlayout` to colour-code; the engine itself ignores it)
+#
+#  METRICS: this screen is 132 x 100 cells on an 8x8 font cell = 1056 x 800 px.
+#  The board canvas is 132 x 51 on 8x16 = 1056 x 816 -- so the fight screen is EXACTLY AS WIDE
+#  and 16px shorter. It fits inside the canvas already open, which is why entering a fight is a
+#  redraw and not a window resize / re-fullscreen. Equal WIDTH is the load-bearing half: a
+#  different width would letterbox horizontally, and that is where the 33-col panels are pitched.
+#  The renderer has 16px (two 8px rows) spare at the bottom to place or ignore as it likes.
+#
+#  MEASURED FROM the hand-drawn mockup assets/ansi-art/default/ui-fight.xb (XBIN
+#  132x100). Structural rules found in that art and preserved here:
+#    * row 29  -- horizontal rule under the enemy art band
+#    * row 42  -- full-width rule splitting the enemy half from the player half
+#    * col 35  -- vertical rule splitting the lower half (player left / log+dice right)
+#    * 33-col pitch for the four enemy panels (labels landed at cols 1/34/68/101)
+#
+#  THE ONE NUMBER THAT MATTERS FOR ART: every portrait -- the player's and all four
+#  enemies' -- is 33 x 25 cells (264 x 200 px). That fell out of the mockup rather than
+#  being imposed: 132/4 = 33 columns per enemy panel, and the player box was drawn the
+#  same size. So ONE portrait size covers every actor, and a monster portrait can be
+#  reused for the player slot (useful for polymorph/mirror effects later).
+#  `dungeon.run fightmanifest` derives its sizes from THIS FILE, so they cannot drift.
+# ============================================================================
+
+# name              | col | row | cols | rows | kind | note
+screen              |   0 |   0 |  132 |  100 | box  | whole tactical screen, 132x100 @ 8x8
+
+# --- top ribbon --------------------------------------------------------------
+top.bar             |   0 |   2 |  132 |    1 | text | ROUND n / INITIATIVE: who acts
+top.round           |   1 |   2 |   11 |    1 | text | ROUND <n>
+top.init            |  13 |   2 |  118 |    1 | text | INITIATIVE: <actor name>
+
+# --- enemy panels (up to 4, 33-col pitch) ------------------------------------
+# Each panel is a full column: portrait, then name/hp, then stats, then status,
+# then its own incoming-attack fuse. `enemy#.art` is where the generated art goes.
+enemy1.panel        |   0 |   3 |   33 |   39 | box  | foe 1 column
+enemy1.art          |   0 |   4 |   33 |   25 | art  | foe 1 portrait
+enemy1.name         |   1 |  31 |   32 |    1 | text | foe 1 name
+enemy1.hpbar        |   1 |  32 |   32 |    1 | bar  | foe 1 health bar
+enemy1.stats        |   1 |  33 |   32 |    3 | text | MELEE / RANGED / ARMOR
+enemy1.status       |   1 |  37 |   32 |    3 | text | HEALTH / STANCE / EFFECT
+enemy1.gauge        |   1 |  40 |   32 |    1 | bar  | foe 1 incoming-attack fuse
+
+enemy2.panel        |  33 |   3 |   33 |   39 | box  | foe 2 column
+enemy2.art          |  33 |   4 |   33 |   25 | art  | foe 2 portrait
+enemy2.name         |  34 |  31 |   32 |    1 | text | foe 2 name
+enemy2.hpbar        |  34 |  32 |   32 |    1 | bar  | foe 2 health bar
+enemy2.stats        |  34 |  33 |   32 |    3 | text | MELEE / RANGED / ARMOR
+enemy2.status       |  34 |  37 |   32 |    3 | text | HEALTH / STANCE / EFFECT
+enemy2.gauge        |  34 |  40 |   32 |    1 | bar  | foe 2 incoming-attack fuse
+
+enemy3.panel        |  66 |   3 |   33 |   39 | box  | foe 3 column
+enemy3.art          |  66 |   4 |   33 |   25 | art  | foe 3 portrait
+enemy3.name         |  67 |  31 |   32 |    1 | text | foe 3 name
+enemy3.hpbar        |  67 |  32 |   32 |    1 | bar  | foe 3 health bar
+enemy3.stats        |  67 |  33 |   32 |    3 | text | MELEE / RANGED / ARMOR
+enemy3.status       |  67 |  37 |   32 |    3 | text | HEALTH / STANCE / EFFECT
+enemy3.gauge        |  67 |  40 |   32 |    1 | bar  | foe 3 incoming-attack fuse
+
+enemy4.panel        |  99 |   3 |   33 |   39 | box  | foe 4 column
+enemy4.art          |  99 |   4 |   33 |   25 | art  | foe 4 portrait
+enemy4.name         | 100 |  31 |   32 |    1 | text | foe 4 name
+enemy4.hpbar        | 100 |  32 |   32 |    1 | bar  | foe 4 health bar
+enemy4.stats        | 100 |  33 |   32 |    3 | text | MELEE / RANGED / ARMOR
+enemy4.status       | 100 |  37 |   32 |    3 | text | HEALTH / STANCE / EFFECT
+enemy4.gauge        | 100 |  40 |   32 |    1 | bar  | foe 4 incoming-attack fuse
+
+rule.mid            |   0 |  42 |  132 |    1 | box  | full-width divider (row 42 in the art)
+
+# --- player half, left column (col 0..34) ------------------------------------
+hint.bar            |   1 |  44 |   34 |    1 | text | USE ARROWS / SELECT / ENTER TO CHOOSE
+menu.root           |   1 |  49 |   34 |    1 | menu | ATTACK GUARD CAST USE FLEE (horizontal)
+menu.sub            |   1 |  51 |   34 |    7 | menu | MELEE/RANGED, or the spell list
+player.art          |   1 |  60 |   33 |   25 | art  | player portrait (same size as a foe)
+player.name         |   1 |  86 |   33 |    1 | text | player name
+player.class        |   1 |  88 |   33 |    1 | text | "1st Level Fighter"
+player.stats        |   1 |  90 |   33 |    3 | text | MELEE / RANGED / ARMOR
+player.status       |   1 |  94 |   33 |    3 | text | HEALTH / STANCE / EFFECT
+player.gauge        |   1 |  98 |   33 |    1 | bar  | the player's swing/guard gesture bar
+
+rule.split          |  35 |  43 |    1 |   57 | box  | vertical divider (col 35 in the art)
+
+# --- player half, right column (col 36..131) ---------------------------------
+log.panel           |  36 |  43 |   96 |   22 | box  | combat log frame
+log.body            |  37 |  45 |   94 |   20 | log  | scrolling combat text
+log.gutter          |  37 |  45 |    1 |   20 | text | per-line marker column (M / C / ...)
+dice.tray           |  36 |  66 |   96 |   34 | box  | where DICE3D renders the roll
+banner              |  37 |  64 |   94 |    1 | text | BONUS DAMAGE! / crit callouts

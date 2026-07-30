@@ -25,15 +25,6 @@ DIM E3 AS STRING, E2 AS STRING
 E3 = CHR$(226) + CHR$(128)                       ' UTF-8 lead bytes for the U+20xx punctuation
 E2 = CHR$(194)
 
-T_Group "SubstAll$"
-T_EqS "single hit", SubstAll$("a.b", ".", "-"), "a-b"
-T_EqS "every occurrence", SubstAll$("a.b.c", ".", "-"), "a-b-c"
-T_EqS "no match is a no-op", SubstAll$("abc", "z", "y"), "abc"
-T_EqS "delete by replacing with empty", SubstAll$("a**b**c", "**", ""), "abc"
-T_EqS "empty needle returns input (no infinite loop)", SubstAll$("abc", "", "x"), "abc"
-T_EqS "multi-char needle", SubstAll$("xxaayyaazz", "aa", "-"), "xx-yy-zz"
-T_EqS "replacement containing the needle terminates", SubstAll$("a", "a", "aa"), "aa"
-
 T_Group "Utf8ToAscii$ (CP437 grid font shows raw UTF-8 bytes as garbage)"
 T_EqS "em dash -> --", Utf8ToAscii$("a" + E3 + CHR$(148) + "b"), "a--b"
 T_EqS "en dash -> -", Utf8ToAscii$("a" + E3 + CHR$(147) + "b"), "a-b"

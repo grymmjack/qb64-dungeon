@@ -106,7 +106,10 @@ engine/
   SAVEIO             save-file plumbing (HasSave/DeleteSave/AskContinue/TokLoad/Next*)
   STATS              append-only CSV plumbing + the schema-drift rotate guard
   MARKDOWN           markdown -> text-mode renderer (was inside CHRONICLE)
-  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$/PackIndex%)
+  TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$/SubstAll$/PackIndex%)
+  GAUGE              the composure gesture model as pure steps -- no draw, no poll (see below)
+  LAYOUT             named screen regions loaded from data (LayC%/LayPX%/LayN$ by NAME)
+  TABLE              weighted/percentile random tables (PctChance%/WeightPick%/WeightPickLvl%)
 game/
   _ALL.BI  _ALL.BM   roll-ups: every game header / every game body, one line each
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
@@ -255,6 +258,11 @@ and why, because the *reasoning* is what makes the next call easy.
 - ~~DATA ← loaders~~ — `Load*` moved to `game/LOADERS.bas`; `engine/DATA.bas` is game-free.
 - ~~SAVE plumbing~~ — `engine/SAVEIO.bas` (game-free) + `game/SAVEGAME.bas` (payload).
 - ~~CHRONICLE md~~ — reusable md renderer lifted to `engine/MARKDOWN.bas`.
+- ~~`SubstAll$` in MARKDOWN~~ — a generic string substitution that only lived in the markdown
+  renderer because that was its first caller. `engine/LAYOUT.bas` needs it too (`LayN$`
+  substitutes `#` for a panel index), and reaching into MARKDOWN for it would have made every
+  layout consumer depend on the whole md→text stack. Moved to `engine/TEXT.bas`, and its
+  assertions moved with it (TEST-MARKDOWN → TEST-TEXT), so the suite matches the module.
 - ~~PadR$/utils~~ — moved to `engine/TEXT.bas` (engine no longer reaches into a game file).
 - ~~UI ← StrSubst$~~ — `engine/UI.bas` reached into `game/EFFECTS.bas` for a pure string helper;
   `StrSubst$` moved to `engine/TEXT.bas`. `engine/UI.bas` is now clean.

@@ -211,3 +211,122 @@ FUNCTION MaskHoverInfo$ (mcx AS INTEGER, mcy AS INTEGER)
     NEXT i
     MaskHoverInfo$ = s
 END FUNCTION
+' `dungeon.run fightlayout` -- render every named region of the tactical-combat layout as a
+' labelled, kind-coloured box to fightlayout.png, and LINT the layout to the console.
+'
+' Why a PNG dump instead of just eyeballing the numbers: placement is a visual problem, and the
+' alternative is running a fight to see whether a box lands where you meant. This renders the
+' whole screen description in a second, with no combat, no monsters, no fight code -- so the
+' layout can be iterated against the hand-drawn art while the fight itself is still being built.
+' (Same reason `settingsshot` exists for the SETTINGS grid.)
+'
+' The lint half matters more than the picture: a region running past the screen edge, or two
+' regions silently overlapping, produces art that is authored correctly and still draws wrong.
+' Nothing on screen would tell you which of the two it was.
+SUB DumpFightLayout
+    DIM i AS INTEGER, j AS INTEGER, img AS LONG, kol AS _UNSIGNED LONG
+    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
+    DIM scw AS INTEGER, sch AS INTEGER, lbl AS STRING
+    DIM oob AS INTEGER, overlaps AS INTEGER, prevdest AS LONG
+
+    _DEST _CONSOLE
+    IF LoadLayout%("assets/data/ui-fight-layout.txt", 8, 8) = 0 THEN
+        PRINT PipeCol$("|12fightlayout: assets/data/ui-fight-layout.txt is missing or empty.|07")
+        EXIT SUB
+    END IF
+    PRINT PipeCol$("|15fightlayout|07 -- " + LTRIM$(STR$(LAY_N)) + " regions from |11assets/data/ui-fight-layout.txt|07")
+
+    IF LayHas%("screen") THEN
+        scw = LayCols%("screen"): sch = LayRows%("screen")
+    ELSE
+        scw = 132: sch = 100
+        PRINT PipeCol$("|14  WARN|07 no 'screen' region -- assuming 132x100")
+    END IF
+    PRINT PipeCol$("  screen |15" + LTRIM$(STR$(scw)) + "x" + LTRIM$(STR$(sch)) + "|07 cells @8x8 = |15" + _
+                   LTRIM$(STR$(scw * 8)) + "x" + LTRIM$(STR$(sch * 8)) + "|07 px")
+    PRINT
+
+    '--- lint: every region must fit entirely inside the screen -------------------
+    FOR i = 1 TO LAY_N
+        IF _TRIM$(LAY_NAME(i)) <> "screen" THEN
+            IF LAY_COL(i) < 0 OR LAY_ROW(i) < 0 OR LAY_COL(i) + LAY_W(i) > scw OR LAY_ROW(i) + LAY_H(i) > sch THEN
+                PRINT PipeCol$("|12  !! OFF-SCREEN|07 " + _TRIM$(LAY_NAME(i)) + " at " + _
+                      LTRIM$(STR$(LAY_COL(i))) + "," + LTRIM$(STR$(LAY_ROW(i))) + " size " + _
+                      LTRIM$(STR$(LAY_W(i))) + "x" + LTRIM$(STR$(LAY_H(i))))
+                oob = oob + 1
+            END IF
+            IF LAY_W(i) <= 0 OR LAY_H(i) <= 0 THEN
+                PRINT PipeCol$("|12  !! ZERO SIZE|07 " + _TRIM$(LAY_NAME(i)))
+                oob = oob + 1
+            END IF
+        END IF
+    NEXT i
+
+    '--- lint: overlapping ART regions ------------------------------------------
+    ' Only `art` is checked. text/box/bar regions overlap on purpose (a `box` frame contains
+    ' the text it frames), but two art regions sharing cells means one portrait paints over
+    ' another -- always a mistake, and one that looks like a draw-order bug in play.
+    FOR i = 1 TO LAY_N
+        IF LAY_KIND(i) = "art" THEN
+            FOR j = i + 1 TO LAY_N
+                IF LAY_KIND(j) = "art" THEN
+                    IF LAY_COL(i) < LAY_COL(j) + LAY_W(j) AND LAY_COL(j) < LAY_COL(i) + LAY_W(i) THEN
+                        IF LAY_ROW(i) < LAY_ROW(j) + LAY_H(j) AND LAY_ROW(j) < LAY_ROW(i) + LAY_H(i) THEN
+                            PRINT PipeCol$("|12  !! ART OVERLAP|07 " + _TRIM$(LAY_NAME(i)) + " / " + _TRIM$(LAY_NAME(j)))
+                            overlaps = overlaps + 1
+                        END IF
+                    END IF
+                END IF
+            NEXT j
+        END IF
+    NEXT i
+
+    '--- the picture -------------------------------------------------------------
+    prevdest = _DEST
+    img = _NEWIMAGE(scw * 8, sch * 8, 32)
+    _DEST img
+    _FONT 8                                  ' the 8x8 built-in -- one glyph per layout cell
+    CLS , _RGB32(16, 16, 24)
+
+    FOR i = 1 TO LAY_N
+        IF _TRIM$(LAY_NAME(i)) = "screen" THEN GOTO nextRgn
+        bx = LAY_COL(i) * 8: by = LAY_ROW(i) * 8
+        bw = LAY_W(i) * 8: bh = LAY_H(i) * 8
+        IF bw < 1 OR bh < 1 THEN GOTO nextRgn
+        kol = LayKindColor~&(LAY_KIND(i))
+        LINE (bx, by)-(bx + bw - 1, by + bh - 1), kol, B
+        ' A tinted fill on `art` regions so the portrait slots read at a glance.
+        IF LAY_KIND(i) = "art" THEN LINE (bx + 1, by + 1)-(bx + bw - 2, by + bh - 2), _RGB32(0, 40, 56), BF
+        lbl = _TRIM$(LAY_NAME(i))
+        IF LEN(lbl) * 8 > bw - 2 THEN lbl = LEFT$(lbl, (bw - 2) \ 8)
+        IF LEN(lbl) > 0 THEN _PRINTSTRING (bx + 1, by + 1), lbl, img
+        nextRgn:
+    NEXT i
+
+    _SAVEIMAGE "fightlayout.png", img
+    _DEST prevdest
+    _FREEIMAGE img
+
+    PRINT
+    IF oob = 0 AND overlaps = 0 THEN
+        PRINT PipeCol$("|10fightlayout: clean|07 -- every region fits, no art overlaps.")
+    ELSE
+        PRINT PipeCol$("|12fightlayout: " + LTRIM$(STR$(oob)) + " off-screen/zero, " + _
+              LTRIM$(STR$(overlaps)) + " art overlap(s).|07")
+    END IF
+    PRINT PipeCol$("wrote |11fightlayout.png|07 (" + LTRIM$(STR$(scw * 8)) + "x" + LTRIM$(STR$(sch * 8)) + _
+                   ") -- |08art=cyan text=white box=grey bar=green menu=yellow log=magenta|07")
+END SUB
+
+' Region outline colour by `kind`, so the dump is readable without a legend lookup.
+FUNCTION LayKindColor~& (kind AS STRING)
+    SELECT CASE kind
+        CASE "art": LayKindColor~& = _RGB32(0, 220, 255)
+        CASE "text": LayKindColor~& = _RGB32(230, 230, 230)
+        CASE "box": LayKindColor~& = _RGB32(110, 110, 120)
+        CASE "bar": LayKindColor~& = _RGB32(0, 230, 90)
+        CASE "menu": LayKindColor~& = _RGB32(255, 210, 0)
+        CASE "log": LayKindColor~& = _RGB32(230, 0, 230)
+        CASE ELSE: LayKindColor~& = _RGB32(255, 60, 60)      ' unknown kind -- red, so it stands out
+    END SELECT
+END FUNCTION

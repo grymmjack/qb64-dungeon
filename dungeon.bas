@@ -40,6 +40,8 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10audiomanifest|07 dump |14path | prompt-or-text|07 for every sfx/music/narration asset (feed the AI generators)")
     PRINT PipeCol$("  |10imagemanifest|07 dump |14path | prompt|07 for every entity as pixel-art (.png) AND ansi-art (.ans)")
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
+    PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
+    PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
@@ -56,6 +58,7 @@ devmode = (INSTR(UCASE$(COMMAND$), "MANIFEST") > 0) OR (INSTR(UCASE$(COMMAND$), 
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0) OR (INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DATALINT") > 0)
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0)   ' writes a PNG, never a window
 
 ' collision palette (must match the board ANSI art exactly)
 YELLOW = _RGB32(&HFF, &HFF, &H55)
@@ -157,6 +160,8 @@ LoadPlaylist                     ' load the per-level music map (assets/music/pl
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "FIGHTMANIFEST") > 0 THEN DumpFightManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0 THEN DumpFightLayout: SYSTEM
 
 InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/[pack]/*); beeper covers the rest
 MixerInit                        ' unity channel gains + music duck open (before any AudioTick)

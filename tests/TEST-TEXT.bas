@@ -46,6 +46,16 @@ T_EqS "grows without looping forever", StrSubst$("aa", "a", "aa"), "aaaa"
 T_EqS "replacement containing the needle terminates", StrSubst$("x", "x", "xx"), "xx"
 T_EqS "flavor token fill", StrSubst$("the {mon} strikes", "{mon}", "OGRE"), "the OGRE strikes"
 
+T_Group "SubstAll$"
+T_EqS "single hit", SubstAll$("a.b", ".", "-"), "a-b"
+T_EqS "every occurrence", SubstAll$("a.b.c", ".", "-"), "a-b-c"
+T_EqS "no match is a no-op", SubstAll$("abc", "z", "y"), "abc"
+T_EqS "delete by replacing with empty", SubstAll$("a**b**c", "**", ""), "abc"
+T_EqS "empty needle returns input (no infinite loop)", SubstAll$("abc", "", "x"), "abc"
+T_EqS "multi-char needle", SubstAll$("xxaayyaazz", "aa", "-"), "xx-yy-zz"
+T_EqS "replacement containing the needle terminates", SubstAll$("a", "a", "aa"), "aa"
+
+
 T_Done
 
 '$INCLUDE:'TESTLIB.bas'

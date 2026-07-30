@@ -4,7 +4,7 @@
 '  Extracted from CHRONICLE.bas. Renders a markdown string onto the CP437 grid
 '  with coloured headings, **bold**, `code`, - bullets, --- rules, tables, and
 '  CLICKABLE links (mouse hit-tested each frame). Includes the text helpers
-'  RulesStrip$ / SubstAll$ / Utf8ToAscii$ (typographic UTF-8 -> ASCII folding).
+'  RulesStrip$ / Utf8ToAscii$ (typographic UTF-8 -> ASCII folding). SubstAll$ is in TEXT.bas.
 '  The game's rules screen (ShowRules, in game/CHRONICLE.bas) drives this.
 '  No game symbols -- reusable by any text-mode game.
 ' ============================================================================
@@ -226,19 +226,6 @@ FUNCTION RulesStrip$ (s AS STRING)
     RulesStrip$ = _TRIM$(t)
 END FUNCTION
 
-' Replace every occurrence of `finds` in `s` with `repl` (QB64 has no built-in).
-FUNCTION SubstAll$ (s AS STRING, finds AS STRING, repl AS STRING)
-    DIM acc AS STRING, rest AS STRING, p AS LONG
-    IF LEN(finds) = 0 THEN SubstAll$ = s: EXIT FUNCTION
-    rest = s: acc = ""
-    DO
-        p = INSTR(rest, finds)
-        IF p = 0 THEN acc = acc + rest: EXIT DO
-        acc = acc + LEFT$(rest, p - 1) + repl
-        rest = MID$(rest, p + LEN(finds))
-    LOOP
-    SubstAll$ = acc
-END FUNCTION
 
 ' Fold the typographic UTF-8 characters that appear in DUNGEON-RULES.md down to
 ' plain ASCII, so the CP437 grid font (which renders each UTF-8 byte as its own DOS

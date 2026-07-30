@@ -100,3 +100,117 @@ SUB DumpAudioManifest
     PRINT "narration/combat.hurt | Pain sears through you as the blow lands. Blood runs."
     PRINT "narration/combat.downed | Your strength fails you. The world tilts, darkens -- and you fall."
 END SUB
+
+
+' `dungeon.run fightmanifest` -- every art asset the TACTICAL COMBAT screen needs, emitted as
+'   path | kind | size | prompt
+' with everything under a `strategic-combat/` subfolder, so the generators can select the whole
+' set with a single `grep strategic-combat`.
+'
+' ANSI art and PIXEL art are DIFFERENT MEDIA and are listed as separate entries with the `kind`
+' column stating which, because their sizes are not even in the same unit:
+'   * kind `ansi`  -- size in CHARACTER cols x rows, plus the cell metric it is drawn on (@8x8).
+'                     ANSI is a fixed grid; the file must be exactly that many columns wide.
+'   * kind `pixel` -- size in PIXELS, given as the region's EXACT on-screen box (cols*8 x rows*8).
+'                     1:1, so the .png is blitted with no scaling and no letterboxing -- there is
+'                     no aspect to reconcile and no conversion for a generator to guess at.
+'
+' The numbers come from assets/data/ui-fight-layout.txt via engine/LAYOUT.bas rather than being
+' restated here, so moving a box in the layout moves the generation targets with it and art can
+' never be authored to a stale size. (Same principle as DumpAudioManifest reading the flavor
+' tables instead of duplicating the lines.)
+'
+' One portrait size covers EVERY actor -- the mockup's four foe panels and its player box are all
+' 33x25 -- so a monster portrait drops straight into the player slot and vice versa.
+SUB DumpFightManifest
+    DIM lvl AS INTEGER, sl AS INTEGER, i AS INTEGER, nm AS STRING, seen AS STRING
+    DIM pcell AS STRING, ppix AS STRING, fcell AS STRING, fpix AS STRING
+
+    _DEST _CONSOLE
+    IF LoadLayout%("assets/data/ui-fight-layout.txt", 8, 8) = 0 THEN
+        PRINT "fightmanifest: assets/data/ui-fight-layout.txt missing or empty -- nothing to size against."
+        EXIT SUB
+    END IF
+    IF LayHas%("enemy1.art") = 0 THEN PRINT "fightmanifest: layout has no 'enemy1.art' region.": EXIT SUB
+
+    pcell = CellSize$("enemy1.art"): ppix = PixSize$("enemy1.art")
+    fcell = CellSize$("screen"): fpix = PixSize$("screen")
+
+    PRINT "# DUNGEON! strategic-combat art manifest   (path | kind | size | prompt)"
+    PRINT "# tag: strategic-combat   -- `grep strategic-combat` selects every line below."
+    PRINT "#"
+    PRINT "# kind `ansi`  -> size is CHARACTER cols x rows (with the font cell it is drawn on)."
+    PRINT "#                 Author CP437 16-colour, CRLF line endings, exactly that many columns."
+    PRINT "# kind `pixel` -> size is PIXELS, the region's exact on-screen box. 1:1, no scaling,"
+    PRINT "#                 no letterboxing, no aspect to reconcile."
+    PRINT "#"
+    PRINT "# The fight screen is " + fcell + " cells @8x8 = " + fpix + " px. The board canvas is 132x51"
+    PRINT "# @8x16 = 1056x816, so this is exactly as WIDE and 16px shorter -- it fits inside the"
+    PRINT "# existing canvas, and entering a fight is a redraw, not a window resize."
+    PRINT "# EVERY portrait (player and all four foes) is " + pcell + " cells / " + ppix + " px."
+    PRINT "# Sizes derive from assets/data/ui-fight-layout.txt -- edit the layout, not this list."
+    PRINT
+
+    PRINT "# --- the screen frame (chrome only: rules, panel borders, static labels) ---"
+    PRINT "ansi-art/strategic-combat/frame.ans | ansi | " + fcell + " chars @8x8 | ANSI tactical-combat screen frame, " + fcell + " CP437 16-colour: four vertical foe panels on a 33-column pitch, a horizontal rule under the portrait band, a full-width rule at mid-screen, a vertical rule splitting the lower half; carved stone UI chrome, leave the portrait boxes EMPTY, no creatures"
+    PRINT
+
+    PRINT "# --- foe portraits (fill enemy1..4.art, and reusable for player.art) ---"
+    seen = " "
+    FOR lvl = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(MON_NAME(lvl, sl))
+            IF LEN(nm) > 0 THEN PutFightArt "monsters", SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a dungeon monster of level " + LTRIM$(STR$(lvl)), seen
+        NEXT sl
+    NEXT lvl
+    FOR i = 1 TO 4
+        nm = _TRIM$(BOSS_NAME(i))
+        IF LEN(nm) > 0 THEN PutFightArt "monsters", SpriteBase$(nm), pcell, ppix, LCASE$(nm) + " -- a fearsome dungeon boss", seen
+    NEXT i
+    PRINT
+
+    PRINT "# --- player portraits (one per class) ---"
+    FOR i = 1 TO 4
+        nm = _TRIM$(CLASSES(i).name)
+        IF LEN(nm) > 0 THEN PutFightArt "classes", SpriteBase$(nm), pcell, ppix, "a " + LCASE$(nm) + " adventurer -- heroic front-facing battle portrait", seen
+    NEXT i
+    PRINT
+
+    PRINT "# --- treasures & items (shown in a portrait slot on a reward reveal) ---"
+    FOR lvl = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(TRE_NAME(lvl, sl))
+            IF LEN(nm) > 0 THEN
+                IF TRE_ITEM(lvl, sl) > 0 THEN
+                    PutFightArt "items", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- a magic item presented on a pedestal", seen
+                ELSE
+                    PutFightArt "treasures", TreBase$(nm), pcell, ppix, LCASE$(nm) + " -- dungeon treasure presented as a hoard", seen
+                END IF
+            END IF
+        NEXT sl
+    NEXT lvl
+END SUB
+
+' "COLSxROWS" for a layout region -- the unit ANSI art is authored in.
+FUNCTION CellSize$ (rgn AS STRING)
+    CellSize$ = LTRIM$(STR$(LayCols%(rgn))) + "x" + LTRIM$(STR$(LayRows%(rgn)))
+END FUNCTION
+
+' "WxH" in PIXELS for a layout region -- the unit pixel art is authored in. Uses the region's
+' OWN cell metric (LayPW%/LayPH%), so a region on a different font cell still reports correctly.
+FUNCTION PixSize$ (rgn AS STRING)
+    PixSize$ = LTRIM$(STR$(LayPW%(rgn))) + "x" + LTRIM$(STR$(LayPH%(rgn)))
+END FUNCTION
+
+' Emit the ansi AND pixel entries for one piece of strategic-combat art, deduped by
+' category+base (the same monster recurs across levels, and TRE_NAME repeats "(spare)" rows).
+SUB PutFightArt (cat AS STRING, artbase AS STRING, pcell AS STRING, ppix AS STRING, subject AS STRING, seen AS STRING)
+    DIM tag AS STRING, p AS STRING
+    IF LEN(_TRIM$(artbase)) = 0 THEN EXIT SUB
+    tag = " " + cat + "/" + artbase + " "
+    IF INSTR(seen, tag) > 0 THEN EXIT SUB
+    seen = seen + _TRIM$(tag) + " "
+    p = "strategic-combat/" + cat + "/" + artbase
+    PRINT "ansi-art/" + p + ".ans | ansi | " + pcell + " chars @8x8 | ANSI " + pcell + " CP437 16-colour portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, no border and no text"
+    PRINT "pixel-art/" + p + ".png | pixel | " + ppix + " px | pixel-art portrait of " + subject + ", filling the frame edge to edge, dark dungeon palette, transparent or black background, no border and no text"
+END SUB
