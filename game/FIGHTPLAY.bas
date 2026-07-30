@@ -60,6 +60,94 @@ FUNCTION FightFoeTier% (slot AS INTEGER)
     END IF
 END FUNCTION
 
+' Seat the player and the REAL monster occupying room `rm`, from ROOMS() -- its actual name, its
+' scaled HP and AC, and its level's menace tier. This is what a live encounter uses; SeedFight
+' (below) seeds a SYNTHETIC one and exists only for `fightshot` and `dungeon.run fight`.
+'
+' A room holds ONE monster, so this is 1-vs-1 by default. `extra` seats additional foes from the
+' same level's pool -- a chamber (3 monsters) or a boss lair can ask for them, and that is where
+' the screen's 1-vs-4 layout earns itself.
+SUB SeedFightFromRoom (rm AS INTEGER, extra AS INTEGER)
+    DIM a AS INTEGER, lvl AS INTEGER, nm AS STRING, slot AS INTEGER, cnt AS INTEGER, mhp AS INTEGER
+
+    FightReset
+    FuseReset
+    StatusClearAll
+    lvl = ROOMS(rm).sec
+    IF lvl < 1 THEN lvl = 1
+
+    SeedFightPlayer lvl
+
+    ' --- foe 1: the room's actual occupant ---------------------------------
+    nm = _TRIM$(ROOMS(rm).monster)
+    IF LEN(nm) = 0 THEN nm = "SOMETHING"
+    ' mhp_now carries damage already taken (a fight resumed after fleeing), so prefer it.
+    mhp = ROOMS(rm).mhp_now
+    IF mhp <= 0 THEN mhp = ROOMS(rm).mhp
+    IF mhp <= 0 THEN mhp = 5 + lvl * 2            ' a 2d6-mode room never had HP rolled
+    slot = ROOMS(rm).mslot
+    IF slot < 1 THEN slot = 1
+    IF slot > 3 THEN slot = 3
+    FightSetActor 1, nm, "", "monsters/" + SpriteBase$(nm), mhp, ROOMS(rm).mhp
+    IF ROOMS(rm).mhp <= 0 THEN FA_MAXHP(1) = mhp  ' keep the bar sane when HP was never rolled
+    FightSetStat 1, 1, "MELEE:", SgnStr$(lvl + slot)
+    FightSetStat 1, 3, "ARMOR:", "AC" + LTRIM$(STR$(ROOMS(rm).mac))
+    FightSetArtFallback 1, MonsterSprite$(nm)
+    FuseArmFoe 1, FightFoeTier%(slot), lvl
+    IF ROOMS(rm).is_boss THEN FightSetStatus 1, 3, "EFFECT:", "BOSS"
+
+    ' --- any extra foes, from this level's pool ----------------------------
+    cnt = extra
+    IF cnt > FIGHT_MAXFOE - 1 THEN cnt = FIGHT_MAXFOE - 1
+    FOR a = 2 TO 1 + cnt
+        slot = ((a - 2) MOD 3) + 1
+        nm = _TRIM$(MON_NAME(lvl, slot))
+        IF LEN(nm) = 0 THEN nm = "SOMETHING"
+        mhp = 5 + lvl * 2 + slot * 2
+        FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), mhp, mhp
+        FightSetStat a, 1, "MELEE:", SgnStr$(lvl + slot)
+        FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + slot))
+        FightSetArtFallback a, MonsterSprite$(nm)
+        FuseArmFoe a, FightFoeTier%(slot), lvl
+    NEXT a
+
+    FA_TARGET = TargetFirst%
+    FIGHT_ROUND = 1
+    FuseSyncInitiative
+    FightMenuRoot
+END SUB
+
+' The player half of seeding, shared by both seeders so they cannot drift apart.
+SUB SeedFightPlayer (lvl AS INTEGER)
+    DIM nm AS STRING
+    nm = _TRIM$(CLASSES(player_class).name)
+    FightSetActor 0, _TRIM$(player_name), OrdLevel$(char_level) + " " + nm, _
+                  "classes/" + SpriteBase$(nm), player_hp, player_maxhp
+    FightSetStat 0, 1, "MELEE:", SgnStr$(player_tohit)
+    FightSetStat 0, 2, "DAMAGE:", "d" + LTRIM$(STR$(player_dmgdie)) + SgnStr$(player_dmgbonus)
+    FightSetStat 0, 3, "ARMOR:", "AC" + LTRIM$(STR$(player_ac))
+    FA_STANCE(0) = STANCE_READY
+    FightSetStatus 0, 2, "STANCE:", StanceName$(FA_STANCE(0))
+    FightSetArtFallback 0, ClassSprite$(player_class)
+END SUB
+
+' Run a tactical fight against the monster in room `rm`. Returns OUT_WIN / OUT_LOSE / OUT_FLEE,
+' and writes the survivor's HP back into ROOMS() so fleeing and returning is not a free reset.
+FUNCTION RunFightRoom% (rm AS INTEGER, extra AS INTEGER)
+    DIM res AS INTEGER, lvl AS INTEGER
+    lvl = ROOMS(rm).sec
+    IF lvl < 1 THEN lvl = 1
+    IF FIGHT_LAYOUT_OK = 0 THEN
+        IF FightInit%("assets/data/ui-fight-layout.txt") = 0 THEN RunFightRoom% = OUT_FLEE: EXIT FUNCTION
+    END IF
+    SeedFightFromRoom rm, extra
+    res = RunFightLoop%(lvl)
+    ' Persist the outcome onto the room: a fled-from monster stays wounded, a dead one stays dead.
+    ROOMS(rm).mhp_now = FA_HP(1)
+    IF FA_ALIVE(1) = 0 THEN ROOMS(rm).malive = 0
+    RunFightRoom% = res
+END FUNCTION
+
 ' Seat the player and `nfoes` monsters drawn from level `lvl`'s pool, and arm every fuse.
 SUB SeedFight (lvl AS INTEGER, nfoes AS INTEGER)
     DIM a AS INTEGER, slot AS INTEGER, nm AS STRING, cnt AS INTEGER, mhp AS INTEGER
@@ -463,6 +551,17 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
     END IF
 
     SeedFight lvl, nfoes
+    RunFight% = RunFightLoop%(lvl)
+END FUNCTION
+
+' The frame loop, shared by every seeder. Split out so a synthetic fight (`dungeon.run fight`,
+' `fightshot`) and a real room encounter run the SAME code -- if they had separate loops, the dev
+' modes would stop being evidence about the real thing.
+FUNCTION RunFightLoop% (lvl AS INTEGER)
+    DIM k AS STRING, nk AS STRING, a AS INTEGER
+    DIM tprev AS DOUBLE, dt AS SINGLE
+    DIM guarding AS INTEGER, outcome AS INTEGER, banner_t AS SINGLE, saved AS INTEGER
+
     FightLog "", "You are set upon on " + _TRIM$(SECTORS(lvl).label) + "."
     PlayCue CombatCueName$(lvl, 0), TRUE      ' loops for the length of the fight
     tprev = TIMER
@@ -596,5 +695,5 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
     EndCue
     StatusClearAll        ' effects must not survive the encounter
     FightFreeTiles                      ' drop the portrait cache; the next fight re-renders
-    RunFight% = outcome
+    RunFightLoop% = outcome
 END FUNCTION

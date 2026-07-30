@@ -445,3 +445,13 @@ DIM SHARED MAN_ENTRIES AS INTEGER          ' emitted asset lines (excludes comme
 DIM SHARED TUNE_HP_GRAZED AS INTEGER
 DIM SHARED TUNE_HP_WOUNDED AS INTEGER
 DIM SHARED TUNE_HP_BLOODIED AS INTEGER
+
+' TACTICAL COMBAT screen (SETTINGS row 52). A THIRD combat presentation alongside the classic
+' Dungeon! 2d6 and the D&D d20/HP systems -- not a replacement, so opt_oldschool keeps its two
+' meanings and nothing existing changes when this is off.
+'
+' Branched inside DoCombat%, which is the single funnel every encounter goes through -- room
+' monsters, chamber monsters, wandering monsters and a curio that turns out to be a MIMIC. One
+' branch therefore covers all of them; wiring each call site separately would have guaranteed one
+' gets missed.
+DIM SHARED opt_tactical AS INTEGER

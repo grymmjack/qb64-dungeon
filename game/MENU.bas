@@ -583,7 +583,8 @@ SUB BuildSetLayout
     SetLayRow 2, 26, prow(): SetLayRow 2, 27, prow(): SetLayRow 2, 28, prow(): SetLayRow 2, 29, prow(): SetLayRow 2, 32, prow()
     ' Column 3 -- RULES, then DISPLAY & ART, then Back
     SetLayHdr 3, "RULES", prow()
-    SetLayRow 3, 14, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow(): SetLayRow 3, 17, prow()
+    SetLayRow 3, 14, prow(): SetLayRow 3, 52, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow()
+    SetLayRow 3, 17, prow()
     SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
     SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
@@ -642,7 +643,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 51
+    CONST NSET = 52                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -787,6 +788,7 @@ SUB RunSettings
                     opt_dicespeed = opt_dicespeed + 1
                     IF opt_dicespeed > 3 THEN opt_dicespeed = 0
                 CASE 14: opt_oldschool = NOT opt_oldschool
+                CASE 52: opt_tactical = NOT opt_tactical
                 CASE 15
                     opt_boardgame = NOT opt_boardgame
                     IF num_players > 1 THEN opt_boardgame = TRUE   ' multiplayer requires it
@@ -905,6 +907,9 @@ SUB RunSettings
                 CASE 14
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
+                CASE 52
+                    lbl = "Tactical Screen"
+                    IF opt_tactical THEN vtxt = "ON (1-vs-4)" ELSE vtxt = "off"
                 CASE 15
                     lbl = "Boardgame"
                     IF num_players > 1 THEN

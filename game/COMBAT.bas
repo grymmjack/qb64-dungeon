@@ -233,6 +233,27 @@ FUNCTION DoCombat% (rm AS INTEGER)
     ROOMS(rm).monster_fought = TRUE
     RecordEncounter mon                            ' bestiary: # times faced
     NarrateT "combat.encounter", NARR_COMBAT       ' spoken "a monster bars your path" (both modes; Combat tier)
+    ' TACTICAL SCREEN. Branched HERE because DoCombat% is the single funnel every encounter goes
+    ' through -- room monsters, chamber monsters, wandering monsters, and a curio that turns out to
+    ' be a MIMIC. One branch covers all of them; wiring each call site separately would guarantee
+    ' one gets missed.
+    IF opt_tactical THEN
+        DIM tres AS INTEGER
+        combat_active = -1
+        tres = RunFightRoom%(rm, 0)
+        combat_active = 0
+        EndCue
+        _FONT CH                                   ' the fight screen ran 8x8; the board needs CH back
+        cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        IF tres = OUT_WIN THEN
+            ' ClaimTreasure does the RecordKill itself (bestiary + grave + haul), so do NOT also
+            ' call RecordKill here -- that double-counts, the same trap RecordWander has.
+            ClaimTreasure rm, ROOMS(rm).mslot
+        ELSEIF tres = OUT_LOSE THEN
+            DoCombat = 1                           ' the caller handles death exactly as in 2d6 mode
+        END IF
+        EXIT FUNCTION
+    END IF
     IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
         combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm
