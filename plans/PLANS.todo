@@ -2,7 +2,298 @@ Note:
     The playable game now lives in ../dungeon.bas (a vertical slice assembling the
     scratchpad prototypes). Items below are checked off against that build.
 
+Bugs:
+  ☐ When playing in window mode, resize sometimes hides UI parts
+    ☐ Implement same fix as done in DRAW for this to make it always render properly
+  ☐ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc.
+
+Needs Thorough Testing:
+  ☐ Strategic Combat
+    ☐ This is happening way too fast and needs tuned
+    ☐ We do not want fuse mechanics until a "ready" is given by player like when recording with an armed count-in metronome for music
+    ☐ We need confirmations and "ready to proceed" moments as the pace is way too frantic right now
+
+SFX Tweaks:
+  ☐ Add ambient sound effects according to taste/level area:
+    ☐ Thumps
+    ☐ Hinges
+    ☐ Slams
+    ☐ Chains
+    ☐ Wind
+    ☐ Deep drones
+    ☐ Screams
+    ☐ Monster chatter
+      ☐ Squeaks
+      ☐ Hisses
+      ☐ Gibberish
+      ☐ Growls
+      ☐ Slithers
+      ☐ Laughter
+      ☐ Howls
+      ☐ Barks
+      ☐ Moans
+      ☐ Whispers
+
+Narration Small Tweaks:
+  ☐ When character levels up - add 10 flavor texts:
+    ☐ You have learned much and conquered more! You are emboldened and filled with vigor
+    ☐ Everything that has stood between you and your goal has been ... handled. Well done.
+    ☐ You feel as if nothing can stop you and you are determined to push ahead even if it means your end.
+    ☐ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more.
+    ☐ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
+    ☐ Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
+    ☐ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them.
+    ☐ What is life without achievement? What is existence without testing the limits of such? Press on hero!
+    ☐ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
+    ☐ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.
+  ☐ Add additional narrations for combat - stop the repeat of "blood runs..."
+    ☐ Player hits monster:
+      ☐ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost.
+      ☐ With precision timing and strategy you bring death and harbor no mercy.
+      ☐ A salty vision of blood and entrails coat the floor; wet death, theirs.
+      ☐ Instinct takes over and you feel as if your movements are controlled by gods grace.
+      ☐ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not.
+      ☐ One strike at a time chips away at your foes composure and flow of life.
+      ☐ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes.
+      ☐ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands.
+      ☐ Frenzy, absolute and all encompassing has made you into a killing machine.
+      ☐ Rage and blood and fever embrace your cold movements as the dealer of death.
+      ☐ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain.
+    ☐ Player crits monster:
+      ☐ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming!
+      ☐ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred.
+      ☐ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle.
+      ☐ You are soaked with the blood of your enemy as it juts and sprays and coats the place.
+      ☐ Cold calmness and deliberation come upon you. This is a dance, not a fight. 
+      ☐ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect.
+      ☐ A vision of heat, fur, scales, and steel blurry and primal.
+      ☐ TAKE THAT! you shout as you unleash your potential into the fray.
+      ☐ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you.
+      ☐ You were born for this. You live for this. You are unstoppable!
+    ☐ Monster hits player:
+      ☐ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it.
+      ☐ This beast seems seasoned and as it tears into you growls a tribal cry of fury.
+      ☐ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you.
+      ☐ Your body aches and tenses with the impact of the attack.
+      ☐ Rushing and unstoppable the merciless fangs and teeth and limbs come at you.
+      ☐ A fair blow from your foe, you cannot deny it.
+      ☐ You catalog the pain and unthrottle your rage for payback.
+      ☐ Blinking in disbelief as you thought you had out maneuvered that attack.
+      ☐ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds.
+      ☐ God! That hurts!
+    ☐ Monster crits player:
+      ☐ How can this be?! It won't happen again.
+      ☐ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake.
+      ☐ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain.
+      ☐ MY! GOD!! THAT REALLY HURTS! 
+      ☐ SON OF A.. ! YOU DIRTY! 
+      ☐ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness.
+      ☐ This creature is either lucky or powerful or both.
+      ☐ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back.
+      ☐ It's as if you might actually have to try here.
+      ☐ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse. 
+  ☐ Add monster names, and item names into narration and manifest so they can be 
+    ☐ dynamically spoken during the game - instead of "a huge shadow rises and blocks your way"
+    ☐ Goblins bar your path, grimacing their decaying grins and leaping at you from the shadows.. etc
+  ☐ Add all the monster event descriptions into narration manifest and have them play if combat is used for narration
+  ☐ Audit existing events for sensory coverage and make diverse if not where appropriate:
+    ☐ Sight
+    ☐ Sound
+    ☐ Touch
+    ☐ Smell
+    ☐ Taste
+
+Small UI Tweaks:
+  ☐ Explain in character creator what each stat does in a side panel
+    ☐ STR:
+      ☐ extra damage in combat per successful strike
+      ☐ chance to break through doors and chests
+      ☐ ablility to use stronger armor and melee weapons
+      ☐ physical based saving throws
+    ☐ DEX:
+      ☐ bonus to armor class and dodging
+      ☐ use flourishes to do more damage
+      ☐ ability to use more precise missile weapons
+      ☐ movement based saving throws and checks
+    ☐ CON:
+      ☐ extra HP per level
+      ☐ resistances to elemental effects (poison, acid, shock, etc.)
+      ☐ ability to endure great damage
+      ☐ elemental based saving throws and checks
+    ☐ INT:
+      ☐ number of spells that can be cast
+      ☐ speed of ambient spell recall 
+      ☐ use magic flourishes for greater spell effects
+      ☐ mental based saving throws and checks
+    ☐ WIS:
+      ☐ distance of vision and detection
+      ☐ bonus to finding hidden things
+      ☐ resistance to spell effects
+      ☐ universal awareness saving throws bonus
+    ☐ CHA:
+      ☐ luck points (re-rolls)
+      ☐ barter modifier (how much things cost, and how much you sell for)
+      ☐ fate skew - less CHA = worse fate, more CHA = better fate
+      ☐ reaction saving throws
+
+  ☐ Initiative modifier is the users level / 2. 
+    ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be
+    ☐ D20 for initiative
+  ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage"
+    ☐ Can 1/2 the damage if successful
+  ☐ On level up let player add 1 point to a stat up to 18
+    ☐ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is setup - a free life basically
+  ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll
+    ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
+    ☐ Run gesture as normal from that point
+  ☐ Explain to player in rules that clearing all rooms in a level gains character level, and fully heals/resets stuff, etc.
+  ☐ Press TAB during game to find player 
+    ☐ Dims screen except circle around the player and flashes a circle around them 5 times
+  ☐ Make Bestiary only show what has been ever found during any game run
+    ☐ If a creature has not yet been discovered, show a mystery slot ? with image ?
+  ☐ Monsters images move down and center slightly when attacking
+  ☐ Add blood overlay on monsters when taking damage - closer to death = more blood
+    ☐ If no blood, use black for undead
+  ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character)
+
+Big UI Tweaks:
+  ☐ New Dice option: Roll style:
+    ☐ Hold and shake:
+      ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
+    ☐ Hold and shake and spin:
+      ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
+      ☐ Use gesture to spin the dice and change it's spin amount - just a fun thing
+  ☐ New Dice option: Box shake:
+    ☐ When rolling, draw a fuse (quick one) to allow the dice to be juggled around and shaken in the box, to adjust a bad roll.
+    ☐ Except for nat 1s and fumbles, this will be a fun way to play real dice on a computer
+    ☐ While it's technically cheaty, it could be fun.
+    ☐ You can only shake the box one time per roll
+  ☐ Add ansi-art into the game where currently only pixel-art exists
+  ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern
+  ☐ Create item display frames for monsters, curios, and locations
+  ☐ Add stats box (resets per game) - also tracked in game summary and stats log:
+    ☐ Crits
+    ☐ Flourishes
+    ☐ Fumbles
+    ☐ Items Found
+    ☐ Items Used
+    ☐ Rooms Explored
+    ☐ Rooms Cleared
+    ☐ Chambers Cleared
+    ☐ Distance Traveled
+    ☐ Max Level Reached
+    ☐ Damage Dealt
+    ☐ Damage Healed
+    ☐ Deaths
+    ☐ Kills
+
+Huge UI Efforts:
+  ☐ Multiple maps
+  ☐ Hub worlds -> maps
+  ☐ Traversible towns/villages
+  ☐ Add frame based animations (like Bards Tale, Wasteland, etc.) for portraits and events
+  ☐ Add cut-scenes engine
+    ☐ Pan and zoom
+      ☐ Horizontal
+      ☐ Vertical
+    ☐ Effects
+      ☐ Blur
+      ☐ Desaturate
+      ☐ Colorize
+    ☐ Transitions:
+      ☐ Blood
+      ☐ Fire
+      ☐ Poison
+      ☐ Decay
+      ☐ Holy Light
+      ☐ Magic Light
+    ☐ Animations
+    ☐ Timeline events
+    ☐ Dialog
+    ☐ Modify character
+      ☐ Attribute change
+      ☐ HP change
+      ☐ Inventory change
+
+Game Tweaks:
+  ☐ Add a luck mechanic for re-rolls - luck comes from CHA (therefore making CHA a non throwaway stat)
+    ☐ Toggle in settings for game options on / off
+    ☐ Re-roll is permanent no matter the outcome
+    ☐ Cannot re-roll re-rolls
+    ☐ Number of re-rolls available is the CHA bonus 
+      ☐ Replenished every time character levels up
+  ☐ On max damage use gesture to check a critical
+    ☐ Criticals confirmed like this don't get flourishes - only real nat 20s get flourishes
+  ☐ Add Flourishes based on DEX mechanic (therefore giving DEX more weight)
+    ☐ Flourishes influenced by stats (bar sizes, target sizes, timing tightness, etc)
+    ☐ Number of flourishes based on dex bonus
+    ☐ Replenished every time character levels up
+    ☐ +1 Given one back when a crit occurs nat 20
+    ☐ -1 Lose one when a fumble occurs nat 1
+    ☐ Flourishes work with weapons AND magic
+  ☐ When breaking down doors chance for random encounter 33% due to noise
+  ☐ Crypt forces line of sight even if it's disabled in the settings - 9th level - evil darkness overcome
+    ☐ If wizard, or have torch can light to get line of sight disabled
+    ☐ Add torch to random items found - 10% chance
+
 Roadmap (future / bigger efforts):
+    ☐ Rival system / preferred enemies
+      ☐ When killed by a creature, turns into rival
+        ☐ Rivals grant +1 temporary flourish and re-roll
+          ☐ The idea is player conquers easier because knows from past life
+      ☐ When killed by creature multiple times turns into preferred enemy
+        ☐ Preferred enemy is +1 damage +1 to hit
+    ☐ Can the board be much larger and zoomed in, and pan left and right and by user or events?
+      ☐ This would allow more detail
+    ☐ Environmental curios / events:
+      ☐ Pits
+      ☐ Traps
+      ☐ Poison pools
+      ☐ Arrow slits - gesture based - left, right, up, down - dodges
+      ☐ Acid darts - impacting -1 on AC
+      ☐ Rock falls - save DEX
+      ☐ Boulder rolls - save DEX
+      ☐ Magic mouths - save WIS - mini-game riddles
+      ☐ Magic sirens - save WIS - mini-game disarm maze
+    ☐ Random dungeon generation
+    ☐ Post dungeon crawl success back to town
+      ☐ Places:
+        ☐ Magic shop
+          ☐ Buy scrolls
+          ☐ Buy wands / staves
+          ☐ Buy spells
+          ☐ Sell same
+        ☐ Alchemist
+          ☐ Buy potions
+            ☐ Healing
+            ☐ Cure poison
+            ☐ Cure disease
+            ☐ Fire bomb
+            ☐ Acid bomb
+          ☐ Sell same
+        ☐ Armory
+          ☐ Buy armor
+          ☐ Buy shields
+          ☐ Buy helms
+          ☐ Sell same
+        ☐ Weapons
+          ☐ Buy swords
+          ☐ Buy axes
+          ☐ Buy clubs
+          ☐ Buy maces
+          ☐ Buy bows / crossbows
+          ☐ Sell same
+        ☐ Tavern
+          ☐ Get a drink (heal)
+          ☐ Listen to rumors
+          ☐ Gamble (mini-game)
+          ☐ Get into a fight
+        ☐ Inn
+          ☐ Rest for the night
+          ☐ Stash
+            ☐ Store and retrieve items
+
+
     ✔ Extract a REUSABLE ENGINE from the game @done(26-07-29)
         DONE and verified -- engine/ names NO game symbol; every engine->game call goes
         through one of 11 Game_* hooks. engine/ is also self-contained on disk (the
