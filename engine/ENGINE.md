@@ -111,6 +111,7 @@ engine/
   LAYOUT             named screen regions loaded from data (LayC%/LayPX%/LayN$ by NAME)
   FIGHT              tactical-combat SCREEN: actor slots + the region-addressed renderer
                      (no combat rules -- slot 0 is the player, 1..4 foes, see below)
+  FUSE               parallel attack fuses + target selection (pure model, no drawing)
   TABLE              weighted/percentile random tables (PctChance%/WeightPick%/WeightPickLvl%)
 game/
   _ALL.BI  _ALL.BM   roll-ups: every game header / every game body, one line each
@@ -174,6 +175,24 @@ skill compresses the RANGE rather than shifting the odds; the zone is always ful
 `GaugeSample%` is the auto-resolve twin and deliberately draws a uniform **phase**, not a uniform
 `p`, so it inherits the marker's arcsine distribution — sampling `p` uniformly would make
 auto-resolve *easier* than playing.
+
+**`FUSE.bas` — the tactical layer, also pure.** Every foe runs its own countdown *simultaneously*,
+and the fuses advance **while the player deliberates** — stand in the menu and something takes the
+opening. That is the only real source of pressure in a 1-vs-4; the same fight turn-based has none.
+Split from FIGHT.bas because FIGHT.bas needs `CANVAS`, so nothing there can be tested headlessly.
+Three things `tests/TEST-FUSE.bas` pins down, each of which fails *silently* if wrong:
+
+- **Two fuses can complete in one frame.** A function returning "the slot that fired" drops the
+  second attack. So completion *queues*, and the queue is asserted to drain completely.
+- **Order follows whose fuse finished first**, not slot index — otherwise foe 1 permanently
+  pre-empts foe 4. `FF_T` is deliberately left un-clamped so the overshoot is measurable; only the
+  render value clamps.
+- **Corpses neither act nor can be aimed at.** Foes stay on screen after dying, so "dead" is a flag,
+  not a removal — every fuse and target path has to check it. `TargetCycle` skips the dead and
+  `TargetValidate` moves the aim off a foe that just died, or the next attack appears to whiff.
+
+`FuseNextActor%` makes initiative **emergent** — whoever is closest to acting *right now*, which is
+the one fact worth knowing while triaging, and which a rolled turn order cannot express.
 
 **`FIGHT.bas` — actors in, pixels out.** Holds actor slots and the renderer, and **no combat rules**.
 Three decisions carry it:

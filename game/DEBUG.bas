@@ -384,13 +384,22 @@ SUB DumpFightShot
         FightSetStatus a, 1, "HEALTH:", MID$("HALEHURTNEARDEAD", 1, 4)
         FightSetStatus a, 2, "STANCE:", "CIRCLING"
         FightSetStatus a, 3, "EFFECT:", "-"
-        ' Staggered fuses: the whole tactical read is "which one fires first".
-        IF FA_ALIVE(a) THEN FightSetFuse a, 0.25 * a
     NEXT a
-    FA_TARGET = 3                                 ' the critical one is selected
+
+    ' Arm the REAL fuse model rather than poking FA_FUSE directly, so this shot exercises the
+    ' same code path a fight will. Different tiers give different durations, so one shared
+    ' advance leaves the four bars genuinely staggered -- and the colour ramp (cyan/yellow/red)
+    ' then shows at a glance which foe is imminent.
+    FuseReset
+    FOR a = 1 TO 4
+        IF FA_ALIVE(a) THEN FuseArmFoe a, a - 1, lvl        ' tiers 0,1,2 (3 clamps to 2)
+    NEXT a
+    a = FuseStep%(1.4)                                      ' 1.4s of deliberation has passed
+    FA_TARGET = 3
+    TargetValidate                                          ' never leave the aim on a corpse
+    FuseSyncInitiative                                      ' ribbon reads off the live fuses
 
     FIGHT_ROUND = 4
-    FIGHT_INIT = _TRIM$(MON_NAME(lvl, 1))
     FIGHT_BANNER = "BONUS DAMAGE!"
 
     '--- a log with both gutter-marked and plain lines ----------------------
@@ -406,6 +415,16 @@ SUB DumpFightShot
     _SAVEIMAGE "fightshot.png", CANVAS
     _DEST _CONSOLE
     PRINT PipeCol$("  actors: |15" + LTRIM$(STR$(FightLiveFoes%)) + "|07 live foes + the player, target = slot |15" + LTRIM$(STR$(FA_TARGET)) + "|07")
+    PRINT PipeCol$("  initiative: |15" + _TRIM$(FIGHT_INIT) + "|07   (soonest fuse to fire)")
+    FOR a = 1 TO FIGHT_MAXFOE
+        IF FA_USED(a) THEN
+            IF FF_ARMED(a) THEN
+                PRINT PipeCol$("    foe " + LTRIM$(STR$(a)) + " |15" + _TRIM$(FA_NAME(a)) + "|07 fuse " + LTRIM$(STR$(INT(FA_FUSE(a) * 100))) + "% -- " + FmtSecs$(FuseRemaining!(a)) + " left")
+            ELSE
+                PRINT PipeCol$("    foe " + LTRIM$(STR$(a)) + " |08" + _TRIM$(FA_NAME(a)) + " -- no fuse (dead)|07")
+            END IF
+        END IF
+    NEXT a
     PRINT PipeCol$("  portraits found: |15" + LTRIM$(STR$(FightShotArtCount%)) + " of 5|07 (missing ones draw a [no art] placeholder)")
     PRINT PipeCol$("wrote |11fightshot.png|07 (" + LTRIM$(STR$(_WIDTH(CANVAS))) + "x" + LTRIM$(STR$(_HEIGHT(CANVAS))) + ")")
     FightFreeTiles

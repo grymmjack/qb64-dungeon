@@ -243,6 +243,20 @@ SUB FightFrame (rgn AS STRING, kol AS _UNSIGNED LONG)
     LINE (LayPX%(rgn), LayPY%(rgn))-(LayPX%(rgn) + LayPW%(rgn) - 1, LayPY%(rgn) + LayPH%(rgn) - 1), kol, B
 END SUB
 
+' Fuse colour: cool while there is time, yellow at the halfway mark, red when it is about to
+' fire. The whole tactical read is "which of these four is imminent" -- four bars in one colour
+' forces the player to compare LENGTHS across 33 columns, which is slow enough that the fuse
+' fires while they are still reading. Colour makes it a glance.
+FUNCTION FightFuseColor~& (frac AS SINGLE)
+    IF frac >= 0.85 THEN
+        FightFuseColor~& = REDU
+    ELSEIF frac >= 0.5 THEN
+        FightFuseColor~& = YELLOWU
+    ELSE
+        FightFuseColor~& = CYANU
+    END IF
+END FUNCTION
+
 ' Health colour: green -> yellow -> red as it drains. The renderer reads health as a COLOUR
 ' as well as a length, so a glance at four foes ranks them without reading four numbers.
 FUNCTION FightHpColor~& (frac AS SINGLE)
@@ -351,7 +365,7 @@ SUB FightDrawActor (a AS INTEGER)
         FightStatRow FaRgn$(a, "status"), r - 1, _TRIM$(FA_SLAB(a, r)), _TRIM$(FA_SVAL(a, r)), CYANU
     NEXT r
 
-    IF FA_FUSE(a) > 0 THEN FightBar FaRgn$(a, "gauge"), FA_FUSE(a), REDU
+    IF FA_FUSE(a) > 0 THEN FightBar FaRgn$(a, "gauge"), FA_FUSE(a), FightFuseColor~&(FA_FUSE(a))
 END SUB
 
 ' Darken a box by drawing scanlines through it. Every other row rather than a translucent

@@ -129,6 +129,28 @@ DIM SHARED FLOG_N AS INTEGER
 DIM SHARED FIGHT_LAYOUT_OK AS INTEGER                 ' the layout file loaded; 0 = cannot draw
 DIM SHARED FIGHT_CHROME AS INTEGER                    ' authored frame.ans was drawn this frame
 
+' --- parallel attack FUSES (engine/FUSE.bas) ----------------------------------
+' The tactical layer: every foe runs its OWN countdown, all at the same time, and the player
+' triages -- drop the one about to fire, or race it to kill the big one first. Crucially the
+' fuses ADVANCE WHILE THE PLAYER DELIBERATES (greywood's pacing fix): stand there reading the
+' menu and something seizes the opening. That is the whole source of pressure in a 1-vs-4.
+'
+' Kept as PURE STATE + PURE STEPS, deliberately separate from FIGHT.bas's renderer, so the
+' model is unit-testable with no display (tests/TEST-FUSE.bas) -- the same split that made
+' GAUGE.bas testable. FuseStep mirrors its result into FA_FUSE() so the renderer needs no
+' knowledge of any of this.
+'
+' Slot 0 (the player) uses the same arrays: the player's fuse is the COMMIT DEADLINE while a
+' gesture is up. One mechanism, so "you ran out of time" works identically for both sides.
+CONST FUSE_MIN = 0.9              ' seconds -- the shortest a fuse may ever be, so there is
+'                                   ALWAYS a reaction window. Without a floor, deep levels
+'                                   would produce unavoidable hits, which reads as a bug.
+CONST FUSE_NONE = -1              ' "no slot" -- 0 is a real slot (the player), so not 0
+DIM SHARED FF_T(0 TO FIGHT_MAXFOE) AS SINGLE      ' seconds accumulated on this fuse
+DIM SHARED FF_DUR(0 TO FIGHT_MAXFOE) AS SINGLE    ' seconds this fuse runs for in total
+DIM SHARED FF_ARMED(0 TO FIGHT_MAXFOE) AS INTEGER ' counting down right now
+DIM SHARED FF_PEND(0 TO FIGHT_MAXFOE) AS INTEGER  ' completed; the attack is not yet resolved
+
 ' ANSI portrait cache. A .ans has to be RENDERED (ANSI_Print) into an image before it can be
 ' blitted, and re-rendering five portraits every frame would be absurd -- so each is rendered
 ' once at its region's pixel size and kept. Keyed by path, small and fixed: at most 5 actors

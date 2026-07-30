@@ -241,11 +241,38 @@ Three properties worth keeping as the fight gets built:
 
 **Still open in Phase B:** nothing. Next is Phase C (parallel fuses + target selection).
 
-### Phase C — the tactical read
-Enemy columns with **parallel fuses**, target selection, initiative order, and the dodge
-naming its attacker. This is the doc's "strategic layer": triage under time pressure — which
-fuse is about to fire, drop the fast one or race the big one. The fuse **drains during
-deliberation** (greywood's key pacing fix: run it out and the monster seizes the opening).
+### Phase C — the tactical read — DONE
+`engine/FUSE.bas` + `tests/TEST-FUSE.bas` (86 assertions). Every foe runs its own countdown
+**simultaneously**, and the fuses advance **while the player deliberates** — greywood's pacing fix:
+stand in the menu reading options and something takes the opening. Asserted directly ("20s of
+standing still cost the player all four attacks").
+
+Kept a **pure model with no drawing**, separate from FIGHT.bas, for the same reason GAUGE.bas was:
+FIGHT.bas needs `CANVAS`, so anything living there cannot be tested headlessly. Time is passed in
+as `dt` and never read from `TIMER`, so the suite is exact and cannot flake.
+
+Every bug in a parallel-fuse system fails *silently* — "an attack that just didn't happen", or one
+from the wrong monster. So the four things worth getting right are asserted as properties:
+
+| property | what goes wrong without it |
+|---|---|
+| fuses advance in **parallel** | the obvious implementation (advance the current actor) is turn-based wearing a real-time costume, and a single-fuse test would not notice |
+| simultaneous completions **queue** | two fuses *can* complete in one frame; returning "the slot that fired" silently drops the second attack |
+| order = **whose fuse finished first** | resolving by slot index makes foe 1 permanently pre-empt foe 4. `FF_T` is left un-clamped so the overshoot is measurable; only the render value clamps |
+| **corpses neither act nor are aimed at** | foes stay on screen after dying, so "dead" is a flag, not a removal — every fuse and target path must check it, or you get attacks from corpses and aim locked onto them |
+
+- **Initiative is emergent**, not rolled: `FuseNextActor%` is whoever is closest to acting *right
+  now* (`FuseSyncInitiative` writes the ribbon, e.g. `GIANT SNAKE (1.0s)`). It changes as fuses
+  advance and as foes are staggered — a fixed turn order could not express that.
+- **`FuseDur!` is floored at `FUSE_MIN`.** Deeper and faster tiers squeeze the window, but never
+  below a human reaction time: an unavoidable hit reads as a bug, not as difficulty, and no amount
+  of skill answers it.
+- **Re-arming discards the wind-up**, which is what makes staggering a foe worth doing.
+- **The fuse bar colour ramps cyan → yellow → red.** Four bars in one colour force the player to
+  compare *lengths* across 33 columns — slow enough that the fuse fires while they are still
+  reading. Colour makes "which one is imminent" a glance, which is the entire tactical read.
+- **The attacker's identity survives the queue**, so Phase D's dodge can name who swung. Telling
+  the player to dodge the wrong monster reads as the game lying.
 
 ### Phase D — gestures live
 Wire `GaugeRun` for the player's turn and `DodgeRun` for incoming attacks. Opt-in per the
