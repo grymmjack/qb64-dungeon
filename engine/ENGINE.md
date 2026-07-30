@@ -114,6 +114,7 @@ game/
   CHAMBERS.bas       the big named halls: detect/flood/grave-seat (was in engine/BOARD.bas)
   MANIFEST.bas       audio manifest dump + Game_SfxNames$ roster (was in engine/MUSIC.bas)
   DEBUG.bas          [~] dev overlay + [0] cheat panel (was in engine/BOARD.bas)
+  DATALINT.bas       `datalint` dev mode: validate the loaded content tables
   PLAYERS.bas        hot-seat seats: park/restore player state + turn passing (was engine/)
   COMBAT PLAY        combat/treasure + play-loop support (drops/loiter/encounters/search/doors)
   MENU               game screens: class-select, char-gen, intro, menu/settings, HUD
@@ -154,10 +155,21 @@ primitives/types first; game types may build on engine ones, never the reverse.
 
 ## The engine ↔ game contract
 
-A hook is a `Game_*` SUB/FUNCTION the engine calls and `game/` implements. **11 are live** — and
-they are now the *only* way engine code reaches game code. The still-"planned" rows are not debt:
-they are inlined in `dungeon.bas`, the **assembly**, which is allowed to name both sides. Lifting
-them would make `dungeon.bas` itself reusable; it is not required for `engine/` to be separable.
+A hook is a `Game_*` SUB/FUNCTION the engine calls and `game/` implements. **`engine/` calls
+exactly 11**, and they are the *only* way engine code reaches game code — `examples/minimal`
+implements those 11 and nothing else.
+
+> **Three `Game_*` routines are NOT engine hooks, despite the name.** `Game_OnEnterCell%`,
+> `Game_WinReached%` and `Game_WinReady%` are called from **`dungeon.bas`** (and `game/MENU.bas`);
+> no `engine/` file invokes them. They were the first things extracted, and this file used to call
+> #1/#2 "the two indispensable ones… the tightest and most central seams" — which was wrong. They
+> are the ASSEMBLY calling the game, which needs no hook at all, since `dungeon.bas` may name both
+> sides. They are still useful factorings (the win rule lives in one place instead of three), just
+> not contract surface. `examples/minimal` correctly does not implement them, and
+> `audit-boundary.sh` correctly does not demand it.
+
+The still-"planned" rows below are not debt either: they are inlined in `dungeon.bas`. Lifting them
+would make the *assembly* reusable; it is not required for `engine/` to be separable.
 
 | # | Hook | Status | Was inlined at |
 |---|------|--------|----------------|
@@ -184,7 +196,9 @@ them would make `dungeon.bas` itself reusable; it is not required for `engine/` 
 | 15 | `Game_OnEnterCleanCell(cx,cy)` — loot recovery (now inside #2) | planned | play loop |
 | ~~16~~ | ~~`Game_DebugSpawn%`~~ — **not needed**: the cheat panel moved to `game/DEBUG.bas` and `dungeon.bas` calls it directly | n/a | `DebugTestMenu` (`engine/BOARD.bas`) |
 
-The two indispensable ones (#1, #2) are done — they were the tightest and most central seams.
+Rows #1/#2 and `Game_WinReady%` are marked done but are **assembly→game calls, not engine hooks**
+(see the note above the table). The genuine contract is the 11 unnumbered/#6/#8 rows that
+`engine/` actually calls.
 
 ### Two lessons about hook design
 

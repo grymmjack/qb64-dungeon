@@ -211,7 +211,11 @@ Control:
 Game:
     ✔ Setup basic rules: @done(26-07-23)
         ✔ Movement @done(26-07-23)
-        ☐ Doors
+        ✔ Doors @done(26-07-29) -- detection (DetectDoors/DetectSecretDoors), reinforced doors
+          (MarkStrongDoors + BreakDoorAttempt STR check), secret doors with reveal-by-region,
+          door-HOP (stepping onto a door auto-advances one more cell, free), and DOOROPEN so a
+          passed door no longer blocks FOV. Only the WHITE level door is outstanding -- it needs
+          board art and is tracked as its own item under Doors:.
         ✔ Rooms @done(26-07-23)
 
 Turns:
