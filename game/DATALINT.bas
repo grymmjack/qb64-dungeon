@@ -81,6 +81,43 @@ SUB DataLint
         NEXT slot
     NEXT lvl
 
+    '--- chamber event table --------------------------------------------------
+    ' Mechanics are keyed by `kind`; a typo'd kind silently never fires (ChamberEventKind$
+    ' returns it, the SELECT CASE has no branch, and you get a gauntlet instead).
+    PRINT PipeCol$("|11chamber events|07")
+    IF NCHMEV <= 0 THEN
+        PRINT PipeCol$("  |14!!|07 no chamber-events.txt loaded -- chambers fall back to gauntlet-only")
+        warns = warns + 1
+    ELSE
+        DIM gw AS INTEGER, tw AS INTEGER, kk AS STRING
+        FOR i = 1 TO NCHMEV
+            kk = _TRIM$(CHM_EV(i).kind)
+            tw = tw + CHM_EV(i).weight
+            IF kk = "gauntlet" THEN gw = gw + CHM_EV(i).weight
+            SELECT CASE kk
+                CASE "gauntlet", "shrine", "hazard", "boon", "lord"
+                CASE ELSE
+                    PRINT PipeCol$("  |12!!|07 event '" + kk + "' has no mechanic in code -- it would silently play as a gauntlet")
+                    errs = errs + 1
+            END SELECT
+            IF CHM_EV(i).weight <= 0 THEN
+                PRINT PipeCol$("  |14!!|07 event '" + kk + "' has weight " + LTRIM$(STR$(CHM_EV(i).weight)) + " -- it can never be drawn")
+                warns = warns + 1
+            END IF
+            IF CHM_EV(i).maxlvl > 0 AND CHM_EV(i).minlvl > CHM_EV(i).maxlvl THEN
+                PRINT PipeCol$("  |12!!|07 event '" + kk + "' has minlvl > maxlvl -- eligible at NO depth")
+                errs = errs + 1
+            END IF
+        NEXT i
+        IF gw <= 0 THEN
+            PRINT PipeCol$("  |12!!|07 no 'gauntlet' entry with weight -- chambers would stop spawning monsters")
+            errs = errs + 1
+        ELSEIF tw > 0 THEN
+            PRINT PipeCol$("  |10ok|07 " + LTRIM$(STR$(NCHMEV)) + " event(s); gauntlet is " + LTRIM$(STR$(gw * 100 / tw)) + "% of the weight")
+        END IF
+    END IF
+    PRINT
+
     '--- classes -------------------------------------------------------------
     FOR i = 1 TO UBOUND(CLASSES)
         nm = _TRIM$(CLASSES(i).name)

@@ -306,19 +306,49 @@ END SUB
 ' so it can't be walked into), fought with the normal combat code; treasure suppressed via
 ' the is_chamber flag in ClaimTreasure.
 SUB ChamberEncounter (cid AS INTEGER)
-    DIM AS INTEGER sec, w, m, res
-    DIM mon AS STRING
+    DIM AS INTEGER sec, w, m, res, isLord
+    DIM mon AS STRING, kind AS STRING
     IF cid < 1 OR cid > NCHAMBER THEN EXIT SUB
     IF CHAMBERAT(START_CX, START_CY) = cid THEN EXIT SUB   ' the Main Gallery / entrance never spawns
     IF CHM_DEAD(cid) >= 3 THEN EXIT SUB                    ' three graves already -- the chamber is cleared
     sec = CHM_SEC(cid): IF sec < 1 THEN sec = 1
+
+    ' What happens on THIS entry? A non-combat event fires instead of a fight, at most once
+    ' per chamber per run -- the chamber still needs its three kills to clear, so a special
+    ' event adds variety without touching the board-game rule or letting you farm boons.
+    kind = ChamberEventKind$(cid, sec)
+    SELECT CASE kind
+        CASE "shrine"
+            CHM_EVDONE(cid) = TRUE
+            ChamberEventBanner cid, kind
+            DoCurio 0                                      ' the curio deck IS the shrine's risk/reward
+            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            EXIT SUB
+        CASE "hazard"
+            CHM_EVDONE(cid) = TRUE
+            ChamberEventBanner cid, kind
+            SpringTrap 0                                   ' traps.txt supplies the mechanic + prose
+            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            EXIT SUB
+        CASE "boon"
+            CHM_EVDONE(cid) = TRUE
+            ChamberEventBanner cid, kind
+            ChamberBoon sec
+            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            EXIT SUB
+        CASE "lord"
+            CHM_EVDONE(cid) = TRUE
+            isLord = TRUE                                  ' a boss-flagged guardian; DOES count as a grave
+    END SELECT
     w = ROOM_N + 2: IF w > 400 THEN w = 400                ' scratch slot (WanderEncounter uses ROOM_N+1)
     m = RollDie(3): mon = _TRIM$(MON_NAME(sec, m))
     ROOMS(w).sec = sec: ROOMS(w).monster = mon: ROOMS(w).mslot = m
-    ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
+    ROOMS(w).malive = TRUE: ROOMS(w).is_boss = isLord      ' a LORD event flags the guardian as a boss
     ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
     ROOMS(w).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(w).mhp_now = ROOMS(w).mhp
+    IF isLord THEN ROOMS(w).mhp = ROOMS(w).mhp * 3 \ 2: ROOMS(w).mhp_now = ROOMS(w).mhp   ' +50% HP
     ROOMS(w).mac = 9 + sec
+    IF isLord THEN ROOMS(w).mac = ROOMS(w).mac + 1
     ROOMS(w).treasure = 0: ROOMS(w).treasure_item = 0: ROOMS(w).treasure_name = ""
     ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
     ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
@@ -326,7 +356,11 @@ SUB ChamberEncounter (cid AS INTEGER)
     Sfx "trap"
     DIM cname AS STRING, cdesc AS STRING
     cname = _TRIM$(CHM_NAME(cid))
-    IF CHM_DEAD(cid) = 0 THEN                              ' first time in: describe + narrate the hall
+    IF isLord THEN
+        Sfx "alarm"
+        Banner "THE LORD OF THE " + UCASE$(cname) + " RISES!", MonVerb$(mon, "A great " + mon + " claims this hall", "Great " + mon + " claim this hall") + " -- stronger than its kin.   [ press any key ]"
+        WaitKey
+    ELSEIF CHM_DEAD(cid) = 0 THEN                          ' first time in: describe + narrate the hall
         cdesc = ChamberDesc$(cname): IF LEN(cdesc) = 0 THEN cdesc = "You enter the " + cname + "."
         Narrate "chamber." + NarrSlug$(cname)             ' spoken chamber description (if a pack has it)
         Banner cdesc, MonVerb$(mon, "A " + mon + " stalks here", mon + " stalk here") + " -- three guard this hall, and no treasure.   [ press any key ]"
@@ -413,3 +447,59 @@ FUNCTION BreakDoorAttempt% (idx AS INTEGER)
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END FUNCTION
+
+' --- CHAMBER EVENTS (assets/data/<pack>/chamber-events.txt) --------------------
+' Which event fires on this entry? A weighted, depth-gated draw over the loaded table
+' using the engine primitive (engine/TABLE.bas). Returns "gauntlet" -- the classic
+' one-monster-per-entry behaviour -- whenever a special event should NOT happen:
+'   * the table is missing/empty (a pack that ships no events plays as before)
+'   * this chamber already had its one special event (CHM_EVDONE -- no boon farming)
+'   * nothing in the table is eligible at this depth
+FUNCTION ChamberEventKind$ (cid AS INTEGER, lvl AS INTEGER)
+    DIM i AS INTEGER, pick AS INTEGER
+    ChamberEventKind$ = "gauntlet"
+    IF NCHMEV <= 0 THEN EXIT FUNCTION
+    IF cid >= 1 AND cid <= MAXCHAMBER THEN
+        IF CHM_EVDONE(cid) THEN EXIT FUNCTION
+    END IF
+    REDIM w(1 TO NCHMEV) AS INTEGER, lo(1 TO NCHMEV) AS INTEGER, hi(1 TO NCHMEV) AS INTEGER
+    FOR i = 1 TO NCHMEV
+        w(i) = CHM_EV(i).weight: lo(i) = CHM_EV(i).minlvl: hi(i) = CHM_EV(i).maxlvl
+    NEXT i
+    pick = WeightPickLvl%(w(), lo(), hi(), NCHMEV, lvl)
+    IF pick >= 1 THEN ChamberEventKind$ = _TRIM$(CHM_EV(pick).kind)
+END FUNCTION
+
+' Announce a chamber event using the table's own name + prose (data, not hardcoded).
+SUB ChamberEventBanner (cid AS INTEGER, kind AS STRING)
+    DIM i AS INTEGER, nm AS STRING, tx AS STRING
+    FOR i = 1 TO NCHMEV
+        IF _TRIM$(CHM_EV(i).kind) = kind THEN nm = _TRIM$(CHM_EV(i).nm): tx = _TRIM$(CHM_EV(i).text): EXIT FOR
+    NEXT i
+    IF LEN(nm) = 0 THEN nm = "Something stirs"
+    Sfx "secret"
+    Banner _TRIM$(CHM_NAME(cid)) + " -- " + nm, tx + "   [ press any key ]"
+    WaitKey
+END SUB
+
+' A cache: a healing potion, or gold scaled to the chamber's depth. Routed through
+' CurioGain so it lands in the Treasury + Event Log like every other windfall.
+SUB ChamberBoon (lvl AS INTEGER)
+    DIM g AS LONG
+    IF PctChance%(45) THEN
+        IF PctChance%(TREASURE_LARGE_PCT) THEN
+            item_potion_large = item_potion_large + 1
+            CurioGain "Large Healing Potion", 0
+            Banner "A sealed flask, still whole.", "You pocket a LARGE healing potion.   [ press any key ]"
+        ELSE
+            item_potion_small = item_potion_small + 1
+            CurioGain "Small Healing Potion", 0
+            Banner "A small vial, waxed shut.", "You pocket a SMALL healing potion.   [ press any key ]"
+        END IF
+    ELSE
+        g = 40& * lvl + RollDie(30 * lvl)
+        CurioGain "Chamber cache", g
+        Banner "Coin, tucked away and forgotten.", "You gather " + _TRIM$(STR$(g)) + " gold.   [ press any key ]"
+    END IF
+    WaitKey
+END SUB

@@ -149,6 +149,7 @@ InitLabels                       ' build the room-label table + the label-cell m
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
 LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
+LoadChamberEvents                 ' load the chamber event table (assets/data/chamber-events.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
 ScanAllPacks                     ' find sfx/music PACK subdirs (themes); validate the saved pick
@@ -677,6 +678,7 @@ END FUNCTION
 '$INCLUDE:'engine/CURSOR.bas'
 '$INCLUDE:'engine/UI.bas'       ' engine presentation: fades + UI primitives + sound + dice subsystem
 '$INCLUDE:'game/MENU.bas'       ' game screens: class-select, char-gen, intro, menu/settings, HUD
+'$INCLUDE:'engine/TABLE.bas'    ' engine random-table primitives (PctChance/WeightPick/WeightPickLvl)
 '$INCLUDE:'engine/TEXT.bas'     ' reusable string/format utils (NthField$/PadR$/MMSS$)
 '$INCLUDE:'game/LORDS.bas'      ' hall of fame + LOAD A CHARACTER + settings persistence
 '$INCLUDE:'game/PLAYERS.bas'    ' hot-seat seats: per-player state park/restore + turn passing (was engine/)

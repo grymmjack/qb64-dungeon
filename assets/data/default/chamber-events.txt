@@ -1,0 +1,32 @@
+# chamber-events.txt -- what happens when you step into a named CHAMBER.
+#
+# Per the board game a chamber holds THREE monsters and NO treasure, and you fight one
+# per entry until three graves stand. This table adds VARIETY to those entries without
+# breaking that rule: a non-gauntlet event happens INSTEAD of a fight on that entry, and
+# the chamber still needs its three kills to clear.
+#
+# Anti-farming: at most ONE non-gauntlet event fires per chamber per run (CHM_EVDONE).
+# Without that you could walk in and out of a hall collecting boons forever.
+#
+# Selection is a weighted, depth-gated draw (engine/TABLE.bas WeightPickLvl%): an entry
+# only competes when the chamber's dungeon level falls in [minlvl, maxlvl]. maxlvl 0 means
+# "and deeper", minlvl 0 means "from level 1" -- so a table can say "level 3+" without
+# knowing how many levels exist.
+#
+# MECHANICS live in code, keyed by `kind` (same idiom as traps.txt / curios.txt) --
+# everything else here is data. Known kinds:
+#   gauntlet  one of the level's monsters rises (the classic behaviour; make this the
+#             heaviest weight or chambers stop being dangerous)
+#   shrine    a curio is drawn here instead (risk/reward choice -- see curios.txt)
+#   hazard    a trap springs (see traps.txt)
+#   boon      a cache: healing potion, or gold scaled to the chamber's depth
+#   lord      a LORD of this hall -- a boss-flagged monster; it DOES count as a grave
+#
+# Weights are relative, not percentages. Re-read at launch (F5).
+#
+# kind     | name                  | weight | minlvl | maxlvl | text
+gauntlet   | The guardians stir    | 62     | 0      | 0      | Something heavy shifts in the dark.
+shrine     | A forgotten shrine    | 12     | 2      | 0      | A cracked altar leans against the far wall.
+hazard     | The vault groans      | 10     | 3      | 0      | Dust sifts from the stones overhead.
+boon       | A traveller's cache   | 10     | 1      | 0      | A niche in the wall hides someone's last supplies.
+lord       | The lord of this hall | 6      | 5      | 0      | A presence claims this place, and it has noticed you.

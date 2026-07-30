@@ -34,7 +34,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN SAVE_FILE FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 6"
+    PRINT #f, "DUNGEONSAVE 7"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -80,6 +80,16 @@ SUB SaveGame
     FOR i = 1 TO UBOUND(LOOSE)
         PRINT #f, LOOSE(i).active; LOOSE(i).cx; LOOSE(i).cy; LOOSE(i).gold; LOOSE(i).sword; LOOSE(i).secret; LOOSE(i).esp; LOOSE(i).crystal
     NEXT i
+    ' CHAMBER progress (v7). CHM_DEAD was never saved at all, so loading a game reset every
+    ' named hall to zero graves and you had to re-fight all three guardians -- and the
+    ' headstones DrawChamberGraves paints vanished with it. CHM_EVDONE rides along so a
+    ' chamber's one special event cannot be re-farmed across a save/load either.
+    PRINT #f, "CHM "; NCHAMBER
+    FOR i = 1 TO NCHAMBER
+        PRINT #f, CHM_DEAD(i); CHM_EVDONE(i);
+    NEXT i
+    PRINT #f, ""
+
     ' HOT-SEAT SEATS (v5): every parked player, so a multiplayer game can be resumed.
     ' The ACTIVE player's state IS the working globals, and PLAYERS(cur_player) is only
     ' refreshed on a turn change -- so sync it here or the current player's seat saves stale.
@@ -217,6 +227,19 @@ SUB LoadGameApply
         END IF
     END IF
 
+    ' CHAMBER progress (v7, tag-guarded -- v6 and older have no CHM block and keep 0 graves,
+    ' which is the same state they saved, so nothing is lost that was ever stored).
+    IF SVTOK_I <= SVTOK_N THEN
+        IF SVTOK(SVTOK_I) = "CHM" THEN
+            tag = NextTok$                            ' "CHM"
+            rn = NextI                                ' saved chamber count
+            IF rn > MAXCHAMBER THEN rn = MAXCHAMBER
+            FOR i = 1 TO rn
+                CHM_DEAD(i) = NextI: CHM_EVDONE(i) = NextI
+            NEXT i
+        END IF
+    END IF
+
     ' HOT-SEAT SEATS (v5, tag-guarded -- v4 and older saves have no PLRS block and skip this).
     ' Read before SOLO, matching the write order. Names come back with CHR$(1) -> space.
     IF SVTOK_I <= SVTOK_N THEN
@@ -319,7 +342,7 @@ SUB SaveRoundTripTest
     DIM wpot(1 TO 4) AS INTEGER, wfire(1 TO 4) AS INTEGER, wxp(1 TO 4) AS LONG
     DIM wpois(1 TO 4) AS INTEGER, wtel(1 TO 4) AS INTEGER
     _DEST _CONSOLE
-    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v6)"
+    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v7)"
 
     realpath = SAVE_FILE
     SAVE_FILE = "tests/tmp/savetest.dat"          ' never touch the player's real slot
@@ -402,6 +425,15 @@ SUB SaveRoundTripTest
         PLAYERS(i).armor = i: PLAYERS(i).shield = 1: PLAYERS(i).bow = -1
         PLAYERS(i).boots = 0: PLAYERS(i).teleport = wtel(i)
     NEXT i
+    ' chamber progress (v7) -- CHM_DEAD used to be dropped entirely on save
+    DIM wdead(1 TO 4) AS INTEGER, wev(1 TO 4) AS INTEGER
+    FOR i = 1 TO 4
+        IF i <= NCHAMBER THEN
+            wdead(i) = i MOD 4: wev(i) = -(i MOD 2)
+            CHM_DEAD(i) = wdead(i): CHM_EVDONE(i) = wev(i)
+        END IF
+    NEXT i
+
     ' the ACTIVE seat lives in the working globals -- SaveGame must sync it before writing
     LoadActivePlayer cur_player
     gold = wgold(cur_player)                      ' prove the sync path: mutate AFTER loading
@@ -415,6 +447,7 @@ SUB SaveRoundTripTest
 
     '--- clobber every seat, then load it back ------------------------------
     FOR i = 1 TO 4
+        IF i <= NCHAMBER THEN CHM_DEAD(i) = 0: CHM_EVDONE(i) = 0
         PLAYERS(i).active = 0: PLAYERS(i).klass = 0: PLAYERS(i).gold = 0
         PLAYERS(i).hp = 0: PLAYERS(i).cx = 0: PLAYERS(i).has_key = 0: PLAYERS(i).name = "WIPED"
         PLAYERS(i).pot_sm = 0: PLAYERS(i).sp_fire = 0: PLAYERS(i).cxp = 0
@@ -441,6 +474,13 @@ SUB SaveRoundTripTest
         IF PLAYERS(i).t_poison <> wpois(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " poison timer": bad = -1
         IF PLAYERS(i).teleport <> wtel(i) THEN PRINT "  FAIL p" + _TRIM$(STR$(i)) + " teleport charges": bad = -1
     NEXT i
+    FOR i = 1 TO 4
+        IF i <= NCHAMBER THEN
+            IF CHM_DEAD(i) <> wdead(i) THEN PRINT "  FAIL chamber " + _TRIM$(STR$(i)) + " graves: got " + _TRIM$(STR$(CHM_DEAD(i))) + " want " + _TRIM$(STR$(wdead(i))): bad = -1
+            IF CHM_EVDONE(i) <> wev(i) THEN PRINT "  FAIL chamber " + _TRIM$(STR$(i)) + " event flag": bad = -1
+        END IF
+    NEXT i
+    IF NOT bad THEN PRINT "  chamber progress round-tripped (graves + one-shot event flag)"
     IF NOT bad THEN PRINT "  all 4 seats round-tripped (names with spaces + per-seat kit: potions/spells/XP/status)"
 
     T_KillSave                                    ' tidy the scratch file

@@ -77,17 +77,15 @@ END SUB
 ' Roll for a curio; if one turns up, pick a weighted-random entry and run it.
 ' rm is the room (1..ROOM_N) or 0 out on a path.
 SUB DoCurio (rm AS INTEGER)
-    DIM sec AS INTEGER, i AS INTEGER, tot AS INTEGER, r AS INTEGER, pick AS INTEGER, kd AS STRING
+    DIM sec AS INTEGER, i AS INTEGER, pick AS INTEGER, kd AS STRING
     IF NCURIO <= 0 THEN EXIT SUB                        ' the caller decides IF a curio appears; we pick WHICH
     sec = SECTOR.get_by_xy(c.x, c.y): IF sec < 1 THEN sec = 1
-    tot = 0
-    FOR i = 1 TO NCURIO: tot = tot + CURIOS(i).weight: NEXT
-    IF tot <= 0 THEN EXIT SUB
-    r = RollDie(tot): pick = 1
-    FOR i = 1 TO NCURIO
-        r = r - CURIOS(i).weight
-        IF r <= 0 THEN pick = i: EXIT FOR
-    NEXT
+    ' weighted draw via the engine primitive (engine/TABLE.bas) -- this used to be an
+    ' inline accumulate-roll-walk here, the only copy of a pattern several tables want.
+    REDIM cw(1 TO NCURIO) AS INTEGER
+    FOR i = 1 TO NCURIO: cw(i) = CURIOS(i).weight: NEXT i
+    pick = WeightPick%(cw(), NCURIO)
+    IF pick < 1 THEN EXIT SUB                           ' nothing eligible (all weights 0)
     kd = _TRIM$(CURIOS(pick).kind)
     PlayCue "curio", -1                                 ' curio-discovery music (restored to the level track on exit)
     RecordCurio _TRIM$(CURIOS(pick).nm)                 ' chronicle: a curio appeared

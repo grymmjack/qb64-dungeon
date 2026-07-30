@@ -183,6 +183,23 @@ DIM SHARED NCHAMBER AS INTEGER
 DIM SHARED CHM_CX(1 TO MAXCHAMBER) AS INTEGER, CHM_CY(1 TO MAXCHAMBER) AS INTEGER
 DIM SHARED CHM_CELLS(1 TO MAXCHAMBER) AS INTEGER, CHM_SEC(1 TO MAXCHAMBER) AS INTEGER
 DIM SHARED CHM_NAME(1 TO MAXCHAMBER) AS STRING
+' Has a non-gauntlet chamber EVENT already fired in this hall? One per chamber per run,
+' so re-entering cannot farm boons. Saved (v7) alongside CHM_DEAD.
+DIM SHARED CHM_EVDONE(1 TO MAXCHAMBER) AS INTEGER
+
+' --- CHAMBER EVENT table (assets/data/<pack>/chamber-events.txt) ---
+' Mechanics are keyed by `kind` in code; weight + depth band + prose are data. Drawn with
+' the engine's WeightPickLvl% (engine/TABLE.bas), the same primitive the curio deck uses.
+TYPE CHMEV_T
+    kind   AS STRING * 12
+    nm     AS STRING * 28
+    weight AS INTEGER
+    minlvl AS INTEGER
+    maxlvl AS INTEGER
+    text   AS STRING * 96
+END TYPE
+DIM SHARED CHM_EV(1 TO 40) AS CHMEV_T
+DIM SHARED NCHMEV AS INTEGER
 DIM SHARED CHM_DEAD(1 TO MAXCHAMBER) AS INTEGER   ' graves so far (0..3); 3 = chamber cleared
 DIM SHARED cur_chamber AS INTEGER                 ' chamber the player is currently inside (0 = none)
 DIM SHARED CHM_GX(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER   ' 3 spread grave cells per chamber

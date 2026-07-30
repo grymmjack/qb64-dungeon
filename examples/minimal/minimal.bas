@@ -114,6 +114,7 @@ SYSTEM
 
 '$INCLUDE:'HOOKS.bas'
 
+'$INCLUDE:'../../engine/TABLE.bas'
 '$INCLUDE:'../../engine/TEXT.bas'
 '$INCLUDE:'../../engine/DATA.bas'
 '$INCLUDE:'../../engine/ARTPACK.bas'

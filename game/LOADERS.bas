@@ -113,3 +113,27 @@ SUB LoadTraps
         TRAPS(NTRAP).fbod = DField$(DLINE(i), 10)
     NEXT i
 END SUB
+
+
+' Load the CHAMBER EVENT table (assets/data/<pack>/chamber-events.txt):
+'   kind | name | weight | minlvl | maxlvl | text
+' Mechanics stay in code keyed by `kind`; everything else is data. A missing/empty file
+' leaves NCHMEV = 0, and ChamberEvent$ then falls back to "gauntlet" -- i.e. exactly the
+' pre-table behaviour, so a data pack that ships no events still plays correctly.
+SUB LoadChamberEvents
+    DIM i AS INTEGER, kd AS STRING
+    NCHMEV = 0
+    ReadDataFile "assets/data/chamber-events.txt"
+    FOR i = 1 TO DLINE_N
+        kd = DField$(DLINE(i), 1)
+        IF LEN(kd) > 0 AND NCHMEV < UBOUND(CHM_EV) THEN
+            NCHMEV = NCHMEV + 1
+            CHM_EV(NCHMEV).kind = kd
+            CHM_EV(NCHMEV).nm = DField$(DLINE(i), 2)
+            CHM_EV(NCHMEV).weight = VAL(DField$(DLINE(i), 3))
+            CHM_EV(NCHMEV).minlvl = VAL(DField$(DLINE(i), 4))
+            CHM_EV(NCHMEV).maxlvl = VAL(DField$(DLINE(i), 5))
+            CHM_EV(NCHMEV).text = DField$(DLINE(i), 6)
+        END IF
+    NEXT i
+END SUB

@@ -81,8 +81,16 @@ Roadmap (future / bigger efforts):
         ✔ Rooms keep 1-monster + treasure; Chambers run a 3-monster gauntlet @done --
           ChamberEncounter (game/PLAY.bas) raises one monster per entry until CHM_DEAD = 3, and
           is_chamber makes ClaimTreasure grant no treasure, per the board-game rule.
-        ☐ Chamber EVENT table: gauntlet, curios (shrine/altar risk-reward choices),
-          traps/hazards, and "LORD" random events (scripted encounters)
+        ✔ Chamber EVENT table @done(26-07-29) -- assets/data/<pack>/chamber-events.txt:
+          kind | name | weight | minlvl | maxlvl | text. Drawn with a weighted, depth-gated
+          draw; mechanics keyed by `kind` in code (same idiom as traps/curios), everything
+          else data. Kinds: gauntlet (the classic spawn), shrine (draws the curio deck),
+          hazard (springs a trap), boon (potion or depth-scaled gold), lord (a boss-flagged
+          guardian, +50% HP / +1 AC, and it DOES count as a grave).
+          Rules preserved: a non-gauntlet event happens INSTEAD of a fight on that entry and
+          the chamber still needs its 3 kills; at most ONE special event per chamber per run
+          (CHM_EVDONE) so re-entering cannot farm boons. Validated by `dungeon.run datalint`
+          (unknown kind, zero weight, impossible depth band, no gauntlet weight).
 
 Refactor:
     ✔ Move code into include modules: @done(26-07-23)
