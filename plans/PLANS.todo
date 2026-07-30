@@ -402,8 +402,15 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       Levers, all data-only, re-measure with econdump after each: raise the class targets,
       cut treasures.txt gold values, or raise ITEM_PCT so more rooms pay an item instead of
       gold. A DESIGN call -- econdump makes it a 2-second check instead of a playthrough.
-    ☐ treasures.txt: level 9 averages LESS gold per slot than level 8 (8333 vs 9000), so the
-      deepest floor pays worst. Possibly deliberate, probably a slip -- worth a look.
+    ✔ treasures.txt level 9 payout @done(26-07-29) -- it averaged LESS per slot than level 8
+      (8333 vs 9000) because slot 3 was a HUGE SAPPHIRE at 6000, below anything on levels 7-8.
+      Levels 7-9 are this project's own invention (the board game has 6), so there is no
+      canonical list to match: level 9 is now the deepest prize at 11000/12000/13000
+      (HUGE DIAMOND / CROWN OF GEMS / DRAGON HOARD), avg 12000. The ramp is monotonic again:
+      L6 7000 -> L7 8000 -> L8 9000 -> L9 12000. All three names resolve to existing sprites
+      via TreasureSprite$'s keyword fallback (GEM/DIAMOND -> ruby-necklace, HOARD -> sack-of-gold).
+      NOTE: this raises total board gold ~357k -> ~383k, so it makes the over-funding below
+      slightly WORSE. It fixes the ordering, not the scale -- the scale is the item above.
     ☐ Board legend art: add "$ = recoverable treasure" and a "fallen-body = an adventurer died here"
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
 
