@@ -35,6 +35,13 @@ Roadmap (future / bigger efforts):
           make dungeon.bas reusable too, which no one needs yet. Not debt.
 
     ☐ DEEP TACTICAL COMBAT screen (party vs. a group of enemies -- see mockup):
+        >>> PLAN: plans/TACTICAL-COMBAT.md -- decisions taken, architecture, phases, traps.
+        >>> AUTHORITY: ~/git/qb64pe-lab/greywood/gesture-combat-design.md (the design bible)
+        >>>            ~/git/qb64pe-lab/greywood/greywood.bas (a WORKING implementation --
+        >>>            Phase A is a PORT of this, not an invention)
+        >>> KEY INSIGHT from the prototype: this is ONE composure engine wearing many masks.
+        >>> "Sword vs bow vs spell is art + tuning over this same engine, not new code."
+        >>> Do NOT build five mini-games.
         NOTE (26-07-29): turn_num / steps_left / need_roll are deliberately kept in
         engine/ENGINE.BI, RESERVED for this feature -- turn STRUCTURE is engine, only the
         style of combat is game. Nothing in engine/ consumes them yet, so they are listed

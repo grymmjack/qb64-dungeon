@@ -713,6 +713,7 @@ END FUNCTION
 '$INCLUDE:'engine/CURSOR.bas'
 '$INCLUDE:'engine/UI.bas'       ' engine presentation: fades + UI primitives + sound + dice subsystem
 '$INCLUDE:'game/MENU.bas'       ' game screens: class-select, char-gen, intro, menu/settings, HUD
+'$INCLUDE:'engine/LAYOUT.bas'   ' named screen regions from data (tactical fight screen; Phase B)
 '$INCLUDE:'engine/TABLE.bas'    ' engine random-table primitives (PctChance/WeightPick/WeightPickLvl)
 '$INCLUDE:'engine/TEXT.bas'     ' reusable string/format utils (NthField$/PadR$/MMSS$)
 '$INCLUDE:'game/LORDS.bas'      ' hall of fame + LOAD A CHARACTER + settings persistence

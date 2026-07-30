@@ -36,6 +36,19 @@ DIM SHARED AS _UNSIGNED LONG WHITE, GREY, REDU, GREENU, YELLOWU, CYANU, BOXBG
 DIM SHARED BOARD_ANSI AS STRING
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 
+' --- named screen LAYOUT regions (see engine/LAYOUT.bas) ---
+' A screen described as DATA: named rectangles in character cells, so drawing code asks for
+' a region by name instead of hardcoding coordinates. Each region carries its own cell size
+' because one game can mix metrics -- the tactical fight screen is 132x100 on an 8x8 cell
+' while the board is 132x51 on 8x16, both on the same 1056-wide canvas.
+CONST LAY_MAX = 200
+DIM SHARED LAY_N AS INTEGER
+DIM SHARED LAY_NAME(1 TO LAY_MAX) AS STRING, LAY_KIND(1 TO LAY_MAX) AS STRING
+DIM SHARED LAY_NOTE(1 TO LAY_MAX) AS STRING
+DIM SHARED LAY_COL(1 TO LAY_MAX) AS INTEGER, LAY_ROW(1 TO LAY_MAX) AS INTEGER
+DIM SHARED LAY_W(1 TO LAY_MAX) AS INTEGER, LAY_H(1 TO LAY_MAX) AS INTEGER
+DIM SHARED LAY_CW(1 TO LAY_MAX) AS INTEGER, LAY_CH(1 TO LAY_MAX) AS INTEGER
+
 ' -- shared scratch buffer for the data-file loaders (see engine/DATA.bas) --
 DIM SHARED DLINE(1 TO 600) AS STRING, DLINE_N AS INTEGER
 
