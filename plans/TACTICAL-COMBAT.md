@@ -221,7 +221,25 @@ Three properties worth keeping as the fight gets built:
   regions overlapping, every `kind` known, and every region the code names by string actually present.
   The `fightlayout` lint reports the same things, but only if someone runs it — these run in the gate.
 
-**Still open in Phase B:** the `ACTOR` array and the renderer that draws the layout for real.
+**B.2 — actors + the renderer: DONE.** `engine/FIGHT.bas` (+ the `FA_*` slots in `ENGINE.BI`) and
+`dungeon.run fightshot`, which seeds a synthetic 1-vs-4 encounter and renders the screen to a PNG.
+
+- **Slot 0 is the player, 1..4 are the foes**, and `FaRgn$(a, suffix)` maps a slot to a layout region
+  name (`player.hpbar` / `enemy3.hpbar`). One loop paints all five actors; the player is not a special
+  case. A sixth actor would be a layout-file edit, not a code change.
+- **Stat and status rows are generic `label`+`value` pairs.** The engine renders "three label: value
+  rows in this region"; DUNGEON! decides they say MELEE/RANGED/ARMOR and HEALTH/STANCE/EFFECT. This is
+  what keeps FIGHT.bas game-free (`audit-boundary.sh` still passes with zero new hooks).
+- **Portraits prefer ANSI over pixel art**, both through the pack layers, and are cached as rendered
+  tiles (`FightAnsiTile&`) — `ANSI_Print` walks the whole byte stream, so re-rendering five portraits
+  per frame would dominate the frame for output that never changes.
+- **Missing art degrades visibly, not silently:** a `[ no art: monsters/goblin ]` placeholder, and
+  `fightshot` reports `portraits found: N of 5`, so a blank-looking screen distinguishes "art not
+  generated yet" from "renderer broken". Panel outlines are drawn only until a real `frame.ans` exists.
+- **The 8×8 / 8×16 font switch is bracketed inside `FightRender`.** A caller that forgot would leave
+  the board, HUD and menus at half height with no error — so it is not left to callers.
+
+**Still open in Phase B:** nothing. Next is Phase C (parallel fuses + target selection).
 
 ### Phase C — the tactical read
 Enemy columns with **parallel fuses**, target selection, initiative order, and the dodge

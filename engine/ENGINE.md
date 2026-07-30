@@ -109,6 +109,8 @@ engine/
   TEXT               reusable string/format utils (PadR$/NthField$/MMSS$/StrSubst$/SubstAll$/PackIndex%)
   GAUGE              the composure gesture model as pure steps -- no draw, no poll (see below)
   LAYOUT             named screen regions loaded from data (LayC%/LayPX%/LayN$ by NAME)
+  FIGHT              tactical-combat SCREEN: actor slots + the region-addressed renderer
+                     (no combat rules -- slot 0 is the player, 1..4 foes, see below)
   TABLE              weighted/percentile random tables (PctChance%/WeightPick%/WeightPickLvl%)
 game/
   _ALL.BI  _ALL.BM   roll-ups: every game header / every game body, one line each
@@ -153,6 +155,46 @@ than lucky, so keep it: put a new shared global or CONST in a header, never in a
 
 The only ordering rule left is the original one: **headers before any executable line, bodies
 at the bottom, engine before game.**
+
+## The tactical-combat screen (GAUGE + LAYOUT + FIGHT)
+
+Three engine modules, added for the tactical combat work, that are worth understanding together
+because each one exists to keep the *next* one game-free and testable.
+
+**`LAYOUT.bas` — a screen described as DATA.** `LoadLayout%` reads named rectangles in character
+cells from a text file; drawing code asks for `LayPX%("player.art")` instead of a hardcoded column.
+Every accessor returns **0 for an unknown region** — asserted in `tests/TEST-LAYOUT.bas`, because a
+typo'd region name otherwise draws nothing at (0,0) and reports nothing. Each region carries its
+*own* cell size, since one game mixes metrics: the fight screen is 132×100 on an 8×8 cell, the board
+is 132×51 on 8×16.
+
+**`GAUGE.bas` — the composure gesture model as pure steps.** No draw, no input polling, so it is
+unit-testable with no display (`tests/TEST-GAUGE.bas` asserts the design *principles* as properties:
+skill compresses the RANGE rather than shifting the odds; the zone is always fully on the bar).
+`GaugeSample%` is the auto-resolve twin and deliberately draws a uniform **phase**, not a uniform
+`p`, so it inherits the marker's arcsine distribution — sampling `p` uniformly would make
+auto-resolve *easier* than playing.
+
+**`FIGHT.bas` — actors in, pixels out.** Holds actor slots and the renderer, and **no combat rules**.
+Three decisions carry it:
+
+- **Slot 0 is the player, 1..4 are foes.** `FaRgn$(a, "hpbar")` turns a slot into a region name
+  (`player.hpbar` / `enemy3.hpbar`), so *one* loop paints all five actors and the player is not a
+  special case with duplicated draw code. Adding a sixth actor is a layout-file edit.
+- **Stat/status rows are generic `label`+`value` pairs**, not named melee/ranged/armor fields. The
+  engine renders "three label: value rows in this region"; what they *say* is the game's business.
+  This is the single reason FIGHT.bas can stay game-free.
+- **The font switch is bracketed, not delegated.** The board runs `_FONT CH` (8×16) and this screen
+  runs `_FONT 8`. `FightRender` sets and restores it, because a caller that forgets leaves the board,
+  HUD and every menu rendering at half height with no error to explain it.
+
+Verify all of it without playing a fight:
+
+| command | proves |
+|---|---|
+| `dungeon.run fightlayout` | the BOXES are placed right (labelled PNG) + lints off-screen / zero-size / overlapping `art` regions |
+| `dungeon.run fightshot` | the RENDERER fills them — portraits, health colours, dead-actor dim, target highlight, log gutter — and reports how many portraits resolved, so "no art yet" is distinguishable from "broken renderer" |
+| `dungeon.run fightmanifest` | the art still to be generated, sized **from the layout file** so it cannot drift |
 
 ## Header ownership (ENGINE.BI vs GAME.BI)
 

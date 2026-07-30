@@ -211,7 +211,18 @@ SUB LoadNarrConf
     narr_fadein = NARR_FADE_IN_DEF
     narr_fadeout = NARR_FADE_OUT_DEF
     narr_curve = NARR_FADE_CURVE_DEF
-    IF LEN(opt_narrationpack) > 0 THEN cf = "assets/narration/" + opt_narrationpack + "/pack.conf" ELSE cf = "assets/narration/default/pack.conf"
+    ' Same per-file pack->default fallback as every other resolver (ArtFile$ / AnsiFile$ /
+    ' RegisterSfx / ResolveMusic$ / NarratePath$ / DataPath$): try the selected pack, and if it
+    ' ships no pack.conf, read the DEFAULT pack's. This used to stop at the selected pack and
+    ' silently keep the built-in defaults, which made a partial pack behave differently from a
+    ' partial pack of every other asset type. Consistent with DataPath$ falling back for
+    ' tuning.txt -- a pack overrides only what it actually ships.
+    cf = ""
+    IF LEN(opt_narrationpack) > 0 THEN
+        cf = "assets/narration/" + opt_narrationpack + "/pack.conf"
+        IF NOT _FILEEXISTS(cf) THEN cf = ""
+    END IF
+    IF LEN(cf) = 0 THEN cf = "assets/narration/default/pack.conf"
     IF NOT _FILEEXISTS(cf) THEN EXIT SUB
     raw = UCASE$(_READFILE$(cf))
     narr_fadein = ConfNum(raw, "FADEIN", NARR_FADE_IN_DEF)

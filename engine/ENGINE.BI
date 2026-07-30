@@ -93,6 +93,50 @@ DIM SHARED LAY_COL(1 TO LAY_MAX) AS INTEGER, LAY_ROW(1 TO LAY_MAX) AS INTEGER
 DIM SHARED LAY_W(1 TO LAY_MAX) AS INTEGER, LAY_H(1 TO LAY_MAX) AS INTEGER
 DIM SHARED LAY_CW(1 TO LAY_MAX) AS INTEGER, LAY_CH(1 TO LAY_MAX) AS INTEGER
 
+' --- tactical-combat actors (engine/FIGHT.bas) --------------------------------
+' Slot 0 is ALWAYS the player, 1..FIGHT_MAXFOE are the foes. That indexing is the whole
+' trick behind the renderer: slot 0 draws into the "player.*" layout regions and slot n
+' draws into "enemy<n>.*", so ONE loop paints every actor and the player is not a special
+' case with its own duplicated draw code.
+'
+' The stat/status rows are deliberately GENERIC label+value pairs rather than named
+' melee/ranged/armor fields. The engine renders "three label: value rows in this region";
+' what they SAY is the game's business (DUNGEON! puts MELEE/RANGED/ARMOR and
+' HEALTH/STANCE/EFFECT there). A different game on this engine can put anything in them
+' without touching the renderer -- the reason FIGHT.bas can stay game-free at all.
+'
+' Parallel arrays rather than a UDT because QB64 UDTs cannot contain arrays, and the
+' renderer wants `FOR r = 1 TO FIGHT_STATROWS`. Same shape as LAY_* above.
+CONST FIGHT_MAXFOE = 4
+CONST FIGHT_STATROWS = 3
+CONST FIGHT_LOGMAX = 64
+DIM SHARED FA_USED(0 TO FIGHT_MAXFOE) AS INTEGER      ' slot occupied at all
+DIM SHARED FA_ALIVE(0 TO FIGHT_MAXFOE) AS INTEGER     ' occupied but dead -> drawn as a corpse
+DIM SHARED FA_NAME(0 TO FIGHT_MAXFOE) AS STRING
+DIM SHARED FA_SUB(0 TO FIGHT_MAXFOE) AS STRING        ' "1st Level Fighter" / a monster's level line
+DIM SHARED FA_ART(0 TO FIGHT_MAXFOE) AS STRING        ' art basename, e.g. "monsters/goblin"
+DIM SHARED FA_HP(0 TO FIGHT_MAXFOE) AS INTEGER, FA_MAXHP(0 TO FIGHT_MAXFOE) AS INTEGER
+DIM SHARED FA_LAB(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
+DIM SHARED FA_VAL(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
+DIM SHARED FA_SLAB(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
+DIM SHARED FA_SVAL(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
+DIM SHARED FA_FUSE(0 TO FIGHT_MAXFOE) AS SINGLE       ' 0..1 fill of that actor's gauge bar
+DIM SHARED FA_TARGET AS INTEGER                       ' which foe slot is selected (0 = none)
+DIM SHARED FIGHT_ROUND AS INTEGER, FIGHT_INIT AS STRING
+DIM SHARED FIGHT_BANNER AS STRING
+DIM SHARED FLOG(1 TO FIGHT_LOGMAX) AS STRING, FLOG_MARK(1 TO FIGHT_LOGMAX) AS STRING
+DIM SHARED FLOG_N AS INTEGER
+DIM SHARED FIGHT_LAYOUT_OK AS INTEGER                 ' the layout file loaded; 0 = cannot draw
+DIM SHARED FIGHT_CHROME AS INTEGER                    ' authored frame.ans was drawn this frame
+
+' ANSI portrait cache. A .ans has to be RENDERED (ANSI_Print) into an image before it can be
+' blitted, and re-rendering five portraits every frame would be absurd -- so each is rendered
+' once at its region's pixel size and kept. Keyed by path, small and fixed: at most 5 actors
+' plus the frame are on screen, and the cache is dropped between fights (FightFreeTiles).
+CONST FTILE_MAX = 24
+DIM SHARED FTILE_PATH(1 TO FTILE_MAX) AS STRING, FTILE_IMG(1 TO FTILE_MAX) AS LONG
+DIM SHARED FTILE_N AS INTEGER
+
 ' -- shared scratch buffer for the data-file loaders (see engine/DATA.bas) --
 DIM SHARED DLINE(1 TO 600) AS STRING, DLINE_N AS INTEGER
 

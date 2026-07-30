@@ -330,3 +330,100 @@ FUNCTION LayKindColor~& (kind AS STRING)
         CASE ELSE: LayKindColor~& = _RGB32(255, 60, 60)      ' unknown kind -- red, so it stands out
     END SELECT
 END FUNCTION
+
+' `dungeon.run fightshot` -- seed a synthetic 1-vs-4 encounter and render the tactical screen
+' to fightshot.png, then exit.
+'
+' This is the counterpart to `fightlayout`: that one proves the BOXES are in the right places,
+' this one proves the RENDERER puts real content in them -- portraits, health colours, the
+' dead-actor dim, the target highlight, stat/status rows, the log gutter. Neither needs a
+' fight to exist, which is the point: the screen and the art can be finished before a single
+' line of combat resolution is written, and regressions show up in a PNG instead of a
+' play-test. (Same trick as `settingsshot`.)
+'
+' The values are REPRESENTATIVE, not a real encounter -- deliberately picked to exercise every
+' visual branch at once: a full-health foe, a wounded one (yellow), a nearly-dead one (red),
+' and a corpse (dimmed), with the third selected as the target.
+SUB DumpFightShot
+    DIM a AS INTEGER, lvl AS INTEGER, nm AS STRING, i AS INTEGER
+    DIM hp(1 TO 4) AS INTEGER, mx(1 TO 4) AS INTEGER
+
+    _DEST _CONSOLE
+    IF FightInit%("assets/data/ui-fight-layout.txt") = 0 THEN
+        PRINT PipeCol$("|12fightshot: the fight layout failed to load -- nothing to render.|07")
+        EXIT SUB
+    END IF
+    PRINT PipeCol$("|15fightshot|07 -- seeding a synthetic 1-vs-4 encounter")
+
+    FightReset
+    lvl = 5
+
+    '--- the player (slot 0) -------------------------------------------------
+    nm = _TRIM$(CLASSES(player_class).name)
+    FightSetActor 0, "GRYMMJACK", "1st Level " + nm, "classes/" + SpriteBase$(nm), 18, 24
+    FightSetStat 0, 1, "MELEE:", "+3"
+    FightSetStat 0, 2, "RANGED:", "+1"
+    FightSetStat 0, 3, "ARMOR:", "AC4"
+    FightSetStatus 0, 1, "HEALTH:", "WOUNDED"
+    FightSetStatus 0, 2, "STANCE:", "ATTACKING"
+    FightSetStatus 0, 3, "EFFECT:", "-"
+    FightSetFuse 0, 0.62
+
+    '--- four foes, one per visual state ------------------------------------
+    hp(1) = 12: mx(1) = 12                       ' full     -> green
+    hp(2) = 7: mx(2) = 14                        ' wounded  -> yellow
+    hp(3) = 2: mx(3) = 16                        ' critical -> red
+    hp(4) = 0: mx(4) = 10                        ' dead     -> dimmed portrait, grey name
+    FOR a = 1 TO 4
+        nm = _TRIM$(MON_NAME(lvl, ((a - 1) MOD 3) + 1))
+        IF LEN(nm) = 0 THEN nm = "MONSTER" + LTRIM$(STR$(a))
+        FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), hp(a), mx(a)
+        FightSetStat a, 1, "MELEE:", "+" + LTRIM$(STR$(2 + a))
+        FightSetStat a, 2, "RANGED:", "-"
+        FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + a))
+        FightSetStatus a, 1, "HEALTH:", MID$("HALEHURTNEARDEAD", 1, 4)
+        FightSetStatus a, 2, "STANCE:", "CIRCLING"
+        FightSetStatus a, 3, "EFFECT:", "-"
+        ' Staggered fuses: the whole tactical read is "which one fires first".
+        IF FA_ALIVE(a) THEN FightSetFuse a, 0.25 * a
+    NEXT a
+    FA_TARGET = 3                                 ' the critical one is selected
+
+    FIGHT_ROUND = 4
+    FIGHT_INIT = _TRIM$(MON_NAME(lvl, 1))
+    FIGHT_BANNER = "BONUS DAMAGE!"
+
+    '--- a log with both gutter-marked and plain lines ----------------------
+    FightLog "", "You descend into the " + _TRIM$(SECTORS(lvl).label) + "."
+    FightLog "M", "Four shapes uncoil from the dark."
+    FightLog "", "You set your feet and raise the blade."
+    FightLog "C", "CRITICAL -- you open " + _TRIM$(FA_NAME(3)) + " to the bone!"
+    FightLog "", _TRIM$(FA_NAME(4)) + " falls and does not rise."
+    FightLog "M", _TRIM$(FA_NAME(1)) + " lunges past your guard."
+    FightLog "", "You give ground, breathing hard."
+
+    FightRender
+    _SAVEIMAGE "fightshot.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  actors: |15" + LTRIM$(STR$(FightLiveFoes%)) + "|07 live foes + the player, target = slot |15" + LTRIM$(STR$(FA_TARGET)) + "|07")
+    PRINT PipeCol$("  portraits found: |15" + LTRIM$(STR$(FightShotArtCount%)) + " of 5|07 (missing ones draw a [no art] placeholder)")
+    PRINT PipeCol$("wrote |11fightshot.png|07 (" + LTRIM$(STR$(_WIDTH(CANVAS))) + "x" + LTRIM$(STR$(_HEIGHT(CANVAS))) + ")")
+    FightFreeTiles
+END SUB
+
+' How many of the five actor portraits actually resolved to art. Reported by `fightshot` so a
+' blank-looking screen is immediately distinguishable from a broken renderer: 0 of 5 means the
+' art is not generated yet, 5 of 5 with a blank screen means the renderer is at fault.
+FUNCTION FightShotArtCount%
+    DIM a AS INTEGER, n AS INTEGER
+    FOR a = 0 TO FIGHT_MAXFOE
+        IF FA_USED(a) THEN
+            IF LEN(AnsiFile$("strategic-combat/" + _TRIM$(FA_ART(a)) + ".ans")) > 0 THEN
+                n = n + 1
+            ELSEIF LEN(ArtFile$("strategic-combat/" + _TRIM$(FA_ART(a)) + ".png")) > 0 THEN
+                n = n + 1
+            END IF
+        END IF
+    NEXT a
+    FightShotArtCount% = n
+END FUNCTION

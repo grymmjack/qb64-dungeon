@@ -88,6 +88,9 @@ if (( $# == 0 )); then
     echo "-- short-circuit audit (AND/OR evaluate both sides) --"
     if tests/audit-shortcircuit.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shortcircuit"); fi
 
+    echo "-- pack-fallback audit (a partial pack must degrade to default/) --"
+    if tests/audit-packfallback.sh | tail -3; then :; else (( fail++ )); failed+=("audit-packfallback"); fi
+
     # Content tables: a data mistake never crashes, the level just plays wrong.
     echo "-- content tables (dungeon.run datalint) --"
     if [[ -x ./dungeon.run ]]; then
@@ -113,6 +116,22 @@ if (( $# == 0 )); then
             (( fail++ )); failed+=("fogdump (orphaned mask region)")
         fi
         rm -f fogdump.png fogdump-regions.png fogdump.txt
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
+    # Tactical-combat screen: renders a synthetic 1-vs-4 encounter to a PNG. A pure smoke
+    # check -- it proves the renderer runs, the layout resolves, and the 8x8 font switch is
+    # restored, none of which the layout suite can see (that one never draws a pixel).
+    echo "-- tactical combat screen (dungeon.run fightshot) --"
+    if [[ -x ./dungeon.run ]]; then
+        if fs=$(setsid timeout 60 xvfb-run -a ./dungeon.run fightshot nocolor 2>&1) && grep -q 'wrote fightshot.png' <<<"$fs"; then
+            grep -E 'actors:|portraits found:' <<<"$fs" | sed 's/^/  /'
+        else
+            printf '%s\n' "$fs" | sed 's/^/    /'
+            (( fail++ )); failed+=("fightshot")
+        fi
+        rm -f fightshot.png
     else
         echo "  SKIP -- no dungeon.run built"
     fi

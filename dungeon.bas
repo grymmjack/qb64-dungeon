@@ -42,6 +42,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
     PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
     PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
+    PRINT PipeCol$("  |10fightshot|07     render the tactical-combat screen with a synthetic 1-vs-4 encounter -> |14fightshot.png|07")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
@@ -59,6 +60,7 @@ devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0) OR (INSTR(UCASE$(C
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DATALINT") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0)   ' writes a PNG, never a window
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0)     ' ditto -- renders the fight screen
 
 ' collision palette (must match the board ANSI art exactly)
 YELLOW = _RGB32(&HFF, &HFF, &H55)
@@ -172,6 +174,11 @@ InitDefaultChar 1                ' baseline stats so D&D combat works even witho
 
 '--- dev: `dungeon.run settingsshot` renders the SETTINGS screen to a PNG and exits (layout check) ---
 IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN settingsshot_on = -1: RunSettings: SYSTEM
+
+'--- dev: `dungeon.run fightshot` renders the TACTICAL COMBAT screen to a PNG and exits ---
+' Seeds a synthetic 1-vs-4 encounter, so the screen and its art are verifiable with no
+' combat loop in existence (see game/DEBUG.bas: DumpFightShot).
+IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
 
 '--- dev: `dungeon.run savetest` round-trips a synthetic 4-player save and exits ---
 IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
