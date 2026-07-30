@@ -320,7 +320,7 @@ doc: a plain attack auto-resolves at a safe baseline, and the gesture is a **gam
 higher ceiling and a bounded fail tail. Guard against *dominance* — keep EV close at average
 skill so it is a variance choice, not a free upgrade.
 
-### Phase E — status, stances, juice — DONE (first slice)
+### Phase E — status, stances, juice, archery, death-save — DONE
 `engine/STATUS.bas` + `tests/TEST-STATUS.bas` (67 assertions), wired into the fight.
 
 - **Durations in seconds**, not turns — the fight is real-time and the player can sit in the menu
@@ -371,8 +371,15 @@ something genuinely will not fit it says so on screen in red, because that is a 
 should look like one. (The first version of that warning fired on *every* draw: `EXIT FOR` on the
 last item left the counter at `FMENU_N` instead of `FMENU_N + 1`.)
 
-**Still open:** per-level health-tier tuning to `tuning.txt`, and the `GESTURE.bas` / `GAUGE.bas`
-duplication (SECOND WIND and CRIT FLOURISH still run on the older private math).
+**Both of those are now closed too:** the fuse curve, gesture/dodge windows, all six stance
+percentages and the health-tier thresholds live in `assets/data/tuning.txt` (milliseconds for
+sub-second values, since tuning.txt is read as integers; every row is an *override*, so zero means
+"built-in default" and `examples/minimal` — which never calls `LoadTuning` — still gets sane
+numbers). And `GESTURE.bas`'s `GaugeLock%` now runs on the `GAUGE.bas` model, so SECOND WIND and
+CRIT FLOURISH share one tested implementation with the tactical screen — see `engine/ENGINE.md`.
+
+**PHASES A–E ARE COMPLETE.** What remains is in "Open, deliberately deferred" below — none of it
+blocks play.
 
 ### Phase E — original plan
 Health tiers, stances, per-actor status durations, then the juice port (typed screenshake,
@@ -406,8 +413,12 @@ impact flashes, eyes-closing, `BigNum` overlays), then archery and the death-sav
 
 - Positioning: hex/oct grid, facing, AP, threatened squares. (Threatened-squares-without-a-grid
   is a cheap middle option if GUARD needs more weight than an AC bonus.)
-- A real per-weapon **skill** system (blade/bow/arcane/shield) replacing `char_level`.
+- A real per-weapon **skill** system (blade/bow/arcane/shield) replacing `char_level`. The seam
+  exists: the engine takes a 0..2 tier as a PARAMETER and the game derives it in `SkillTier%`,
+  so a real system replaces one function without touching engine code.
 - Mercy/brutal regimes and a spendable Fate pool — the doc specifies these well; they want
   the core tuned **without** the net first, per its own engineering-discipline note.
-- Archery, the death-save, and the full juice layer (Phase E and beyond).
+- The FULL juice layer -- typed hit-reactions, eyes-closing, `BigNum` damage overlays. The
+  shipped fight calls `ImpactFX`/`CritBoom`/`ShakeMag!`; the rest of greywood's layer is unported.
+  (Archery and the death-save shipped in Phase E.)
 - Multi-player party combat (decision 2 chose active-seat-only).
