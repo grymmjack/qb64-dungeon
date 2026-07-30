@@ -19,6 +19,16 @@ MUSIC_SECONDS=60
 # channel count or an operator ratio, so it produced modern chiptune-flavoured
 # music instead of chip music. This is authentic by construction.
 MUSIC_ENGINE=opl
+# Write the SCORE as well as the render: a Reality AdLib Tracker .rad, whose
+# instruments ARE the OPL operator registers this engine already programs, so
+# there is no conversion loss. QB64 plays .rad natively -- no decoder, no audio
+# file, and it stays editable.
+MUSIC_TRACKER=rad
+# The score IS the deliverable for this pack -- no audio file beside it.
+# A .rad is a few KB against ~4 MB of FLAC, stays editable in a tracker,
+# and QB64 plays it natively with no decoder at all.
+MUSIC_TRACKER_ONLY=1
+MUSIC_CHIPPY=some
 MUSIC_BPM=110
 MUSIC_KEY="D minor"
 

@@ -14,6 +14,16 @@ MUSIC_SECONDS=60
 # channel count or an operator ratio, so it produced modern chiptune-flavoured
 # music instead of chip music. This is authentic by construction.
 MUSIC_ENGINE=chip
+# Write the SCORE as well as the render: a ProTracker .mod built from this
+# engine's own pulse/triangle/noise samples. A few KB against ~3 MB of OGG, and
+# editable in OpenMPT or Schism -- which no rendered file can offer.
+MUSIC_TRACKER=mod
+# The score IS the deliverable for this pack -- no audio file beside it.
+# A .mod is a few KB against ~4 MB of FLAC, stays editable in a tracker,
+# and carries the arpeggios, slides and vibrato as effect columns.
+MUSIC_TRACKER_ONLY=1
+# Arpeggios, pitch slides and vibrato, in the render AND the .mod.
+MUSIC_CHIPPY=lots
 MUSIC_BPM=125
 MUSIC_KEY="A minor"
 

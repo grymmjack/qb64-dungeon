@@ -24,7 +24,9 @@
 #   --only a,b         sections to build          [sfx,music,narration]
 #   --boxes a,b        render farm boxes          [local,mac,rtx]
 #   --voice V          override the theme's voice
-#   --wav              keep WAV instead of OGG
+#   --flac             lossless FLAC  [default]
+#   --ogg              lossy OGG Vorbis
+#   --wav              uncompressed WAV
 #   --force            regenerate assets that already exist
 #   --list             list available themes and exit
 set -uo pipefail
@@ -49,7 +51,7 @@ PHRASE="${1:?usage: $0 \"<theme phrase>\" [options]   ($0 --list)}"
 shift
 
 NAME=""; ONLY="sfx,music,narration"; BOXES_ARG=""; VOICE_OVERRIDE=""
-OUT_SFX=""; OUT_MUSIC=""; OUT_NARR=""; FMT_OGG=1; FORCE_ARG=""
+OUT_SFX=""; OUT_MUSIC=""; OUT_NARR=""; FMT=flac; FORCE_ARG=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --name)      NAME="$2"; shift 2;;
@@ -59,7 +61,9 @@ while [ $# -gt 0 ]; do
         --only)      ONLY="$2"; shift 2;;
         --boxes)     BOXES_ARG="$2"; shift 2;;
         --voice)     VOICE_OVERRIDE="$2"; shift 2;;
-        --wav)       FMT_OGG=0; shift;;
+        --wav)       FMT=wav; shift;;
+        --ogg)       FMT=ogg; shift;;
+        --flac)      FMT=flac; shift;;
         --force)     FORCE_ARG=1; shift;;
         *) echo "unknown option: $1"; exit 1;;
     esac
@@ -85,6 +89,7 @@ MUSIC_BPM=""; MUSIC_KEY=""; MUSIC_MOOD=""; VOICE=bm_george; PITCH=-3; SPEED=0.92
 # Narration can be spoken (Kokoro) or blipped (JRPG text-box). A chiptune pack
 # wants a chiptune voice. Set NARR_MODE=blip in the theme to switch.
 SFX_ENGINE=sa3; MUSIC_ENGINE=sa3; MUSIC_SOURCE=
+MUSIC_TRACKER=; MUSIC_CHIPPY=; MUSIC_FORMAT=; MUSIC_TRACKER_ONLY=
 NARR_MODE=narrate; BLIP_STYLE=synth; BLIP_WAVE=square
 BLIP_RATE=14; BLIP_PITCH=0; BLIP_JITTER=1.5
 # narration playback fade -- the game ramps every line in from silence at the start and
@@ -120,14 +125,15 @@ fi
 echo "  out:   $OUT_SFX"
 echo "         $OUT_MUSIC"
 echo "         $OUT_NARR"
-echo "  format: $([ $FMT_OGG = 1 ] && echo OGG || echo WAV)"
+echo "  format: $(echo "$FMT" | tr a-z A-Z)"
 
 # --- write each section's pack.conf, then hand off to the generator -------
 # generate-from-manifest.sh already knows how to talk to the farm, skip what
 # exists, and rename outputs to the manifest key. It reads <dest>/pack.conf for
 # identity, so a theme is just three small conf files plus three invocations.
 want() { case ",$ONLY," in *",$1,"*) return 0;; esac; return 1; }
-export OGG=$([ $FMT_OGG = 1 ] && echo 1 || echo "")
+# FLAC by default -- lossless, and close to OGG in size for this material.
+export FORMAT="$FMT"
 [ -n "$FORCE_ARG" ] && export FORCE=1
 [ -n "$BOXES_ARG" ] && export BOXES="$BOXES_ARG"
 
@@ -159,6 +165,10 @@ if want music; then
       echo "PROMPT_ADD=\"$MUSIC_ADD\""
       echo "MUSIC_ENGINE=$MUSIC_ENGINE"
       echo "MUSIC_SOURCE=$MUSIC_SOURCE"
+      echo "MUSIC_TRACKER=$MUSIC_TRACKER"
+      echo "MUSIC_TRACKER_ONLY=$MUSIC_TRACKER_ONLY"
+      echo "MUSIC_CHIPPY=$MUSIC_CHIPPY"
+      echo "MUSIC_FORMAT=$MUSIC_FORMAT"
       echo "SECONDS_DEF=$MUSIC_SECONDS"; } > "$OUT_MUSIC/pack.conf"
     # tracks.txt gives the generator per-track bpm/key. A theme supplies one
     # tempo/key for the whole pack unless a hand-written tracks.txt is already

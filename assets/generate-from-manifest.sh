@@ -33,11 +33,38 @@ WANT=("$@")
 # titan removed from the default pool: it draws enough power to trouble the UPS.
 # Add it back explicitly with BOXES=... if that changes.
 BOXES="${BOXES:-local,mac,rtx}"
-OGG_ARG="${OGG:+--ogg}"
+# FORMAT is the delivery format for EVERY section. FLAC by default: it is
+# lossless, so nothing the engines produce is smeared, and it still lands close to
+# OGG on size for this material. OGG=1 remains for a lossy build.
+FORMAT="${FORMAT:-flac}"              # flac | ogg | wav
+[ -n "${OGG:-}" ] && FORMAT=ogg       # legacy OGG=1 still works
+case "$FORMAT" in
+    flac) OGG_ARG="--flac" ;;
+    ogg)  OGG_ARG="--ogg" ;;
+    *)    OGG_ARG="" ;;               # wav: soundmon writes it natively
+esac
 # Keep lossless masters under <pack>/masters/ when asked. They are deliberately
 # NOT left beside the pack files: assets/music resolves .wav as the HIGHEST
 # quality rung, so a leftover wav silently outranks the ogg the pack ships.
 [ -n "${KEEPWAV:-}" ] && OGG_ARG="$OGG_ARG --keep-wav"
+# Per-section format override for MUSIC. Chip and OPL output is bit-crushed
+# square waves and hard-edged noise, which is the most hostile possible input to
+# a lossy codec -- OGG smears exactly the transients that make it sound like a
+# tracker rather than a recording. FLAC is lossless, so the crush survives
+# byte-for-byte (asserted in soundmon's selfcheck), and it still beats WAV on
+# size. The game resolves .flac, so nothing downstream has to change.
+MUSIC_FORMAT="${MUSIC_FORMAT:-}"      # flac | ogg | wav | empty = inherit
+music_fmt_arg() {
+    # Substitute the format flag while KEEPING the other flags OGG_ARG carries
+    # (--keep-wav, --no-reprompt); rebuilding it from scratch would drop them.
+    local rest="${OGG_ARG#--flac}"; rest="${rest#--ogg}"
+    case "$MUSIC_FORMAT" in
+        flac) echo "--flac$rest" ;;
+        ogg)  echo "--ogg$rest" ;;
+        wav)  echo "$rest" ;;
+        *)    echo "$OGG_ARG" ;;      # unset: inherit FORMAT
+    esac
+}
 DEST="$ASSETS/$SECTION/$PACK"
 mkdir -p "$DEST"
 
@@ -63,13 +90,34 @@ SFX_ENGINE="${SFX_ENGINE:-sa3}"       # sa3 | chip | opl
 # source of 0.782), which procedural composition could not reach.
 MUSIC_SOURCE="${MUSIC_SOURCE:-}"
 MUSIC_ENGINE="${MUSIC_ENGINE:-sa3}"   # sa3 | chip | opl
+# Emit the SCORE next to the render, not only the render. A .mod or .rad is a few
+# kilobytes against ~3 MB of OGG, it is editable in a real tracker, and QB64 plays
+# .rad natively with no decoder at all. Only meaningful for chip/opl, since a
+# diffusion model has no score to write out.
+#   mod  ProTracker, from the chip engine's own samples  (--chip)
+#   rad  Reality AdLib Tracker, OPL instruments          (--opl)
+MUSIC_TRACKER="${MUSIC_TRACKER:-}"    # mod | rad | empty
+# Ship the SCORE ONLY -- no audio file beside it. For the chiptune and adlib packs
+# the tracker file IS the deliverable: QB64 plays .rad natively, .mod plays through
+# a replayer, both are a few KB against ~4 MB of FLAC, and both stay editable.
+# Rendering audio and then shipping it too would be shipping the same music twice,
+# at 300x the size, in the format that is harder to change.
+MUSIC_TRACKER_ONLY="${MUSIC_TRACKER_ONLY:-}"   # 1 = keep the score, drop the audio
+# Arpeggios, pitch slides and vibrato in the tracker file and the render alike.
+MUSIC_CHIPPY="${MUSIC_CHIPPY:-}"      # off | some | lots | max | empty
 NARR_MODE="${NARR_MODE:-narrate}"
 BLIP_STYLE="${BLIP_STYLE:-synth}"; BLIP_WAVE="${BLIP_WAVE:-square}"
 BLIP_RATE="${BLIP_RATE:-14}"; BLIP_PITCH="${BLIP_PITCH:-0}"; BLIP_JITTER="${BLIP_JITTER:-1.5}"
 [ -f "$DEST/pack.conf" ] && . "$DEST/pack.conf"
 
 MAN="$(mktemp)"; QUEUE="$(mktemp)"; LOCK="$(mktemp)"
-trap 'rm -f "$MAN" "$QUEUE" "$LOCK" "$QUEUE.lines"' EXIT
+# soundmon prints "seed=N" on success. That line used to go to /dev/null, and the
+# rename then stripped the seed from the filename, so NOTHING recorded which seed
+# produced which asset — a take that came out badly could not be re-rolled and a
+# take that came out well could not be reproduced. Ever. Capture it.
+SEEDS_TSV="$DEST/seeds.tsv"
+SEEDS_JSON="$DEST/seeds.json"
+trap 'rm -f "$MAN" "$QUEUE" "$LOCK" "$QUEUE.lines" /tmp/smout.$$.*' EXIT
 if [ -n "${MANIFEST:-}" ] && [ -s "$MANIFEST" ]; then
     cp "$MANIFEST" "$MAN"
 else
@@ -101,6 +149,12 @@ want() {
     return 1
 }
 have() {   # any extension the game accepts already present?
+    # A tracker-only pack ships no audio, so the score is the deliverable and
+    # asking for audio would regenerate every track on every run.
+    if [ -n "$MUSIC_TRACKER_ONLY" ] && [ "$SECTION" = music ] && [ -n "$MUSIC_TRACKER" ]; then
+        [ -f "$DEST/$1.$MUSIC_TRACKER" ] && return 0
+        return 1
+    fi
     for e in ogg mp3 wav flac; do [ -f "$DEST/$1.$e" ] && return 0; done
     return 1
 }
@@ -159,7 +213,7 @@ if [ "$SECTION" = narration ]; then
         mkdir -p "$DEST/masters"
         find "$DEST" -maxdepth 1 -name '*.wav' -exec mv -f {} "$DEST/masters/" \;
     fi
-    echo "▶ done — $(find "$DEST" -maxdepth 1 \( -name '*.ogg' -o -name '*.wav' \) | wc -l) file(s) in $DEST"
+    echo "▶ done — $(find "$DEST" -maxdepth 1 \( -name '*.ogg' -o -name '*.wav' -o -name '*.flac' \) | wc -l) file(s) in $DEST"
     exit 0
 fi
 
@@ -217,7 +271,8 @@ run_box() {
             local musicprompt="$prompt"
             [ -n "$key" ] && musicprompt="$musicprompt, in $key"
             musicprompt="$musicprompt. BPM: ${bpm:-120}. Length: ${secs} seconds"
-            local cp; cp="$(cached_prompt "$name")"
+            local SMOUT; SMOUT="$(mktemp /tmp/smout.$$.XXXXXX)"
+        local cp; cp="$(cached_prompt "$name")"
             [ -n "$cp" ] && musicprompt="$cp"
             # Loop-aware post-processing, driven by the manifest's own label.
             # The model COMPOSES AN ENDING -- a 60s request gets a 60s piece of
@@ -249,15 +304,21 @@ run_box() {
                     done
                     [ -z "$ref" ] && echo "   ⚠ no reference for $name in $MUSIC_SOURCE — composing"
                 fi
+                local trk=""
+                case "$MUSIC_TRACKER" in
+                    mod) trk="--write-mod" ;;
+                    rad) trk="--write-rad" ;;
+                esac
                 soundmon "$prompt" "--$MUSIC_ENGINE" --seconds "$secs" \
                          --bpm "${bpm:-120}" --key "${key:-C minor}" \
                          ${mood:+--mood "$mood"} ${ref:+--from-audio "$ref"} \
-                         --name "$name" $OGG_ARG \
-                         --output-to "$DEST" --no-open >/dev/null 2>&1
+                         ${trk} ${MUSIC_CHIPPY:+--chippy "$MUSIC_CHIPPY"} \
+                         --name "$name" $(music_fmt_arg) \
+                         --output-to "$DEST" --no-open >"$SMOUT" 2>&1
             else
                 soundmon "$musicprompt" --music --seconds "$secs" $loopargs \
-                         --name "$name" --server "$srv" $OGG_ARG \
-                         --output-to "$DEST" --no-open >/dev/null 2>&1
+                         --name "$name" --server "$srv" $(music_fmt_arg) \
+                         --output-to "$DEST" --no-open >"$SMOUT" 2>&1
             fi
         else
             # Generate with headroom, then hard-cap. The model needs a couple of
@@ -273,7 +334,8 @@ run_box() {
             # (integer only, no decimals)."
             local sfxsecs="${SECONDS_DEF:-3}"
             local sfxtext="$prompt. Length: ${sfxsecs%.*} seconds"
-            local cp; cp="$(cached_prompt "$name")"
+            local SMOUT; SMOUT="$(mktemp /tmp/smout.$$.XXXXXX)"
+        local cp; cp="$(cached_prompt "$name")"
             [ -n "$cp" ] && sfxtext="$cp"
             if [ "$SFX_ENGINE" = chip ] || [ "$SFX_ENGINE" = opl ]; then
                 # Synthesized effect. The ARCHETYPE is inferred from the manifest
@@ -285,20 +347,25 @@ run_box() {
                 [ "$SFX_ENGINE" = opl ] && fxflag="--oplfx"
                 soundmon "$prompt" $fxflag --seconds "$sfxsecs" \
                          $cap --name "$name" $OGG_ARG \
-                         --output-to "$DEST" --no-open >/dev/null 2>&1
+                         --output-to "$DEST" --no-open >"$SMOUT" 2>&1
             else
                 soundmon "$sfxtext" ${STYLE:+--style "$STYLE"} \
                          --seconds "$sfxsecs" \
                          $cap --name "$name" --server "$srv" $OGG_ARG \
-                         --output-to "$DEST" --no-open >/dev/null 2>&1
+                         --output-to "$DEST" --no-open >"$SMOUT" 2>&1
             fi
         fi
         # soundmon names files <name>_<...>_00001_.<ext>; the game wants <name>.<ext>
         # Prefer the ogg when both exist (--keep-wav leaves a sibling wav).
-        made="$(find "$DEST" -maxdepth 1 -name "${name}_*.ogg" -printf '%T@ %p\n' \
-                | sort -rn | head -1 | cut -d' ' -f2-)"
-        [ -z "$made" ] && made="$(find "$DEST" -maxdepth 1 -name "${name}_*.wav" \
-                -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)"
+        # Search EVERY delivery extension, best first. This looked only for .ogg
+        # and .wav; a .flac build would have reported "nothing produced" for files
+        # sitting right there -- the same failure a bare <name>.wav caused before.
+        made=""
+        for _e in flac ogg wav; do
+            made="$(find "$DEST" -maxdepth 1 -name "${name}_*.$_e" -printf '%T@ %p\n' \
+                    | sort -rn | head -1 | cut -d' ' -f2-)"
+            [ -n "$made" ] && break
+        done
         if [ -n "$made" ]; then
             ext="${made##*.}"
             mv -f "$made" "$DEST/${name}.${ext}"
@@ -308,8 +375,46 @@ run_box() {
                 keep="$(find "$DEST" -maxdepth 1 -name "${name}_*.wav" | head -1)"
                 [ -n "$keep" ] && mv -f "$keep" "$DEST/masters/${name}.wav"
             fi
-            find "$DEST" -maxdepth 1 \( -name "${name}_*.ogg" -o -name "${name}_*.wav" \) -delete
-            echo "   ✅ ${srv%%:*}  ${name}.${ext}  ($((SECONDS - t0))s)"
+            find "$DEST" -maxdepth 1 \( -name "${name}_*.ogg" -o -name "${name}_*.wav" \
+                 -o -name "${name}_*.flac" \) -delete
+            # DO NOT DELETE OTHER FORMATS. grymmjack keeps the .ogg: they are the
+            # takes he has already accepted, and for the SA3 packs they are
+            # irreplaceable — no seed was ever recorded for them, so a deleted ogg
+            # is a take that can never be reproduced. An earlier version of this
+            # removed the sibling automatically, "to stop a stale twin outranking
+            # the new file", which is a real hazard but not one worth paying for
+            # with someone else's masters.
+            #
+            # CONSEQUENCE TO KNOW: a pack may now hold both <name>.ogg and
+            # <name>.flac, and the game resolves whichever extension it looks for
+            # first. If it prefers .ogg you will still hear the old take. Move the
+            # oggs aside (see ~/old-soundmon-oggs) rather than delete them when you
+            # want the flac to win.
+            :
+            # Tracker scores get the same treatment as the audio: keep the newest,
+            # name it after the manifest key, drop the rest. Without this every
+            # regeneration left another <name>_s<seed>.mod behind, and after a few
+            # runs it is no longer obvious which score matches the render.
+            for _t in mod rad; do
+                _new="$(find "$DEST" -maxdepth 1 -name "${name}_*.$_t" \
+                        -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-)"
+                [ -n "$_new" ] && mv -f "$_new" "$DEST/${name}.$_t"
+                find "$DEST" -maxdepth 1 -name "${name}_*.$_t" -delete
+            done
+            # Score-only pack: the audio was a means to an end. Remove it ONLY
+            # once the score is confirmed on disk -- never before, or a failed
+            # write would leave the track with nothing at all.
+            if [ -n "$MUSIC_TRACKER_ONLY" ] && [ "$SECTION" = music ] \
+               && [ -n "$MUSIC_TRACKER" ] && [ -f "$DEST/${name}.$MUSIC_TRACKER" ]; then
+                rm -f "$DEST/${name}.${ext}"
+                echo "   ♫ ${name}.$MUSIC_TRACKER  (score only; audio dropped)"
+            fi
+            # Append, never rewrite: jobs run concurrently across boxes and a
+            # short append is atomic, where a read-modify-write of one JSON file
+            # would lose entries under parallelism.
+            _seed="$(grep -oE 'seed=[0-9]+' "$SMOUT" 2>/dev/null | head -1 | cut -d= -f2)"
+            [ -n "$_seed" ] && printf '%s\t%s\n' "$name" "$_seed" >> "$SEEDS_TSV"
+            echo "   ✅ ${srv%%:*}  ${name}.${ext}  ($((SECONDS - t0))s)${_seed:+  seed=$_seed}"
             fails=0
         else
             # Put it back for a healthy box to pick up, rather than losing it.
@@ -322,4 +427,23 @@ run_box() {
 
 for srv in "${POOL[@]}"; do run_box "$srv" & done
 wait
-echo "▶ done — $(find "$DEST" -maxdepth 1 \( -name '*.ogg' -o -name '*.wav' \) | wc -l) file(s) in $DEST"
+# Fold the append-only ledger into seeds.json. Last write per asset wins, which
+# is what you want: a regenerated asset should record the seed it now HAS.
+if [ -s "$SEEDS_TSV" ]; then
+    python3 - "$SEEDS_TSV" "$SEEDS_JSON" <<'PYEOF'
+import json, os, sys
+tsv, out = sys.argv[1], sys.argv[2]
+seeds = {}
+if os.path.exists(out):
+    try: seeds = json.load(open(out))
+    except Exception: seeds = {}
+for line in open(tsv):
+    parts = line.rstrip("\n").split("\t")
+    if len(parts) == 2 and parts[1].isdigit():
+        seeds[parts[0]] = int(parts[1])
+json.dump(dict(sorted(seeds.items())), open(out, "w"), indent=1)
+print(f"   \u266b seeds.json: {len(seeds)} asset(s) reproducible")
+PYEOF
+    rm -f "$SEEDS_TSV"
+fi
+echo "▶ done — $(find "$DEST" -maxdepth 1 \( -name '*.ogg' -o -name '*.wav' -o -name '*.flac' \) | wc -l) file(s) in $DEST"
