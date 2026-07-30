@@ -320,7 +320,35 @@ doc: a plain attack auto-resolves at a safe baseline, and the gesture is a **gam
 higher ceiling and a bounded fail tail. Guard against *dominance* — keep EV close at average
 skill so it is a variance choice, not a free upgrade.
 
-### Phase E — status, stances, tiers, juice
+### Phase E — status, stances, juice — DONE (first slice)
+`engine/STATUS.bas` + `tests/TEST-STATUS.bas` (67 assertions), wired into the fight.
+
+- **Durations in seconds**, not turns — the fight is real-time and the player can sit in the menu
+  indefinitely, so a "turn" has no defined length.
+- **The fractional-damage trap:** at 60fps a 2 dps poison owes 0.0333 per frame and `INT()` of that
+  is **zero**. The naive version ticks forever and never hurts anyone — silent, and it survives
+  playtesting as "poison feels weak". Each effect carries a carry-forward accumulator *and pays the
+  remainder on expiry*; without the second half, `SINGLE` precision makes an effect deliver **less**
+  the finer time is sliced. The suite checks the same total at 60fps / 200fps / half-second steps
+  and **caught a real off-by-one on the first run**.
+- **Refresh, not stack.** Two doses extend and keep the stronger, they do not add a second effect —
+  with four foes in parallel a double-hit in one second is easy, and stacking makes it an instant kill.
+- **Stagger is a status, not a flag**, so it expires on its own. As a flag, one missed clear leaves a
+  foe permanently staggered — invisible except as an enemy that never recovers.
+- **Stances are mechanical on both sides:** `ATTACK` deals 125% and takes 125%, `GUARD` 65%/50%,
+  `STAGGER` 50%/160%. `ScaleDmg&` floors a connected blow at 1, or a guarded 1-damage hit rounds to
+  zero and a guarding actor looks invulnerable. **A crit staggers** — throwing away the foe's wind-up
+  *and* opening the punish window, which is what makes nailing the gesture worth the risk beyond raw
+  damage.
+- **A poison kill ends the fight** exactly like a blow, and effects are cleared when the encounter
+  ends so nothing leaks into the next one.
+- **Juice reused, not rewritten:** `ImpactFX`/`CritBoom`/`ShakeMag!` already existed in
+  `engine/JUICE.bas` — the fight calls them.
+
+**Still open in Phase E:** archery (a ranged action), the death-save on the tactical screen, and
+per-level health-tier tuning.
+
+### Phase E — original plan
 Health tiers, stances, per-actor status durations, then the juice port (typed screenshake,
 impact flashes, eyes-closing, `BigNum` overlays), then archery and the death-save.
 

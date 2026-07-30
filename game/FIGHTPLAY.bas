@@ -65,6 +65,7 @@ SUB SeedFight (lvl AS INTEGER, nfoes AS INTEGER)
 
     FightReset
     FuseReset
+    StatusClearAll
 
     '--- the player, slot 0 -------------------------------------------------
     nm = _TRIM$(CLASSES(player_class).name)
@@ -150,20 +151,55 @@ SUB FightMenuRoot
 END SUB
 
 ' Refresh the per-frame status text that changes as the fight moves.
+' Tick every actor's status effects and apply the damage owed. Returns TRUE if the player died
+' of it -- a poison kill has to end the fight exactly like a blow does, and forgetting that is how
+' an actor ends up at 0 HP still taking turns.
+FUNCTION FightTickStatus% (dt AS SINGLE)
+    DIM a AS INTEGER, d AS LONG
+    FOR a = 0 TO FIGHT_MAXFOE
+        IF FA_USED(a) THEN
+            d = StatusTick&(a, dt)
+            IF d > 0 THEN
+                IF a = 0 THEN
+                    player_hp = player_hp - d
+                    IF player_hp < 0 THEN player_hp = 0
+                    FightSetHp 0, player_hp
+                ELSE
+                    FightSetHp a, FA_HP(a) - d
+                    IF FA_ALIVE(a) = 0 THEN
+                        FightLog "!", _TRIM$(FA_NAME(a)) + " succumbs."
+                        FuseDisarm a
+                        StatusClear a
+                        TargetValidate
+                    END IF
+                END IF
+            END IF
+            StanceSync a
+        END IF
+    NEXT a
+    IF player_hp <= 0 THEN FightTickStatus% = -1
+END FUNCTION
+
 SUB FightSyncStatus
     DIM a AS INTEGER
     FightSetStatus 0, 1, "HEALTH:", HealthWord$(player_hp, player_maxhp)
     FightSetStat 0, 2, "DAMAGE:", "d" + LTRIM$(STR$(player_dmgdie)) + SgnStr$(player_dmgbonus)
+    FightSetStatus 0, 3, "EFFECT:", StatusText$(0)
     FOR a = 1 TO FIGHT_MAXFOE
         IF FA_USED(a) THEN
             FightSetStatus a, 1, "HEALTH:", HealthWord$(FA_HP(a), FA_MAXHP(a))
             IF FA_ALIVE(a) = 0 THEN
                 FightSetStatus a, 2, "STANCE:", "SLAIN"
                 FightSetStatus a, 3, "EFFECT:", ""
-            ELSEIF a = FA_TARGET THEN
-                FightSetStatus a, 2, "STANCE:", "TARGETED"
             ELSE
-                FightSetStatus a, 2, "STANCE:", "CIRCLING"
+                IF FA_STANCE(a) = STANCE_STAGGER THEN
+                    FightSetStatus a, 2, "STANCE:", "STAGGERED"
+                ELSEIF a = FA_TARGET THEN
+                    FightSetStatus a, 2, "STANCE:", "TARGETED"
+                ELSE
+                    FightSetStatus a, 2, "STANCE:", StanceName$(FA_STANCE(a))
+                END IF
+                FightSetStatus a, 3, "EFFECT:", StatusText$(a)
             END IF
         END IF
     NEXT a
@@ -226,6 +262,10 @@ SUB FightFlourish (depth AS INTEGER)
         EXIT SUB
     END IF
     dmg = GaugeDamage&(FightPlayerStrength%, z, q)
+    IF dmg > 0 THEN
+        dmg = ScaleDmg&(dmg, StanceOutPct%(FA_STANCE(0)))
+        dmg = ScaleDmg&(dmg, StanceInPct%(FA_STANCE(a)))
+    END IF
     IF dmg <= 0 THEN
         FightLog "", "Your flourish goes wide."
         Sfx "miss"
@@ -236,6 +276,13 @@ SUB FightFlourish (depth AS INTEGER)
         FIGHT_BANNER = "BONUS DAMAGE!"
         FightLog "C", "FLOURISH -- you open " + _TRIM$(FA_NAME(a)) + " for " + LTRIM$(STR$(dmg)) + "!"
         Sfx "crit"
+        CritBoom dmg
+        ' A crit STAGGERS: it throws the foe's wind-up away AND opens the punish window, which is
+        ' what makes nailing the gesture worth the risk beyond the raw damage.
+        IF FA_ALIVE(a) THEN
+            StaggerActor a, 2.5
+            FuseArmFoe a, FightFoeTier%(((a - 1) MOD 3) + 1), depth
+        END IF
     ELSE
         FightLog "*", "You strike " + _TRIM$(FA_NAME(a)) + " for " + LTRIM$(STR$(dmg)) + "."
         Sfx "hit"
@@ -257,7 +304,12 @@ SUB FightPlayerAttack
     a = FA_TARGET
     IF TargetOk%(a) = 0 THEN FightLog "", "Nothing there to strike.": EXIT SUB
     dmg = GaugeBaselineDamage&(FightPlayerStrength%)
+    ' Stance is mechanical on BOTH sides: what the attacker's posture adds, and what the
+    ' defender's posture absorbs. A staggered foe is the punish window.
+    dmg = ScaleDmg&(dmg, StanceOutPct%(FA_STANCE(0)))
+    dmg = ScaleDmg&(dmg, StanceInPct%(FA_STANCE(a)))
     FightSetHp a, FA_HP(a) - dmg
+    ImpactFX ShakeMag!(dmg), 0
     Sfx "hit"
     FightLog "*", "You strike " + _TRIM$(FA_NAME(a)) + " for " + LTRIM$(STR$(dmg)) + "."
     IF FA_ALIVE(a) = 0 THEN
@@ -292,10 +344,17 @@ SUB FightFoeAttack (a AS INTEGER, depth AS INTEGER, guarding AS INTEGER)
             EXIT SUB
         END IF
     END IF
+    dmg = ScaleDmg&(dmg, StanceOutPct%(FA_STANCE(a)))
+    dmg = ScaleDmg&(dmg, StanceInPct%(FA_STANCE(0)))
     player_hp = player_hp - dmg
     IF player_hp < 0 THEN player_hp = 0
     FightSetHp 0, player_hp
     Sfx "player-pain"
+    ImpactFX ShakeMag!(dmg), 1
+    ' A deep level's foes leave a poison bite. Data-driven trap/curio effects can layer on top.
+    IF depth >= 6 AND RND < 0.25 THEN
+        IF StatusApply%(0, "poison", 4, 1, 0) > 0 THEN FightLog "M", "Its bite burns -- POISON."
+    END IF
     IF guarding THEN
         FightLog "M", _TRIM$(FA_NAME(a)) + " hits your guard for " + LTRIM$(STR$(dmg)) + "."
     ELSE
@@ -362,10 +421,12 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
             IF k = CHR$(13) THEN
                 SELECT CASE FMENU_SEL
                     CASE FACT_ATTACK
+                        FA_STANCE(0) = STANCE_ATTACK
                         FightPlayerAttack
                         FIGHT_ROUND = FIGHT_ROUND + 1
                     CASE FACT_GUARD
                         guarding = -1
+                        FA_STANCE(0) = STANCE_GUARD
                         FightSetStatus 0, 2, "STANCE:", "GUARDING"
                         FightLog "", "You raise your guard."
                         Sfx "select"
@@ -374,6 +435,7 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
                     CASE FACT_USE
                         FightLog "", "(items come with Phase D)"
                     CASE FACT_FLOURISH
+                        FA_STANCE(0) = STANCE_ATTACK
                         FightFlourish lvl
                         FIGHT_ROUND = FIGHT_ROUND + 1
                         ' A gesture takes real time, so foes may have fired during it. Resolve
@@ -394,6 +456,9 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
             END IF
             IF k = CHR$(27) THEN outcome = OUT_FLEE
         END IF
+
+        '--- status effects tick with the clock, like the fuses --------------
+        IF FightTickStatus%(dt) THEN outcome = OUT_LOSE
 
         '--- end conditions ------------------------------------------------
         IF player_hp <= 0 THEN outcome = OUT_LOSE
@@ -428,6 +493,7 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
     LOOP
 
     EndCue
+    StatusClearAll        ' effects must not survive the encounter
     FightFreeTiles                      ' drop the portrait cache; the next fight re-renders
     RunFight% = outcome
 END FUNCTION

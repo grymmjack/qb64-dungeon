@@ -151,6 +151,35 @@ DIM SHARED FMENU(1 TO FIGHT_MENUMAX) AS STRING, FMENU_N AS INTEGER, FMENU_SEL AS
 DIM SHARED FMENU_SUB(1 TO FIGHT_MENUMAX) AS STRING, FMENU_SUBN AS INTEGER
 DIM SHARED FMENU_HINT AS STRING
 
+' --- per-actor STATUS effects (engine/STATUS.bas) ------------------------------
+' Poison, bleed, frost, stun -- whatever the game names them. The engine tracks DURATION and
+' applies DAMAGE OVER TIME; what a label MEANS is the game's business, exactly like the generic
+' stat rows. Same actor indexing as FIGHT.bas (0 = player, 1..4 = foes).
+'
+' Durations are in SECONDS, not turns, because the tactical fight is real-time -- the fuses are
+' seconds and a status measured in "turns" would have no defined length while the player sits in
+' the menu.
+'
+' FS_ACC is the reason this needs care: at 60fps a 2-damage-per-second poison deals 0.033 per
+' frame, and INT() of that is ZERO -- a naive implementation ticks forever and never hurts
+' anyone. The fractional remainder is carried in FS_ACC and paid out in whole points, so a 2 dps
+' poison over 3 seconds deals exactly 6 regardless of frame rate.
+CONST FSTAT_MAX = 4               ' concurrent effects per actor
+DIM SHARED FS_KIND(0 TO FIGHT_MAXFOE, 1 TO FSTAT_MAX) AS STRING
+DIM SHARED FS_SECS(0 TO FIGHT_MAXFOE, 1 TO FSTAT_MAX) AS SINGLE   ' remaining, 0 = empty slot
+DIM SHARED FS_DPS(0 TO FIGHT_MAXFOE, 1 TO FSTAT_MAX) AS SINGLE    ' damage per second (0 = none)
+DIM SHARED FS_ACC(0 TO FIGHT_MAXFOE, 1 TO FSTAT_MAX) AS SINGLE    ' fractional damage carry
+DIM SHARED FS_MOD(0 TO FIGHT_MAXFOE, 1 TO FSTAT_MAX) AS INTEGER   ' +/- to the actor's effectiveness
+
+' --- STANCES. A stance is a MECHANICAL state, not a caption: it modifies damage dealt and
+' taken, and the renderer happens to show its name. Kept as small integers with one lookup, so a
+' stance can never be set to a string nothing checks for.
+CONST STANCE_READY = 0
+CONST STANCE_ATTACK = 1           ' committed: more damage dealt, more taken
+CONST STANCE_GUARD = 2            ' braced: less taken, less dealt
+CONST STANCE_STAGGER = 3          ' off balance: takes more, deals less, cannot guard
+DIM SHARED FA_STANCE(0 TO FIGHT_MAXFOE) AS INTEGER
+
 ' --- parallel attack FUSES (engine/FUSE.bas) ----------------------------------
 ' The tactical layer: every foe runs its OWN countdown, all at the same time, and the player
 ' triages -- drop the one about to fire, or race it to kill the big one first. Crucially the

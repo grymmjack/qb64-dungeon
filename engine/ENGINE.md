@@ -112,6 +112,7 @@ engine/
   FIGHT              tactical-combat SCREEN: actor slots + the region-addressed renderer
                      (no combat rules -- slot 0 is the player, 1..4 foes, see below)
   FUSE               parallel attack fuses + target selection (pure model, no drawing)
+  STATUS             per-actor status effects (duration + damage-over-time) + stances
   TABLE              weighted/percentile random tables (PctChance%/WeightPick%/WeightPickLvl%)
 game/
   _ALL.BI  _ALL.BM   roll-ups: every game header / every game body, one line each
@@ -193,6 +194,22 @@ Three things `tests/TEST-FUSE.bas` pins down, each of which fails *silently* if 
 
 `FuseNextActor%` makes initiative **emergent** — whoever is closest to acting *right now*, which is
 the one fact worth knowing while triaging, and which a rolled turn order cannot express.
+
+**`STATUS.bas` — effects and stances, also pure.** Durations in *seconds* (the fight is real-time,
+so "turns" would have no defined length while the player sits in the menu). The bug it exists to
+prevent: at 60fps a 2-damage-per-second poison owes `0.0333` per frame and **`INT(0.0333)` is
+zero** — the obvious implementation ticks forever and never removes a hit point, with no crash and
+no warning, so it survives playtesting looking like "poison is weak". Each effect carries a
+fractional accumulator, and **the remainder is paid out on expiry** — without that, `SINGLE`
+precision lands a hair under the true total and an effect delivers *less* the finer time is sliced.
+`tests/TEST-STATUS.bas` checks the same total at three step sizes; it caught exactly that, off by
+one, on the first run.
+
+Effects **refresh rather than stack** (four foes attacking in parallel makes a double-hit in one
+second easy, and stacking turns that into an instant kill), a full slot set displaces the
+most-nearly-expired rather than dropping a fresh threat, and a corpse is neither ticked nor
+targetable. **Stagger is a status, not a flag**, so it expires through the normal tick — as a flag
+a missed clear leaves a foe permanently staggered, invisible except as an enemy that never recovers.
 
 **`FIGHT.bas` — actors in, pixels out.** Holds actor slots and the renderer, and **no combat rules**.
 Three decisions carry it:
