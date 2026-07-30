@@ -41,6 +41,49 @@ DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door 
 ' a region by name instead of hardcoding coordinates. Each region carries its own cell size
 ' because one game can mix metrics -- the tactical fight screen is 132x100 on an 8x8 cell
 ' while the board is 132x51 on 8x16, both on the same 1056-wide canvas.
+' --- composure GAUGE: the gesture model (see engine/GAUGE.bas) ---
+' One record carries an attempt: the actor's condition (inputs), the knobs derived from
+' it, and the live per-frame state. A renderer reads p/zc/ecrit/ehit and must draw the
+' zone EXACTLY there -- WYSIWYG is sacred, per the design bible.
+TYPE GAUGEK
+    ' -- inputs: the actor's condition --
+    skill     AS INTEGER   ' 0..2 felt tier (char_level maps in; a real skill system later)
+    hp        AS INTEGER
+    maxhp     AS INTEGER
+    will      AS INTEGER   ' willpower presses left (spendable composure)
+    willmax   AS INTEGER
+    wobble    AS INTEGER   ' extra input degradation, 0..3 (drink and the like)
+    press     AS INTEGER   ' engaged enemies beyond the first, 0..3 -- the 1-vs-4 squeeze
+    depth     AS INTEGER   ' dungeon level 1..9
+    ' -- derived knobs (GaugeKnobs) --
+    crit      AS SINGLE    ' crit half-width, baseline
+    hit       AS SINGLE    ' hit half-width, baseline
+    speed     AS SINGLE    ' sweep speed
+    jitter    AS SINGLE    ' per-attempt tempo variance
+    wander    AS SINGLE    ' how far the sweet spot roams
+    wprestore AS SINGLE    ' window regrowth per willpower press
+    maxsweeps AS INTEGER   ' passes allowed to commit (0 = only the fuse bounds you)
+    ' -- live state (GaugeBegin / GaugeStep) --
+    phase     AS SINGLE
+    phase0    AS SINGLE
+    wphase    AS SINGLE
+    sphase    AS SINGLE
+    swspeed   AS SINGLE
+    wspeed    AS SINGLE
+    shake     AS SINGLE
+    steady    AS SINGLE
+    focus     AS SINGLE
+    jitoff    AS SINGLE
+    frame     AS INTEGER
+    sweeps    AS INTEGER
+    clutch    AS INTEGER   ' TRUE if the last score was a crit landed while vulnerable
+    ' -- what a renderer draws and a scorer reads --
+    p         AS SINGLE    ' marker position 0..1
+    zc        AS SINGLE    ' zone centre 0..1
+    ecrit     AS SINGLE    ' effective crit half-width THIS frame
+    ehit      AS SINGLE    ' effective hit half-width THIS frame
+END TYPE
+
 CONST GESTURE_FUSE = 1.7          ' action-gesture countdown, seconds -- tight: about one good sweep
 CONST LAY_MAX = 200
 DIM SHARED LAY_N AS INTEGER

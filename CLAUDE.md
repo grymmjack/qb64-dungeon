@@ -57,7 +57,7 @@ To compile a single file by hand: `qb64pe -w -x <path/to/file.bas> -o <path/to/f
 after any structural change. It runs, in order:
 
 - the headless assert suites in `tests/TEST-*.bas` — `engine/TEXT.bas`, `STATS`, `MARKDOWN`,
-  `SAVEIO`, `ARTPACK`, `TABLE`, and the pure half of `DATA` (**228 assertions, 7 suites**).
+  `SAVEIO`, `ARTPACK`, `TABLE`, `GAUGE`, and the pure half of `DATA` (**285 assertions, 8 suites**).
 - **`audit-boundary.sh`** — no `engine/` file may name a `game/` symbol; every `Game_*` hook the
   engine CALLS must be DEFINED by both `game/` and `examples/minimal/`; and no ENGINE.BI global
   may be unused by all of `engine/` (that last one is the sharper question — a *one-directional*

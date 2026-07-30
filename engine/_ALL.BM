@@ -10,6 +10,7 @@ $INCLUDEONCE
 ' ============================================================================
 '$INCLUDE:'TEXT.bas'
 '$INCLUDE:'TABLE.bas'
+'$INCLUDE:'GAUGE.bas'
 '$INCLUDE:'LAYOUT.bas'
 '$INCLUDE:'DATA.bas'
 '$INCLUDE:'ARTPACK.bas'

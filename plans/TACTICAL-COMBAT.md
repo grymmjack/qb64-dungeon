@@ -153,12 +153,41 @@ tier-2 toggle rather than a new setting.
 
 Each phase ends green on `tests/run-tests.sh` and leaves the game playable.
 
-### Phase A — vendor the composure engine
-`engine/GAUGE.bas` with `GaugeRun`/`GaugeSample`/`DodgeRun`/`GaugeDamage` + the knob struct.
-Unit-testable because the **sampled** path needs no display: assert that `GaugeSample`'s
-outcome distribution matches the zone areas, and that knobs derived from a low-skill actor
-produce a strictly narrower crit band than a high-skill one (principle 2, as an assertion).
-`examples/minimal` must still build — the module is game-free.
+### Phase A — vendor the composure engine  ✅ **the MODEL is done (2026-07-29)**
+`engine/GAUGE.bas` + `GAUGEK` in ENGINE.BI. **57 assertions** in `tests/TEST-GAUGE.bas`.
+
+Rather than copy greywood's `GestureLock%` (which interleaves math, drawing and input
+polling), the **math was separated into pure steps with no display at all**:
+
+```
+GaugeKnobs    actor      -> zone widths / speed / roam / restore
+GaugeBegin    seed one attempt (random phase + per-attempt tempo jitter)
+GaugeStep     advance ONE frame -> marker p, zone centre zc, ecrit/ehit
+GaugeScore    score the CURRENT frame -> zone + quality
+GaugeSample   random phase + one Step + Score = the same math, sampled
+GaugeSteady   spend a willpower press
+GaugeDamage   (stat, zone, quality) -> damage. The shared seam.
+GaugeOutOfSweeps / GaugeHpFrac
+```
+
+That makes **principle 1 structural, not a promise** — the interactive front-end is a loop
+of `Step` + draw + poll + `Score`; auto-resolve is `GaugeSample`. There is only one copy of
+the arithmetic, so the two presentations cannot drift.
+
+One subtlety worth keeping: `GaugeSample` draws a uniform **phase**, not a uniform `p`,
+because `p = (SIN(phase)+1)/2` — the marker dwells near the bar's ENDS and races through the
+CENTRE. A centred zone is genuinely harder to hit by luck, and the sampler inherits that for
+free. Sampling `p` uniformly would have quietly made auto-resolve *easier* than playing.
+
+The tests assert the design principles as **properties**, which is the only way they survive
+future tuning — including that skill *widens the band* rather than *shifting the odds*.
+Verified they bite: making low skill share high skill's widths fails 4 assertions, two of
+them the statistical ones ("high skill lands more often than low (30% -> 28%)").
+
+**NOT done in Phase A, deliberately:** `GaugeRun` (the interactive front-end) and `DodgeRun`
+(the directional QTE). Both are *drawing and input*, and both need the 8×8 fight screen and
+its layout regions, which is Phase B. Porting their pixel code against a screen that does not
+exist yet would be guesswork. The model they both sit on is done and tested.
 
 ### Phase B — actors + the screen
 `ACTOR` array, `ui-fight-layout.txt` authored from the mockup, and a `fightlayout` dev mode
