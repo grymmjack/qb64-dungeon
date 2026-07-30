@@ -274,7 +274,47 @@ from the wrong monster. So the four things worth getting right are asserted as p
 - **The attacker's identity survives the queue**, so Phase D's dodge can name who swung. Telling
   the player to dodge the wrong monster reads as the game lying.
 
-### Phase D — gestures live
+### Phase D — gestures live — DONE (D.0 + D.1)
+
+**D.0 — the loop.** `game/FIGHTPLAY.bas`: the screen is PLAYABLE, not just a PNG.
+`dungeon.run fight [lvl] [foes] [pack]`, and `[~]` → `[0]` → `T`/`F` from play. Both accept an
+art-pack name **without writing `dungeon-settings.dat`** — a dev mode has no business editing the
+player's live prefs to look at art. It lives in `game/` per the hook-design lesson: it names
+`MON_NAME`/`CLASSES`/`player_*`/`Sfx`, and only the assembly, the CLI and the cheat panel call it,
+so a move cost **zero** new contract surface. `UP`/`DOWN` picks the action and `LEFT`/`RIGHT`
+retargets, because `NormKey$` maps arrow-left to `"A"` — letter hotkeys would collide with movement.
+
+**D.1 — the gestures.** Two symmetric opt-in gambles, both gated on the existing **Action
+Gestures** toggle so a player who does not want timing mini-games never sees one:
+
+| safe | gamble |
+|---|---|
+| `ATTACK` — guaranteed middling hit (`GaugeBaselineDamage&`) | `FLOURISH` — the played bar: crit ceiling, real fail tail |
+| `GUARD` — halves the next blow, no reflex check | the **dodge** — one random arrow in 0.85s, all or nothing |
+
+- **The world does not pause during a gesture.** `FuseStep` runs while the bar sweeps, so a long
+  careful aim costs exactly what standing in the menu costs, and a foe can land a blow mid-swing.
+  Freezing it would make the gesture strictly better than the plain attack *however* it was tuned —
+  the dominance failure the baseline exists to prevent.
+- **A forfeited attempt is not a miss, it is worse:** the swing never happened and the fuses ran
+  the whole time. That is what stops "open the gesture and wait" from being a free stall.
+- **The dodge is ONE arrow, deliberately.** With four foes on staggered fuses a multi-key sequence
+  would fire while the previous one was still being entered. A wrong arrow ends it immediately, so
+  mashing cannot beat reading. It names its attacker — `FUSE.bas` preserves identity through the
+  pending queue precisely so it can.
+- **WYSIWYG is enforced by construction:** `FightDrawGauge` draws the bands at exactly
+  `k.zc`/`k.ecrit`/`k.ehit`, the same numbers `GaugeScore%` reads.
+- **Dominance guard, asserted in the gate:** `blind play < baseline < well-played`. `GaugeBlindEV!`
+  must stay under the baseline *even at the top skill tier*, or a player could opt in mindlessly
+  and never lose by ignoring the bar. A tuning change to zone widths or the damage curve flips that
+  relation with no other symptom.
+
+**Known duplication, recorded in `engine/ENGINE.md`:** `GESTURE.bas`'s `GaugeLock%` is a second
+interactive gauge with its own private math, still driving SECOND WIND and CRIT FLOURISH. Migrating
+it would give one model and two presentations, but it changes the feel of two live features, so it
+is left as a deliberate decision.
+
+### Phase D — original plan
 Wire `GaugeRun` for the player's turn and `DodgeRun` for incoming attacks. Opt-in per the
 doc: a plain attack auto-resolves at a safe baseline, and the gesture is a **gamble** with a
 higher ceiling and a bounded fail tail. Guard against *dominance* — keep EV close at average

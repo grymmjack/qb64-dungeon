@@ -85,6 +85,8 @@ TYPE GAUGEK
 END TYPE
 
 CONST GESTURE_FUSE = 1.7          ' action-gesture countdown, seconds -- tight: about one good sweep
+CONST DODGE_WINDOW = 0.85         ' seconds to answer an incoming blow's arrow prompt --
+'                                   short enough to be a reflex, long enough to be fair
 CONST GAUGE_BASE_Q = 0.5          ' quality of a PLAIN (no-gesture) attack: mid-band, so it reads
 '                                   as "solid but unremarkable". The opt-in gesture is then a
 '                                   gamble around it -- see the dominance note in GAUGE.bas.

@@ -489,3 +489,166 @@ END SUB
 SUB FightEndDraw
     _FONT CH
 END SUB
+
+' ============================================================================
+'  The INTERACTIVE gesture, on the tactical screen.
+'
+'  ONE MODEL, TWO PRESENTATIONS. The math is engine/GAUGE.bas -- unit-tested, and shared with
+'  the auto-resolve twin GaugeSample% -- so the played gesture and the sampled one can never
+'  drift apart. This file only DRAWS it and reads the keyboard.
+'
+'  (Existing debt, not introduced here: engine/GESTURE.bas's GaugeLock% is a SECOND interactive
+'  gauge with its own private math, shipping for SECOND WIND and CRIT FLOURISH. Migrating those
+'  onto the GAUGE.bas model would leave one model and two presentations, which is the intent --
+'  but it changes the feel of two live features, so it is a deliberate decision rather than a
+'  drive-by. Recorded in engine/ENGINE.md.)
+'
+'  WHY THE FOE FUSES KEEP RUNNING: the gesture is not a modal pause. FuseStep is still called
+'  every frame while the bar sweeps, so taking a long careful aim is exactly as expensive as
+'  standing in the menu -- a foe can land a blow mid-swing. Freezing the world here would make
+'  the gesture strictly better than the plain attack no matter how it was tuned, which is the
+'  dominance failure GAUGE.bas's baseline exists to prevent.
+'
+'  The visual language matches GESTURE.bas so the two read as the same mechanic: dark = miss,
+'  green = hit, purple = crit, a pale sweeping marker.
+' ============================================================================
+
+' Draw the composure bar into a named region from live GAUGEK state.
+' WYSIWYG is sacred: the bands are drawn at EXACTLY k.zc/k.ecrit/k.ehit, because those are the
+' same numbers GaugeScore% reads. Drawing them anywhere else would score somewhere the player
+' cannot see, which reads as the game cheating.
+SUB FightDrawGauge (rgn AS STRING, k AS GAUGEK)
+    DIM px AS INTEGER, py AS INTEGER, wide AS INTEGER, high AS INTEGER, mxp AS INTEGER
+    IF LayHas%(rgn) = 0 THEN EXIT SUB
+    px = LayPX%(rgn): py = LayPY%(rgn): wide = LayPW%(rgn): high = LayPH%(rgn)
+    IF wide < 8 OR high < 2 THEN EXIT SUB
+    LINE (px, py)-(px + wide - 1, py + high - 1), _RGB32(&H33, &H3B, &H33), BF          ' miss
+    LINE (px + INT((k.zc - k.ehit) * wide), py)-(px + INT((k.zc + k.ehit) * wide), py + high - 1), _RGB32(&H2E, &HA0, &H55), BF
+    LINE (px + INT((k.zc - k.ecrit) * wide), py)-(px + INT((k.zc + k.ecrit) * wide), py + high - 1), _RGB32(&HA6, &H66, &HCE), BF
+    mxp = px + INT(k.p * wide)
+    LINE (mxp - 1, py - 2)-(mxp + 1, py + high + 1), _RGB32(&HF0, &HEC, &HD0), BF
+    LINE (px, py)-(px + wide - 1, py + high - 1), GREY, B
+END SUB
+
+' Run the player's gesture inline on the fight screen.
+'
+' `depth` narrows the zones, `press` is the crowd squeeze (live foes beyond the first), and
+' `secs` is the commit deadline. Returns the zone locked -- 2 crit / 1 hit / 0 miss -- or
+' FUSE_NONE if the deadline passed with no commit (a forfeited swing, not a miss).
+' `q` comes back as the 0..1 closeness to dead centre.
+'
+' The caller must pass a callback-free loop body, so this owns the frame loop: it ticks the
+' fuses itself via FightGestureTick, which is set up by the game before the call. Foe attacks
+' that land mid-gesture are queued and resolved by the caller afterwards.
+FUNCTION FightGaugeRun% (k AS GAUGEK, secs AS SINGLE, q AS SINGLE)
+    DIM tprev AS DOUBLE, dt AS SINGLE, left AS SINGLE
+    DIM kk AS STRING, z AS INTEGER, locked AS INTEGER
+    FightGaugeRun% = FUSE_NONE
+    q = 0
+    GaugeBegin k
+    FuseArm 0, secs                          ' slot 0 IS the player: one mechanism for both sides
+    tprev = TIMER
+    locked = 0
+    DO
+        _LIMIT 60
+        AudioTick
+        dt = TIMER - tprev: tprev = TIMER
+        IF dt < 0 OR dt > 1 THEN dt = 0      ' TIMER wraps at midnight
+
+        GaugeStep k
+        ' The world does NOT pause. Foe fuses advance; anything that fires is left PENDING for
+        ' the caller to resolve, so a blow landing mid-swing still costs the player.
+        FightGestureFuseTick dt
+
+        left = FuseRemaining!(0)
+        IF FF_ARMED(0) = 0 THEN EXIT DO      ' the commit deadline ran out
+
+        FightRender
+        FightBeginDraw
+        FightDrawGauge "player.gauge", k
+        FightText "hint.bar", 0, "SPACE to strike   " + FmtSecs$(left) + " left" + FightSteadyHint$(k), YELLOWU
+        FightEndDraw
+        _DISPLAY
+
+        kk = INKEY$
+        IF kk = " " THEN locked = -1: EXIT DO
+        ' Spend willpower to steady the bar -- finite, and it regrows the window.
+        IF UCASE$(kk) = "Z" THEN
+            IF GaugeSteady%(k) THEN Sfx "select"
+        END IF
+    LOOP
+
+    FuseDisarm 0
+    IF locked = 0 THEN EXIT FUNCTION         ' forfeited: FUSE_NONE, distinct from a miss
+    FightGaugeRun% = GaugeScore%(k, q)
+END FUNCTION
+
+' The willpower prompt, only shown while there is any to spend.
+FUNCTION FightSteadyHint$ (k AS GAUGEK)
+    IF k.will > 0 THEN FightSteadyHint$ = "   [Z] steady x" + LTRIM$(STR$(k.will))
+END FUNCTION
+
+' Advance the foe fuses during a gesture, leaving completions PENDING for the caller.
+' Separate from FuseStep% only so the intent is explicit at the call site: this deliberately
+' does NOT consume the result.
+SUB FightGestureFuseTick (dt AS SINGLE)
+    DIM a AS INTEGER
+    a = FuseStep%(dt)
+    IF a <> FUSE_NONE THEN FF_PEND(a) = -1   ' put it back; the caller drains the queue
+END SUB
+
+' ============================================================================
+'  The DODGE -- a one-key directional reflex check when a foe's blow lands.
+'
+'  greywood used arrow keys guitar-hero style for blocks: a direction chosen at random and a
+'  short window to hit it. That is what this is, deliberately kept to ONE arrow: with up to four
+'  foes on staggered fuses, a multi-key sequence would fire while the previous one was still
+'  being entered. One arrow is readable at speed and stays fair when three land at once.
+'
+'  It NAMES ITS ATTACKER. Being told to dodge and not knowing who swung is indistinguishable
+'  from the game lying, which is why engine/FUSE.bas preserves attacker identity through the
+'  pending queue.
+' ============================================================================
+
+' Returns TRUE if the player answered with the right arrow inside `secs`.
+' `attacker` is the foe slot, used only to name it on screen.
+FUNCTION FightDodgeRun% (attacker AS INTEGER, secs AS SINGLE)
+    DIM want AS INTEGER, wantk AS STRING, shown AS STRING
+    DIM tprev AS DOUBLE, dt AS SINGLE, left AS SINGLE, kk AS STRING, nk AS STRING
+    FightDodgeRun% = 0
+    want = INT(RND * 4)
+    SELECT CASE want
+        CASE 0: wantk = "W": shown = "UP"
+        CASE 1: wantk = "S": shown = "DOWN"
+        CASE 2: wantk = "A": shown = "LEFT"
+        CASE ELSE: wantk = "D": shown = "RIGHT"
+    END SELECT
+    FuseArm 0, secs
+    tprev = TIMER
+    DO
+        _LIMIT 60
+        AudioTick
+        dt = TIMER - tprev: tprev = TIMER
+        IF dt < 0 OR dt > 1 THEN dt = 0
+        ' Other foes keep winding up during a dodge too -- the same no-free-pause rule.
+        FightGestureFuseTick dt
+        left = FuseRemaining!(0)
+        IF FF_ARMED(0) = 0 THEN EXIT DO
+
+        FightRender
+        FightBeginDraw
+        FightBar "player.gauge", left / secs, REDU
+        FightText "hint.bar", 0, _TRIM$(FA_NAME(attacker)) + " strikes!  press " + shown + "  (" + FmtSecs$(left) + ")", REDU
+        FightEndDraw
+        _DISPLAY
+
+        kk = UCASE$(INKEY$)
+        IF LEN(kk) > 0 THEN
+            nk = NormKey$(kk)
+            IF nk = wantk THEN FightDodgeRun% = -1: EXIT DO
+            ' A WRONG arrow ends it immediately -- mashing must not beat reading.
+            IF nk = "W" OR nk = "S" OR nk = "A" OR nk = "D" THEN EXIT DO
+        END IF
+    LOOP
+    FuseDisarm 0
+END FUNCTION

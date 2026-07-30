@@ -30,6 +30,7 @@ CONST FACT_GUARD = 2
 CONST FACT_CAST = 3
 CONST FACT_USE = 4
 CONST FACT_FLEE = 5
+CONST FACT_FLOURISH = 6
 
 ' The player's effective "strength" for the shared damage seam.
 '
@@ -133,6 +134,14 @@ SUB FightMenuRoot
     FMENU(FACT_CAST) = "CAST"
     FMENU(FACT_USE) = "USE"
     FMENU(FACT_FLEE) = "FLEE"
+    ' FLOURISH is the OPT-IN GAMBLE: a played gesture with a higher ceiling and a real fail
+    ' tail, against ATTACK's guaranteed middling hit. Only offered when the player has Action
+    ' Gestures on -- the same ruleset toggle SECOND WIND and CRIT FLOURISH already gate on, so
+    ' someone who does not want timing mini-games never sees one.
+    IF opt_gestures THEN
+        FMENU_N = 6
+        FMENU(FACT_FLOURISH) = "FLOURISH"
+    END IF
     IF FMENU_SEL < 1 OR FMENU_SEL > FMENU_N THEN FMENU_SEL = FACT_ATTACK
     FMENU_SUBN = 0
     ' Arrows do two different jobs, so the hint names both -- with four foe columns, a player
@@ -181,6 +190,64 @@ FUNCTION HealthWord$ (hp AS INTEGER, mx AS INTEGER)
     END IF
 END FUNCTION
 
+' Fill a GAUGEK from the player's actual condition. Everything the composure model needs is
+' derived here rather than stored, so it always reflects the CURRENT fight: wounds narrow the
+' window, and `press` is the live-foe crowd squeeze that makes 1-vs-4 harder than 1-vs-1.
+SUB FightBuildGauge (k AS GAUGEK, depth AS INTEGER)
+    DIM lf AS INTEGER
+    k.skill = 1
+    IF char_level <= 1 THEN k.skill = 0
+    IF char_level >= 5 THEN k.skill = 2
+    k.hp = player_hp: k.maxhp = player_maxhp
+    k.willmax = 3: k.will = 3
+    k.wobble = 0
+    lf = FightLiveFoes% - 1
+    IF lf < 0 THEN lf = 0
+    IF lf > 3 THEN lf = 3
+    k.press = lf
+    k.depth = depth
+    GaugeKnobs k
+END SUB
+
+' The FLOURISH: play the gesture instead of taking the safe hit.
+'
+' A forfeited attempt (deadline passed with no commit) is NOT a miss -- it is worse, because the
+' swing never happened and the foe fuses advanced the whole time. That distinction matters: it is
+' what stops "open the gesture and wait" from being a free way to stall.
+SUB FightFlourish (depth AS INTEGER)
+    DIM k AS GAUGEK, z AS INTEGER, q AS SINGLE, dmg AS LONG, a AS INTEGER
+    a = FA_TARGET
+    IF TargetOk%(a) = 0 THEN FightLog "", "Nothing there to strike.": EXIT SUB
+    FightBuildGauge k, depth
+    z = FightGaugeRun%(k, GESTURE_FUSE, q)
+    IF z = FUSE_NONE THEN
+        FightLog "!", "You hesitate -- the moment is gone."
+        Sfx "miss"
+        EXIT SUB
+    END IF
+    dmg = GaugeDamage&(FightPlayerStrength%, z, q)
+    IF dmg <= 0 THEN
+        FightLog "", "Your flourish goes wide."
+        Sfx "miss"
+        EXIT SUB
+    END IF
+    FightSetHp a, FA_HP(a) - dmg
+    IF z = 2 THEN
+        FIGHT_BANNER = "BONUS DAMAGE!"
+        FightLog "C", "FLOURISH -- you open " + _TRIM$(FA_NAME(a)) + " for " + LTRIM$(STR$(dmg)) + "!"
+        Sfx "crit"
+    ELSE
+        FightLog "*", "You strike " + _TRIM$(FA_NAME(a)) + " for " + LTRIM$(STR$(dmg)) + "."
+        Sfx "hit"
+    END IF
+    IF FA_ALIVE(a) = 0 THEN
+        FightLog "!", _TRIM$(FA_NAME(a)) + " falls."
+        Sfx "monster-death"
+        FuseDisarm a
+        TargetValidate
+    END IF
+END SUB
+
 '--- resolution ------------------------------------------------------------
 
 ' The player's plain attack on the current target: the SAFE BASELINE, no gesture. Phase D.1 adds
@@ -214,8 +281,16 @@ SUB FightFoeAttack (a AS INTEGER, depth AS INTEGER, guarding AS INTEGER)
     IF lvl < 1 THEN lvl = 1
     dmg = GaugeBaselineDamage&(2 + lvl \ 2)
     IF guarding THEN
+        ' GUARD is the SAFE defensive choice: halve it, no reflex check. The dodge is the
+        ' gamble -- all or nothing -- so the two mirror ATTACK vs FLOURISH on the offence.
         dmg = dmg \ 2
         IF dmg < 1 THEN dmg = 1
+    ELSEIF opt_gestures THEN
+        IF FightDodgeRun%(a, DODGE_WINDOW) THEN
+            FightLog "+", "You slip aside -- " + _TRIM$(FA_NAME(a)) + " hits nothing."
+            Sfx "miss"
+            EXIT SUB
+        END IF
     END IF
     player_hp = player_hp - dmg
     IF player_hp < 0 THEN player_hp = 0
@@ -298,6 +373,21 @@ FUNCTION RunFight% (lvl AS INTEGER, nfoes AS INTEGER)
                         FightLog "", "(spells come with Phase D)"
                     CASE FACT_USE
                         FightLog "", "(items come with Phase D)"
+                    CASE FACT_FLOURISH
+                        FightFlourish lvl
+                        FIGHT_ROUND = FIGHT_ROUND + 1
+                        ' A gesture takes real time, so foes may have fired during it. Resolve
+                        ' those NOW rather than letting them pile up into the next frame.
+                        a = FuseTakePending%
+                        DO WHILE a <> FUSE_NONE
+                            IF a > 0 THEN
+                                FightFoeAttack a, lvl, guarding
+                                guarding = 0
+                                IF FA_ALIVE(a) THEN FuseArmFoe a, FightFoeTier%(((a - 1) MOD 3) + 1), lvl
+                            END IF
+                            a = FuseTakePending%
+                        LOOP
+                        tprev = TIMER                     ' do not bill the gesture as one frame
                     CASE FACT_FLEE
                         outcome = OUT_FLEE
                 END SELECT

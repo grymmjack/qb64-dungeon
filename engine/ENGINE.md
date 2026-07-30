@@ -304,6 +304,24 @@ with **zero** new contract surface. A hook is only warranted when engine code ge
 into the game mid-algorithm. Adding one where a move would do inflates the contract you have to
 keep stable forever.
 
+## Open debt: TWO interactive gauges
+
+`engine/GAUGE.bas` is the composure **model** — pure steps, unit-tested (`tests/TEST-GAUGE.bas`),
+and shared by the played gesture and the auto-resolve twin `GaugeSample%`, so the two cannot drift.
+`engine/FIGHT.bas` draws the tactical presentation over it (`FightGaugeRun%`).
+
+But `engine/GESTURE.bas`'s `GaugeLock%` is a **second interactive gauge with its own private
+math** (`critHW`/`hitHW` computed from depth inline), shipping for **SECOND WIND** and **CRIT
+FLOURISH**. It predates the model port.
+
+Migrating those two onto the GAUGE.bas model would leave one model and two presentations — the
+stated intent, and it would hand both features willpower, the crowd squeeze and skill tiers for
+free. It is **not** done because it changes the *feel* of two live features, which is a decision
+to make deliberately rather than as a side effect of unrelated work.
+
+If you touch either: they are separate systems today. Do not assume a tuning change to
+`GAUGE.bas` reaches SECOND WIND.
+
 ## Boundary-debt ledger — burned down
 
 Engine-side code that named game symbols directly. **All cleared** as of 2026-07-29; every
