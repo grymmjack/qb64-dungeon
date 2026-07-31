@@ -1,353 +1,469 @@
-Note:
-    The playable game now lives in ../dungeon.bas (a vertical slice assembling the
-    scratchpad prototypes). Items below are checked off against that build.
 
-Bugs:
-  ☐ When playing in window mode, resize sometimes hides UI parts
-    ☐ Implement same fix as done in DRAW for this to make it always render properly
-  ☐ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc.
-  ☐ Character sheet portrait art is being overwritten by text
+Bugs: @critical
+    ☐ Level 8 mummy had 70 HP, and a +10 to hit, and an 18 AC! needs balancing!
+    ☐ When I recovered my loot I didn't get my magic items back - this was on 6th level vs. a Red Dragon :(
+      ☐ Then when I died and was ressurected for new life, at start, it said i recovered everythintg from there..
+      ☐ But I only recovered a crystal ball and my gold. 
+        ☐ Regardless, this should not happen at start - unless I died there.
+    ☐ Second wind is not working properly - I landed perfectly in the middle and was not revived.
+    ☐ On flourish with Elf, landing in purple does not grant 1 dice. 
+    ☐ Flourish labels are wrong purple = +1 dice, green = +2 dice.
+    ☐ Random curios after combat when a critical occurred by player are not spawning healing potions
+      ☐ Should spawn healing potion 20% x number of crits up to 80% of the time 
+      ☐ e.g. if player crits monster 1 time, 20% chance, if 2 times 40%, 3 60%, 4 80%, etc.
+      ☐ Potion should be large potion 50% of the time + 10% x number of crits.
+        ☐ e.g. player crits 1 time 50% chance, player crits 2 times, 60%, 3 70%, 4 80%
+    ☐ Wandering monsters from curios or other random encounters do not draw monster symbols on map
+    ☐ When killed in a chamber, loot is not drawn in the chamber
+    ☐ When teleported to start from an event all HP is healed
+    ☐ When poisoned HP never goes below 1 HP and kills player
+    ☐ After poison procs and goes away, if I am bloodied on my effect, it is removed. should return to blood.
+    ☐ When playing in window mode, resize sometimes hides UI parts
+      ☐ Implement same fix as done in DRAW for this to make it always render properly
+    ☐ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc.
+    ☐ Character sheet portrait art is being overwritten by text
 
 Needs Thorough Testing:
-  ☐ Strategic Combat
-    ☐ This is happening way too fast and needs tuned
-    ☐ We do not want fuse mechanics until a "ready" is given by player like when recording with an armed count-in metronome for music
-    ☐ We need confirmations and "ready to proceed" moments as the pace is way too frantic right now
+    ☐ Strategic Combat
+      ☐ This is happening way too fast and needs tuned
+      ☐ We do not want fuse mechanics until a "ready" is given by player like when recording with an armed count-in metronome for music
+      ☐ We need confirmations and "ready to proceed" moments as the pace is way too frantic right now
 
 SFX Tweaks:
-  ☐ Add ambient sound effects according to taste/level area:
-    ☐ Thumps
-    ☐ Hinges
-    ☐ Slams
-    ☐ Chains
-    ☐ Wind
-    ☐ Deep drones
-    ☐ Screams
-    ☐ Monster chatter
-      ☐ Squeaks
-      ☐ Hisses
-      ☐ Gibberish
-      ☐ Growls
-      ☐ Slithers
-      ☐ Laughter
-      ☐ Howls
-      ☐ Barks
-      ☐ Moans
-      ☐ Whispers
+    ☐ Add ambient sound effects according to taste/level area:
+      ☐ Thumps
+      ☐ Hinges
+      ☐ Slams
+      ☐ Chains
+      ☐ Wind
+      ☐ Deep drones
+      ☐ Screams
+      ☐ Monster chatter
+        ☐ Squeaks
+        ☐ Hisses
+        ☐ Gibberish
+        ☐ Growls
+        ☐ Slithers
+        ☐ Laughter
+        ☐ Howls
+        ☐ Barks
+        ☐ Moans
+        ☐ Whispers
 
 Narration Small Tweaks:
-  ☐ Add additional narrations for combat - stop the repeat of "blood runs..."
-    ☐ Player kills monster:
-      ☐ Your foe falls before you and you breathe a sigh of relief.. for now.
-      ☐ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly.
-      ☐ The creature looks pathetic and harmless in it's state of frozen pain and death.
-      ☐ Exasperated and grateful you step over your opponent and carry on.
-      ☐ The place wreaks of blood and bits and sweat and pain and you smile in victory.
-      ☐ With a deep sigh and a gathering of courage you press on.
-      ☐ You wipe yourself clean of the fluids your enemy shared with you in their dance of death.
-      ☐ Twitching and breathing a final breath your foe perishes from this realm.
-      ☐ Another one meets the clearing at the end of the path. You strengthen your resolve for more.
-      ☐ Death. Dealt. The cards to come unknown but the dealer you are just the same.
-    ☐ Player kills monster with critical:
-      ☐ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise.
-      ☐ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred?
-      ☐ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away.
-      ☐ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin.
-      ☐ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood.
-      ☐ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success.
-      ☐ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy.
-      ☐ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS!
-      ☐ Shivering and careful you survey your surroundings; a grim visage of death and destruction.
-      ☐ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness.
-    ☐ When character levels up - add 10 flavor texts:
-      ☐ You have learned much and conquered more! You are emboldened and filled with vigor
-      ☐ Everything that has stood between you and your goal has been ... handled. Well done.
-      ☐ You feel as if nothing can stop you and you are determined to push ahead even if it means your end.
-      ☐ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more.
-      ☐ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
-      ☐ Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
-      ☐ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them.
-      ☐ What is life without achievement? What is existence without testing the limits of such? Press on hero!
-      ☐ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
-      ☐ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.
-    ☐ Player hits monster:
-      ☐ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost.
-      ☐ With precision timing and strategy you bring death and harbor no mercy.
-      ☐ A salty vision of blood and entrails coat the floor; wet death, theirs.
-      ☐ Instinct takes over and you feel as if your movements are controlled by gods grace.
-      ☐ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not.
-      ☐ One strike at a time chips away at your foes composure and flow of life.
-      ☐ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes.
-      ☐ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands.
-      ☐ Frenzy, absolute and all encompassing has made you into a killing machine.
-      ☐ Rage and blood and fever embrace your cold movements as the dealer of death.
-      ☐ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain.
-    ☐ Player crits monster:
-      ☐ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming!
-      ☐ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred.
-      ☐ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle.
-      ☐ You are soaked with the blood of your enemy as it juts and sprays and coats the place.
-      ☐ Cold calmness and deliberation come upon you. This is a dance, not a fight. 
-      ☐ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect.
-      ☐ A vision of heat, fur, scales, and steel blurry and primal.
-      ☐ TAKE THAT! you shout as you unleash your potential into the fray.
-      ☐ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you.
-      ☐ You were born for this. You live for this. You are unstoppable!
-    ☐ Monster hits player:
-      ☐ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it.
-      ☐ This beast seems seasoned and as it tears into you growls a tribal cry of fury.
-      ☐ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you.
-      ☐ Your body aches and tenses with the impact of the attack.
-      ☐ Rushing and unstoppable the merciless fangs and teeth and limbs come at you.
-      ☐ A fair blow from your foe, you cannot deny it.
-      ☐ You catalog the pain and unthrottle your rage for payback.
-      ☐ Blinking in disbelief as you thought you had out maneuvered that attack.
-      ☐ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds.
-      ☐ God! That hurts!
-    ☐ Monster crits player:
-      ☐ How can this be?! It won't happen again.
-      ☐ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake.
-      ☐ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain.
-      ☐ MY! GOD!! THAT REALLY HURTS! 
-      ☐ SON OF A.. ! YOU DIRTY! 
-      ☐ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness.
-      ☐ This creature is either lucky or powerful or both.
-      ☐ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back.
-      ☐ It's as if you might actually have to try here.
-      ☐ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse. 
-  ☐ Add monster names, and item names into narration and manifest so they can be 
-    ☐ dynamically spoken during the game - instead of "a huge shadow rises and blocks your way"
-    ☐ Goblins bar your path, grimacing their decaying grins and leaping at you from the shadows.. etc
-  ☐ Add all the monster event descriptions into narration manifest and have them play if combat is used for narration
-  ☐ Audit existing events for sensory coverage and make diverse if not where appropriate:
-    ☐ Sight
-    ☐ Sound
-    ☐ Touch
-    ☐ Smell
-    ☐ Taste
+    ☐ Add additional narrations for combat - stop the repeat of "blood runs..."
+      ☐ Player kills monster:
+        ☐ Your foe falls before you and you breathe a sigh of relief.. for now.
+        ☐ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly.
+        ☐ The creature looks pathetic and harmless in it's state of frozen pain and death.
+        ☐ Exasperated and grateful you step over your opponent and carry on.
+        ☐ The place wreaks of blood and bits and sweat and pain and you smile in victory.
+        ☐ With a deep sigh and a gathering of courage you press on.
+        ☐ You wipe yourself clean of the fluids your enemy shared with you in their dance of death.
+        ☐ Twitching and breathing a final breath your foe perishes from this realm.
+        ☐ Another one meets the clearing at the end of the path. You strengthen your resolve for more.
+        ☐ Death. Dealt. The cards to come unknown but the dealer you are just the same.
+      ☐ Player kills monster with critical:
+        ☐ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise.
+        ☐ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred?
+        ☐ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away.
+        ☐ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin.
+        ☐ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood.
+        ☐ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success.
+        ☐ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy.
+        ☐ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS!
+        ☐ Shivering and careful you survey your surroundings; a grim visage of death and destruction.
+        ☐ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness.
+      ☐ When character levels up - add 10 flavor texts:
+        ☐ You have learned much and conquered more! You are emboldened and filled with vigor
+        ☐ Everything that has stood between you and your goal has been ... handled. Well done.
+        ☐ You feel as if nothing can stop you and you are determined to push ahead even if it means your end.
+        ☐ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more.
+        ☐ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
+        ☐ Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
+        ☐ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them.
+        ☐ What is life without achievement? What is existence without testing the limits of such? Press on hero!
+        ☐ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
+        ☐ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.
+      ☐ Player hits monster:
+        ☐ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost.
+        ☐ With precision timing and strategy you bring death and harbor no mercy.
+        ☐ A salty vision of blood and entrails coat the floor; wet death, theirs.
+        ☐ Instinct takes over and you feel as if your movements are controlled by gods grace.
+        ☐ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not.
+        ☐ One strike at a time chips away at your foes composure and flow of life.
+        ☐ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes.
+        ☐ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands.
+        ☐ Frenzy, absolute and all encompassing has made you into a killing machine.
+        ☐ Rage and blood and fever embrace your cold movements as the dealer of death.
+        ☐ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain.
+      ☐ Player crits monster:
+        ☐ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming!
+        ☐ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred.
+        ☐ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle.
+        ☐ You are soaked with the blood of your enemy as it juts and sprays and coats the place.
+        ☐ Cold calmness and deliberation come upon you. This is a dance, not a fight. 
+        ☐ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect.
+        ☐ A vision of heat, fur, scales, and steel blurry and primal.
+        ☐ TAKE THAT! you shout as you unleash your potential into the fray.
+        ☐ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you.
+        ☐ You were born for this. You live for this. You are unstoppable!
+      ☐ Monster hits player:
+        ☐ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it.
+        ☐ This beast seems seasoned and as it tears into you growls a tribal cry of fury.
+        ☐ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you.
+        ☐ Your body aches and tenses with the impact of the attack.
+        ☐ Rushing and unstoppable the merciless fangs and teeth and limbs come at you.
+        ☐ A fair blow from your foe, you cannot deny it.
+        ☐ You catalog the pain and unthrottle your rage for payback.
+        ☐ Blinking in disbelief as you thought you had out maneuvered that attack.
+        ☐ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds.
+        ☐ God! That hurts!
+      ☐ Monster crits player:
+        ☐ How can this be?! It won't happen again.
+        ☐ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake.
+        ☐ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain.
+        ☐ MY! GOD!! THAT REALLY HURTS! 
+        ☐ SON OF A.. ! YOU DIRTY! 
+        ☐ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness.
+        ☐ This creature is either lucky or powerful or both.
+        ☐ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back.
+        ☐ It's as if you might actually have to try here.
+        ☐ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse. 
+    ☐ Add monster names, and item names into narration and manifest so they can be 
+      ☐ dynamically spoken during the game - instead of "a huge shadow rises and blocks your way"
+      ☐ Goblins bar your path, grimacing their decaying grins and leaping at you from the shadows.. etc
+    ☐ Add all the monster event descriptions into narration manifest and have them play if combat is used for narration
+    ☐ Audit existing events for sensory coverage and make diverse if not where appropriate:
+      ☐ Sight
+      ☐ Sound
+      ☐ Touch
+      ☐ Smell
+      ☐ Taste
 
 Small UI Tweaks:
-  ☐ Explain in character creator what each stat does in a side panel
-    ☐ STR:
-      ☐ extra damage in combat per successful strike
-      ☐ chance to break through doors and chests
-      ☐ ablility to use stronger armor and melee weapons
-      ☐ physical based saving throws
-    ☐ DEX:
-      ☐ bonus to armor class and dodging
-      ☐ use flourishes to do more damage
-      ☐ ability to use more precise missile weapons
-      ☐ movement based saving throws and checks
-    ☐ CON:
-      ☐ extra HP per level
-      ☐ resistances to elemental effects (poison, acid, shock, etc.)
-      ☐ ability to endure great damage
-      ☐ elemental based saving throws and checks
-    ☐ INT:
-      ☐ number of spells that can be cast
-      ☐ speed of ambient spell recall 
-      ☐ use magic flourishes for greater spell effects
-      ☐ mental based saving throws and checks
-    ☐ WIS:
-      ☐ distance of vision and detection
-      ☐ bonus to finding hidden things
-      ☐ resistance to spell effects
-      ☐ universal awareness saving throws bonus
-    ☐ CHA:
-      ☐ luck points (re-rolls)
-      ☐ barter modifier (how much things cost, and how much you sell for)
-      ☐ fate skew - less CHA = worse fate, more CHA = better fate
-      ☐ reaction saving throws
+    ☐ Add art pixel/ansi for:
+      ☐ YOU DIED screen
+      ☐ YOU WIN screen
+    ☐ Add player portrait to combat bar, left side, with weapon using on right side of box
+    ☐ Make D4 angle a little easier to read - point it more downward.
+    ☐ Add layer under player movement layer for drawing stairs and decorations
+      ☐ On stairs, have a random encounter 50% of the time - sentry guards, or 30% for a random trap
+    ☐ Modify map so that level 4 cannot reach level 9
+    ☐ Modify map so that stairs lead to only the next level or the previous level
+    ☐ Explain in character creator what each stat does in a side panel
+      ☐ STR:
+        ☐ extra damage in combat per successful strike
+        ☐ chance to break through doors and chests
+        ☐ ablility to use stronger armor and melee weapons
+        ☐ physical based saving throws
+      ☐ DEX:
+        ☐ bonus to armor class and dodging
+        ☐ use flourishes to do more damage
+        ☐ ability to use more precise missile weapons
+        ☐ movement based saving throws and checks
+      ☐ CON:
+        ☐ extra HP per level
+        ☐ resistances to elemental effects (poison, acid, shock, etc.)
+        ☐ ability to endure great damage
+        ☐ elemental based saving throws and checks
+      ☐ INT:
+        ☐ number of spells that can be cast
+        ☐ speed of ambient spell recall 
+        ☐ use magic flourishes for greater spell effects
+        ☐ mental based saving throws and checks
+      ☐ WIS:
+        ☐ distance of vision and detection
+        ☐ bonus to finding hidden things
+        ☐ resistance to spell effects
+        ☐ universal awareness saving throws bonus
+      ☐ CHA:
+        ☐ luck points (re-rolls)
+        ☐ barter modifier (how much things cost, and how much you sell for)
+        ☐ fate skew - less CHA = worse fate, more CHA = better fate
+        ☐ reaction saving throws
 
-  ☐ Initiative modifier is the users level / 2. 
-    ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be
-    ☐ D20 for initiative
-  ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage"
-    ☐ Can 1/2 the damage if successful
-  ☐ On level up let player add 1 point to a stat up to 18
-    ☐ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is setup - a free life basically
-  ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll
-    ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
-    ☐ Run gesture as normal from that point
-  ☐ Explain to player in rules that clearing all rooms in a level gains character level, and fully heals/resets stuff, etc.
-  ☐ Press TAB during game to find player 
-    ☐ Dims screen except circle around the player and flashes a circle around them 5 times
-  ☐ Make Bestiary only show what has been ever found during any game run
-    ☐ If a creature has not yet been discovered, show a mystery slot ? with image ?
-  ☐ Monsters images move down and center slightly when attacking
-  ☐ Add blood overlay on monsters when taking damage - closer to death = more blood
-    ☐ If no blood, use black for undead
-  ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character)
+    ☐ Initiative modifier is the users level / 2. 
+      ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be
+      ☐ D20 for initiative
+    ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage"
+      ☐ Can 1/2 the damage if successful
+    ☐ On level up let player add 1 point to a stat up to 18
+      ☐ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is setup - a free life basically
+    ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll
+      ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
+      ☐ Run gesture as normal from that point
+    ☐ Explain to player in rules that clearing all rooms in a level gains character level, and fully heals/resets stuff, etc.
+    ☐ Press TAB during game to find player 
+      ☐ Dims screen except circle around the player and flashes a circle around them 5 times
+    ☐ Make Bestiary only show what has been ever found during any game run
+      ☐ If a creature has not yet been discovered, show a mystery slot ? with image ?
+    ☐ Monsters images move down and center slightly when attacking
+    ☐ Add blood overlay on monsters when taking damage - closer to death = more blood
+      ☐ If no blood, use black for undead
+    ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character)
 
 Big UI Tweaks:
-  ☐ New Dice option: Roll style:
-    ☐ Hold and shake:
-      ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
-    ☐ Hold and shake and spin:
-      ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
-      ☐ Use gesture to spin the dice and change it's spin amount - just a fun thing
-  ☐ New Dice option: Box shake:
-    ☐ When rolling, draw a fuse (quick one) to allow the dice to be juggled around and shaken in the box, to adjust a bad roll.
-    ☐ Except for nat 1s and fumbles, this will be a fun way to play real dice on a computer
-    ☐ While it's technically cheaty, it could be fun.
-    ☐ You can only shake the box one time per roll
-  ☐ Add ansi-art into the game where currently only pixel-art exists
-  ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern
-  ☐ Create item display frames for monsters, curios, and locations
-  ☐ Add stats box (resets per game) - also tracked in game summary and stats log:
-    ☐ Time elapsed
-    ☐ Turns taken
-    ☐ Distance Traveled
-    ☐ Rooms Explored
-    ☐ Rooms Cleared
-    ☐ Chambers Cleared
-    ☐ Max Level Reached
-    ☐ Items Found
-    ☐ Items Used
-    ☐ Crits
-    ☐ Flourishes
-    ☐ Fumbles
-    ☐ Damage Dealt
-    ☐ Damage Healed
-    ☐ Deaths
-    ☐ Kills
+    ☐ New Dice option: Roll style:
+      ☐ Hold and shake:
+        ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
+      ☐ Hold and shake and spin:
+        ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
+        ☐ Use gesture to spin the dice and change it's spin amount - just a fun thing
+    ☐ New Dice option: Box shake:
+      ☐ When rolling, draw a fuse (quick one) to allow the dice to be juggled around and shaken in the box, to adjust a bad roll.
+      ☐ Except for nat 1s and fumbles, this will be a fun way to play real dice on a computer
+      ☐ While it's technically cheaty, it could be fun.
+      ☐ You can only shake the box one time per roll
+    ☐ Add ansi-art into the game where currently only pixel-art exists
+    ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern
+    ☐ Create item display frames for monsters, curios, and locations
+    ☐ Add stats box (resets per game) - also tracked in game summary and stats log:
+      ☐ Time elapsed
+      ☐ Turns taken
+      ☐ Distance Traveled
+      ☐ Rooms Explored
+      ☐ Rooms Cleared
+      ☐ Chambers Cleared
+      ☐ Max Level Reached
+      ☐ Items Found
+      ☐ Items Used
+      ☐ Crits
+      ☐ Flourishes
+      ☐ Fumbles
+      ☐ Damage Dealt
+      ☐ Damage Healed
+      ☐ Deaths
+      ☐ Kills
+      ☐ Consecutive Kills
+      ☐ Perfect Battles (player killed monsters without getting touched)
 
 Huge UI Efforts:
-  ☐ Multiple maps
-  ☐ Hub worlds -> maps
-  ☐ Traversible towns/villages
-  ☐ Add frame based animations (like Bards Tale, Wasteland, etc.) for portraits and events
-  ☐ Add cut-scenes engine
-    ☐ Pan and zoom
-      ☐ Horizontal
-      ☐ Vertical
-    ☐ Effects
-      ☐ Blur
-      ☐ Desaturate
-      ☐ Colorize
-    ☐ Transitions:
-      ☐ Blood
-      ☐ Fire
-      ☐ Poison
-      ☐ Decay
-      ☐ Holy Light
-      ☐ Magic Light
-    ☐ Animations
-    ☐ Timeline events
-    ☐ Dialog
-    ☐ Modify character
-      ☐ Attribute change
-      ☐ HP change
-      ☐ Inventory change
+    ☐ Multiple maps
+    ☐ Hub worlds -> maps
+    ☐ Traversible towns/villages
+    ☐ Add frame based animations (like Bards Tale, Wasteland, etc.) for portraits and events
+    ☐ Add cut-scenes engine
+      ☐ Pan and zoom
+        ☐ Horizontal
+        ☐ Vertical
+      ☐ Effects
+        ☐ Blur
+        ☐ Desaturate
+        ☐ Colorize
+      ☐ Transitions:
+        ☐ Blood
+        ☐ Fire
+        ☐ Poison
+        ☐ Decay
+        ☐ Holy Light
+        ☐ Magic Light
+      ☐ Animations
+      ☐ Timeline events
+      ☐ Dialog
+      ☐ Modify character
+        ☐ Attribute change
+        ☐ HP change
+        ☐ Inventory change
 
 Game Tweaks:
-  ☐ Add a luck mechanic for re-rolls - luck comes from CHA (therefore making CHA a non throwaway stat)
-    ☐ Toggle in settings for game options on / off
-    ☐ Re-roll is permanent no matter the outcome
-    ☐ Cannot re-roll re-rolls
-    ☐ Number of re-rolls available is the CHA bonus 
+    ☐ Create audit mode for packs @high
+      ☐ command line option *manifest (new option: audit)
+        ☐ Checks against manifest for missing entries in the pack
+          ☐ Returns them in same format as manifest with count of missing at top
+            ☐ e.g. dungeon.run audiomanifest audit
+
+    ☐ Create command line option balancedump
+      ☐ Dumps in a table: (fetches from stats with --includestats *)
+        ☐ Level | Monster | HP | ToHitBonus | AC | XP | Gold | Items | * # Encountered | * # PlayerFled | * # Killed | * # KillPlayer
+    ☐ On death screen:
+      ☐ Show stats from main screen, and play time, etc.
+      ☐ Animate:
+        ☐ Gravestone: Here Lies ... newline {player name}
+        ☐ Saved: {timesSaved} times
+        ☐ Slain by: {monsterKilled} on level {levelKilledOn}
+        ☐ Lasted: {timeSpentInGame} minutes
+        ☐ Tried: {numLives} times
+        ☐ Weapon driving into gravestone
+          ☐ If hero/superhero - sword
+          ☐ If elf bow
+          ☐ If wizard staff
+        ☐ Killed:
+          ☐ Animate in falling from top scaled down images of monsters killed per level starting on level 1
+          ☐ Piles on top of previous level .. level 1, level 2, etc.
+        ☐ Total Damage done under: big number
+        ☐ Total Gold found: Big number
+        ☐ Snapshot death screen for fallen lords, and their stats like legendary lords, but those who failed
+    ☐ If a single combat goes > 10 rounds and player is < 25% HP at end
+      ☐ Give them a 10% chance at a full heal curio as they drop to their knees and pray for strength
+      ☐ Give them a 50% chance at finding 2 Large potions of healing
+      ☐ Give them a 40% chance of finding 1 Large potion and 2 small potions of healing
+    ☐ Add auto-combat game options
+      ☐ Auto-combat: ON/OFF
+        ☐ Auto-combat simply simulates the player actually playing the combat sequence
+        ☐ Add setting: Proceed Delay: 
+          ☐ 1s
+          ☐ 2s
+          ☐ 3s
+          ☐ None      
+        ☐ Add setting: Attempt to flee?
+          ☐ At <50% HP
+          ☐ At <25% HP
+          ☐ Off
+        ☐ Add setting: Auto-heal?
+          ☐ At <50% HP
+          ☐ At <25% HP
+          ☐ Off
+    ☐ When attempting to break down a door
+      ☐ Chance of wandering encounter hearing the noise is +25% each attempt
+      ☐ Unless the entire level is cleared then 5% each attempt
+      ☐ Chance of door having trap when it takes > 1 time to break through:
+        ☐ 20% chance of swamp gas - SAVE VS POISON or -2 HP
+        ☐ 20% chance of arrow trap - SAVE VS DEX or -1D6 HP
+        ☐ 10% chance of monster ambush - extra monster attack to start combat no chance to flee surprised
+        ☐ 50% nothing happens regular entry
+    ☐ When monsters fumble can take damage hitting themselves
+      ☐ 10% chance of 6 damage
+      ☐ 20% chance of 3 damage
+      ☐ 30% chance of 1 damage
+      ☐ 40% chance of no damage but lose next attack
+    ☐ Give monsters appropriate elemental effects:
+      ☐ All can be avoided with successful saving throw
+      ☐ GIANT SPIDER, GIANT SNAKE:
+      ☐ POISON chance 20% for 1D4 rounds -1HP each round
+      ☐ Save vs. CON
+      ☐ SKELETON, GHOULS, MUMMY, VAMPIRE:
+        ☐ BLIGHT chance 10% -1D4 1 time at time of impact
+        ☐ Save vs. CON
+      ☐ WITCH, EVIL WIZARD:
+        ☐ CURSE chance 20% -1 to attack and damage for 1D4 rounds
+        ☐ Save vs. WIS
+      ☐ GREEN SLIME, PURPLE WORM, BLACK PUDDING:
+        ☐ ACID SPRAY chance 25% -1D6 1 time at time of impact, -1 HP for 3 rounds after
+        ☐ Save vs. DEX
+    ☐ Returning to the start after receiving damage fully heals the player for the amount they STARTED with
+      ☐ e.g. if they started with 15 HP, heals 15 HP.
+      ☐ The player must have at least 1 HP before they can be healed.
+      ☐ The player must have less than 75% of their HP before this will work.
+        ☐ Count how many times they do this and if they start abusing it
+        ☐ On return back to start increase the likelihood of random encounters by +10% each time after 2 times up to 50% chance
+      ☐ Scrawling text with rest image (add to imagemanifest and ansimanifest)
+      ☐ Narration: Having sustained wounds you rest at the entrance to heal and recouperate. You are healed after a few days.
+      ☐ Transition: Screen fade in to white then back to normal quickly
+      ☐ SFX: Running water, gold shining and deep breathe and exhale calmly
+      ☐ This allows the player to reuse the starting point
+      ☐ Return to Start Heals setting should be a game option: ON/OFF
+      ☐ Add this to the RULES for D&D if it's a setting that's enabled
+    ☐ Add [R]est option while in dungeon (D&D mode)
+      ☐ When resting, for each R pressed, heals 1 HP but chance of random encounter
+        ☐ Encounter is never a curio
+        ☐ Encounter is always a random monster (but not a boss) in the same sector/level they are in
+        ☐ If no encounter, HP healed +1
+          ☐ SFX: Heal
+        ☐ If encounter, play it out normal
+          ☐ SFX: No heal
+        ☐ This adds a risk reward mechanic to resting
+      ☐ Resting should be a game option: ON/OFF
+      ☐ Add this to the RULES for D&D if it's a setting that's enabled
+    ☐ Add a luck mechanic for re-rolls - luck comes from CHA (therefore making CHA a non throwaway stat)
+      ☐ Toggle in settings for game options on / off
+      ☐ Re-roll is permanent no matter the outcome
+      ☐ Cannot re-roll re-rolls
+      ☐ Number of re-rolls available is the CHA bonus 
+        ☐ Replenished every time character levels up
+      ☐ Luck re-rolls: ON/OFF in settings
+      ☐ Add this to the RULES for D&D if it's a setting that's enabled
+    ☐ On max damage use gesture to check a critical
+      ☐ Criticals confirmed like this don't get flourishes - only real nat 20s get flourishes
+    ☐ Add Flourishes based on DEX mechanic (therefore giving DEX more weight)
+      ☐ Flourishes influenced by stats (bar sizes, target sizes, timing tightness, etc)
+      ☐ Number of flourishes based on dex bonus
       ☐ Replenished every time character levels up
-  ☐ On max damage use gesture to check a critical
-    ☐ Criticals confirmed like this don't get flourishes - only real nat 20s get flourishes
-  ☐ Add Flourishes based on DEX mechanic (therefore giving DEX more weight)
-    ☐ Flourishes influenced by stats (bar sizes, target sizes, timing tightness, etc)
-    ☐ Number of flourishes based on dex bonus
-    ☐ Replenished every time character levels up
-    ☐ +1 Given one back when a crit occurs nat 20
-    ☐ -1 Lose one when a fumble occurs nat 1
-    ☐ Flourishes work with weapons AND magic
-  ☐ When breaking down doors chance for random encounter 33% due to noise
-  ☐ Crypt forces line of sight even if it's disabled in the settings - 9th level - evil darkness overcome
-    ☐ If wizard, or have torch can light to get line of sight disabled
-    ☐ Add torch to random items found - 10% chance
+      ☐ +1 Given one back when a crit occurs nat 20
+      ☐ -1 Lose one when a fumble occurs nat 1
+      ☐ Flourishes work with weapons AND magic
+    ☐ When breaking down doors chance for random encounter 33% due to noise
+    ☐ Crypt forces line of sight even if it's disabled in the settings - 9th level - evil darkness overcome
+      ☐ If wizard, or have torch can light to get line of sight disabled
+      ☐ Add torch to random items found - 10% chance
 
 Roadmap (future / bigger efforts):
-    ☐ Rival system / preferred enemies
-      ☐ When killed by a creature, turns into rival
-        ☐ Rivals grant +1 temporary flourish and re-roll
-          ☐ The idea is player conquers easier because knows from past life
-      ☐ When killed by creature multiple times turns into preferred enemy
-        ☐ Preferred enemy is +1 damage +1 to hit
-    ☐ Can the board be much larger and zoomed in, and pan left and right and by user or events?
-      ☐ This would allow more detail
-    ☐ Environmental curios / events:
-      ☐ Pits
-      ☐ Traps
-      ☐ Poison pools
-      ☐ Webs the player can get caught in
-      ☐ Eggs of creatures they stubmle into clutches can be explored at a risk
-      ☐ Messages near dead adventurer remains - true or false 50%
-      ☐ Arrow slits - gesture based - left, right, up, down - dodges
-      ☐ Acid darts - impacting -1 on AC
-      ☐ Rock falls - save DEX
-      ☐ Boulder rolls - save DEX
-      ☐ Magic mouths - save WIS - mini-game riddles (https://github.com/crawsome/riddles - riddles.csv)
-      ☐ Magic sirens - save WIS - mini-game disarm maze
-    ☐ Random dungeon generation
-    ☐ Post dungeon crawl success back to town
-      ☐ Places:
-        ☐ Magic shop
-          ☐ Buy scrolls
-          ☐ Buy wands / staves
-          ☐ Buy spells
-          ☐ Sell same
-        ☐ Alchemist
-          ☐ Buy potions
-            ☐ Healing
-            ☐ Cure poison
-            ☐ Cure disease
-            ☐ Fire bomb
-            ☐ Acid bomb
-          ☐ Sell same
-        ☐ Armory
-          ☐ Buy armor
-          ☐ Buy shields
-          ☐ Buy helms
-          ☐ Sell same
-        ☐ Weapons
-          ☐ Buy swords
-          ☐ Buy axes
-          ☐ Buy clubs
-          ☐ Buy maces
-          ☐ Buy bows / crossbows
-          ☐ Sell same
-        ☐ Tavern
-          ☐ Get a drink (heal)
-          ☐ Listen to rumors
-          ☐ Gamble (mini-game)
-          ☐ Get into a fight
-        ☐ Inn
-          ☐ Rest for the night
-          ☐ Stash
-            ☐ Store and retrieve items
+    ☐ Auto-move: ON/OFF (will be used for computer players later)
+      ☐ Automatically paths through the map, lowest level to highest level
+      ☐ Stop on:
+        ☐ Combat
+        ☐ Event
+        ☐ Level Cleared
+        ☐ New Level
+        ☐ Health < 50%
+        ☐ Health < 25%
+      ☐ Rival system / preferred enemies
+        ☐ When killed by a creature, turns into rival
+          ☐ Rivals grant +1 temporary flourish and re-roll
+            ☐ The idea is player conquers easier because knows from past life
+        ☐ When killed by creature multiple times turns into preferred enemy
+          ☐ Preferred enemy is +1 damage +1 to hit
+      ☐ Can the board be much larger and zoomed in, and pan left and right and by user or events?
+        ☐ This would allow more detail
+      ☐ Environmental curios / events:
+        ☐ Pits
+        ☐ Traps
+        ☐ Poison pools
+        ☐ Webs the player can get caught in
+        ☐ Eggs of creatures they stubmle into clutches can be explored at a risk
+        ☐ Messages near dead adventurer remains - true or false 50%
+        ☐ Arrow slits - gesture based - left, right, up, down - dodges
+        ☐ Acid darts - impacting -1 on AC
+        ☐ Rock falls - save DEX
+        ☐ Boulder rolls - save DEX
+        ☐ Magic mouths - save WIS - mini-game riddles (https://github.com/crawsome/riddles - riddles.csv)
+        ☐ Magic sirens - save WIS - mini-game disarm maze
+      ☐ Random dungeon generation
+      ☐ Post dungeon crawl success back to town
+        ☐ Places:
+          ☐ Magic shop
+            ☐ Buy scrolls
+            ☐ Buy wands / staves
+            ☐ Buy spells
+            ☐ Sell same
+          ☐ Alchemist
+            ☐ Buy potions
+              ☐ Healing
+              ☐ Cure poison
+              ☐ Cure disease
+              ☐ Fire bomb
+              ☐ Acid bomb
+            ☐ Sell same
+          ☐ Armory
+            ☐ Buy armor
+            ☐ Buy shields
+            ☐ Buy helms
+            ☐ Sell same
+          ☐ Weapons
+            ☐ Buy swords
+            ☐ Buy axes
+            ☐ Buy clubs
+            ☐ Buy maces
+            ☐ Buy bows / crossbows
+            ☐ Sell same
+          ☐ Tavern
+            ☐ Get a drink (heal)
+            ☐ Listen to rumors
+            ☐ Gamble (mini-game)
+            ☐ Get into a fight
+          ☐ Inn
+            ☐ Rest for the night
+            ☐ Stash
+              ☐ Store and retrieve items
 
-
-    ✔ Extract a REUSABLE ENGINE from the game @done(26-07-29)
-        DONE and verified -- engine/ names NO game symbol; every engine->game call goes
-        through one of 11 Game_* hooks. engine/ is also self-contained on disk (the
-        vendored ansi/ renderer + the DICE3D module moved in), so the directory can be
-        lifted out as-is. include/ now holds only the reference submodules.
-        The authority is engine/ENGINE.md (layout, hook contract, how each leak closed).
-        ✔ engine/  -- BOARD CURSOR MUSIC JUICE GESTURE STATS DATA UI ARTPACK SAVEIO
           MARKDOWN TEXT + ansi/ + DICE3D/ + DICE3D_GAME.
-        ✔ game/   -- HOOKS OVERLAYS LOADERS CHAMBERS MANIFEST DEBUG PLAYERS COMBAT PLAY
           MENU SPRITES SECTOR SOLO FLAVOR CTEXT CURIO EFFECTS SAVEGAME CHRONICLE LORDS.
-        ✔ DUNGEON.BI split per-declaration into engine/ENGINE.BI + game/GAME.BI.
-        ✔ PROVEN, not just asserted: examples/minimal is a second game on engine/ alone
           (no game/ at all) that walks a player around the board in ~50 lines of hooks.
           Building it immediately exposed a real bug -- see the DetectDoors note below.
-        ✔ ENFORCED by scripts, not discipline (tests/run-tests.sh runs all of these):
-            audit-boundary.sh      no engine/ file may name a game/ symbol; also checks
-                                   every hook the engine CALLS is DEFINED by both games
-            audit-shadow.sh        no local named after a high-risk shared global
-            audit-shortcircuit.sh  no bounds guard relying on short-circuit (QB64 has none)
-            6 unit suites          200 assertions over the game-free engine modules
-        ✔ BUG FOUND BY THE ABOVE: DetectDoors counted hits in a local named `brown`,
           which case-insensitively shadowed the shared BROWN colour -- so it compared each
           pixel against the counter (0) and found ZERO doors, forever. MarkStrongDoors
           marked nothing and reinforced doors never once appeared in play. Fixed; 192 doors
           now detected, ~1 in 6 reinforced as the rules intend.
-        ✔ Also hardened: TokLoad crashed on a missing save (_READFILE$ errors rather than
           returning ""); StatAppend now rotates a stale CSV aside on schema drift.
         ~ NOT done, and deliberately: hooks #3/#4/#9-#15 remain inlined in dungeon.bas.
           That file is the ASSEMBLY and is allowed to name both sides -- lifting them would
@@ -367,14 +483,12 @@ Roadmap (future / bigger efforts):
         in the RESERVED set of tests/audit-boundary.sh (reported every run, not failed on).
         Initiative + turn order should be built engine-side on top of them.
         REFERENCE MOCKUP: assets/ansi/ui-fight.xb  (XBIN, editable in text mode -- the
-          full screen layout the mockup shows). Supporting art already made:
           assets/ansi/monsters/gnoll.xb (+.ans/.icy) enemy portrait,
           assets/ansi/dice/d20.xb (+.ans/.icy) die art. Render/edit the .xb in an
           XBIN editor (DRAW / PabloDraw); the .ans variants can be ANSI_Print'd in-game.
         A full Gold-Box/Darkest-Dungeon-style encounter screen. Big evolution of
         DoCombatDnD. Reuses what we have: HpBar$, the dice tumbler/pip dice, crit
         detection + "CRITICAL HIT!" fanfare, per-actor HP / to-hit / AC / damage die.
-        New systems it needs:
         ☐ Multi-enemy encounters -- fight a GROUP at once (e.g. 4 gnolls), each an
           actor with its own portrait, weapon (mace 1d6, spear 1d4, claw 1d2...),
           armour/AC, and HP bar. (Ties into CHAMBERS below.)
@@ -398,18 +512,13 @@ Roadmap (future / bigger efforts):
         ☐ Colour-coded polyhedral dice tray (d20/d12/d10/d8/d6/d4) -- extend the tumbler
         This is the flagship consumer of the reusable engine's combat subsystem.
 
-    ✔ Special rooms = CHAMBERS with elaborate encounters @done(26-07-29) -- all three
       sub-items below are done. Remaining chamber ambition (multi-pawn / a bigger
       Darkest-Dungeon presentation) folds into the DEEP TACTICAL COMBAT item.
         Per the manual, Dungeon! Rooms hold 1 monster + 1 treasure; CHAMBERS hold a
         3-monster gauntlet and NO treasure (only dropped loot), and allow multiple
-        pawns. Build on the existing room detection:
-        ✔ Tag room-blocks as ROOM vs CHAMBER @done -- game/CHAMBERS.bas fills CHAMBERAT from
           the hand-authored assets/data/chambers.txt (12 named halls; `chamberdump` verifies).
-        ✔ Rooms keep 1-monster + treasure; Chambers run a 3-monster gauntlet @done --
           ChamberEncounter (game/PLAY.bas) raises one monster per entry until CHM_DEAD = 3, and
           is_chamber makes ClaimTreasure grant no treasure, per the board-game rule.
-        ✔ Chamber EVENT table @done(26-07-29) -- assets/data/<pack>/chamber-events.txt:
           kind | name | weight | minlvl | maxlvl | text. Drawn with a weighted, depth-gated
           draw; mechanics keyed by `kind` in code (same idiom as traps/curios), everything
           else data. Kinds: gauntlet (the classic spawn), shrine (draws the curio deck),
@@ -420,292 +529,21 @@ Roadmap (future / bigger efforts):
           (CHM_EVDONE) so re-entering cannot farm boons. Validated by `dungeon.run datalint`
           (unknown kind, zero weight, impossible depth band, no gauntlet weight).
 
-Refactor:
-    ✔ Move code into include modules: @done(26-07-23)
-        ✔ BOARD @done(26-07-23)
-        ✔ CURSOR @done(26-07-23)
-        ✔ SECTOR @done(26-07-23)
-        ✔ MENU @done(26-07-23)
-
-Dialogs:
-    ✔ Create scrolling text window (ScrollText: typewriter reveal + voice blips) @done(26-07-23)
-    ✔ Create character sheet @done(26-07-23)
-    ✔ Create menu option lightbar (simple) @done(26-07-23)
-    ✔ Create combat @done(26-07-23)
-    ✔ Create defeat @done(26-07-23)
-    ✔ Create success @done(26-07-23)
-    ✔ Create treasure @done(26-07-23)
-    ✔ Create end game @done(26-07-23)
-    ✔ Create dice box @done(26-07-23)
-
-Game Menu Actions:
-    ✔ Create LEGENDARY LORDS @done(26-07-23)
-    ✔ Create CREATE A CHARACTER @done(26-07-23)
-    ✔ Create LOAD A CHARACTER @done(26-07-23)
-    ✔ Create SETTINGS: @done(26-07-23)
-        ✔ Music: ON @done(26-07-23)
-        ✔ Music volume (slider) @done(26-07-23)
-        ✔ SoundFX: ON @done(26-07-23)
-        ✔ SoundFX volume (slider) @done(26-07-23)
-        ✔ Voice: ON (typewriter text blips) @done(26-07-23)
-        ✔ Voice volume (slider) @done(26-07-23)
-        ✔ Show Dice @done(26-07-23)
-        ✔ Full screen @done(26-07-23)
-
 Doors:
-    ✔ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it. @done(26-07-23)
-    ✔ Strong/reinforced doors: ~1 in 6 brown doors are locked; break with a STR check (d20+STR vs 13) @done(26-07-23)
     ☐ Add level door (white)   [needs a white-door tile painted into the board art]
 
-Rooms:
-    ✔ Per-room encounters: EVERY room block (all levels incl. 1) has its own monster @done(26-07-23)
-        ✔ Flood-fill detects room blocks (DetectRooms -> ROOMS/ROOMAT), 90+ rooms @done(26-07-23)
-        ✔ Each room rolls its own monster + treasure from its level's pool @done(26-07-23)
-        ✔ Tombstone icon drawn on rooms whose monster is defeated @done(26-07-23)
-        ✔ On death, drop ALL treasure + gold + special cards (DropEverything) @done(26-07-23)
-        ✔ Entrance chamber + tiny label blocks stay safe (no encounter) @done(26-07-23)
-    ✔ Add room type and define properties: @done(26-07-23)
-        x, y, w, h, was_looted, monster_fought, player_died, monster_died, has_level_key, is_boss_room
-        ✔ was_looted: player found treasure @done(26-07-23)
-        ✔ monster_fought: player fought monster @done(26-07-23)
-        ✔ player_died: player died in this room @done(26-07-23)
-        ✔ monster_died: monster died in this room @done(26-07-23)
-    ✔ Add room randomizer for each game: @done(26-07-23)
-        ✔ has_level_key: room contains the level key (only 1 room per level should have this) @done(26-07-23)
-        ✔ is_boss_room: room contains a boss monster (only 1 room per level should have this) @done(26-07-23)
-
-Menu:
-    ✔ Create menu with options using lighbar and ansi fancy-pants @done(23-05-29 17:13)
-    ✔ Add animation to menu @done(23-05-29 17:13)
-    ✔ Create menu music @done(26-07-23)
-
-Visibility:
-    ✔ Line-of-Sight fog-of-war (SETTINGS "Line of Sight", default OFF) @done(26-07-23)
-        ✔ Raytraced FOV from the player (Bresenham rays blocked by walls) @done(26-07-23)
-        ✔ Start explored = just the entrance room + what's visible from it @done(26-07-23)
-        ✔ Lit = bright, explored-not-lit = dimmed, never-seen = black @done(26-07-23)
-        ✔ Room labels / tombstones / rival tokens hidden until seen @done(26-07-23)
-
-Board:
-    ✔ Render room label text separately @done(23-05-25 23:09)
-    ✘ Improve inaccessible blocks with decorations / props @cancelled(23-05-28 00:16)
-    ✔ Refine the board so that diagonals are removed to ease collision @done(23-05-28 00:16)
-    ✔ Make sure sectors of levels do not overlap @done(23-05-28 00:16)
-    ✔ Implement sector detection @done(23-05-28 18:05)
-
-Debugging:
-    ✔ `~` toggles @high @done(26-07-23)
-    ✔ Add debug window: @high @done(26-07-23)
-        ✔ Cursor position x, y in pixels @done(26-07-23)
-        ✔ Cursor position x, y in cells @done(26-07-23)
-        ✔ Cursor states: @done(26-07-23)
-            ✔ On path @done(26-07-23)
-            ✔ In Room @done(26-07-23)
-            ✔ In Room Level (sector shown) @done(26-07-23)
-            ✔ Near Door (on-door) @done(26-07-23)
-            ✔ Near Regular Door (nearRD) @done(26-07-23)
-            ✔ Near Strong Door (nearStr) @done(26-07-23)
-            ✔ Near Secret Door (nearSD) @done(26-07-23)
-            ✘ Fighting Monster @cancelled(26-07-23) -- modal combat, no persistent board state
-            ✘ Fighting Player @cancelled(26-07-23) -- no PvP in hot-seat
-        ✔ Number of moves made @done(26-07-23)
-        ✔ Game start time / Current time @done(26-07-23)
-    ✔ Add crosshair inspector mode for mouse: @done(26-07-23)
-        ✔ Mouse position x, y in pixels @done(26-07-23)
-        ✔ Mouse position x, y in cells @done(26-07-23)
-        ✔ Cell kind under the mouse (OPEN/WALL/SECRET) @done(26-07-23)
-
-Collision:
-    ✔ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&) @done(23-05-29 17:12)
-        Returns true if the image is composed of only 2 colors
-    ✔ Modify function CURSOR.can_move depending on states @done(23-05-29 17:12)
-    ✔ Add neighboring_cells function to determine if: @done(26-07-23)
-        ✔ Near Door (NeighborHasColor / NearRegularDoor) @done(26-07-23)
-        ✔ Near Regular Door @done(26-07-23)
-        ✔ Near Secret Door (NearSecretDoorHint + NearStrongDoor) @done(26-07-23)
-
-Secret Doors:
-    ✔ Add "detect secret door" action: @done(26-07-23)
-        ✔ Use the ability and pick a direction: @done(26-07-23)
-            ✔ If found expose secret door and connected room or path @done(26-07-23)
-Fixes:
-    ✔ Fix map so it can be traversed by cursors @done(23-05-25 10:59)
-
-Control:
-    ✔ Improve control parsing @done(26-07-23)
-        ✔ Add support for arrow keys @done(26-07-23)
-        ✔ Add support for numeric keypad @done(26-07-23)
-        ✔ Add support for other keys (? help, ~ debug, V scry, C sheet) @done(26-07-23)
-        ✔ Build key bindings mapping object ([?] Controls screen from a table) @done(26-07-23)
-    ✔ Implement diagonal movement with num pad @done(26-07-23)
-            7 8 9      numpad 7/9/1/3 (NumLock on) or Home/PgUp/End/PgDn
-             \|/       -> NW/NE/SW/SE tokens handled by TryMove
-            4-5-6
-             /|\
-            1 2 3
-
-Game:
-    ✔ Setup basic rules: @done(26-07-23)
-        ✔ Movement @done(26-07-23)
-        ✔ Doors @done(26-07-29) -- detection (DetectDoors/DetectSecretDoors), reinforced doors
-          (MarkStrongDoors + BreakDoorAttempt STR check), secret doors with reveal-by-region,
-          door-HOP (stepping onto a door auto-advances one more cell, free), and DOOROPEN so a
-          passed door no longer blocks FOV. Only the WHITE level door is outstanding -- it needs
-          board art and is tracked as its own item under Doors:.
-        ✔ Rooms @done(26-07-23)
-
-Turns:
-    ✔ Add turn timer @done(26-07-23)
-    ✔ Add turn logic @done(26-07-23)
-    ✔ Limit movement to number of steps per turn @done(26-07-23)
-    ✔ Number of steps based on dice roll @done(26-07-23)
-
-Dice:
-    ✔ Add dice rolling @done(26-07-23)
-        ✔ 1d6 / 2d6 (movement, Oldschool combat, search) @done(26-07-23)
-        ✔ Arbitrary NdX via GameRoll (d20 to-hit, dN damage in D&D mode) @done(26-07-23)
-        ✔ 4d6-drop-lowest ability rolls (SETTINGS "Stat Roll" option) @done(26-07-23)
-
-Multiplayer:
-    ✔ Hot-seat multiplayer, up to 4 players (SETTINGS "Players") @done(26-07-23)
-        ✔ Each player creates their own character (class + 3d6 roll-up + name) @done(26-07-23)
-        ✔ Take turns: roll + move, then the seat passes to the next player @done(26-07-23)
-        ✔ >1 player forces Boardgame Mode ON (locked) @done(26-07-23)
-        ✔ Shared board; each player has own gold/HP/items/key/position/colour @done(26-07-23)
-        ✔ Per-player 2d6 kill numbers (each class faces its own card number) @done(26-07-23)
-        ✔ All player tokens shown on the board; first to win ends the game @done(26-07-23)
-        ✔ Recoverable loot: a slain player's gold+cards drop IN the room; @done(26-07-23)
-          any player who clears that room grabs them (gold-coin marker). Solo = lost.
-
-Movement Modes:
-    ✔ Boardgame Mode setting (default ON) @done(26-07-23)
-        ✔ ON: roll 1d6 to move, step-limited turns (board-game feel) @done(26-07-23)
-        ✔ OFF: free "computer game" movement, no dice roll to move @done(26-07-23)
-    ✔ Arrow keys / numpad work on every screen WASD does (SelectClass fixed) @done(26-07-23)
-
-Combat Modes:
-    ✔ Oldschool Mode setting (default ON) @done(26-07-23)
-        ✔ ON: classic Dungeon! 2d6-vs-target combat @done(26-07-23)
-        ✔ OFF: D&D d20 to-hit vs AC, weapon damage dice, monster HP @done(26-07-23)
-        ✔ Multi-round fights with player + monster HP @done(26-07-23)
-        ✔ Per-class HP / to-hit / damage die / AC @done(26-07-23)
-        ✔ Monster HP + AC scaled by level (boss extra-tanky) @done(26-07-23)
-        ✔ Natural 20 crit (double dice) / natural 1 fumble @done(26-07-23)
-        ✔ Downed -> lose gold, dragged to START, revived; heal at START @done(26-07-23)
-        ✔ Real-dice input works for d20 + damage dice too @done(26-07-23)
-
-Cursor:
-    ✘ Make pulse or animated so can see it better @cancelled(23-05-25 23:27)
-    ✔ Make cursor transparent @done(23-05-25 23:27)
-    ✔ Add states: @done(23-05-29 17:12)
-        ✔ On path @done(23-05-29 17:12)
-        ✔ In Room @done(23-05-29 17:12)
-        ✔ In Room Level @done(23-05-29 17:12)
-        ✔ Near Door (cursor ring) @done(26-07-23)
-        ✔ Near Regular Door (brown ring) @done(26-07-23)
-        ✔ Near Strong Door (orange ring) @done(26-07-23)
-        ✔ Near Secret Door (blue ring -- search hint) @done(26-07-23)
-        ✘ Fighting Monster @cancelled(26-07-23) -- combat is modal (the combat panel IS the indicator)
-        ✘ Fighting Player @cancelled(26-07-23) -- hot-seat has no player-vs-player combat
-
-Sounds:
-    ✔ Add preliminary sound for movement @done(23-05-28 00:17)
-    ✔ Add preliminary sound for collision @done(23-05-28 00:17)
-    ✔ Add sound effect of dice rolling @done(26-07-23)
-    ✔ Add sound effect of dice rolling critical success @done(26-07-23)
-    ✔ Add sound effect of dice rolling critical failure @done(26-07-23)
-    ✔ Add sound effect when moving @done(26-07-23)
-    ✔ Add sound effect when time passing without moving (idle ambient) @done(26-07-23)
-    ✔ Add sound effect when bumping into wall @done(26-07-23)
-    ✔ Add sound effect when bumping into door @done(26-07-23)
-    ✔ Add sound effect when bumping into strong door (heavy thud) @done(26-07-23)
-    ✔ Add sound effect when finding secret door @done(26-07-23)
-    ✔ Add sound effect when going through secret door @done(26-07-23)
-    ✔ Add sound effect when opening regular door @done(26-07-23)
-    ✔ Add sound effect when opening strong door (break->open) @done(26-07-23)
-    ✔ Add sound effect when breaking door (splintering crash) @done(26-07-23)
-    ✔ Add sound effect for picking up treasure @done(26-07-23)
-    ✔ Volume sliders: Music / SFX / Voice (0-100%) @done(26-07-23)
-
-Refinement backlog (from playtest 26-07-24):
-    ✔ Level Key hidden on a random DEEP level (never level 1); Crystal Ball pinpoints the room @done(26-07-24)
-    ✔ Default settings match the player's config (D&D, 4d6-drop, Sapphire, slow dice, slow combat, smooth) @done(26-07-24)
-    ✔ Wandering monsters from LINGERING (loiter meter): searches / long idle spawn a random @done(26-07-24)
-      encounter of the CURRENT level. `loiter` global reset per game.
-        ✔ Escalating ATMOSPHERIC HINTS before the encounter fires (LoiterOmen$: subtle omens, @done(26-07-24)
-          then close, then the fight). Two pools: subtle -> close.
-    ✔ Dice PHYSICS: full 3D physics via the DICE3D module -- gravity, wall/floor bounce, tumbling @done(26-07-25)
-      rotation, and settle-into-a-row. Far exceeds the original font-approach plan (real polyhedra).
-    ~ LEGENDARY LORDS overhaul: per-level progression (levels 1-9 reached), monsters killed and gold
-      earned PER LEVEL are now CAPTURED in the v2 save (lvl_reached/lvl_kills/lvl_gold/lvl_cleared).
-      REMAINING: the viewer UI -- select a lord to see their full per-level character sheet.
-    ✔ Treasure/ITEM CARD deck verified against the manual @done(26-07-29)
-      TRE_ITEM already spans 12 usable codes (the "expand beyond 5" note was stale). All the
-      manual's magic cards are in the deck: Magic Sword +1/+2, Secret Door Card, ESP Medallion,
-      Crystal Ball, Shield, Magic Armor, Magic Bow, Elf Boots, Teleport Scroll, Fire Ball and
-      Lightning scrolls. (No Cloak / separate Magic Arrow -- neither is in DUNGEON-RULES.md's
-      card list; "Magic Bow/Arrow" reads as one item and is the Magic Bow.)
-      FOUND + FIXED a real per-level frequency bug: items OVERRIDE a treasure slot and a room
-      rolls 1 of its level's 3 slots uniformly, so levels 5, 6 and 8 -- whose every slot had
-      become an item -- could NEVER yield a gold treasure card, and their treasures.txt rows
-      were dead data. Dropped the 3 duplicate cards that saturated them (L5 Fire Ball, L6
-      Lightning, L8 Magic Bow -- each still available elsewhere). Deck 18 -> 15; every level now
-      keeps >=1 gold slot. items.txt records the invariant and `dungeon.run datalint` fails the
-      build if it is ever broken again.
-    ✔ Item drop ODDS decoupled from slot position @done(26-07-29)
-      Items no longer OVERRIDE a treasures.txt slot, which was what forced frequency to be a slot
-      POSITION (only 0/33/66/100% expressible, and a fully-overridden level yielded no gold at
-      all). Two independent knobs now:
-        HOW OFTEN  tuning.txt ITEM_PCT_1..9  -- per level, keyed so a pack can override one level
-        WHICH      items.txt `weight` column -- relative rarity within that level's pool
-      items.txt migrated to `lvl | name | gold | type | weight`; legacy `lvl | slot | ...` packs
-      still load (slot ignored, equal weights) and datalint reports the format.
-      BALANCE CHANGE: levels 3-9 were effectively 66% items; the new ramp is 0% on level 1 then
-      12% -> 36% with depth. Magic items are now clearly a minority, per the manual, and every
-      treasures.txt gold row is reachable again -- including levels 5/6/8, whose rows had been
-      dead data. WANTS A PLAYTEST: the gold economy just changed shape (more treasure cards,
-      fewer items, and fewer duplicate-item sales), so win pacing against 10k/20k/30k may need
-      the ITEM_PCT ramp or the treasure values retuned.
-      NOTE: the drop draw uses the engine's WeightPick% and nests its IFs rather than using AND --
-      PctChance% consumes a die roll, and QB64's AND does not short-circuit, so an AND would burn
-      a roll even with an empty pool and shift the seeded RNG that save/load rebuilds the board from.
-    ~ To-hit is class base + attribute mod (STR fighters / INT wizard) -- e.g. Hero +7 = +4 class +3 STR;
-      shown by CombatDerivation$. Working as designed; revisit class base values if combat stays too easy.
-
 Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md):
-    ✔ FIX: monster markers landed on walls (L-shaped rooms) so combat never fired @done(26-07-24)
-    ✔ Healing potions: treasure 50% (1d8), level-clear cache (1d4 + 30% 1d8), [H] to quaff @done(26-07-24)
-    ✔ XP + D&D leveling: XP per kill; clearing a floor levels you up + rolls a hit die for HP @done(26-07-24)
-    ✔ Item progression: swords/armor always logged + each find one step stronger (capped) @done(26-07-24)
-    ✔ Crit/fumble effects ENGINE (data-driven EFFECTS.bas): crit cinematic + heal, player fumble,
       monster natural-1 self-hit/lose-turn; SETTINGS "Crits & Fumbles" toggle @done(26-07-24)
-    ✔ Monster natural-1 hits itself / loses a turn; hero natural-20 double damage @done(26-07-24)
-    ✔ Curio chests after fights (20%), 25% trapped: poison darts / bomb / frost bomb / magic siren,
       each with a CON/DEX/WIS saving throw; poison+fire DoT, frost no-move, siren +encounters @done(26-07-24)
-    ✔ Status effects tick per step + shown in the HUD @done(26-07-24)
-    ✔ HUD: turn/move count, character level, potion count, status readout, per-player DEATHS @done(26-07-24)
-    ✔ Hardcore idle mode (SETTINGS "Time Passes When Idle"); casual = idling safe @done(26-07-24)
-    ✔ Cleared levels safe; secret-door rooms are sanctuaries once cleared; lean wander loot @done(26-07-24)
-    ✔ Monsters hidden until their room is ENTERED (even FOV off); never drawn on level labels @done(26-07-24)
-    ✔ Loot recovery (SETTINGS toggle, default D&D on): death leaves loot in the room to reclaim @done(26-07-24)
-    ✔ ESP Medallion foresees the monster beyond a door ([Y] enter / [N] back off) @done(26-07-24)
-    ✔ Character creation: press-key-to-roll each stat + [A] auto; show class bonuses; random funny names @done(26-07-24)
-    ✔ Combat stats CSV log (dungeon-stats.csv) for difficulty analysis @done(26-07-24)
-    ✔ Save / load game (single slot, seed-reproduced) + [G] save + CONTINUE on entry @done(26-07-24)
-    ✔ [P] pause for bio breaks; death waits for a keypress before the blood transition @done(26-07-24)
-    ✔ Dice ROTATION: polyhedra spin via _MAPTRIANGLE (render die to scratch image, rotate-blit, ease
       upright on settle). Verified via scratchpads/TEST-DICE-ROT.bas. @done(26-07-24)
-    ✔ Multiplayer save/load @done(26-07-29) -- save v5 adds a PLRS block holding every
       hot-seat seat, so [G] now works in multiplayer (was solo-only). SaveGame syncs the
       ACTIVE seat first (its state lives in the working globals and is only parked on a turn
       change). Player names are written with spaces encoded as CHR$(1) -- the loader splits on
       whitespace, so "Grognard the Fast" would otherwise become 3 tokens and desync the whole
       positional stream. Verified by `dungeon.run savetest`, which round-trips 4 synthetic seats
       AND loads a copy of the real save to prove the bump did not orphan it.
-    ✔ Per-player inventory gap @done(26-07-29) -- FIXED. The PLAYER record gained the 15
       remaining per-seat fields (armour, shield, bow, boots, teleport, both potions, both spell
       charges, char level + XP, and the four status timers), Load/SaveActivePlayer park and
-      restore them, and save v6 persists them. Before this, passing the turn did NOT swap them:
       every hot-seat player shared one inventory, one XP total and one poison timer.
       Two real symptoms this cured:
         - a Wizard in seat 2+ NEVER got a spellbook. The 3 Fire Ball / 3 Lightning / 2 Teleport
@@ -719,10 +557,6 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
     ☐ Tune the curio/trap/potion odds + saving-throw math against playtest feel (constants in
       assets/data/<pack>/tuning.txt now, not DUNGEON.BI).
     ☐ GOLD TARGETS ARE NOT A CONSTRAINT (measured 26-07-29 with `dungeon.run econdump`).
-      Expected treasure gold on the whole board is ~357,000, so:
-         HERO/ELF   10,000 -- affordable by clearing LEVEL 1 alone
-         SUPERHERO  20,000 -- by clearing through level 2
-         WIZARD     30,000 -- by clearing through level 2
       The binding constraint is finding the Level Key and surviving, not gathering gold; the
       class win totals barely differentiate the classes. This PREDATES the item-odds change
       (which roughly doubled gold on levels 3-9 by substituting fewer items -- before it the
@@ -730,11 +564,9 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       Levers, all data-only, re-measure with econdump after each: raise the class targets,
       cut treasures.txt gold values, or raise ITEM_PCT so more rooms pay an item instead of
       gold. A DESIGN call -- econdump makes it a 2-second check instead of a playthrough.
-    ✔ treasures.txt level 9 payout @done(26-07-29) -- it averaged LESS per slot than level 8
       (8333 vs 9000) because slot 3 was a HUGE SAPPHIRE at 6000, below anything on levels 7-8.
       Levels 7-9 are this project's own invention (the board game has 6), so there is no
       canonical list to match: level 9 is now the deepest prize at 11000/12000/13000
-      (HUGE DIAMOND / CROWN OF GEMS / DRAGON HOARD), avg 12000. The ramp is monotonic again:
       L6 7000 -> L7 8000 -> L8 9000 -> L9 12000. All three names resolve to existing sprites
       via TreasureSprite$'s keyword fallback (GEM/DIAMOND -> ruby-necklace, HOARD -> sack-of-gold).
       NOTE: this raises total board gold ~357k -> ~383k, so it makes the over-funding below
@@ -742,22 +574,226 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
     ☐ Board legend art: add "$ = recoverable treasure" and a "fallen-body = an adventurer died here"
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
 
-3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2):
-    ✔ 3D polyhedral dice via the vendored DICE3D module; SETTINGS "Dice Style" (Font / 3D) @done(26-07-25)
-    ✔ OpenGL HARDWARE renderer -- native-res, hardware-filtered, smooth dice over crisp ANSI @done(26-07-25)
-      art (no software-scale jaggies, no aspect stretch); verified headless via Xvfb + x11grab
-    ✔ 10 rainbow dice SETS (data-driven) + per-player / per-monster selection, with a live @done(26-07-25)
-      SETTINGS preview using the same hardware render
-    ✔ Selectable numeral FONT (dicefonts.txt) + hi-res atlas; 1- and 2-digit faces same size @done(26-07-25)
-    ✔ Royal-purple tray, per-bounce beeps + settle boop, calmer tumble, longer settle hold @done(26-07-25)
-    ✔ Sum revealed beat-by-beat ("3 + 3 + 2 = 8") with the modifier; nat d20 (1/20) skips it @done(26-07-25)
-    ✔ 4d6-drop-lowest ability rolls on the 3D dice (module `dl` notation; lowest shrink-fades) @done(26-07-25)
-    ✔ FAIRNESS FIX: the die drew its value from the biased physics face (cube-sampled start @done(26-07-25)
-      orientation + tip-to-nearest settle). Now a uniform RNG value is drawn and the die is
-      posed to show it -- physics is pure animation (d20 mean 10.50, each face ~5.0%).
-    ✔ SAVE corruption fix: boolean level-arrays ran together as "-1-1-1-1" (STR$ has no leading @done(26-07-25)
-      space for negatives) and desynced the load, leaking save data into the champion's name.
-    ✔ Board MARKERS: a fallen-body glyph where an adventurer died and left loot; a $ for treasure @done(26-07-25)
-      left to recover (e.g. a curio left unopened). Both clear when the loot is claimed or lost.
-    ✔ Upstream DICE3D: ported the HW renderer + fairness + texture fixes back to the module and @done(26-07-25)
-      added a [G] software/hardware render toggle to DICE3D-TEST.BAS (grymmjack/qb64 PRs #1, #2).
+Archive:
+    ✔ Extract a REUSABLE ENGINE from the game @done(26-07-29) @project(Roadmap (future / bigger efforts))
+      DONE and verified -- engine/ names NO game symbol; every engine->game call goes
+      through one of 11 Game_* hooks. engine/ is also self-contained on disk (the
+      vendored ansi/ renderer + the DICE3D module moved in), so the directory can be
+      lifted out as-is. include/ now holds only the reference submodules.
+      The authority is engine/ENGINE.md (layout, hook contract, how each leak closed).
+    ✔ engine/  -- BOARD CURSOR MUSIC JUICE GESTURE STATS DATA UI ARTPACK SAVEIO @project(Roadmap (future / bigger efforts))
+    ✔ game/   -- HOOKS OVERLAYS LOADERS CHAMBERS MANIFEST DEBUG PLAYERS COMBAT PLAY @project(Roadmap (future / bigger efforts))
+    ✔ DUNGEON.BI split per-declaration into engine/ENGINE.BI + game/GAME.BI. @project(Roadmap (future / bigger efforts))
+    ✔ PROVEN, not just asserted: examples/minimal is a second game on engine/ alone @project(Roadmap (future / bigger efforts))
+    ✔ ENFORCED by scripts, not discipline (tests/run-tests.sh runs all of these): @project(Roadmap (future / bigger efforts))
+      audit-boundary.sh      no engine/ file may name a game/ symbol; also checks
+      every hook the engine CALLS is DEFINED by both games
+      audit-shadow.sh        no local named after a high-risk shared global
+      audit-shortcircuit.sh  no bounds guard relying on short-circuit (QB64 has none)
+      6 unit suites          200 assertions over the game-free engine modules
+    ✔ BUG FOUND BY THE ABOVE: DetectDoors counted hits in a local named `brown`, @project(Roadmap (future / bigger efforts))
+    ✔ Also hardened: TokLoad crashed on a missing save (_READFILE$ errors rather than @project(Roadmap (future / bigger efforts))
+    ✔ Special rooms = CHAMBERS with elaborate encounters @done(26-07-29) -- all three @project(Roadmap (future / bigger efforts))
+    ✔ Tag room-blocks as ROOM vs CHAMBER @done -- game/CHAMBERS.bas fills CHAMBERAT from @project(Roadmap (future / bigger efforts))
+    ✔ Rooms keep 1-monster + treasure; Chambers run a 3-monster gauntlet @done -- @project(Roadmap (future / bigger efforts))
+    ✔ Chamber EVENT table @done(26-07-29) -- assets/data/<pack>/chamber-events.txt: @project(Roadmap (future / bigger efforts))
+    ✔ Move code into include modules: @done(26-07-23) @project(Refactor)
+    ✔ BOARD @done(26-07-23) @project(Refactor)
+    ✔ CURSOR @done(26-07-23) @project(Refactor)
+    ✔ SECTOR @done(26-07-23) @project(Refactor)
+    ✔ MENU @done(26-07-23) @project(Refactor)
+    ✔ Create scrolling text window (ScrollText: typewriter reveal + voice blips) @done(26-07-23) @project(Dialogs)
+    ✔ Create character sheet @done(26-07-23) @project(Dialogs)
+    ✔ Create menu option lightbar (simple) @done(26-07-23) @project(Dialogs)
+    ✔ Create combat @done(26-07-23) @project(Dialogs)
+    ✔ Create defeat @done(26-07-23) @project(Dialogs)
+    ✔ Create success @done(26-07-23) @project(Dialogs)
+    ✔ Create treasure @done(26-07-23) @project(Dialogs)
+    ✔ Create end game @done(26-07-23) @project(Dialogs)
+    ✔ Create dice box @done(26-07-23) @project(Dialogs)
+    ✔ Create LEGENDARY LORDS @done(26-07-23) @project(Game Menu Actions)
+    ✔ Create CREATE A CHARACTER @done(26-07-23) @project(Game Menu Actions)
+    ✔ Create LOAD A CHARACTER @done(26-07-23) @project(Game Menu Actions)
+    ✔ Create SETTINGS: @done(26-07-23) @project(Game Menu Actions)
+    ✔ Music: ON @done(26-07-23) @project(Game Menu Actions)
+    ✔ Music volume (slider) @done(26-07-23) @project(Game Menu Actions)
+    ✔ SoundFX: ON @done(26-07-23) @project(Game Menu Actions)
+    ✔ SoundFX volume (slider) @done(26-07-23) @project(Game Menu Actions)
+    ✔ Voice: ON (typewriter text blips) @done(26-07-23) @project(Game Menu Actions)
+    ✔ Voice volume (slider) @done(26-07-23) @project(Game Menu Actions)
+    ✔ Show Dice @done(26-07-23) @project(Game Menu Actions)
+    ✔ Full screen @done(26-07-23) @project(Game Menu Actions)
+    ✔ Add when moving on door move +1 in the direction according to last move to go passed the door and not land on it. @done(26-07-23) @project(Doors)
+    ✔ Strong/reinforced doors: ~1 in 6 brown doors are locked; break with a STR check (d20+STR vs 13) @done(26-07-23) @project(Doors)
+    ✔ Per-room encounters: EVERY room block (all levels incl. 1) has its own monster @done(26-07-23) @project(Rooms)
+    ✔ Flood-fill detects room blocks (DetectRooms -> ROOMS/ROOMAT), 90+ rooms @done(26-07-23) @project(Rooms)
+    ✔ Each room rolls its own monster + treasure from its level's pool @done(26-07-23) @project(Rooms)
+    ✔ Tombstone icon drawn on rooms whose monster is defeated @done(26-07-23) @project(Rooms)
+    ✔ On death, drop ALL treasure + gold + special cards (DropEverything) @done(26-07-23) @project(Rooms)
+    ✔ Entrance chamber + tiny label blocks stay safe (no encounter) @done(26-07-23) @project(Rooms)
+    ✔ Add room type and define properties: @done(26-07-23) @project(Rooms)
+      x, y, w, h, was_looted, monster_fought, player_died, monster_died, has_level_key, is_boss_room
+    ✔ was_looted: player found treasure @done(26-07-23) @project(Rooms)
+    ✔ monster_fought: player fought monster @done(26-07-23) @project(Rooms)
+    ✔ player_died: player died in this room @done(26-07-23) @project(Rooms)
+    ✔ monster_died: monster died in this room @done(26-07-23) @project(Rooms)
+    ✔ Add room randomizer for each game: @done(26-07-23) @project(Rooms)
+    ✔ has_level_key: room contains the level key (only 1 room per level should have this) @done(26-07-23) @project(Rooms)
+    ✔ is_boss_room: room contains a boss monster (only 1 room per level should have this) @done(26-07-23) @project(Rooms)
+    ✔ Create menu with options using lighbar and ansi fancy-pants @done(23-05-29 17:13) @project(Menu)
+    ✔ Add animation to menu @done(23-05-29 17:13) @project(Menu)
+    ✔ Create menu music @done(26-07-23) @project(Menu)
+    ✔ Line-of-Sight fog-of-war (SETTINGS "Line of Sight", default OFF) @done(26-07-23) @project(Visibility)
+    ✔ Raytraced FOV from the player (Bresenham rays blocked by walls) @done(26-07-23) @project(Visibility)
+    ✔ Start explored = just the entrance room + what's visible from it @done(26-07-23) @project(Visibility)
+    ✔ Lit = bright, explored-not-lit = dimmed, never-seen = black @done(26-07-23) @project(Visibility)
+    ✔ Room labels / tombstones / rival tokens hidden until seen @done(26-07-23) @project(Visibility)
+    ✔ Render room label text separately @done(23-05-25 23:09) @project(Board)
+    ✘ Improve inaccessible blocks with decorations / props @cancelled(23-05-28 00:16) @project(Board)
+    ✔ Refine the board so that diagonals are removed to ease collision @done(23-05-28 00:16) @project(Board)
+    ✔ Make sure sectors of levels do not overlap @done(23-05-28 00:16) @project(Board)
+    ✔ Implement sector detection @done(23-05-28 18:05) @project(Board)
+    ✔ `~` toggles @high @done(26-07-23) @project(Debugging)
+    ✔ Add debug window: @high @done(26-07-23) @project(Debugging)
+    ✔ Cursor position x, y in pixels @done(26-07-23) @project(Debugging)
+    ✔ Cursor position x, y in cells @done(26-07-23) @project(Debugging)
+    ✔ Cursor states: @done(26-07-23) @project(Debugging)
+    ✔ On path @done(26-07-23) @project(Debugging)
+    ✔ In Room @done(26-07-23) @project(Debugging)
+    ✔ In Room Level (sector shown) @done(26-07-23) @project(Debugging)
+    ✔ Near Door (on-door) @done(26-07-23) @project(Debugging)
+    ✔ Near Regular Door (nearRD) @done(26-07-23) @project(Debugging)
+    ✔ Near Strong Door (nearStr) @done(26-07-23) @project(Debugging)
+    ✔ Near Secret Door (nearSD) @done(26-07-23) @project(Debugging)
+    ✘ Fighting Monster @cancelled(26-07-23) -- modal combat, no persistent board state @project(Debugging)
+    ✘ Fighting Player @cancelled(26-07-23) -- no PvP in hot-seat @project(Debugging)
+    ✔ Number of moves made @done(26-07-23) @project(Debugging)
+    ✔ Game start time / Current time @done(26-07-23) @project(Debugging)
+    ✔ Add crosshair inspector mode for mouse: @done(26-07-23) @project(Debugging)
+    ✔ Mouse position x, y in pixels @done(26-07-23) @project(Debugging)
+    ✔ Mouse position x, y in cells @done(26-07-23) @project(Debugging)
+    ✔ Cell kind under the mouse (OPEN/WALL/SECRET) @done(26-07-23) @project(Debugging)
+    ✔ Create function image_is_dichromatic(img&, kolor1~&, kolor2~&) @done(23-05-29 17:12) @project(Collision)
+      Returns true if the image is composed of only 2 colors
+    ✔ Modify function CURSOR.can_move depending on states @done(23-05-29 17:12) @project(Collision)
+    ✔ Add neighboring_cells function to determine if: @done(26-07-23) @project(Collision)
+    ✔ Near Door (NeighborHasColor / NearRegularDoor) @done(26-07-23) @project(Collision)
+    ✔ Near Regular Door @done(26-07-23) @project(Collision)
+    ✔ Near Secret Door (NearSecretDoorHint + NearStrongDoor) @done(26-07-23) @project(Collision)
+    ✔ Add "detect secret door" action: @done(26-07-23) @project(Secret Doors)
+    ✔ Use the ability and pick a direction: @done(26-07-23) @project(Secret Doors)
+    ✔ If found expose secret door and connected room or path @done(26-07-23) @project(Secret Doors)
+    ✔ Fix map so it can be traversed by cursors @done(23-05-25 10:59) @project(Fixes)
+    ✔ Improve control parsing @done(26-07-23) @project(Control)
+    ✔ Add support for arrow keys @done(26-07-23) @project(Control)
+    ✔ Add support for numeric keypad @done(26-07-23) @project(Control)
+    ✔ Add support for other keys (? help, ~ debug, V scry, C sheet) @done(26-07-23) @project(Control)
+    ✔ Build key bindings mapping object ([?] Controls screen from a table) @done(26-07-23) @project(Control)
+    ✔ Implement diagonal movement with num pad @done(26-07-23) @project(Control)
+      7 8 9      numpad 7/9/1/3 (NumLock on) or Home/PgUp/End/PgDn
+      \|/       -> NW/NE/SW/SE tokens handled by TryMove
+      4-5-6
+      /|\
+      1 2 3
+    ✔ Setup basic rules: @done(26-07-23) @project(Game)
+    ✔ Movement @done(26-07-23) @project(Game)
+    ✔ Doors @done(26-07-29) -- detection (DetectDoors/DetectSecretDoors), reinforced doors @project(Game)
+    ✔ Rooms @done(26-07-23) @project(Game)
+    ✔ Add turn timer @done(26-07-23) @project(Turns)
+    ✔ Add turn logic @done(26-07-23) @project(Turns)
+    ✔ Limit movement to number of steps per turn @done(26-07-23) @project(Turns)
+    ✔ Number of steps based on dice roll @done(26-07-23) @project(Turns)
+    ✔ Add dice rolling @done(26-07-23) @project(Dice)
+    ✔ 1d6 / 2d6 (movement, Oldschool combat, search) @done(26-07-23) @project(Dice)
+    ✔ Arbitrary NdX via GameRoll (d20 to-hit, dN damage in D&D mode) @done(26-07-23) @project(Dice)
+    ✔ 4d6-drop-lowest ability rolls (SETTINGS "Stat Roll" option) @done(26-07-23) @project(Dice)
+    ✔ Hot-seat multiplayer, up to 4 players (SETTINGS "Players") @done(26-07-23) @project(Multiplayer)
+    ✔ Each player creates their own character (class + 3d6 roll-up + name) @done(26-07-23) @project(Multiplayer)
+    ✔ Take turns: roll + move, then the seat passes to the next player @done(26-07-23) @project(Multiplayer)
+    ✔ >1 player forces Boardgame Mode ON (locked) @done(26-07-23) @project(Multiplayer)
+    ✔ Shared board; each player has own gold/HP/items/key/position/colour @done(26-07-23) @project(Multiplayer)
+    ✔ Per-player 2d6 kill numbers (each class faces its own card number) @done(26-07-23) @project(Multiplayer)
+    ✔ All player tokens shown on the board; first to win ends the game @done(26-07-23) @project(Multiplayer)
+    ✔ Recoverable loot: a slain player's gold+cards drop IN the room; @done(26-07-23) @project(Multiplayer)
+    ✔ Boardgame Mode setting (default ON) @done(26-07-23) @project(Movement Modes)
+    ✔ ON: roll 1d6 to move, step-limited turns (board-game feel) @done(26-07-23) @project(Movement Modes)
+    ✔ OFF: free "computer game" movement, no dice roll to move @done(26-07-23) @project(Movement Modes)
+    ✔ Arrow keys / numpad work on every screen WASD does (SelectClass fixed) @done(26-07-23) @project(Movement Modes)
+    ✔ Oldschool Mode setting (default ON) @done(26-07-23) @project(Combat Modes)
+    ✔ ON: classic Dungeon! 2d6-vs-target combat @done(26-07-23) @project(Combat Modes)
+    ✔ OFF: D&D d20 to-hit vs AC, weapon damage dice, monster HP @done(26-07-23) @project(Combat Modes)
+    ✔ Multi-round fights with player + monster HP @done(26-07-23) @project(Combat Modes)
+    ✔ Per-class HP / to-hit / damage die / AC @done(26-07-23) @project(Combat Modes)
+    ✔ Monster HP + AC scaled by level (boss extra-tanky) @done(26-07-23) @project(Combat Modes)
+    ✔ Natural 20 crit (double dice) / natural 1 fumble @done(26-07-23) @project(Combat Modes)
+    ✔ Downed -> lose gold, dragged to START, revived; heal at START @done(26-07-23) @project(Combat Modes)
+    ✔ Real-dice input works for d20 + damage dice too @done(26-07-23) @project(Combat Modes)
+    ✘ Make pulse or animated so can see it better @cancelled(23-05-25 23:27) @project(Cursor)
+    ✔ Make cursor transparent @done(23-05-25 23:27) @project(Cursor)
+    ✔ Add states: @done(23-05-29 17:12) @project(Cursor)
+    ✔ On path @done(23-05-29 17:12) @project(Cursor)
+    ✔ In Room @done(23-05-29 17:12) @project(Cursor)
+    ✔ In Room Level @done(23-05-29 17:12) @project(Cursor)
+    ✔ Near Door (cursor ring) @done(26-07-23) @project(Cursor)
+    ✔ Near Regular Door (brown ring) @done(26-07-23) @project(Cursor)
+    ✔ Near Strong Door (orange ring) @done(26-07-23) @project(Cursor)
+    ✔ Near Secret Door (blue ring -- search hint) @done(26-07-23) @project(Cursor)
+    ✘ Fighting Monster @cancelled(26-07-23) -- combat is modal (the combat panel IS the indicator) @project(Cursor)
+    ✘ Fighting Player @cancelled(26-07-23) -- hot-seat has no player-vs-player combat @project(Cursor)
+    ✔ Add preliminary sound for movement @done(23-05-28 00:17) @project(Sounds)
+    ✔ Add preliminary sound for collision @done(23-05-28 00:17) @project(Sounds)
+    ✔ Add sound effect of dice rolling @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect of dice rolling critical success @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect of dice rolling critical failure @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when moving @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when time passing without moving (idle ambient) @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when bumping into wall @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when bumping into door @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when bumping into strong door (heavy thud) @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when finding secret door @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when going through secret door @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when opening regular door @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when opening strong door (break->open) @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect when breaking door (splintering crash) @done(26-07-23) @project(Sounds)
+    ✔ Add sound effect for picking up treasure @done(26-07-23) @project(Sounds)
+    ✔ Volume sliders: Music / SFX / Voice (0-100%) @done(26-07-23) @project(Sounds)
+    ✔ Level Key hidden on a random DEEP level (never level 1); Crystal Ball pinpoints the room @done(26-07-24) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ Default settings match the player's config (D&D, 4d6-drop, Sapphire, slow dice, slow combat, smooth) @done(26-07-24) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ Wandering monsters from LINGERING (loiter meter): searches / long idle spawn a random @done(26-07-24) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ Escalating ATMOSPHERIC HINTS before the encounter fires (LoiterOmen$: subtle omens, @done(26-07-24) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ Dice PHYSICS: full 3D physics via the DICE3D module -- gravity, wall/floor bounce, tumbling @done(26-07-25) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ Treasure/ITEM CARD deck verified against the manual @done(26-07-29) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ Item drop ODDS decoupled from slot position @done(26-07-29) @project(Refinement backlog (from playtest 26-07-24))
+    ✔ FIX: monster markers landed on walls (L-shaped rooms) so combat never fired @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Healing potions: treasure 50% (1d8), level-clear cache (1d4 + 30% 1d8), [H] to quaff @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ XP + D&D leveling: XP per kill; clearing a floor levels you up + rolls a hit die for HP @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Item progression: swords/armor always logged + each find one step stronger (capped) @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Crit/fumble effects ENGINE (data-driven EFFECTS.bas): crit cinematic + heal, player fumble, @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Monster natural-1 hits itself / loses a turn; hero natural-20 double damage @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Curio chests after fights (20%), 25% trapped: poison darts / bomb / frost bomb / magic siren, @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Status effects tick per step + shown in the HUD @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ HUD: turn/move count, character level, potion count, status readout, per-player DEATHS @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Hardcore idle mode (SETTINGS "Time Passes When Idle"); casual = idling safe @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Cleared levels safe; secret-door rooms are sanctuaries once cleared; lean wander loot @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Monsters hidden until their room is ENTERED (even FOV off); never drawn on level labels @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Loot recovery (SETTINGS toggle, default D&D on): death leaves loot in the room to reclaim @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ ESP Medallion foresees the monster beyond a door ([Y] enter / [N] back off) @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Character creation: press-key-to-roll each stat + [A] auto; show class bonuses; random funny names @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Combat stats CSV log (dungeon-stats.csv) for difficulty analysis @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Save / load game (single slot, seed-reproduced) + [G] save + CONTINUE on entry @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ [P] pause for bio breaks; death waits for a keypress before the blood transition @done(26-07-24) @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Dice ROTATION: polyhedra spin via _MAPTRIANGLE (render die to scratch image, rotate-blit, ease @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Multiplayer save/load @done(26-07-29) -- save v5 adds a PLRS block holding every @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ Per-player inventory gap @done(26-07-29) -- FIXED. The PLAYER record gained the 15 @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ treasures.txt level 9 payout @done(26-07-29) -- it averaged LESS per slot than level 8 @project(Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md))
+    ✔ 3D polyhedral dice via the vendored DICE3D module; SETTINGS "Dice Style" (Font / 3D) @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ OpenGL HARDWARE renderer -- native-res, hardware-filtered, smooth dice over crisp ANSI @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ 10 rainbow dice SETS (data-driven) + per-player / per-monster selection, with a live @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ Selectable numeral FONT (dicefonts.txt) + hi-res atlas; 1- and 2-digit faces same size @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ Royal-purple tray, per-bounce beeps + settle boop, calmer tumble, longer settle hold @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ Sum revealed beat-by-beat ("3 + 3 + 2 = 8") with the modifier; nat d20 (1/20) skips it @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ 4d6-drop-lowest ability rolls on the 3D dice (module `dl` notation; lowest shrink-fades) @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ FAIRNESS FIX: the die drew its value from the biased physics face (cube-sampled start @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ SAVE corruption fix: boolean level-arrays ran together as "-1-1-1-1" (STR$ has no leading @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ Board MARKERS: a fallen-body glyph where an adventurer died and left loot; a $ for treasure @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
+    ✔ Upstream DICE3D: ported the HW renderer + fairness + texture fixes back to the module and @done(26-07-25) @project(3D DICE + fixes (26-07-24 / 26-07-25) -- merged to main (PRs #3, #4); DICE3D module pushed upstream (grymmjack/qb64 PRs #1, #2))
