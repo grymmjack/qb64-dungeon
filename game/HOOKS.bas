@@ -197,9 +197,23 @@ END FUNCTION
 ' _SOURCE must be a COLLISION image (FULL_COLLIDE or COLLIDE_BOARD) -- never a display image,
 ' or layer-1 decoration would read as terrain.
 FUNCTION Game_FloorColorAt~& (px AS INTEGER, py AS INTEGER)
-    DIM col AS _UNSIGNED LONG
-    col = POINT(px + CW \ 2, py + CH \ 2)
-    IF SectorByColor%(col) >= 1 THEN Game_FloorColorAt~& = col ELSE Game_FloorColorAt~& = 0
+    DIM sx AS INTEGER, sy AS INTEGER, col AS _UNSIGNED LONG
+    Game_FloorColorAt~& = 0
+    ' SCAN THE CELL, do not just probe its centre.
+    '
+    ' A DOORWAY is half room floor and half door colour, and on plenty of them the centre pixel
+    ' lands on the BROWN half. Probing only the centre therefore answered "no floor here", the
+    ' room-floor branch of CanMove never ran, and the player could not walk through their own
+    ' doors -- every doorway into a room, which is most of them.
+    '
+    ' The question this hook answers is "is any part of this cell room floor, and which level's",
+    ' so it has to look at more than one pixel. First match wins; step 2 to stay cheap.
+    FOR sy = 1 TO CH - 1 STEP 2
+        FOR sx = 1 TO CW - 1 STEP 2
+            col = POINT(px + sx, py + sy)
+            IF SectorByColor%(col) >= 1 THEN Game_FloorColorAt~& = col: EXIT FUNCTION
+        NEXT sx
+    NEXT sy
 END FUNCTION
 
 ' Game hooks -- ZONE identity, for the engine's mask linter (`dungeon.run ansilint`).

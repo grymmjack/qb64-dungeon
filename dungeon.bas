@@ -309,6 +309,7 @@ END IF
 IF INSTR(UCASE$(COMMAND$), "ROOMLINT") > 0 THEN
     BuildBoardImages
     DetectSecretDoors
+    DetectDoors                     ' WalkLint tests every detected door by name -- without this DOOR_N is 0
     Game_PopulateBoard
     RandomizeRooms                  ' so the monster/treasure placement it reports is the real thing
     RoomLint

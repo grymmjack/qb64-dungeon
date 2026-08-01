@@ -153,6 +153,7 @@ SUB RoomLint
         PRINT PipeCol$("  |14" + _TRIM$(STR$(ondoor)) + " room(s) seat their marker on a DOORWAY|07 -- walkable, but the grave sits in the door")
     END IF
     IF badmark = 0 AND ondoor = 0 AND nisland = 0 THEN PRINT PipeCol$("  |10every room is enterable and every marker sits on plain floor|07")
+    WalkLint
     PRINT
     PRINT PipeCol$("  wrote |10roomlint.png|07 -- the board with every problem cell and room marked")
     SYSTEM 0
@@ -1492,3 +1493,85 @@ FUNCTION SenseHit% (txt AS STRING, s AS INTEGER)
         p = q
     LOOP
 END FUNCTION
+
+
+
+' ============================================================================
+'  WALKLINT -- can the player ACTUALLY stand on every cell we call walkable?
+'
+'  roomlint counts cells by COLOUR (CellRoomKind%). That is not the same question as
+'  "will CanMove let me stand here", which is what the player experiences -- and the
+'  two drifted apart badly: Game_FloorColorAt~& probed only a cell's CENTRE pixel, so
+'  every doorway whose centre landed on the brown half answered "not floor" and became
+'  impassable. Every room was still reported enterable, because nothing asked CanMove.
+'
+'  So ask it. Park the cursor on each FLOOR and DOOR cell and call the real function.
+' ============================================================================
+SUB WalkLint
+    DIM cx AS INTEGER, cy AS INTEGER, k AS INTEGER
+    DIM savex AS INTEGER, savey AS INTEGER, oldsrc AS LONG
+    DIM nfloor AS LONG, ndoor AS LONG, badfloor AS LONG, baddoor AS LONG
+    DIM fx AS INTEGER, fy AS INTEGER
+    savex = c.x: savey = c.y
+    oldsrc = _SOURCE
+    ' CanMove samples COLLIDE_BOARD, and this dev mode never runs InitFog -- so without this the
+    ' board it reads is a blank image and EVERY cell reports unwalkable. Use the un-fogged
+    ' collision board: this lints the MAP, not what the player has discovered.
+    _PUTIMAGE (0, 0), FULL_COLLIDE, COLLIDE_BOARD
+    fx = -1
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            k = ROOMKIND(cx, cy)
+            IF k = CRK_FLOOR OR k = CRK_DOOR THEN
+                c.x = cx * CW: c.y = cy * CH
+                IF k = CRK_FLOOR THEN
+                    nfloor = nfloor + 1
+                    IF NOT CanMove% THEN badfloor = badfloor + 1: IF fx < 0 THEN fx = cx: fy = cy
+                ELSE
+                    ndoor = ndoor + 1
+                    IF NOT CanMove% THEN baddoor = baddoor + 1: IF fx < 0 THEN fx = cx: fy = cy
+                END IF
+            END IF
+        NEXT cx
+    NEXT cy
+    ' SECRET DOORS are a separate colour and are NOT part of any room block, so ROOMKIND never
+    ' sees them -- they need testing by name. Tested against FULL_COLLIDE (the pristine board),
+    ' because in play they are deliberately blacked out until found: the question here is
+    ' "once revealed, can it be walked through", not "is it visible yet".
+    DIM i AS INTEGER, nsec AS LONG, badsec AS LONG, sx AS INTEGER, sy AS INTEGER
+    sx = -1
+    FOR i = 1 TO SD_N
+        c.x = SD_X(i) * CW: c.y = SD_Y(i) * CH
+        nsec = nsec + 1
+        IF NOT CanMove% THEN badsec = badsec + 1: IF sx < 0 THEN sx = SD_X(i): sy = SD_Y(i)
+    NEXT i
+    ' ...and every ORDINARY door, by name too: DetectDoors finds cells ROOMKIND may class as
+    ' MIXED (a half-painted door in a wall), and those must still be passable.
+    DIM nd AS LONG, badnd AS LONG, dx AS INTEGER, dy AS INTEGER
+    dx = -1
+    FOR i = 1 TO DOOR_N
+        c.x = DOOR_X(i) * CW: c.y = DOOR_Y(i) * CH
+        nd = nd + 1
+        IF NOT CanMove% THEN badnd = badnd + 1: IF dx < 0 THEN dx = DOOR_X(i): dy = DOOR_Y(i)
+    NEXT i
+    c.x = savex: c.y = savey
+    _SOURCE oldsrc
+    _DEST _CONSOLE
+    IF badfloor = 0 AND baddoor = 0 THEN
+        PRINT PipeCol$("  |10CanMove agrees|07 -- all " + _TRIM$(STR$(nfloor)) + " floor and " + _TRIM$(STR$(ndoor)) + " doorway cells are actually walkable")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(badfloor)) + " floor + " + _TRIM$(STR$(baddoor)) + " doorway cell(s) are NOT walkable|07 (first at " + _TRIM$(STR$(fx)) + "," + _TRIM$(STR$(fy)) + ")")
+        PRINT PipeCol$("     |14the map says you can stand there and CanMove says you cannot -- the player is walled in")
+    END IF
+    IF badsec = 0 THEN
+        PRINT PipeCol$("  |10all " + _TRIM$(STR$(nsec)) + " secret doors|07 are passable once revealed")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(badsec)) + " of " + _TRIM$(STR$(nsec)) + " SECRET DOORS are not passable|07 (first at " + _TRIM$(STR$(sx)) + "," + _TRIM$(STR$(sy)) + ")")
+        PRINT PipeCol$("     |14searching would reveal a door the player still cannot walk through")
+    END IF
+    IF badnd = 0 THEN
+        PRINT PipeCol$("  |10all " + _TRIM$(STR$(nd)) + " detected doors|07 are passable")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(badnd)) + " of " + _TRIM$(STR$(nd)) + " DOORS are not passable|07 (first at " + _TRIM$(STR$(dx)) + "," + _TRIM$(STR$(dy)) + ")")
+    END IF
+END SUB
