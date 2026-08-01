@@ -160,11 +160,20 @@ SUB dice3d_showcase (cfg AS DICE3D_CONFIG)
     ' face a visible TOP face and the apex then reads a DIFFERENT face's number. The correct
     ' apex-up read seats the value face as the hidden BASE: rotate FACE_Q(f) about X by
     ' 90 deg (base points straight down) PLUS the camera tilt (so it points straight away
-    ' from the tilted camera), minus a few deg so a sliver of the base tips into view and it
-    ' reads as a real 3D pyramid rather than a flat triangle. Verified value-correct 1..4 in
-    ' dicelab.bas. (Sweep proof: at CAM_TILT 0 the clean angle is 90; at 32 it is 122.)
+    ' from the tilted camera), plus D4_LEAN to decide which way it tips off square-on.
+    ' Verified value-correct 1..4 in dicelab.bas. (Sweep proof: at CAM_TILT 0 the clean angle
+    ' is 90; at 32 it is 122.)
+    '
+    ' D4_LEAN used to be a hardcoded -4, which tipped the base TOWARD the camera on purpose --
+    ' a sliver of the bottom showing so it read as a pyramid rather than a flat triangle. That
+    ' sliver is exactly what looks wrong: the die appears to lean outward at you. Positive
+    ' values tip it AWAY instead, hiding the base and showing more of the upper faces, which
+    ' still reads as solid because the three visible faces are foreshortened differently.
+    DIM lean AS SINGLE
+    lean = cfg.D4_LEAN
+    IF lean = 0 THEN lean = 8                    ' unset (an old set file): tip AWAY, not toward
     axisX.X = 1: axisX.Y = 0: axisX.Z = 0
-    dice3d_qaxisangle axisX, (90 + cfg.CAM_TILT - 4) * 0.0174532925, rxt
+    dice3d_qaxisangle axisX, (90 + cfg.CAM_TILT + lean) * 0.0174532925, rxt
     REDIM AS DICE3D_QUAT sq(lo TO hi)
     FOR i = lo TO hi: sq(i) = DICE3D_DICE(i).Q: NEXT
     FOR fr = 1 TO NFR

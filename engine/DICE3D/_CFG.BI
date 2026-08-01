@@ -47,6 +47,12 @@ TYPE DICE3D_CONFIG
     '--- Die appearance --------------------------------------------------------
     DIE_SIZE AS SINGLE '                 half-extent in box pixels (48 => ~96px die)
     CAM_TILT AS SINGLE '                 view pitch in degrees (0 = pure top-down)
+    D4_LEAN AS SINGLE  '                 d4 read pose: degrees the value-base is tipped from
+    '                                    square-on. NEGATIVE tips the base TOWARD the camera
+    '                                    (you see a sliver of the bottom); POSITIVE tips it
+    '                                    AWAY (the bottom is hidden and you see more of the
+    '                                    upper faces). 0 = edge-on, which reads as a flat
+    '                                    triangle and is the one thing to avoid.
     CAM_YAW AS SINGLE '                  view yaw in degrees (orbit left/right)
     FOV AS SINGLE '                      field of view in degrees (0 = orthographic)
     MATERIAL AS INTEGER

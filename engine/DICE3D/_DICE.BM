@@ -23,7 +23,7 @@ SUB dice3d_config_defaults (cfg AS DICE3D_CONFIG)
     cfg.BOX_SHOW_OUTLINE = -1: cfg.BOX_OUTLINE_KOLOR = _RGB32(120, 160, 255)
     cfg.BOX_SHOW_BACK = -1: cfg.BOX_BACK_KOLOR = _RGB32(0, 0, 90) '  deep blue
     cfg.DIE_SIZE = 40
-    cfg.CAM_TILT = 32: cfg.CAM_YAW = 0: cfg.FOV = 0
+    cfg.CAM_TILT = 32: cfg.CAM_YAW = 0: cfg.FOV = 0: cfg.D4_LEAN = 8
     cfg.MATERIAL = DICE3D_MAT_SOLID
     cfg.BODY_KOLOR = _RGB32(235, 235, 240)
     cfg.NUM_KOLOR = _RGB32(20, 20, 30)

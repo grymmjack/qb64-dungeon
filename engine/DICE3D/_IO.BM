@@ -49,6 +49,7 @@ SUB dice3d_config_write (fh AS INTEGER, cfg AS DICE3D_CONFIG)
     dice3d_wr fh, "BOX_SHOW_BACK", dice3d_ns$(cfg.BOX_SHOW_BACK)
     dice3d_wr fh, "BOX_BACK_KOLOR", dice3d_nl$(cfg.BOX_BACK_KOLOR)
     dice3d_wr fh, "DIE_SIZE", dice3d_ns$(cfg.DIE_SIZE): dice3d_wr fh, "CAM_TILT", dice3d_ns$(cfg.CAM_TILT)
+    dice3d_wr fh, "D4_LEAN", dice3d_ns$(cfg.D4_LEAN)
     dice3d_wr fh, "CAM_YAW", dice3d_ns$(cfg.CAM_YAW): dice3d_wr fh, "FOV", dice3d_ns$(cfg.FOV)
     dice3d_wr fh, "MATERIAL", dice3d_ns$(cfg.MATERIAL)
     dice3d_wr fh, "BODY_KOLOR", dice3d_nl$(cfg.BODY_KOLOR): dice3d_wr fh, "NUM_KOLOR", dice3d_nl$(cfg.NUM_KOLOR)
@@ -89,6 +90,7 @@ SUB dice3d_config_apply (cfg AS DICE3D_CONFIG, k AS STRING, v AS STRING)
         CASE "BOX_BACK_KOLOR": cfg.BOX_BACK_KOLOR = c
         CASE "DIE_SIZE": cfg.DIE_SIZE = n
         CASE "CAM_TILT": cfg.CAM_TILT = n
+        CASE "D4_LEAN": cfg.D4_LEAN = n
         CASE "CAM_YAW": cfg.CAM_YAW = n
         CASE "FOV": cfg.FOV = n
         CASE "MATERIAL": cfg.MATERIAL = n

@@ -34,7 +34,7 @@ Small UI Tweaks:
         ✔ art existed for the +1/+2 blades but NOT for the base weapons -- i.e. nothing to draw @done(26-08-01)
         ✔ in the commonest case in the game, a hero who has not found a Magic Sword yet @done(26-08-01)
       ✔ `dungeon.run panelshot [class]` renders it -- the panel only misbehaves when FULL @done(26-08-01)
-    ☐ Make D4 angle a little easier to read - point it more downward. @high
+    ✔ Make D4 angle a little easier to read - point it more downward. @high @done(26-08-01)
       ☐ On stairs, have a random encounter 50% of the time - sentry guards, or 30% for a random trap
     ☐ Modify map so that level 4 cannot reach level 9
     ☐ Modify map so that stairs lead to only the next level or the previous level
