@@ -1440,6 +1440,7 @@ SUB ShowEnd (win AS INTEGER)
         player_name = nm
         SaveLord nm, class_name, gold, el, mapid ' enshrine in the Legendary Lords
         _DEST CANVAS: _FONT CH: CLS , BLACK
+        EndScreenArt "you-win"                  ' banner art behind the text, if the pack has it
         COLOR GREENU, BLACK: PrintCentered 20, Say$("win.title")
         COLOR WHITE, BLACK: PrintCentered 23, nm + " the " + class_name + " escapes with " + _TRIM$(STR$(gold)) + " gold!"
         COLOR CYANU, BLACK: PrintCentered 25, Say$("win.subtitle")
@@ -1447,6 +1448,7 @@ SUB ShowEnd (win AS INTEGER)
         Sfx "lose"
         PlayCue "lose", TRUE                     ' defeat music (if assets/music/lose.* exists)
         _DEST CANVAS: _FONT CH: CLS , BLACK
+        EndScreenArt "you-died"                 ' banner art behind the text, if the pack has it
         COLOR REDU, BLACK: PrintCentered 20, Say$("lose.title")
         COLOR GREY, BLACK: PrintCentered 23, Say$("lose.subtitle")
     END IF
@@ -1780,4 +1782,20 @@ SUB DrawStatHelp (stat AS INTEGER, col AS INTEGER, row AS INTEGER, wid AS INTEGE
         COLOR GREY, BLACK
         _PRINTSTRING (col * CW, y * CH), "  (assets/data/stats.txt is missing)"
     END IF
+END SUB
+
+
+' The WIN / LOSE banner art, drawn BEHIND the end-screen text.
+'
+' Sits high (rows 3..17) so the title at row 20 and everything under it stays clear -- the art
+' frames the words rather than competing with them. Silent when the selected art style has
+' nothing, which is the normal case until the screens are generated.
+SUB EndScreenArt (nm AS STRING)
+    DIM p AS STRING, bw AS INTEGER, bh AS INTEGER, bx AS INTEGER, by AS INTEGER
+    p = ArtFile$("screens/" + nm + ".png")
+    IF LEN(p) = 0 THEN EXIT SUB
+    bw = 56 * CW: bh = 15 * CH
+    bx = (SW * CW - bw) \ 2: by = 3 * CH
+    _DEST CANVAS
+    IF DrawSpriteFit%(p, bx, by, bw, bh) = 0 THEN EXIT SUB
 END SUB

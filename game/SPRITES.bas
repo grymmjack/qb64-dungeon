@@ -45,6 +45,7 @@ FUNCTION ArtPromptStyle$ (pth AS STRING, cat AS STRING)
         CASE "items", "treasures": ArtPromptStyle$ = "item"
         CASE "markers": ArtPromptStyle$ = "dark"
         CASE "rooms": ArtPromptStyle$ = "dosrpg"
+        CASE "screens": ArtPromptStyle$ = "dosrpg"     ' full-screen banners, not portraits
         CASE ELSE: ArtPromptStyle$ = "darkest"
     END SELECT
 END FUNCTION
@@ -522,6 +523,12 @@ SUB DumpImageBody
     ' The REST set piece's image (see RestAtEntrance). Filed under events/ with the curio props
     ' because it is the same kind of thing -- a full-width scene behind scrawling text.
     PutArtBoth "events", "rest", "a weary adventurer resting safely at the dungeon entrance, bedroll by a small fire, clean water, morning light", "a quiet safe-haven scene", "384x384", "18x12", seen
+    ManOut ""
+    ManOut "# --- end screens (drawn behind the WIN / LOSE text) ---"
+    ' Wider than they are tall: these sit BEHIND centred text on a full screen, so a square
+    ' portrait crop would either letterbox or swallow the words.
+    PutArtBoth "screens", "you-win", "a triumphant adventurer emerging from a dungeon doorway into dawn light, laden with treasure, banner-wide composition", "a victory banner", "512x256", "44x14", seen
+    PutArtBoth "screens", "you-died", "a fallen adventurer's gear abandoned in a dark dungeon passage, guttering torch, banner-wide composition", "a defeat banner", "512x256", "44x14", seen
     ManOut ""
     ManOut "# --- markers (board overlays) ---"
     lst = "gravestone player-body lost-cache cursed-rune ": p = 1

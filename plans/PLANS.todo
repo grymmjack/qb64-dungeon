@@ -16,9 +16,13 @@ Narration Small Tweaks:
         ☐ SMELL is near-absent in both -- the cheapest, most dungeon-y sense to add
 
 Small UI Tweaks:
-    ☐ Add art pixel/ansi for: @critical
-      ☐ YOU DIED screen
-      ☐ YOU WIN screen
+    ✔ Add art pixel/ansi for: @done(26-08-01)
+      ✔ YOU DIED screen  (screens/you-died, pixel + ansi) @done(26-08-01)
+      ✔ YOU WIN screen   (screens/you-win, pixel + ansi) @done(26-08-01)
+      ✔ new `screens` art category, sized WIDE (512x256 / 44x14) not square: these sit BEHIND @done(26-08-01)
+        ✔ centred text on a full screen, so a portrait crop would letterbox or swallow the words @done(26-08-01)
+      ✔ EndScreenArt draws them high (rows 3..17) so the title at row 20 stays clear -- the art @done(26-08-01)
+        ✔ frames the words rather than competing with them; silent until the art is generated @done(26-08-01)
     ✔ Add player portrait to combat bar, left side, with weapon on right side of box @done(26-08-01)
       ✔ PanelArt draws each tile with its caption on the frame's BOTTOM edge -- CombatArtBox @done(26-08-01)
         ✔ puts the caption ABOVE, which here would land outside the panel @done(26-08-01)
