@@ -575,6 +575,15 @@ whole-cell one. `CellRoomKind%` (engine/BOARD.bas) is the shared answer:
 | `CRK_DOOR`  | floor + a door colour: walkable, but a **threshold**, not a place to stand something |
 | `CRK_MIXED` | floor + anything else (a half-block's dark half, a text glyph) — **not walkable**, and that is by design: these are decorative |
 
+**Half-block ISLANDS are trim, and `boardsplit` drops them from layer-0.** The level plaques are
+drawn with little half-block flourishes painted in a level colour, so the "contains a collision
+colour" rule would file them as collision — where they mean nothing, since nothing can stand on
+them and nothing connects to them. Colour cannot tell trim from a structural room lip, but
+**neighbours can**: a real lip always touches the room it edges, so a half block with nothing
+painted around it in the collision layer is decoration (13 of them). They are marked in full
+*before* any are moved — moving as you scan lets one removal blank the neighbour that made the
+next cell non-island, making the result scan-order dependent.
+
 `PlaceRoomMarkers` (game/SECTOR.bas) runs once after every block is flooded, caches the verdict in
 `ROOMKIND()`, records `ROOM.floor_cells`, and seats each marker on the **most enclosed** plain-floor
 cell (closeness to the block centre is only the tie-break) — that is what keeps graves out of

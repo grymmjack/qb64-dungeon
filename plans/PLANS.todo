@@ -36,9 +36,15 @@ Board layering (WIRED -- layer-1 decoration is drawn and walk-over): @next
       ✔ stays engine code; layer-0 reports CLEAN, verified against a deliberately broken copy @done(26-08-01)
       ✔ WHY IT MATTERS: a stray colour in layer-0 is INVISIBLE in play -- the display composites @done(26-08-01)
         ✔ layer-1 over it and looks correct while the player walks into nothing @done(26-08-01)
-    ☐ STILL OPEN: the F7/F8 half-horizontal label marks inside the map are classified as
-      ☐ collision; colour alone cannot separate label trim from a structural room lip, so
-      ☐ this needs a specific cell pointed at before a rule can be written
+    ✔ the F7/F8 half-horizontal label marks inside the map were classified as collision @done(26-08-01)
+      ✔ COLOUR alone cannot tell label trim from a structural room lip -- but NEIGHBOURS can: @done(26-08-01)
+        ✔ a real lip always touches the room it edges, so a half block with nothing painted @done(26-08-01)
+        ✔ around it in the collision layer is trim. boardsplit moves those to decoration @done(26-08-01)
+      ✔ 13 islands found; marked in full before any are moved, so one removal cannot blank the @done(26-08-01)
+        ✔ neighbour that made the next cell non-island (the result would depend on scan order) @done(26-08-01)
+      ✔ RESULT: OrphanBlockScan now reports NOTHING -- no lost rooms, no unclaimed blocks, no @done(26-08-01)
+        ✔ blocks with no cell to stand on. Every painted block in layer-0 is a real room @done(26-08-01)
+      ✔ the 158 remaining decorative half-blocks are lips INSIDE rooms -- correct, and expected @done(26-08-01)
 
 
 Needs Thorough Testing:

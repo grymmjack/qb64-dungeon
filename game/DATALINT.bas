@@ -220,6 +220,33 @@ SUB BoardSplit
         NEXT cx
     NEXT cy
 
+    ' --- half-block ISLANDS are TRIM, not structure ---------------------------
+    ' The art draws the level plaques with little half-block flourishes around the lettering.
+    ' They are painted in a level colour, so the "contains a collision colour" rule sends them
+    ' to layer-0 -- where they are meaningless: nothing can stand on them and nothing connects
+    ' to them. A REAL room lip always touches the room it edges, so the test is neighbours:
+    ' a half block with nothing painted around it in the collision layer is decoration.
+    '
+    ' Marked in full BEFORE any are moved. Moving as we scan would let one removal blank the
+    ' neighbour that made the next cell non-island, and the result would depend on scan order.
+    DIM isle(0 TO 131, 0 TO 60) AS INTEGER, isles AS LONG
+    FOR cy = 1 TO SH - 2
+        FOR cx = 1 TO SW - 2
+            IF IsHalfGlyph%(ch0(cx, cy)) THEN
+                IF CollisionIsland%(ch0(), bg0(), cx, cy) THEN isle(cx, cy) = -1: isles = isles + 1
+            END IF
+        NEXT cx
+    NEXT cy
+    FOR cy = 1 TO SH - 2
+        FOR cx = 1 TO SW - 2
+            IF isle(cx, cy) THEN
+                ch1(cx, cy) = ch0(cx, cy): fg1(cx, cy) = fg0(cx, cy): bg1(cx, cy) = bg0(cx, cy)
+                ch0(cx, cy) = 32: fg0(cx, cy) = 7: bg0(cx, cy) = 0
+                kept = kept - 1: deco = deco + 1
+            END IF
+        NEXT cx
+    NEXT cy
+
     p0 = CellsToAnsi$(ch0(), fg0(), bg0(), SH - 1)
     p1 = CellsToAnsi$(ch1(), fg1(), bg1(), SH - 1)
     ok = -1
@@ -227,6 +254,7 @@ SUB BoardSplit
     ok = ok AND WriteAnsiLayer%(AnsiOutPath$("layer-1-board-decoration.ans"), p1, "DUNGEON! decoration layer")
     PRINT
     PRINT PipeCol$("  collision cells: |10" + _TRIM$(STR$(kept)) + "|07 (walkable set preserved exactly)")
+    IF isles > 0 THEN PRINT PipeCol$("    |11" + _TRIM$(STR$(isles)) + "|07 half-block island(s) moved to decoration -- label trim with nothing painted around it")
     PRINT PipeCol$("  decoration cells: |11" + _TRIM$(STR$(deco)) + "|07 (half-blocks, shading, the level plaques)")
     PRINT PipeCol$("  |08layer-0 keeps the source's own glyphs and colours, so it renders identically in")
     PRINT PipeCol$("  |08any ANSI viewer -- and a half-painted door stays half-painted, as movement expects.")
@@ -400,6 +428,23 @@ END SUB
 
 
 ' Is this glyph one of the four half-blocks -- the only cells that show two colours at once?
+' Is this collision cell an ISLAND -- nothing painted in any of its 8 neighbours?
+FUNCTION CollisionIsland% (ch0() AS INTEGER, bg0() AS INTEGER, cx AS INTEGER, cy AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER
+    CollisionIsland% = 0
+    FOR dy = -1 TO 1
+        FOR dx = -1 TO 1
+            IF dx <> 0 OR dy <> 0 THEN
+                IF cx + dx >= 0 AND cx + dx <= SW - 1 AND cy + dy >= 0 AND cy + dy <= SH - 1 THEN
+                    IF ch0(cx + dx, cy + dy) <> 32 OR bg0(cx + dx, cy + dy) <> 0 THEN EXIT FUNCTION
+                END IF
+            END IF
+        NEXT dx
+    NEXT dy
+    CollisionIsland% = -1
+END FUNCTION
+
+
 FUNCTION IsHalfGlyph% (g AS INTEGER)
     SELECT CASE g
         CASE 220, 221, 222, 223: IsHalfGlyph% = -1
