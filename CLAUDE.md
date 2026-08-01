@@ -320,22 +320,21 @@ Environment specifics that dictate this approach:
   hand-painted. `dungeon.run fogdump` renders the fogged board + a region overlay for verification.
   The `[~]` debug view tints each region, marks every secret door by nesting level (green entry /
   cyan nested / **red X = unmapped, a dead door**), and the mouse line shows `reg:/lvl:/door→`.
-- **Sector MASK** (`assets/ansi/board-132x50-sector-mask.ans`, the art-as-data replacement for the
-  `sectors.txt` rectangles). Same idea as the secret mask: a same-size painted ANSI where **each
-  cell's colour = which dungeon level owns it**, so levels can be any shape, not just rectangles.
-  `LoadSectorMask` (SECTOR.bas) fills `SECTORAT(cx,cy)` (0-based cells) via `SectorByColor%` (exact
-  match to a `SECTORS().kolor`); when the file is present `SECTORMASK_ON` is set and `SECTOR.get_by_xy%`
-  returns `SECTORAT(cx,cy)` — **but where a cell is black/unpainted (`SECTORAT = 0`) it falls through
-  to the `sectors.txt` rect loop**, so a *partial* mask never bricks movement (painted cells still
-  win, so any-shape levels hold; the rects only backstop the gaps). The rect loop is also the whole
-  story when no mask file is present.
-  Black = sector 0 — harmless over walls/corridors/doors, but a room floor sitting on black won't
-  register a level (and `CanMove` needs `sec >= 1`). Generated as a starter by `dungeon.run sectorgen`
-  (paints each rect with **bg-colour + space**, not `fg + █` — an editor renders `█` with a sliver
-  gap that reads as black seams; iCE bright-bg `5;4x` matches the hand-paint), plus a SAUCE record.
-  Both generators (`maskgen`/`sectorgen`) **refuse to overwrite** an existing mask (they only ever
-  write a fresh file, so SAUCE lands at EOF and a hand-painted mask is never clobbered);
-  `dungeon.run --help` lists every dev mode.
+- **Sector geometry is DERIVED from the board art** — no authored rectangles, no painted mask.
+  `DeriveSectors` (game/SECTOR.bas, called first thing in `Game_PopulateBoard`) takes the tight
+  bounding box of every cell painted uniformly in a level's colour, then **expands each box a row
+  or column at a time until it meets a neighbour or the board edge** — that expansion is what
+  claims the corridors, which state no colour of their own. It fills `SECTORAT(cx,cy)` and
+  overwrites `SECTORS().start_x/…`; `SECTOR.get_by_xy` is then a straight `SECTORAT` lookup with
+  no fallback. **The art always wins**: after the boxes land, any cell actually painted a level
+  colour is reassigned to that level, so levels can be any shape. It samples **`FULL_COLLIDE`** —
+  over the display board the logo, legend and frame all paint in level colours and the derivation
+  fails 15 ways; over the collision layer it is clean, 9/9, no overlaps (`dungeon.run sectorauto`).
+  `sectors.txt` now supplies only **id | label | colour** (its col/row columns are ignored but kept
+  so existing data packs parse), and both `board-132x50-sector-mask.ans` and the `sectorgen` dev
+  mode are **retired**. Three files used to say where a level is; when the copies disagreed with
+  the art, 12 rooms painted at level 5/6 sat under a mask claiming level 1 and never existed.
+
 - **Mask line-ending / SGR gotcha + `MaskNormalize$` + `ansilint`.** A mask is art-as-data —
   every cell must sample as *exactly* its painted colour — and two things an ANSI editor emits
   silently corrupt that: **(1) CRLF line endings.** Each row is exactly `SW` (132) printable

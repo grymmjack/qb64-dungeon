@@ -33,7 +33,6 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10chamberdump|07   detected chambers -> chamberdump.png (+ .txt bounding boxes)")
     PRINT PipeCol$("  |10fogdump|07       fogged board + secret-region overlay -> fogdump.png / -regions.png (+ stats .txt)")
     PRINT PipeCol$("  |10maskgen|07       starter secret-door mask from the flood -> assets/ansi-art/default/board-132x50-secret-mask.ans")
-    PRINT PipeCol$("  |10sectorgen|07     starter sector mask from the rects     -> assets/ansi-art/default/board-132x50-sector-mask.ans")
     PRINT PipeCol$("  |10ansilint|07 |14[f]|07  lint a mask ANSI (line endings, row width, colours->sectors, SAUCE);")
     PRINT PipeCol$("                no file = check both board masks. Read-only.")
     PRINT PipeCol$("  |10ansifix|07 |14<f>|07   rewrite a mask ANSI clean (strip CR/LF blanks, reset SGR); backs up to <f>.bak")
@@ -63,7 +62,7 @@ _CONSOLE OFF                            ' normal run: hide the console, go graph
 ' window HIDDEN and skip fullscreen so they never flash a black screen over the terminal.
 DIM devmode AS INTEGER
 devmode = (INSTR(UCASE$(COMMAND$), "MANIFEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DUMP") > 0)
-devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0) OR (INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0)
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DATALINT") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0)   ' writes a PNG, never a window
@@ -289,7 +288,7 @@ IF INSTR(UCASE$(COMMAND$), "BOARDFIX") > 0 THEN BoardFix
 '--- dev: `dungeon.run sectorauto` derives each level's rect from the art and checks overlaps ---
 IF INSTR(UCASE$(COMMAND$), "SECTORAUTO") > 0 THEN
     BuildBoardImages
-    LoadSectorMask                       ' the mask supersedes the rects -- measure what the GAME sees
+    DeriveSectors                        ' geometry from the art -- measure what the GAME actually uses
     SectorAutoDerive
 END IF
 
@@ -474,42 +473,9 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
     SYSTEM
 END IF
 
-'--- dev: `dungeon.run sectorgen` writes a STARTER sector-mask .ans from the rects (each
-'    cell filled with its level's colour). Delete the file first to regenerate; then
-'    hand-refine it to your art in an ANSI editor. (Named SECTORGEN, not SECTORMASKGEN,
-'    so it doesn't contain the substring "MASKGEN" and trigger the secret-mask maskgen.) ---
-IF INSTR(UCASE$(COMMAND$), "SECTORGEN") > 0 THEN
-    IF _FILEEXISTS("assets/ansi-art/default/board-132x50-sector-mask.ans") THEN
-        _DEST _CONSOLE
-        PRINT PipeCol$("|14board-132x50-sector-mask.ans already exists -- NOT regenerating|07 (would clobber your")
-        PRINT PipeCol$("hand-painted mask). |12Delete the file first|07 if you really want a fresh starter.")
-        SYSTEM
-    END IF
-    SECTORMASK_ON = FALSE                       ' force get_by_xy to use the sectors.txt RECTS
-    DIM smf AS INTEGER, smy AS INTEGER, smx AS INTEGER, sms AS STRING, smid AS INTEGER, smlast AS INTEGER, smeof AS STRING
-    sms = "": smlast = -999
-    FOR smy = 0 TO SH - 2
-        FOR smx = 0 TO SW - 1
-            smid = SECTOR.get_by_xy(smx * CW, smy * CH)
-            IF smid <> smlast THEN
-                IF smid = 0 THEN sms = sms + CHR$(27) + "[0m" ELSE sms = sms + CHR$(27) + "[" + SGRBgForColor$(SECTORS(smid).kolor) + "m"
-                smlast = smid
-            END IF
-            sms = sms + " "                       ' bg colour fills the whole cell (no block-glyph gap)
-        NEXT smx
-        sms = sms + CHR$(27) + "[0m" + CHR$(13) + CHR$(10): smlast = -999
-    NEXT smy
-    smeof = CHR$(26)
-    DIM smsauce AS STRING
-    smsauce = SauceRecord$("DUNGEON! sector mask", SW, SH - 1, LEN(sms))
-    smf = FREEFILE
-    OPEN "assets/ansi-art/default/board-132x50-sector-mask.ans" FOR BINARY AS #smf
-    PUT #smf, 1, sms
-    PUT #smf, , smeof
-    PUT #smf, , smsauce
-    CLOSE #smf
-    SYSTEM
-END IF
+' `dungeon.run sectorgen` is RETIRED along with the sector mask it wrote. Level geometry is
+' derived from the board art by DeriveSectors (game/SECTOR.bas): tight per-colour boxes, then
+' expanded until they meet. There is no second file to keep in step with the art any more.
 
 '--- dev: `dungeon.run ansilint [file]` lints a mask ANSI for the art-as-data gotchas
 '    (CRLF black bands, sticky-SGR/blink leaks, row width, SAUCE, colours->sectors). With no
@@ -525,7 +491,6 @@ IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
         ' colours movement cannot read, not for colour->zone mapping
         IF INSTR(UCASE$(alpath), "COLLISION") > 0 THEN CollisionLayerLint alpath ELSE AnsiLint alpath
     ELSE
-        AnsiLint "assets/ansi-art/default/board-132x50-sector-mask.ans"
         AnsiLint "assets/ansi-art/default/board-132x50-secret-mask.ans"
         CollisionLayerLint AnsiFile$("layer-0-board-collisions.ans")
     END IF

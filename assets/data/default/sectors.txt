@@ -1,17 +1,23 @@
 # ============================================================================
-#  SECTORS -- the 9 dungeon levels as coloured rectangles on the board.
+#  SECTORS -- the 9 dungeon levels: id, label and COLOUR.
 #
-#  Each sector is a rectangle (in CELLS, 1-based col/row) with a COLOUR that must
-#  match the room-block colour the board art uses for that level -- collision and
-#  "which level am I on" both resolve by testing position against these rects and
-#  matching this colour (SECTOR.get_by_xy / in_room). Change the art's level colour
-#  and you MUST change it here too, or movement silently breaks.
+#  GEOMETRY IS NOT AUTHORED HERE. DeriveSectors (game/SECTOR.bas) computes each
+#  level's rectangle from the BOARD ART at load: the tight bounding box of every
+#  cell painted uniformly in that level's colour, then expanded until it meets a
+#  neighbour or the board edge (which is what claims the corridors between rooms).
 #
-#  Format:  id | label | col1 | row1 | col2 | row2 | RRGGBB
-#  ( id 1-9; RRGGBB = 6 hex digits, '#' optional; fields are trimmed; '#' line = comment )
+#  The col/row columns below are IGNORED. They are kept so existing data packs
+#  still parse; only id, label and RRGGBB are read. The colour is the important
+#  one -- it is how a painted cell announces which level it belongs to, and it
+#  must match the board art EXACTLY (an off-by-one channel makes the level vanish).
+#
+#  Two files used to say where a level is -- these rects and a hand-painted
+#  board-132x50-sector-mask.ans -- and the art said it a third time. When the
+#  copies disagreed with the art, 12 rooms the art painted at level 5/6 sat under
+#  a mask claiming level 1 and simply never existed. Now there is one source.
+#
+#  id | label | col1 | row1 | col2 | row2 | RRGGBB      (col/row ignored)
 # ============================================================================
-
-# id | label                       | c1 | r1  | c2  | r2  | colour
 1  | LEVEL 1 - MAIN GALLERY         | 42 | 17  | 81  | 33  | 55FF55
 2  | LEVEL 2 - GUARD ROOM           |  1 | 17  | 40  | 33  | 00AA00
 3  | LEVEL 3 - ARMORY               |  1 |  1  | 34  | 16  | AA0000

@@ -756,7 +756,7 @@ SUB SectorBoxReport (title AS STRING, wx1 AS INTEGER, wy1 AS INTEGER, wx2 AS INT
     _DEST _CONSOLE
     PRINT
     PRINT PipeCol$("  |11" + title + "|07")
-    PRINT PipeCol$("  |08lvl  derived rect (c1,r1,c2,r2)   cells   sectors.txt says")
+    PRINT PipeCol$("  |08lvl  derived rect (c1,r1,c2,r2)   cells   in use")
     FOR s = 1 TO 9
         IF cnt(s) = 0 THEN
             PRINT PipeCol$("  " + PadR$(_TRIM$(STR$(s)), 5) + "|12(no cells of this colour found)|07")
@@ -850,13 +850,7 @@ END SUB
 ' Which level's colour fills cell (cx,cy) ENTIRELY? 0 if the cell is not uniformly one level
 ' colour. Uniform-only on purpose: a half-block or a text glyph is two colours, so it belongs
 ' to no level with certainty and must not stretch a bounding box.
-FUNCTION CellSolidSector% (cx AS INTEGER, cy AS INTEGER)
-    DIM s AS INTEGER
-    CellSolidSector% = 0
-    s = SectorByColor%(POINT(cx * CW + CW \ 2, cy * CH + CH \ 2))
-    IF s < 1 THEN EXIT FUNCTION
-    IF CellRoomKind%(cx, cy, SECTORS(s).kolor) = CRK_FLOOR THEN CellSolidSector% = s
-END FUNCTION
+' CellSolidSector% now lives in game/SECTOR.bas -- DeriveSectors uses it in production.
 
 
 ' ============================================================================

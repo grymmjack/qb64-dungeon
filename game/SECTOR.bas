@@ -5,38 +5,114 @@
 ' Sector geometry + colours now live in assets/data/sectors.txt -- edit + F5, no
 ' code change. Thin wrapper over LoadSectors (matches InitMonsterTables' pattern).
 SUB InitSectors
-    LoadSectors                          ' id / label / colour (+ fallback rects) from the data file
-    LoadSectorMask                       ' optional: geometry painted per-cell in assets/ansi/board-132x50-sector-mask.ans
+    LoadSectors                          ' id / label / colour from the data file -- geometry is DERIVED
 END SUB
 
-' Load the SECTOR MASK: a same-size ANSI where each cell is painted its level's colour
-' (the sectors.txt colour). Fills SECTORAT(cx,cy) = sector id by matching each cell's colour
-' to a sector's kolor -- so a level can be ANY shape, and geometry needs no coordinates.
-' When present it drives SECTOR.get_by_xy; absent, the code falls back to the sectors.txt rects.
-SUB LoadSectorMask
-    DIM x AS INTEGER, y AS INTEGER
-    FOR y = 0 TO 60: FOR x = 0 TO 131: SECTORAT(x, y) = 0: NEXT: NEXT
-    SECTORMASK_ON = FALSE
-    IF NOT _FILEEXISTS(AnsiFile$("board-132x50-sector-mask.ans")) THEN EXIT SUB
-    DIM mb AS STRING, mimg AS LONG, olddest AS LONG, oldsrc AS LONG, cnt AS INTEGER
-    mb = _READFILE$(AnsiFile$("board-132x50-sector-mask.ans"))
-    IF LEN(mb) = 0 THEN EXIT SUB
-    mb = MaskNormalize$(mb)                   ' strip CR/LF + reset each SGR run (see ansilint / MaskNormalize$)
-    mimg = _NEWIMAGE(SW * CW, SH * CH, 32)
-    olddest = _DEST: _DEST mimg: _FONT CH: CLS , BLACK
-    ANSI_Print (mb)
-    _DEST olddest
-    oldsrc = _SOURCE: _SOURCE mimg
-    cnt = 0
-    FOR y = 0 TO SH - 1
-        FOR x = 0 TO SW - 1
-            SECTORAT(x, y) = SectorByColor%(MaskSample~&(x, y))
-            IF SECTORAT(x, y) > 0 THEN cnt = cnt + 1
-        NEXT x
-    NEXT y
-    _SOURCE oldsrc: _FREEIMAGE mimg
-    IF cnt > 0 THEN SECTORMASK_ON = -1
+' Derive every level's rectangle FROM THE BOARD ART.
+'
+' This replaces two AUTHORED files: the sectors.txt rectangles and the hand-painted
+' board-132x50-sector-mask.ans. Both said where a level is; the art already says it, and keeping
+' a second copy is what let them DISAGREE -- 12 rooms the art painted at level 5/6 sat under a
+' mask claiming level 1, and simply never existed.
+'
+' Two passes:
+'   1. TIGHT box -- the bounding box of every cell painted uniformly in that level's colour.
+'   2. EXPAND    -- grow each box a row or column at a time in each direction, stopping when the
+'                   next step would touch another level's box or leave the board. This is what
+'                   claims the CORRIDORS, which state no colour of their own.
+'
+' The tight boxes provably never overlap (`dungeon.run sectorauto`), but only when read from the
+' COLLISION layer: over the whole picture the logo, legend and frame all paint in level colours
+' and the derivation fails 15 ways. So this samples FULL_COLLIDE, never the display board.
+'
+' The art stays the authority: after the boxes are laid down, any cell actually painted a level
+' colour is reassigned to that level. The boxes only fill the silence between the paint.
+SUB DeriveSectors
+    DIM cx AS INTEGER, cy AS INTEGER, sk AS INTEGER, oldsrc AS LONG, grew AS INTEGER
+    DIM bx1(1 TO 9) AS INTEGER, by1(1 TO 9) AS INTEGER, bx2(1 TO 9) AS INTEGER, by2(1 TO 9) AS INTEGER
+    DIM cnt(1 TO 9) AS INTEGER
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE
+    FOR sk = 1 TO 9: bx1(sk) = 9999: by1(sk) = 9999: bx2(sk) = -1: by2(sk) = -1: cnt(sk) = 0: NEXT sk
+
+    ' 1) tight box per level
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            sk = CellSolidSector%(cx, cy)
+            IF sk >= 1 THEN
+                IF cx < bx1(sk) THEN bx1(sk) = cx
+                IF cy < by1(sk) THEN by1(sk) = cy
+                IF cx > bx2(sk) THEN bx2(sk) = cx
+                IF cy > by2(sk) THEN by2(sk) = cy
+                cnt(sk) = cnt(sk) + 1
+            END IF
+        NEXT cx
+    NEXT cy
+
+    ' 2) expand one step at a time, all levels in lockstep, until nothing can grow. Stepwise and
+    '    round-robin so no level can race ahead and swallow ground a neighbour would have reached.
+    DO
+        grew = 0
+        FOR sk = 1 TO 9
+            IF cnt(sk) > 0 THEN
+                IF bx1(sk) > 0 THEN
+                    IF NOT StripHitsOther%(sk, bx1(sk) - 1, by1(sk), bx1(sk) - 1, by2(sk), bx1(), by1(), bx2(), by2(), cnt()) THEN bx1(sk) = bx1(sk) - 1: grew = -1
+                END IF
+                IF bx2(sk) < SW - 1 THEN
+                    IF NOT StripHitsOther%(sk, bx2(sk) + 1, by1(sk), bx2(sk) + 1, by2(sk), bx1(), by1(), bx2(), by2(), cnt()) THEN bx2(sk) = bx2(sk) + 1: grew = -1
+                END IF
+                IF by1(sk) > 0 THEN
+                    IF NOT StripHitsOther%(sk, bx1(sk), by1(sk) - 1, bx2(sk), by1(sk) - 1, bx1(), by1(), bx2(), by2(), cnt()) THEN by1(sk) = by1(sk) - 1: grew = -1
+                END IF
+                IF by2(sk) < SH - 1 THEN
+                    IF NOT StripHitsOther%(sk, bx1(sk), by2(sk) + 1, bx2(sk), by2(sk) + 1, bx1(), by1(), bx2(), by2(), cnt()) THEN by2(sk) = by2(sk) + 1: grew = -1
+                END IF
+            END IF
+        NEXT sk
+    LOOP WHILE grew
+
+    ' 3) paint the cell map from the boxes, then let the ART override it
+    FOR cy = 0 TO 60: FOR cx = 0 TO 131: SECTORAT(cx, cy) = 0: NEXT cx: NEXT cy
+    FOR sk = 1 TO 9
+        IF cnt(sk) > 0 THEN
+            SECTORS(sk).start_x = bx1(sk): SECTORS(sk).start_y = by1(sk)
+            SECTORS(sk).end_x = bx2(sk): SECTORS(sk).end_y = by2(sk)
+            FOR cy = by1(sk) TO by2(sk)
+                FOR cx = bx1(sk) TO bx2(sk): SECTORAT(cx, cy) = sk: NEXT cx
+            NEXT cy
+        END IF
+    NEXT sk
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            sk = SectorByColor%(POINT(cx * CW + CW \ 2, cy * CH + CH \ 2))
+            IF sk >= 1 THEN SECTORAT(cx, cy) = sk
+        NEXT cx
+    NEXT cy
+    _SOURCE oldsrc
+    SECTORMASK_ON = -1                   ' geometry is per-cell now, however it was arrived at
 END SUB
+
+' Would growing level `me` onto this strip land on any OTHER level's box?
+FUNCTION StripHitsOther% (me AS INTEGER, sx AS INTEGER, sy AS INTEGER, ex AS INTEGER, ey AS INTEGER, bx1() AS INTEGER, by1() AS INTEGER, bx2() AS INTEGER, by2() AS INTEGER, cnt() AS INTEGER)
+    DIM o AS INTEGER
+    StripHitsOther% = 0
+    FOR o = 1 TO 9
+        IF o <> me AND cnt(o) > 0 THEN
+            IF sx <= bx2(o) AND bx1(o) <= ex THEN
+                IF sy <= by2(o) AND by1(o) <= ey THEN StripHitsOther% = -1: EXIT FUNCTION
+            END IF
+        END IF
+    NEXT o
+END FUNCTION
+
+' Is this cell UNIFORMLY one level's floor colour? That is what makes it evidence of where a
+' level IS -- a half-painted lip or a doorway is not. (Was in DATALINT; it is production now.)
+FUNCTION CellSolidSector% (cx AS INTEGER, cy AS INTEGER)
+    DIM s AS INTEGER
+    CellSolidSector% = 0
+    s = SectorByColor%(POINT(cx * CW + CW \ 2, cy * CH + CH \ 2))
+    IF s < 1 THEN EXIT FUNCTION
+    IF CellRoomKind%(cx, cy, SECTORS(s).kolor) = CRK_FLOOR THEN CellSolidSector% = s
+END FUNCTION
 
 ' Which sector (1-9) a colour belongs to (exact match to a sector's kolor). 0 = none.
 FUNCTION SectorByColor% (col AS _UNSIGNED LONG)
@@ -54,10 +130,11 @@ SUB LoadSectors
         id = VAL(DField$(DLINE(i), 1))
         IF id >= 1 AND id <= 9 THEN
             SECTORS(id).label = DField$(DLINE(i), 2)
-            SECTORS(id).start_x = VAL(DField$(DLINE(i), 3))
-            SECTORS(id).start_y = VAL(DField$(DLINE(i), 4))
-            SECTORS(id).end_x = VAL(DField$(DLINE(i), 5))
-            SECTORS(id).end_y = VAL(DField$(DLINE(i), 6))
+            ' Fields 3-6 (the rectangle) are IGNORED -- DeriveSectors computes the geometry
+            ' from the board art and overwrites these. They stay in the file format so existing
+            ' data packs still parse; only the id, label and colour are read.
+            SECTORS(id).start_x = 0: SECTORS(id).start_y = 0
+            SECTORS(id).end_x = 0: SECTORS(id).end_y = 0
             SECTORS(id).kolor = HexRGB~&(DField$(DLINE(i), 7))
         END IF
     NEXT i
@@ -370,44 +447,19 @@ END SUB
 ' Class-select screen reached from the menu's CREATE A CHARACTER option.
 ' Returns the chosen class index (1-4), or 0 if the player backs out.
 
+' Which level owns this pixel? A straight per-cell lookup into SECTORAT, which DeriveSectors
+' fills from the board art. There is no rectangle fallback any more and no mask file: both were
+' AUTHORED copies of what the art already states, and the copies could disagree with it.
+'
+' Stays PURE -- the board build, the FOV caster and the debug mouse readout all ask it about
+' arbitrary cells with no player in existence. The stickiness that covers an unclaimed corridor
+' lives in PlayerLevel%, never here.
 FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
-    DIM i AS INTEGER
-    DIM s AS SECTOR
-    DIM AS INTEGER sx, ex, sy, ey
-    IF SECTORMASK_ON THEN                          ' sector mask: a straight per-cell lookup (0-based, no -1)
-        DIM cx AS INTEGER, cy AS INTEGER
-        cx = x \ CW: cy = y \ CH
-        IF cx >= 0 AND cx <= 131 AND cy >= 0 AND cy <= 60 THEN
-            IF SECTORAT(cx, cy) > 0 THEN SECTOR.get_by_xy = SECTORAT(cx, cy): EXIT FUNCTION
-        END IF
-        ' mask is silent (black / unpainted) here -- fall through to the sectors.txt
-        ' rectangles so a partial mask never blocks a room floor (painted cells above
-        ' still win, so any-shape levels are preserved; rects only backstop the gaps).
-    END IF
-    ' sectors.txt is 0-BASED, like every other cell coordinate in this project: the sector mask,
-    ' ROOMAT, CHAMBERAT, chambers.txt, and the cell readout the [~] overlay prints (which is how
-    ' these values get authored in the first place).
-    '
-    ' This used to subtract 1 from each bound, treating the file as 1-based, which shifted every
-    ' rectangle one cell LEFT of the region it names. The tell is level 9: its `end_x` is 78 and
-    ' its art's rightmost column is also 78 -- so the -1 made the rect stop one column short of
-    ' its own rooms, and that column resolved to level 7 (whose rect starts at 79). It also left
-    ' cell 40 belonging to nobody, between level 2 (ends 40) and level 1 (starts 42) -- the only
-    ' REACHABLE cell on the board with no level at all (`dungeon.run sectorauto` counted it).
-    ' Nothing intended two bases; it came in with the first refactor and stayed hidden because
-    ' the mask supersedes the rects nearly everywhere.
-    FOR i = 1 TO 9
-        s = SECTORS(i)
-        sx = s.start_x * CW
-        ex = s.end_x * CW
-        sy = s.start_y * CH
-        ey = s.end_y * CH
-        IF x >= sx AND x <= ex AND y >= sy AND y <= ey THEN
-            SECTOR.get_by_xy = i
-            EXIT FUNCTION
-        END IF
-    NEXT i
+    DIM cx AS INTEGER, cy AS INTEGER
     SECTOR.get_by_xy = 0
+    cx = x \ CW: cy = y \ CH
+    IF cx < 0 OR cx > 131 OR cy < 0 OR cy > 60 THEN EXIT FUNCTION
+    SECTOR.get_by_xy = SECTORAT(cx, cy)
 END FUNCTION
 
 
@@ -423,6 +475,7 @@ END FUNCTION
 ' Both were once inlined in engine/BOARD.bas, which meant the engine wrote the game's
 ' ROOMS/CHAMBERAT arrays directly. Order matters: rooms first (chambers read SECTOR/label state).
 SUB Game_PopulateBoard
+    DeriveSectors                        ' level geometry from the art -- must precede DetectChambers
     DetectRooms
     DetectChambers
 END SUB

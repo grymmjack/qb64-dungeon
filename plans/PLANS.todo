@@ -16,8 +16,12 @@ Board layering (WIRED -- layer-1 decoration is drawn and walk-over): @next
         ✔ OVERLAPS -- including "over the WHOLE image", which used to fail 15 ways @done(26-08-01)
       ✔ and "every walkable cell resolves to a level" (was 91 unclaimed): PlayerLevel%'s @done(26-08-01)
         ✔ sticky fallback now has nothing left to cover @done(26-08-01)
-      ☐ -> sectors.txt rects and board-132x50-sector-mask.ans can both retire as AUTHORED files
-      ☐ -> derive tight boxes from the art, then expand each until it meets a neighbour or the edge
+      ✔ -> sectors.txt rects and board-132x50-sector-mask.ans BOTH RETIRED as authored files @done(26-08-01)
+        ✔ the mask file is deleted and `sectorgen` is gone; sectors.txt keeps only id|label|colour @done(26-08-01)
+      ✔ -> DeriveSectors: tight per-colour boxes from the art, then expand each until it meets a @done(26-08-01)
+        ✔ neighbour or the board edge -- that expansion is what claims the CORRIDORS @done(26-08-01)
+        ✔ SECTOR.get_by_xy is now a straight SECTORAT lookup; no rect fallback, no mask @done(26-08-01)
+        ✔ art always wins: a cell painted a level colour is reassigned to it after the boxes land @done(26-08-01)
     ✔ Game_FloorColorAt~& READS THE PIXEL, not geometry: returns the cell's own colour when the @done(26-08-01)
       ✔ game recognises it as a level floor colour, else 0 @done(26-08-01)
       ✔ GOTCHA: it samples _SOURCE, and CanMove/InRoomNow reach the board by _PUTIMAGE rather @done(26-08-01)
