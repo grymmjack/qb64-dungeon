@@ -23,11 +23,11 @@ SUB FadeInCurrent
     FOR a = 255 TO 0 STEP -20
         _PUTIMAGE (0, 0), scene, CANVAS
         LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, a), BF
-        _DISPLAY
+        Present
         _LIMIT 60
     NEXT a
     _PUTIMAGE (0, 0), scene, CANVAS
-    _DISPLAY
+    Present
     _FREEIMAGE scene
 END SUB
 
@@ -37,11 +37,11 @@ SUB FadeOut
     _DEST CANVAS
     FOR i = 1 TO 14
         LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H2C), BF
-        _DISPLAY
+        Present
         _LIMIT 60
     NEXT i
     LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
-    _DISPLAY
+    Present
 END SUB
 
 
@@ -80,20 +80,20 @@ SUB BloodDrip
                 allfull = 0
             END IF
         NEXT i
-        _DISPLAY
+        Present
         _LIMIT 60
     LOOP UNTIL allfull OR f > 220
     LINE (0, 0)-(SW * CW - 1, SH * CH - 1), darkred, BF   ' guarantee fully solid
-    _DISPLAY
+    Present
     _DELAY 0.35                                          ' hold the blood-soaked screen a beat
     ' slow fade from red to black
     FOR f = 1 TO 48
         LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H0E), BF
-        _DISPLAY
+        Present
         _LIMIT 60
     NEXT f
     LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
-    _DISPLAY
+    Present
 END SUB
 
 
@@ -132,19 +132,19 @@ SUB DarknessFall
                 allfull = 0
             END IF
         NEXT i
-        _DISPLAY
+        Present
         _LIMIT 60
     LOOP UNTIL allfull OR f > 220
     LINE (0, 0)-(SW * CW - 1, SH * CH - 1), darkgrey, BF   ' guarantee fully solid grey
-    _DISPLAY
+    Present
     _DELAY 0.35                                            ' hold the ashen screen a beat
     FOR f = 1 TO 48                                        ' slow fade from grey to black
         LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H0E), BF
-        _DISPLAY
+        Present
         _LIMIT 60
     NEXT f
     LINE (0, 0)-(SW * CW - 1, SH * CH - 1), BLACK, BF
-    _DISPLAY
+    Present
 END SUB
 
 SUB Banner (l1 AS STRING, l2 AS STRING)
@@ -164,7 +164,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     COLOR YELLOWU, BOXBG: PrintCentered 27, l2
     UIFontOff
     bnr_l2 = l2: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
-    _DISPLAY
+    Present
 END SUB
 
 
@@ -281,39 +281,134 @@ END SUB
 SUB WaitKey
     DIM k AS STRING
     _KEYCLEAR              ' drain buffered keys
-    DO: _LIMIT 60: AudioTick: DisplayTick: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    DO: _LIMIT 60: AudioTick: k = INKEY$: Present: LOOP UNTIL k <> ""   ' Present handles resize
     FlashPrompt
 END SUB
 
 
-' One frame's worth of WINDOW-RESIZE housekeeping. Call it wherever AudioTick is called --
-' any loop the player can sit in while dragging the window edge.
+' ============================================================================
+'  PRESENT -- put the finished frame on screen. THE one place scaling is decided.
 '
-' Ported from DRAW (DRAW.BAS's resize watcher). Two things matter and only one is obvious:
+'  This replaces every bare Present. The reason is the whole reason windowed resize was
+'  broken: the game used to do `SCREEN CANVAS`, making the 132x51 character grid BE the
+'  window surface, and left `$RESIZE:STRETCH` to scale it to whatever size the window
+'  manager handed us. A character grid does not survive a fractional stretch -- 1056x816
+'  into (say) 3840x2093 is 3.64x horizontally and 2.56x vertically, and glyphs and panel
+'  edges land wherever the rounding puts them. Parts of the UI appear to vanish.
 '
-'   1. CONSUME the event. _RESIZE latches until it is read; leaving it set means the pending
-'      resize is never acknowledged and a later reader sees a stale one.
-'   2. Wait for it to SETTLE. Dragging a window edge fires a burst of resizes and some window
-'      managers lag or drop the last one, so acting on every event both thrashes and can act
-'      on a size that is already wrong. Repaint once, a few frames after they stop.
+'  DRAW hit exactly the same thing and solved it by owning the window surface instead of
+'  letting the metacommand own it (see ~/git/DRAW OUTPUT/SCREEN.BM SCREEN_render, which
+'  ends `_PUTIMAGE (0,0)-(_WIDTH(0)-1,_HEIGHT(0)-1), SCRN.CANVAS&, 0`). So now: CANVAS is
+'  an OFFSCREEN render target at exactly SW*CW x SH*CH, screen 0 is a real window-sized
+'  surface, and this blits one to the other at an INTEGER scale, centred, with black bars.
+'  Integer-only is the point -- it is the only way every cell keeps the same pixel size.
 '
-' It only re-asserts the display mode and asks for a repaint -- it never repaints the board
-' itself, because it runs inside modal overlays (banners, the character sheet) where wiping
-' back to the board would be worse than the stale frame it is fixing. Loops that own the
-' screen consume display_dirty when they are ready.
-SUB DisplayTick
+'  Below one full canvas the window is too small for an integer scale, so it degrades to a
+'  fitted stretch: ugly, but showing everything beats cropping.
+' ============================================================================
+SUB Present
+    DIM olddest AS LONG, sw0 AS LONG, sh0 AS LONG, sc AS INTEGER
+    DIM dw AS LONG, dh AS LONG, ox AS LONG, oy AS LONG
+    olddest = _DEST
+    ' THE RESIZE IS HANDLED HERE, not in a loop.
+    '
+    ' DRAW checks _RESIZE once per frame in its ONE main loop (DRAW.BAS:340). This game has no
+    ' single frame loop -- it is ~40 nested blocking loops (WaitKey, Banner, the dice tumble,
+    ' fades, the gauge, every menu), each owning the screen for a while. Putting the check in
+    ' "the loop" therefore means putting it in forty of them, and the first attempt did exactly
+    ' two (the play loop and WaitKey): resize while sitting in SETTINGS and nothing consumed the
+    ' event, so the window grew while screen 0 stayed 1056x816, anchored top-left.
+    '
+    ' The present IS this game's once-per-frame chokepoint. Handling it here reaches every loop
+    ' by construction, including ones written later.
+    '
+    ' TWO GUARDS, both learned from DRAW (DRAW.BAS:340 + SCREEN.BM SCREEN_DEFERRED_RESIZE%), and
+    ' the screen strobes horribly without either:
+    '
+    '   SELF-EVENTS. Our own SCREEN _NEWIMAGE raises a _RESIZE. Acting on that recreates the
+    '   screen again, which raises another... a feedback loop that reads as the display having a
+    '   fit. pres_deferred counts the echoes we caused and swallows exactly that many.
+    '
+    '   SETTLE. Dragging an edge fires an event every frame. Recreating the GL surface each one
+    '   is both slow and visibly flickery, so arm a countdown instead and act once the events
+    '   STOP -- a drag re-arms it every frame, so the resize happens once at the end.
     IF _RESIZE THEN
-        rsz_w = _RESIZEWIDTH: rsz_h = _RESIZEHEIGHT      ' reading these clears the event
-        rsz_settle = 8
+        rsz_w = _RESIZEWIDTH: rsz_h = _RESIZEHEIGHT       ' reading these clears the event
+        IF pres_deferred > 0 THEN
+            pres_deferred = pres_deferred - 1             ' our own resize echoing back -- ignore it
+        ELSE
+            TakeWindowSize rsz_w, rsz_h                   ' act NOW; the guards below stop the loop
+        END IF
+        rsz_settle = 6                                    ' ...and arm the corrective watcher
     ELSEIF rsz_settle > 0 THEN
+        ' CORRECTIVE pass, not the main path: some window managers drop or lag the last _RESIZE
+        ' of a drag (and of a maximize), leaving the window a different size from the surface.
+        ' A few frames after the events stop, check and fix it.
         rsz_settle = rsz_settle - 1
         IF rsz_settle = 0 THEN
-            ApplyDisplay                                  ' re-assert fullscreen/scaling for the new size
-            display_dirty = -1
-            _DISPLAY                                      ' present at once, even if nobody consumes the flag
+            IF pres_deferred > 0 THEN
+                pres_deferred = pres_deferred - 1
+            ELSE
+                TakeWindowSize rsz_w, rsz_h
+            END IF
         END IF
     END IF
+    sw0 = _WIDTH(0): sh0 = _HEIGHT(0)
+    IF sw0 < 1 OR sh0 < 1 THEN _DISPLAY: EXIT SUB
+    ' HOW the canvas fills the window is the player's call, via SETTINGS "Pixel Smoothing":
+    '
+    '   crisp  (opt_smooth off) -- INTEGER scale only. Every character cell keeps exactly the
+    '          same pixel size, so the ANSI art stays razor sharp. The cost is black bars: a
+    '          2600x1400 window only allows 1x, because 816*2 = 1632 does not fit in 1400.
+    '   smooth (opt_smooth on)  -- largest scale that FITS, fractions allowed. Fills the window
+    '          properly at any aspect; glyph edges soften slightly.
+    '
+    ' Either way the ASPECT is preserved and the whole canvas is drawn -- _PUTIMAGE maps the
+    ' entire source into the destination rectangle, so unlike $RESIZE:STRETCH nothing can be
+    ' cropped or dropped no matter how odd the window shape is.
+    IF opt_smooth THEN
+        dw = sw0: dh = CLNG(sw0) * (SH * CH) / (SW * CW)          ' fit to width...
+        IF dh > sh0 THEN dh = sh0: dw = CLNG(sh0) * (SW * CW) / (SH * CH)   ' ...or to height
+    ELSE
+        sc = sw0 \ (SW * CW)
+        IF sh0 \ (SH * CH) < sc THEN sc = sh0 \ (SH * CH)
+        IF sc < 1 THEN
+            dw = sw0: dh = CLNG(sw0) * (SH * CH) / (SW * CW)      ' below 1x: fit, never crop
+            IF dh > sh0 THEN dh = sh0: dw = CLNG(sh0) * (SW * CW) / (SH * CH)
+        ELSE
+            dw = CLNG(SW) * CW * sc: dh = CLNG(SH) * CH * sc
+        END IF
+    END IF
+    ox = (sw0 - dw) \ 2: oy = (sh0 - dh) \ 2
+    _DEST 0
+    ' Repaint the letterbox bars only when the geometry CHANGES. A full CLS every frame at
+    ' 4K is real work for pixels that never change.
+    IF dw <> pres_lastw OR dh <> pres_lasth OR sw0 <> pres_winw OR sh0 <> pres_winh THEN
+        CLS , BLACK
+        pres_lastw = dw: pres_lasth = dh: pres_winw = sw0: pres_winh = sh0
+    END IF
+    _PUTIMAGE (ox, oy)-(ox + dw - 1, oy + dh - 1), CANVAS, 0
+    _DEST olddest
+    _DISPLAY
 END SUB
+
+
+' Recreate the window surface at (w,h) -- the only place that does. Every guard against the
+' resize feedback loop lives here so no caller can forget one:
+'   * a zero/absurd size (some WMs report one mid-drag) is ignored
+'   * a NO-OP resize is ignored: asking for the size we already are still raises a _RESIZE,
+'     and acting on that raises another -- that alone is enough to strobe the display
+'   * pres_deferred is bumped FIRST, so the echo this call is about to cause gets swallowed
+SUB TakeWindowSize (w AS LONG, h AS LONG)
+    IF w < 64 OR h < 64 THEN EXIT SUB
+    IF w = _WIDTH(0) AND h = _HEIGHT(0) THEN EXIT SUB
+    pres_deferred = pres_deferred + 1
+    SCREEN _NEWIMAGE(w, h, 32)
+    pres_lastw = -1                                       ' geometry changed: repaint the letterbox bars
+    display_dirty = -1                                    ' and let loops that track it redraw
+END SUB
+
+
 
 
 ' Acknowledge a keypress at a '[ press any key ]' prompt: a soft click + a quick
@@ -327,7 +422,7 @@ SUB FlashPrompt
         LINE ((bnr_bx1 + 1) * CW, 27 * CH)-((bnr_bx2 - 1) * CW, 28 * CH), BOXBG, BF
         IF ff MOD 2 = 1 THEN COLOR WHITE, REDU ELSE COLOR YELLOWU, BOXBG
         PrintCentered 27, bnr_l2
-        _DISPLAY
+        Present
         _LIMIT 30
     NEXT ff
     bnr_l2 = ""     ' one-shot: a banner flashes once, never again (no stale redraws elsewhere)
@@ -345,7 +440,7 @@ SUB CombatPause
     ' '[ press any key ]' need a second press). We only drain AFTER advancing so
     ' the advance key can't spill into the next attack.
     IF opt_msgdelay <= 0 THEN                       ' 0 = wait for a keypress (manual)
-        DO: _LIMIT 60: AudioTick: _DISPLAY: LOOP UNTIL INKEY$ <> ""
+        DO: _LIMIT 60: AudioTick: Present: LOOP UNTIL INKEY$ <> ""
         FlashPrompt: _KEYCLEAR: EXIT SUB
     END IF
     ' TIMED: this prompt will auto-advance, so '[ press any key ]' is misleading.
@@ -359,14 +454,14 @@ SUB CombatPause
         LINE ((bnr_bx1 + 1) * CW, 27 * CH)-((bnr_bx2 - 1) * CW, 28 * CH), BOXBG, BF
         COLOR YELLOWU, BOXBG: PrintCentered 27, l2s
         bnr_l2 = l2s
-        _DISPLAY
+        Present
     END IF
     maxf = opt_msgdelay * 60                        ' else auto-advance after the delay...
     FOR f = 1 TO maxf
         _LIMIT 60
         AudioTick
         IF INKEY$ <> "" THEN FlashPrompt: EXIT FOR  ' ...or ANY key advances early (with feedback)
-        _DISPLAY
+        Present
     NEXT f
     _KEYCLEAR                      ' drain the advance key so it can't trigger the next round
 END SUB
@@ -522,7 +617,7 @@ SUB ScrollTextVO (title AS STRING, body AS STRING, narrkey AS STRING)
             p = nl + 1: ln = ln + 1
         LOOP
         COLOR CYANU, BOXBG: PrintCentered by + bh - 2, "[ any key to continue ]"
-        _DISPLAY
+        Present
         AudioTick                                   ' keep the narration fade-in ramping while the crawl types
         IF NOT narrating THEN IF c1 <> CHR$(10) AND c1 <> " " THEN VoiceBlip 380 + (ASC(c1) MOD 12) * 40
         IF NOT skip THEN
@@ -533,7 +628,7 @@ SUB ScrollTextVO (title AS STRING, body AS STRING, narrkey AS STRING)
     NEXT i
     ' hold on the fully-revealed text
     _KEYCLEAR
-    DO: _LIMIT 60: AudioTick: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    DO: _LIMIT 60: AudioTick: k = INKEY$: Present: LOOP UNTIL k <> ""
     IF narrating THEN NarrateStop                   ' cut the voice when the crawl is dismissed
 END SUB
 
@@ -638,7 +733,7 @@ SUB RevealMath (bx1 AS INTEGER, bx2 AS INTEGER, mrow AS INTEGER, roll AS INTEGER
         acc = acc + parts(i)
         LINE ((bx1 + 1) * CW, mrow * CH)-((bx2 - 1) * CW, (mrow + 1) * CH), BOXBG, BF
         COLOR YELLOWU, BOXBG: PrintCentered mrow, acc
-        _DISPLAY
+        Present
         IF opt_sfx THEN
             IF i = np THEN SfxOr "dice-math-2", 1100, 0.15 ELSE SfxOr "dice-math-1", 440 + i * 130, 0.06  ' summing: ticks then total
         END IF
@@ -646,7 +741,7 @@ SUB RevealMath (bx1 AS INTEGER, bx2 AS INTEGER, mrow AS INTEGER, roll AS INTEGER
             FOR j = 1 TO 22                                       ' ~0.36s of suspense per beat
                 _LIMIT 60
                 IF INKEY$ <> "" THEN skip = -1: EXIT FOR
-                _DISPLAY
+                Present
             NEXT j
         END IF
     NEXT i
@@ -738,7 +833,7 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
             IF opt_sfx THEN
                 DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
             END IF
-            _DISPLAY
+            Present
             AudioTick
             _LIMIT rate
         NEXT f
@@ -751,11 +846,11 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                 av = ff * 22: IF av > 255 THEN av = 255
                 LINE (dxp - 4, by - 4)-(dxp + sz + 9, by + sz + 9), _RGBA32(&H20, &H00, &H00, av), BF
                 IF opt_sfx AND ff = 5 THEN Tone 170, 0.06
-                _DISPLAY
+                Present
                 _LIMIT 40
             NEXT ff
             LINE (dxp - 4, by - 4)-(dxp + sz + 9, by + sz + 9), BOXBG, BF
-            _DISPLAY
+            Present
         END IF
         RevealMath x1 \ CW, x2 \ CW, ybot \ CH - 1, tot, bonus, n, drop > 0   ' slow, tense math reveal
         _DELAY hold                  ' hold so the settled dice are readable
@@ -1113,7 +1208,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
         IF opt_sfx THEN
             DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
         END IF
-        _DISPLAY
+        Present
         AudioTick
         _LIMIT rate
     NEXT f
@@ -1126,11 +1221,11 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
             av = f * 22: IF av > 255 THEN av = 255
             LINE (dxi - 4, dy - CH)-(dxi + dw + 4, dy + dh + 4), _RGBA32(&H20, &H00, &H00, av), BF
             IF opt_sfx AND f = 5 THEN Tone 170, 0.06
-            _DISPLAY
+            Present
             _LIMIT 40
         NEXT f
         LINE (dxi - 4, dy - CH)-(dxi + dw + 4, dy + dh + 4), BOXBG, BF
-        _DISPLAY
+        Present
     END IF
     ' On a single d20 showing 1 or 20 the math is moot (nat-1 = fumble, nat-20 =
     ' crit, whatever the modifier) -- skip the reveal and let combat proceed.
@@ -1163,7 +1258,7 @@ FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
             IF opt_sfx THEN
                 DiceAnimSfx f, settle, 380 + f * 28, 0.05
             END IF
-            _DISPLAY
+            Present
             AudioTick
             _LIMIT rate
         NEXT f
@@ -1218,7 +1313,7 @@ FUNCTION PromptRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS 
         COLOR WHITE, BOXBG: PrintCentered 25, l1
         COLOR GREENU, BOXBG: PrintCentered 28, "> " + entry + "_"
         IF LEN(msg) > 0 THEN COLOR REDU, BOXBG: PrintCentered 30, msg
-        _DISPLAY
+        Present
         k = INKEY$
         IF k <> "" THEN
             IF k = CHR$(13) THEN
@@ -1253,9 +1348,9 @@ FUNCTION AskContinue%
     _DEST CANVAS: CLS , BLACK
     COLOR YELLOWU, BLACK: PrintCentered 22, "A saved delve awaits you."
     COLOR CYANU, BLACK: PrintCentered 24, "[C] CONTINUE saved game        [N] start a NEW game"
-    _DISPLAY
+    Present
     DO
-        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+        _LIMIT 60: k = UCASE$(INKEY$): Present
         IF k = "C" OR k = CHR$(13) THEN AskContinue = -1: EXIT FUNCTION
         IF k = "N" OR k = CHR$(27) THEN AskContinue = 0: EXIT FUNCTION
     LOOP
@@ -1271,6 +1366,11 @@ END FUNCTION
 ' bilinear-filtered scaling (soft, and it makes the tumbling dice shimmer); without
 ' it the canvas is pixel-doubled crisp -- better suited to the ANSI/text art.
 SUB ApplyDisplay
+    ' Entering or leaving fullscreen raises a _RESIZE just like a drag does. Present must not
+    ' mistake it for the player resizing the window and "correct" us back to the old size --
+    ' so book the echo before making the change. (Same guard TakeWindowSize uses.)
+    pres_deferred = pres_deferred + 1
+    pres_lastw = -1                  ' Pixel Smoothing also changes Present's geometry -> repaint bars
     IF opt_fullscreen THEN
         IF opt_smooth THEN
             _FULLSCREEN _SQUAREPIXELS, _SMOOTH

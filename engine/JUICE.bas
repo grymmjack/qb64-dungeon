@@ -234,7 +234,7 @@ SUB ImpactFX (mag AS SINGLE, kind AS INTEGER)
         NEXT
         a = INT(120 * fr)                            ' the colour wash
         IF a > 0 THEN LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(r, g, b, a), BF
-        _DISPLAY
+        Present
         _LIMIT 60
     NEXT
     _DEST CANVAS: CLS , BLACK: _PUTIMAGE (0, 0), FX_BUF, CANVAS   ' leave a clean frame for the caller
@@ -324,7 +324,7 @@ SUB CritBoom (dmg AS INTEGER)
         END IF
         dw = INT(nw * sc): dh = INT(nh * sc)
         _PUTIMAGE (cxp - dw \ 2, INT(yNow) - dh \ 2)-(cxp + dw \ 2, INT(yNow) + dh \ 2), numimg, CANVAS
-        _DISPLAY: _LIMIT 60
+        Present: _LIMIT 60
     NEXT
     _DEST CANVAS: CLS , BLACK: _PUTIMAGE (0, 0), FX_BUF, CANVAS ' leave a clean frame for the caller
     _FREEIMAGE numimg

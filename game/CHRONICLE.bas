@@ -183,7 +183,7 @@ SUB ChroniclePanel (x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER, 
 END SUB
 
 SUB ChronicleClose
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 ' GAME SUMMARY -- the run at a glance.
@@ -208,7 +208,7 @@ SUB ShowGameSummary
     SumRow y, "Deaths this run", g_run_deaths: y = y + 2
     COLOR CYANU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$("Time played", 26): COLOR WHITE, BOXBG: _PRINTSTRING (70 * CW, y * CH), tmr
     COLOR YELLOWU, BOXBG: PrintCentered 43, "[ press any key ]"
-    _DISPLAY: WaitKey: ChronicleClose
+    Present: WaitKey: ChronicleClose
 END SUB
 SUB SumRow (y AS INTEGER, lbl AS STRING, v AS LONG)
     COLOR CYANU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$(lbl, 26)
@@ -234,7 +234,7 @@ SUB ShowEventLog
             NEXT
         END IF
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] scroll   [PgUp/PgDn] page   [ESC] back"
-        _DISPLAY
+        Present
         k = "": ext = 0
         DO
             k = INKEY$: IF LEN(k) = 2 THEN ext = ASC(RIGHT$(k, 1))
@@ -282,7 +282,7 @@ SUB ShowBestiary
             BeastRow y, "Loot rescued from", BEAST_LOOTED(sel): y = y + 2
         END IF
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] browse   [ESC] back"
-        _DISPLAY
+        Present
         k = ""
         DO
             k = NormKey$(UCASE$(INKEY$))
@@ -325,7 +325,7 @@ SUB ShowTreasury
         ChroniclePanel 16, 4, 116, 46, "T R E A S U R Y"
         COLOR GREY, BOXBG: PrintCentered 24, "No treasure recovered yet. The hoard awaits."
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
-        _DISPLAY: WaitKey: ChronicleClose: EXIT SUB
+        Present: WaitKey: ChronicleClose: EXIT SUB
     END IF
     PlayCue "treasury", -1                              ' treasury music (restored to the level track on exit)
     sel = 1
@@ -353,7 +353,7 @@ SUB ShowTreasury
         END IF
         COLOR GREENU, BOXBG: PrintCentered 44, "Total: " + EvNum$(g_gold_found) + " GP across " + EvNum$(g_treasures_found) + " finds"
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] browse   [ESC] back"
-        _DISPLAY
+        Present
         k = ""
         DO
             k = NormKey$(UCASE$(INKEY$))
@@ -541,7 +541,7 @@ SUB ShowRules
         ELSE
             COLOR YELLOWU, BOXBG: PrintCentered 46, "[Up/Dn] scroll   [wheel/PgUp/PgDn] page   click a link to open   [ESC] back   (" + EvNum$(top) + "/" + EvNum$(n) + ")"
         END IF
-        _DISPLAY
+        Present
     LOOP
     ChronicleClose
 END SUB
@@ -569,7 +569,7 @@ SUB GameMenu
             PrintCentered y, "   " + lbl(i) + "   "
         NEXT
         COLOR YELLOWU, BOXBG: PrintCentered 32, "[W/S] move   [ENTER] pick   [ESC] resume"
-        _DISPLAY
+        Present
         AudioTick                             ' gamemenu cue crossfade / narration fade keeps ramping
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 8

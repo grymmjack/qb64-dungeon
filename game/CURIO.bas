@@ -64,7 +64,7 @@ SUB TickStatus
     END IF
     IF siren_turns > 0 THEN siren_turns = siren_turns - 1
     IF dead = 0 THEN                              ' a death already repainted the board itself
-        IF StatusFxKey% <> snap THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        IF StatusFxKey% <> snap THEN cursor_erase: cursor_draw: DrawHUD: Present
     END IF
 END SUB
 
@@ -161,7 +161,7 @@ SUB DoCurio (rm AS INTEGER)
         CASE "mimic": CurioMimic sec
     END SELECT
     EndCue                                             ' curio done -> back to the level track
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 ' The interaction hint under each curio's prompt (per kind).
@@ -188,7 +188,7 @@ FUNCTION CurioChoose% (ky AS STRING)
         _LIMIT 60: AudioTick: k = UCASE$(INKEY$)
         IF k = UCASE$(ky) OR k = CHR$(13) THEN CurioChoose% = -1: EXIT FUNCTION
         IF k = "L" OR k = CHR$(27) THEN CurioChoose% = 0: EXIT FUNCTION
-        _DISPLAY
+        Present
     LOOP
 END FUNCTION
 
@@ -443,7 +443,7 @@ SUB CurioMimic (sec AS INTEGER)
     Sfx "bump"
     Banner "The lid gapes wide -- rows of teeth! It's a MIMIC!", "The chest was alive all along -- it lunges!   [ press any key ]": WaitKey
     res = DoCombat(w)
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -503,5 +503,5 @@ SUB SpringTrap (rm AS INTEGER)
         END SELECT
     END IF
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB

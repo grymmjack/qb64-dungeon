@@ -86,14 +86,22 @@ RANDOMIZE TIMER
 ' window starts HIDDEN (no black flash); _SCREENSHOW reveals it for play only (dev modes never do)
 $SCREENHIDE
 $RESIZE:ON
-$RESIZE:STRETCH
+' NO $RESIZE:STRETCH. The window surface is OURS (see Present in engine/UI.bas): CANVAS is an
+' offscreen 132x51 character grid and screen 0 is a real window-sized image that Present blits
+' into at an INTEGER scale. Letting the metacommand stretch a character grid by a fractional
+' ratio is what made a resized window drop parts of the UI -- the same failure DRAW had.
 CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
 FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "DUNGEON"
+SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)   ' the WINDOW -- starts at 1:1 with the canvas
+_DEST CANVAS                             ' ...but everything draws to the canvas
 _FONT CH
-SCREEN CANVAS
-IF NOT devmode THEN _FULLSCREEN _SQUAREPIXELS, _SMOOTH
+' NOTHING decides fullscreen here. This used to force `_FULLSCREEN _SQUAREPIXELS, _SMOOTH`
+' unconditionally, BEFORE LoadSettings had even run -- so the game always came up fullscreen
+' regardless of the player's saved Full Screen setting. ApplyDisplay (right after LoadSettings)
+' is the single place that reads opt_fullscreen/opt_smooth, and there is no flash to guard
+' against because $SCREENHIDE keeps the window hidden until _SCREENSHOW much later.
 
 IF _DIREXISTS("gameplay-data-saves") = 0 THEN MKDIR "gameplay-data-saves"   ' all runtime saves/prefs/stats/maps live here (keeps the repo root clean); must exist before any load/save
 SAVE_FILE = "gameplay-data-saves/dungeon-save.dat"   ' the save slot (engine reads this; `savetest` swaps it)
@@ -181,7 +189,21 @@ player_class = 1                 ' default HERO until the player creates a chara
 InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
 
 '--- dev: `dungeon.run settingsshot` renders the SETTINGS screen to a PNG and exits (layout check) ---
-IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN settingsshot_on = -1: RunSettings: SYSTEM
+' `settingsshot [w] [h]` -- optional WINDOW size, so the canvas->window scaling Present does
+' can be checked at a size that is NOT an exact multiple of the 1056x816 canvas. That case is
+' precisely what a dragged/maximised window produces, and precisely what used to lose UI.
+IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN
+    DIM ssArg AS INTEGER, ssSeen AS INTEGER, ssW AS LONG, ssH AS LONG
+    FOR ssArg = 1 TO _COMMANDCOUNT
+        IF VAL(COMMAND$(ssArg)) > 0 THEN
+            ssSeen = ssSeen + 1
+            IF ssSeen = 1 THEN ssW = VAL(COMMAND$(ssArg))
+            IF ssSeen = 2 THEN ssH = VAL(COMMAND$(ssArg))
+        END IF
+    NEXT ssArg
+    IF ssW > 0 AND ssH > 0 THEN TakeWindowSize ssW, ssH: _DEST CANVAS: _FONT CH
+    settingsshot_on = -1: RunSettings: SYSTEM
+END IF
 
 '--- dev: `dungeon.run fightshot` renders the TACTICAL COMBAT screen to a PNG and exits ---
 ' Seeds a synthetic 1-vs-4 encounter, so the screen and its art are verifiable with no
@@ -606,7 +628,7 @@ FUNCTION PlayGame%
     IF NOT didload THEN AnnounceTurn cur_player   ' multiplayer: announce whose turn it is
     IF NOT didload THEN SoloBegin                 ' single-player: arm the chosen solo challenge
     cursor_erase: cursor_draw
-    DrawHUD: _DISPLAY
+    DrawHUD: Present
 
     DIM startlvl AS INTEGER                        ' start this level's music before the first step
     StopLevelMusic                                 ' kill any leftover track (last run/menu) so it can't linger if the start sector has none
@@ -617,10 +639,9 @@ FUNCTION PlayGame%
     DO
         _LIMIT 60
         AudioTick                                 ' advance music crossfade + narration fade each frame
-        DisplayTick                               ' notice a settled window resize
         IF display_dirty THEN                     ' ...and repaint the whole board once it has settled
             display_dirty = 0
-            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            cursor_erase: cursor_draw: DrawHUD: Present
         END IF
         IF player_out THEN                        ' the active player has spent their last life
             ' solo (or last one standing) -> the run is over for good. Delete the save so a
@@ -655,14 +676,14 @@ FUNCTION PlayGame%
         IF k = "F" THEN DoSearch
         IF k = "C" THEN ShowCharSheet
         IF k = "V" THEN ScryView
-        IF k = "H" THEN UsePotion FALSE: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        IF k = "H" THEN UsePotion FALSE: cursor_erase: cursor_draw: DrawHUD: Present
         IF k = "P" THEN PauseGame: idle_ticks = 0
         IF k = "G" THEN SaveAndToast: idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
         IF k = "?" OR k = "/" THEN ShowKeys
-        IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
         IF k = "~" OR k = "`" THEN
             dbg_on = NOT dbg_on
-            IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY   ' wipe the frozen debug overlay off the board
+            IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: Present   ' wipe the frozen debug overlay off the board
         END IF
         IF dbg_on AND k = "0" THEN DebugTestMenu   ' [~] on -> [0] opens the cheat/test panel
 
@@ -679,7 +700,7 @@ FUNCTION PlayGame%
             start_heal_locked = TRUE
             loiter = 0
             StartTurnMove                    ' fresh move budget after the jump
-            cursor_erase: cursor_draw: FadeInCurrent: DrawHUD: _DISPLAY
+            cursor_erase: cursor_draw: FadeInCurrent: DrawHUD: Present
         END IF
 
         IF need_roll THEN
@@ -702,7 +723,7 @@ FUNCTION PlayGame%
                 Sfx "bump"
                 Banner "You are frozen fast!", "The rime locks your limbs (" + _TRIM$(STR$(frost_turns)) + " turns of frost remain)."
                 _DELAY 0.7
-                cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+                cursor_erase: cursor_draw: DrawHUD: Present
             ' board-game mode gates movement on the dice roll + steps; free mode walks anytime
             ELSEIF IsMoveKey(k) AND (NOT opt_boardgame OR steps_left > 0) THEN
                 sd = StrongDoorAhead(k)
@@ -768,7 +789,7 @@ FUNCTION PlayGame%
         DrawHUD
         IF solo_on THEN DrawSoloHUD                 ' the solo status ribbon (timer / quest / hunter distance)
         IF dbg_on THEN DrawDebug
-        _DISPLAY
+        Present
         IF solo_result = OUT_LOSE THEN
             Banner "SOLO CHALLENGE LOST", solo_msg + "   [ press any key ]"
             WaitKey

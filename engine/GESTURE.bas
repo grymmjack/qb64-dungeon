@@ -65,7 +65,7 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
         ' score somewhere the player cannot see. k is passed WHOLE (not p/ecrit/ehit picked out)
         ' precisely so k.zc cannot be forgotten again -- see the note on DrawGauge.
         DrawGauge title, prompt, swMode, k, fuseLeft / gsecs
-        _DISPLAY
+        Present
         _LIMIT 60
         kk = INKEY$
         IF kk = CHR$(27) THEN GaugeLock% = 0: EXIT FUNCTION      ' ESC forfeits (counts as a miss)
@@ -84,7 +84,7 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
             DO
                 DrawGauge title, GaugeResult$(z, swMode), swMode, k, fuseLeft / gsecs
                 DrawGaugeLock k.p, z
-                _DISPLAY: _LIMIT 60
+                Present: _LIMIT 60
             LOOP UNTIL TIMER - fl >= 0.6 OR TIMER - fl < 0
             GaugeLock% = z
             EXIT FUNCTION

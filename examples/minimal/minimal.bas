@@ -41,13 +41,14 @@ BOXBG = _RGB32(&H20, &H00, &H00)
 RANDOMIZE TIMER
 
 $RESIZE:ON
-$RESIZE:STRETCH
+' No $RESIZE:STRETCH -- the engine's Present owns the canvas->window scaling (see engine/UI.bas).
 CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
 FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "MINIMAL -- engine separability demo"
+SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)
+_DEST CANVAS
 _FONT CH
-SCREEN CANVAS
 
 ' engine defaults this demo cares about (no settings file, no SETTINGS screen)
 opt_music = FALSE: opt_sfx = FALSE: opt_voice = FALSE
@@ -106,7 +107,7 @@ DO
             cursor_draw
         END IF
     END IF
-    _DISPLAY
+    Present
 LOOP
 SYSTEM
 

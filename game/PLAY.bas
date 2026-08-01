@@ -140,7 +140,7 @@ SUB CollectLooseAt (cx AS INTEGER, cy AS INTEGER)
     Sfx "treasure"
     Banner "You recover the spoils from where you fell.", _TRIM$(got) + "   [ press any key ]"
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 ' Grant one stash's magic to the player and append what was actually taken to `got`.
@@ -210,9 +210,9 @@ SUB PauseGame
     DO
         _LIMIT 30
         k = INKEY$
-        _DISPLAY
+        Present
     LOOP UNTIL k <> ""
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -248,7 +248,7 @@ SUB CollectDrop (rm AS INTEGER)
         Banner "You reclaim the spoils you dropped here -- revenge is sweet!", _TRIM$(got) + "   [ press any key ]"
     END IF
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -310,7 +310,7 @@ SUB FlashOmen (stage AS INTEGER)
     Sfx "idle"
     Banner LoiterOmen$(stage), "-- best not to linger --"
     _DELAY 1.7
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -377,7 +377,7 @@ SUB WanderEncounter
     Banner MonVerb$(wm, "A WANDERING " + wm + " bursts", "WANDERING " + wm + " burst") + " from the shadows!", "Your lingering has drawn " + MonVerb$(wm, "it", "them") + " to you.   [ press any key ]"
     WaitKey
     res = DoCombat(w)
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 ' A CHAMBER (the big named halls) holds THREE monsters and NO treasure. Each time the
@@ -411,19 +411,19 @@ SUB ChamberEncounter (cid AS INTEGER)
             CHM_EVDONE(cid) = TRUE
             ChamberEventBanner cid, kind
             DoCurio 0                                      ' the curio deck IS the shrine's risk/reward
-            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            cursor_erase: cursor_draw: DrawHUD: Present
             EXIT SUB
         CASE "hazard"
             CHM_EVDONE(cid) = TRUE
             ChamberEventBanner cid, kind
             SpringTrap 0                                   ' traps.txt supplies the mechanic + prose
-            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            cursor_erase: cursor_draw: DrawHUD: Present
             EXIT SUB
         CASE "boon"
             CHM_EVDONE(cid) = TRUE
             ChamberEventBanner cid, kind
             ChamberBoon sec
-            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+            cursor_erase: cursor_draw: DrawHUD: Present
             EXIT SUB
         CASE "lord"
             CHM_EVDONE(cid) = TRUE
@@ -469,7 +469,7 @@ SUB ChamberEncounter (cid AS INTEGER)
         Banner "The " + _TRIM$(CHM_NAME(cid)) + " is cleared!", "Three graves mark your victory here.   [ press any key ]"
         WaitKey
     END IF
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -514,7 +514,7 @@ SUB DoSearch
         Banner "You search the walls but find no secrets here.", "[ press any key ]"
     END IF
     WaitKey
-    cursor_erase: cursor_draw: _DISPLAY
+    cursor_erase: cursor_draw: Present
     LoiterTick                                     ' lingering to search draws danger closer
 END SUB
 
@@ -537,7 +537,7 @@ FUNCTION BreakDoorAttempt% (idx AS INTEGER)
         BreakDoorAttempt = FALSE
     END IF
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END FUNCTION
 
 ' The ONE-TIME arrival at a named hall: its establishing shot, its description typed out, and
@@ -558,7 +558,7 @@ SUB ChamberArrival (cid AS INTEGER)
     IF LEN(cdesc) = 0 THEN cdesc = "You step into the " + cname + " -- three guard this hall, and it holds no treasure."
     Sfx "key"                                          ' the same chime a named room's crawl opens on
     ScrollTextArtKey cname, cdesc, SpecialSprite$(cname), "chamber." + NarrSlug$(cname)
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 

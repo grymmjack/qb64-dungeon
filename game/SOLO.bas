@@ -182,7 +182,7 @@ SUB HunterFight
         HunterSpawn                                 ' a fresh hunter from level 6
     ELSE
         c.x = c.prev_x: c.y = c.prev_y              ' failed to fell it -- fall back a step
-        cursor_erase: cursor_draw: _DISPLAY
+        cursor_erase: cursor_draw: Present
     END IF
 END SUB
 

@@ -185,7 +185,7 @@ SUB RoomFlavor (rm AS INTEGER)
     IF deep THEN
         Sfx "key"                                          ' a chime marks a named/special room
         ScrollTextArt _TRIM$(SP_KEY(si)), SP_FLAV(si, RollDie(SP_FN(si))), SpecialSprite$(SP_KEY(si))
-        cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        cursor_erase: cursor_draw: DrawHUD: Present
     ELSE
         lvl = ROOMS(rm).sec: IF lvl < 1 OR lvl > 9 THEN lvl = 1
         IF REG_N(lvl) > 0 THEN
@@ -208,7 +208,7 @@ SUB FlavorLineVO (txt AS STRING, narrkey AS STRING)
         shown = LEFT$(txt, i)
         LINE (0, 1 * CH)-(SW * CW, 2 * CH), BLACK, BF
         COLOR CYANU, BLACK: PrintCentered 1, shown
-        _DISPLAY
+        Present
         IF NOT skip THEN
             IF opt_voice AND NOT narrating THEN VoiceBlip 480 + (ASC(MID$(txt, i, 1)) MOD 220)
             _DELAY 0.016
@@ -218,7 +218,7 @@ SUB FlavorLineVO (txt AS STRING, narrkey AS STRING)
     FOR h = 1 TO 90                                        ' ~1.5s hold, skippable
         _LIMIT 60
         IF INKEY$ <> "" THEN EXIT FOR
-        _DISPLAY
+        Present
     NEXT h
     ' Do NOT NarrateStop here: this is an AMBIENT one-liner, so let the spoken line finish in
     ' the background while the player carries on (the next Narrate / room / event stops it).

@@ -270,7 +270,7 @@ SUB PopArt (nm AS STRING, caption AS STRING)
         LINE (bx, by)-(bx + dw, by + dh), BOXBG, BF
         LINE (bx, by)-(bx + dw, by + dh), YELLOWU, B
         junk = DrawSpriteFit%(sp, bx + CW, by + CH, dw - 2 * CW, dh - 3 * CH)
-        _DISPLAY: _LIMIT 60
+        Present: _LIMIT 60
     NEXT
     dw = bw: dh = bh: bx = cxp - dw \ 2: by = cyp - dh \ 2   ' settled frame + caption
     _PUTIMAGE (0, 0), buf, CANVAS
@@ -279,10 +279,10 @@ SUB PopArt (nm AS STRING, caption AS STRING)
     junk = DrawSpriteFit%(sp, bx + CW, by + CH, dw - 2 * CW, dh - 3 * CH)
     _FONT CH: COLOR YELLOWU, BOXBG
     _PRINTSTRING (cxp - (LEN(caption) * CW) \ 2, by + dh - CH - 4), caption
-    _DISPLAY
+    Present
     FOR i = 1 TO 42: _LIMIT 60: k = INKEY$: IF k <> "" THEN EXIT FOR
     NEXT
-    _PUTIMAGE (0, 0), buf, CANVAS: _DISPLAY
+    _PUTIMAGE (0, 0), buf, CANVAS: Present
     _FREEIMAGE buf
 END SUB
 

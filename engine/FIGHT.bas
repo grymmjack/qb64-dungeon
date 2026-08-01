@@ -581,7 +581,7 @@ FUNCTION FightGaugeRun% (k AS GAUGEK, secs AS SINGLE, q AS SINGLE)
         FightDrawGauge "player.gauge", k
         FightText "hint.bar", 0, "SPACE to strike   " + FmtSecs$(left) + " left" + FightSteadyHint$(k), YELLOWU
         FightEndDraw
-        _DISPLAY
+        Present
 
         kk = INKEY$
         IF kk = " " THEN locked = -1: EXIT DO
@@ -653,7 +653,7 @@ FUNCTION FightDodgeRun% (attacker AS INTEGER, secs AS SINGLE)
         FightBar "player.gauge", left / secs, REDU
         FightText "hint.bar", 0, _TRIM$(FA_NAME(attacker)) + " strikes!  press " + shown + "  (" + FmtSecs$(left) + ")", REDU
         FightEndDraw
-        _DISPLAY
+        Present
 
         kk = UCASE$(INKEY$)
         IF LEN(kk) > 0 THEN

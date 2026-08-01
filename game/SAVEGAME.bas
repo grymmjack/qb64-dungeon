@@ -24,7 +24,7 @@ SUB SaveAndToast
     Sfx "key"
     Banner "-- GAME SAVED --", "Choose CONTINUE next time you enter the dungeon.   [ press any key ]"
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 

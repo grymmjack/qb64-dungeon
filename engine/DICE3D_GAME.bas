@@ -171,7 +171,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     LINE (tx, ty)-(tx + tw, ty + th), boxviolet, BF
     LINE (tx, ty)-(tx + tw, ty + th), boxedge, B
     COLOR YELLOWU, boxviolet: PrintCentered 10 + DICE3D_YOFF, hdr
-    _DISPLAY
+    Present
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     IF droplow > 0 THEN notation = notation + "dl" + _TRIM$(STR$(droplow))   ' e.g. 4d6dl1
@@ -181,7 +181,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' Reveal the sum one beat at a time -- like the 2D font dice: each kept die appears
     ' in turn ("3 ... + 3 ... + 2"), then the bonus, then "= total", a rising tick per
     ' beat and a brighter ding on the total. This can't reuse RevealMath: the GL dice
-    ' must be re-rendered EVERY frame (the hardware layer clears on each _DISPLAY).
+    ' must be re-rendered EVERY frame (the hardware layer clears on each Present).
     DIM ri AS INTEGER, rrow AS INTEGER, dropstr AS STRING, kept AS INTEGER
     DIM keptv(1 TO 8) AS INTEGER
     DIM beat(1 TO 16) AS STRING, nb AS INTEGER, acc AS STRING, tail AS STRING
@@ -260,10 +260,10 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
     DICE3D_HW = 0
     cursor_erase: cursor_draw                       ' wipe the dice box off the board so the combat
-    ' NOTE: on its OWN line. `Game_RenderHUD: _DISPLAY` parses the name as a LABEL, not a
+    ' NOTE: on its OWN line. `Game_RenderHUD: Present` parses the name as a LABEL, not a
     ' call, whenever that SUB is not defined -- it compiles clean and silently does nothing.
     Game_RenderHUD                                   ' game hook #5: restore the HUD layer
-    _DISPLAY                                         ' panel / "you still face..." prompt shows clean next
+    Present                                         ' panel / "you still face..." prompt shows clean next
     Show3DRoll = sum3d
 END FUNCTION
 

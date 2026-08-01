@@ -85,7 +85,7 @@ SUB ReviveOrForfeit (rm AS INTEGER)
         Banner "You have perished -- but you still have " + _TRIM$(STR$(chances)) + " chances left.", "Rise and delve again... better luck this time!   [ press any key ]"
     END IF
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -100,9 +100,9 @@ SUB ForfeitScreen
     COLOR GREY, BLACK: PrintCentered 22, ep
     COLOR _RGB32(&H88, &H88, &H88), BLACK: PrintCentered 25, "Your tale ends here, in the dark."
     COLOR _RGB32(&H55, &H55, &H55), BLACK: PrintCentered 28, "[ press any key ]"
-    _DISPLAY
+    Present
     _KEYCLEAR
-    DO: _LIMIT 30: kk = INKEY$: _DISPLAY: LOOP UNTIL kk <> ""
+    DO: _LIMIT 30: kk = INKEY$: Present: LOOP UNTIL kk <> ""
 END SUB
 
 
@@ -161,7 +161,7 @@ FUNCTION EspEnter% (rm AS INTEGER)
         k = UCASE$(INKEY$)
         IF k = "Y" OR k = CHR$(13) OR k = " " THEN EspEnter = -1: EXIT FUNCTION
         IF k = "N" OR k = CHR$(27) THEN EspEnter = 0: EXIT FUNCTION
-        _DISPLAY
+        Present
     LOOP
 END FUNCTION
 
@@ -246,7 +246,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
         combat_active = 0
         EndCue
         _FONT CH                                   ' the fight screen ran 8x8; the board needs CH back
-        cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        cursor_erase: cursor_draw: DrawHUD: Present
         IF tres = OUT_WIN THEN
             ' ClaimTreasure does the RecordKill itself (bestiary + grave + haul), so do NOT also
             ' call RecordKill here -- that double-counts, the same trap RecordWander has.
@@ -261,7 +261,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
         DoCombatDnD rm
         combat_active = 0                           ' (cleared here so ALL of DoCombatDnD's exits are covered)
         EndCue                                       ' return from combat music to the level track (no-op if none)
-        cursor_erase: cursor_draw: _DISPLAY
+        cursor_erase: cursor_draw: Present
         EXIT FUNCTION
     END IF
     ' the kill number depends on the ACTIVE player's class (matters in hot-seat)
@@ -372,12 +372,12 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 EXIT DO
             END IF
         END IF
-        _DISPLAY
+        Present
     LOOP
 
     cursor_erase
     cursor_draw
-    _DISPLAY
+    Present
 END FUNCTION
 
 
@@ -455,7 +455,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF item_potion_small + item_potion_large > 0 THEN
                 UsePotion FALSE
                 acted = -1
-                cursor_erase: cursor_draw: DrawHUD: _DISPLAY   ' show the healed HP bar at once, before the monster swings
+                cursor_erase: cursor_draw: DrawHUD: Present   ' show the healed HP bar at once, before the monster swings
             END IF
             dirty = -1
         ELSEIF IsWizard% AND (((k = "F" OR k = "f") AND spell_fire > 0) OR ((k = "L" OR k = "l") AND spell_bolt > 0)) THEN
@@ -647,7 +647,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 END IF
             END IF
         END IF
-        _DISPLAY
+        Present
     LOOP
 END SUB
 
@@ -688,7 +688,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     END IF
     UIFontOff                                   ' restore the grid font before the pixel-art + present
     DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
-    _DISPLAY
+    Present
 END SUB
 
 
@@ -1132,7 +1132,7 @@ FUNCTION AskPotionChoice%
         IF k = "S" THEN AskPotionChoice = 1: EXIT FUNCTION
         IF k = "L" THEN AskPotionChoice = 2: EXIT FUNCTION
         IF k = CHR$(27) THEN AskPotionChoice = 0: EXIT FUNCTION
-        _DISPLAY
+        Present
     LOOP
 END FUNCTION
 

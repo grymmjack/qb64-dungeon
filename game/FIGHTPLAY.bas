@@ -668,7 +668,7 @@ FUNCTION RunFightLoop% (lvl AS INTEGER)
         FightBeginDraw
         DrawWounds
         FightEndDraw
-        _DISPLAY
+        Present
     LOOP UNTIL outcome <> 0
 
     '--- outro ---------------------------------------------------------------
@@ -682,7 +682,7 @@ FUNCTION RunFightLoop% (lvl AS INTEGER)
     END SELECT
     FightSyncStatus
     FightRender
-    _DISPLAY
+    Present
     ' Hold the result on screen long enough to read, but let a keypress skip it.
     banner_t = TIMER
     DO

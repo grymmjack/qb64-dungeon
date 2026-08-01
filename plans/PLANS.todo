@@ -1,101 +1,6 @@
 
-Bugs: @critical
-    ☑ Level 8 mummy had 70 HP, and a +10 to hit, and an 18 AC! needs balancing! @done
-      ☑ It was a chamber LORD, not a room monster: 150% HP x (+1 AC) x (is_boss +2 to-hit) compounded @done
-      ☑ All 5 spawn sites now go through MonsterStats/MonsterToHit% (game/SECTOR.bas) @done
-      ☑ Every number is a tuning.txt knob (MON_*/BOSS_*/LORD_*) with AC + to-hit CAPS @done
-      ☑ LORD rebalanced 150%->130% HP, +2->+1 to-hit; L8 lord is now 42-67 HP / AC 17 / +8 @done
-      ☑ `dungeon.run econdump` now prints the whole monster curve so this is measurable @done
-    ☑ When I recovered my loot I didn't get my magic items back - this was on 6th level vs. a Red Dragon :( @done
-      ☑ DropEverything stashed only gold+sword/secret/esp/crystal but cleared the WHOLE kit @done
-      ☑ armour, shield, bow, boots, teleport scrolls and potions were destroyed outright @done
-      ☑ ROOM.drop_* and LOOSEDROP now carry every item; save format bumped to v8 @done
-      ☑ Then when I died and was ressurected for new life, at start, it said i recovered everythintg from there.. @done
-      ☑ But I only recovered a crystal ball and my gold. @done
-        ☑ Regardless, this should not happen at start - unless I died there. @done
-        ☑ Game_OnEnterCell now only auto-collects at START when ROOMS(rm).player_died @done
-    ☑ Second wind is not working properly - I landed perfectly in the middle and was not revived. @done
-      ☑ ROOT CAUSE: DrawGauge painted the zones at a FIXED 0.5, but GaugeScore% measures @done
-      ☑ against k.zc, the ROAMING zone centre -- so the purple you saw was never the target @done
-      ☑ DrawGauge now takes the whole GAUGEK (as FightDrawGauge already did) and draws at k.zc @done
-    ☑ On flourish with Elf, landing in purple does not grant 1 dice. @done
-      ☑ Same root cause -- landing in the DRAWN purple scored against the real zone elsewhere @done
-    ☑ Flourish labels are wrong purple = +1 dice, green = +2 dice. @done
-      ☑ The labels matched the code (purple=+2/green=+1); the PAINT was lying. Legend clarified. @done
-    ☑ Random curios after combat when a critical occurred by player are not spawning healing potions @done
-      ☑ Should spawn healing potion 20% x number of crits up to 80% of the time @done
-      ☑ e.g. if player crits monster 1 time, 20% chance, if 2 times 40%, 3 60%, 4 80%, etc. @done
-      ☑ Potion should be large potion 50% of the time + 10% x number of crits. @done
-        ☑ e.g. player crits 1 time 50% chance, player crits 2 times, 60%, 3 70%, 4 80% @done
-      ☑ CritPotionReward (game/COMBAT.bas); combat_crits reset per fight in DoCombat% @done
-      ☑ Pays out on chamber + wandering fights too, since the reward is earned by HOW you fought @done
-    ☑ Wandering monsters from curios or other random encounters do not draw monster symbols on map @done
-      ☑ The scratch slots (ROOM_N+1..+3) had NO board cell and DrawEntities only looped to ROOM_N @done
-      ☑ Spawners now set cx/cy/seen; DrawEntities covers the scratch slots @done
-    ☑ When killed in a chamber, loot is not drawn in the chamber @done
-      ☑ Also: the loose-drop pickup now runs BEFORE the chamber trigger, so stepping onto your @done
-      ☑ own body no longer wakes the next guardian before you may reclaim it @done
-    ☑ When teleported to start from an event all HP is healed @done
-      ☑ start_heal_locked: the entrance heal is the reward for WALKING home @done
-      ☑ Set by the Teleport Scroll, the obelisk, a Serious Wound retreat and a revive @done
-    ☑ When poisoned HP never goes below 1 HP and kills player @done
-      ☑ The 1 HP floor is gone -- a DoT tick that reaches 0 runs DoTDeath (the ordinary death path) @done
-    ☑ After poison procs and goes away, if I am bloodied on my effect, it is removed. should return to blood. @done
-      ☑ DrawWounds/DrawPoison only refresh on a board repaint; TickStatus now repaints when @done
-      ☑ the poison band or the wound band actually changes (StatusFxKey%) @done
-    ☑ When playing in window mode, resize sometimes hides UI parts @done
-      ☑ Implement same fix as done in DRAW for this to make it always render properly @done
-      ☑ DisplayTick (engine/UI.bas): consume _RESIZE, wait for the drag to SETTLE, re-assert @done
-      ☑ ApplyDisplay + raise display_dirty; the play loop repaints. Called from WaitKey too. @done
-      ☑ NOT reproduced locally (needs a real WM resize) -- please confirm in play @done
-    ☑ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc. @done
-      ☑ The hall description was an ELSE branch of the encounter, so a first entry that rolled @done
-      ☑ a shrine/hazard/boon/lord EXITed before ever reaching it (38% of entries) @done
-      ☑ ChamberArrival (own CHM_SEEN flag, saved) now runs FIRST and uses the full ScrollTextArt @done
-      ☑ crawl + establishing shot + chamber.<slug> narration, like a named room gets @done
-    ☑ Character sheet portrait art is being overwritten by text @done
-      ☑ Every line was centred on the 132-col SCREEN, not the panel; the MAGIC line ran off both edges @done
-      ☑ PrintCenteredIn + WrapLines$ (engine/UI.bas); text span narrows beside the portrait @done
-      ☑ Verify with `dungeon.run charsheet` (renders a fully-kitted hero to charsheet.png) @done
 
 Room detection (from the BUG-*.png screenshots): @critical
-    ☑ 20 of 93 rooms seated their monster/grave on a cell the player CANNOT stand on @done
-      ☑ CAUSE: DetectRooms samples ONE pixel (cell centre); CanMove/InRoomNow test the WHOLE @done
-      ☑ cell. The art draws room lips with half-block glyphs (~975 cells), which pass the @done
-      ☑ one-pixel test and fail the whole-cell one -- so FloodRoom's "nearest cell to the bbox @done
-      ☑ centre" could be a decorative lip (rooms 45, 81, 93) or a DOORWAY (rooms 40, 56, 71, 80) @done
-      ☑ FIX: CellRoomKind% (engine/BOARD.bas) answers FLOOR / DOORWAY / MIXED, and @done
-      ☑ PlaceRoomMarkers (game/SECTOR.bas) seats each marker on the MOST ENCLOSED plain-floor @done
-      ☑ cell -- enclosure first, centre-closeness only as the tie-break. That is "move it inward". @done
-      ☑ EntityShiftFind also refuses to shift a marker onto a doorway or a decorative cell @done
-      ☑ roomlint now reports 0 unreachable markers and 0 markers in doorways @done
-    ☑ The 11 LEVEL PLAQUES ("4th", "5th", ...) were being treated as rooms @done
-      ☑ They are blocks of level colour with letters printed on them, so every cell is MIXED @done
-      ☑ At up to 4 cells they cleared MIN_ROOM and were each handed a monster + a hoard @done
-      ☑ The Level Key could land on one -- which would have made the run quietly UNWINNABLE @done
-      ☑ FIX: ROOM.floor_cells + RoomIsDecor%; RandomizeRooms skips a block with no plain floor @done
-      ☑ `cells` could never see this -- a plaque is 4 cells, comfortably over MIN_ROOM @done
-    ☑ Decorative half-blocks are NORMAL and stay unreachable (confirmed by grymmjack) @done
-      ☑ So DetectRooms still counts them; only MARKER PLACEMENT and the size gate changed @done
-    ☑ Corridors with NO level (the sector-0 gap) @done
-      ☑ MEASURED: 96 of 3156 walkable cells are claimed by neither the mask nor a rect @done
-      ☑ On those the HUD read "LEVEL 0", music would not switch, a wanderer had no depth @done
-      ☑ FIX (grymmjack's): PlayerLevel% is STICKY -- resolve normally, remember every success, @done
-      ☑ and return the last known level when the lookup fails. Mask + rects stay authoritative; @done
-      ☑ this only fills their gaps. All 10 player-position lookups route through it. @done
-      ☑ SECTOR.get_by_xy stays PURE (board build / FOV / mouse readout ask it with no player) @done
-      ☑ SeedPlayerLevel in LoadActivePlayer so a hot-seat seat can't inherit the last player's depth @done
-      ☑ CONSEQUENCE: leave level 9 into an unclaimed corridor and a wanderer there is level 9 @done
-      ☑ `dungeon.run sectorauto` also writes sectorauto.png -- every walkable cell tinted by the @done
-      ☑ level it resolves to, unclaimed ones WHITE if reachable / grey if sealed-off logo art @done
-    ☑ ROOT CAUSE of the reachable gap: sectors.txt was read as 1-BASED @done
-      ☑ SECTOR.get_by_xy did (start_x - 1) * CW, shifting every rect one cell LEFT of its region @done
-      ☑ Everything else here is 0-based: the mask, ROOMAT, CHAMBERAT, chambers.txt, the [~] readout @done
-      ☑ TELL: level 9's end_x is 78 and its art's last column is 78 -- the rect stopped one short @done
-      ☑ of its own rooms, so that column resolved to level 7 (whose rect starts at 79) @done
-      ☑ It also left cell 40 belonging to nobody (level 2 ends 40, level 1 starts 42) @done
-      ☑ FIXED: dropped the -1. Reachable unclaimed cells 4 -> 0; rooms unchanged at 82; gate green @done
-      ☑ Nobody chose two bases -- it arrived with the first refactor and the mask hid it @done
     ☐ NOTE: board generation shifted (5 fewer monster rooms -- the 4-cell plaques; the other 6
       ☐ were already under the old MIN_ROOM gate), so an in-flight save rebuilds the same MAP
       ☐ with the same cleared/looted flags, but rooms hold different monsters
@@ -676,6 +581,100 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
 
 Archive:
+\t\t☑ Level 8 mummy had 70 HP, and a +10 to hit, and an 18 AC! needs balancing! @done @project(Bugs)
+\t\t☑ It was a chamber LORD, not a room monster: 150% HP x (+1 AC) x (is_boss +2 to-hit) compounded @done @project(Bugs)
+\t\t☑ All 5 spawn sites now go through MonsterStats/MonsterToHit% (game/SECTOR.bas) @done @project(Bugs)
+\t\t☑ Every number is a tuning.txt knob (MON_*/BOSS_*/LORD_*) with AC + to-hit CAPS @done @project(Bugs)
+\t\t☑ LORD rebalanced 150%->130% HP, +2->+1 to-hit; L8 lord is now 42-67 HP / AC 17 / +8 @done @project(Bugs)
+\t\t☑ `dungeon.run econdump` now prints the whole monster curve so this is measurable @done @project(Bugs)
+\t\t☑ When I recovered my loot I didn't get my magic items back - this was on 6th level vs. a Red Dragon :( @done @project(Bugs)
+\t\t☑ DropEverything stashed only gold+sword/secret/esp/crystal but cleared the WHOLE kit @done @project(Bugs)
+\t\t☑ armour, shield, bow, boots, teleport scrolls and potions were destroyed outright @done @project(Bugs)
+\t\t☑ ROOM.drop_* and LOOSEDROP now carry every item; save format bumped to v8 @done @project(Bugs)
+\t\t☑ Then when I died and was ressurected for new life, at start, it said i recovered everythintg from there.. @done @project(Bugs)
+\t\t☑ But I only recovered a crystal ball and my gold. @done @project(Bugs)
+\t\t☑ Regardless, this should not happen at start - unless I died there. @done @project(Bugs)
+\t\t☑ Game_OnEnterCell now only auto-collects at START when ROOMS(rm).player_died @done @project(Bugs)
+\t\t☑ Second wind is not working properly - I landed perfectly in the middle and was not revived. @done @project(Bugs)
+\t\t☑ ROOT CAUSE: DrawGauge painted the zones at a FIXED 0.5, but GaugeScore% measures @done @project(Bugs)
+\t\t☑ against k.zc, the ROAMING zone centre -- so the purple you saw was never the target @done @project(Bugs)
+\t\t☑ DrawGauge now takes the whole GAUGEK (as FightDrawGauge already did) and draws at k.zc @done @project(Bugs)
+\t\t☑ On flourish with Elf, landing in purple does not grant 1 dice. @done @project(Bugs)
+\t\t☑ Same root cause -- landing in the DRAWN purple scored against the real zone elsewhere @done @project(Bugs)
+\t\t☑ Flourish labels are wrong purple = +1 dice, green = +2 dice. @done @project(Bugs)
+\t\t☑ The labels matched the code (purple=+2/green=+1); the PAINT was lying. Legend clarified. @done @project(Bugs)
+\t\t☑ Random curios after combat when a critical occurred by player are not spawning healing potions @done @project(Bugs)
+\t\t☑ Should spawn healing potion 20% x number of crits up to 80% of the time @done @project(Bugs)
+\t\t☑ e.g. if player crits monster 1 time, 20% chance, if 2 times 40%, 3 60%, 4 80%, etc. @done @project(Bugs)
+\t\t☑ Potion should be large potion 50% of the time + 10% x number of crits. @done @project(Bugs)
+\t\t☑ e.g. player crits 1 time 50% chance, player crits 2 times, 60%, 3 70%, 4 80% @done @project(Bugs)
+\t\t☑ CritPotionReward (game/COMBAT.bas); combat_crits reset per fight in DoCombat% @done @project(Bugs)
+\t\t☑ Pays out on chamber + wandering fights too, since the reward is earned by HOW you fought @done @project(Bugs)
+\t\t☑ Wandering monsters from curios or other random encounters do not draw monster symbols on map @done @project(Bugs)
+\t\t☑ The scratch slots (ROOM_N+1..+3) had NO board cell and DrawEntities only looped to ROOM_N @done @project(Bugs)
+\t\t☑ Spawners now set cx/cy/seen; DrawEntities covers the scratch slots @done @project(Bugs)
+\t\t☑ When killed in a chamber, loot is not drawn in the chamber @done @project(Bugs)
+\t\t☑ Also: the loose-drop pickup now runs BEFORE the chamber trigger, so stepping onto your @done @project(Bugs)
+\t\t☑ own body no longer wakes the next guardian before you may reclaim it @done @project(Bugs)
+\t\t☑ When teleported to start from an event all HP is healed @done @project(Bugs)
+\t\t☑ start_heal_locked: the entrance heal is the reward for WALKING home @done @project(Bugs)
+\t\t☑ Set by the Teleport Scroll, the obelisk, a Serious Wound retreat and a revive @done @project(Bugs)
+\t\t☑ When poisoned HP never goes below 1 HP and kills player @done @project(Bugs)
+\t\t☑ The 1 HP floor is gone -- a DoT tick that reaches 0 runs DoTDeath (the ordinary death path) @done @project(Bugs)
+\t\t☑ After poison procs and goes away, if I am bloodied on my effect, it is removed. should return to blood. @done @project(Bugs)
+\t\t☑ DrawWounds/DrawPoison only refresh on a board repaint; TickStatus now repaints when @done @project(Bugs)
+\t\t☑ the poison band or the wound band actually changes (StatusFxKey%) @done @project(Bugs)
+\t\t☑ When playing in window mode, resize sometimes hides UI parts @done @project(Bugs)
+\t\t☑ Implement same fix as done in DRAW for this to make it always render properly @done @project(Bugs)
+\t\t☑ DisplayTick (engine/UI.bas): consume _RESIZE, wait for the drag to SETTLE, re-assert @done @project(Bugs)
+\t\t☑ ApplyDisplay + raise display_dirty; the play loop repaints. Called from WaitKey too. @done @project(Bugs)
+\t\t☑ NOT reproduced locally (needs a real WM resize) -- please confirm in play @done @project(Bugs)
+\t\t☑ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc. @done @project(Bugs)
+\t\t☑ The hall description was an ELSE branch of the encounter, so a first entry that rolled @done @project(Bugs)
+\t\t☑ a shrine/hazard/boon/lord EXITed before ever reaching it (38% of entries) @done @project(Bugs)
+\t\t☑ ChamberArrival (own CHM_SEEN flag, saved) now runs FIRST and uses the full ScrollTextArt @done @project(Bugs)
+\t\t☑ crawl + establishing shot + chamber.<slug> narration, like a named room gets @done @project(Bugs)
+\t\t☑ Character sheet portrait art is being overwritten by text @done @project(Bugs)
+\t\t☑ Every line was centred on the 132-col SCREEN, not the panel; the MAGIC line ran off both edges @done @project(Bugs)
+\t\t☑ PrintCenteredIn + WrapLines$ (engine/UI.bas); text span narrows beside the portrait @done @project(Bugs)
+\t\t☑ Verify with `dungeon.run charsheet` (renders a fully-kitted hero to charsheet.png) @done @project(Bugs)
+\t\t☑ 20 of 93 rooms seated their monster/grave on a cell the player CANNOT stand on @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ CAUSE: DetectRooms samples ONE pixel (cell centre); CanMove/InRoomNow test the WHOLE @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ cell. The art draws room lips with half-block glyphs (~975 cells), which pass the @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ one-pixel test and fail the whole-cell one -- so FloodRoom's "nearest cell to the bbox @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ centre" could be a decorative lip (rooms 45, 81, 93) or a DOORWAY (rooms 40, 56, 71, 80) @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ FIX: CellRoomKind% (engine/BOARD.bas) answers FLOOR / DOORWAY / MIXED, and @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ PlaceRoomMarkers (game/SECTOR.bas) seats each marker on the MOST ENCLOSED plain-floor @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ cell -- enclosure first, centre-closeness only as the tie-break. That is "move it inward". @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ EntityShiftFind also refuses to shift a marker onto a doorway or a decorative cell @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ roomlint now reports 0 unreachable markers and 0 markers in doorways @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ The 11 LEVEL PLAQUES ("4th", "5th", ...) were being treated as rooms @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ They are blocks of level colour with letters printed on them, so every cell is MIXED @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ At up to 4 cells they cleared MIN_ROOM and were each handed a monster + a hoard @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ The Level Key could land on one -- which would have made the run quietly UNWINNABLE @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ FIX: ROOM.floor_cells + RoomIsDecor%; RandomizeRooms skips a block with no plain floor @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ `cells` could never see this -- a plaque is 4 cells, comfortably over MIN_ROOM @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ Decorative half-blocks are NORMAL and stay unreachable (confirmed by grymmjack) @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ So DetectRooms still counts them; only MARKER PLACEMENT and the size gate changed @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ Corridors with NO level (the sector-0 gap) @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ MEASURED: 96 of 3156 walkable cells are claimed by neither the mask nor a rect @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ On those the HUD read "LEVEL 0", music would not switch, a wanderer had no depth @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ FIX (grymmjack's): PlayerLevel% is STICKY -- resolve normally, remember every success, @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ and return the last known level when the lookup fails. Mask + rects stay authoritative; @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ this only fills their gaps. All 10 player-position lookups route through it. @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ SECTOR.get_by_xy stays PURE (board build / FOV / mouse readout ask it with no player) @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ SeedPlayerLevel in LoadActivePlayer so a hot-seat seat can't inherit the last player's depth @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ CONSEQUENCE: leave level 9 into an unclaimed corridor and a wanderer there is level 9 @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ `dungeon.run sectorauto` also writes sectorauto.png -- every walkable cell tinted by the @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ level it resolves to, unclaimed ones WHITE if reachable / grey if sealed-off logo art @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ ROOT CAUSE of the reachable gap: sectors.txt was read as 1-BASED @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ SECTOR.get_by_xy did (start_x - 1) * CW, shifting every rect one cell LEFT of its region @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ Everything else here is 0-based: the mask, ROOMAT, CHAMBERAT, chambers.txt, the [~] readout @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ TELL: level 9's end_x is 78 and its art's last column is 78 -- the rect stopped one short @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ of its own rooms, so that column resolved to level 7 (whose rect starts at 79) @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ It also left cell 40 belonging to nobody (level 2 ends 40, level 1 starts 42) @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ FIXED: dropped the -1. Reachable unclaimed cells 4 -> 0; rooms unchanged at 82; gate green @done @project(Room detection (from the BUG-*.png screenshots))
+\t\t☑ Nobody chose two bases -- it arrived with the first refactor and the mask hid it @done @project(Room detection (from the BUG-*.png screenshots))
     ✔ Extract a REUSABLE ENGINE from the game @done(26-07-29) @project(Roadmap (future / bigger efforts))
       DONE and verified -- engine/ names NO game symbol; every engine->game call goes
       through one of 11 Game_* hooks. engine/ is also self-contained on disk (the

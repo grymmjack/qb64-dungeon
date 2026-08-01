@@ -89,7 +89,7 @@ FUNCTION PromptName$ (prompt AS STRING)
         COLOR YELLOWU, BLACK: PrintCentered 18, prompt
         COLOR GREENU, BLACK: PrintCentered 22, "> " + nm + "_"
         COLOR CYANU, BLACK: PrintCentered 26, "[ENTER] confirm"
-        _DISPLAY
+        Present
         k = INKEY$
         IF k <> "" THEN
             IF k = CHR$(13) THEN
@@ -178,7 +178,7 @@ SUB AnnounceTurn (p AS INTEGER)
     cursor_erase: cursor_draw
     Banner "PLAYER " + _TRIM$(STR$(p)) + "  --  " + _TRIM$(PLAYERS(p).name) + " the " + CLASSES(PLAYERS(p).klass).name, "your turn!   [SPACE] roll the movement dice"
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 

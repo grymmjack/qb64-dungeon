@@ -388,15 +388,23 @@ DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER   ' 1-based 
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled
 
-' --- WINDOW RESIZE (see DisplayTick in engine/UI.bas) -------------------------
-' The screen IS the canvas (SCREEN CANVAS) and $RESIZE:STRETCH scales it, but _DISPLAY is
-' MANUAL here -- so after the window manager resizes us, whatever was last presented is what
-' stays on screen, and any region that is not redrawn reads as missing UI. DisplayTick
-' consumes the _RESIZE event, waits for the drag to SETTLE (a maximize or a drag fires a
-' burst of them), then re-asserts the display mode and raises display_dirty.
+' --- WINDOW RESIZE (handled inside Present, engine/UI.bas) --------------------
+' The window surface is OURS: screen 0 is a real window-sized image and CANVAS is an offscreen
+' 132x51 character grid that Present blits into it at an INTEGER scale (see engine/UI.bas).
+' Present consumes the _RESIZE event and takes the new size at once, then a short corrective
+' watcher catches the last event of a drag if the window manager dropped it. There is exactly
+' ONE consumer on purpose: reading _RESIZE clears it, so a second reader steals the event, and
+' a second uncoordinated SCREEN _NEWIMAGE feeds the resize back on itself.
 DIM SHARED rsz_settle AS INTEGER      ' frames left before a resize counts as finished
-DIM SHARED rsz_w AS LONG, rsz_h AS LONG   ' last requested window size (diagnostics)
+DIM SHARED rsz_w AS LONG, rsz_h AS LONG   ' last requested window size
 DIM SHARED display_dirty AS INTEGER   ' a settled resize wants a FULL repaint; loops consume it
+' Present's last blit geometry -- the letterbox bars only need repainting when this changes.
+DIM SHARED pres_lastw AS LONG, pres_lasth AS LONG, pres_winw AS LONG, pres_winh AS LONG
+' How many _RESIZE events Present must SWALLOW because it caused them itself. Its own
+' SCREEN _NEWIMAGE raises one; acting on that would recreate the screen again, and again --
+' a feedback loop that looks like the display having a fit. (DRAW calls this
+' SCREEN_DEFERRED_RESIZE%; same idea, same reason.)
+DIM SHARED pres_deferred AS INTEGER
 DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key
 DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 ' --- active-character stat scaffolding (generic RPG stats; JUICE reads player_hp) ---

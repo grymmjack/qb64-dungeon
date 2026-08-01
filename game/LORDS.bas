@@ -124,7 +124,7 @@ SUB ShowLords
         COLOR YELLOWU, BLACK: PrintCentered 5, "-=  L E G E N D A R Y   L O R D S  =-"
         COLOR GREY, BLACK: PrintCentered 20, "No champions yet -- be the first to escape the dungeon alive!"
         COLOR YELLOWU, BLACK: PrintCentered 46, "[ press any key ]"
-        _DISPLAY: WaitKey: EXIT SUB
+        Present: WaitKey: EXIT SUB
     END IF
     PlayCue "lords", -1                                 ' hall-of-fame music (restored to menu/level track on exit)
     sel = 1
@@ -162,7 +162,7 @@ SUB ShowLords
             _PRINTSTRING (26 * CW, y * CH), PadR$(_TRIM$(STR$(i)) + ".", 4) + PadR$(nm(i), 26) + PadR$(klass(i), 12) + PadR$(_TRIM$(STR$(gld(i))), 8) + PadR$(MMSS$(secs(i)), 8) + DeepestLabel$(LORD_DETAIL(i))
         NEXT i
         COLOR CYANU, BLACK: PrintCentered 45, "[W/S] pick    [ENTER] view chronicle    [ESC] back"
-        _DISPLAY
+        Present
     LOOP
 END SUB
 
@@ -206,7 +206,7 @@ SUB ShowLordDetail (idx AS INTEGER, nm AS STRING, klass AS STRING, gld AS LONG, 
         IF hasmap THEN foot = foot + "[M] map at escape     "
         foot = foot + "[ESC] back"
         COLOR YELLOWU, BOXBG: PrintCentered 46, foot
-        _DISPLAY
+        Present
         k = ""
         DO
             k = NormKey$(UCASE$(INKEY$)): _LIMIT 60
@@ -243,7 +243,7 @@ SUB ShowLordLog (nm AS STRING, evfield AS STRING)
             COLOR WHITE, BLACK: _PRINTSTRING (15 * CW, y * CH), ev(top + i)
         NEXT
         COLOR CYANU, BLACK: PrintCentered 46, "[W/S] [PgUp/PgDn] scroll     [ESC] back      (" + _TRIM$(STR$(top)) + "-" + _TRIM$(STR$(top + per - 1)) + " of " + _TRIM$(STR$(n)) + ")"
-        _DISPLAY
+        Present
         k = ""
         DO
             k = NormKey$(UCASE$(INKEY$)): _LIMIT 60
@@ -278,7 +278,7 @@ SUB ShowLordMap (nm AS STRING, mapkey AS STRING)
         COLOR YELLOWU, BLACK: PrintCentered 1, "-=  " + _TRIM$(nm) + " -- Map at Escape  =-"
     END IF
     COLOR CYANU, BLACK: PrintCentered 49, "[ press any key ]"
-    _DISPLAY
+    Present
     WaitKey
 END SUB
 
@@ -321,7 +321,7 @@ SUB ShowLordSheet (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG, det
         COLOR YELLOWU, BOXBG: PrintCentered 19, "Class goal: " + _TRIM$(STR$(CLASSES(pc).gold_goal)) + " gold to win"
     END IF
     COLOR YELLOWU, BOXBG: PrintCentered 46, "[ press any key ]"
-    _DISPLAY: WaitKey
+    Present: WaitKey
 END SUB
 
 ' "13 (+1)" -- an ability score with its modifier, from the space-joined ability string.
@@ -367,7 +367,7 @@ SUB LoadCharacter
             PrintCentered y, PadR$(nm(i), 16) + PadR$(klass(i), 11) + _TRIM$(STR$(gld(i))) + " gold"
         NEXT i
         COLOR CYANU, BLACK: PrintCentered 46, "[W/S] pick    [ENTER] play as them    [ESC] back"
-        _DISPLAY
+        Present
     LOOP
 END SUB
 
@@ -384,7 +384,7 @@ FUNCTION EnterName$
         PrintCentered 24, "Name yourself for the Legendary Lords:"
         COLOR YELLOWU, BLACK: PrintCentered 27, nm + "_"
         COLOR CYANU, BLACK: PrintCentered 32, "[ENTER] to be enshrined"
-        _DISPLAY
+        Present
         k = INKEY$
         IF k <> "" THEN
             IF k = CHR$(13) THEN

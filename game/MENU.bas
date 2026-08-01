@@ -34,7 +34,7 @@ FUNCTION SelectClass%
             END IF
         NEXT i
         COLOR CYANU, BLACK: PrintCentered 45, "[W/S] choose      [ENTER] confirm      [ESC] back"
-        _DISPLAY
+        Present
     LOOP
 END FUNCTION
 
@@ -142,7 +142,7 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
             PrintCentered 44, "[ press a key ] roll your HIT POINTS      [A] auto      [ESC] back"
         END IF
     END IF
-    _DISPLAY
+    Present
 END SUB
 
 
@@ -205,7 +205,7 @@ SUB DrawFlexStats (pc AS INTEGER, sc() AS INTEGER, cur AS INTEGER, moving AS INT
     ELSE
         PrintCentered 44, "[Up/Dn] move     [SPACE] pick up / drop (swap)     [ENTER] done     [ESC] cancel"
     END IF
-    _DISPLAY
+    Present
 END SUB
 
 ' POINT DISTRIBUTION: every score starts at the floor (3); spend a pool up (max 18 each)
@@ -272,7 +272,7 @@ SUB RollCharacter (pc AS INTEGER)
             DrawCharGen pc, sc(), i - 1, 0             ' show sheet + the prompt to roll this ability
             IF NOT auto THEN                           ' the player presses a key to roll each stat...
                 DO
-                    _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+                    _LIMIT 60: k = UCASE$(INKEY$): Present
                     IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), i - 1, 0: k = ""
                     IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' one ESC aborts back to the menu
                     IF i = 1 AND opt_flexstats = 2 AND k = "P" THEN   ' point distribution instead of rolling
@@ -296,7 +296,7 @@ SUB RollCharacter (pc AS INTEGER)
         DrawCharGen pc, sc(), 6, 0
         IF NOT auto THEN
             DO
-                _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+                _LIMIT 60: k = UCASE$(INKEY$): Present
                 IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, 0: k = ""
                 IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
             LOOP UNTIL k <> ""
@@ -310,7 +310,7 @@ SUB RollCharacter (pc AS INTEGER)
         DeriveFromStats pc                             ' to-hit / AC / damage from the ability scores
         DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt
         DO
-            _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+            _LIMIT 60: k = UCASE$(INKEY$): Present
             IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, -1: k = ""
             IF k = "C" AND opt_flexstats = 1 THEN         ' rearrange the rolled scores
                 IF AssignStats%(pc, sc()) THEN
@@ -344,7 +344,7 @@ SUB RollCharacterClassic (pc AS INTEGER)
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$
     DO
         DrawClassicCharGen pc
-        _LIMIT 60: k = UCASE$(INKEY$): _DISPLAY
+        _LIMIT 60: k = UCASE$(INKEY$): Present
         IF k = "N" THEN player_name = RandomHeroName$
     LOOP UNTIL k = CHR$(13)
     Sfx "select"
@@ -374,10 +374,10 @@ SUB ShowIntro
     ' Settle the display BEFORE the logo fade. The window's fullscreen transition is applied
     ' async by the compositor (Wayland) and only completes once we pump the event loop -- with
     ' the $CONSOLE build that landed mid-fade, flashing the logo to black and re-fading. Pump a
-    ' few black frames here so it completes on black; the _DISPLAY also drops autodisplay, so the
+    ' few black frames here so it completes on black; the Present also drops autodisplay, so the
     ' freshly-drawn logo can't flash at full brightness for a frame before FadeInCurrent starts.
     _DEST CANVAS: CLS , BLACK
-    FOR frames = 1 TO 15: _DISPLAY: _LIMIT 60: NEXT
+    FOR frames = 1 TO 15: Present: _LIMIT 60: NEXT
     ansi = _READFILE$(AnsiFile$("vermin-radioactive-logo.ans"))
     mus = _SNDOPEN(ResolveMusic$("vr-theme"))       ' best-quality file for this name (pack-aware)
     IF mus > 0 THEN _SNDVOL mus, opt_musicvol / 10
@@ -393,7 +393,7 @@ SUB ShowIntro
         _LIMIT 30
         k = INKEY$
         frames = frames + 1
-        _DISPLAY
+        Present
     LOOP UNTIL k <> "" OR frames >= 150          ' auto-advance to the menu after ~5s idle
     FadeOut                                      ' fade to black before the menu
     IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
@@ -506,7 +506,7 @@ FUNCTION RunMenu%
         IF opt_oldschool THEN cmb = "2d6" ELSE cmb = "D&D"
         IF opt_fov THEN fv = "on" ELSE fv = "off"
         COLOR GREY, BLACK: PrintCentered 49, "[N] New School   [O] Old School   [R] Rules      (Combat " + cmb + "   FOV " + fv + ")"
-        _DISPLAY
+        Present
         IF firstframe THEN FadeInCurrent: firstframe = 0   ' fade the menu in on the first frame
     LOOP
     IF result = MENU_ENTER THEN BloodDrip ELSE FadeOut     ' blood-drip descent into the dungeon; plain fade otherwise
@@ -1086,8 +1086,17 @@ SUB RunSettings
             PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice
         END IF
         COLOR CYANU, BLACK: PrintCentered 50, "up/down move    left/right adjust    TAB/shift-TAB column    ENTER cycle    ESC back"
-        _DISPLAY
-        IF settingsshot_on THEN _SAVEIMAGE "settings-shot.png", CANVAS: SYSTEM   ' dev layout check -- exits BEFORE any SaveSettings
+        Present
+        IF settingsshot_on THEN
+            ' Two shots: the CANVAS (what the game composed) and SCREEN 0 (what the player
+            ' actually sees after Present scales it into the window). They differ the moment
+            ' the window is not an exact multiple of the canvas -- which is the whole bug
+            ' windowed resize had, so both are worth capturing.
+            _SAVEIMAGE "settings-shot.png", CANVAS
+            Present
+            _SAVEIMAGE "settings-window.png", 0
+            SYSTEM                                                  ' exits BEFORE any SaveSettings
+        END IF
     LOOP
 END SUB
 
@@ -1151,9 +1160,9 @@ END FUNCTION
 
 SUB ShowCharSheet
     ShowCharSheetPaint
-    _DISPLAY
+    Present
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -1283,7 +1292,7 @@ SUB ScryView
     IF NOT item_crystal THEN
         Banner "You have no way to scry the dungeon.", "Find the CRYSTAL BALL first.   [ press any key ]"
         WaitKey
-        cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        cursor_erase: cursor_draw: DrawHUD: Present
         EXIT SUB
     END IF
     PopArt "Crystal Ball", "CRYSTAL BALL"                 ' show the orb as you gaze into it
@@ -1313,9 +1322,9 @@ SUB ScryView
         COLOR YELLOWU, BOXBG: PrintCentered 43, "The LEVEL KEY is guarded by the " + _TRIM$(ROOMS(key_room).monster) + " on the " + Ordinal$(key_level) + " level."
     END IF
     COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
-    _DISPLAY
+    Present
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -1348,9 +1357,9 @@ SUB ShowKeys
         COLOR WHITE, BOXBG: _PRINTSTRING (48 * CW, y * CH), ds(i)
     NEXT i
     COLOR YELLOWU, BOXBG: PrintCentered 44, "[ press any key ]"
-    _DISPLAY
+    Present
     WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 
@@ -1480,7 +1489,7 @@ SUB DrawHUD
     ' Keep the combat panel constant through a fight: every roll's cleanup ends with a
     ' DrawHUD, so repainting the panel here means it never vanishes behind a dice roll or
     ' a result banner (the HUD line is row 50, the panel rows 39-49 -- no overlap).
-    ' In combat the panel draws its own near-death vignette (+ _DISPLAY); on the board
+    ' In combat the panel draws its own near-death vignette (+ Present); on the board
     ' there's no panel, so draw the wounds overlay here. (Avoids a double-darken.)
     IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead   ' wounds now drawn in cursor_erase, under everything
 END SUB

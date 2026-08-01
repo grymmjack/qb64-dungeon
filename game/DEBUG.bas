@@ -20,7 +20,7 @@
 
 ' Repaint the board after a debug action takes over the screen.
 SUB DebugMenuClose
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 ' [~] debug -> press [0] to open this cheat/test panel: spawn encounters, grant
@@ -50,7 +50,7 @@ SUB DebugTestMenu
         COLOR GREY, bg: _PRINTSTRING (34 * CW, 33 * CH), "left-click the board (with [~] on) = teleport the player"
         COLOR YELLOWU, bg: PrintCentered 35, "[ESC] close"
         IF LEN(msg) > 0 THEN COLOR GREENU, bg: PrintCentered 38, msg
-        _DISPLAY
+        Present
         k = INKEY$
         rm = ROOMAT(c.x \ CW, c.y \ CH)
         SELECT CASE k
@@ -531,7 +531,7 @@ SUB DebugStartFight (which AS STRING)
     res = RunFight%(lvl, nfoes)
     ' Back to the board: restore the font and repaint everything the fight screen wiped.
     _FONT CH
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
 ' Let a dev mode preview an ART PACK without touching the player's saved settings.

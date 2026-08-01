@@ -58,6 +58,7 @@ fogdump.txt
 # generation run logs (noise; regenerate any time)
 *.log
 settings-shot.png
+settings-window.png
 charsheet.png
 roomlint.png
 sectorauto.png
