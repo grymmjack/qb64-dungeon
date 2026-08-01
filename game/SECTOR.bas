@@ -180,7 +180,11 @@ SUB RandomizeRooms
     DIM bossroom AS INTEGER, ndeep AS INTEGER, sl AS INTEGER
     DIM deeproom(1 TO 400) AS INTEGER
     DIM used(1 TO 9, 1 TO 3) AS INTEGER         ' D&D variety: how often each level's monster has been placed
-    CONST MIN_ROOM = 4                          ' blocks smaller than this are labels, not rooms
+    ' (There is no size gate any more. `cells < 4` used to stand in for "this block is a label,
+    ' not a room" -- a proxy that was wrong in both directions: it emptied genuine 3-cell rooms
+    ' and waved through every 4-cell level plaque. DropDecorRooms now decides room-ness properly,
+    ' by whether the block has anywhere to STAND, and it does it at detection -- so by the time
+    ' we get here every entry in ROOMS() is a real room and every one of them gets a monster.)
     startroom = ROOMAT(START_CX, START_CY)      ' the entrance chamber stays safe
     ndeep = 0
     FOR r = 1 TO ROOM_N
@@ -188,7 +192,11 @@ SUB RandomizeRooms
         ROOMS(r).monster_fought = FALSE: ROOMS(r).player_died = FALSE
         ROOMS(r).looted = FALSE: ROOMS(r).is_boss = FALSE: ROOMS(r).seen = FALSE
         ClearRoomDrop r
-        IF r = startroom OR ROOMS(r).cells < MIN_ROOM THEN
+        ' The ONLY room without an encounter is the entrance -- everything else in ROOMS() is a
+        ' real room and gets a monster. DropDecorRooms has already discarded the level plaques,
+        ' and RoomIsDecor% here is a belt-and-braces guard for a board where it somehow did not
+        ' run. A "room" with nothing in it is a dead end for the player, so there are none.
+        IF r = startroom OR RoomIsDecor%(r) THEN
             ROOMS(r).monster = "": ROOMS(r).malive = FALSE
             ROOMS(r).treasure = 0: ROOMS(r).treasure_name = "": ROOMS(r).treasure_item = 0
         ELSE
@@ -376,12 +384,24 @@ FUNCTION SECTOR.get_by_xy% (x AS INTEGER, y AS INTEGER)
         ' rectangles so a partial mask never blocks a room floor (painted cells above
         ' still win, so any-shape levels are preserved; rects only backstop the gaps).
     END IF
+    ' sectors.txt is 0-BASED, like every other cell coordinate in this project: the sector mask,
+    ' ROOMAT, CHAMBERAT, chambers.txt, and the cell readout the [~] overlay prints (which is how
+    ' these values get authored in the first place).
+    '
+    ' This used to subtract 1 from each bound, treating the file as 1-based, which shifted every
+    ' rectangle one cell LEFT of the region it names. The tell is level 9: its `end_x` is 78 and
+    ' its art's rightmost column is also 78 -- so the -1 made the rect stop one column short of
+    ' its own rooms, and that column resolved to level 7 (whose rect starts at 79). It also left
+    ' cell 40 belonging to nobody, between level 2 (ends 40) and level 1 (starts 42) -- the only
+    ' REACHABLE cell on the board with no level at all (`dungeon.run sectorauto` counted it).
+    ' Nothing intended two bases; it came in with the first refactor and stayed hidden because
+    ' the mask supersedes the rects nearly everywhere.
     FOR i = 1 TO 9
         s = SECTORS(i)
-        sx = (s.start_x - 1) * CW
-        ex = (s.end_x - 1) * CW
-        sy = (s.start_y - 1) * CH
-        ey = (s.end_y - 1) * CH
+        sx = s.start_x * CW
+        ex = s.end_x * CW
+        sy = s.start_y * CH
+        ey = s.end_y * CH
         IF x >= sx AND x <= ex AND y >= sy AND y <= ey THEN
             SECTOR.get_by_xy = i
             EXIT FUNCTION
@@ -430,6 +450,11 @@ SUB DetectRooms
             END IF
         NEXT cx
     NEXT cy
+    ' Every block is flooded now, so the whole-cell colour tests can run once and seat each
+    ' room's marker on real interior floor (see PlaceRoomMarkers). Then discard the blocks that
+    ' turned out to be decoration, so ROOMS() holds nothing but real rooms.
+    PlaceRoomMarkers
+    DropDecorRooms
     _SOURCE oldsrc
 END SUB
 
@@ -468,11 +493,10 @@ SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
     LOOP
     ROOMS(rid).sec = sec
     ROOMS(rid).cells = tail                 ' block size (tail = cells enqueued)
-    ' Marker cell = the real room cell nearest the bbox centre. The bounding-box
-    ' centre itself can land on a WALL for an L-shaped/irregular block, which used
-    ' to drop the monster glyph onto an unreachable wall tile (so combat never
-    ' fired). Every enqueued QX/QY cell is genuine room floor, so snap to the
-    ' closest one -- guaranteeing the monster sits where the player can step.
+    ' Provisional marker: the enqueued cell nearest the bbox centre. The bounding-box centre
+    ' itself can land on a WALL for an L-shaped block, so snap to a real cell of the block.
+    ' PlaceRoomMarkers (called once after every block is flooded) then REPLACES this with an
+    ' interior plain-floor cell -- this one is only the centre reference it aims for.
     DIM ccx AS INTEGER, ccy AS INTEGER, bi AS INTEGER, qi AS INTEGER
     DIM bestd AS LONG, dd AS LONG
     ccx = (minx + maxx) \ 2: ccy = (miny + maxy) \ 2
@@ -482,6 +506,182 @@ SUB FloodRoom (sx AS INTEGER, sy AS INTEGER, sec AS INTEGER, rid AS INTEGER)
         IF dd < bestd THEN bestd = dd: bi = qi
     NEXT qi
     ROOMS(rid).cx = QX(bi): ROOMS(rid).cy = QY(bi)
+END SUB
+
+
+' ============================================================================
+'  Seat every room's MARKER (where its monster glyph and its headstone are drawn) and record
+'  how much PLAIN FLOOR each block really has. Runs once, after DetectRooms has flooded every
+'  block, because it needs whole-cell colour tests and those are far too slow to repeat.
+'
+'  WHY THE OLD CHOICE WAS WRONG. FloodRoom picked "the enqueued cell nearest the bbox centre",
+'  believing every enqueued cell was walkable floor. It is not: the flood enqueues a cell whose
+'  CENTRE PIXEL is the floor colour, while movement demands the WHOLE cell be floor. The board
+'  art draws room lips with half-block glyphs and prints the level plaques ("4th", "5th") as
+'  letters on a block of level colour -- both of which pass the centre-pixel test and fail the
+'  whole-cell one. So the "centre" cell could be:
+'
+'    * a decorative half-block lip -> the monster sat somewhere nothing can stand, so the room
+'      never fired an encounter and never grew a headstone (rooms 45, 81, 93 ...)
+'    * a DOORWAY -> walkable, but the grave then sits in the door rather than in the room
+'      (rooms 40, 56, 71, 80 ...)
+'
+'  The fix is to score candidates instead of taking the nearest: only PLAIN FLOOR qualifies,
+'  the most enclosed cell wins (which is what "inside the room" means), and closeness to the
+'  block's centre is only the tie-break. A block with no plain floor at all keeps its
+'  provisional marker for the debug overlays and is failed by RoomIsDecor%.
+' ============================================================================
+SUB PlaceRoomMarkers
+    DIM cx AS INTEGER, cy AS INTEGER, r AS INTEGER, sc AS LONG
+    DIM bestsc(1 TO 400) AS LONG, bestx(1 TO 400) AS INTEGER, besty(1 TO 400) AS INTEGER
+    DIM refx(1 TO 400) AS INTEGER, refy(1 TO 400) AS INTEGER
+    FOR r = 1 TO ROOM_N
+        bestsc(r) = -1
+        refx(r) = ROOMS(r).cx: refy(r) = ROOMS(r).cy    ' FloodRoom's centre-most cell
+        ROOMS(r).floor_cells = 0
+    NEXT r
+    '--- classify every room cell once ---------------------------------------
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            ROOMKIND(cx, cy) = CRK_NONE
+            r = ROOMAT(cx, cy)
+            IF r >= 1 AND r <= ROOM_N THEN
+                IF ROOMS(r).sec >= 1 THEN ROOMKIND(cx, cy) = CellRoomKind%(cx, cy, SECTORS(ROOMS(r).sec).kolor)
+            END IF
+        NEXT cx
+    NEXT cy
+    '--- count plain floor + score each candidate ----------------------------
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            IF ROOMKIND(cx, cy) = CRK_FLOOR THEN
+                r = ROOMAT(cx, cy)
+                IF r >= 1 AND r <= ROOM_N THEN
+                    ROOMS(r).floor_cells = ROOMS(r).floor_cells + 1
+                    sc = MarkerScore&(cx, cy, r, refx(r), refy(r))
+                    IF sc > bestsc(r) THEN bestsc(r) = sc: bestx(r) = cx: besty(r) = cy
+                END IF
+            END IF
+        NEXT cx
+    NEXT cy
+    FOR r = 1 TO ROOM_N
+        IF bestsc(r) >= 0 THEN ROOMS(r).cx = bestx(r): ROOMS(r).cy = besty(r)
+    NEXT r
+END SUB
+
+
+' How good a marker cell is (cx,cy) for room r? Enclosure dominates and distance from the
+' block's centre only breaks ties -- an edge or doorway-adjacent cell loses to a cell with
+' floor on all sides, which is exactly "move it inward". refx/refy is the block's centre-most
+' cell; the 10000 multiplier keeps enclosure above any distance a 132x51 board can produce.
+FUNCTION MarkerScore& (cx AS INTEGER, cy AS INTEGER, r AS INTEGER, refx AS INTEGER, refy AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, encl AS INTEGER, dd AS LONG
+    FOR dy = -1 TO 1
+        FOR dx = -1 TO 1
+            IF dx <> 0 OR dy <> 0 THEN
+                nx = cx + dx: ny = cy + dy
+                IF nx >= 0 AND nx <= SW - 1 AND ny >= 0 AND ny <= SH - 1 THEN
+                    IF ROOMAT(nx, ny) = r THEN
+                        IF ROOMKIND(nx, ny) = CRK_FLOOR THEN encl = encl + 1
+                    END IF
+                END IF
+            END IF
+        NEXT dx
+    NEXT dy
+    dd = (cx - refx) * (cx - refx) + (cy - refy) * (cy - refy)
+    MarkerScore& = encl * 10000& - dd
+END FUNCTION
+
+
+' TRUE if a block is DECORATION rather than a room: it has no plain-floor cell, so there is
+' nowhere in it to stand. The level plaques are exactly this -- a block of level colour with
+' "4th" printed on it -- and they used to be handed a monster and a hoard like any other room,
+' quietly parking that content where nobody could ever reach it. `cells` cannot see this: a
+' plaque is 4 cells, comfortably over MIN_ROOM.
+FUNCTION RoomIsDecor% (r AS INTEGER)
+    RoomIsDecor% = 0
+    IF r < 1 OR r > ROOM_N THEN EXIT FUNCTION
+    IF ROOMS(r).floor_cells < 1 THEN RoomIsDecor% = -1
+END FUNCTION
+
+
+' Throw the DECORATION blocks out of ROOMS() entirely and renumber what is left.
+'
+' Merely refusing to give them a monster was not enough: they stayed in ROOMS(), stayed in
+' ROOMAT(), and stayed in ROOM_N, so every "for each room" loop in the game carried eleven
+' entries that were not rooms -- inert, but real enough to be counted, drawn over, chosen from,
+' and to make "rooms holding no monster: 11" a true statement. A block with nowhere to stand is
+' not a room, so it should not be one. After this, EVERY entry in ROOMS() is a real room and
+' every real room gets a monster.
+'
+' Must run AFTER PlaceRoomMarkers (which computes floor_cells) and BEFORE RandomizeRooms.
+SUB DropDecorRooms
+    DIM r AS INTEGER, keep AS INTEGER, cx AS INTEGER, cy AS INTEGER, old AS INTEGER
+    DIM remap(0 TO 400) AS INTEGER
+    DECOR_N = 0
+    keep = 0
+    remap(0) = 0
+    FOR r = 1 TO ROOM_N
+        IF RoomIsDecor%(r) THEN
+            remap(r) = 0                     ' its cells become plain board again
+            DECOR_N = DECOR_N + 1
+        ELSE
+            keep = keep + 1
+            remap(r) = keep
+            IF keep <> r THEN ROOMS(keep) = ROOMS(r)   ' UDT copy: the whole record moves down
+        END IF
+    NEXT r
+    IF DECOR_N = 0 THEN EXIT SUB             ' nothing dropped -- leave ROOMAT untouched
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            old = ROOMAT(cx, cy)
+            IF old >= 1 AND old <= ROOM_N THEN ROOMAT(cx, cy) = remap(old)
+        NEXT cx
+    NEXT cy
+    FOR r = keep + 1 TO ROOM_N               ' clear the tail so a stale record cannot be read
+        ROOMS(r).sec = 0: ROOMS(r).cells = 0: ROOMS(r).floor_cells = 0
+        ROOMS(r).monster = "": ROOMS(r).malive = FALSE
+        ROOMS(r).treasure = 0: ROOMS(r).treasure_name = "": ROOMS(r).treasure_item = 0
+    NEXT r
+    ROOM_N = keep
+END SUB
+
+
+' ============================================================================
+'  WHICH LEVEL IS THE PLAYER ON? -- the sticky answer.
+'
+'  SECTOR.get_by_xy is a PURE question about a position, and it must stay that way: the board
+'  build, the FOV caster and the debug mouse readout all ask it about arbitrary cells, with no
+'  player in existence. So the stickiness lives HERE, at the player, and never inside the
+'  lookup itself.
+'
+'  A coloured room cell states its own level. A yellow CORRIDOR cell does not -- it only has a
+'  level if the sector mask paints one under it or a sectors.txt rect covers it, and 96 of the
+'  board's 3156 walkable cells satisfy neither (`dungeon.run sectorauto` measures it). Those
+'  cells used to answer 0, which is not a level: the HUD read "LEVEL 0", PlayLevelMusic had no
+'  track to switch to, and WanderEncounter clamped an ambush there to level 1 regardless of how
+'  deep the player actually was.
+'
+'  The rule: resolve normally, and whenever that succeeds, REMEMBER it. When it fails, you are
+'  in an unclaimed corridor -- so you are still on the level you walked in from. The mask and
+'  the rects stay exactly as authoritative as they were; this only fills their gaps.
+'
+'  Consequence worth knowing: walk out of level 9 into an unclaimed corridor and a wandering
+'  monster there is a LEVEL 9 monster, not a level 1 one. You dragged the depth out with you.
+FUNCTION PlayerLevel% ()
+    DIM s AS INTEGER
+    s = SECTOR.get_by_xy(c.x, c.y)
+    IF s >= 1 THEN cur_level = s                  ' a claimed cell -- this is now the known level
+    IF cur_level < 1 THEN cur_level = 1           ' never resolved yet (a run starting in a gap)
+    PlayerLevel% = cur_level
+END FUNCTION
+
+
+' Re-seed the sticky level from a position. Called when a seat takes over in hot-seat play, so
+' player 2 does not inherit player 1's depth: each seat's level comes from where IT stands.
+SUB SeedPlayerLevel (px AS INTEGER, py AS INTEGER)
+    DIM s AS INTEGER
+    s = SECTOR.get_by_xy(px, py)
+    IF s >= 1 THEN cur_level = s ELSE cur_level = 0    ' 0 = unknown; PlayerLevel% floors it at 1
 END SUB
 
 

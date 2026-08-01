@@ -46,6 +46,11 @@ SUB LoadActivePlayer (p AS INTEGER)
     char_level = PLAYERS(p).clevel: char_xp = PLAYERS(p).cxp
     poison_turns = PLAYERS(p).t_poison: fire_turns = PLAYERS(p).t_fire
     frost_turns = PLAYERS(p).t_frost: siren_turns = PLAYERS(p).t_siren
+    ' Re-seed the STICKY level from THIS seat's position (see PlayerLevel%). Without it, a seat
+    ' standing in an unclaimed corridor would inherit the previous player's depth -- pass the
+    ' turn from someone on level 9 and player 2 would meet level 9 wanderers in a level 1 hall.
+    ' Not saved: it self-heals from position on the next turn change or the next claimed cell.
+    SeedPlayerLevel c.x, c.y
 END SUB
 
 

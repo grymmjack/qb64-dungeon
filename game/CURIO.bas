@@ -132,7 +132,7 @@ END SUB
 SUB DoCurio (rm AS INTEGER)
     DIM sec AS INTEGER, i AS INTEGER, pick AS INTEGER, kd AS STRING
     IF NCURIO <= 0 THEN EXIT SUB                        ' the caller decides IF a curio appears; we pick WHICH
-    sec = SECTOR.get_by_xy(c.x, c.y): IF sec < 1 THEN sec = 1
+    sec = PlayerLevel%                                  ' sticky: an unclaimed corridor keeps the level you came from
     ' weighted draw via the engine primitive (engine/TABLE.bas) -- this used to be an
     ' inline accumulate-roll-walk here, the only copy of a pattern several tables want.
     REDIM cw(1 TO NCURIO) AS INTEGER

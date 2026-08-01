@@ -89,7 +89,7 @@ SUB DrawDebug
     DIM mx AS INTEGER, my AS INTEGER, mcx AS INTEGER, mcy AS INTEGER, kind AS INTEGER, kn AS STRING
     DIM fought AS STRING, died AS STRING, boss AS STRING, loot AS STRING, oldsrc AS LONG
     cx = c.x \ CW: cy = c.y \ CH
-    sec = SECTOR.get_by_xy(c.x, c.y)
+    sec = PlayerLevel%
     img = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     onpath = image_is_monochromatic(img, YELLOW)
@@ -525,7 +525,7 @@ END FUNCTION
 ' player would be dropped onto a blank screen with half-height text.
 SUB DebugStartFight (which AS STRING)
     DIM lvl AS INTEGER, nfoes AS INTEGER, res AS INTEGER
-    lvl = SECTOR.get_by_xy(c.x, c.y)
+    lvl = PlayerLevel%
     IF lvl < 1 THEN lvl = 1
     IF which = "F" THEN nfoes = 1 ELSE nfoes = 4
     res = RunFight%(lvl, nfoes)

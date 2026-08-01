@@ -101,7 +101,13 @@ END TYPE
 TYPE ROOM
     sec     AS INTEGER        ' which sector/level this block belongs to
     cells   AS INTEGER        ' size of the block (tiny blocks = labels, no encounter)
-    cx      AS INTEGER        ' centre cell (for the tombstone marker + combat)
+    ' How many of those cells are PLAIN room floor -- not a doorway, not one of the art's
+    ' decorative half-block lips, not a cell with a text glyph on it. This is the honest size
+    ' of a room, and `cells` is not: the level plaques ("4th", "5th", ...) are blocks of level
+    ' colour with letters printed on them, so they flood-fill into ROOMS() at 4 cells and clear
+    ' the MIN_ROOM gate while having ZERO cells anything can stand on. See PlaceRoomMarkers.
+    floor_cells AS INTEGER
+    cx      AS INTEGER        ' marker cell: where the monster glyph / headstone sits
     cy      AS INTEGER
     monster AS STRING * 18
     mslot   AS INTEGER        ' which of the level's 3 monsters (per-class kill numbers)
@@ -203,6 +209,10 @@ END TYPE
 DIM SHARED SECTORS(1 TO 9) AS SECTOR
 ' individual room blocks (per-block encounters), detected from the board art
 DIM SHARED ROOMS(1 TO 400) AS ROOM, ROOM_N AS INTEGER
+' How many DECORATION blocks DropDecorRooms threw away this board build (the level plaques).
+' Kept only so `dungeon.run roomlint` can still report them -- they are not rooms, so they are
+' not in ROOMS() and every surviving entry in ROOMS() holds a monster.
+DIM SHARED DECOR_N AS INTEGER
 ' Spoils left where an adventurer FELL on the open PATHS. A room death stashes loot in
 ' the room's own drop_* fields; a path/wander death drops HERE, keyed to the board cell.
 TYPE LOOSEDROP
@@ -224,6 +234,14 @@ TYPE LOOSEDROP
 END TYPE
 DIM SHARED LOOSE(1 TO 16) AS LOOSEDROP
 DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
+' cell -> CRK_* (engine/BOARD.bas CellRoomKind%), filled once per board build by
+' PlaceRoomMarkers. Cached because the test reads all 128 pixels of a cell, and marker
+' placement, the size gate and `dungeon.run roomlint` all want the same answer.
+DIM SHARED ROOMKIND(0 TO 131, 0 TO 60) AS INTEGER
+' Scratch reachability map for `dungeon.run sectorauto` (ReachFromStart): can the player walk
+' here at all? Separates a real hole in the sector cover from decorative art that merely happens
+' to be painted a walkable colour -- the DUNGEON logo's yellow fill reads as `path` but is sealed.
+DIM SHARED GAPREACH(0 TO 131, 0 TO 60) AS INTEGER
 CONST MAXCHAMBER = 30                              ' named yellow CHAMBERS (3 monsters, no treasure)
 DIM SHARED CHAMBERAT(0 TO 131, 0 TO 60) AS INTEGER ' cell -> chamber id (0 = not a chamber cell)
 DIM SHARED NCHAMBER AS INTEGER
@@ -268,6 +286,15 @@ DIM SHARED CHM_EV(1 TO 40) AS CHMEV_T
 DIM SHARED NCHMEV AS INTEGER
 DIM SHARED CHM_DEAD(1 TO MAXCHAMBER) AS INTEGER   ' graves so far (0..3); 3 = chamber cleared
 DIM SHARED cur_chamber AS INTEGER                 ' chamber the player is currently inside (0 = none)
+
+' The level the player is CURRENTLY treading -- see PlayerLevel% in game/SECTOR.bas.
+' A yellow corridor cell has no colour of its own to say which level it belongs to, so it only
+' has a level if the sector mask paints one or a sectors.txt rect covers it. 96 of the board's
+' 3156 walkable cells satisfy neither (`dungeon.run sectorauto`), and on those the lookup
+' returns 0: the HUD reads level 0, the music will not switch, and a wandering monster there
+' has no depth to roll from. This remembers the last level that DID resolve, so walking through
+' an unclaimed corridor carries the level you came from until you reach one that is claimed.
+DIM SHARED cur_level AS INTEGER
 
 ' The entrance heals you to full -- but only as the reward for WALKING home. Anything that
 ' PUTS you at START (Teleport Scroll, the obelisk, a Serious Wound dragging you back, a

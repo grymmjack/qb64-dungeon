@@ -1431,7 +1431,7 @@ SUB DrawHUD
     DIM sec AS INTEGER, lbl AS STRING, hud AS STRING
     _DEST CANVAS
     DIM keytag AS STRING
-    sec = SECTOR.get_by_xy(c.x, c.y)
+    sec = PlayerLevel%
     IF sec >= 1 THEN lbl = SECTORS(sec).label ELSE lbl = "THE HALLS"
     IF has_key THEN keytag = "KEY" ELSE keytag = "no key"
     DIM inv AS STRING

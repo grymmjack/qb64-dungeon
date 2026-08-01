@@ -36,6 +36,17 @@ DIM SHARED AS _UNSIGNED LONG WHITE, GREY, REDU, GREENU, YELLOWU, CYANU, BOXBG
 DIM SHARED BOARD_ANSI AS STRING
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 
+' What kind of room cell is at a board position -- see CellRoomKind% in engine/BOARD.bas.
+' FLOOR is where a monster or a headstone belongs; DOOR is walkable but is a threshold, not a
+' place to stand something; MIXED is the art's decorative half-block lip and is not walkable.
+CONST CRK_NONE = 0
+CONST CRK_FLOOR = 1
+CONST CRK_DOOR = 2
+CONST CRK_MIXED = 3
+' Not a verdict CellRoomKind% ever returns -- roomlint's overlay tags ORPHAN cells with it:
+' floor the art paints that never became a room at all (see OrphanBlockScan).
+CONST CRK_ORPHAN = 4
+
 ' --- named screen LAYOUT regions (see engine/LAYOUT.bas) ---
 ' A screen described as DATA: named rectangles in character cells, so drawing code asks for
 ' a region by name instead of hardcoding coordinates. Each region carries its own cell size

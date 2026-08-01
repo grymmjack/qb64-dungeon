@@ -50,6 +50,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
+    PRINT PipeCol$("  |10sectorauto|07   derive each level's rect from the art colours; report overlaps")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
@@ -233,6 +234,13 @@ IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
 
 '--- dev: `dungeon.run econdump` reports the expected gold economy + win pacing, then exits ---
 IF INSTR(UCASE$(COMMAND$), "ECONDUMP") > 0 THEN EconDump
+
+'--- dev: `dungeon.run sectorauto` derives each level's rect from the art and checks overlaps ---
+IF INSTR(UCASE$(COMMAND$), "SECTORAUTO") > 0 THEN
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    LoadSectorMask                       ' the mask supersedes the rects -- measure what the GAME sees
+    SectorAutoDerive
+END IF
 
 '--- dev: `dungeon.run roomlint` reports rooms holding cells the player cannot stand on ---
 ' Needs a built board (the art IS the map), so it runs the same setup chamberdump does.
@@ -602,7 +610,7 @@ FUNCTION PlayGame%
 
     DIM startlvl AS INTEGER                        ' start this level's music before the first step
     StopLevelMusic                                 ' kill any leftover track (last run/menu) so it can't linger if the start sector has none
-    startlvl = SECTOR.get_by_xy(c.x, c.y): IF startlvl < 1 THEN startlvl = 1
+    startlvl = PlayerLevel%
     IF LEN(_TRIM$(MUSIC_FILE(startlvl))) = 0 THEN startlvl = 1   ' start sector has no track -> fall back to level 1's
     PlayLevelMusic startlvl
 
@@ -726,7 +734,7 @@ FUNCTION PlayGame%
                     IF siren_turns > 0 THEN         ' a wailing siren drags monsters to you as you move
                         IF RollDie(100) <= SIREN_MOVE_PCT THEN WanderEncounter
                     END IF
-                    curlvl = SECTOR.get_by_xy(c.x, c.y)   ' chronicle the levels you tread
+                    curlvl = PlayerLevel%                 ' chronicle the levels you tread (sticky in unclaimed corridors)
                     IF curlvl >= 1 AND curlvl <= 9 THEN
                         IF NOT lvl_reached(curlvl) THEN
                             lvl_reached(curlvl) = TRUE

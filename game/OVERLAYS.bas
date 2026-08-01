@@ -229,13 +229,16 @@ SUB EntityShiftFind (r AS INTEGER, ox AS INTEGER, oy AS INTEGER)
     ox = bx: oy = by
     IF bx < 0 OR by < 0 OR bx > 131 OR by > 60 THEN EXIT SUB
     IF LABELMASK(bx, by) = 0 THEN EXIT SUB          ' marker is already clear of any label
+    ' Only PLAIN FLOOR is an acceptable landing spot. Shifting onto a doorway or one of the
+    ' art's decorative half-block lips would undo the work PlaceRoomMarkers just did -- the
+    ' whole point of the marker is that it sits where the player can stand.
     FOR rad = 1 TO 3                                ' spiral out to a same-room, label-free cell
         FOR dy = -rad TO rad
             FOR dx = -rad TO rad
                 nx = bx + dx: ny = by + dy
                 IF nx >= 0 AND ny >= 0 AND nx <= 131 AND ny <= 60 THEN
                     IF ROOMAT(nx, ny) = r AND LABELMASK(nx, ny) = 0 THEN
-                        ox = nx: oy = ny: EXIT SUB
+                        IF ROOMKIND(nx, ny) = CRK_FLOOR THEN ox = nx: oy = ny: EXIT SUB
                     END IF
                 END IF
             NEXT dx

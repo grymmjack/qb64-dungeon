@@ -37,7 +37,7 @@ SUB DropEverything (rm AS INTEGER)
         END IF
     END IF
     DIM dlvl AS INTEGER                              ' chronicle the death (Game Menu / Event Log)
-    IF rm >= 1 AND rm <= ROOM_N THEN dlvl = ROOMS(rm).sec ELSE dlvl = SECTOR.get_by_xy(c.x, c.y)
+    IF rm >= 1 AND rm <= ROOM_N THEN dlvl = ROOMS(rm).sec ELSE dlvl = PlayerLevel%
     RecordDeath dlvl, rm, combat_mon, combat_round, gold
     gold = 0
     item_sword = 0
@@ -320,7 +320,7 @@ END SUB
 ' you have fully cleared is yours -- no lingering danger there at all.
 SUB LoiterTick
     DIM sec AS INTEGER
-    sec = SECTOR.get_by_xy(c.x, c.y)
+    sec = PlayerLevel%
     IF sec >= 1 AND sec <= 9 THEN
         IF lvl_cleared(sec) THEN EXIT SUB          ' cleared this floor -- rest easy
     END IF
@@ -349,7 +349,7 @@ SUB WanderEncounter
     DIM AS INTEGER sec, w, m, t, res, cx, cy
     cx = c.x \ CW: cy = c.y \ CH
     IF ABS(cx - START_CX) <= 3 AND ABS(cy - START_CY) <= 3 THEN EXIT SUB   ' the entrance is safe
-    sec = SECTOR.get_by_xy(c.x, c.y): IF sec < 1 THEN sec = 1
+    sec = PlayerLevel%
     IF sec >= 1 AND sec <= 9 THEN
         IF lvl_cleared(sec) THEN EXIT SUB   ' a cleared level holds no more wanderers
     END IF
@@ -502,7 +502,7 @@ SUB DoSearch
     NEXT
 
     IF found_any THEN
-        RecordSecret SECTOR.get_by_xy(c.x, c.y), ROOMAT(ccx, ccy), g_secret_tries
+        RecordSecret PlayerLevel%, ROOMAT(ccx, ccy), g_secret_tries
         g_secret_tries = 0
         Sfx "secret"
         Banner "A SECRET DOOR grinds open before you!", "A hidden passage is revealed -- explore what it hides.   [ press any key ]"

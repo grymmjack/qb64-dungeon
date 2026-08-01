@@ -59,6 +59,8 @@ fogdump.txt
 *.log
 settings-shot.png
 charsheet.png
+roomlint.png
+sectorauto.png
 
 # headless engine test harness: compiled suites + their scratch dir
 tests/*.run

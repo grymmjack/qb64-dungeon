@@ -85,17 +85,26 @@ Also useful, not in the gate:
 - **`dungeon.run econdump`** — expected gold economy + win pacing per class, and the **monster
   curve** (HP range / AC / to-hit per depth for room, chamber-LORD and boss spawns, straight out
   of `MonsterStats`/`MonsterToHit%`), so a balance change can be measured instead of playtested.
-- **`dungeon.run roomlint`** — every detected room vs the cells the player can actually stand on.
-  `DetectRooms` samples ONE pixel (the cell centre); movement (`InRoomNow`/`CanMove`) demands the
-  WHOLE cell be the floor colour. The board art's **half-block glyphs** (`0xDF`/`0xDC`/`0xDD`/
-  `0xDE`, ~975 cells) paint half a cell, so the two disagree: a room can enclose cells nothing can
-  walk on, and `FloodRoom` can seat a monster/grave marker on one — that room then never fires an
-  encounter and never shows a headstone. Currently **20 of 93 rooms** are in that state. Read-only
-  and deliberately NOT in the gate: fixing it means changing what `DetectRooms` counts, which
-  changes board generation for every run.
+- **`dungeon.run roomlint`** — every detected room vs the cells the player can actually stand on,
+  as a table AND as **`roomlint.png`** (green = plain floor, blue = doorway, tan = the art's
+  decorative half-block lip, and each room's monster/grave marker boxed white / orange if it sits
+  in a doorway / red+X if it sits somewhere unwalkable). A clean board reports only the 11 level
+  plaques as DECORATION, and those are dropped from `ROOMS()` entirely, so **every room holds a
+  monster**. Keep it clean: the art is data, so an edit can silently strand a room's monster
+  again. See "Room detection" below.
 - **`dungeon.run charsheet`** — renders the `[C]` character sheet for a fully-kitted hero to
   `charsheet.png`. Layout only breaks when the sheet is FULL, so a default-state shot proves
   nothing.
+- **`dungeon.run sectorauto`** — derives each level's rectangle from the board art alone (the
+  bounding box of every cell uniformly painted that level's colour) and reports overlaps, plus a
+  count of walkable cells that resolve to **no level**. Two findings worth keeping in mind: over
+  the raw image the derivation fails (15 overlapping pairs — the DUNGEON logo, the legend swatches
+  and the top frame all paint in level colours), but excluding those *decorative* regions it comes
+  out **clean, 9/9, no overlaps**. It also writes **`sectorauto.png`**: every walkable cell tinted
+  with the level it resolves to, the derived rects outlined, and any cell claimed by **no** level
+  flagged — **white** if the player can actually walk there, dim grey if it is sealed-off art. That
+  split matters — the raw count is dominated by the logo, whose yellow fill reads as `path` but is
+  sealed off. **91 unclaimed, 0 reachable** on a clean board; anything reachable is a real hole.
 
 Only *game-free* engine modules that touch nothing but QB64 built-ins can be unit-tested;
 everything else is verified through the binary's dev modes (`chamberdump`, `audiomanifest`,
@@ -507,6 +516,51 @@ against — this is how "which dungeon level am I in" is derived from position +
 When the **sector MASK** (`board-132x50-sector-mask.ans`) is present it supersedes the rects:
 `SECTOR.get_by_xy` returns `SECTORAT(cx,cy)` directly, letting levels be any shape (see the
 Sector MASK bullet above).
+
+**Room detection — the art draws in HALF CELLS, so "is this a room cell?" has three answers.**
+`DetectRooms`/`FloodRoom` flood a block by sampling **one pixel** (the cell centre); movement
+(`InRoomNow`/`CanMove`) demands the **whole cell** be the floor colour. The board art draws room
+lips with half-block glyphs (`0xDF`/`0xDC`/`0xDD`/`0xDE`, ~975 cells) and prints the level plaques
+("4th", "5th") as letters on a block of level colour — both pass the one-pixel test and fail the
+whole-cell one. `CellRoomKind%` (engine/BOARD.bas) is the shared answer:
+
+| | |
+|---|---|
+| `CRK_FLOOR` | every pixel is floor — the only place a monster or headstone may sit |
+| `CRK_DOOR`  | floor + a door colour: walkable, but a **threshold**, not a place to stand something |
+| `CRK_MIXED` | floor + anything else (a half-block's dark half, a text glyph) — **not walkable**, and that is by design: these are decorative |
+
+`PlaceRoomMarkers` (game/SECTOR.bas) runs once after every block is flooded, caches the verdict in
+`ROOMKIND()`, records `ROOM.floor_cells`, and seats each marker on the **most enclosed** plain-floor
+cell (closeness to the block centre is only the tie-break) — that is what keeps graves out of
+doorways. `RoomIsDecor%` (no plain floor at all) is what `RandomizeRooms` skips, since `ROOM.cells`
+counts a 4-cell plaque as a room. **Verify with `dungeon.run roomlint` after ANY board-art edit.**
+
+**Which level is the player on? — `PlayerLevel%` (game/SECTOR.bas), and it is STICKY.**
+A coloured room cell states its own level; a yellow **corridor** cell does not, so it only has a
+level if the sector mask paints one under it or a `sectors.txt` rect covers it. 91 of the board's
+3156 walkable cells satisfy neither, though **none are currently reachable** (`dungeon.run
+sectorauto`; it is the logo's yellow fill, sealed off). An unclaimed cell answers `0` —
+not a level: the HUD read "LEVEL 0", `PlayLevelMusic` had no track, and a wandering monster there
+had no depth. `PlayerLevel%` resolves normally, **remembers every success**, and returns the last
+known level when the lookup fails — so an unclaimed corridor carries the level you walked in from.
+
+- The mask and the rects stay exactly as authoritative as before; this only fills their gaps.
+- **`sectors.txt` is 0-BASED**, like every other cell coordinate here (the mask, `ROOMAT`,
+  `CHAMBERAT`, `chambers.txt`, the `[~]` readout). The rect fallback used to subtract 1, treating
+  it as 1-based, which shifted every rectangle one cell LEFT of the region it names — the tell is
+  level 9, whose `end_x` (78) *is* its art's rightmost column, so the rect stopped one short of
+  its own rooms and that column resolved to level 7. **Fixed**; it also closed the last reachable
+  hole (cell 40, between level 2 ending at 40 and level 1 starting at 42). Room detection is
+  unchanged at 82 rooms — the mask supersedes the rects nearly everywhere, which is why nobody
+  noticed for so long.
+- `SECTOR.get_by_xy` stays **pure** — the board build, the FOV caster and the debug mouse readout
+  ask it about arbitrary cells with no player in existence. The stickiness lives at the player,
+  never in the lookup. All ten `SECTOR.get_by_xy(c.x, c.y)` call sites now go through `PlayerLevel%`.
+- `LoadActivePlayer` calls `SeedPlayerLevel` so a hot-seat seat cannot inherit the previous
+  player's depth. Not saved — it self-heals from position.
+- **Consequence:** walk out of level 9 into an unclaimed corridor and a wanderer there is a level
+  **9** monster. You dragged the depth out with you.
 
 **Dice fonts (DPoly).** Non-d6 rolls are drawn with the six **DPoly** OTF dice fonts in
 `assets/fonts/dpoly` (dafont.com/dpoly), loaded by `InitDice` into `DFONT()` **indexed by side
