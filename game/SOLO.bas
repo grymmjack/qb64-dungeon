@@ -222,7 +222,7 @@ END SUB
 ' The pursuing monster token (Monster Prey). Drawn from cursor_draw, after the entities.
 SUB DrawHunter
     IF NOT solo_on OR opt_solomode <> SOLO_PREY OR NOT hunt_on THEN EXIT SUB
-    IF VIS(hunt_cx, hunt_cy) AND (NOT opt_fov OR LOS_SEEN(hunt_cx, hunt_cy)) THEN
+    IF VIS(hunt_cx, hunt_cy) AND (NOT FovOn% OR LOS_SEEN(hunt_cx, hunt_cy)) THEN
         DIM px AS INTEGER, py AS INTEGER
         _DEST CANVAS
         px = hunt_cx * CW: py = hunt_cy * CH

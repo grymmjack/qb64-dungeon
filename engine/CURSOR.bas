@@ -57,7 +57,7 @@ END SUB
 SUB cursor_erase
     DIM pcx AS INTEGER, pcy AS INTEGER
     _DEST CANVAS
-    IF opt_fov THEN
+    IF FovOn% THEN
         pcx = c.x \ CW: pcy = c.y \ CH
         IF pcx <> fov_cx OR pcy <> fov_cy THEN ComputeFOV   ' recompute sight only when moved
         FovRender

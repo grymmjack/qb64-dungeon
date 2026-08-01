@@ -39,7 +39,7 @@ SUB DrawPlayerTokens
     IF num_players > 1 THEN
         FOR p = 1 TO num_players
             IF p <> cur_player AND PLAYERS(p).active THEN
-                IF NOT opt_fov OR LOS_LIT(PLAYERS(p).cx \ CW, PLAYERS(p).cy \ CH) THEN
+                IF NOT FovOn% OR LOS_LIT(PLAYERS(p).cx \ CW, PLAYERS(p).cy \ CH) THEN
                     _FONT CH: COLOR WHITE, PLAYERS(p).kolor
                     _PRINTSTRING (PLAYERS(p).cx, PLAYERS(p).cy), _TRIM$(STR$(p))
                 END IF
@@ -117,7 +117,7 @@ SUB DrawTombstones
     ' so the headstone lands exactly where the monster stood -- never off under a label.
     FOR r = 1 TO ROOM_N
         gx = EntityDrawX(r): gy = EntityDrawY(r)
-        IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
+        IF VIS(gx, gy) AND (NOT FovOn% OR LOS_SEEN(gx, gy)) THEN
             px = gx * CW: py = gy * CH
             IF ROOMS(r).monster_fought AND NOT ROOMS(r).malive THEN
                 LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF     ' stone body
@@ -138,7 +138,7 @@ SUB DrawChamberGraves
         IF CHM_DEAD(cid) > 0 AND CHAMBERAT(START_CX, START_CY) <> cid THEN
             FOR k = 1 TO CHM_DEAD(cid)
                 gx = CHM_GX(cid, k): gy = CHM_GY(cid, k)
-                IF VIS(gx, gy) AND (NOT opt_fov OR LOS_SEEN(gx, gy)) THEN
+                IF VIS(gx, gy) AND (NOT FovOn% OR LOS_SEEN(gx, gy)) THEN
                     px = gx * CW: py = gy * CH
                     LINE (px + 1, py + 5)-(px + CW - 2, py + CH - 1), grave, BF   ' stone body
                     LINE (px + 2, py + 3)-(px + CW - 3, py + 6), grave, BF        ' rounded top
@@ -173,7 +173,7 @@ SUB DrawEntities
             ' (no board-wide reveal), and -- in FOV mode -- until that spot is seen.
             IF ROOMS(r).seen THEN
                 vis = TRUE
-                IF opt_fov THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
+                IF FovOn% THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
             END IF
             IF vis THEN
                 ' Body first: an adventurer who fell here left spoils on the ground, and
@@ -199,7 +199,7 @@ SUB DrawEntities
             gx = LOOSE(r).cx: gy = LOOSE(r).cy
             IF gx >= 0 AND gy >= 0 AND gx <= 131 AND gy <= 60 THEN
                 vis = TRUE
-                IF opt_fov THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
+                IF FovOn% THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
                 IF vis THEN
                     COLOR _RGB32(&HE0, &H33, &H33), BLACK
                     _PRINTSTRING (gx * CW, gy * CH), CHR$(2)

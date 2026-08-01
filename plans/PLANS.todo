@@ -356,9 +356,11 @@ Game Tweaks:
           ☐ At <50% HP
           ☐ At <25% HP
           ☐ Off
-    ☐ When attempting to break down a door
-      ☐ Chance of wandering encounter hearing the noise is +25% each attempt
-      ☐ Unless the entire level is cleared then 5% each attempt
+    ✔ When attempting to break down a door @done(26-08-01)
+      ✔ Chance of wandering encounter hearing the noise is +25% each attempt @done(26-08-01)
+      ✔ Unless the entire level is cleared then 5% each attempt @done(26-08-01)
+        ✔ the tally is per DOOR (door_noise_idx) -- switch doors and it restarts, because it is @done(26-08-01)
+        ✔ this door's racket, not a running penalty on you; both % are tuning.txt knobs @done(26-08-01)
       ☐ Chance of door having trap when it takes > 1 time to break through:
         ☐ 20% chance of swamp gas - SAVE VS POISON or -2 HP
         ☐ 20% chance of arrow trap - SAVE VS DEX or -1D6 HP
@@ -431,10 +433,15 @@ Game Tweaks:
       ☐ +1 Given one back when a crit occurs nat 20
       ☐ -1 Lose one when a fumble occurs nat 1
       ☐ Flourishes work with weapons AND magic
-    ☐ When breaking down doors chance for random encounter 33% due to noise
-    ☐ Crypt forces line of sight even if it's disabled in the settings - 9th level - evil darkness overcome
-      ☐ If wizard, or have torch can light to get line of sight disabled
-      ☐ Add torch to random items found - 10% chance
+    ✔ When breaking down doors chance for random encounter due to noise @done(26-08-01)
+      ✔ superseded by the escalating version above (+25% per attempt, 5% on a cleared floor) @done(26-08-01)
+    ✔ Crypt forces line of sight even if disabled in settings - 9th level @done(26-08-01)
+      ✔ via a separate fov_forced flag + FovOn%, never by writing opt_fov -- opt_fov is the @done(26-08-01)
+        ✔ player's SAVED setting and must come back unchanged when they leave the floor @done(26-08-01)
+      ✔ every visibility test now asks FovOn%; entering builds the LOS masks and banners @done(26-08-01)
+      ✔ If wizard ... can light to get line of sight disabled (Wizards are exempt) @done(26-08-01)
+      ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
+        ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
 
 Roadmap (future / bigger efforts):
     ☐ Auto-move: ON/OFF (will be used for computer players later)

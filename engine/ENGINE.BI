@@ -35,6 +35,11 @@ DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
 DIM SHARED AS _UNSIGNED LONG WHITE, GREY, REDU, GREENU, YELLOWU, CYANU, BOXBG
 DIM SHARED BOARD_ANSI AS STRING
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
+' Line of sight FORCED ON by where you are, regardless of the player's setting -- the game sets
+' this (DUNGEON! does it on the 9th level, whose darkness is not optional). Kept SEPARATE from
+' opt_fov because opt_fov is the player's saved preference and must survive being overridden:
+' writing the override into the setting would persist it and silently change their config.
+DIM SHARED fov_forced AS INTEGER
 
 ' What kind of room cell is at a board position -- see CellRoomKind% in engine/BOARD.bas.
 ' FLOOR is where a monster or a headstone belongs; DOOR is walkable but is a threshold, not a

@@ -69,6 +69,24 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
     ELSE
         start_heal_locked = FALSE                  ' out in the dungeon again -- the walk home counts
     END IF
+    ' THE CRYPT (level 9) forces line of sight. Its darkness is a property of the place, not a
+    ' display preference, so it overrides the setting -- but through fov_forced, never by writing
+    ' opt_fov, which is the player's saved config and must come back unchanged when they leave.
+    ' A WIZARD is exempt: light is the one thing they can always make.
+    DIM wantfov AS INTEGER
+    wantfov = 0
+    IF PlayerLevel% = 9 THEN IF NOT IsWizard% THEN wantfov = -1   ' nested: QB64's AND never short-circuits
+    IF wantfov <> fov_forced THEN
+        fov_forced = wantfov
+        ' Switching sight on mid-run needs the masks built, or the first frame blacks the board
+        ' with nothing marked seen. Switching it off just stops consulting them.
+        IF fov_forced AND NOT opt_fov THEN InitFOV
+        IF fov_forced THEN
+            Banner "The dark of THE CRYPT closes in.", "You can see only what your light reaches.   [ press any key ]"
+            WaitKey
+        END IF
+        display_dirty = 1
+    END IF
     IF InRoomNow THEN
         sec = ROOMAT(cx, cy)                       ' which room block are we standing in?
         IF sec >= 1 THEN

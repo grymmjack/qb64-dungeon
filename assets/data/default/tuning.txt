@@ -125,3 +125,11 @@ HP_BLOODIED_PCT       | 15
 # every few seconds stops being atmosphere and starts being a nuisance.
 AMB_SECS_MIN | 18
 AMB_SECS_MAX | 45
+
+# --- REINFORCED DOOR NOISE (see BreakDoorAttempt) ---
+# Each attempt on the SAME door adds DOORNOISE_PCT to the chance a wandering monster
+# comes to investigate; the tally restarts if you go and bother a different door. On a
+# floor you have already cleared there is almost nothing left to come, so the odds
+# collapse to a flat DOORNOISE_CLEAR_PCT instead of climbing. 0 disables either.
+DOORNOISE_PCT | 25
+DOORNOISE_CLEAR_PCT | 5

@@ -476,7 +476,14 @@ END SUB
 '  END SCREENS
 ' ============================================================================
 
-' ================= LINE-OF-SIGHT FOG-OF-WAR (opt_fov) =================
+' Is line of sight in effect right now? The player's setting OR a place that forces it.
+' Every render and visibility test asks THIS, never opt_fov directly.
+FUNCTION FovOn%
+    FovOn% = (opt_fov OR fov_forced)
+END FUNCTION
+
+
+' ================= LINE-OF-SIGHT FOG-OF-WAR (opt_fov / fov_forced) =================
 
 ' A cell blocks sight if it is a black wall (read from the collision board).
 ' Assumes _SOURCE has been set to CANVAS_COPY by the caller.
@@ -593,7 +600,7 @@ SUB StartBoard
     c.cursor_color = _RGB32(&HFF, &H00, &H00, &HAA)
     c.x = START_CX * CW: c.y = START_CY * CH
     c.prev_x = c.x: c.prev_y = c.y
-    IF opt_fov THEN InitFOV          ' start explored = just the entrance room + line of sight
+    IF FovOn% THEN InitFOV           ' start explored = just the entrance room + line of sight
     cursor_erase                     ' render the board (full, or through the fog) + labels
     cursor_draw
     FadeInCurrent                    ' fade the dungeon in from black
@@ -813,7 +820,7 @@ END FUNCTION
 
 ' Draw a room label, but hide it in FOV mode until that spot has been seen.
 SUB PutLabel (cx AS INTEGER, cy AS INTEGER, txt AS STRING, fg AS _UNSIGNED LONG)
-    IF opt_fov THEN IF LOS_SEEN(cx, cy) = 0 THEN EXIT SUB
+    IF FovOn% THEN IF LOS_SEEN(cx, cy) = 0 THEN EXIT SUB
     COLOR fg, YELLOW
     UIFontOn UIF_LABEL                              ' configurable room-label font
     _PRINTSTRING (cx * CW, cy * CH), txt

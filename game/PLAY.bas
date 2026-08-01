@@ -565,8 +565,13 @@ END SUB
 ' Engine owns DOOR_BROKEN and which door is ahead (StrongDoorAhead); the STR check
 ' against DC 13 is a game rule reading the character's ability scores.
 FUNCTION BreakDoorAttempt% (idx AS INTEGER)
-    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING
+    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING, pct AS INTEGER, lvl AS INTEGER
     Sfx "strongdoor"
+    ' Throwing yourself at a reinforced door is the loudest thing you can do down here, and the
+    ' racket compounds: each attempt on the SAME door adds DOORNOISE_PCT. Switch doors and the
+    ' count restarts -- it is this door's noise, not a running penalty on you.
+    IF idx <> door_noise_idx THEN door_noise_idx = idx: door_noise_tries = 0
+    door_noise_tries = door_noise_tries + 1
     m = AbilMod(player_str)
     roll = RollDie(20) + m
     tag = "  (STR d20" + ModStr$(m) + " = " + _TRIM$(STR$(roll)) + " vs 13)"
@@ -581,6 +586,22 @@ FUNCTION BreakDoorAttempt% (idx AS INTEGER)
     END IF
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: Present
+    ' Did anything hear it? On a floor you have already swept there is almost nothing left to
+    ' come, so the odds collapse to a flat DOORNOISE_CLEAR_PCT instead of climbing.
+    lvl = PlayerLevel%
+    IF lvl >= 1 THEN
+        IF LevelFullyCleared%(lvl) THEN pct = DOORNOISE_CLEAR_PCT ELSE pct = DOORNOISE_PCT * door_noise_tries
+    ELSE
+        pct = DOORNOISE_PCT * door_noise_tries
+    END IF
+    IF pct > 100 THEN pct = 100
+    IF pct > 0 AND RollDie(100) <= pct THEN
+        door_noise_tries = 0                       ' the noise was answered -- the tally is spent
+        LogEvent "The racket at the door drew something."
+        Banner "Something HEARD you.", "The noise carries down the corridor -- and it is answered.   [ press any key ]"
+        WaitKey
+        WanderEncounter
+    END IF
 END FUNCTION
 
 ' The ONE-TIME arrival at a named hall: its establishing shot, its description typed out, and
