@@ -36,6 +36,42 @@ FLEE_FAIL_STEP        | 5     # + this % per level deeper (level 9 = 15 + 8*5 = 
 # --- movement ---
 MOVE_MAX              | 5     # spaces per turn in Boardgame mode (>=1)
 
+# --- monster scaling (D&D mode; game/SECTOR.bas MonsterStats / MonsterToHit%) ---
+# Every spawn -- lair monster, boss, chamber guardian, chamber LORD, wanderer, mimic --
+# derives its HP / AC / to-hit here, so a difficulty change is one edit, not five.
+#
+#   HP  = level * MON_HP_PER_LVL + 1d(MON_HP_DIE_BASE + level * MON_HP_DIE_STEP)
+#   AC  = MON_AC_BASE + level                (capped at MON_AC_MAX)
+#   hit = level                              (capped at MON_TOHIT_MAX)
+#
+# THE CAPS ARE THE POINT. A monster that is merely tough is good; one whose AC or to-hit has
+# outrun anything a hero at that depth can field is not difficulty, it is a coin flip the
+# player cannot influence. Level 9 would otherwise reach AC 18 / +9 before any bonuses.
+MON_HP_PER_LVL        | 4     # flat HP per dungeon level
+MON_HP_DIE_BASE       | 4     # HP die sides at level 0...
+MON_HP_DIE_STEP       | 2     # ...+ this per level (L1 = d6, L9 = d22)
+MON_AC_BASE           | 9     # AC = this + level
+MON_AC_MAX            | 17    # hard ceiling on any non-boss AC
+MON_TOHIT_MAX         | 8     # hard ceiling on any monster's d20 bonus
+
+# The single boss lair -- deliberately exempt from the caps above. It IS the wall.
+BOSS_HP_BASE          | 45
+BOSS_HP_PER_LVL       | 3     # HP = BASE + level*PER_LVL + 1d10
+BOSS_AC               | 19
+BOSS_TOHIT_BONUS      | 2     # + on top of the level
+
+# The LORD of a chamber (chamber-events.txt `lord`) -- a mini-boss, not a second boss.
+# Was 150% HP / +1 AC / +2 to-hit, which on level 8 produced a 70 HP, AC 18, +10 guardian
+# in a hall you can walk into with no warning. 130 / +1 / +1 keeps it a step up from its kin
+# without turning a chamber entry into the hardest fight in the run.
+LORD_HP_PCT           | 130   # % of an ordinary guardian's HP (>=100)
+LORD_AC_BONUS         | 1
+LORD_TOHIT_BONUS      | 1
+
+WANDER_AC_BONUS       | 0     # wandering ambushes: same curve as a lair monster
+MIMIC_HP_PER_LVL      | 5     # the curio that bites back: HP = level*this + 1d6 + 6
+MIMIC_AC_BASE         | 11    # AC = this + level
+
 # --- magic-item drop odds (% of a level's rooms that yield an ITEM instead of gold) ---
 # These replace the old trick of encoding frequency as a treasure-slot position, which
 # could only express 0/33/66/100% and starved levels 5/6/8 of gold entirely. WHICH item

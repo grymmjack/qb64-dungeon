@@ -37,9 +37,17 @@ END FUNCTION
 '   reclaim -> chamber encounter -> loose-loot pickup -> win check.
 FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
     Game_OnEnterCell% = 0
-    DIM sec AS INTEGER, res AS INTEGER, chnow AS INTEGER
-    ' returning to the entrance patches you up (D&D mode)
-    IF ABS(cx - START_CX) <= 1 AND ABS(cy - START_CY) <= 1 THEN player_hp = player_maxhp
+    DIM sec AS INTEGER, res AS INTEGER, chnow AS INTEGER, atstart AS INTEGER
+    ' Returning to the entrance patches you up (D&D mode) -- but only when you WALKED home.
+    ' start_heal_locked is set by anything that teleports/drags you here (see GAME.BI), and
+    ' clears the moment you leave the entrance zone, so the heal is earned once per trip.
+    atstart = 0
+    IF ABS(cx - START_CX) <= 1 AND ABS(cy - START_CY) <= 1 THEN atstart = -1
+    IF atstart THEN
+        IF NOT start_heal_locked THEN player_hp = player_maxhp
+    ELSE
+        start_heal_locked = FALSE                  ' out in the dungeon again -- the walk home counts
+    END IF
     IF InRoomNow THEN
         sec = ROOMAT(cx, cy)                       ' which room block are we standing in?
         IF sec >= 1 THEN
@@ -66,10 +74,25 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
                     IF opt_boardgame THEN steps_left = 0       ' no ESP -- straight into the fight
                 END IF
             END IF
-            ' reclaim dropped loot once the room is clear (your own, solo; a rival's, MP)
-            IF NOT ROOMS(sec).malive AND HasDrop(sec) THEN CollectDrop sec
+            ' Reclaim dropped loot once the room is clear (your own, solo; a rival's, MP).
+            ' At the ENTRANCE, only if you actually fell there: a revive puts you back at
+            ' START, and picking a hoard up on arrival would read as "you recovered
+            ' everything" for spoils that are still lying where you really died.
+            IF NOT ROOMS(sec).malive AND HasDrop(sec) THEN
+                IF NOT atstart THEN
+                    CollectDrop sec
+                ELSEIF ROOMS(sec).player_died THEN
+                    CollectDrop sec
+                END IF
+            END IF
         END IF
     END IF
+    ' Reclaim loose spoils left where a fall happened (corridors, and CHAMBERS -- a chamber
+    ' death has no room to stash in, so it drops here). This runs BEFORE the chamber trigger
+    ' below on purpose: stepping onto your own body inside a hall used to wake the next
+    ' guardian FIRST, so you had to survive a fresh fight before you were allowed to pick your
+    ' own spoils back up -- and dying in it put a second body on top of the first.
+    IF LooseAt%(cx, cy) > 0 THEN CollectLooseAt cx, cy
     ' CHAMBERS: stepping into a fresh (uncleared) chamber wakes ONE of its 3 monsters;
     ' leave and re-enter for the next until three graves stand. Fire only on ENTRY
     ' (cur_chamber transition) and never on a coloured room block (rooms handle their own).
@@ -82,8 +105,6 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
             IF opt_boardgame THEN steps_left = 0     ' a chamber fight ends your turn
         END IF
     END IF
-    ' reclaim loose spoils left on the paths where a fall happened (rooms OR corridors)
-    IF LooseAt%(cx, cy) > 0 THEN CollectLooseAt cx, cy
     ' victory: enough gold, hold the Level Key, and back at the entrance
     IF Game_WinReached% THEN
         DeleteSave                                   ' the run is won -- clear any stale save

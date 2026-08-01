@@ -121,6 +121,7 @@ END SUB
 
 SUB RecordCrit (mon AS STRING, dmg AS INTEGER)
     g_crits = g_crits + 1
+    combat_crits = combat_crits + 1                ' this fight's tally -> CritPotionReward
     IF dmg > 0 THEN
         LogEvent _TRIM$(player_name) + " CRITICALLY hit " + _TRIM$(mon) + " for " + EvNum$(dmg) + " damage"
     ELSE

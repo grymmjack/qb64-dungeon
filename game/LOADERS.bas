@@ -23,6 +23,15 @@ SUB LoadTuning
     ITEM_PCT(1) = 0
     FOR tl = 2 TO 9: ITEM_PCT(tl) = 8 + tl * 3: NEXT tl
     FLEE_FAIL_BASE = 15: FLEE_FAIL_STEP = 5: MOVE_MAX = 5
+    ' monster scaling (see GAME.BI). Defaults reproduce the old hard-coded formulas EXCEPT the
+    ' chamber LORD (was 150% HP / +2 to-hit) and the new AC/to-hit caps -- that combination is
+    ' what produced a 70 HP, AC 18, +10-to-hit guardian on level 8.
+    MON_HP_PER_LVL = 4: MON_HP_DIE_BASE = 4: MON_HP_DIE_STEP = 2
+    MON_AC_BASE = 9: MON_AC_MAX = 17: MON_TOHIT_MAX = 8
+    BOSS_HP_BASE = 45: BOSS_HP_PER_LVL = 3: BOSS_AC = 19: BOSS_TOHIT_BONUS = 2
+    LORD_HP_PCT = 130: LORD_AC_BONUS = 1: LORD_TOHIT_BONUS = 1
+    WANDER_AC_BONUS = 0
+    MIMIC_HP_PER_LVL = 5: MIMIC_AC_BASE = 11
     DIM i AS INTEGER, k AS STRING, v AS INTEGER, lv AS INTEGER
     ReadDataFile "assets/data/tuning.txt"
     FOR i = 1 TO DLINE_N
@@ -63,6 +72,24 @@ SUB LoadTuning
             CASE "FLEE_FAIL_BASE": FLEE_FAIL_BASE = v
             CASE "FLEE_FAIL_STEP": FLEE_FAIL_STEP = v
             CASE "MOVE_MAX": IF v >= 1 THEN MOVE_MAX = v
+            ' monster scaling. Guards where a zero/negative would be nonsense rather than a
+            ' meaningful "off": a 0-sided HP die or a 0% LORD multiplier makes a 0 HP monster.
+            CASE "MON_HP_PER_LVL": IF v >= 0 THEN MON_HP_PER_LVL = v
+            CASE "MON_HP_DIE_BASE": IF v >= 1 THEN MON_HP_DIE_BASE = v
+            CASE "MON_HP_DIE_STEP": IF v >= 0 THEN MON_HP_DIE_STEP = v
+            CASE "MON_AC_BASE": MON_AC_BASE = v
+            CASE "MON_AC_MAX": IF v >= 1 THEN MON_AC_MAX = v
+            CASE "MON_TOHIT_MAX": IF v >= 0 THEN MON_TOHIT_MAX = v
+            CASE "BOSS_HP_BASE": IF v >= 1 THEN BOSS_HP_BASE = v
+            CASE "BOSS_HP_PER_LVL": IF v >= 0 THEN BOSS_HP_PER_LVL = v
+            CASE "BOSS_AC": IF v >= 1 THEN BOSS_AC = v
+            CASE "BOSS_TOHIT_BONUS": BOSS_TOHIT_BONUS = v
+            CASE "LORD_HP_PCT": IF v >= 100 THEN LORD_HP_PCT = v
+            CASE "LORD_AC_BONUS": LORD_AC_BONUS = v
+            CASE "LORD_TOHIT_BONUS": LORD_TOHIT_BONUS = v
+            CASE "WANDER_AC_BONUS": WANDER_AC_BONUS = v
+            CASE "MIMIC_HP_PER_LVL": IF v >= 0 THEN MIMIC_HP_PER_LVL = v
+            CASE "MIMIC_AC_BASE": MIMIC_AC_BASE = v
             CASE ELSE
                 ' ITEM_PCT_<n> -- per-level magic-item drop chance (see items.txt).
                 ' Keyed rather than positional so a pack can override one level only.

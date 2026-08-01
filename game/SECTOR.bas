@@ -108,6 +108,67 @@ SUB SetItem (lvl AS INTEGER, slot AS INTEGER, nm AS STRING, gold AS INTEGER, cod
 END SUB
 
 
+' ============================================================================
+'  MONSTER SCALING -- one funnel for every spawn (D&D mode).
+'
+'  The HP / AC / to-hit formulas were duplicated as bare literals at five spawn sites: the
+'  room monster and the boss lair here, the wandering ambush and the chamber guardian in
+'  game/PLAY.bas, and the mimic in game/CURIO.bas. Nothing tied them together, so a level-8
+'  chamber LORD quietly compounded three separate multipliers into a 70 HP / AC 18 / +10
+'  monster that no single site looked unreasonable on its own.
+'
+'  Now every spawn asks here, every number is a tuning.txt knob, and there are CAPS -- because
+'  the failure mode that matters is not "a hard monster", it is a monster whose AC or to-hit
+'  has outrun what any hero at that depth can answer, which reads as the game cheating.
+'
+'  `kind`: MK_ROOM ordinary lair | MK_BOSS the one boss | MK_LORD a chamber lord |
+'          MK_WANDER a wandering ambush | MK_MIMIC a curio that bites back.
+' ============================================================================
+
+' Roll this monster's hit points and armour class. Rolls exactly ONE die (or two for a boss),
+' so the seeded RNG sequence a save/load rebuild depends on stays predictable per call.
+SUB MonsterStats (lvl AS INTEGER, kind AS INTEGER, hpOut AS INTEGER, acOut AS INTEGER)
+    DIM lv AS INTEGER, hp AS INTEGER, ac AS INTEGER, sides AS INTEGER
+    lv = lvl: IF lv < 1 THEN lv = 1
+    IF lv > 9 THEN lv = 9
+    IF kind = MK_BOSS THEN
+        hp = BOSS_HP_BASE + lv * BOSS_HP_PER_LVL + RollDie(10)
+        ac = BOSS_AC
+        hpOut = hp: acOut = ac
+        EXIT SUB                                  ' the boss's AC is exempt from MON_AC_MAX: it IS the wall
+    END IF
+    sides = MON_HP_DIE_BASE + lv * MON_HP_DIE_STEP: IF sides < 1 THEN sides = 1
+    hp = lv * MON_HP_PER_LVL + RollDie(sides)
+    ac = MON_AC_BASE + lv
+    SELECT CASE kind
+        CASE MK_LORD
+            hp = hp * LORD_HP_PCT \ 100
+            ac = ac + LORD_AC_BONUS
+        CASE MK_WANDER
+            ac = ac + WANDER_AC_BONUS
+        CASE MK_MIMIC
+            hp = lv * MIMIC_HP_PER_LVL + RollDie(6) + 6   ' a beefy ambusher, its own curve
+            ac = MIMIC_AC_BASE + lv
+    END SELECT
+    IF hp < 1 THEN hp = 1
+    IF ac > MON_AC_MAX THEN ac = MON_AC_MAX
+    hpOut = hp: acOut = ac
+END SUB
+
+' The monster's bonus on its d20 attack roll. Capped for the same reason AC is: past a point
+' the player's own AC stops mattering at all and every round is a coin flip armour cannot answer.
+FUNCTION MonsterToHit% (lvl AS INTEGER, kind AS INTEGER)
+    DIM t AS INTEGER, lv AS INTEGER
+    lv = lvl: IF lv < 1 THEN lv = 1
+    IF lv > 9 THEN lv = 9
+    t = lv
+    IF kind = MK_BOSS THEN t = t + BOSS_TOHIT_BONUS
+    IF kind = MK_LORD THEN t = t + LORD_TOHIT_BONUS
+    IF t > MON_TOHIT_MAX THEN t = MON_TOHIT_MAX
+    MonsterToHit% = t
+END FUNCTION
+
+
 ' Roll fresh room contents: each level's room (sector) gets a random monster +
 ' treasure from that level's pool; one deep room becomes the boss lair.
 
@@ -126,8 +187,7 @@ SUB RandomizeRooms
         sec = ROOMS(r).sec
         ROOMS(r).monster_fought = FALSE: ROOMS(r).player_died = FALSE
         ROOMS(r).looted = FALSE: ROOMS(r).is_boss = FALSE: ROOMS(r).seen = FALSE
-        ROOMS(r).drop_gold = 0: ROOMS(r).drop_sword = 0
-        ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
+        ClearRoomDrop r
         IF r = startroom OR ROOMS(r).cells < MIN_ROOM THEN
             ROOMS(r).monster = "": ROOMS(r).malive = FALSE
             ROOMS(r).treasure = 0: ROOMS(r).treasure_name = "": ROOMS(r).treasure_item = 0
@@ -163,10 +223,10 @@ SUB RandomizeRooms
                     END IF
                 END IF
             END IF
-            ' hit-dice HP: a level-scaled range, not a fixed value. min = sec*4+1, and the
-            ' die grows with depth (L1 rolls a d6, L9 a d22), so deeper monsters vary more.
-            ROOMS(r).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(r).mhp_now = ROOMS(r).mhp
-            ROOMS(r).mac = 9 + sec
+            ' hit-dice HP: a level-scaled range, not a fixed value. The die grows with depth
+            ' (L1 rolls a d6, L9 a d22 at the shipped knobs), so deeper monsters vary more.
+            MonsterStats sec, MK_ROOM, ROOMS(r).mhp, ROOMS(r).mac
+            ROOMS(r).mhp_now = ROOMS(r).mhp
             IF sec >= 6 THEN ndeep = ndeep + 1: deeproom(ndeep) = r
         END IF
     NEXT r
@@ -179,8 +239,8 @@ SUB RandomizeRooms
         ROOMS(bossroom).treasure_name = "DRAGON'S HOARD"
         ROOMS(bossroom).treasure = ROOMS(bossroom).treasure + 6000
         ROOMS(bossroom).treasure_item = 0
-        ROOMS(bossroom).mhp = 45 + sec * 3 + RollDie(10): ROOMS(bossroom).mhp_now = ROOMS(bossroom).mhp
-        ROOMS(bossroom).mac = 19
+        MonsterStats sec, MK_BOSS, ROOMS(bossroom).mhp, ROOMS(bossroom).mac
+        ROOMS(bossroom).mhp_now = ROOMS(bossroom).mhp
     END IF
 
     ' -- the LEVEL KEY: the prize of one random room on a DEEP level (never the

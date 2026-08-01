@@ -178,6 +178,53 @@ SUB PrintCentered (row AS INTEGER, t AS STRING)
     _PRINTSTRING (px, row * CH), t
 END SUB
 
+' Centre within a COLUMN SPAN rather than the whole screen -- for text inside a panel, or
+' beside something (a portrait) that owns part of the row. Clamped to the span so an
+' over-long line starts at x1 instead of sliding off the panel's left edge.
+SUB PrintCenteredIn (row AS INTEGER, x1 AS INTEGER, x2 AS INTEGER, t AS STRING)
+    DIM px AS INTEGER, wide AS INTEGER
+    wide = (x2 - x1) * CW
+    IF wide < CW THEN wide = CW
+    px = x1 * CW + (wide - _PRINTWIDTH(t)) \ 2
+    IF px < x1 * CW THEN px = x1 * CW
+    _PRINTSTRING (px, row * CH), t
+END SUB
+
+' Greedy word-wrap into at most `maxlines` lines of `cols` columns, returned CHR$(10)-joined.
+' Breaks on spaces; a single word longer than the span is hard-cut rather than allowed to
+' overflow. Anything past maxlines is dropped with a trailing "..." on the last line, so a
+' caller can lay out a fixed number of rows and never paint outside them.
+FUNCTION WrapLines$ (t AS STRING, cols AS INTEGER, maxlines AS INTEGER)
+    DIM i AS INTEGER, n AS INTEGER, wd AS STRING, acc AS STRING, wl AS STRING, c1 AS STRING, src AS STRING
+    IF cols < 1 OR maxlines < 1 THEN EXIT FUNCTION
+    src = _TRIM$(t) + " "
+    n = 1
+    FOR i = 1 TO LEN(src)
+        c1 = MID$(src, i, 1)
+        IF c1 = " " THEN
+            IF LEN(wd) = 0 THEN
+                ' collapse runs of spaces (callers pad columns with them)
+            ELSEIF LEN(acc) = 0 THEN
+                acc = wd
+            ELSEIF LEN(acc) + 1 + LEN(wd) <= cols THEN
+                acc = acc + " " + wd
+            ELSE
+                IF n >= maxlines THEN
+                    IF LEN(acc) + 4 <= cols THEN acc = acc + " ..." ELSE acc = LEFT$(acc, cols - 4) + " ..."
+                    wl = wl + acc: acc = "": wd = "": EXIT FOR
+                END IF
+                wl = wl + acc + CHR$(10): n = n + 1: acc = wd
+            END IF
+            IF LEN(wd) > cols THEN acc = LEFT$(wd, cols)     ' a single over-long word
+            wd = ""
+        ELSE
+            wd = wd + c1
+        END IF
+    NEXT i
+    IF LEN(acc) > 0 THEN wl = wl + acc
+    WrapLines$ = wl
+END FUNCTION
+
 ' Load the per-region UI fonts from assets/data/ui-fonts.txt into the UIF_* handles.
 ' region | fontfile (in assets/fonts/ui/) | size ; blank file or size 0 = built-in grid font.
 SUB LoadUIFonts
@@ -234,8 +281,38 @@ END SUB
 SUB WaitKey
     DIM k AS STRING
     _KEYCLEAR              ' drain buffered keys
-    DO: _LIMIT 60: AudioTick: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
+    DO: _LIMIT 60: AudioTick: DisplayTick: k = INKEY$: _DISPLAY: LOOP UNTIL k <> ""
     FlashPrompt
+END SUB
+
+
+' One frame's worth of WINDOW-RESIZE housekeeping. Call it wherever AudioTick is called --
+' any loop the player can sit in while dragging the window edge.
+'
+' Ported from DRAW (DRAW.BAS's resize watcher). Two things matter and only one is obvious:
+'
+'   1. CONSUME the event. _RESIZE latches until it is read; leaving it set means the pending
+'      resize is never acknowledged and a later reader sees a stale one.
+'   2. Wait for it to SETTLE. Dragging a window edge fires a burst of resizes and some window
+'      managers lag or drop the last one, so acting on every event both thrashes and can act
+'      on a size that is already wrong. Repaint once, a few frames after they stop.
+'
+' It only re-asserts the display mode and asks for a repaint -- it never repaints the board
+' itself, because it runs inside modal overlays (banners, the character sheet) where wiping
+' back to the board would be worse than the stale frame it is fixing. Loops that own the
+' screen consume display_dirty when they are ready.
+SUB DisplayTick
+    IF _RESIZE THEN
+        rsz_w = _RESIZEWIDTH: rsz_h = _RESIZEHEIGHT      ' reading these clears the event
+        rsz_settle = 8
+    ELSEIF rsz_settle > 0 THEN
+        rsz_settle = rsz_settle - 1
+        IF rsz_settle = 0 THEN
+            ApplyDisplay                                  ' re-assert fullscreen/scaling for the new size
+            display_dirty = -1
+            _DISPLAY                                      ' present at once, even if nobody consumes the flag
+        END IF
+    END IF
 END SUB
 
 

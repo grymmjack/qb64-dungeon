@@ -14,6 +14,9 @@ SUB DropEverything (rm AS INTEGER)
     ' revenge; multiplayer: any rival can grab it). A ROOM death stashes them in the
     ' room; a PATH/wander death (scratch slot rm > ROOM_N) has no room, so it drops a
     ' LOOSE marker on the exact cell where you fell -- reclaimable all the same.
+    ' EVERYTHING carried goes into the stash, not just gold + the three cards. The wipe
+    ' below clears the WHOLE kit, so anything not stashed here is destroyed outright and
+    ' the walk back rewards you with a fraction of what you lost.
     IF opt_lootrecovery >= 1 THEN
         IF opt_lootrecovery = 2 THEN ClearAllDrops: ClearLooseDrops   ' SOULS-LIKE: only your most recent death's spoils survive
         IF rm >= 1 AND rm <= ROOM_N THEN
@@ -22,7 +25,14 @@ SUB DropEverything (rm AS INTEGER)
             IF item_secret_card THEN ROOMS(rm).drop_secret = TRUE
             IF item_esp THEN ROOMS(rm).drop_esp = TRUE
             IF item_crystal THEN ROOMS(rm).drop_crystal = TRUE
-        ELSEIF gold > 0 OR item_sword > 0 OR item_secret_card OR item_esp OR item_crystal THEN
+            IF item_armor > ROOMS(rm).drop_armor THEN ROOMS(rm).drop_armor = item_armor
+            IF item_shield > ROOMS(rm).drop_shield THEN ROOMS(rm).drop_shield = item_shield
+            IF item_bow THEN ROOMS(rm).drop_bow = TRUE
+            IF item_boots THEN ROOMS(rm).drop_boots = TRUE
+            ROOMS(rm).drop_teleport = ROOMS(rm).drop_teleport + item_teleport
+            ROOMS(rm).drop_pot_sm = ROOMS(rm).drop_pot_sm + item_potion_small
+            ROOMS(rm).drop_pot_lg = ROOMS(rm).drop_pot_lg + item_potion_large
+        ELSEIF CarryingAnything% THEN
             AddLooseDrop c.x \ CW, c.y \ CH          ' fell out on the paths -- spoils lie where you dropped
         END IF
     END IF
@@ -38,14 +48,39 @@ SUB DropEverything (rm AS INTEGER)
 END SUB
 
 
+' TRUE if the player carries anything a death could leave behind. Used to decide whether a
+' path/wander fall is worth a loose marker at all -- it must test the SAME set DropEverything
+' stashes, or a hero carrying only (say) potions and boots would lose them with no marker.
+FUNCTION CarryingAnything% ()
+    CarryingAnything% = 0
+    IF gold > 0 THEN CarryingAnything% = -1: EXIT FUNCTION
+    IF item_sword > 0 OR item_armor > 0 OR item_shield > 0 THEN CarryingAnything% = -1: EXIT FUNCTION
+    IF item_secret_card OR item_esp OR item_crystal THEN CarryingAnything% = -1: EXIT FUNCTION
+    IF item_bow OR item_boots THEN CarryingAnything% = -1: EXIT FUNCTION
+    IF item_teleport > 0 OR item_potion_small > 0 OR item_potion_large > 0 THEN CarryingAnything% = -1
+END FUNCTION
+
+
 ' Wipe every room's recoverable drop -- SOULS-LIKE mode calls this on each death,
 ' so dying again before you reclaim your last hoard loses it forever.
 SUB ClearAllDrops
     DIM r AS INTEGER
     FOR r = 1 TO ROOM_N
-        ROOMS(r).drop_gold = 0: ROOMS(r).drop_sword = 0
-        ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
+        ClearRoomDrop r
     NEXT r
+END SUB
+
+
+' Zero one room's whole drop record. Every site that used to spell the five fields out by
+' hand now calls this, so adding a carried item to the stash cannot leave a stale value
+' behind in a scratch slot that a later fight reuses.
+SUB ClearRoomDrop (r AS INTEGER)
+    IF r < 1 OR r > UBOUND(ROOMS) THEN EXIT SUB
+    ROOMS(r).drop_gold = 0: ROOMS(r).drop_sword = 0
+    ROOMS(r).drop_secret = FALSE: ROOMS(r).drop_esp = FALSE: ROOMS(r).drop_crystal = FALSE
+    ROOMS(r).drop_armor = 0: ROOMS(r).drop_shield = 0
+    ROOMS(r).drop_bow = FALSE: ROOMS(r).drop_boots = FALSE
+    ROOMS(r).drop_teleport = 0: ROOMS(r).drop_pot_sm = 0: ROOMS(r).drop_pot_lg = 0
 END SUB
 
 
@@ -74,6 +109,13 @@ SUB AddLooseDrop (cx AS INTEGER, cy AS INTEGER)
     IF item_secret_card THEN LOOSE(slot).secret = -1
     IF item_esp THEN LOOSE(slot).esp = -1
     IF item_crystal THEN LOOSE(slot).crystal = -1
+    IF item_armor > LOOSE(slot).armor THEN LOOSE(slot).armor = item_armor
+    IF item_shield > LOOSE(slot).shield THEN LOOSE(slot).shield = item_shield
+    IF item_bow THEN LOOSE(slot).bow = -1
+    IF item_boots THEN LOOSE(slot).boots = -1
+    LOOSE(slot).teleport = LOOSE(slot).teleport + item_teleport
+    LOOSE(slot).pot_sm = LOOSE(slot).pot_sm + item_potion_small
+    LOOSE(slot).pot_lg = LOOSE(slot).pot_lg + item_potion_large
 END SUB
 
 ' Index of an active loose drop on a cell (0 if none).
@@ -91,24 +133,56 @@ SUB CollectLooseAt (cx AS INTEGER, cy AS INTEGER)
     i = LooseAt%(cx, cy): IF i = 0 THEN EXIT SUB
     got = ""
     IF LOOSE(i).gold > 0 THEN gold = gold + LOOSE(i).gold: got = _TRIM$(STR$(LOOSE(i).gold)) + " gold"
-    IF LOOSE(i).sword > item_sword AND player_class <> 4 THEN item_sword = LOOSE(i).sword: got = got + "   a Magic Sword"
-    IF LOOSE(i).secret THEN item_secret_card = TRUE: got = got + "   a Secret Door Card"
-    IF LOOSE(i).esp THEN item_esp = TRUE: got = got + "   an ESP Medallion"
-    IF LOOSE(i).crystal THEN item_crystal = TRUE: got = got + "   a Crystal Ball"
-    LOOSE(i).active = 0: LOOSE(i).gold = 0: LOOSE(i).sword = 0
-    LOOSE(i).secret = 0: LOOSE(i).esp = 0: LOOSE(i).crystal = 0
+    ' The magic goes through the SAME granter the room hoard uses, so a fall in a corridor
+    ' and a fall in a room can never hand back different halves of the same kit.
+    GrantDropKit got, LOOSE(i).sword, LOOSE(i).secret, LOOSE(i).esp, LOOSE(i).crystal, LOOSE(i).armor, LOOSE(i).shield, LOOSE(i).bow, LOOSE(i).boots, LOOSE(i).teleport, LOOSE(i).pot_sm, LOOSE(i).pot_lg
+    ClearLooseSlot i
     Sfx "treasure"
     Banner "You recover the spoils from where you fell.", _TRIM$(got) + "   [ press any key ]"
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END SUB
 
+' Grant one stash's magic to the player and append what was actually taken to `got`.
+' Shared by the room hoard (CollectDrop) and the corridor fall (CollectLooseAt), so the two
+' can never hand back different halves of the same kit.
+'
+' Note the Magic Sword rule: a Wizard cannot wield one, and a WORSE blade than the one you
+' already carry is left behind -- so a sword can legitimately go unclaimed. Everything else
+' is strictly additive, which is why potions/scrolls ACCUMULATE rather than take a maximum.
+' Nested IFs on the sword, not `AND`: QB64 evaluates both sides of an AND.
+SUB GrantDropKit (got AS STRING, sword AS INTEGER, secret AS INTEGER, esp AS INTEGER, crystal AS INTEGER, armr AS INTEGER, shld AS INTEGER, bw AS INTEGER, bts AS INTEGER, tport AS INTEGER, potsm AS INTEGER, potlg AS INTEGER)
+    IF sword > item_sword THEN
+        IF player_class <> 4 THEN item_sword = sword: got = got + "   a Magic Sword +" + _TRIM$(STR$(sword))
+    END IF
+    IF secret THEN item_secret_card = TRUE: got = got + "   a Secret Door Card"
+    IF esp THEN item_esp = TRUE: got = got + "   an ESP Medallion"
+    IF crystal THEN item_crystal = TRUE: got = got + "   a Crystal Ball"
+    IF armr > item_armor THEN item_armor = armr: got = got + "   Armor +" + _TRIM$(STR$(armr)) + " AC"
+    IF shld > item_shield THEN item_shield = shld: got = got + "   a Shield +" + _TRIM$(STR$(shld)) + " AC"
+    IF bw THEN item_bow = TRUE: got = got + "   a Magic Bow"
+    IF bts THEN item_boots = TRUE: got = got + "   Elf Boots"
+    IF tport > 0 THEN item_teleport = item_teleport + tport: got = got + "   Teleport x" + _TRIM$(STR$(tport))
+    IF potsm > 0 THEN item_potion_small = item_potion_small + potsm: got = got + "   Sm Potion x" + _TRIM$(STR$(potsm))
+    IF potlg > 0 THEN item_potion_large = item_potion_large + potlg: got = got + "   Lg Potion x" + _TRIM$(STR$(potlg))
+END SUB
+
+
+' Zero one loose slot (all fields), so a reused slot can't inherit a previous fall's kit.
+SUB ClearLooseSlot (i AS INTEGER)
+    IF i < 1 OR i > UBOUND(LOOSE) THEN EXIT SUB
+    LOOSE(i).active = 0: LOOSE(i).gold = 0: LOOSE(i).sword = 0
+    LOOSE(i).secret = 0: LOOSE(i).esp = 0: LOOSE(i).crystal = 0
+    LOOSE(i).armor = 0: LOOSE(i).shield = 0: LOOSE(i).bow = 0: LOOSE(i).boots = 0
+    LOOSE(i).teleport = 0: LOOSE(i).pot_sm = 0: LOOSE(i).pot_lg = 0
+END SUB
+
+
 ' Wipe every loose drop (SOULS-LIKE death forfeits an unreclaimed fall, like ClearAllDrops).
 SUB ClearLooseDrops
     DIM i AS INTEGER
     FOR i = 1 TO UBOUND(LOOSE)
-        LOOSE(i).active = 0: LOOSE(i).gold = 0: LOOSE(i).sword = 0
-        LOOSE(i).secret = 0: LOOSE(i).esp = 0: LOOSE(i).crystal = 0
+        ClearLooseSlot i
     NEXT
 END SUB
 
@@ -142,9 +216,17 @@ SUB PauseGame
 END SUB
 
 
-' TRUE if a room holds recoverable dropped loot.
+' TRUE if a room holds recoverable dropped loot. Must test EVERY drop_* field: a hoard of
+' nothing but (say) potions and boots would otherwise be invisible to the pickup check and
+' to the board's $ marker, and would sit there forever.
 FUNCTION HasDrop% (rm AS INTEGER)
-    HasDrop = (ROOMS(rm).drop_gold > 0) OR (ROOMS(rm).drop_sword > 0) OR ROOMS(rm).drop_secret OR ROOMS(rm).drop_esp OR ROOMS(rm).drop_crystal
+    HasDrop = 0
+    IF rm < 1 OR rm > UBOUND(ROOMS) THEN EXIT FUNCTION
+    IF ROOMS(rm).drop_gold > 0 THEN HasDrop = -1: EXIT FUNCTION
+    IF ROOMS(rm).drop_sword > 0 OR ROOMS(rm).drop_armor > 0 OR ROOMS(rm).drop_shield > 0 THEN HasDrop = -1: EXIT FUNCTION
+    IF ROOMS(rm).drop_secret OR ROOMS(rm).drop_esp OR ROOMS(rm).drop_crystal THEN HasDrop = -1: EXIT FUNCTION
+    IF ROOMS(rm).drop_bow OR ROOMS(rm).drop_boots THEN HasDrop = -1: EXIT FUNCTION
+    IF ROOMS(rm).drop_teleport > 0 OR ROOMS(rm).drop_pot_sm > 0 OR ROOMS(rm).drop_pot_lg > 0 THEN HasDrop = -1
 END FUNCTION
 
 
@@ -154,12 +236,8 @@ SUB CollectDrop (rm AS INTEGER)
     IF NOT HasDrop(rm) THEN EXIT SUB
     got = ""
     IF ROOMS(rm).drop_gold > 0 THEN gold = gold + ROOMS(rm).drop_gold: got = _TRIM$(STR$(ROOMS(rm).drop_gold)) + " gold"
-    IF ROOMS(rm).drop_sword > item_sword AND player_class <> 4 THEN item_sword = ROOMS(rm).drop_sword: got = got + "   a Magic Sword"
-    IF ROOMS(rm).drop_secret THEN item_secret_card = TRUE: got = got + "   a Secret Door Card"
-    IF ROOMS(rm).drop_esp THEN item_esp = TRUE: got = got + "   an ESP Medallion"
-    IF ROOMS(rm).drop_crystal THEN item_crystal = TRUE: got = got + "   a Crystal Ball"
-    ROOMS(rm).drop_gold = 0: ROOMS(rm).drop_sword = 0
-    ROOMS(rm).drop_secret = FALSE: ROOMS(rm).drop_esp = FALSE: ROOMS(rm).drop_crystal = FALSE
+    GrantDropKit got, ROOMS(rm).drop_sword, ROOMS(rm).drop_secret, ROOMS(rm).drop_esp, ROOMS(rm).drop_crystal, ROOMS(rm).drop_armor, ROOMS(rm).drop_shield, ROOMS(rm).drop_bow, ROOMS(rm).drop_boots, ROOMS(rm).drop_teleport, ROOMS(rm).drop_pot_sm, ROOMS(rm).drop_pot_lg
+    ClearRoomDrop rm
     IF ROOMS(rm).player_died THEN RecordLootRescue _TRIM$(ROOMS(rm).monster)   ' chronicle: hoard reclaimed after a death
     Sfx "treasure"
     IF NOT ROOMS(rm).player_died THEN
@@ -280,15 +358,18 @@ SUB WanderEncounter
     m = RollDie(3)
     ROOMS(w).monster = MON_NAME(sec, m): ROOMS(w).mslot = m
     ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
+    ' Give the ambush a REAL cell and mark it seen, so DrawEntities paints its § where it
+    ' jumped you. Without this a wanderer you fled simply vanished from the board -- still
+    ' alive in its slot, still waiting, but with nothing on the map to say so.
+    ROOMS(w).cx = cx: ROOMS(w).cy = cy: ROOMS(w).seen = TRUE
     ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
-    ROOMS(w).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(w).mhp_now = ROOMS(w).mhp   ' hit-dice range, same as room monsters
-    ROOMS(w).mac = 9 + sec
+    MonsterStats sec, MK_WANDER, ROOMS(w).mhp, ROOMS(w).mac   ' same funnel as a lair monster
+    ROOMS(w).mhp_now = ROOMS(w).mhp
     t = RollDie(3)
     ' wanderers carry only scraps -- you can't farm them for a quick win (WANDER_GOLD_DIV keeps it lean)
     ROOMS(w).treasure_name = TRE_NAME(sec, t): ROOMS(w).treasure = TRE_GOLD(sec, t) \ WANDER_GOLD_DIV
     ROOMS(w).treasure_item = 0
-    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
-    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    ClearRoomDrop w                                      ' scratch slot: no inherited stash
     c.prev_x = c.x: c.prev_y = c.y                ' fleeing a wanderer just leaves you put
     Sfx "trap"
     DIM wm AS STRING: wm = _TRIM$(ROOMS(w).monster)
@@ -312,6 +393,14 @@ SUB ChamberEncounter (cid AS INTEGER)
     IF CHAMBERAT(START_CX, START_CY) = cid THEN EXIT SUB   ' the Main Gallery / entrance never spawns
     IF CHM_DEAD(cid) >= 3 THEN EXIT SUB                    ' three graves already -- the chamber is cleared
     sec = CHM_SEC(cid): IF sec < 1 THEN sec = 1
+
+    ' ARRIVAL FIRST, always. The hall's description + narration used to be an ELSE branch of
+    ' the encounter below, so it only played when that entry happened to roll a plain gauntlet
+    ' fight -- a first entry that rolled a shrine / hazard / boon / lord EXITed before ever
+    ' reaching it, and you met the Torture Chamber with no idea you had arrived. It also rode
+    ' on CHM_DEAD = 0, so a hall you fled and came back to introduced itself twice. Own flag,
+    ' own moment, before anything else can return.
+    ChamberArrival cid
 
     ' What happens on THIS entry? A non-combat event fires instead of a fight, at most once
     ' per chamber per run -- the chamber still needs its three kills to clear, so a special
@@ -344,14 +433,19 @@ SUB ChamberEncounter (cid AS INTEGER)
     m = RollDie(3): mon = _TRIM$(MON_NAME(sec, m))
     ROOMS(w).sec = sec: ROOMS(w).monster = mon: ROOMS(w).mslot = m
     ROOMS(w).malive = TRUE: ROOMS(w).is_boss = isLord      ' a LORD event flags the guardian as a boss
+    ROOMS(w).cx = c.x \ CW: ROOMS(w).cy = c.y \ CH: ROOMS(w).seen = TRUE   ' a real cell, so DrawEntities can paint it
     ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
-    ROOMS(w).mhp = sec * 4 + RollDie(sec * 2 + 4): ROOMS(w).mhp_now = ROOMS(w).mhp
-    IF isLord THEN ROOMS(w).mhp = ROOMS(w).mhp * 3 \ 2: ROOMS(w).mhp_now = ROOMS(w).mhp   ' +50% HP
-    ROOMS(w).mac = 9 + sec
-    IF isLord THEN ROOMS(w).mac = ROOMS(w).mac + 1
+    ' A LORD is a mini-boss, not a second boss: MonsterStats applies LORD_HP_PCT / LORD_AC_BONUS
+    ' and the AC cap, so the three separate multipliers that used to stack here (+50% HP, +1 AC,
+    ' and is_boss quietly adding +2 to-hit in DoCombatDnD) can no longer compound unwatched.
+    IF isLord THEN
+        MonsterStats sec, MK_LORD, ROOMS(w).mhp, ROOMS(w).mac
+    ELSE
+        MonsterStats sec, MK_ROOM, ROOMS(w).mhp, ROOMS(w).mac
+    END IF
+    ROOMS(w).mhp_now = ROOMS(w).mhp
     ROOMS(w).treasure = 0: ROOMS(w).treasure_item = 0: ROOMS(w).treasure_name = ""
-    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
-    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    ClearRoomDrop w                                      ' scratch slot: no inherited stash
     ROOMS(w).is_chamber = TRUE                             ' tells ClaimTreasure to grant no treasure
     Sfx "trap"
     DIM cname AS STRING, cdesc AS STRING
@@ -360,10 +454,8 @@ SUB ChamberEncounter (cid AS INTEGER)
         Sfx "alarm"
         Banner "THE LORD OF THE " + UCASE$(cname) + " RISES!", MonVerb$(mon, "A great " + mon + " claims this hall", "Great " + mon + " claim this hall") + " -- stronger than its kin.   [ press any key ]"
         WaitKey
-    ELSEIF CHM_DEAD(cid) = 0 THEN                          ' first time in: describe + narrate the hall
-        cdesc = ChamberDesc$(cname): IF LEN(cdesc) = 0 THEN cdesc = "You enter the " + cname + "."
-        Narrate "chamber." + NarrSlug$(cname)             ' spoken chamber description (if a pack has it)
-        Banner cdesc, MonVerb$(mon, "A " + mon + " stalks here", mon + " stalk here") + " -- three guard this hall, and no treasure.   [ press any key ]"
+    ELSEIF CHM_DEAD(cid) = 0 THEN                          ' no graves yet -- the first guardian
+        Banner MonVerb$(mon, "A " + mon + " stalks the " + cname, mon + " stalk the " + cname) + "!", "Three guard this hall, and it holds no treasure.   [ press any key ]"
         WaitKey
     ELSE
         Banner MonVerb$(mon, "Another " + mon + " stalks", "More " + mon + " stalk") + " the " + cname + "!", "Chamber monster " + _TRIM$(STR$(CHM_DEAD(cid) + 1)) + " of 3.   [ press any key ]"
@@ -447,6 +539,28 @@ FUNCTION BreakDoorAttempt% (idx AS INTEGER)
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: _DISPLAY
 END FUNCTION
+
+' The ONE-TIME arrival at a named hall: its establishing shot, its description typed out, and
+' its narration if the pack has one -- the same treatment RoomFlavor gives a named ROOM, which
+' chambers never got. Fires before any encounter or event, exactly once per hall per run.
+'
+' The art and the narration key both come from the hall's NAME, so a chamber whose name matches
+' a named room (they all do -- ARMORY, THE CRYPT, ...) reuses that room's establishing shot;
+' ChamberDesc$ reads assets/flavor/<pack>/chambers.txt and falls back to a generic line, so a
+' hall is never silent.
+SUB ChamberArrival (cid AS INTEGER)
+    DIM cname AS STRING, cdesc AS STRING
+    IF cid < 1 OR cid > MAXCHAMBER THEN EXIT SUB
+    IF CHM_SEEN(cid) THEN EXIT SUB
+    CHM_SEEN(cid) = TRUE
+    cname = _TRIM$(CHM_NAME(cid))
+    cdesc = ChamberDesc$(cname)
+    IF LEN(cdesc) = 0 THEN cdesc = "You step into the " + cname + " -- three guard this hall, and it holds no treasure."
+    Sfx "key"                                          ' the same chime a named room's crawl opens on
+    ScrollTextArtKey cname, cdesc, SpecialSprite$(cname), "chamber." + NarrSlug$(cname)
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
 
 ' --- CHAMBER EVENTS (assets/data/<pack>/chamber-events.txt) --------------------
 ' Which event fires on this entry? A weighted, depth-gated draw over the loaded table

@@ -31,23 +31,76 @@ FUNCTION SaveThrow% (abmod AS INTEGER, what AS STRING)
 END FUNCTION
 
 
-' One turn's worth of status ticks (called after each step). Poison + fire each
-' cost 1 HP and count down; the siren winds down. DoT is capped non-fatal (a trap
-' can leave you at 1 HP but not kill you outright).
+' One turn's worth of status ticks (called after each step). Poison + fire each cost 1 HP
+' and count down; the siren winds down.
+'
+' DoT IS LETHAL. This used to floor at 1 HP "so a trap can't kill you outright", which meant
+' a hero could walk the whole dungeon at 1 HP with a lethal dose in them and never be in any
+' danger from it -- poison was a gold cost, not a threat. Now a tick that reaches 0 downs you
+' through DoTDeath, which runs the ordinary death path.
+'
+' `snap` is the pre-tick screen state: the near-death blood/vignette and the green poison
+' overlay only refresh on a board repaint, so ending the last poison turn (or crossing into
+' the wounded band) left the previous frame's overlays frozen on screen -- which read as the
+' blood being "removed" when the poison lifted. Repaint whenever either changes.
 SUB TickStatus
+    DIM snap AS INTEGER, dead AS INTEGER
+    snap = StatusFxKey%
     IF poison_turns > 0 THEN
-        player_hp = player_hp - 1: IF player_hp < 1 THEN player_hp = 1
+        player_hp = player_hp - 1
         poison_turns = poison_turns - 1
         Sfx "poison-proc"
         IF opt_juice THEN ImpactFX 5, 1          ' a green poison pulse courses through you
+        IF player_hp <= 0 THEN DoTDeath "poison": dead = -1
     END IF
-    IF fire_turns > 0 THEN
-        player_hp = player_hp - 1: IF player_hp < 1 THEN player_hp = 1
-        fire_turns = fire_turns - 1
-        Sfx "frost-proc"                          ' lingering elemental bite (frost/fire DoT)
-        IF opt_juice THEN ImpactFX 6, 2          ' an orange sear of lingering flame
+    IF dead = 0 THEN
+        IF fire_turns > 0 THEN
+            player_hp = player_hp - 1
+            fire_turns = fire_turns - 1
+            Sfx "frost-proc"                      ' lingering elemental bite (frost/fire DoT)
+            IF opt_juice THEN ImpactFX 6, 2      ' an orange sear of lingering flame
+            IF player_hp <= 0 THEN DoTDeath "lingering flame": dead = -1
+        END IF
     END IF
     IF siren_turns > 0 THEN siren_turns = siren_turns - 1
+    IF dead = 0 THEN                              ' a death already repainted the board itself
+        IF StatusFxKey% <> snap THEN cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    END IF
+END SUB
+
+
+' A compact fingerprint of everything the persistent screen overlays are drawn FROM: the
+' poison intensity band and the near-death wound band. When this changes, the board must be
+' repainted or DrawWounds/DrawPoison keep showing the previous turn's overlays.
+FUNCTION StatusFxKey% ()
+    DIM hpband AS INTEGER
+    hpband = 0
+    IF player_maxhp > 0 THEN hpband = INT((player_hp * 20) / player_maxhp)
+    StatusFxKey% = hpband * 100 + poison_turns
+END FUNCTION
+
+
+' Downed by a damage-over-time tick rather than a blow. Uses a scratch ROOMS() slot (like a
+' wanderer) so the spoils land as a LOOSE drop on the exact cell you collapsed on, then hands
+' off to the ordinary after-death transition -- one death path, so the loot / lives / forfeit
+' rules can never diverge between "a monster killed me" and "the poison did".
+SUB DoTDeath (what AS STRING)
+    DIM rm AS INTEGER, lost AS LONG
+    player_hp = 0
+    lost = gold
+    rm = ROOM_N + 3: IF rm > UBOUND(ROOMS) THEN rm = UBOUND(ROOMS)   ' no room owns a death in the corridors
+    IF cur_player >= 1 AND cur_player <= 4 THEN deaths(cur_player) = deaths(cur_player) + 1
+    Sfx "death"
+    NarrateT "combat.downed", NARR_COMBAT
+    DropEverything rm
+    Sfx "lose"
+    IF opt_lootrecovery >= 1 THEN
+        Banner "The " + what + " runs its course -- and you with it.", "Your spoils (" + _TRIM$(STR$(lost)) + " gold + magic) lie where you fell.   [ press any key ]"
+    ELSE
+        Banner "The " + what + " runs its course -- and you with it.", "You lose your treasure (" + _TRIM$(STR$(lost)) + " gold) and all magic.   [ press any key ]"
+    END IF
+    WaitKey
+    ReviveOrForfeit rm
 END SUB
 
 
@@ -346,6 +399,7 @@ SUB CurioObelisk (sec AS INTEGER)
         Sfx "key"
         Banner "Reality folds -- the stone hurls you across the dark!", "You reappear at the entrance.   [ press any key ]": WaitKey
         c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+        start_heal_locked = TRUE                       ' hurled home, not rested -- no entrance heal
         loiter = 0: StartTurnMove
     ELSEIF r <= 85 THEN
         Banner "The runes dim. Its power was spent an age ago.", "[ press any key ]": WaitKey
@@ -378,13 +432,13 @@ SUB CurioMimic (sec AS INTEGER)
     ROOMS(w).sec = sec
     ROOMS(w).monster = "MIMIC": ROOMS(w).mslot = 2       ' borrows a mid monster's 2d6 kill number
     ROOMS(w).malive = TRUE: ROOMS(w).is_boss = FALSE
+    ROOMS(w).cx = c.x \ CW: ROOMS(w).cy = c.y \ CH: ROOMS(w).seen = TRUE   ' a real cell, so DrawEntities can paint it
     ROOMS(w).monster_fought = FALSE: ROOMS(w).player_died = FALSE: ROOMS(w).looted = FALSE
-    ROOMS(w).mhp = sec * 5 + RollDie(6) + 6: ROOMS(w).mhp_now = ROOMS(w).mhp   ' a beefy ambusher
-    ROOMS(w).mac = 11 + sec
+    MonsterStats sec, MK_MIMIC, ROOMS(w).mhp, ROOMS(w).mac   ' a beefy ambusher, on the shared curve
+    ROOMS(w).mhp_now = ROOMS(w).mhp
     ROOMS(w).treasure_name = "the mimic's hoard": ROOMS(w).treasure = (INT(RND * 4) + 3) * 100 * sec
     ROOMS(w).treasure_item = 0
-    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
-    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    ClearRoomDrop w                                      ' scratch slot: no inherited stash
     c.prev_x = c.x: c.prev_y = c.y                       ' no safe step-back from an ambush
     Sfx "bump"
     Banner "The lid gapes wide -- rows of teeth! It's a MIMIC!", "The chest was alive all along -- it lunges!   [ press any key ]": WaitKey

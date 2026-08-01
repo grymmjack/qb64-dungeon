@@ -675,6 +675,42 @@ END FUNCTION
 
 
 
+' Is EVERY pixel of cell (cx,cy) the given colour -- or that colour plus a door colour?
+' Reads the current _SOURCE directly (no scratch image), so a caller sweeping the whole board
+' does not allocate 6600 images.
+'
+' This is the same question InRoomNow asks about the cursor's cell, expressed for an arbitrary
+' cell. It exists because ROOM DETECTION samples one pixel (the cell centre) while MOVEMENT
+' tests the whole cell, and the board art's half-block glyphs (0xDF/0xDC/0xDD/0xDE) paint only
+' half a cell -- so the two tests disagree, and a room can contain cells nothing can stand on.
+' `dungeon.run roomlint` uses this to count them.
+FUNCTION CellIsUniform% (cx AS INTEGER, cy AS INTEGER, kolor AS _UNSIGNED LONG)
+    DIM px AS INTEGER, py AS INTEGER, col AS _UNSIGNED LONG
+    DIM sawcol AS INTEGER, sawbrown AS INTEGER, sawblue AS INTEGER, other AS INTEGER
+    CellIsUniform% = 0
+    IF kolor = 0 THEN EXIT FUNCTION
+    IF cx < 0 OR cy < 0 OR cx > SW - 1 OR cy > SH - 1 THEN EXIT FUNCTION
+    FOR py = 0 TO CH - 1
+        FOR px = 0 TO CW - 1
+            col = POINT(cx * CW + px, cy * CH + py)
+            IF col = kolor THEN
+                sawcol = -1
+            ELSEIF col = BROWN THEN
+                sawbrown = -1
+            ELSEIF col = BRIGHT_BLUE THEN
+                sawblue = -1
+            ELSE
+                other = -1
+            END IF
+        NEXT px
+    NEXT py
+    IF other THEN EXIT FUNCTION                     ' any third colour: not a room cell at all
+    IF NOT sawcol THEN EXIT FUNCTION                ' pure door / pure secret door: not room floor
+    IF sawbrown AND sawblue THEN EXIT FUNCTION      ' floor + BOTH door kinds is not a shape movement accepts
+    CellIsUniform% = -1
+END FUNCTION
+
+
 FUNCTION image_is_monochromatic% (img AS LONG, kolor AS _UNSIGNED LONG)
     DIM AS INTEGER x, y, has_kolor
     DIM check_color AS _UNSIGNED LONG

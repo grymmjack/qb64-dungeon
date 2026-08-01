@@ -351,6 +351,42 @@ END FUNCTION
 ' The values are REPRESENTATIVE, not a real encounter -- deliberately picked to exercise every
 ' visual branch at once: a full-health foe, a wounded one (yellow), a nearly-dead one (red),
 ' and a corpse (dimmed), with the third selected as the target.
+' `dungeon.run charsheet` -- render the [C] CHARACTER sheet with a MAXED-OUT hero and write
+' charsheet.png, then exit. The sheet's layout only breaks when it is FULL: every line used to
+' be centred on the whole 132-column screen rather than the panel, which is invisible with a
+' short name and no items and runs off both panel edges (and straight across the class
+' portrait) once the hero is carrying everything. A shot at default state proves nothing, so
+' this deliberately seeds the worst case: long name, every item, a big treasure log.
+SUB DumpCharSheet
+    DIM i AS INTEGER, n AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15charsheet|07 -- seeding a fully-kitted hero (worst case for the layout)")
+    DevPackOverride
+    player_name = "Higgs the Unluckiest of All"
+    player_class = 1: class_name = _TRIM$(CLASSES(1).name)
+    char_level = 5: char_xp = 1150
+    player_str = 18: player_int = 6: player_wis = 6: player_dex = 18: player_con = 18: player_cha = 6
+    player_hp = 68: player_maxhp = 74
+    player_tohit = 6: player_ac = 19: player_dmgdie = 8: player_dmgbonus = 4
+    gold = 97275: target_gold = 10000: has_key = 0: key_level = 6
+    ' every item at once -- the MAGIC: line is the one that overflowed
+    item_sword = 1: item_armor = 3: item_shield = 2: item_bow = -1: item_boots = -1
+    item_teleport = 1: item_potion_small = 6: item_potion_large = 2
+    item_secret_card = -1: item_esp = -1: item_crystal = -1
+    spell_fire = 3: spell_bolt = 3
+    cur_player = 1: LOOT_N(1) = 0
+    FOR i = 1 TO 50                                   ' a long treasure log, to check the two columns
+        n = LOOT_N(1) + 1: LOOT_N(1) = n
+        LOOT_NAME(1, n) = MID$("SACK OF GOLD      SILVER CUP        GOLD CUP          SILVER COFFER     HUGE EMERALD      ", ((i MOD 5) * 18) + 1, 18)
+        LOOT_GOLD(1, n) = 1000 * ((i MOD 5) + 1)
+    NEXT i
+    ShowCharSheetPaint                                 ' paint only -- no WaitKey, no board repaint
+    _SAVEIMAGE "charsheet.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  wrote |10charsheet.png|07")
+END SUB
+
+
 SUB DumpFightShot
     DIM a AS INTEGER, lvl AS INTEGER, nm AS STRING, i AS INTEGER
     DIM hp(1 TO 4) AS INTEGER, mx(1 TO 4) AS INTEGER

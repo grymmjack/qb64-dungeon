@@ -19,6 +19,81 @@
 '  zero-weight entry that can never be drawn, and a 100% chance that starves gold.
 ' ============================================================================
 
+' ============================================================================
+'  `dungeon.run roomlint` -- is every detected room actually PLAYABLE?
+'
+'  WHY THIS EXISTS. DetectRooms decides a cell is room floor by sampling ONE pixel, the
+'  cell's centre. Movement (InRoomNow / CanMove) demands the WHOLE cell be the floor colour
+'  (image_is_monochromatic, or the floor plus a door colour). Those two tests disagree on any
+'  cell drawn with a HALF-BLOCK glyph -- and the board art is full of them: 432 upper-halves
+'  (0xDF), 410 lower-halves (0xDC), 91 left (0xDD), 42 right (0xDE).
+'
+'  A lower/right half PAINTS the half the centre pixel lands in, so detection calls it floor
+'  while movement refuses it. Three symptoms, all of which look like separate bugs:
+'
+'    * ROOMS().cells counts cells you cannot stand on, so a room can clear the MIN_ROOM size
+'      gate on phantom cells and be effectively 1-2 tiles of real floor.
+'    * FloodRoom snaps the monster/grave marker to "the closest enqueued cell", believing
+'      every enqueued cell is walkable. If it lands on a phantom cell the monster sits where
+'      the player can never step -- no encounter, and no headstone once it is somehow cleared.
+'    * Two visually separate blocks joined only by a phantom half-block bridge flood-fill into
+'      ONE room, so they share a single monster and a single grave.
+'
+'  Read-only, and NOT part of the test gate: fixing it means changing what DetectRooms counts,
+'  which changes board generation for every run. This just makes the damage countable first.
+' ============================================================================
+SUB RoomLint
+    DIM r AS INTEGER, cx AS INTEGER, cy AS INTEGER, oldsrc AS LONG
+    DIM walk AS INTEGER, phantom AS INTEGER, tot_ph AS LONG, tot_wk AS LONG
+    DIM badmark AS INTEGER, tiny AS INTEGER, nomon AS INTEGER, col AS _UNSIGNED LONG
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15roomlint|07 -- detected rooms vs cells the player can actually stand on")
+    PRINT
+    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    PRINT PipeCol$("  |08room  lvl  cells  walkable  phantom  marker")
+    FOR r = 1 TO ROOM_N
+        walk = 0: phantom = 0
+        col = 0
+        IF ROOMS(r).sec >= 1 THEN col = SECTORS(ROOMS(r).sec).kolor
+        FOR cy = 0 TO SH - 1
+            FOR cx = 0 TO SW - 1
+                IF ROOMAT(cx, cy) = r THEN
+                    IF CellIsUniform%(cx, cy, col) THEN walk = walk + 1 ELSE phantom = phantom + 1
+                END IF
+            NEXT cx
+        NEXT cy
+        tot_wk = tot_wk + walk: tot_ph = tot_ph + phantom
+        DIM mk AS STRING
+        IF CellIsUniform%(ROOMS(r).cx, ROOMS(r).cy, col) THEN
+            mk = "|10ok|07"
+        ELSE
+            mk = "|12UNREACHABLE|07": badmark = badmark + 1
+        END IF
+        IF walk = 0 THEN tiny = tiny + 1
+        IF phantom > 0 THEN
+            PRINT PipeCol$("  " + PadR$(_TRIM$(STR$(r)), 6) + PadR$(_TRIM$(STR$(ROOMS(r).sec)), 5) + PadR$(_TRIM$(STR$(ROOMS(r).cells)), 7) + PadR$(_TRIM$(STR$(walk)), 10) + PadR$(_TRIM$(STR$(phantom)), 9) + mk)
+        END IF
+        IF LEN(_TRIM$(ROOMS(r).monster)) = 0 THEN nomon = nomon + 1
+    NEXT r
+    _SOURCE oldsrc
+    PRINT
+    PRINT PipeCol$("  rooms detected: |11" + _TRIM$(STR$(ROOM_N)) + "|07   (only rooms WITH phantom cells are listed above)")
+    PRINT PipeCol$("  cells: |10" + _TRIM$(STR$(tot_wk)) + " walkable|07 / |14" + _TRIM$(STR$(tot_ph)) + " phantom|07 (counted into a room, refused by CanMove)")
+    PRINT PipeCol$("  rooms holding NO monster (the start room + blocks under MIN_ROOM): |11" + _TRIM$(STR$(nomon)) + "|07")
+    IF badmark > 0 THEN
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(badmark)) + " room(s) sit their monster/grave marker on a cell the player CANNOT reach|07")
+        PRINT PipeCol$("  |08  -> that room never fires an encounter and never shows a headstone")
+    ELSE
+        PRINT PipeCol$("  |10every room's marker cell is reachable|07")
+    END IF
+    IF tiny > 0 THEN PRINT PipeCol$("  |12" + _TRIM$(STR$(tiny)) + " room(s) have ZERO walkable cells -- pure phantom rooms|07")
+    PRINT
+    PRINT PipeCol$("  |08The art is the map: half-block glyphs (0xDF/0xDC/0xDD/0xDE) make a cell TWO colours,")
+    PRINT PipeCol$("  |08which the one-pixel detection sample cannot see but the whole-cell movement test can.")
+    SYSTEM 0
+END SUB
+
+
 SUB DataLint
     DIM lvl AS INTEGER, slot AS INTEGER, nitem AS INTEGER, errs AS INTEGER, warns AS INTEGER
     DIM i AS INTEGER, nm AS STRING, code AS INTEGER, goldslots AS INTEGER
@@ -234,9 +309,44 @@ SUB EconDump
     EconTarget "SUPERHERO", 20000, hitSuper
     EconTarget "WIZARD", 30000, hitWiz
     PRINT
+    MonsterCurveDump
+    PRINT
     PRINT PipeCol$("  |08Tune with tuning.txt ITEM_PCT_<n> (how often items drop) and treasures.txt")
-    PRINT PipeCol$("  |08(gold values). Re-run this after any change -- no playthrough needed.")
+    PRINT PipeCol$("  |08(gold values), and the MON_/BOSS_/LORD_ rows for the monster curve.")
+    PRINT PipeCol$("  |08Re-run this after any change -- no playthrough needed.")
     SYSTEM 0
+END SUB
+
+
+' The MONSTER CURVE, per depth and per spawn kind, straight out of MonsterStats/MonsterToHit%.
+' A difficulty complaint is almost never about one monster -- it is about a stat that compounded
+' across several multipliers -- and this is the only way to SEE that without a playthrough. HP is
+' printed as its real min..max range rather than an average, because the range is what a player
+' actually meets; the caps are flagged wherever they bite.
+SUB MonsterCurveDump
+    DIM lv AS INTEGER, hp AS INTEGER, ac AS INTEGER, sides AS INTEGER
+    DIM lo AS INTEGER, hi AS INTEGER, s AS STRING
+    PRINT PipeCol$("|15monster curve|07 -- HP range / AC / to-hit by depth (tuning.txt MON_*, BOSS_*, LORD_*)")
+    PRINT
+    PRINT PipeCol$("  |08lvl   room HP      AC  hit    LORD HP      AC  hit    boss HP      AC  hit")
+    FOR lv = 1 TO 9
+        sides = MON_HP_DIE_BASE + lv * MON_HP_DIE_STEP: IF sides < 1 THEN sides = 1
+        lo = lv * MON_HP_PER_LVL + 1: hi = lv * MON_HP_PER_LVL + sides
+        ac = MON_AC_BASE + lv: IF ac > MON_AC_MAX THEN ac = MON_AC_MAX
+        s = "  " + PadR$(_TRIM$(STR$(lv)), 6) + PadR$(_TRIM$(STR$(lo)) + "-" + _TRIM$(STR$(hi)), 13)
+        s = s + PadR$(_TRIM$(STR$(ac)), 4) + PadR$(ModStr$(MonsterToHit%(lv, MK_ROOM)), 7)
+        ' the chamber LORD -- the compound case that produced a 70 HP / AC 18 / +10 guardian
+        hp = lo * LORD_HP_PCT \ 100: ac = MON_AC_BASE + lv + LORD_AC_BONUS
+        IF ac > MON_AC_MAX THEN ac = MON_AC_MAX
+        s = s + PadR$(_TRIM$(STR$(hp)) + "-" + _TRIM$(STR$(hi * LORD_HP_PCT \ 100)), 13)
+        s = s + PadR$(_TRIM$(STR$(ac)), 4) + PadR$(ModStr$(MonsterToHit%(lv, MK_LORD)), 7)
+        s = s + PadR$(_TRIM$(STR$(BOSS_HP_BASE + lv * BOSS_HP_PER_LVL + 1)) + "-" + _TRIM$(STR$(BOSS_HP_BASE + lv * BOSS_HP_PER_LVL + 10)), 13)
+        s = s + PadR$(_TRIM$(STR$(BOSS_AC)), 4) + ModStr$(MonsterToHit%(lv, MK_BOSS))
+        PRINT s
+    NEXT lv
+    PRINT
+    PRINT PipeCol$("  |08caps: MON_AC_MAX " + _TRIM$(STR$(MON_AC_MAX)) + " (the boss's own BOSS_AC is exempt -- it IS the wall), MON_TOHIT_MAX " + _TRIM$(STR$(MON_TOHIT_MAX)) + " (applies to all)")
+    PRINT PipeCol$("  |08a hero's AC/to-hit come from classes.txt + ability mods; compare the two before tuning")
 END SUB
 
 ' One win-pacing line. depth 0 = the whole board cannot fund that target.

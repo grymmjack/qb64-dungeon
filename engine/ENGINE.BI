@@ -376,6 +376,16 @@ DIM SHARED UIF_LABEL AS LONG, UIF_MSG AS LONG, UIF_COMBAT AS LONG, UIF_MENU AS L
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER   ' 1-based index into dicesets.txt
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)
 DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled
+
+' --- WINDOW RESIZE (see DisplayTick in engine/UI.bas) -------------------------
+' The screen IS the canvas (SCREEN CANVAS) and $RESIZE:STRETCH scales it, but _DISPLAY is
+' MANUAL here -- so after the window manager resizes us, whatever was last presented is what
+' stays on screen, and any region that is not redrawn reads as missing UI. DisplayTick
+' consumes the _RESIZE event, waits for the drag to SETTLE (a maximize or a drag fires a
+' burst of them), then re-asserts the display mode and raises display_dirty.
+DIM SHARED rsz_settle AS INTEGER      ' frames left before a resize counts as finished
+DIM SHARED rsz_w AS LONG, rsz_h AS LONG   ' last requested window size (diagnostics)
+DIM SHARED display_dirty AS INTEGER   ' a settled resize wants a FULL repaint; loops consume it
 DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key
 DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 ' --- active-character stat scaffolding (generic RPG stats; JUICE reads player_hp) ---

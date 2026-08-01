@@ -34,7 +34,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN SAVE_FILE FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 7"
+    PRINT #f, "DUNGEONSAVE 8"
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -73,12 +73,16 @@ SUB SaveGame
     ' per-room mutable state
     PRINT #f, "ROOMS "; ROOM_N
     FOR i = 1 TO ROOM_N
-        PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal; ROOMS(i).mhp
+        ' v8 appends the REST of the dropped kit (armour/shield/bow/boots/scrolls/potions);
+        ' before that a death destroyed them outright so there was nothing to store.
+        PRINT #f, ROOMS(i).malive; ROOMS(i).mhp_now; ROOMS(i).looted; ROOMS(i).monster_fought; ROOMS(i).player_died; ROOMS(i).seen; ROOMS(i).drop_gold; ROOMS(i).drop_sword; ROOMS(i).drop_secret; ROOMS(i).drop_esp; ROOMS(i).drop_crystal; ROOMS(i).mhp;
+        PRINT #f, ROOMS(i).drop_armor; ROOMS(i).drop_shield; ROOMS(i).drop_bow; ROOMS(i).drop_boots; ROOMS(i).drop_teleport; ROOMS(i).drop_pot_sm; ROOMS(i).drop_pot_lg
     NEXT i
     ' loose drops -- spoils left where a fall happened on the open paths
     PRINT #f, "LOOSE "; UBOUND(LOOSE)
     FOR i = 1 TO UBOUND(LOOSE)
-        PRINT #f, LOOSE(i).active; LOOSE(i).cx; LOOSE(i).cy; LOOSE(i).gold; LOOSE(i).sword; LOOSE(i).secret; LOOSE(i).esp; LOOSE(i).crystal
+        PRINT #f, LOOSE(i).active; LOOSE(i).cx; LOOSE(i).cy; LOOSE(i).gold; LOOSE(i).sword; LOOSE(i).secret; LOOSE(i).esp; LOOSE(i).crystal;
+        PRINT #f, LOOSE(i).armor; LOOSE(i).shield; LOOSE(i).bow; LOOSE(i).boots; LOOSE(i).teleport; LOOSE(i).pot_sm; LOOSE(i).pot_lg
     NEXT i
     ' CHAMBER progress (v7). CHM_DEAD was never saved at all, so loading a game reset every
     ' named hall to zero graves and you had to re-fight all three guardians -- and the
@@ -86,7 +90,7 @@ SUB SaveGame
     ' chamber's one special event cannot be re-farmed across a save/load either.
     PRINT #f, "CHM "; NCHAMBER
     FOR i = 1 TO NCHAMBER
-        PRINT #f, CHM_DEAD(i); CHM_EVDONE(i);
+        PRINT #f, CHM_DEAD(i); CHM_EVDONE(i); CHM_SEEN(i);      ' v8 adds CHM_SEEN (arrival crawl already played)
     NEXT i
     PRINT #f, ""
 
@@ -205,6 +209,13 @@ SUB LoadGameApply
         ' v3+: mhp is STORED, not reproduced -- RandomizeRooms' RNG can shift between builds,
         ' which desynced the re-rolled mhp from the saved mhp_now (monsters showing 20/15 etc.)
         IF sver >= 3 THEN ROOMS(i).mhp = NextL
+        ' v8+: the rest of the dropped kit. A v7 file simply has none of it, and the fields are
+        ' already zero -- so an older save loads with a gold-and-cards hoard, exactly what it stored.
+        IF sver >= 8 THEN
+            ROOMS(i).drop_armor = NextI: ROOMS(i).drop_shield = NextI
+            ROOMS(i).drop_bow = NextI: ROOMS(i).drop_boots = NextI
+            ROOMS(i).drop_teleport = NextI: ROOMS(i).drop_pot_sm = NextI: ROOMS(i).drop_pot_lg = NextI
+        END IF
     NEXT i
     ' Safety net for older saves (and any residual desync): a monster can never have more
     ' current HP than its maximum -- clamp so the panel can't read "20/15".
@@ -223,6 +234,10 @@ SUB LoadGameApply
             FOR i = 1 TO rn
                 LOOSE(i).active = NextI: LOOSE(i).cx = NextI: LOOSE(i).cy = NextI: LOOSE(i).gold = NextL
                 LOOSE(i).sword = NextI: LOOSE(i).secret = NextI: LOOSE(i).esp = NextI: LOOSE(i).crystal = NextI
+                IF sver >= 8 THEN                          ' v8: the rest of the fallen kit
+                    LOOSE(i).armor = NextI: LOOSE(i).shield = NextI: LOOSE(i).bow = NextI: LOOSE(i).boots = NextI
+                    LOOSE(i).teleport = NextI: LOOSE(i).pot_sm = NextI: LOOSE(i).pot_lg = NextI
+                END IF
             NEXT i
         END IF
     END IF
@@ -236,6 +251,14 @@ SUB LoadGameApply
             IF rn > MAXCHAMBER THEN rn = MAXCHAMBER
             FOR i = 1 TO rn
                 CHM_DEAD(i) = NextI: CHM_EVDONE(i) = NextI
+                ' v8: whether the hall's arrival crawl has played. A v7 file has no such token,
+                ' so seed it from CHM_DEAD -- a hall with graves has obviously been entered, and
+                ' one without has not, which is the best reconstruction the older format allows.
+                IF sver >= 8 THEN
+                    CHM_SEEN(i) = NextI
+                ELSE
+                    CHM_SEEN(i) = (CHM_DEAD(i) > 0)
+                END IF
             NEXT i
         END IF
     END IF
@@ -342,7 +365,7 @@ SUB SaveRoundTripTest
     DIM wpot(1 TO 4) AS INTEGER, wfire(1 TO 4) AS INTEGER, wxp(1 TO 4) AS LONG
     DIM wpois(1 TO 4) AS INTEGER, wtel(1 TO 4) AS INTEGER
     _DEST _CONSOLE
-    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v7)"
+    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v8)"
 
     realpath = SAVE_FILE
     SAVE_FILE = "tests/tmp/savetest.dat"          ' never touch the player's real slot
@@ -425,14 +448,33 @@ SUB SaveRoundTripTest
         PLAYERS(i).armor = i: PLAYERS(i).shield = 1: PLAYERS(i).bow = -1
         PLAYERS(i).boots = 0: PLAYERS(i).teleport = wtel(i)
     NEXT i
-    ' chamber progress (v7) -- CHM_DEAD used to be dropped entirely on save
-    DIM wdead(1 TO 4) AS INTEGER, wev(1 TO 4) AS INTEGER
+    ' chamber progress (v7) -- CHM_DEAD used to be dropped entirely on save.
+    ' v8 adds CHM_SEEN (the one-time arrival crawl), which must survive too or every hall
+    ' re-introduces itself after a Continue.
+    DIM wdead(1 TO 4) AS INTEGER, wev(1 TO 4) AS INTEGER, wseen(1 TO 4) AS INTEGER
     FOR i = 1 TO 4
         IF i <= NCHAMBER THEN
-            wdead(i) = i MOD 4: wev(i) = -(i MOD 2)
-            CHM_DEAD(i) = wdead(i): CHM_EVDONE(i) = wev(i)
+            wdead(i) = i MOD 4: wev(i) = -(i MOD 2): wseen(i) = -((i + 1) MOD 2)
+            CHM_DEAD(i) = wdead(i): CHM_EVDONE(i) = wev(i): CHM_SEEN(i) = wseen(i)
         END IF
     NEXT i
+
+    ' v8 DROPPED KIT. The bug this guards: a death used to stash only gold + sword/secret/
+    ' esp/crystal while clearing the WHOLE inventory, so armour, shield, bow, boots, teleport
+    ' scrolls and potions were destroyed and the hoard you walked back for was a fraction of
+    ' what you lost. Seed a room hoard AND a corridor fall with a full kit and prove both
+    ' survive the round-trip -- a positional stream drops silently when a field is forgotten.
+    IF ROOM_N >= 1 THEN
+        ROOMS(1).drop_gold = 4321: ROOMS(1).drop_sword = 2
+        ROOMS(1).drop_secret = -1: ROOMS(1).drop_esp = 0: ROOMS(1).drop_crystal = -1
+        ROOMS(1).drop_armor = 3: ROOMS(1).drop_shield = 2
+        ROOMS(1).drop_bow = -1: ROOMS(1).drop_boots = -1
+        ROOMS(1).drop_teleport = 4: ROOMS(1).drop_pot_sm = 5: ROOMS(1).drop_pot_lg = 6
+    END IF
+    LOOSE(1).active = -1: LOOSE(1).cx = 61: LOOSE(1).cy = 27: LOOSE(1).gold = 999
+    LOOSE(1).sword = 1: LOOSE(1).secret = 0: LOOSE(1).esp = -1: LOOSE(1).crystal = 0
+    LOOSE(1).armor = 1: LOOSE(1).shield = 2: LOOSE(1).bow = 0: LOOSE(1).boots = -1
+    LOOSE(1).teleport = 3: LOOSE(1).pot_sm = 7: LOOSE(1).pot_lg = 8
 
     ' the ACTIVE seat lives in the working globals -- SaveGame must sync it before writing
     LoadActivePlayer cur_player
@@ -446,8 +488,10 @@ SUB SaveRoundTripTest
     PRINT "  wrote " + SAVE_FILE + " (" + _TRIM$(STR$(LEN(_READFILE$(SAVE_FILE)))) + " bytes)"
 
     '--- clobber every seat, then load it back ------------------------------
+    IF ROOM_N >= 1 THEN ClearRoomDrop 1
+    ClearLooseSlot 1
     FOR i = 1 TO 4
-        IF i <= NCHAMBER THEN CHM_DEAD(i) = 0: CHM_EVDONE(i) = 0
+        IF i <= NCHAMBER THEN CHM_DEAD(i) = 0: CHM_EVDONE(i) = 0: CHM_SEEN(i) = 0
         PLAYERS(i).active = 0: PLAYERS(i).klass = 0: PLAYERS(i).gold = 0
         PLAYERS(i).hp = 0: PLAYERS(i).cx = 0: PLAYERS(i).has_key = 0: PLAYERS(i).name = "WIPED"
         PLAYERS(i).pot_sm = 0: PLAYERS(i).sp_fire = 0: PLAYERS(i).cxp = 0
@@ -478,9 +522,35 @@ SUB SaveRoundTripTest
         IF i <= NCHAMBER THEN
             IF CHM_DEAD(i) <> wdead(i) THEN PRINT "  FAIL chamber " + _TRIM$(STR$(i)) + " graves: got " + _TRIM$(STR$(CHM_DEAD(i))) + " want " + _TRIM$(STR$(wdead(i))): bad = -1
             IF CHM_EVDONE(i) <> wev(i) THEN PRINT "  FAIL chamber " + _TRIM$(STR$(i)) + " event flag": bad = -1
+            IF CHM_SEEN(i) <> wseen(i) THEN PRINT "  FAIL chamber " + _TRIM$(STR$(i)) + " arrival-seen flag": bad = -1
         END IF
     NEXT i
-    IF NOT bad THEN PRINT "  chamber progress round-tripped (graves + one-shot event flag)"
+    IF NOT bad THEN PRINT "  chamber progress round-tripped (graves + one-shot event + arrival flags)"
+
+    '--- v8: the DROPPED KIT, room hoard and corridor fall ---------------------
+    IF ROOM_N >= 1 THEN
+        IF ROOMS(1).drop_gold <> 4321 THEN PRINT "  FAIL room drop gold": bad = -1
+        IF ROOMS(1).drop_sword <> 2 THEN PRINT "  FAIL room drop sword": bad = -1
+        IF ROOMS(1).drop_secret = 0 THEN PRINT "  FAIL room drop secret card": bad = -1
+        IF ROOMS(1).drop_crystal = 0 THEN PRINT "  FAIL room drop crystal ball": bad = -1
+        IF ROOMS(1).drop_armor <> 3 THEN PRINT "  FAIL room drop armor": bad = -1
+        IF ROOMS(1).drop_shield <> 2 THEN PRINT "  FAIL room drop shield": bad = -1
+        IF ROOMS(1).drop_bow = 0 THEN PRINT "  FAIL room drop bow": bad = -1
+        IF ROOMS(1).drop_boots = 0 THEN PRINT "  FAIL room drop boots": bad = -1
+        IF ROOMS(1).drop_teleport <> 4 THEN PRINT "  FAIL room drop teleport": bad = -1
+        IF ROOMS(1).drop_pot_sm <> 5 THEN PRINT "  FAIL room drop small potions": bad = -1
+        IF ROOMS(1).drop_pot_lg <> 6 THEN PRINT "  FAIL room drop large potions": bad = -1
+        IF NOT HasDrop(1) THEN PRINT "  FAIL HasDrop blind to a restored hoard": bad = -1
+    END IF
+    IF LOOSE(1).active = 0 THEN PRINT "  FAIL loose drop lost": bad = -1
+    IF LOOSE(1).gold <> 999 THEN PRINT "  FAIL loose drop gold": bad = -1
+    IF LOOSE(1).armor <> 1 THEN PRINT "  FAIL loose drop armor": bad = -1
+    IF LOOSE(1).shield <> 2 THEN PRINT "  FAIL loose drop shield": bad = -1
+    IF LOOSE(1).boots = 0 THEN PRINT "  FAIL loose drop boots": bad = -1
+    IF LOOSE(1).teleport <> 3 THEN PRINT "  FAIL loose drop teleport": bad = -1
+    IF LOOSE(1).pot_sm <> 7 THEN PRINT "  FAIL loose drop small potions": bad = -1
+    IF LOOSE(1).pot_lg <> 8 THEN PRINT "  FAIL loose drop large potions": bad = -1
+    IF NOT bad THEN PRINT "  dropped kit round-tripped (room hoard + corridor fall: armour/shield/bow/boots/scrolls/potions)"
     IF NOT bad THEN PRINT "  all 4 seats round-tripped (names with spaces + per-seat kit: potions/spells/XP/status)"
 
     T_KillSave                                    ' tidy the scratch file

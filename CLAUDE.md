@@ -80,13 +80,27 @@ after any structural change. It runs, in order:
 - **`examples/minimal`** — builds + selftests a second game on `engine/` alone, proving the engine
   carries no hidden DUNGEON! dependency.
 
-Also useful, not in the gate: **`dungeon.run econdump`** reports the expected gold economy and
-win pacing per class, so a balance change can be measured instead of playtested.
+Also useful, not in the gate:
+
+- **`dungeon.run econdump`** — expected gold economy + win pacing per class, and the **monster
+  curve** (HP range / AC / to-hit per depth for room, chamber-LORD and boss spawns, straight out
+  of `MonsterStats`/`MonsterToHit%`), so a balance change can be measured instead of playtested.
+- **`dungeon.run roomlint`** — every detected room vs the cells the player can actually stand on.
+  `DetectRooms` samples ONE pixel (the cell centre); movement (`InRoomNow`/`CanMove`) demands the
+  WHOLE cell be the floor colour. The board art's **half-block glyphs** (`0xDF`/`0xDC`/`0xDD`/
+  `0xDE`, ~975 cells) paint half a cell, so the two disagree: a room can enclose cells nothing can
+  walk on, and `FloodRoom` can seat a monster/grave marker on one — that room then never fires an
+  encounter and never shows a headstone. Currently **20 of 93 rooms** are in that state. Read-only
+  and deliberately NOT in the gate: fixing it means changing what `DetectRooms` counts, which
+  changes board generation for every run.
+- **`dungeon.run charsheet`** — renders the `[C]` character sheet for a fully-kitted hero to
+  `charsheet.png`. Layout only breaks when the sheet is FULL, so a default-state shot proves
+  nothing.
 
 Only *game-free* engine modules that touch nothing but QB64 built-ins can be unit-tested;
 everything else is verified through the binary's dev modes (`chamberdump`, `audiomanifest`,
 `imagemanifest`, `uimanifest`, `ansilint`, `settingsshot`, `savetest`, `datalint`, `econdump`,
-`fogdump`) or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert
+`roomlint`, `charsheet`, `fogdump`) or a play-test. See [tests/README.md](tests/README.md) for the skeleton, the assert
 API, and the QB64 traps it is shaped around. (The `TEST-*.bas` files in `scratchpads/` are
 unrelated — manual runnable prototypes, not suites.)
 

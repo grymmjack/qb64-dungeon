@@ -43,11 +43,13 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
     PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
     PRINT PipeCol$("  |10fightshot|07     render the tactical-combat screen with a synthetic 1-vs-4 encounter -> |14fightshot.png|07")
+    PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
+    PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
@@ -185,6 +187,10 @@ IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN settingsshot_on = -1: RunSet
 ' combat loop in existence (see game/DEBUG.bas: DumpFightShot).
 IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
 
+'--- dev: `dungeon.run charsheet` renders the [C] CHARACTER sheet to a PNG and exits ---
+' Seeds a MAXED-OUT hero, because that is the only state the sheet's layout can break in.
+IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
+
 '--- dev: `dungeon.run fight [lvl] [foes]` drops STRAIGHT into a playable tactical fight ---
 ' Unlike `fightshot` (which writes a PNG and exits) this is INTERACTIVE: it shows the window and
 ' runs the real loop, so the fight UI can be played and felt without walking the board to find an
@@ -228,6 +234,16 @@ IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
 '--- dev: `dungeon.run econdump` reports the expected gold economy + win pacing, then exits ---
 IF INSTR(UCASE$(COMMAND$), "ECONDUMP") > 0 THEN EconDump
 
+'--- dev: `dungeon.run roomlint` reports rooms holding cells the player cannot stand on ---
+' Needs a built board (the art IS the map), so it runs the same setup chamberdump does.
+IF INSTR(UCASE$(COMMAND$), "ROOMLINT") > 0 THEN
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    DetectSecretDoors
+    Game_PopulateBoard
+    RandomizeRooms                  ' so the monster/treasure placement it reports is the real thing
+    RoomLint
+END IF
+
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---
 IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     DIM AS INTEGER ddx, ddy, ddc
@@ -246,10 +262,13 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     _SAVEIMAGE "chamberdump.png", CANVAS
     '--- also dump each chamber's bounding box (cells) as text, for seeding chambers.txt ---
     DIM ddf AS INTEGER, ddi AS INTEGER, ddminx AS INTEGER, ddminy AS INTEGER, ddmaxx AS INTEGER, ddmaxy AS INTEGER
+    DIM ddfree AS INTEGER, ddshadow AS INTEGER
     ddf = FREEFILE: OPEN "chamberdump.txt" FOR OUTPUT AS #ddf
     PRINT #ddf, "# secret doors detected: " + _TRIM$(STR$(SD_N)) + " | rooms: " + _TRIM$(STR$(ROOM_N)) + " | chambers: " + _TRIM$(STR$(NCHAMBER))
+    PRINT #ddf, "# 'free' = chamber cells with NO room over them. Game_OnEnterCell suppresses the"
+    PRINT #ddf, "# chamber trigger wherever ROOMAT<>0, so free = 0 means that hall can NEVER fire."
     FOR ddi = 1 TO NCHAMBER
-        ddminx = 999: ddminy = 999: ddmaxx = -1: ddmaxy = -1
+        ddminx = 999: ddminy = 999: ddmaxx = -1: ddmaxy = -1: ddfree = 0: ddshadow = 0
         FOR ddy = 0 TO 60
             FOR ddx = 0 TO 131
                 IF CHAMBERAT(ddx, ddy) = ddi THEN
@@ -257,10 +276,11 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
                     IF ddx > ddmaxx THEN ddmaxx = ddx
                     IF ddy < ddminy THEN ddminy = ddy
                     IF ddy > ddmaxy THEN ddmaxy = ddy
+                    IF ROOMAT(ddx, ddy) <> 0 THEN ddshadow = ddshadow + 1 ELSE ddfree = ddfree + 1
                 END IF
             NEXT
         NEXT
-        PRINT #ddf, _TRIM$(CHM_NAME(ddi)) + " | " + _TRIM$(STR$(ddminx)) + " | " + _TRIM$(STR$(ddminy)) + " | " + _TRIM$(STR$(ddmaxx)) + " | " + _TRIM$(STR$(ddmaxy)) + "   # sec " + _TRIM$(STR$(CHM_SEC(ddi))) + ", " + _TRIM$(STR$(CHM_CELLS(ddi))) + " cells"
+        PRINT #ddf, _TRIM$(CHM_NAME(ddi)) + " | " + _TRIM$(STR$(ddminx)) + " | " + _TRIM$(STR$(ddminy)) + " | " + _TRIM$(STR$(ddmaxx)) + " | " + _TRIM$(STR$(ddmaxy)) + "   # sec " + _TRIM$(STR$(CHM_SEC(ddi))) + ", " + _TRIM$(STR$(CHM_CELLS(ddi))) + " cells, " + _TRIM$(STR$(ddfree)) + " free / " + _TRIM$(STR$(ddshadow)) + " room-shadowed"
     NEXT
     CLOSE #ddf
     SYSTEM
@@ -589,6 +609,11 @@ FUNCTION PlayGame%
     DO
         _LIMIT 60
         AudioTick                                 ' advance music crossfade + narration fade each frame
+        DisplayTick                               ' notice a settled window resize
+        IF display_dirty THEN                     ' ...and repaint the whole board once it has settled
+            display_dirty = 0
+            cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+        END IF
         IF player_out THEN                        ' the active player has spent their last life
             ' solo (or last one standing) -> the run is over for good. Delete the save so a
             ' permadeath run can never be "continued" back to life.
@@ -640,8 +665,12 @@ FUNCTION PlayGame%
             Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"
             WaitKey
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
-            player_hp = player_maxhp: loiter = 0
-            StartTurnMove                    ' fresh move budget after reviving
+            ' NO free heal: a scroll is an ESCAPE, not a rest. It used to set player_hp =
+            ' player_maxhp outright, which made [T] a full heal you could stock up on -- and
+            ' the entrance heal would then hand it to you again on the next step anyway.
+            start_heal_locked = TRUE
+            loiter = 0
+            StartTurnMove                    ' fresh move budget after the jump
             cursor_erase: cursor_draw: FadeInCurrent: DrawHUD: _DISPLAY
         END IF
 

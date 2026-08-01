@@ -69,7 +69,7 @@ FUNCTION LoadChambers%
     DIM nm AS STRING, c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER
     DIM x AS INTEGER, y AS INTEGER, cnt AS INTEGER, oldsrc AS LONG
     FOR y = 0 TO 60: FOR x = 0 TO 131: CHAMBERAT(x, y) = 0: NEXT: NEXT
-    FOR x = 1 TO MAXCHAMBER: CHM_DEAD(x) = 0: NEXT
+    FOR x = 1 TO MAXCHAMBER: CHM_DEAD(x) = 0: CHM_EVDONE(x) = 0: CHM_SEEN(x) = 0: NEXT
     NCHAMBER = 0: cur_chamber = 0
     whole = _READFILE$(cf)
     oldsrc = _SOURCE: _SOURCE FULL_BOARD
@@ -126,7 +126,7 @@ SUB DetectChambers
     REDIM made(1 TO 40) AS INTEGER   ' which labels actually seeded a chamber (for multi-word skip)
     seedmin = 18: floodmin = 18      ' wide-open cells only -- keeps chambers off the thin corridors
     FOR ny = 0 TO 60: FOR nx = 0 TO 131: CHAMBERAT(nx, ny) = 0: NEXT: NEXT
-    FOR i = 1 TO MAXCHAMBER: CHM_DEAD(i) = 0: NEXT
+    FOR i = 1 TO MAXCHAMBER: CHM_DEAD(i) = 0: CHM_EVDONE(i) = 0: CHM_SEEN(i) = 0: NEXT
     NCHAMBER = 0: cur_chamber = 0
     oldsrc = _SOURCE: _SOURCE FULL_BOARD
     FOR i = 1 TO LBL_N

@@ -62,8 +62,9 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
         IF fuseLeft <= 0 THEN GaugeLock% = -1: EXIT FUNCTION
         GaugeStep k
         ' Draw at EXACTLY the numbers GaugeScore% will read -- WYSIWYG, so the zone can never
-        ' score somewhere the player cannot see.
-        DrawGauge title, prompt, swMode, k.p, k.ecrit, k.ehit, fuseLeft / gsecs
+        ' score somewhere the player cannot see. k is passed WHOLE (not p/ecrit/ehit picked out)
+        ' precisely so k.zc cannot be forgotten again -- see the note on DrawGauge.
+        DrawGauge title, prompt, swMode, k, fuseLeft / gsecs
         _DISPLAY
         _LIMIT 60
         kk = INKEY$
@@ -81,7 +82,7 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
             ' freeze a beat on the locked marker so the result reads
             fl = TIMER
             DO
-                DrawGauge title, GaugeResult$(z, swMode), swMode, k.p, k.ecrit, k.ehit, fuseLeft / gsecs
+                DrawGauge title, GaugeResult$(z, swMode), swMode, k, fuseLeft / gsecs
                 DrawGaugeLock k.p, z
                 _DISPLAY: _LIMIT 60
             LOOP UNTIL TIMER - fl >= 0.6 OR TIMER - fl < 0
@@ -105,7 +106,15 @@ END FUNCTION
 
 ' Paint the gauge: a framed panel with the fuse bar, the layered zones (dark miss /
 ' green hit / purple crit), the sweeping marker, and the caption/labels.
-SUB DrawGauge (title AS STRING, prompt AS STRING, swMode AS INTEGER, p AS SINGLE, critHW AS SINGLE, hitHW AS SINGLE, fuseFrac AS SINGLE)
+'
+' WYSIWYG IS SACRED (GAUGE.bas principle #3): the bands MUST be centred on k.zc, the
+' roaming zone centre GaugeScore% measures against -- not on the middle of the bar.
+' This drew them at a fixed 0.5 for a long time, which meant SECOND WIND and CRIT
+' FLOURISH scored against a sweet spot that was somewhere else entirely: landing dead
+' centre in the drawn purple usually resolved as a plain hit or an outright miss. It
+' takes the whole GAUGEK now (as FightDrawGauge already did) so no caller can pick out
+' the widths and silently leave the centre behind again.
+SUB DrawGauge (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUGEK, fuseFrac AS SINGLE)
     DIM bx AS INTEGER, bw AS INTEGER, by AS INTEGER, bh AS INTEGER
     DIM gx AS INTEGER, gw AS INTEGER, gy AS INTEGER, gh AS INTEGER, mxp AS INTEGER
     DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG
@@ -119,16 +128,17 @@ SUB DrawGauge (title AS STRING, prompt AS STRING, swMode AS INTEGER, p AS SINGLE
     LINE (fx, (by + 5) * CH)-(fx + fw, (by + 6) * CH - 4), _RGB32(40, 40, 46), BF
     IF fuseFrac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
     LINE (fx, (by + 5) * CH)-(fx + INT(fw * fuseFrac), (by + 6) * CH - 4), fcol, BF
-    ' the gauge bar with layered zones
+    ' the gauge bar with layered zones, centred on the LIVE zone centre k.zc
     gx = (bx + 6) * CW: gw = (bw - 12) * CW: gy = (by + 11) * CH: gh = 3 * CH
     LINE (gx, gy)-(gx + gw, gy + gh), _RGB32(&H33, &H3B, &H33), BF                                  ' dark = miss/fall
-    IF swMode = 0 THEN LINE (gx + INT((0.5 - hitHW) * gw), gy)-(gx + INT((0.5 + hitHW) * gw), gy + gh), _RGB32(&H2E, &HA0, &H55), BF   ' green = hit (crit flourish only)
-    LINE (gx + INT((0.5 - critHW) * gw), gy)-(gx + INT((0.5 + critHW) * gw), gy + gh), _RGB32(&HA6, &H66, &HCE), BF ' purple = crit / second wind
+    IF swMode = 0 THEN LINE (gx + INT((k.zc - k.ehit) * gw), gy)-(gx + INT((k.zc + k.ehit) * gw), gy + gh), _RGB32(&H2E, &HA0, &H55), BF   ' green = hit (crit flourish only)
+    LINE (gx + INT((k.zc - k.ecrit) * gw), gy)-(gx + INT((k.zc + k.ecrit) * gw), gy + gh), _RGB32(&HA6, &H66, &HCE), BF ' purple = crit / second wind
     ' the sweeping marker
-    mxp = gx + INT(p * gw)
+    mxp = gx + INT(k.p * gw)
     LINE (mxp - 1, gy - 8)-(mxp + 2, gy + gh + 8), _RGB32(&HF0, &HEC, &HD0), BF
     DIM leg AS STRING
-    IF swMode THEN leg = "purple = SECOND WIND" ELSE leg = "purple = +2 dice     green = +1     dark = +0"
+    ' The legend must state the SAME mapping CritFlourish% pays out (crit 2 / hit 1 / miss 0).
+    IF swMode THEN leg = "purple = SECOND WIND" ELSE leg = "purple (centre) = +2 dice     green = +1 die     dark = +0"
     COLOR GREY, BOXBG: PrintCentered by + 16, leg
     COLOR CYANU, BOXBG: PrintCentered by + 18, prompt
 END SUB

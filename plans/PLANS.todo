@@ -1,27 +1,74 @@
 
 Bugs: @critical
-    ☐ Level 8 mummy had 70 HP, and a +10 to hit, and an 18 AC! needs balancing!
-    ☐ When I recovered my loot I didn't get my magic items back - this was on 6th level vs. a Red Dragon :(
-      ☐ Then when I died and was ressurected for new life, at start, it said i recovered everythintg from there..
-      ☐ But I only recovered a crystal ball and my gold. 
-        ☐ Regardless, this should not happen at start - unless I died there.
-    ☐ Second wind is not working properly - I landed perfectly in the middle and was not revived.
-    ☐ On flourish with Elf, landing in purple does not grant 1 dice. 
-    ☐ Flourish labels are wrong purple = +1 dice, green = +2 dice.
-    ☐ Random curios after combat when a critical occurred by player are not spawning healing potions
-      ☐ Should spawn healing potion 20% x number of crits up to 80% of the time 
-      ☐ e.g. if player crits monster 1 time, 20% chance, if 2 times 40%, 3 60%, 4 80%, etc.
-      ☐ Potion should be large potion 50% of the time + 10% x number of crits.
-        ☐ e.g. player crits 1 time 50% chance, player crits 2 times, 60%, 3 70%, 4 80%
-    ☐ Wandering monsters from curios or other random encounters do not draw monster symbols on map
-    ☐ When killed in a chamber, loot is not drawn in the chamber
-    ☐ When teleported to start from an event all HP is healed
-    ☐ When poisoned HP never goes below 1 HP and kills player
-    ☐ After poison procs and goes away, if I am bloodied on my effect, it is removed. should return to blood.
-    ☐ When playing in window mode, resize sometimes hides UI parts
-      ☐ Implement same fix as done in DRAW for this to make it always render properly
-    ☐ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc.
-    ☐ Character sheet portrait art is being overwritten by text
+    ☑ Level 8 mummy had 70 HP, and a +10 to hit, and an 18 AC! needs balancing! @done
+      ☑ It was a chamber LORD, not a room monster: 150% HP x (+1 AC) x (is_boss +2 to-hit) compounded @done
+      ☑ All 5 spawn sites now go through MonsterStats/MonsterToHit% (game/SECTOR.bas) @done
+      ☑ Every number is a tuning.txt knob (MON_*/BOSS_*/LORD_*) with AC + to-hit CAPS @done
+      ☑ LORD rebalanced 150%->130% HP, +2->+1 to-hit; L8 lord is now 42-67 HP / AC 17 / +8 @done
+      ☑ `dungeon.run econdump` now prints the whole monster curve so this is measurable @done
+    ☑ When I recovered my loot I didn't get my magic items back - this was on 6th level vs. a Red Dragon :( @done
+      ☑ DropEverything stashed only gold+sword/secret/esp/crystal but cleared the WHOLE kit @done
+      ☑ armour, shield, bow, boots, teleport scrolls and potions were destroyed outright @done
+      ☑ ROOM.drop_* and LOOSEDROP now carry every item; save format bumped to v8 @done
+      ☑ Then when I died and was ressurected for new life, at start, it said i recovered everythintg from there.. @done
+      ☑ But I only recovered a crystal ball and my gold. @done
+        ☑ Regardless, this should not happen at start - unless I died there. @done
+        ☑ Game_OnEnterCell now only auto-collects at START when ROOMS(rm).player_died @done
+    ☑ Second wind is not working properly - I landed perfectly in the middle and was not revived. @done
+      ☑ ROOT CAUSE: DrawGauge painted the zones at a FIXED 0.5, but GaugeScore% measures @done
+      ☑ against k.zc, the ROAMING zone centre -- so the purple you saw was never the target @done
+      ☑ DrawGauge now takes the whole GAUGEK (as FightDrawGauge already did) and draws at k.zc @done
+    ☑ On flourish with Elf, landing in purple does not grant 1 dice. @done
+      ☑ Same root cause -- landing in the DRAWN purple scored against the real zone elsewhere @done
+    ☑ Flourish labels are wrong purple = +1 dice, green = +2 dice. @done
+      ☑ The labels matched the code (purple=+2/green=+1); the PAINT was lying. Legend clarified. @done
+    ☑ Random curios after combat when a critical occurred by player are not spawning healing potions @done
+      ☑ Should spawn healing potion 20% x number of crits up to 80% of the time @done
+      ☑ e.g. if player crits monster 1 time, 20% chance, if 2 times 40%, 3 60%, 4 80%, etc. @done
+      ☑ Potion should be large potion 50% of the time + 10% x number of crits. @done
+        ☑ e.g. player crits 1 time 50% chance, player crits 2 times, 60%, 3 70%, 4 80% @done
+      ☑ CritPotionReward (game/COMBAT.bas); combat_crits reset per fight in DoCombat% @done
+      ☑ Pays out on chamber + wandering fights too, since the reward is earned by HOW you fought @done
+    ☑ Wandering monsters from curios or other random encounters do not draw monster symbols on map @done
+      ☑ The scratch slots (ROOM_N+1..+3) had NO board cell and DrawEntities only looped to ROOM_N @done
+      ☑ Spawners now set cx/cy/seen; DrawEntities covers the scratch slots @done
+    ☑ When killed in a chamber, loot is not drawn in the chamber @done
+      ☑ Also: the loose-drop pickup now runs BEFORE the chamber trigger, so stepping onto your @done
+      ☑ own body no longer wakes the next guardian before you may reclaim it @done
+    ☑ When teleported to start from an event all HP is healed @done
+      ☑ start_heal_locked: the entrance heal is the reward for WALKING home @done
+      ☑ Set by the Teleport Scroll, the obelisk, a Serious Wound retreat and a revive @done
+    ☑ When poisoned HP never goes below 1 HP and kills player @done
+      ☑ The 1 HP floor is gone -- a DoT tick that reaches 0 runs DoTDeath (the ordinary death path) @done
+    ☑ After poison procs and goes away, if I am bloodied on my effect, it is removed. should return to blood. @done
+      ☑ DrawWounds/DrawPoison only refresh on a board repaint; TickStatus now repaints when @done
+      ☑ the poison band or the wound band actually changes (StatusFxKey%) @done
+    ☑ When playing in window mode, resize sometimes hides UI parts @done
+      ☑ Implement same fix as done in DRAW for this to make it always render properly @done
+      ☑ DisplayTick (engine/UI.bas): consume _RESIZE, wait for the drag to SETTLE, re-assert @done
+      ☑ ApplyDisplay + raise display_dirty; the play loop repaints. Called from WaitKey too. @done
+      ☑ NOT reproduced locally (needs a real WM resize) -- please confirm in play @done
+    ☑ Chamber events are still not firing on first entrance into the chambers - text scrawl/narration/etc. @done
+      ☑ The hall description was an ELSE branch of the encounter, so a first entry that rolled @done
+      ☑ a shrine/hazard/boon/lord EXITed before ever reaching it (38% of entries) @done
+      ☑ ChamberArrival (own CHM_SEEN flag, saved) now runs FIRST and uses the full ScrollTextArt @done
+      ☑ crawl + establishing shot + chamber.<slug> narration, like a named room gets @done
+    ☑ Character sheet portrait art is being overwritten by text @done
+      ☑ Every line was centred on the 132-col SCREEN, not the panel; the MAGIC line ran off both edges @done
+      ☑ PrintCenteredIn + WrapLines$ (engine/UI.bas); text span narrows beside the portrait @done
+      ☑ Verify with `dungeon.run charsheet` (renders a fully-kitted hero to charsheet.png) @done
+
+Room detection (from the BUG-*.png screenshots): @critical
+    ☐ 20 of 93 rooms seat their monster/grave on a cell the player CANNOT stand on
+      ☐ Run `dungeon.run roomlint` -- it lists them (11 rooms have ZERO walkable cells)
+      ☐ CAUSE: DetectRooms samples ONE pixel (cell centre); CanMove/InRoomNow test the WHOLE
+      ☐ cell. The board art uses ~975 HALF-BLOCK glyphs (0xDF/0xDC/0xDD/0xDE) which paint half
+      ☐ a cell, so the two tests disagree on 189 cells.
+      ☐ Explains all three screenshots: no encounter / no grave in the torture rooms, the
+      ☐ half-height teal blocks on level 6, and two blocks flood-filling into "one room"
+      ☐ FIX: make RoomVisit use CellIsUniform% (engine/BOARD.bas) instead of a single POINT
+      ☐ CONSEQUENCE: changes board generation for every run, so in-flight saves would rebuild a
+      ☐ different board (the save stores a seed + positional per-room flags). Your call.
 
 Needs Thorough Testing:
     ☐ Strategic Combat
@@ -275,7 +322,13 @@ Game Tweaks:
 
     ☐ Create command line option balancedump
       ☐ Dumps in a table: (fetches from stats with --includestats *)
-        ☐ Level | Monster | HP | ToHitBonus | AC | XP | Gold | Items | * # Encountered | * # PlayerFled | * # Killed | * # KillPlayer
+        ☐ Levels and Monsters:
+          ☐ Level | Monster | HP | ToHitBonus | AC | XP | DMG range | Gold | Items | * # Encountered | * # PlayerFled | * # Killed | * # KillPlayer
+        ☐ Player ascension:
+          ☐ Level | Player Class | Level | HP Range | ToHitBonus Range | AC Range | DMG range | Avg Hits to Die | Avg Hits to Kill
+            - hits to die - average monster DMG, vs. player AC, vs. Player HP = avg number of hits to kill player
+              - e.g. Level 1 monsters HP average is 10, ToHitbonus is 0, DMG range is 5, and player ac at same level is 11, and HP is 12 = 12/5 = 2 hits to die at level 1
+            - hits to kill - average monster HP vs Player DMG range average + ToHitBonus average = avg number of hits to kill
     ☐ On death screen:
       ☐ Show stats from main screen, and play time, etc.
       ☐ Animate:

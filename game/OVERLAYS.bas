@@ -152,13 +152,22 @@ END SUB
 ' Honours Field of View: with FOV off, every monster shows (so you can plan / spot
 ' random spawns); with FOV on, only rooms you have actually explored (LOS_SEEN) reveal.
 SUB DrawEntities
-    DIM r AS INTEGER, gx AS INTEGER, gy AS INTEGER, vis AS INTEGER
+    DIM r AS INTEGER, gx AS INTEGER, gy AS INTEGER, vis AS INTEGER, last AS INTEGER
     _DEST CANVAS
     _FONT CH
-    FOR r = 1 TO ROOM_N
+    ' Past ROOM_N sit the SCRATCH encounter slots -- the wandering monster (ROOM_N+1, also the
+    ' MIMIC), the chamber guardian (+2) and a damage-over-time death (+3). They are ordinary
+    ' ROOMS() records fought by the ordinary combat code, but nothing ever DREW them, so a
+    ' wanderer or chamber monster you fled stayed on the board invisibly and the spot you fell
+    ' on carried no marker. They now carry a real cell (set by their spawners) and render here
+    ' with everything else. ROOMAT never maps them, so they still cannot be walked into.
+    last = ROOM_N + 3: IF last > UBOUND(ROOMS) THEN last = UBOUND(ROOMS)
+    FOR r = 1 TO last
         gx = ROOMS(r).cx: gy = ROOMS(r).cy
         IF gx >= 0 AND gy >= 0 AND gx <= 131 AND gy <= 60 THEN
-            gx = EntityDrawX(r): gy = EntityDrawY(r)   ' shift off any level label under the marker
+            ' Only a real room can shift its marker off a level label -- EntityShiftFind hunts
+            ' for a same-room cell via ROOMAT, which a scratch slot is never in.
+            IF r <= ROOM_N THEN gx = EntityDrawX(r): gy = EntityDrawY(r)
             vis = FALSE
             ' Monsters stay hidden until the player has actually ENTERED their room
             ' (no board-wide reveal), and -- in FOV mode -- until that spot is seen.

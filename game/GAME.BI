@@ -23,6 +23,35 @@ DIM SHARED LOITER_THRESHOLD AS INTEGER  ' loiter ticks (searches / idle beats) b
 DIM SHARED WANDER_GOLD_DIV AS INTEGER  ' wandering-monster gold = level treasure / this (lean -- no farming)
 DIM SHARED XP_PER_KILL_LVL AS INTEGER  ' XP per slain monster = its dungeon level * this (+ boss bonus)
 DIM SHARED CHEST_PCT AS INTEGER  ' % chance a curio turns up after a room fight
+
+' What KIND of thing is being spawned -- the only input MonsterStats needs besides the depth.
+CONST MK_ROOM = 0        ' an ordinary lair monster
+CONST MK_BOSS = 1        ' the one boss lair on a deep level
+CONST MK_LORD = 2        ' the LORD of a chamber (chamber-events.txt `lord`)
+CONST MK_WANDER = 3      ' a wandering ambush drawn by loitering
+CONST MK_MIMIC = 4       ' a curio chest that turns out to have teeth
+
+' --- MONSTER SCALING (D&D mode) -- see MonsterStats / MonsterToHit% in game/SECTOR.bas ---
+' These formulas used to be copy-pasted at five spawn sites (room, boss, wanderer, chamber
+' guardian, chamber LORD, mimic) as bare literals, so "the level-8 lord hits too hard" meant
+' editing code in three files and there was no way to measure or tune it. One funnel, one
+' table, and `dungeon.run econdump` can reason about it.
+DIM SHARED MON_HP_PER_LVL AS INTEGER    ' flat HP per dungeon level
+DIM SHARED MON_HP_DIE_BASE AS INTEGER   ' HP die sides at level 0...
+DIM SHARED MON_HP_DIE_STEP AS INTEGER   ' ...growing by this per level (L1 d6 .. L9 d22 at 4/2)
+DIM SHARED MON_AC_BASE AS INTEGER       ' armour class = this + level
+DIM SHARED MON_AC_MAX AS INTEGER        ' hard cap: AC can never outrun a hero's best to-hit
+DIM SHARED MON_TOHIT_MAX AS INTEGER     ' hard cap on the monster's d20 bonus
+DIM SHARED BOSS_HP_BASE AS INTEGER      ' the one boss lair: flat HP...
+DIM SHARED BOSS_HP_PER_LVL AS INTEGER   ' ...+ this per level, + 1d10
+DIM SHARED BOSS_AC AS INTEGER
+DIM SHARED BOSS_TOHIT_BONUS AS INTEGER  ' + to the monster's d20 attack
+DIM SHARED LORD_HP_PCT AS INTEGER       ' chamber LORD: % of an ordinary guardian's HP
+DIM SHARED LORD_AC_BONUS AS INTEGER
+DIM SHARED LORD_TOHIT_BONUS AS INTEGER
+DIM SHARED WANDER_AC_BONUS AS INTEGER   ' wanderers travel light -- softer than a lair monster
+DIM SHARED MIMIC_HP_PER_LVL AS INTEGER
+DIM SHARED MIMIC_AC_BASE AS INTEGER
 DIM SHARED CHEST_TRAP_PCT AS INTEGER  ' % chance a curio CHEST is trapped
 DIM SHARED CURIO_PATH_PCT AS INTEGER  ' % chance per explored corridor step that a curio turns up
 DIM SHARED CURIO_COOLDOWN AS INTEGER  ' minimum steps between path curios (anti-spam)
@@ -89,12 +118,23 @@ TYPE ROOM
     player_died AS INTEGER
     is_chamber AS INTEGER     ' a scratch CHAMBER encounter (3 monsters, no treasure)
     seen    AS INTEGER        ' the player has entered this room -- only then is its monster drawn
-    ' loot a fallen champion left here (multiplayer only -- recoverable by any player)
+    ' Loot a fallen champion left here (recoverable by any player).
+    ' EVERY carried item has a slot here. It used to stash only gold + sword/secret/esp/
+    ' crystal while DropEverything cleared the WHOLE kit, so armour, shield, bow, boots,
+    ' teleport scrolls and potions were destroyed by a death and could never be reclaimed --
+    ' the hoard you walked back for handed you gold and a Crystal Ball and nothing else.
     drop_gold AS LONG
     drop_sword AS INTEGER
     drop_secret AS INTEGER
     drop_esp AS INTEGER
     drop_crystal AS INTEGER
+    drop_armor AS INTEGER
+    drop_shield AS INTEGER
+    drop_bow AS INTEGER
+    drop_boots AS INTEGER
+    drop_teleport AS INTEGER
+    drop_pot_sm AS INTEGER
+    drop_pot_lg AS INTEGER
 END TYPE
 
 TYPE PCLASS
@@ -174,6 +214,13 @@ TYPE LOOSEDROP
     secret AS INTEGER
     esp AS INTEGER
     crystal AS INTEGER
+    armor AS INTEGER          ' the rest of the kit -- see ROOM.drop_* for why these exist
+    shield AS INTEGER
+    bow AS INTEGER
+    boots AS INTEGER
+    teleport AS INTEGER
+    pot_sm AS INTEGER
+    pot_lg AS INTEGER
 END TYPE
 DIM SHARED LOOSE(1 TO 16) AS LOOSEDROP
 DIM SHARED ROOMAT(0 TO 131, 0 TO 60) AS INTEGER   ' cell -> room index (0 = not a room cell)
@@ -186,6 +233,10 @@ DIM SHARED CHM_NAME(1 TO MAXCHAMBER) AS STRING
 ' Has a non-gauntlet chamber EVENT already fired in this hall? One per chamber per run,
 ' so re-entering cannot farm boons. Saved (v7) alongside CHM_DEAD.
 DIM SHARED CHM_EVDONE(1 TO MAXCHAMBER) AS INTEGER
+' Has the player ever set foot in this hall? Drives the ONE-TIME arrival crawl, which used to
+' be an ELSE branch of the encounter and so never played on an entry that rolled a special
+' event -- and never at all in a hall whose first entry rolled one. Saved (v8) with CHM_DEAD.
+DIM SHARED CHM_SEEN(1 TO MAXCHAMBER) AS INTEGER
 
 ' --- per-level MAGIC ITEM pool (assets/data/<pack>/items.txt) ---
 ' Items used to OVERRIDE a treasures.txt slot, which meant an item's frequency was encoded
@@ -217,6 +268,13 @@ DIM SHARED CHM_EV(1 TO 40) AS CHMEV_T
 DIM SHARED NCHMEV AS INTEGER
 DIM SHARED CHM_DEAD(1 TO MAXCHAMBER) AS INTEGER   ' graves so far (0..3); 3 = chamber cleared
 DIM SHARED cur_chamber AS INTEGER                 ' chamber the player is currently inside (0 = none)
+
+' The entrance heals you to full -- but only as the reward for WALKING home. Anything that
+' PUTS you at START (Teleport Scroll, the obelisk, a Serious Wound dragging you back, a
+' revive) sets this, and Game_OnEnterCell then withholds the heal until you have left the
+' entrance zone under your own power. Without it a Teleport Scroll was a free full heal, and
+' the obelisk's "reality folds" outcome was strictly better than any potion.
+DIM SHARED start_heal_locked AS INTEGER
 DIM SHARED CHM_GX(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER   ' 3 spread grave cells per chamber
 DIM SHARED CHM_GY(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER
 
@@ -357,6 +415,9 @@ DIM SHARED player_out AS INTEGER       ' set TRUE the moment the active player u
 DIM SHARED g_rooms_explored AS INTEGER, g_monsters_slain AS INTEGER, g_treasures_found AS INTEGER
 DIM SHARED g_items_looted AS INTEGER, g_levels_completed AS INTEGER, g_secrets_found AS INTEGER
 DIM SHARED g_crits AS INTEGER, g_fumbles AS INTEGER, g_wander_enc AS INTEGER, g_run_deaths AS INTEGER
+' Criticals the player landed in the CURRENT fight (reset per encounter in DoCombat%, bumped
+' by RecordCrit). Drives the post-fight healing-potion reward -- see CritPotionReward.
+DIM SHARED combat_crits AS INTEGER
 DIM SHARED g_gold_found AS LONG, g_secret_tries AS INTEGER
 CONST MAXEVLOG = 600
 REDIM SHARED EVLOG(1 TO MAXEVLOG) AS STRING

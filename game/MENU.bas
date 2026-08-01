@@ -1150,44 +1150,72 @@ END FUNCTION
 
 
 SUB ShowCharSheet
+    ShowCharSheetPaint
+    _DISPLAY
+    WaitKey
+    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+END SUB
+
+
+' Paint the sheet onto CANVAS and return -- no input, no board repaint. Split out so
+' `dungeon.run charsheet` can render the REAL sheet to a PNG (see game/DEBUG.bas), which is
+' the only way to check this layout without a playthrough: the failure mode is text overflowing
+' the panel, and that only shows up with a fully-kitted hero.
+SUB ShowCharSheetPaint
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, nshow AS INTEGER, inv AS STRING, ln AS STRING
     DIM who AS STRING, effac AS INTEGER, efth AS INTEGER
+    ' The sheet is a PANEL, but every line was centred on the whole 132-column SCREEN. That is
+    ' invisible while the text is short and catastrophic once it isn't: a full MAGIC: line ran
+    ' off both edges of the panel, and the header lines slid under the class portrait. tx1/tx2
+    ' are the text column span, narrowed to the portrait's left edge for the rows it occupies.
+    DIM tx1 AS INTEGER, tx2 AS INTEGER, hx2 AS INTEGER, portrait AS INTEGER
+    DIM px1 AS INTEGER, py1 AS INTEGER, px2 AS INTEGER, py2 AS INTEGER
     effac = player_ac + item_armor + item_shield                     ' AC + worn armor/shield
     efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    tx1 = 23: tx2 = 109                                              ' inside the panel border
+    px1 = 92: py1 = 5: px2 = 108: py2 = 21                           ' the portrait frame, in cells
     ' pixel-art class portrait, top-right of the sheet (Hybrid/Pixel modes, if it exists)
+    portrait = FALSE
     IF opt_artstyle > 0 THEN
         DIM csp AS STRING, ddrew AS INTEGER
         csp = ClassSprite$(player_class)
-        IF LEN(csp) > 0 AND _FILEEXISTS(csp) THEN
-            LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), _RGB32(&H10, &H08, &H10), BF
-            LINE (92 * CW - 3, 5 * CH - 3)-(108 * CW + 3, 21 * CH + 3), REDU, B
-            ddrew = DrawSpriteFit%(csp, 92 * CW, 5 * CH, 16 * CW, 16 * CH)
+        IF LEN(csp) > 0 THEN
+            IF _FILEEXISTS(csp) THEN
+                LINE (px1 * CW - 3, py1 * CH - 3)-(px2 * CW + 3, py2 * CH + 3), _RGB32(&H10, &H08, &H10), BF
+                LINE (px1 * CW - 3, py1 * CH - 3)-(px2 * CW + 3, py2 * CH + 3), REDU, B
+                ddrew = DrawSpriteFit%(csp, px1 * CW, py1 * CH, (px2 - px1) * CW, (py2 - py1) * CH)
+                portrait = TRUE
+            END IF
         END IF
     END IF
+    ' Header rows (4..12) sit beside the portrait when there is one, so centre them over the
+    ' free span only. Everything below py2 gets the full panel width back.
+    hx2 = tx2
+    IF portrait THEN hx2 = px1 - 2
     who = _TRIM$(player_name) + " the " + class_name
     IF _TRIM$(player_name) = "" THEN who = class_name
-    COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  C H A R A C T E R  =-"
+    COLOR YELLOWU, BOXBG: PrintCenteredIn 4, tx1, tx2, "-=  C H A R A C T E R  =-"
     DIM chline AS STRING
     chline = "Champion:  " + who
     IF NOT opt_oldschool THEN chline = chline + "        Level " + _TRIM$(STR$(char_level)) + "    XP " + _TRIM$(STR$(char_xp))
-    COLOR WHITE, BOXBG: PrintCentered 6, chline
+    COLOR WHITE, BOXBG: PrintCenteredIn 6, tx1, hx2, chline
     IF NOT opt_oldschool THEN
         COLOR CYANU, BOXBG
-        PrintCentered 7, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
+        PrintCenteredIn 7, tx1, hx2, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
         COLOR GREENU, BOXBG
-        PrintCentered 8, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword)
-        COLOR GREY, BOXBG: PrintCentered 9, CombatDerivation$(player_class)   ' where those bonuses come from
+        PrintCenteredIn 8, tx1, hx2, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword)
+        COLOR GREY, BOXBG: PrintCenteredIn 9, tx1, hx2, CombatDerivation$(player_class)   ' where those bonuses come from
     ELSE
-        COLOR GREENU, BOXBG: PrintCentered 8, ClassSpecial$(player_class)     ' Dungeon!: just the class + its edge -- no stats, HP, or AC
+        COLOR GREENU, BOXBG: PrintCenteredIn 8, tx1, hx2, ClassSpecial$(player_class)     ' Dungeon!: just the class + its edge -- no stats, HP, or AC
     END IF
     ' wealth line
     COLOR YELLOWU, BOXBG
     ln = "GOLD  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
     IF has_key THEN ln = ln + "        LEVEL KEY: HELD" ELSE ln = ln + "        LEVEL KEY: on the " + Ordinal$(key_level) + " level"
-    PrintCentered 10, ln
+    PrintCenteredIn 10, tx1, hx2, ln
     ' special items held
     inv = ""
     IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
@@ -1204,29 +1232,47 @@ SUB ShowCharSheet
     IF item_esp THEN inv = inv + "ESP Medallion    "
     IF item_crystal THEN inv = inv + "Crystal Ball [V]    "
     IF inv = "" THEN inv = "(no magic items yet)"
-    COLOR WHITE, BOXBG: PrintCentered 12, "MAGIC:  " + _TRIM$(inv)
-    ' the treasures claimed
-    COLOR REDU, BOXBG: PrintCentered 14, "-=  T R E A S U R E S   C L A I M E D  ( " + _TRIM$(STR$(LOOT_N(cur_player))) + " )  =-"
+    ' A fully kitted hero's MAGIC line is far wider than the panel, so WRAP it into the rows
+    ' beside the portrait (12..20 while one is drawn, 12..13 otherwise) instead of letting one
+    ' long centred line run off both edges of the sheet and across the art.
+    DIM mlines AS STRING, mrows AS INTEGER, mp AS INTEGER, mnl AS INTEGER, mrow AS INTEGER
+    mrows = 2: IF portrait THEN mrows = py2 - 12    ' rows 12..(portrait bottom)
+    IF mrows < 1 THEN mrows = 1
+    COLOR WHITE, BOXBG
+    _PRINTSTRING (tx1 * CW, 12 * CH), "MAGIC:"
+    mlines = WrapLines$(_TRIM$(inv), hx2 - tx1 - 8, mrows)
+    mrow = 12: mp = 1
+    DO WHILE mp <= LEN(mlines)
+        mnl = INSTR(mp, mlines, CHR$(10))
+        IF mnl = 0 THEN mnl = LEN(mlines) + 1
+        _PRINTSTRING ((tx1 + 8) * CW, mrow * CH), MID$(mlines, mp, mnl - mp)
+        mp = mnl + 1: mrow = mrow + 1
+    LOOP
+    ' The treasures start BELOW the portrait, so their two columns can use the full panel.
+    DIM ty AS INTEGER
+    ty = 14: IF portrait THEN ty = py2 + 1
+    COLOR REDU, BOXBG: PrintCenteredIn ty, tx1, tx2, "-=  T R E A S U R E S   C L A I M E D  ( " + _TRIM$(STR$(LOOT_N(cur_player))) + " )  =-"
     COLOR WHITE, BOXBG
     IF LOOT_N(cur_player) = 0 THEN
-        COLOR GREY, BOXBG: PrintCentered 18, "(none yet -- slay a monster to claim its hoard)"
+        COLOR GREY, BOXBG: PrintCenteredIn ty + 4, tx1, tx2, "(none yet -- slay a monster to claim its hoard)"
     ELSE
+        ' Rows are whatever fits between the heading and the '[ press any key ]' line -- the old
+        ' fixed 30 could overrun the panel once the list started lower down the sheet.
+        DIM rowsfit AS INTEGER
+        rowsfit = 45 - (ty + 2): IF rowsfit < 1 THEN rowsfit = 1
         nshow = LOOT_N(cur_player)
-        IF nshow > 60 THEN nshow = 60          ' two columns x 30 rows
+        IF nshow > rowsfit * 2 THEN nshow = rowsfit * 2      ' two columns
         FOR i = 1 TO nshow
             IF (i AND 1) THEN col = 27 ELSE col = 68
-            y = 16 + (i - 1) \ 2
+            y = ty + 2 + (i - 1) \ 2
             ln = PadR$(_TRIM$(LOOT_NAME(cur_player, i)), 18) + RIGHT$("      " + _TRIM$(STR$(LOOT_GOLD(cur_player, i))), 6) + "g"
             _PRINTSTRING (col * CW, y * CH), ln
         NEXT i
-        IF LOOT_N(cur_player) > 60 THEN
-            COLOR GREY, BOXBG: _PRINTSTRING (27 * CW, 47 * CH), "...and " + _TRIM$(STR$(LOOT_N(cur_player) - 60)) + " more"
+        IF LOOT_N(cur_player) > nshow THEN
+            COLOR GREY, BOXBG: _PRINTSTRING (27 * CW, 45 * CH), "...and " + _TRIM$(STR$(LOOT_N(cur_player) - nshow)) + " more"
         END IF
     END IF
-    COLOR YELLOWU, BOXBG: PrintCentered 46, "[ press any key ]"
-    _DISPLAY
-    WaitKey
-    cursor_erase: cursor_draw: DrawHUD: _DISPLAY
+    COLOR YELLOWU, BOXBG: PrintCenteredIn 46, tx1, tx2, "[ press any key ]"
 END SUB
 
 

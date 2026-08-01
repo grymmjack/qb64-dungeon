@@ -368,6 +368,13 @@ END FUNCTION
 ' repaints, so it persists through the whole typewriter). Falls back to a plain crawl
 ' when art is off or the sprite is missing -- the words always show either way.
 SUB ScrollTextArt (title AS STRING, body AS STRING, sprPath AS STRING)
+    ScrollTextArtKey title, body, sprPath, "room." + NarrSlug$(title)   ' narratable per named room (room.the-crypt, ...)
+END SUB
+
+' As ScrollTextArt, but the caller names the narration key. CHAMBERS reuse the crawl with a
+' chamber.<slug> key so a narration pack can voice a hall separately from the same-named room
+' (they share names -- ARMORY, THE CRYPT, ...), which one hardcoded "room." prefix could not do.
+SUB ScrollTextArtKey (title AS STRING, body AS STRING, sprPath AS STRING, narrkey AS STRING)
     DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
     IF opt_artstyle > 0 AND LEN(sprPath) > 0 THEN
         IF _FILEEXISTS(sprPath) THEN
@@ -380,7 +387,7 @@ SUB ScrollTextArt (title AS STRING, body AS STRING, sprPath AS STRING)
             drew = DrawSpriteFit%(sprPath, bx, by, bw, bh)
         END IF
     END IF
-    ScrollTextVO title, body, "room." + NarrSlug$(title)   ' narratable per named room (room.the-crypt, ...)
+    ScrollTextVO title, body, narrkey
 END SUB
 
 

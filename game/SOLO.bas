@@ -168,8 +168,7 @@ SUB HunterFight
     ROOMS(w).mhp = hunt_lvl * 4 + RollDie(hunt_lvl * 2 + 4): ROOMS(w).mhp_now = ROOMS(w).mhp
     ROOMS(w).mac = 9 + hunt_lvl
     ROOMS(w).treasure = 0: ROOMS(w).treasure_item = 0: ROOMS(w).treasure_name = ""
-    ROOMS(w).drop_gold = 0: ROOMS(w).drop_sword = 0
-    ROOMS(w).drop_secret = FALSE: ROOMS(w).drop_esp = FALSE: ROOMS(w).drop_crystal = FALSE
+    ClearRoomDrop w                                      ' scratch slot: no inherited stash
     ROOMS(w).is_chamber = TRUE                      ' the hunter guards no treasure
     Sfx "trap"
     Banner "You turn on the pursuing " + hunt_mon + "!", "Strike it down, or it will run you down.   [ press any key ]"

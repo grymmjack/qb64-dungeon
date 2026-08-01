@@ -76,6 +76,7 @@ SUB ReviveOrForfeit (rm AS INTEGER)
     BloodDrip                                      ' the red death wipe -> black
     c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
     player_hp = player_maxhp                        ' revived, made whole again, at the entrance
+    start_heal_locked = TRUE                        ' the resurrection IS the heal -- don't re-grant it on the next step
     cursor_erase: cursor_draw: FadeInCurrent        ' the dungeon fades back in at START
     Sfx "levelup"
     IF chances = 1 THEN
@@ -231,6 +232,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
     sec = ROOMS(rm).sec                            ' the room's dungeon level (label + kill numbers)
     mon = _TRIM$(ROOMS(rm).monster)
     ROOMS(rm).monster_fought = TRUE
+    combat_crits = 0                               ' per-fight crit tally -> the post-fight potion reward
     RecordEncounter mon                            ' bestiary: # times faced
     NarrateT "combat.encounter", NARR_COMBAT       ' spoken "a monster bars your path" (both modes; Combat tier)
     ' TACTICAL SCREEN. Branched HERE because DoCombat% is the single funnel every encounter goes
@@ -399,7 +401,13 @@ SUB DoCombatDnD (rm AS INTEGER)
     isboss = ROOMS(rm).is_boss
     lvl = sec                                   ' sector index doubles as dungeon level 1..9
     PlayCue CombatCueName$(lvl, isboss), TRUE   ' combat music by intensity (no-op if the cue file is absent)
-    mtohit = lvl: IF isboss THEN mtohit = mtohit + 2
+    ' The room's own is_boss flag covers BOTH the boss lair and a chamber LORD, and they want
+    ' different bonuses -- ROOMS().is_chamber tells them apart. Capped by MON_TOHIT_MAX.
+    IF isboss THEN
+        IF ROOMS(rm).is_chamber THEN mtohit = MonsterToHit%(lvl, MK_LORD) ELSE mtohit = MonsterToHit%(lvl, MK_BOSS)
+    ELSE
+        mtohit = MonsterToHit%(lvl, MK_ROOM)
+    END IF
     thb = player_tohit                          ' final to-hit incl. ability modifier
     IF item_sword > 0 THEN thb = thb + item_sword   ' a Magic Sword +N sharpens the SWING as well as the wound (+N hit AND +N dmg)
     IF item_bow THEN thb = thb + 2              ' Magic Bow: +2 to-hit, any class (ranged accuracy) -- stacks with the blade
@@ -736,6 +744,7 @@ SUB MonsterAttack (rm AS INTEGER)
             Banner mon + " ATTACK (3): SERIOUS WOUND!", "You drop half your treasure (" + _TRIM$(STR$(lost)) + ") and retreat to START.   [ press any key ]"
             CombatPause
             c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+            start_heal_locked = TRUE             ' dragged home wounded -- the entrance does not patch that up
         CASE 4, 5, 6                             ' LIGHT WOUND
             lost = 1000: IF lost > gold THEN lost = gold
             gold = gold - lost
@@ -961,6 +970,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     NarrateT "combat.slay", NARR_COMBAT                     ' spoken "you slay it" (both modes; Combat tier)
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
+    CritPotionReward                                        ' crits you landed pay out in healing (any fight)
     ' a real room's hoard may also hide a healing potion (1d8). Wanderers (scratch
     ' slot rm > ROOM_N) never drop one -- that would make them farmable.
     IF rm <= ROOM_N THEN
@@ -988,6 +998,37 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
         ' in Dungeon!, so they're a D&D-mode feature only.
         IF NOT opt_oldschool AND RollDie(100) <= CHEST_PCT THEN DoCurio rm   ' a curio may turn up after the fight
     END IF
+END SUB
+
+
+' FIGHTING WELL PAYS FOR ITSELF: every critical hit you land in a fight improves the odds that
+' its spoils include a healing potion, and that the potion is the LARGE kind.
+'
+'   chance of a potion at all : 20% per crit, capped at 80%   (1 crit 20, 2 40, 3 60, 4+ 80)
+'   chance it is a LARGE one  : 50% at one crit, +10% each further crit, capped at 80%
+'
+' This is deliberately separate from the room hoard's own TREASURE_POTION_PCT roll (which only
+' a real room can yield): the reward here is earned by HOW you fought, not by what the monster
+' was guarding, so it pays out on chamber guardians and wandering ambushes too. No crits, no
+' roll -- so it cannot be farmed by grinding easy fights, only by landing natural 20s.
+SUB CritPotionReward
+    DIM pct AS INTEGER, lgpct AS INTEGER
+    IF opt_oldschool THEN EXIT SUB                 ' Dungeon! has no hit points, so no potions
+    IF combat_crits <= 0 THEN EXIT SUB
+    pct = 20 * combat_crits: IF pct > 80 THEN pct = 80
+    IF NOT PctChance%(pct) THEN EXIT SUB
+    lgpct = 40 + 10 * combat_crits: IF lgpct > 80 THEN lgpct = 80
+    Sfx "treasure"
+    IF PctChance%(lgpct) THEN
+        item_potion_large = item_potion_large + 1
+        CurioGain "Large Healing Potion", 0
+        Banner "Your killing strokes were clean -- and the spoils generous.", "A LARGE HEALING POTION (1d8+1). Press [H] in a fight.   [ press any key ]"
+    ELSE
+        item_potion_small = item_potion_small + 1
+        CurioGain "Small Healing Potion", 0
+        Banner "Your killing strokes were clean -- and the spoils generous.", "A SMALL HEALING POTION (1d4). Press [H] in a fight.   [ press any key ]"
+    END IF
+    CombatPause
 END SUB
 
 
