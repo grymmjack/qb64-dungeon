@@ -1,3 +1,31 @@
+' ============================================================================
+'  REST AT THE ENTRANCE -- the scripted version of going home to heal.
+'
+'  The MECHANIC already existed (Game_OnEnterCell restores hp_start_amount once per trip). This
+'  is the presentation Rick asked for: a wash to white for the passage of days, an image, the
+'  scrawling text, narration and the sounds of somewhere safe.
+'
+'  Deliberately NOT factored together with the in-dungeon [R]est -- Rick called them two
+'  separate features, and they are: this one is a set piece at a fixed place, that one is an
+'  ordinary action with its own risk.
+'
+'  White, not black: black reads as "you passed out", white reads as "days went by". That is
+'  exactly the difference between dying and resting, and the transition should say which.
+' ============================================================================
+SUB RestAtEntrance (healed AS INTEGER)
+    DIM body AS STRING
+    Sfx "rest-water"                             ' somewhere with clean running water
+    FlashWhite 0.35                              ' the days pass
+    Sfx "rest-breath"                            ' ...and you can finally breathe out
+    body = "Having sustained wounds you rest at the entrance to heal and recuperate."
+    body = body + "  You are healed after a few days."
+    IF healed > 0 THEN body = body + "  (+" + _TRIM$(STR$(healed)) + " HP, now " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + ")"
+    ScrollTextArtKey "R E S T", body, ArtFile$("events/rest.png"), "rest.entrance"
+    Sfx "rest-gold"                              ' the light on your hoard, before you go back down
+    cursor_erase: cursor_draw: DrawHUD: Present
+END SUB
+
+
 
 ' ============================================================================
 '  AMBIENCE -- a distant noise every so often, chosen by which level you are on.

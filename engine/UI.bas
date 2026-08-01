@@ -45,6 +45,35 @@ SUB FadeOut
 END SUB
 
 
+' Wash the screen to WHITE and back. Used for the passage of time -- black reads as "you lost
+' consciousness", white reads as "days went by", which is the difference between dying and
+' resting. `hold` is the seconds spent fully white.
+SUB FlashWhite (hold AS SINGLE)
+    DIM scene AS LONG, a AS INTEGER
+    scene = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _PUTIMAGE (0, 0), CANVAS, scene
+    _DEST CANVAS
+    FOR a = 0 TO 255 STEP 24                     ' up to white
+        _PUTIMAGE (0, 0), scene, CANVAS
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&HFF, &HFF, &HFF, a), BF
+        Present
+        _LIMIT 60
+    NEXT a
+    LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&HFF, &HFF, &HFF), BF
+    Present
+    IF hold > 0 THEN _DELAY hold
+    FOR a = 255 TO 0 STEP -24                    ' ...and back down to the scene
+        _PUTIMAGE (0, 0), scene, CANVAS
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&HFF, &HFF, &HFF, a), BF
+        Present
+        _LIMIT 60
+    NEXT a
+    _PUTIMAGE (0, 0), scene, CANVAS
+    Present
+    _FREEIMAGE scene
+END SUB
+
+
 ' Death transition: adjacent vertical strips of blood each run down on their own
 ' stagger + speed, piling up strip by strip until the whole screen is red -- then
 ' it slowly fades to black. (No sweeping rectangle -- the strips do the filling.)

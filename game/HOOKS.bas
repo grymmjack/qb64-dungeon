@@ -56,14 +56,17 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
         ' case is a returning hero whose "starting" HP is their current max, which is exactly
         ' the old behaviour they were already playing with.
         IF hp_start_amount <= 0 THEN hp_start_amount = player_maxhp
-        IF NOT start_heal_locked THEN
+        IF opt_startheal AND NOT start_heal_locked THEN
             IF player_hp >= 1 AND player_hp < (player_maxhp * 3) \ 4 THEN
+                DIM healed AS INTEGER
+                healed = player_hp
                 player_hp = player_hp + hp_start_amount
                 IF player_hp > player_maxhp THEN player_hp = player_maxhp
+                healed = player_hp - healed        ' what the rest ACTUALLY restored, after the cap
                 start_heals = start_heals + 1
                 start_heal_locked = TRUE           ' one heal per trip out; leaving clears it
-                Sfx "levelup"
-                LogEvent "The entrance restores you (" + _TRIM$(STR$(hp_start_amount)) + " HP)."
+                LogEvent "The entrance restores you (" + _TRIM$(STR$(healed)) + " HP)."
+                RestAtEntrance healed              ' the set piece: white wash, art, narration, sfx
             END IF
         END IF
     ELSE

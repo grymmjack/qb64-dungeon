@@ -187,16 +187,20 @@ main way you get stronger, so it is worth going out of your way for:
   door on a cleared floor draws almost nothing, where on a live floor the noise compounds with
   every attempt.
 
-### Going home to heal
+### Resting at the entrance (SETTINGS: Rest at Entrance)
 
-Returning to the entrance patches you up — but by a **fixed amount**: exactly the HP you
-started the run with. Fifteen maximum HP at character creation means fifteen HP back, every
-time, for the whole run. As your maximum grows the trip home is worth relatively less, so it
-stops being a free reset and becomes a decision.
+Walk back to the entrance hurt and you **rest for a few days** — the screen washes to white,
+and you come back healed. This is what makes the starting chamber worth returning to.
+
+You recover a **fixed amount**: exactly the HP you started the run with. Fifteen maximum HP at
+character creation means fifteen HP back, every time, for the whole run. As your maximum grows
+the trip home is worth relatively less, so it stops being a free reset and becomes a decision.
 
 It only works if you are **alive** (at least 1 HP — the entrance patches you up, it does not
 raise the dead) and **actually hurt** (below 75% of your maximum), and only **once per trip
 out**: you have to go back into the dungeon before it will help you again.
+
+Turn **Rest at Entrance** off in SETTINGS if you would rather the entrance were just a door.
 
 ### Luck (SETTINGS: Luck Re-rolls)
 

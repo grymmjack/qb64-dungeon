@@ -433,6 +433,7 @@ SUB SaveSettings
     PRINT #f, "artstyle " + _TRIM$(STR$(opt_artstyle))
     PRINT #f, "gestures " + _TRIM$(STR$(opt_gestures))
     PRINT #f, "luck " + _TRIM$(STR$(opt_luck))
+    PRINT #f, "startheal " + _TRIM$(STR$(opt_startheal))
     PRINT #f, "juice " + _TRIM$(STR$(opt_juice))
     PRINT #f, "fov " + _TRIM$(STR$(opt_fov))
     PRINT #f, "players " + _TRIM$(STR$(num_players))
@@ -505,6 +506,7 @@ SUB LoadSettings
                 CASE "artstyle": opt_artstyle = v
                 CASE "gestures": opt_gestures = v
                 CASE "luck": opt_luck = v
+                CASE "startheal": opt_startheal = v
                 CASE "juice": opt_juice = v
                 CASE "fov": opt_fov = v
                 CASE "players": num_players = v

@@ -170,6 +170,7 @@ opt_dicefont = 4                              ' default dice numeral font index 
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 opt_luck = TRUE                               ' CHA-funded re-rolls on combat rolls + saves (SETTINGS)
+opt_startheal = TRUE                          ' returning to the entrance rests + heals you (SETTINGS)
 opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 25 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)

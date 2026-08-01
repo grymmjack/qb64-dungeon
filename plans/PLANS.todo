@@ -273,14 +273,20 @@ Game Tweaks:
       ☐ Flourishes work with weapons AND magic
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
-    Rest systems: @critical
-        ☐ Scrawling text with rest image (add to imagemanifest and ansimanifest)
-        ☐ Narration: Having sustained wounds you rest at the entrance to heal and recouperate. You are healed after a few days.
-        ☐ Transition: Screen fade in to white then back to normal quickly
-        ☐ SFX: Running water, gold shining and deep breathe and exhale calmly
-        ☐ This allows the player to reuse the starting point
-        ☐ Return to Start Heals setting should be a game option: ON/OFF
-        ☐ Add this to the RULES for D&D if it's a setting that's enabled
+    Rest systems: @done(26-08-01)
+        ✔ Scrawling text with rest image (in BOTH imagemanifest and ansimanifest as events/rest) @done(26-08-01)
+        ✔ Narration: "Having sustained wounds you rest at the entrance..." (key rest.entrance) @done(26-08-01)
+        ✔ Transition: screen washes to WHITE and back @done(26-08-01)
+          ✔ white, not black, on purpose: black reads as "you passed out", white reads as @done(26-08-01)
+          ✔ "days went by" -- which is exactly the difference between dying and resting @done(26-08-01)
+        ✔ SFX: rest-water / rest-breath / rest-gold, in that order across the wash @done(26-08-01)
+        ✔ This allows the player to reuse the starting point @done(26-08-01)
+        ✔ Return to Start Heals is a game option: ON/OFF ("Rest at Entrance", RULES column) @done(26-08-01)
+        ✔ Added to DUNGEON-RULES.md, which the in-game [M] Rules screen reads @done(26-08-01)
+        ✔ the banner reports what was ACTUALLY restored (after the max-HP cap), not the @done(26-08-01)
+          ✔ nominal amount -- claiming +15 while giving +4 is the kind of small lie players notice @done(26-08-01)
+        ✔ kept SEPARATE from the in-dungeon [R]est per Rick's call: a set piece at a fixed @done(26-08-01)
+          ✔ place is not the same feature as an ordinary action with its own risk @done(26-08-01)
 
 Roadmap (future / bigger efforts):
     ☐ Auto-move: ON/OFF (will be used for computer players later)

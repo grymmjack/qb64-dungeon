@@ -80,3 +80,10 @@ amb-howl       | 3    | a howl carrying up from a lower floor
 amb-bark       | 1    | a sharp guttural bark -- an order, or a challenge
 amb-moan       | 3    | a long low moan of the hurt or the dead
 amb-whisper    | 3    | a faint whisper you cannot quite make out
+
+# --- REST AT THE ENTRANCE (see RestAtEntrance) ----------------------------------------
+# Three beats of a scripted rest, played over a wash to white. Together they have to say
+# "somewhere safe, and days went by" -- the opposite of every other sound in this game.
+rest-water     | 4    | clean running water in a stone basin, calm and steady, no splashing
+rest-breath    | 3    | one long human breath drawn in and let out slowly, relieved, close-mic
+rest-gold      | 2    | a small hoard of coins shifting and settling, bright and unhurried

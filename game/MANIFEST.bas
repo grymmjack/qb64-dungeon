@@ -18,7 +18,8 @@ FUNCTION Game_SfxNames$
     Game_SfxNames$ = "move bump door strongdoor breakdoor secret secretpass key idle treasure trap hit miss crit fumble search win lose saveok savebad chest boom hiss fizzle alarm select levelup voice diceroll diceland dice_edge dice_settle dice-math-1 dice-math-2 monster-pain player-pain death monster-death maxhit heartbeat curio poison-proc frost-proc teleport fireball lightning-bolt" + _
         " amb-thump amb-hinge amb-slam amb-chains amb-wind amb-drone amb-scream" + _
         " amb-squeak amb-hiss amb-gibber amb-growl amb-slither amb-laugh amb-howl" + _
-        " amb-bark amb-moan amb-whisper"
+        " amb-bark amb-moan amb-whisper" + _
+        " rest-water rest-breath rest-gold"
 END FUNCTION
 
 ' Look up want in the parallel keys()/vals() arrays (case-insensitive), or a placeholder.
@@ -138,6 +139,7 @@ SUB DumpAudioManifest
     NEXT mlvl
     ' combat narration -- generic per-event voiced lines (Combat tier; see NarrateT / game/COMBAT.bas).
     ' Keep them short and atmospheric; they play OVER the combat banners, so they set mood, not detail.
+    ManAsset "narration/rest.entrance | Having sustained wounds you rest at the entrance to heal and recuperate. You are healed after a few days."
     ManAsset "narration/combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself."
     ManAsset "narration/combat.reface | The creature still stands between you and your goal. You must face it."
     ManAsset "narration/combat.slay | Your foe crumples and falls still. The way is clear."

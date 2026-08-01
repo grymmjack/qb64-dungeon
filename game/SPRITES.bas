@@ -519,6 +519,9 @@ SUB DumpImageBody
     PutArtBoth "items", "sword", "a plain steel longsword", "a weapon", "256x256", "16x12", seen
     PutArtBoth "items", "staff", "a wizard's wooden staff", "a weapon", "256x256", "16x12", seen
     PutArtBoth "items", "elven-blade", "a slender elven blade", "a weapon", "256x256", "16x12", seen
+    ' The REST set piece's image (see RestAtEntrance). Filed under events/ with the curio props
+    ' because it is the same kind of thing -- a full-width scene behind scrawling text.
+    PutArtBoth "events", "rest", "a weary adventurer resting safely at the dungeon entrance, bedroll by a small fire, clean water, morning light", "a quiet safe-haven scene", "384x384", "18x12", seen
     ManOut ""
     ManOut "# --- markers (board overlays) ---"
     lst = "gravestone player-body lost-cache cursed-rune ": p = 1

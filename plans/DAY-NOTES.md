@@ -157,3 +157,29 @@ Consequences already accepted:
 - `WeaponSprite$` deliberately shows the MELEE weapon in the combat bar, because [SPACE] attack
   is a melee swing. When missiles become a real mode, the panel will need to show which one is
   in hand rather than assuming.
+
+
+---
+
+## The stat panel's "(soon)" lines ARE the @high checklist (Rick, 26-08-01)
+
+*"we will build the unbuilt stuff mentioned in character editor after criticals with all @high"*
+
+`assets/data/<pack>/stats.txt` now doubles as a work list: every row flagged `0` is a mechanic
+the character creator advertises as coming. Several already have @high entries in PLANS.todo, so
+they are the same work seen from two directions:
+
+| stat.txt line (live=0) | PLANS item |
+|---|---|
+| DEX — flourishes: spend timing for extra damage | *Add Flourishes based on DEX mechanic* @high |
+| DEX — accuracy with missile weapons | the missile-weapon arc (see the Magic Bow note above) |
+| CON — endure a maximum-damage blow for half | *gesture based "endure damage"* @high |
+| CON — resistance to poison, acid, shock | *Give monsters appropriate elemental effects* @high |
+| INT — spells carried / recall / magic flourishes | not yet an entry — needs one |
+| WIS — sight range, finding hidden things, spell resist | not yet an entry — needs one |
+| CHA — barter, fate skew, reaction saves | not yet an entry — needs one |
+| STR — heavier armour and melee weapons | not yet an entry — needs one |
+
+**Flipping the flag is the last step of each feature**, and costs nothing but the edit. Four of
+the eight groups have no PLANS entry yet; worth adding when the @high pass starts so nothing in
+the creator stays permanently "(soon)".

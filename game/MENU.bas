@@ -594,7 +594,7 @@ SUB BuildSetLayout
     SetLayRow 3, 14, prow(): SetLayRow 3, 52, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow()
     SetLayRow 3, 17, prow()
     SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
-    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow()
+    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow(): SetLayRow 3, 55, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
     SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow()
@@ -651,7 +651,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 54                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 55                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -865,6 +865,7 @@ SUB RunSettings
                     ' path every subject resolves to -- keeping it would show the old form
                     FreeAnsiSprites
                 CASE 54: opt_luck = NOT opt_luck
+                CASE 55: opt_startheal = NOT opt_startheal
                 CASE 36: opt_gestures = NOT opt_gestures
                 CASE 37: opt_juice = NOT opt_juice
                 CASE 38
@@ -1038,9 +1039,15 @@ SUB RunSettings
                 CASE 54
                     lbl = "Luck Re-rolls"
                     IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 55
+                    lbl = "Rest at Entrance"
+                    IF opt_startheal THEN vtxt = "on (heals + rests)" ELSE vtxt = "off"
                 CASE 54
                     lbl = "Luck Re-rolls"
                     IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 55
+                    lbl = "Rest at Entrance"
+                    IF opt_startheal THEN vtxt = "on (heals + rests)" ELSE vtxt = "off"
                 CASE 36
                     lbl = "Action Gestures"
                     IF opt_gestures THEN vtxt = "on (timing bar)" ELSE vtxt = "off (dice only)"

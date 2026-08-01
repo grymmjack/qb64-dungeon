@@ -374,6 +374,7 @@ DIM SHARED fx_critkill AS INTEGER                                           ' TR
 CONST LUCK_FUSE_SEC = 2.0
 DIM SHARED luck_left AS INTEGER, luck_max AS INTEGER
 DIM SHARED opt_luck AS INTEGER            ' SETTINGS toggle: luck re-rolls on/off
+DIM SHARED opt_startheal AS INTEGER       ' SETTINGS: does returning to the entrance heal you?
 
 ' --- what each ability DOES (assets/data/<pack>/stats.txt) ---
 ' Shown in the character creator's side panel. SH_LIVE separates what the game does TODAY from
