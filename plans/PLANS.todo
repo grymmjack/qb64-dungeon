@@ -290,13 +290,19 @@ Game Tweaks:
       ☐ Add this to the RULES for D&D if it's a setting that's enabled
     ☐ On max damage use gesture to check a critical @high
       ☐ Criticals confirmed like this don't get flourishes - only real nat 20s get flourishes
-    ☐ Add Flourishes based on DEX mechanic (therefore giving DEX more weight) @high
-      ☐ Flourishes influenced by stats (bar sizes, target sizes, timing tightness, etc)
-      ☐ Number of flourishes based on dex bonus
-      ☐ Replenished every time character levels up
-      ☐ +1 Given one back when a crit occurs nat 20
-      ☐ -1 Lose one when a fumble occurs nat 1
-      ☐ Flourishes work with weapons AND magic
+    ✔ Add Flourishes based on DEX mechanic @done(26-08-01)
+      ✔ Flourishes influenced by stats: DEX shifts SkillTier%, which feeds GaugeKnobs -- and @done(26-08-01)
+        ✔ GaugeKnobs is what sets bar sizes, target sizes AND timing tightness, so one change @done(26-08-01)
+        ✔ moves all three. A nimble novice now reads the bar better than a clumsy veteran @done(26-08-01)
+      ✔ Number of flourishes based on dex bonus (flourish_max = AbilMod(DEX)) @done(26-08-01)
+      ✔ Replenished every time character levels up (twice, around the stat point) @done(26-08-01)
+      ✔ +1 given back on a nat 20 -- landing crits keeps you IN flourishes, so the crit @done(26-08-01)
+        ✔ follow-through is effectively free; fumbling and magic are what drain the pool @done(26-08-01)
+      ✔ -1 on a nat 1: fumbling dries you up @done(26-08-01)
+      ✔ Flourishes work with weapons AND magic (MagicFlourish%: same gauge, same cost, same @done(26-08-01)
+        ✔ payout -- one gauge to learn; +d6 not +weapon die, since shaping a fireball makes the @done(26-08-01)
+        ✔ FIRE bigger, not the swing harder) @done(26-08-01)
+      ✔ shown in the HUD as {FLRn} @done(26-08-01)
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
     Rest systems: @done(26-08-01)
