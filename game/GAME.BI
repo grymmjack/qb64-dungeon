@@ -337,6 +337,11 @@ DIM SHARED AMB_LVL(1 TO 120) AS INTEGER, AMB_NAME(1 TO 120) AS STRING
 DIM SHARED AMB_W(1 TO 120) AS INTEGER, AMB_N AS INTEGER
 DIM SHARED amb_ticks AS LONG                                               ' frames until the next ambient noise
 DIM SHARED AMB_SECS_MIN AS INTEGER, AMB_SECS_MAX AS INTEGER                ' gap between noises; MIN 0 = ambience off
+
+' TRUE = manifests print only the assets the selected packs are MISSING (`dungeon.run
+' <any>manifest audit`). GAME.BI, not ENGINE.BI: the manifests are game content and every
+' consumer lives in game/MANIFEST.bas -- audit-boundary.sh catches exactly this misfiling.
+DIM SHARED man_audit AS INTEGER
 DIM SHARED fx_critkill AS INTEGER                                           ' TRUE = the killing blow was a CRIT (picks the killcrit aftermath text)
 DIM SHARED CHM_FLAV_NAME(1 TO 32) AS STRING, CHM_FLAV_TXT(1 TO 32) AS STRING, CHM_FLAV_N AS INTEGER   ' per-chamber descriptions
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
