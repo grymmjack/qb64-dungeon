@@ -319,7 +319,15 @@ SUB CurioGamble (sec AS INTEGER)
     bet = 250 * sec: IF bet > gold THEN bet = gold
     IF bet <= 0 THEN Banner "The altar wants a wager, but your purse is empty.", "You walk away.   [ press any key ]": WaitKey: EXIT SUB
     IF NOT CurioChoose%("W") THEN Banner "You leave the bone dice unthrown.", "[ press any key ]": WaitKey: EXIT SUB
-    r = GameRoll(2, 6, 0, "the ALTAR's wager -- 7+ doubles " + _TRIM$(STR$(bet)) + " gold")
+    ' CHA is fate leaning your way; WIS is reading the bones before you commit. Both belong on a
+    ' wager, and between them they are the reason neither stat is a dump stat.
+    '
+    ' CLAMPED hard (-2..+3): on 2d6 needing 7+, an uncapped +6 from two maxed scores would make
+    ' the altar a gold printer rather than a gamble, which is the one thing a gambling curio
+    ' must not be.
+    DIM gb AS INTEGER
+    gb = GambleBonus%
+    r = GameRoll(2, 6, gb, "the ALTAR's wager -- 7+ doubles " + _TRIM$(STR$(bet)) + " gold" + GambleTag$(gb))
     IF r >= 7 THEN
         gold = gold + bet: CurioGain "altar winnings", bet: Sfx "levelup"
         Banner "The bones come up " + _TRIM$(STR$(r)) + " -- the altar DOUBLES your stake!", "+" + _TRIM$(STR$(bet)) + " gold.   [ press any key ]"
@@ -333,7 +341,7 @@ END SUB
 ' PEDDLER: buy a random useful item for depth-scaled gold.
 SUB CurioPeddler (sec AS INTEGER)
     DIM cost AS LONG, got AS STRING
-    cost = 300 * sec
+    cost = BuyPrice&(300 * sec)                  ' CHA barter: charm shaves the peddler's price
     IF gold < cost THEN Banner "The peddler eyes your thin purse and melts away.", "(wants " + _TRIM$(STR$(cost)) + " gold)   [ press any key ]": WaitKey: EXIT SUB
     IF NOT CurioChoose%("B") THEN Banner "'Another time, then.' The peddler is gone.", "[ press any key ]": WaitKey: EXIT SUB
     gold = gold - cost: Sfx "treasure"
@@ -512,3 +520,23 @@ SUB SpringTrap (rm AS INTEGER)
     WaitKey
     cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
+
+
+' The wager modifier: CHA (fate) + WIS (reading the bones), clamped so a maxed pair cannot turn
+' the altar into a certainty. Oldschool mode has no ability scores, so it wagers straight.
+FUNCTION GambleBonus%
+    DIM b AS INTEGER
+    GambleBonus% = 0
+    IF opt_oldschool THEN EXIT FUNCTION
+    b = AbilMod(player_cha) + AbilMod(player_wis)
+    IF b < -2 THEN b = -2
+    IF b > 3 THEN b = 3
+    GambleBonus% = b
+END FUNCTION
+
+' Shown in the roll caption so the player can SEE why the bones favour them -- an invisible
+' modifier on a gamble reads as the game cheating in either direction.
+FUNCTION GambleTag$ (gb AS INTEGER)
+    IF gb = 0 THEN GambleTag$ = "": EXIT FUNCTION
+    GambleTag$ = "  (" + ModStr$(gb) + " CHA/WIS)"
+END FUNCTION

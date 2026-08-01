@@ -72,3 +72,9 @@ END FUNCTION
 FUNCTION Game_ZoneCount%
     Game_ZoneCount% = 1
 END FUNCTION
+
+
+' No ability scores in this example -- a flat, sane sight radius.
+FUNCTION Game_SightRadius%
+    Game_SightRadius% = 10
+END FUNCTION

@@ -829,7 +829,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     SELECT CASE itm
         CASE 1, 2                                ' Magic Sword
             IF player_class = 4 THEN             ' a Wizard cannot use a Magic Sword (rulebook: must return it)
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure "Magic Sword (sold)", 500
                 line2 = "A " + tname + " -- a Wizard can't wield it; you sell it for 500 gold."
             ELSEIF opt_oldschool THEN            ' Dungeon!: one Magic Sword (+1) at a time -- no upgrading
@@ -838,7 +838,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     LogTreasure "Magic Sword", 500
                     line2 = "You take up the " + tname + " -- +1 to your attack rolls, and it can slay even a '-' monster!"
                 ELSE
-                    gold = gold + 500
+                    gold = gold + SellPrice&(500)
                     LogTreasure "Magic Sword (sold)", 500
                     line2 = "You already wield a Magic Sword (only one at a time) -- you sell this for 500 gold."
                 END IF
@@ -851,7 +851,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     LogTreasure "Magic Sword +" + _TRIM$(STR$(item_sword)), 500 * item_sword
                     line2 = "You take up a finer blade -- your sword is now +" + _TRIM$(STR$(item_sword)) + " to attacks!"
                 ELSE
-                    gold = gold + 1000
+                    gold = gold + SellPrice&(1000)
                     LogTreasure "Magic Sword (sold)", 1000
                     line2 = "Your blade is already legendary (+5) -- you sell this one for 1000 gold."
                 END IF
@@ -868,7 +868,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             END IF
         CASE 4                                    ' ESP Medallion (binary -- unique; a spare is pack loot)
             IF item_esp THEN
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure "ESP Medallion (spare)", 500
                 line2 = "You already wear an ESP Medallion -- you stash the spare in your pack to sell in town (+500 gold)."
             ELSE
@@ -878,7 +878,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
             END IF
         CASE 5                                    ' Crystal Ball (binary -- unique; a spare is pack loot)
             IF item_crystal THEN
-                gold = gold + 1000
+                gold = gold + SellPrice&(1000)
                 LogTreasure "Crystal Ball (spare)", 1000
                 line2 = "You already keep a Crystal Ball -- you tuck the spare in your pack to sell in town (+1000 gold)."
             ELSE
@@ -904,7 +904,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     LogTreasure _TRIM$(tname) + " (+2 AC)", 1000
                     line2 = "You take up the " + tname + " -- +2 AC (now " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")."
                 ELSE
-                    gold = gold + 500
+                    gold = gold + SellPrice&(500)
                     LogTreasure "Shield (spare)", 500
                     line2 = "You already carry a shield -- you sling the spare in your pack to sell in town (+500 gold)."
                 END IF
@@ -914,18 +914,18 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     LogTreasure _TRIM$(tname) + " (+3 AC)", 1500
                     line2 = "You don the " + tname + " -- +3 AC (now " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")."
                 ELSE
-                    gold = gold + 750
+                    gold = gold + SellPrice&(750)
                     LogTreasure "Armor (spare)", 750
                     line2 = "You already wear good armor -- the spare set goes in your pack to sell in town (+750 gold)."
                 END IF
             END IF
         CASE 9                                     ' Magic Bow (+2 to-hit) -- an ELF item, D&D mode
             IF NOT IsElf% THEN                      ' only the Elf is trained to the bow
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure _TRIM$(tname) + " (sold)", 500
                 line2 = "A fine " + tname + " -- but only an Elf is trained to it; you sell it for 500 gold."
             ELSEIF opt_oldschool THEN               ' 2d6 combat has no to-hit bonus -- sell it
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure _TRIM$(tname) + " (sold)", 500
                 line2 = "A fine " + tname + " -- but it lends no edge to a 2d6 fight; you sell it for 500 gold."
             ELSEIF NOT item_bow THEN
@@ -933,7 +933,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 LogTreasure "Magic Bow", 0
                 line2 = "You take up the " + tname + " -- +2 to hit, striking before they close!"
             ELSE
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure "Magic Bow (spare)", 500
                 line2 = "You already carry a " + tname + " -- you sling the spare in your pack to sell in town (+500 gold)."
             END IF
@@ -943,7 +943,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 LogTreasure "Elf Boots", 0
                 line2 = "You lace on the " + tname + " -- +2 to movement, and you slip away from fights far more easily!"
             ELSE
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure "Elf Boots (spare)", 500
                 line2 = "You already run swift in your " + tname + " -- the spare pair goes in your pack to sell in town (+500 gold)."
             END IF
@@ -957,7 +957,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 LogTreasure "Fire Ball spell", 0
                 line2 = "You inscribe the FIRE BALL into your spellbook (" + _TRIM$(STR$(spell_fire)) + " charges) -- press [F] in a fight to hurl it!"
             ELSE
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure _TRIM$(tname) + " (sold)", 500
                 line2 = "The " + tname + " is written in arcane runes only a Wizard can read -- you sell it for 500 gold."
             END IF
@@ -967,7 +967,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 LogTreasure "Lightning Bolt spell", 0
                 line2 = "You inscribe the LIGHTNING BOLT into your spellbook (" + _TRIM$(STR$(spell_bolt)) + " charges) -- press [L] in a fight to loose it!"
             ELSE
-                gold = gold + 500
+                gold = gold + SellPrice&(500)
                 LogTreasure _TRIM$(tname) + " (sold)", 500
                 line2 = "The " + tname + " is written in arcane runes only a Wizard can read -- you sell it for 500 gold."
             END IF
@@ -1303,3 +1303,43 @@ SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS 
     IF frac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
     LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
 END SUB
+
+
+' ============================================================================
+'  BARTER -- CHA decides what you get for a sale, and what you pay for a purchase.
+'
+'  Every "you sell the spare" in ClaimTreasure and every priced curio goes through these, so
+'  the modifier lives in ONE place rather than at a dozen call sites where it would drift.
+'
+'  +/-8% per point of CHA modifier, clamped to +/-40%: enough to feel, never enough to make
+'  selling spares a better living than adventuring.
+' ============================================================================
+
+' What you actually receive for something worth `base`.
+FUNCTION SellPrice& (amt AS LONG)   ' `amt`, not `base`: BASE is reserved (OPTION BASE)
+    DIM pct AS INTEGER
+    SellPrice& = amt
+    IF opt_oldschool THEN EXIT FUNCTION          ' no ability scores in Dungeon! mode
+    pct = 8 * AbilMod(player_cha)
+    IF pct < -40 THEN pct = -40
+    IF pct > 40 THEN pct = 40
+    DIM v AS LONG
+    v = amt + (amt * pct) \ 100
+    IF v < 1 THEN v = 1                          ' a local, not the return slot: QB64 reads a bare
+    SellPrice& = v                               ' `SellPrice&` in an expression as a CALL
+END FUNCTION
+
+' What something priced `amt` actually costs you. The sign is inverted: charm makes you PAY
+' less, where it makes you RECEIVE more.
+FUNCTION BuyPrice& (amt AS LONG)
+    DIM pct AS INTEGER
+    BuyPrice& = amt
+    IF opt_oldschool THEN EXIT FUNCTION
+    pct = 8 * AbilMod(player_cha)
+    IF pct < -40 THEN pct = -40
+    IF pct > 40 THEN pct = 40
+    DIM w AS LONG
+    w = amt - (amt * pct) \ 100
+    IF w < 1 THEN w = 1
+    BuyPrice& = w
+END FUNCTION

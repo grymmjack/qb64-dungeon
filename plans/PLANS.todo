@@ -166,6 +166,21 @@ Huge UI Efforts:
         ☐ Inventory change
 
 Game Tweaks:
+    ✔ MAKE THE ABILITY SCORES MATTER -- turning the character panel's "(soon)" lines live @done(26-08-01)
+      ✔ WIS: sight radius (Game_SightRadius% hook; 10 + mod, so 10-11 plays as before) @done(26-08-01)
+      ✔ WIS: secret-door search band widened by the WIS mod, capped at 5 so it can never @done(26-08-01)
+        ✔ become the Secret Door Card, whose whole selling point is that it NEVER fails @done(26-08-01)
+      ✔ WIS + CHA: both add to the Gambler's Altar wager (Rick asked for both) -- clamped @done(26-08-01)
+        ✔ -2..+3, because uncapped +6 from two maxed scores turns a gamble into a gold printer @done(26-08-01)
+        ✔ shown in the roll caption: an invisible modifier on a wager reads as the game cheating @done(26-08-01)
+      ✔ INT: a Wizard carries 3 + INT mod of each attack spell. Teleport stays FLAT -- it is an @done(26-08-01)
+        ✔ escape, and scaling it would make a clever Wizard un-killable @done(26-08-01)
+      ✔ CHA: barter, through ONE funnel (SellPrice& / BuyPrice&) so 13 sell sites and the @done(26-08-01)
+        ✔ peddler cannot drift apart. +/-8% per point, clamped +/-40% -- enough to feel, never @done(26-08-01)
+        ✔ enough to make selling spares a better living than adventuring @done(26-08-01)
+      ✔ stats.txt live count 12 -> 18; the creator panel updates with no code change @done(26-08-01)
+      ☐ STILL (soon): STR heavier gear; DEX flourishes + missile; CON resistances + endure;
+        ☐ INT recall + magic flourishes; WIS spell resistance; CHA fate skew + reaction saves
     ✔ Magic Bow is ELF-ONLY (any other class sells it; the curio no longer offers it to them) @done(26-08-01)
       ✔ first MISSILE weapon -- thin on purpose (+2 to-hit + SHOOT) until the top-down @done(26-08-01)
         ✔ perspective lands; the to-hit line is the seam to widen, see plans/DAY-NOTES.md @done(26-08-01)

@@ -521,7 +521,13 @@ END SUB
 
 ' Recompute which cells are lit from the player's cell (circular radius FOV_R).
 SUB ComputeFOV
-    CONST FOV_R = 10
+    ' Sight radius. The game hook lets the GAME widen or narrow it -- in DUNGEON! that is WIS,
+    ' "distance of vision and detection". The engine keeps a sane default so examples/minimal
+    ' (which has no ability scores) still sees.
+    DIM FOV_R AS INTEGER
+    FOV_R = Game_SightRadius%
+    IF FOV_R < 3 THEN FOV_R = 3
+    IF FOV_R > 20 THEN FOV_R = 20
     DIM pcx AS INTEGER, pcy AS INTEGER, cx AS INTEGER, cy AS INTEGER, oldsrc AS LONG
     pcx = c.x \ CW: pcy = c.y \ CH
     FOR cy = 0 TO SH - 1: FOR cx = 0 TO SW - 1: LOS_LIT(cx, cy) = 0: NEXT cx: NEXT cy

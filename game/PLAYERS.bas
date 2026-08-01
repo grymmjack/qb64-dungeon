@@ -151,7 +151,14 @@ SUB SetupPlayers
         PLAYERS(p).t_poison = 0: PLAYERS(p).t_fire = 0
         PLAYERS(p).t_frost = 0: PLAYERS(p).t_siren = 0
         IF klass = 4 THEN
-            PLAYERS(p).sp_fire = 3: PLAYERS(p).sp_bolt = 3: PLAYERS(p).teleport = 2
+            ' INT -- "how many spells you can carry". 3/3/2 is the baseline (INT 10-11); every
+            ' +2 INT is one more of each attack spell. Teleport is left flat: it is an escape,
+            ' and scaling it would make a clever Wizard simply un-killable.
+            PLAYERS(p).sp_fire = 3 + AbilMod(PLAYERS(p).sint)
+            PLAYERS(p).sp_bolt = 3 + AbilMod(PLAYERS(p).sint)
+            IF PLAYERS(p).sp_fire < 1 THEN PLAYERS(p).sp_fire = 1
+            IF PLAYERS(p).sp_bolt < 1 THEN PLAYERS(p).sp_bolt = 1
+            PLAYERS(p).teleport = 2
         ELSE
             PLAYERS(p).sp_fire = 0: PLAYERS(p).sp_bolt = 0: PLAYERS(p).teleport = 0
         END IF

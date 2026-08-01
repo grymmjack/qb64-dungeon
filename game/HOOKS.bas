@@ -235,6 +235,18 @@ FUNCTION Game_ZoneCount%
     Game_ZoneCount% = UBOUND(SECTORS)
 END FUNCTION
 
+' Game hook -- HOW FAR THE PLAYER CAN SEE, in cells (engine/BOARD.bas ComputeFOV).
+'
+' In DUNGEON! that is WIS: "distance of vision and detection". 10 is the historical radius and
+' stays the baseline, so a WIS of 10-11 plays exactly as before; every +2 WIS is one more cell
+' in every direction, which on a 132x51 board is a real difference in the dark.
+'
+' Oldschool mode has no ability scores, so it keeps the flat radius.
+FUNCTION Game_SightRadius%
+    IF opt_oldschool THEN Game_SightRadius% = 10: EXIT FUNCTION
+    Game_SightRadius% = 10 + AbilMod(player_wis)
+END FUNCTION
+
 ' Game hook (#5) -- repaint the game's HUD layer.
 '
 ' The engine repaints the BOARD after an overlay closes (cursor_erase/cursor_draw), but

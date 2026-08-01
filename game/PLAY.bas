@@ -556,6 +556,14 @@ SUB DoSearch
     ' (double odds), Wizard on 1-3. secret_bonus widens the winning band by that much.
     roll = DoRoll(1, 0, "SEARCHING for secret doors")   ' a raw d6, shown honestly
     thresh = 2 + CLASSES(player_class).secret_bonus
+    ' WIS -- "bonus to finding hidden things". A perceptive character widens the band the same
+    ' way the Elf's class bonus does; capped at 5 so it can never become the Secret Door Card,
+    ' which is the item whose whole selling point is that it NEVER fails.
+    IF NOT opt_oldschool THEN
+        thresh = thresh + AbilMod(player_wis)
+        IF thresh < 1 THEN thresh = 1            ' a dolt still has a chance
+        IF thresh > 5 THEN thresh = 5
+    END IF
     IF item_secret_card THEN thresh = 6          ' the Secret Door Card never fails (any roll finds)
     found_any = FALSE: near_hidden = FALSE
     g_secret_tries = g_secret_tries + 1              ' chronicle: count searches toward the next find
