@@ -171,6 +171,7 @@ IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
 opt_luck = TRUE                               ' CHA-funded re-rolls on combat rolls + saves (SETTINGS)
 opt_startheal = TRUE                          ' returning to the entrance rests + heals you (SETTINGS)
+opt_rest = TRUE                               ' [R] rests 1 HP at a time, at the risk of company
 opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 25 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
@@ -206,6 +207,7 @@ LoadTraps                        ' load the curio-chest traps (assets/data/traps
 LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
 LoadAmbience                      ' load the per-level ambient noise table (assets/data/ambience.txt)
 LoadStatHelp                      ' what each ability DOES, for the character-creator panel
+LoadMonsterEffects                ' poison/blight/curse/acid per monster (assets/data/monster-effects.txt)
 LoadChamberEvents                 ' load the chamber event table (assets/data/chamber-events.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
@@ -794,6 +796,7 @@ FUNCTION PlayGame%
         IF k = "G" THEN SaveAndToast: idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
         IF k = "?" OR k = "/" THEN ShowKeys
         IF k = CHR$(9) THEN FindPlayerFlash: idle_ticks = 0   ' [TAB] -- where am I?
+        IF k = "R" THEN DoRest: idle_ticks = 0                ' [R] -- rest a point, and roll for company
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
         IF k = "~" OR k = "`" THEN
             dbg_on = NOT dbg_on

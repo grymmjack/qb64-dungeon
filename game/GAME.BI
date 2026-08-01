@@ -385,6 +385,11 @@ DIM SHARED opt_startheal AS INTEGER       ' SETTINGS: does returning to the entr
 ' have, and how you fight decides how fast you burn it.
 DIM SHARED flourish_left AS INTEGER, flourish_max AS INTEGER
 
+' --- [R]EST: heal a point at a time, and roll for company -----------------------
+DIM SHARED opt_rest AS INTEGER             ' SETTINGS: is in-dungeon resting allowed at all?
+DIM SHARED g_rests AS INTEGER              ' how many points you have rested back this run
+DIM SHARED REST_ENC_PCT AS INTEGER, REST_ENC_PER_LVL AS INTEGER   ' tuning.txt
+
 ' --- what each ability DOES (assets/data/<pack>/stats.txt) ---
 ' Shown in the character creator's side panel. SH_LIVE separates what the game does TODAY from
 ' what is designed but unbuilt, so the panel can never promise a mechanic that does not exist.

@@ -220,6 +220,16 @@ to press **[R]** and re-roll it:
 
 CHA does nothing else yet, which is the point — this is what makes it worth raising.
 
+### Resting in the dungeon (SETTINGS: `[R]`est in Dungeon)
+
+Press **[R]** anywhere to rest. Each press heals **1 HP** — and rolls to see whether something
+finds you first. The odds start around 12% and **climb with depth**, so catching your breath on
+the first level is a very different proposition from doing it on the ninth.
+
+There is no free lunch in it: resting 20 HP back means rolling twenty times for company. An
+interruption is never a curio and never a boss — just a wandering monster of the floor you are
+standing on, and you fight it where you sit.
+
 ### The 9th level
 
 **The Crypt forces line of sight**, whatever your Field of View setting says. Its darkness is

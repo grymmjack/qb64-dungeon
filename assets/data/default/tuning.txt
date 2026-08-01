@@ -133,3 +133,10 @@ AMB_SECS_MAX | 45
 # collapse to a flat DOORNOISE_CLEAR_PCT instead of climbing. 0 disables either.
 DOORNOISE_PCT | 25
 DOORNOISE_CLEAR_PCT | 5
+
+# --- [R]EST IN THE DUNGEON (see DoRest) ---
+# Chance that pressing [R] draws an encounter instead of healing a point. The odds CLIMB
+# with depth (PCT + PER_LVL x (level-1), capped at 60%): catching your breath on level 1
+# is a different proposition from doing it on the 9th.
+REST_ENC_PCT | 12
+REST_ENC_PER_LVL | 3

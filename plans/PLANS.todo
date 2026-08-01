@@ -56,8 +56,10 @@ Small UI Tweaks:
     ☐ Initiative modifier is the users level / 2. 
       ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be
       ☐ D20 for initiative
-    ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage" @high
-      ☐ Can 1/2 the damage if successful
+    ✔ When monsters do max damage and the player has a CON bonus, a gesture to "endure damage" @done(26-08-01)
+      ✔ Can 1/2 the damage if successful (CRIT zone braces; anything else takes it whole) @done(26-08-01)
+      ✔ offered ONLY with a CON bonus -- a frail character never sees the prompt, and that @done(26-08-01)
+        ✔ asymmetry IS the reward: CON stops being "a few more HP" and becomes a thing you DO @done(26-08-01)
     ✔ On level up let player add 1 point to a stat up to 18 @done(26-08-01)
       ✔ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is @done(26-08-01)
         ✔ setup - a free life basically (offered as [H] HP / [L] life; the life option only @done(26-08-01)
@@ -244,31 +246,30 @@ Game Tweaks:
         ✔ the ambush blow lands BEFORE DoCombat rather than as another flag threaded through @done(26-08-01)
           ✔ the round loop, and is automatic -- rolling to hit someone who cannot dodge is theatre @done(26-08-01)
         ✔ ESC while ambushed still responds: it says WHY you cannot flee, rather than ignoring you @done(26-08-01)
-    ☐ Give monsters appropriate elemental effects: @high
-      ☐ All can be avoided with successful saving throw
-      ☐ GIANT SPIDER, GIANT SNAKE:
-      ☐ POISON chance 20% for 1D4 rounds -1HP each round
-      ☐ Save vs. CON
-      ☐ SKELETON, GHOULS, MUMMY, VAMPIRE:
-        ☐ BLIGHT chance 10% -1D4 1 time at time of impact
-        ☐ Save vs. CON
-      ☐ WITCH, EVIL WIZARD:
-        ☐ CURSE chance 20% -1 to attack and damage for 1D4 rounds
-        ☐ Save vs. WIS
-      ☐ GREEN SLIME, PURPLE WORM, BLACK PUDDING:
-        ☐ ACID SPRAY chance 25% -1D6 1 time at time of impact, -1 HP for 3 rounds after
-        ☐ Save vs. DEX
-        ☐ On return back to start increase the likelihood of random encounters by +10% each time after 2 times up to 50% chance
-    ☐ Add [R]est option while in dungeon (D&D mode) @high
-      ☐ When resting, for each R pressed, heals 1 HP but chance of random encounter
-        ☐ Encounter is never a curio
-        ☐ Encounter is always a random monster (but not a boss) in the same sector/level they are in
-        ☐ If no encounter, HP healed +1
-          ☐ SFX: Heal
-        ☐ If encounter, play it out normal
-          ☐ SFX: No heal
-        ☐ This adds a risk reward mechanic to resting
-      ☐ Resting should be a game option: ON/OFF
+    ✔ Give monsters appropriate elemental effects @done(26-08-01)
+      ✔ All can be avoided with a successful saving throw @done(26-08-01)
+      ✔ GIANT SPIDER, GIANT SNAKE -- POISON 20%, 1d4 rounds of -1 HP, save vs CON @done(26-08-01)
+      ✔ SKELETON, GHOULS, MUMMY, VAMPIRE -- BLIGHT 10%, 1d4 at once, save vs CON @done(26-08-01)
+      ✔ WITCH, EVIL WIZARD -- CURSE 20%, -1 hit AND damage for 1d4 rounds, save vs WIS @done(26-08-01)
+      ✔ GREEN SLIME, PURPLE WORM, BLACK PUDDING -- ACID 25%, 1d6 + a 3-round burn, save vs DEX @done(26-08-01)
+      ✔ table-driven (assets/data/<pack>/monster-effects.txt): which monster, how often and @done(26-08-01)
+        ✔ against WHICH ability is content; only the four mechanics are code @done(26-08-01)
+      ✔ CON resists twice: its save avoids the effect, and its modifier comes off every @done(26-08-01)
+        ✔ duration (floored at 1 round). Resistance, not immunity -- immunity makes the table @done(26-08-01)
+        ✔ stop mattering, and a table that stops mattering is one nobody tunes @done(26-08-01)
+    ✔ Add [R]est option while in dungeon (D&D mode) @done(26-08-01)
+      ✔ each R heals 1 HP but rolls for a random encounter @done(26-08-01)
+        ✔ Encounter is never a curio (a wishing fountain is not what interrupts a nap) @done(26-08-01)
+        ✔ never a boss, and by CONSTRUCTION not by a flag -- WanderEncounter always sets @done(26-08-01)
+          ✔ is_boss FALSE, so dragging a boss out of its lair by napping cannot happen @done(26-08-01)
+        ✔ same sector/level the player is standing on @done(26-08-01)
+        ✔ no encounter -> +1 HP, SFX heal; encounter -> no heal, SFX trap, fight it where you sit @done(26-08-01)
+        ✔ risk/reward: resting 20 HP back means rolling TWENTY times for company @done(26-08-01)
+        ✔ odds CLIMB with depth (12% + 3%/level, capped 60%) -- a flat chance would say that @done(26-08-01)
+          ✔ level 1 and level 9 are equally safe to nap on; both are tuning.txt knobs @done(26-08-01)
+        ✔ resting also LoiterTicks: it IS lingering, so the wander meter keeps building @done(26-08-01)
+      ✔ Resting is a game option: ON/OFF ("[R]est in Dungeon", RULES column) @done(26-08-01)
+      ✔ [R] listed in CONTROLS; "HP rested back" in the Game Summary; documented in the RULES @done(26-08-01)
       ☐ Add this to the RULES for D&D if it's a setting that's enabled
     ✔ Add a luck mechanic for re-rolls - luck comes from CHA @done(26-08-01)
       ✔ Toggle in settings (RULES column: "Luck Re-rolls"), persisted @done(26-08-01)

@@ -16,6 +16,7 @@ SUB LoadTuning
     TREASURE_POTION_PCT = 15: TREASURE_LARGE_PCT = 25: LEVELCLEAR_LARGE_PCT = 30
     IDLE_ENCOUNTER_PCT = 30: LOITER_THRESHOLD = 3: WANDER_GOLD_DIV = 6
     AMB_SECS_MIN = 18: AMB_SECS_MAX = 45          ' seconds between ambient noises (MIN 0 = off)
+    REST_ENC_PCT = 12: REST_ENC_PER_LVL = 3       ' [R]est: encounter odds, and how they climb with depth
     DOORNOISE_PCT = 25: DOORNOISE_CLEAR_PCT = 5   ' racket at a reinforced door: +% per attempt, and on a cleared floor
     XP_PER_KILL_LVL = 10: CHEST_PCT = 20: CHEST_TRAP_PCT = 25
     CURIO_PATH_PCT = 3: CURIO_COOLDOWN = 16
@@ -69,6 +70,8 @@ SUB LoadTuning
             CASE "AMB_SECS_MAX": IF v >= 1 THEN AMB_SECS_MAX = v
             CASE "DOORNOISE_PCT": IF v >= 0 THEN DOORNOISE_PCT = v
             CASE "DOORNOISE_CLEAR_PCT": IF v >= 0 THEN DOORNOISE_CLEAR_PCT = v
+            CASE "REST_ENC_PCT": IF v >= 0 THEN REST_ENC_PCT = v
+            CASE "REST_ENC_PER_LVL": IF v >= 0 THEN REST_ENC_PER_LVL = v
             CASE "CHEST_PCT": CHEST_PCT = v
             CASE "CHEST_TRAP_PCT": CHEST_TRAP_PCT = v
             CASE "CURIO_PATH_PCT": CURIO_PATH_PCT = v

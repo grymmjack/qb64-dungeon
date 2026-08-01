@@ -806,3 +806,56 @@ SUB AmbushFirstBlow (w AS INTEGER, wm AS STRING, sec AS INTEGER)
     LogEvent _TRIM$(player_name) + " was ambushed forcing a door (" + _TRIM$(STR$(mdmg)) + ")"
     IF player_hp <= 0 THEN DoTDeath "an ambush at a broken door"
 END SUB
+
+
+' ============================================================================
+'  [R]EST -- one HP at a time, and the dungeon gets a vote.
+'
+'  Press R, heal 1 HP, roll for an encounter. That is the whole loop, and it is a real
+'  decision because the cost is time and time is what draws monsters: a hero who rests
+'  20 HP back has rolled 20 times for company.
+'
+'  Deliberately NOT shared with the entrance rest (Rick's call, recorded in DAY-NOTES):
+'  that one is a scripted set piece at a fixed safe place; this is an ordinary action you
+'  can take anywhere, and it should feel like pushing your luck rather than like a cutscene.
+'
+'  An encounter here is never a curio -- a wishing fountain is not what interrupts a nap --
+'  and never a boss, because dragging a boss out of its lair by resting in a corridor turns
+'  a set-piece fight into an accident.
+' ============================================================================
+SUB DoRest
+    DIM lvl AS INTEGER, pct AS INTEGER
+    IF opt_oldschool THEN EXIT SUB               ' Dungeon! has no HP to rest back
+    IF NOT opt_rest THEN
+        Banner "You have no time to rest.", "(Resting is switched off in SETTINGS.)   [ press any key ]"
+        WaitKey: cursor_erase: cursor_draw: DrawHUD: Present
+        EXIT SUB
+    END IF
+    IF player_hp >= player_maxhp THEN
+        Banner "You are already whole.", "There is nothing to rest off.   [ press any key ]"
+        WaitKey: cursor_erase: cursor_draw: DrawHUD: Present
+        EXIT SUB
+    END IF
+    lvl = PlayerLevel%
+    IF lvl < 1 THEN lvl = 1
+    ' The odds RISE with depth: catching your breath on level 1 is a different proposition
+    ' from doing it on the 9th, and a flat chance would say otherwise.
+    pct = REST_ENC_PCT + REST_ENC_PER_LVL * (lvl - 1)
+    IF pct > 60 THEN pct = 60
+    IF RollDie(100) <= pct THEN
+        Sfx "trap"                               ' no heal: something found you first
+        Banner "You settle down to rest -- and something finds you.", "No respite here.   [ press any key ]"
+        WaitKey
+        ' No boss guard needed: WanderEncounter always sets is_boss = FALSE, so a wanderer is
+        ' never a boss by construction. Dragging a boss out of its lair by napping in a
+        ' corridor would turn a set-piece fight into an accident -- it simply cannot happen.
+        WanderEncounter
+    ELSE
+        player_hp = player_hp + 1
+        IF player_hp > player_maxhp THEN player_hp = player_maxhp
+        Sfx "levelup"
+        g_rests = g_rests + 1
+    END IF
+    LoiterTick                                   ' resting IS lingering -- danger keeps building
+    cursor_erase: cursor_draw: DrawHUD: Present
+END SUB
