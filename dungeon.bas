@@ -521,10 +521,13 @@ IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
     NEXT alc
     _DEST _CONSOLE: PRINT
     IF LEN(alpath) > 0 THEN
-        AnsiLint alpath
+        ' a collision LAYER is a different artefact from a mask -- it is checked for stray
+        ' colours movement cannot read, not for colour->zone mapping
+        IF INSTR(UCASE$(alpath), "COLLISION") > 0 THEN CollisionLayerLint alpath ELSE AnsiLint alpath
     ELSE
         AnsiLint "assets/ansi-art/default/board-132x50-sector-mask.ans"
         AnsiLint "assets/ansi-art/default/board-132x50-secret-mask.ans"
+        CollisionLayerLint AnsiFile$("layer-0-board-collisions.ans")
     END IF
     SYSTEM
 END IF

@@ -59,7 +59,11 @@ SUB RoomLint
     _DEST _CONSOLE
     PRINT PipeCol$("|15roomlint|07 -- detected rooms vs cells the player can actually stand on")
     PRINT
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    ' FULL_COLLIDE, not FULL_BOARD: these tools report what MOVEMENT sees, and movement reads
+    ' the collision layer. Sampling the display board means sampling layer-1 decoration too --
+    ' the logo, the legend and the frame all paint in level colours, so it reported hundreds of
+    ' "reachable cells with no level" that the player cannot actually reach.
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE
     '--- tally per room from the cached classification --------------------------
     ' ROOMKIND was filled by PlaceRoomMarkers during the board build, so this reports exactly
     ' what marker placement and the size gate acted on -- no second opinion to drift from.
@@ -200,7 +204,7 @@ SUB BoardSplit
             ' in the path/door/secret colours, and the frame in level-3 red -- all of which the
             ' "contains a collision colour" rule would otherwise pull into the collision map as
             ' walkable floor. `sectorauto` measured the map as cols 0-115, rows 1-47.
-            IF cx > 115 OR cy < 1 OR cy > 47 THEN
+            IF NOT InPlayArea%(cx, cy) THEN
                 ch1(cx, cy) = chA(cx, cy)
                 fg1(cx, cy) = fgA(cx, cy): bg1(cx, cy) = bgA(cx, cy)
                 IF chA(cx, cy) <> 32 OR bgA(cx, cy) <> 0 THEN deco = deco + 1
@@ -597,7 +601,7 @@ SUB SectorAutoDerive
     DIM dcnt(1 TO 9) AS INTEGER
     _DEST _CONSOLE
     PRINT PipeCol$("|15sectorauto|07 -- deriving each level's rectangle from the board art alone")
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE          ' what MOVEMENT sees -- see the note in RoomLint
     SectorBoxReport "over the WHOLE image", 0, 0, SW - 1, SH - 1, dx1(), dy1(), dx2(), dy2(), dcnt()
     ' The logo lives right of the play area and the legend on the bottom rows; both paint in
     ' level colours. Excluding them models what a decoration LAYER would remove.
@@ -823,6 +827,19 @@ END FUNCTION
 '  room table (the block is not in it), which is exactly why it needs its own scan. `verdict`
 '  is marked so the overlay can paint them.
 ' ============================================================================
+' The board's playable rectangle, measured by `sectorauto`: everything outside it -- the top
+' frame, the right-hand border, the bottom legend, the logo -- is painted in level colours but
+' is not map. ONE definition, because boardsplit and roomlint disagreeing about where the board
+' ends made six frame strips report as LOST ROOMS that DetectRooms was never going to see (its
+' own scan starts at row 1).
+FUNCTION InPlayArea% (cx AS INTEGER, cy AS INTEGER)
+    InPlayArea% = 0
+    IF cx < 0 OR cx > 115 THEN EXIT FUNCTION
+    IF cy < 1 OR cy > 47 THEN EXIT FUNCTION
+    InPlayArea% = -1
+END FUNCTION
+
+
 SUB OrphanBlockScan (verdict() AS INTEGER)
     DIM cx AS INTEGER, cy AS INTEGER, s AS INTEGER, m AS INTEGER, n AS INTEGER
     DIM col AS _UNSIGNED LONG, seen(0 TO 131, 0 TO 60) AS INTEGER
@@ -842,8 +859,8 @@ SUB OrphanBlockScan (verdict() AS INTEGER)
                         m = SECTOR.get_by_xy(((minx + maxx) \ 2) * CW, ((miny + maxy) \ 2) * CH)
                         IF flr = 0 THEN
                             decor = decor + 1              ' no cell to stand on: a plaque or trim
-                        ELSEIF m < 1 THEN
-                            noMask = noMask + 1            ' outside the play area (logo / legend art)
+                        ELSEIF m < 1 OR NOT InPlayArea%(minx, miny) OR NOT InPlayArea%(maxx, maxy) THEN
+                            noMask = noMask + 1            ' outside the play area (frame / logo / legend art)
                         ELSE
                             ' REAL LOST ROOM: it has floor, the mask covers it, and yet the two
                             ' disagree about which level owns it -- so nothing ever seeded it.

@@ -142,10 +142,25 @@ END FUNCTION
 '
 ' 0 is a safe "no floor colour" sentinel: every real colour is _RGB32(...) with alpha 255
 ' (&HFF......), so none of them can be 0.
+' Reads the CELL'S OWN COLOUR from the current _SOURCE and returns it if the game recognises
+' it as room floor (one of the nine level colours), else 0.
+'
+' It used to ask geometry -- "which sector covers this pixel, what colour is that sector" --
+' and that is what stranded the LOST ROOMS: where the art painted a room in level 5's colour
+' but the sector mask claimed the cell for level 1, the answer came back level 1's colour, the
+' whole-cell test failed, and a visible, door-connected room was unreachable forever.
+'
+' The art is the map, so the cell states its own level. CanMove only reaches this for a cell it
+' has already failed to match against path/door/secret, so "is this pixel a floor colour" is
+' the entire question. Geometry (SECTOR.get_by_xy / PlayerLevel%) still answers the different
+' question of which level a CORRIDOR belongs to, where no colour says.
+'
+' _SOURCE must be a COLLISION image (FULL_COLLIDE or COLLIDE_BOARD) -- never a display image,
+' or layer-1 decoration would read as terrain.
 FUNCTION Game_FloorColorAt~& (px AS INTEGER, py AS INTEGER)
-    DIM sec AS INTEGER
-    sec = SECTOR.get_by_xy(px, py)
-    IF sec >= 1 THEN Game_FloorColorAt~& = SECTORS(sec).kolor ELSE Game_FloorColorAt~& = 0
+    DIM col AS _UNSIGNED LONG
+    col = POINT(px + CW \ 2, py + CH \ 2)
+    IF SectorByColor%(col) >= 1 THEN Game_FloorColorAt~& = col ELSE Game_FloorColorAt~& = 0
 END FUNCTION
 
 ' Game hooks -- ZONE identity, for the engine's mask linter (`dungeon.run ansilint`).

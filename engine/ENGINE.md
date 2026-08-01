@@ -282,7 +282,7 @@ would make the *assembly* reusable; it is not required for `engine/` to be separ
 | — | `Game_PoisonLevel!()` — poison overlay intensity 0..1 (JUICE decouple) | ✅ done | `DrawPoison` read of `poison_turns` |
 | — | `Game_ShowWounds%()` — may the engine draw near-death blood/vignette? | ✅ done | `DrawWounds` read of `opt_oldschool` |
 | — | `Game_SfxNames$()` — the roster of themeable effect names to register | ✅ done | `SfxNameList$` in `engine/MUSIC.bas` |
-| — | `Game_FloorColorAt~&(px,py)` — **what colour counts as room floor here** (0 = none) | ✅ done | `SECTOR.get_by_xy`+`SECTORS().kolor` inside `CellKind`/`CanMove`/`InRoomNow` |
+| — | `Game_FloorColorAt~&(px,py)` — **what colour counts as room floor here** (0 = none). Reads the cell's own pixel from the current `_SOURCE`, which must be a COLLISION image | ✅ done | `SECTOR.get_by_xy`+`SECTORS().kolor` inside `CellKind`/`CanMove`/`InRoomNow` |
 | — | `Game_ZoneByColor%` / `Game_ZoneName$` / `Game_ZoneCount%` — zone identity for the mask linter | ✅ done | `SectorByColor%`/`SECTORS().label` inside `AnsiLint` |
 | 3 | `Game_Play%()` / `Game_ShowIntro` / `Game_ShowEnd(win)` — state-machine bodies | planned | `dungeon.bas` state machine |
 | 4 | `Game_RunOver%()` — lose/forfeit predicate (`player_out`/`solo_result`) | planned | play loop |

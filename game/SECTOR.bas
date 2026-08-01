@@ -438,13 +438,16 @@ SUB DetectRooms
     FOR cy = 1 TO SH - 2
         FOR cx = 1 TO SW - 1
             IF ROOMAT(cx, cy) = 0 THEN
-                sec = SECTOR.get_by_xy(cx * CW, cy * CH)
+                ' The ART states the level: seed wherever a cell is painted one of the nine
+                ' level colours, and take the level FROM that colour. Asking geometry first
+                ' ("which sector covers this cell?") and demanding the paint agree is what
+                ' stranded the LOST ROOMS -- where the two disagreed, the room simply never
+                ' existed. Geometry is still the answer for CORRIDORS, which state no colour.
+                sec = SectorByColor%(POINT(cx * CW + CW \ 2, cy * CH + CH \ 2))
                 IF sec >= 1 THEN
-                    IF POINT(cx * CW + CW \ 2, cy * CH + CH \ 2) = SECTORS(sec).kolor THEN
-                        IF ROOM_N < UBOUND(ROOMS) THEN
-                            ROOM_N = ROOM_N + 1
-                            FloodRoom cx, cy, sec, ROOM_N
-                        END IF
+                    IF ROOM_N < UBOUND(ROOMS) THEN
+                        ROOM_N = ROOM_N + 1
+                        FloodRoom cx, cy, sec, ROOM_N
                     END IF
                 END IF
             END IF
@@ -459,14 +462,15 @@ SUB DetectRooms
 END SUB
 
 
-' Enqueue one room cell if it is unclaimed, the right colour, and in the right sector.
+' Enqueue one room cell if it is unclaimed and the right colour.
 ' (Was left behind in engine/BOARD.bas when DetectRooms/FloodRoom moved here -- it writes
 ' ROOMAT, so it is game code and belongs beside its only caller.)
 SUB RoomVisit (x AS INTEGER, y AS INTEGER, sec AS INTEGER, rid AS INTEGER, kol AS _UNSIGNED LONG, tail AS INTEGER)
     IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT SUB
     IF ROOMAT(x, y) <> 0 THEN EXIT SUB
     IF POINT(x * CW + CW \ 2, y * CH + CH \ 2) <> kol THEN EXIT SUB
-    IF SECTOR.get_by_xy(x * CW, y * CH) <> sec THEN EXIT SUB
+    ' No sector test: the block's COLOUR defines it. Requiring the geometry to agree also split
+    ' single painted rooms in two wherever a sector boundary happened to cross them.
     ROOMAT(x, y) = rid
     QX(tail) = x: QY(tail) = y: tail = tail + 1
 END SUB

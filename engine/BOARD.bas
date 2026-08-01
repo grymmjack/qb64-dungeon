@@ -677,7 +677,7 @@ END FUNCTION
 
 
 FUNCTION CanMove%
-    DIM img AS LONG, ok AS INTEGER, sec AS INTEGER, col AS _UNSIGNED LONG
+    DIM img AS LONG, ok AS INTEGER, sec AS INTEGER, col AS _UNSIGNED LONG, oldsrc AS LONG
     img = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     ok = image_is_monochromatic(img, YELLOW)                        ' path
@@ -686,7 +686,12 @@ FUNCTION CanMove%
     IF NOT ok THEN ok = image_is_monochromatic(img, BROWN)               ' solid door
     IF NOT ok THEN ok = image_is_monochromatic(img, BRIGHT_BLUE)         ' solid secret door
     IF NOT ok THEN
+        ' The hook samples the current _SOURCE, and this function reaches the board by
+        ' _PUTIMAGE rather than by _SOURCE -- so pin it, or the answer comes from whatever
+        ' image the previous caller happened to leave selected.
+        oldsrc = _SOURCE: _SOURCE COLLIDE_BOARD
         col = Game_FloorColorAt~&(c.x, c.y)            ' game hook: room-floor colour here
+        _SOURCE oldsrc
         IF col <> 0 THEN
             ok = image_is_monochromatic(img, col)
             IF NOT ok THEN ok = image_is_diachromatic(img, col, BROWN)
@@ -701,8 +706,10 @@ END FUNCTION
 ' TRUE if the cursor cell is a room floor (its sector's color).
 
 FUNCTION InRoomNow%
-    DIM img AS LONG, r AS INTEGER, col AS _UNSIGNED LONG
+    DIM img AS LONG, r AS INTEGER, col AS _UNSIGNED LONG, oldsrc AS LONG
+    oldsrc = _SOURCE: _SOURCE COLLIDE_BOARD            ' the hook samples _SOURCE -- pin it
     col = Game_FloorColorAt~&(c.x, c.y)                ' game hook: room-floor colour here
+    _SOURCE oldsrc
     IF col = 0 THEN InRoomNow = FALSE: EXIT FUNCTION
     img = _NEWIMAGE(CW, CH, 32)
     _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
@@ -870,6 +877,79 @@ FUNCTION BrightBgRuns& (raw AS STRING, datalen AS LONG)
         i = i + 1
     LOOP
     BrightBgRuns& = n
+END FUNCTION
+
+
+' Verify a COLLISION layer holds nothing but collision.
+'
+' layer-0 exists so movement can sample it directly, and that only works if every painted pixel
+' is a colour movement understands: the path, a door, a secret door, or one of the game's zone
+' floor colours. A stray colour there is art that leaked into the map -- and it is INVISIBLE in
+' play, because the display board composites layer-1 over layer-0 and looks perfectly correct
+' while the player walks into something they cannot see.
+'
+' Asks the game which colours are zones via the existing Game_ZoneByColor% hook, so this stays
+' engine code and names no game symbol.
+SUB CollisionLayerLint (pth AS STRING)
+    DIM raw AS STRING, img AS LONG, olddest AS LONG, oldsrc AS LONG
+    DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM col AS _UNSIGNED LONG, badcells AS LONG, fx AS INTEGER, fy AS INTEGER
+    DIM nu AS INTEGER, j AS INTEGER, hit AS INTEGER, found AS INTEGER
+    REDIM ucol(1 TO 32) AS _UNSIGNED LONG, ucnt(1 TO 32) AS LONG
+    _DEST _CONSOLE
+    PRINT PipeCol$("== collision-layer lint: |11" + pth)
+    IF NOT _FILEEXISTS(pth) THEN PRINT PipeCol$("   |12(file not found)"): PRINT: EXIT SUB
+    raw = _READFILE$(pth)
+    olddest = _DEST: oldsrc = _SOURCE
+    img = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _DEST img: _FONT CH: CLS , BLACK: ANSI_Print (raw)
+    _DEST olddest: _SOURCE img
+    fx = -1
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            hit = 0
+            FOR py = 1 TO CH - 1 STEP 2
+                FOR px = 1 TO CW - 1 STEP 2
+                    col = POINT(cx * CW + px, cy * CH + py)
+                    IF CollisionColorOK%(col) = 0 THEN
+                        hit = hit + 1
+                        found = 0
+                        FOR j = 1 TO nu
+                            IF ucol(j) = col THEN ucnt(j) = ucnt(j) + 1: found = -1: EXIT FOR
+                        NEXT j
+                        IF found = 0 AND nu < 32 THEN nu = nu + 1: ucol(nu) = col: ucnt(nu) = 1
+                    END IF
+                NEXT px
+            NEXT py
+            IF hit > 0 THEN
+                badcells = badcells + 1
+                IF fx < 0 THEN fx = cx: fy = cy
+            END IF
+        NEXT cx
+    NEXT cy
+    _SOURCE oldsrc
+    _FREEIMAGE img
+    IF badcells = 0 THEN
+        PRINT PipeCol$("   |10CLEAN|07 -- every painted pixel is path, door, secret door or a zone floor colour")
+    ELSE
+        PRINT PipeCol$("   |12" + LTRIM$(STR$(badcells)) + " cell(s)|07 hold a colour movement cannot read (first at " + LTRIM$(STR$(fx)) + "," + LTRIM$(STR$(fy)) + ")")
+        FOR j = 1 TO nu
+            PRINT PipeCol$("      |14&H" + HEX$(ucol(j)) + "|07 x" + LTRIM$(STR$(ucnt(j))) + " sample(s)")
+        NEXT j
+        PRINT PipeCol$("   |08those cells will not be walkable, and the decoration layer hides that in play")
+    END IF
+    PRINT
+END SUB
+
+' Is this pixel colour one the collision map is allowed to contain?
+FUNCTION CollisionColorOK% (col AS _UNSIGNED LONG)
+    CollisionColorOK% = -1
+    IF col = BLACK THEN EXIT FUNCTION
+    IF col = YELLOW THEN EXIT FUNCTION
+    IF col = BROWN THEN EXIT FUNCTION
+    IF col = BRIGHT_BLUE THEN EXIT FUNCTION
+    IF Game_ZoneByColor%(col) >= 1 THEN EXIT FUNCTION
+    CollisionColorOK% = 0
 END FUNCTION
 
 

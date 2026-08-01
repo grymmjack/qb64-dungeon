@@ -581,6 +581,17 @@ cell (closeness to the block centre is only the tie-break) — that is what keep
 doorways. `RoomIsDecor%` (no plain floor at all) is what `RandomizeRooms` skips, since `ROOM.cells`
 counts a 4-cell plaque as a room. **Verify with `dungeon.run roomlint` after ANY board-art edit.**
 
+**Room detection reads the ART, not geometry.** `DetectRooms` seeds a block wherever a cell is
+painted one of the nine level colours and takes the room's level **from that colour**;
+`RoomVisit` floods by colour alone. It used to ask `SECTOR.get_by_xy` first and require the
+paint to agree — and where the two files disagreed (art said level 5, the mask said level 1) the
+room simply never existed: 12 **LOST ROOMS**, 38 visible, door-connected floor cells that were
+unreachable forever. Likewise `Game_FloorColorAt~&` now **reads the cell's own pixel** and
+returns it if the game knows it as a floor colour. **Gotcha:** that hook samples `_SOURCE`, and
+`CanMove`/`InRoomNow` reach the board by `_PUTIMAGE` rather than `_SOURCE` — both pin
+`_SOURCE COLLIDE_BOARD` around the call, or the answer comes from whatever image the previous
+caller happened to leave selected. Verify with `dungeon.run roomlint` ("no lost rooms").
+
 **Which level is the player on? — `PlayerLevel%` (game/SECTOR.bas), and it is STICKY.**
 A coloured room cell states its own level; a yellow **corridor** cell does not, so it only has a
 level if the sector mask paints one under it or a `sectors.txt` rect covers it. 91 of the board's
