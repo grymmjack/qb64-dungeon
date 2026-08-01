@@ -727,6 +727,19 @@ character `Q` printed in the d20 font:
   — QB64PE chdirs to the binary at startup (`_CWD$` = the exe's dir, `_STARTDIR$` = where it was
   launched). That is *why* `dungeon.run` must sit at the repo root for `assets/...` to resolve;
   a test binary built into `scratchpads/` silently fails every `_FILEEXISTS`/`_LOADFONT`.
+- **A runtime error must NEVER open a dialog.** An unhandled QB64 error pops a modal message box
+  (`Line: 165 ... File not found / Continue? [Yes] [No]`) and waits for a **click** — under
+  `xvfb` (every dev mode, every gate run, every capture) nobody can click it, so the process
+  hangs with no output saying why. `dungeon.bas` arms **`ON ERROR GOTO DungeonFatal`** before
+  anything can fail, and the handler branches on **`screen_shown`**, not on the curated
+  `devmode` list:
+  - **no window up** → print `!! QB64 RUNTIME ERROR <n> at line <l>` + `_ERRORMESSAGE$`, then
+    `SYSTEM 1`. Greppable, non-zero, instant — a script can act on it.
+  - **window up (a human is playing)** → `RESUME NEXT`, so one missing optional asset does not
+    end someone's run. Capped at `ERR_MAX` so an error inside the 60fps loop still aborts.
+
+  `screen_shown` (set at `_SCREENSHOW`) is the test because "is a human looking at a window" is
+  the actual question; a list of mode names silently rots every time a dev mode is added.
 - **Headless verification:** `$CONSOLE:ONLY` turns a throwaway `.bas` into a stdout tool
   (`PRINT` goes to the terminal), which beats screenshotting for checking things like font
   handles, file paths, or computed values.

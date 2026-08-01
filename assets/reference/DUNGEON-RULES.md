@@ -198,6 +198,24 @@ It only works if you are **alive** (at least 1 HP — the entrance patches you u
 raise the dead) and **actually hurt** (below 75% of your maximum), and only **once per trip
 out**: you have to go back into the dungeon before it will help you again.
 
+### Luck (SETTINGS: Luck Re-rolls)
+
+Your **CHA modifier** is a pool of **luck points**, refilled every time you gain a character
+level. When an attack roll, a damage roll or a **saving throw** lands, you get about two seconds
+to press **[R]** and re-roll it:
+
+```
+3/4   Use Luck [R]e-Roll?
+      ==================------
+```
+
+- The re-roll is **permanent**, whatever it brings. Luck is a gamble, not a take-back.
+- A re-roll can never itself be re-rolled.
+- A **natural 1 can be re-rolled** — that is exactly when you want to.
+- The prompt is a countdown, not a menu: ignore it and the fight simply carries on.
+
+CHA does nothing else yet, which is the point — this is what makes it worth raising.
+
 ### The 9th level
 
 **The Crypt forces line of sight**, whatever your Field of View setting says. Its darkness is

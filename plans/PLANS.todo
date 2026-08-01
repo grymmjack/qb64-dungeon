@@ -261,7 +261,17 @@ Game Tweaks:
         ☐ This adds a risk reward mechanic to resting
       ☐ Resting should be a game option: ON/OFF
       ☐ Add this to the RULES for D&D if it's a setting that's enabled
-    ☐ Add a luck mechanic for re-rolls - luck comes from CHA (therefore making CHA a non throwaway stat) @critical
+    ✔ Add a luck mechanic for re-rolls - luck comes from CHA @done(26-08-01)
+      ✔ Toggle in settings (RULES column: "Luck Re-rolls"), persisted @done(26-08-01)
+      ✔ Re-roll is permanent no matter the outcome @done(26-08-01)
+      ✔ Cannot re-roll re-rolls (luck_rerolling guard) @done(26-08-01)
+      ✔ Number available is the CHA bonus, replenished on level-up (twice: before AND after the @done(26-08-01)
+        ✔ stat point, so spending that point ON CHA pays out immediately) @done(26-08-01)
+      ✔ scope: COMBAT rolls (attack, damage, crit damage) + SAVING THROWS; natural 1s included @done(26-08-01)
+      ✔ prompt is a 2s FUSE ("X/Y Use Luck [R]e-Roll?" over a draining bar, same colours and @done(26-08-01)
+        ✔ red-near-the-end cue as the gesture gauge) -- LUCK_FUSE_SEC is a CODE constant, not a @done(26-08-01)
+        ✔ setting: the tension IS the timer and a player who could set it to 30s would remove it @done(26-08-01)
+      ✔ Added to DUNGEON-RULES.md (the in-game [M] Rules screen) @done(26-08-01)
       ☐ Toggle in settings for game options on / off
       ☐ Re-roll is permanent no matter the outcome
       ☐ Cannot re-roll re-rolls

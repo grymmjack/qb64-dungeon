@@ -501,9 +501,9 @@ SUB DoCombatDnD (rm AS INTEGER)
             rounds = rounds + 1: combat_round = rounds
             dirty = -1                           ' this round's banners will need clearing next loop
             ' ---------- player attacks ----------
-            atk = GameRoll(1, 20, thb, "to hit the " + mon)
+            atk = LuckyRoll%(1, 20, thb, "to hit the " + mon)   ' luck may buy a second d20
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
-                dmg = GameRoll(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
+                dmg = LuckyRoll%(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 IF opt_gestures THEN dmg = dmg + CritFlourish(mon, sec, SkillTier%)   ' Action Gestures: time the gauge for +0/1/2 bonus dice
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
@@ -537,7 +537,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     CombatPause
                 END IF
             ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
-                dmg = GameRoll(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
+                dmg = LuckyRoll%(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
@@ -1098,7 +1098,9 @@ SUB GrantLevelClear (lvl AS INTEGER)
         IF LEN(lukey) > 0 THEN Narrate lukey
         Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", lusay + "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
         CombatPause
-        LevelUpStatPoint                            ' ...and one point to put somewhere (cap 18)
+        LuckRefill                                  ' luck refills every level -- BEFORE the stat
+        LevelUpStatPoint                            ' point, so raising CHA pays out next level
+        LuckRefill                                  ' ...and again, in case that point WAS CHA
         cursor_erase: cursor_draw: DrawHUD: Present ' the picker painted over the board
     END IF
     IF NOT opt_oldschool THEN                       ' no HP in Dungeon! -- no healing cache either
@@ -1211,3 +1213,93 @@ FUNCTION WeaponLabel$
         CASE ELSE: WeaponLabel$ = "SWORD"
     END SELECT
 END FUNCTION
+
+
+' ============================================================================
+'  LUCK -- CHA-funded re-rolls.
+'
+'  Rick's spec: offered on combat rolls and saving throws, natural 1s included; the re-roll is
+'  PERMANENT whatever it brings; a re-roll can never itself be re-rolled; the count refills on
+'  every level-up; and the prompt is a 2-second fuse showing "X/Y Use Luck [R]e-Roll?" over a
+'  countdown bar, like the flourish gauge.
+' ============================================================================
+
+' Refill to the CHA modifier. Called at character creation and on every level-up.
+' A CHA modifier of 0 or less simply means no luck -- the feature is off for that character
+' rather than special-cased, which is what makes raising CHA at level-up worth something.
+SUB LuckRefill
+    luck_max = AbilMod(player_cha)
+    IF luck_max < 0 THEN luck_max = 0
+    luck_left = luck_max
+END SUB
+
+' Roll, then offer to spend luck on the result. Returns the FINAL value.
+'
+' Use this instead of GameRoll at the sites that matter (attack, damage, saves). Everywhere
+' else keeps calling GameRoll, which is what stops luck turning into a prompt on every step.
+FUNCTION LuckyRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, label AS STRING)
+    DIM v AS INTEGER, raw AS INTEGER
+    v = GameRoll(n, sides, bonus, label)
+    IF NOT LuckAvailable% THEN LuckyRoll% = v: EXIT FUNCTION
+    raw = last_raw                                  ' preserved: the re-roll overwrites it
+    IF NOT LuckPrompt%(v, raw, sides) THEN LuckyRoll% = v: EXIT FUNCTION
+    luck_left = luck_left - 1
+    luck_rerolling = TRUE                           ' the second roll gets no second chance
+    v = GameRoll(n, sides, bonus, label + "  (LUCK re-roll)")
+    luck_rerolling = FALSE
+    Sfx "levelup"
+    LogEvent _TRIM$(player_name) + " spent luck: " + _TRIM$(STR$(raw)) + " -> " + _TRIM$(STR$(last_raw))
+    LuckyRoll% = v
+END FUNCTION
+
+' Is a luck re-roll possible right now?
+FUNCTION LuckAvailable%
+    LuckAvailable% = 0
+    IF NOT opt_luck THEN EXIT FUNCTION
+    IF opt_oldschool THEN EXIT FUNCTION             ' 2d6 Dungeon! has no ability scores to fund it
+    IF luck_rerolling THEN EXIT FUNCTION            ' cannot re-roll a re-roll
+    IF luck_left <= 0 THEN EXIT FUNCTION
+    LuckAvailable% = -1
+END FUNCTION
+
+' The fuse prompt. TRUE if the player spent a luck point before the fuse ran out.
+FUNCTION LuckPrompt% (total AS INTEGER, raw AS INTEGER, sides AS INTEGER)
+    DIM t0 AS DOUBLE, el AS DOUBLE, frac AS SINGLE, k AS STRING, saveimg AS LONG
+    LuckPrompt% = 0
+    saveimg = _NEWIMAGE(SW * CW, SH * CH, 32)       ' the prompt is transient -- put the screen back
+    _PUTIMAGE (0, 0), CANVAS, saveimg
+    t0 = TIMER
+    DO
+        el = TIMER - t0
+        IF el < 0 THEN el = el + 86400#             ' TIMER wraps at midnight
+        frac = 1 - (el / LUCK_FUSE_SEC)
+        IF frac <= 0 THEN EXIT DO
+        DrawLuckPrompt total, raw, sides, frac
+        Present
+        k = UCASE$(INKEY$)
+        IF k = "R" THEN LuckPrompt% = -1: EXIT DO
+        IF k = CHR$(27) OR k = " " THEN EXIT DO     ' decline early rather than wait it out
+        _LIMIT 60
+    LOOP
+    _PUTIMAGE (0, 0), saveimg, CANVAS
+    _FREEIMAGE saveimg
+END FUNCTION
+
+' "3/4  Use Luck [R]e-Roll?  ====== " over a draining bar, matching the flourish fuse.
+SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS SINGLE)
+    DIM bx AS INTEGER, bw AS INTEGER, by AS INTEGER, bh AS INTEGER
+    DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG, lbl AS STRING
+    bx = 40: bw = 52: by = 32: bh = 5
+    _DEST CANVAS
+    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
+    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), YELLOWU, B
+    lbl = _TRIM$(STR$(luck_left)) + "/" + _TRIM$(STR$(luck_max)) + "   Use Luck [R]e-Roll?"
+    COLOR YELLOWU, BOXBG: PrintCentered by + 1, lbl
+    COLOR GREY, BOXBG: PrintCentered by + 2, "you rolled " + _TRIM$(STR$(raw)) + " of " + _TRIM$(STR$(sides)) + "  (total " + _TRIM$(STR$(total)) + ")"
+    ' the fuse: same colours and the same "turns red near the end" cue as the gesture gauge,
+    ' so the two prompts read as one language rather than two unrelated widgets
+    fx = (bx + 3) * CW: fw = (bw - 6) * CW
+    LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
+    IF frac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
+    LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
+END SUB

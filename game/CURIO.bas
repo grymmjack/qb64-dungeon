@@ -18,7 +18,10 @@ FUNCTION SaveThrow% (abmod AS INTEGER, what AS STRING)
     DIM tot AS INTEGER, bonus AS INTEGER, saved AS INTEGER, dc AS INTEGER
     dc = 11
     bonus = abmod * 2
-    tot = GameRoll(1, 20, bonus, "SAVE vs " + what + " -- need " + _TRIM$(STR$(dc)) + "+ to save")
+    ' LuckyRoll, not GameRoll: a save is exactly the moment a bad number hurts, and Rick's
+    ' spec puts saving throws in scope alongside combat. A natural 1 is re-rollable too -- it
+    ' auto-fails, which is precisely when you would want to spend the luck.
+    tot = LuckyRoll%(1, 20, bonus, "SAVE vs " + what + " -- need " + _TRIM$(STR$(dc)) + "+ to save")
     IF last_raw = 20 THEN
         saved = -1                         ' natural 20 always saves
     ELSEIF last_raw = 1 THEN

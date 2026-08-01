@@ -90,6 +90,16 @@ RANDOMIZE TIMER
 ' window starts HIDDEN (no black flash); _SCREENSHOW reveals it for play only (dev modes never do)
 $SCREENHIDE
 $RESIZE:ON
+' Arm the fatal handler BEFORE anything can fail: the first thing that errors is usually a
+' missing asset, and that happens during startup.
+ON ERROR GOTO DungeonFatal
+CONST ERR_MAX = 20                            ' runtime errors tolerated in PLAY before giving up
+DIM SHARED err_seen AS INTEGER
+' TRUE once the window is actually on screen. The error handler asks THIS rather than the
+' curated `devmode` list: "is a human looking at a window" is the real question, and a list of
+' mode names has to be updated every time a dev mode is added -- which is how `settingsshot`
+' ended up aborting-not-aborting and hanging on a dialog nobody could click.
+DIM SHARED screen_shown AS INTEGER
 ' NO $RESIZE:STRETCH. The window surface is OURS (see Present in engine/UI.bas): CANVAS is an
 ' offscreen 132x51 character grid and screen 0 is a real window-sized image that Present blits
 ' into at an INTEGER scale. Letting the metacommand stretch a character grid by a fractional
@@ -159,6 +169,7 @@ opt_dice3d_set = 6: opt_mon_dice3d_set = 8    ' default 3D dice sets (overridden
 opt_dicefont = 4                              ' default dice numeral font index (overridden by save)
 IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
 opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
+opt_luck = TRUE                               ' CHA-funded re-rolls on combat rolls + saves (SETTINGS)
 opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 25 min
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
@@ -308,7 +319,7 @@ IF INSTR(UCASE$(COMMAND$), "FIGHT ") > 0 OR UCASE$(_TRIM$(COMMAND$)) = "FIGHT" T
     IF player_maxhp < 1 THEN InitDefaultChar player_class
     player_hp = player_maxhp
     DevPackOverride                                       ' `fight 5 4 ansimon-1` previews a pack
-    _SCREENSHOW
+    _SCREENSHOW: screen_shown = TRUE
     ApplyDisplay
     DIM AS INTEGER fgRes
     fgRes = RunFight%(fgLvl, fgFoes)                      ' QB64 needs a FUNCTION result consumed
@@ -567,7 +578,7 @@ END IF
 ' (audio/image/ui manifests already handled earlier -- they exit before the heavy init)
 
 ' ---------------------------------------------------------------- state machine
-_SCREENSHOW                            ' normal play only (dev modes SYSTEM'd already): reveal the window
+_SCREENSHOW: screen_shown = TRUE       ' normal play only (dev modes SYSTEM'd already): reveal the window
 DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
 game_state = ST_INTRO
 DO
@@ -607,6 +618,48 @@ _FREEIMAGE FULL_COLLIDE
 _FREEIMAGE COLLIDE_BOARD
 IF FX_BUF <> 0 THEN _FREEIMAGE FX_BUF
 SYSTEM
+
+' ============================================================================
+'  FATAL ERROR HANDLER -- print and die, never open a dialog.
+'
+'  An UNHANDLED QB64 runtime error opens a modal message box ("Line: 165 ... File not found /
+'  Continue? [Yes] [No]") and waits for a click. Under xvfb -- every dev mode, every gate run,
+'  every headless capture -- there is nobody to click it, so the process hangs until something
+'  times it out, with no output saying why. That has cost real time more than once.
+'
+'  ON ERROR takes the dialog out of the picture entirely: the error goes to the CONSOLE in a
+'  greppable form and the process exits NON-ZERO, which is what a script can actually act on.
+'  No RESUME -- a runtime error here means an assumption broke, and limping on would turn one
+'  clear failure into a confusing cascade.
+' ============================================================================
+DungeonFatal:
+    err_seen = err_seen + 1
+    _DEST _CONSOLE
+    PRINT ""
+    PRINT "!! QB64 RUNTIME ERROR " + LTRIM$(STR$(ERR)) + " at line " + LTRIM$(STR$(_ERRORLINE))
+    PRINT "!! " + _ERRORMESSAGE$
+    ' What happens next depends on WHO is watching, and the two answers are opposites:
+    '
+    '   a DEV MODE / headless run has no player -- a script wants a clean, greppable failure and
+    '   a non-zero exit, and limping on would turn one clear error into a confusing cascade.
+    '
+    '   a PLAYER mid-run does not want their expedition ended because one optional asset was
+    '   missing. RESUME NEXT skips the broken statement and carries on, which for a missing
+    '   sprite or sound is exactly right.
+    '
+    ' The cap is the safety net: an error inside the 60fps loop would otherwise print forever
+    ' and never recover, so after ERR_MAX we stop pretending it is survivable.
+    IF NOT screen_shown THEN
+        PRINT "!! no window is up -- nobody can see or click anything, so aborting"
+        PRINT "!! (a dialog here would hang a headless run forever; see ON ERROR in dungeon.bas)"
+        SYSTEM 1
+    END IF
+    IF err_seen > ERR_MAX THEN
+        PRINT "!! " + LTRIM$(STR$(err_seen)) + " runtime errors -- this is not survivable, aborting"
+        SYSTEM 1
+    END IF
+    PRINT "!! continuing (RESUME NEXT) -- " + LTRIM$(STR$(ERR_MAX - err_seen)) + " more before abort"
+    RESUME NEXT
 
 ' ============================================================================
 '  CORE GAME LOOP

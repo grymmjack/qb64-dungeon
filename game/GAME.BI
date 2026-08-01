@@ -362,6 +362,19 @@ CONST PLACEHOLDER_LIST = "assets/PLACEHOLDERS.txt"   ' what `placeholders clean`
 ' done would quietly hide the very thing it is for.
 DIM SHARED PH_PATH(1 TO 400) AS STRING, PH_N AS INTEGER, PH_LOADED AS INTEGER
 DIM SHARED fx_critkill AS INTEGER                                           ' TRUE = the killing blow was a CRIT (picks the killcrit aftermath text)
+
+' --- LUCK: CHA-funded re-rolls (SETTINGS "Luck Re-rolls") -----------------------
+' What finally gives CHA a job. luck_max is the CHA modifier, refilled on every level-up;
+' luck_left is what remains this run. Offered on COMBAT rolls and SAVING THROWS only -- the
+' places a bad number actually hurts -- and NOT on searches, movement or loot rolls.
+'
+' The prompt is a FUSE, not a menu: it appears for LUCK_FUSE_SEC and then decides for you, so
+' spending luck never stops the fight to ask permission. Deliberately a code constant and not a
+' setting -- the tension IS the timer, and a player who could set it to 30s would remove it.
+CONST LUCK_FUSE_SEC = 2.0
+DIM SHARED luck_left AS INTEGER, luck_max AS INTEGER
+DIM SHARED opt_luck AS INTEGER            ' SETTINGS toggle: luck re-rolls on/off
+DIM SHARED luck_rerolling AS INTEGER      ' guard: a re-roll can never itself be re-rolled
 DIM SHARED CHM_FLAV_NAME(1 TO 32) AS STRING, CHM_FLAV_TXT(1 TO 32) AS STRING, CHM_FLAV_N AS INTEGER   ' per-chamber descriptions
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)
 

@@ -62,6 +62,7 @@ SUB InitDefaultChar (pc AS INTEGER)
     player_dex = 10: player_con = 10: player_cha = 10
     player_maxhp = CLASSES(pc).hp: player_hp = player_maxhp
     hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
+    LuckRefill                                     ' CHA modifier = luck re-rolls for this run
     player_tohit = CLASSES(pc).tohit
     player_ac = CLASSES(pc).ac
     player_dmgdie = CLASSES(pc).dmg
@@ -308,6 +309,7 @@ SUB RollCharacter (pc AS INTEGER)
         player_maxhp = hproll + 3 * AbilMod(player_con)
         IF player_maxhp < 3 THEN player_maxhp = 3
         hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
+        LuckRefill                                     ' CHA modifier = luck re-rolls for this run
         player_hp = player_maxhp
         DeriveFromStats pc                             ' to-hit / AC / damage from the ability scores
         DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt
@@ -582,6 +584,8 @@ SUB BuildSetLayout
     SetLayRow 2, 7, prow(): SetLayRow 2, 30, prow(): SetLayRow 2, 10, prow(): SetLayRow 2, 11, prow()
     SetLayRow 2, 12, prow(): SetLayRow 2, 13, prow(): SetLayRow 2, 38, prow(): SetLayRow 2, 39, prow()
     SetLayRow 2, 31, prow(): SetLayRow 2, 33, prow(): SetLayRow 2, 8, prow(): SetLayRow 2, 9, prow()
+    SetLayRow 2, 36, prow()                          ' Action Gestures: a timing-bar mechanic, and
+'                                                     column 3 ran into the 3D dice preview strip
     SetLayHdr 2, "MONSTER DICE", prow()
     SetLayRow 2, 26, prow(): SetLayRow 2, 27, prow(): SetLayRow 2, 28, prow(): SetLayRow 2, 29, prow(): SetLayRow 2, 32, prow()
     ' Column 3 -- RULES, then DISPLAY & ART, then Back
@@ -589,10 +593,10 @@ SUB BuildSetLayout
     SetLayRow 3, 14, prow(): SetLayRow 3, 52, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow()
     SetLayRow 3, 17, prow()
     SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
-    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow()
+    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
-    SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow(): SetLayRow 3, 36, prow()
+    SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow()
     prow(3) = prow(3) + 1
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
 END SUB
@@ -646,7 +650,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 53                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 54                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -859,6 +863,7 @@ SUB RunSettings
                     ' the ANSI sprite cache is keyed by PATH, and switching style changes which
                     ' path every subject resolves to -- keeping it would show the old form
                     FreeAnsiSprites
+                CASE 54: opt_luck = NOT opt_luck
                 CASE 36: opt_gestures = NOT opt_gestures
                 CASE 37: opt_juice = NOT opt_juice
                 CASE 38
@@ -1029,6 +1034,12 @@ SUB RunSettings
                         CASE ARTSTYLE_HYBRID: vtxt = "Hybrid (pixel, else ANSI)"
                         CASE ELSE: vtxt = "ANSI only"
                     END SELECT
+                CASE 54
+                    lbl = "Luck Re-rolls"
+                    IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 54
+                    lbl = "Luck Re-rolls"
+                    IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
                 CASE 36
                     lbl = "Action Gestures"
                     IF opt_gestures THEN vtxt = "on (timing bar)" ELSE vtxt = "off (dice only)"
