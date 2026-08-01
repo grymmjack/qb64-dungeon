@@ -29,6 +29,13 @@ SUB ChronicleReset
     NEXT sl: NEXT lv
     TRE_STAT_N = 0
     FOR i = 1 TO MAXTRE: TRE_STATNAME(i) = "": TRE_FOUND(i) = 0: TRE_GP(i) = 0: NEXT
+    ' AFTER the roster is seeded, never before: LoadBestiary resolves saved NAMES to row indices
+    ' via BeastIdx%, so with BEAST_N still 0 every name would be silently discarded and the
+    ' player's whole discovery history would evaporate on the first new game.
+    '
+    ' Note this is the one thing ChronicleReset does NOT reset -- per-run tallies start at zero,
+    ' but what you have MET is knowledge you keep.
+    LoadBestiary
 END SUB
 
 ' Look up (or register) a monster in the bestiary tally. 0 if the name is blank/full.
@@ -63,12 +70,68 @@ SUB RecordEnterRoom
 END SUB
 
 SUB RecordEncounter (mon AS STRING)              ' first face-off with a room's monster
-    DIM i AS INTEGER: i = BeastIdx%(mon): IF i > 0 THEN BEAST_ENC(i) = BEAST_ENC(i) + 1
+    DIM i AS INTEGER
+    i = BeastIdx%(mon)
+    IF i > 0 THEN
+        BEAST_ENC(i) = BEAST_ENC(i) + 1
+        DiscoverBeast i                          ' meeting it is what unlocks its Bestiary page
+    END IF
 END SUB
+
+' Mark a monster as MET, forever, and write it out immediately.
+'
+' Saved on the spot rather than at end-of-run on purpose: a player who meets a red dragon and is
+' promptly eaten has still MET a red dragon, and losing that to a crash or a quit would be the
+' one case where the feature matters most.
+SUB DiscoverBeast (i AS INTEGER)
+    IF i < 1 OR i > BEAST_N THEN EXIT SUB
+    IF BEAST_EVER(i) THEN EXIT SUB               ' already known -- no rewrite
+    BEAST_EVER(i) = TRUE
+    SaveBestiary
+END SUB
+
+' Load the discovered-ever set. One monster NAME per line, so the file survives the roster being
+' reordered or added to -- an index-based format would silently re-point every entry.
+SUB LoadBestiary
+    DIM f AS INTEGER, ln AS STRING, i AS INTEGER
+    FOR i = 1 TO MAXBEAST: BEAST_EVER(i) = FALSE: NEXT i
+    IF NOT _FILEEXISTS(BESTIARY_FILE) THEN EXIT SUB
+    f = FREEFILE
+    OPEN BESTIARY_FILE FOR INPUT AS #f
+    DO UNTIL EOF(f)
+        LINE INPUT #f, ln
+        ln = _TRIM$(ln)
+        IF LEN(ln) > 0 THEN
+            i = BeastIdx%(ln)
+            IF i > 0 THEN BEAST_EVER(i) = TRUE   ' a name no longer in the roster is simply ignored
+        END IF
+    LOOP
+    CLOSE #f
+END SUB
+
+SUB SaveBestiary
+    DIM f AS INTEGER, i AS INTEGER
+    IF _DIREXISTS("gameplay-data-saves") = 0 THEN MKDIR "gameplay-data-saves"
+    f = FREEFILE
+    OPEN BESTIARY_FILE FOR OUTPUT AS #f
+    FOR i = 1 TO BEAST_N
+        IF BEAST_EVER(i) THEN PRINT #f, _TRIM$(BEAST_NAME(i))
+    NEXT i
+    CLOSE #f
+END SUB
+
+' TRUE if this Bestiary row has ever been met. Undiscovered rows still LIST -- the player should
+' see how much is left to find -- but as a mystery slot with no name, art or tallies.
+FUNCTION BeastKnown% (i AS INTEGER)
+    BeastKnown% = 0
+    IF i < 1 OR i > BEAST_N THEN EXIT FUNCTION
+    BeastKnown% = (BEAST_EVER(i) <> 0)
+END FUNCTION
 
 SUB RecordKill (lv AS INTEGER, rm AS INTEGER, mon AS STRING, rounds AS INTEGER, gp AS LONG, itm AS STRING)
     DIM i AS INTEGER, s AS STRING
-    i = BeastIdx%(mon): IF i > 0 THEN BEAST_SLAIN(i) = BEAST_SLAIN(i) + 1
+    i = BeastIdx%(mon)
+    IF i > 0 THEN BEAST_SLAIN(i) = BEAST_SLAIN(i) + 1: DiscoverBeast i
     g_monsters_slain = g_monsters_slain + 1
     s = _TRIM$(player_name) + " entered L" + EvNum$(lv) + "/R" + EvNum$(rm) + ", slew " + _TRIM$(mon) + " after " + EvNum$(rounds) + " round"
     IF rounds <> 1 THEN s = s + "s"
@@ -263,24 +326,50 @@ SUB ShowBestiary
         LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), CYANU, B
         COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  B E S T I A R Y  =-"
         '--- list ---
+        ' Undiscovered monsters still take a ROW -- seeing how much is left to find is half the
+        ' point of a bestiary -- but the row is a mystery slot: no name, no art, no tallies.
         FOR i = 1 TO BEAST_N
             y = 7 + (i - 1)
-            IF i = sel THEN COLOR WHITE, REDU ELSE COLOR GREENU, BOXBG
-            _PRINTSTRING (7 * CW, y * CH), PadR$("  " + _TRIM$(BEAST_NAME(i)), 24)
+            IF i = sel THEN
+                COLOR WHITE, REDU
+            ELSEIF BeastKnown%(i) THEN
+                COLOR GREENU, BOXBG
+            ELSE
+                COLOR GREY, BOXBG                    ' dim: something is there, you have not met it
+            END IF
+            IF BeastKnown%(i) THEN
+                _PRINTSTRING (7 * CW, y * CH), PadR$("  " + _TRIM$(BEAST_NAME(i)), 24)
+            ELSE
+                _PRINTSTRING (7 * CW, y * CH), PadR$("  " + STRING$(LEN(_TRIM$(BEAST_NAME(i))), 63), 24)
+            END IF
         NEXT
         '--- detail panel (right) ---
         IF sel >= 1 AND sel <= BEAST_N THEN
-            sp = MonsterSprite$(BEAST_NAME(sel))
-            IF LEN(sp) > 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(BEAST_NAME(sel)) + " =-", REDU   ' no artstyle guard: ArtFile$ returns "" when the chosen style has no art for this subject
-            y = 26
-            COLOR CYANU, BOXBG: _PRINTSTRING (36 * CW, y * CH), _TRIM$(BEAST_NAME(sel))
-            y = y + 1: COLOR GREY, BOXBG: _PRINTSTRING (36 * CW, y * CH), "Haunts: " + BeastHaunts$(BEAST_NAME(sel))
-            y = y + 3
-            BeastRow y, "Encountered", BEAST_ENC(sel): y = y + 2
-            BeastRow y, "Slain", BEAST_SLAIN(sel): y = y + 2
-            BeastRow y, "Fled from", BEAST_FLED(sel): y = y + 2
-            BeastRow y, "Killed you", BEAST_KILLEDBY(sel): y = y + 2
-            BeastRow y, "Loot rescued from", BEAST_LOOTED(sel): y = y + 2
+            IF BeastKnown%(sel) THEN
+                sp = MonsterSprite$(BEAST_NAME(sel))
+                IF LEN(sp) > 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(BEAST_NAME(sel)) + " =-", REDU   ' no artstyle guard: ArtFile$ returns "" when the chosen style has no art for this subject
+                y = 26
+                COLOR CYANU, BOXBG: _PRINTSTRING (36 * CW, y * CH), _TRIM$(BEAST_NAME(sel))
+                y = y + 1: COLOR GREY, BOXBG: _PRINTSTRING (36 * CW, y * CH), "Haunts: " + BeastHaunts$(BEAST_NAME(sel))
+                y = y + 3
+                BeastRow y, "Encountered", BEAST_ENC(sel): y = y + 2
+                BeastRow y, "Slain", BEAST_SLAIN(sel): y = y + 2
+                BeastRow y, "Fled from", BEAST_FLED(sel): y = y + 2
+                BeastRow y, "Killed you", BEAST_KILLEDBY(sel): y = y + 2
+                BeastRow y, "Loot rescued from", BEAST_LOOTED(sel): y = y + 2
+            ELSE
+                ' A mystery slot. Even the TALLIES are hidden: "Encountered 0" would confirm you
+                ' have never met it, and "Haunts: level 9" would give away where to look.
+                MysteryBox 36, 34, 7, 17
+                y = 26
+                COLOR GREY, BOXBG: _PRINTSTRING (36 * CW, y * CH), "UNDISCOVERED"
+                y = y + 2: COLOR GREY, BOXBG
+                _PRINTSTRING (36 * CW, y * CH), "You have never met this creature."
+                y = y + 2
+                _PRINTSTRING (36 * CW, y * CH), "Find it in the dungeon and its page"
+                y = y + 1
+                _PRINTSTRING (36 * CW, y * CH), "will fill itself in -- for good."
+            END IF
         END IF
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] browse   [ESC] back"
         Present
@@ -589,4 +678,23 @@ SUB GameMenu
             END SELECT
         END IF
     LOOP
+END SUB
+
+
+' The framed "?" that stands in for a creature you have not met. Same box CombatArtBox draws,
+' so a discovered and an undiscovered row occupy exactly the same space and the list does not
+' jump as you scroll.
+SUB MysteryBox (col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER)
+    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER, cap AS STRING, capx AS INTEGER
+    bx = col * CW: by = row * CH: bw = cols * CW: bh = rows * CH
+    _DEST CANVAS
+    capx = by - 4 - CH
+    LINE (bx - 4, capx - 2)-(bx + bw + 4, by - 4), BOXBG, BF
+    LINE (bx - 4, capx - 2)-(bx + bw + 4, by - 4), GREY, B
+    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
+    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), GREY, B
+    cap = "-= ? ? ? =-"
+    COLOR GREY, BOXBG
+    _PRINTSTRING (bx + (bw - LEN(cap) * CW) \ 2, capx), cap
+    _PRINTSTRING (bx + (bw - CW) \ 2, by + (bh - CH) \ 2), "?"
 END SUB

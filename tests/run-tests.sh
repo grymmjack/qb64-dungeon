@@ -151,6 +151,21 @@ if (( $# == 0 )); then
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # Bestiary discovery is deliberately NOT in the save, so a save round-trip cannot cover it.
+    # The thing worth testing is the thing that makes it useful: discover, throw the run away,
+    # come back and still know.
+    echo "-- bestiary discovery survives a new run (dungeon.run bestiarytest) --"
+    if [[ -x ./dungeon.run ]]; then
+        if bt=$(setsid timeout 60 xvfb-run -a ./dungeon.run bestiarytest nocolor 2>&1) && grep -q 'OK --' <<<"$bt"; then
+            grep -E 'met |OK --' <<<"$bt" | sed 's/^/  /'
+        else
+            printf '%s\n' "$bt" | sed 's/^/    /'
+            (( fail++ )); failed+=("bestiarytest")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Separability proof: a game that is NOT DUNGEON!, built on engine/ alone.
     # If engine/ ever grows a hidden game dependency, this stops compiling.
     echo "-- separability (examples/minimal on engine/ alone) --"

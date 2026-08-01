@@ -1735,3 +1735,41 @@ FUNCTION PlaceholderPackPath$ (pth AS STRING)
     IF sl <= 0 THEN PlaceholderPackPath$ = pth: EXIT FUNCTION
     PlaceholderPackPath$ = LEFT$(pth, sl) + "default/" + MID$(pth, sl + 1)
 END FUNCTION
+
+
+' `dungeon.run bestiarytest` -- prove Bestiary discovery survives a new run.
+'
+' The whole point of the feature is that it is NOT part of the save, so the thing worth testing
+' is exactly the thing a save round-trip cannot cover: discover, throw the run away, come back.
+SUB BestiaryTest
+    DIM i AS INTEGER, a AS INTEGER, b AS INTEGER, known AS INTEGER, fail AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15bestiarytest|07 -- discovery must survive a brand new run")
+    IF _FILEEXISTS(BESTIARY_FILE) THEN KILL BESTIARY_FILE
+    ChronicleReset                                  ' seeds the roster + loads (an absent) file
+    IF BEAST_N < 3 THEN PRINT PipeCol$("  |12roster is empty|07 -- cannot test"): SYSTEM 1
+    FOR i = 1 TO BEAST_N: IF BEAST_EVER(i) THEN known = known + 1
+    NEXT i
+    IF known <> 0 THEN PRINT PipeCol$("  |12FAIL|07 fresh player already knows " + _TRIM$(STR$(known)) + " monster(s)"): fail = -1
+    a = 2: b = BEAST_N - 1
+    DiscoverBeast a
+    DiscoverBeast b
+    PRINT PipeCol$("  met |11" + _TRIM$(BEAST_NAME(a)) + "|07 and |11" + _TRIM$(BEAST_NAME(b)) + "|07")
+
+    ChronicleReset                                  ' a BRAND NEW RUN -- tallies zeroed, knowledge kept
+    IF NOT BeastKnown%(a) THEN PRINT PipeCol$("  |12FAIL|07 " + _TRIM$(BEAST_NAME(a)) + " was forgotten across the run"): fail = -1
+    IF NOT BeastKnown%(b) THEN PRINT PipeCol$("  |12FAIL|07 " + _TRIM$(BEAST_NAME(b)) + " was forgotten across the run"): fail = -1
+    known = 0
+    FOR i = 1 TO BEAST_N: IF BEAST_EVER(i) THEN known = known + 1
+    NEXT i
+    IF known <> 2 THEN PRINT PipeCol$("  |12FAIL|07 expected 2 known, got " + _TRIM$(STR$(known))): fail = -1
+    IF BEAST_ENC(a) <> 0 THEN PRINT PipeCol$("  |12FAIL|07 per-run tallies were NOT reset"): fail = -1
+    IF fail THEN
+        PRINT PipeCol$("  |12bestiarytest FAILED|07")
+        KILL BESTIARY_FILE
+        SYSTEM 1
+    END IF
+    PRINT PipeCol$("  |10OK|07 -- 2 known after a new run, per-run tallies zeroed, file is name-keyed")
+    KILL BESTIARY_FILE                              ' leave no trace: this is not the player's data
+    SYSTEM 0
+END SUB

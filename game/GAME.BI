@@ -492,6 +492,11 @@ REDIM SHARED BEAST_ENC(1 TO MAXBEAST) AS INTEGER, BEAST_SLAIN(1 TO MAXBEAST) AS 
 REDIM SHARED BEAST_FLED(1 TO MAXBEAST) AS INTEGER, BEAST_KILLEDBY(1 TO MAXBEAST) AS INTEGER
 REDIM SHARED BEAST_LOOTED(1 TO MAXBEAST) AS INTEGER
 DIM SHARED BEAST_N AS INTEGER
+' DISCOVERED-EVER, across ALL runs -- not part of a save. A save is one expedition; the Bestiary
+' is the player's accumulated knowledge, so wiping a run or dying for good must not erase it.
+' Persisted on its own in gameplay-data-saves/dungeon-bestiary.dat.
+REDIM SHARED BEAST_EVER(1 TO MAXBEAST) AS INTEGER
+CONST BESTIARY_FILE = "gameplay-data-saves/dungeon-bestiary.dat"
 REDIM SHARED TRE_STATNAME(1 TO MAXTRE) AS STRING
 REDIM SHARED TRE_FOUND(1 TO MAXTRE) AS INTEGER, TRE_GP(1 TO MAXTRE) AS LONG
 DIM SHARED TRE_STAT_N AS INTEGER
