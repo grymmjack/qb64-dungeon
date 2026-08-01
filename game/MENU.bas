@@ -63,6 +63,7 @@ SUB InitDefaultChar (pc AS INTEGER)
     player_maxhp = CLASSES(pc).hp: player_hp = player_maxhp
     hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
     LuckRefill                                     ' CHA modifier = luck re-rolls for this run
+    FlourishRefill                                 ' DEX modifier = flourishes for this run
     player_tohit = CLASSES(pc).tohit
     player_ac = CLASSES(pc).ac
     player_dmgdie = CLASSES(pc).dmg
@@ -311,6 +312,7 @@ SUB RollCharacter (pc AS INTEGER)
         IF player_maxhp < 3 THEN player_maxhp = 3
         hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
         LuckRefill                                     ' CHA modifier = luck re-rolls for this run
+    FlourishRefill                                 ' DEX modifier = flourishes for this run
         player_hp = player_maxhp
         DeriveFromStats pc                             ' to-hit / AC / damage from the ability scores
         DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt
@@ -1488,6 +1490,7 @@ FUNCTION StatusTag$
     s = ""
     IF poison_turns > 0 THEN s = s + " {PSN" + _TRIM$(STR$(poison_turns)) + "}"
     IF curse_turns > 0 THEN s = s + " {CRS" + _TRIM$(STR$(curse_turns)) + "}"   ' cursed: -1 hit/damage
+    IF flourish_max > 0 THEN s = s + " {FLR" + _TRIM$(STR$(flourish_left)) + "}"   ' DEX flourishes left
     IF fire_turns > 0 THEN s = s + " {FIRE" + _TRIM$(STR$(fire_turns)) + "}"
     IF frost_turns > 0 THEN s = s + " {FRZ" + _TRIM$(STR$(frost_turns)) + "}"
     IF siren_turns > 0 THEN s = s + " {SIREN" + _TRIM$(STR$(siren_turns)) + "}"

@@ -183,3 +183,46 @@ FUNCTION CritFlourish% (mon AS STRING, depth AS INTEGER, skill AS INTEGER)
     CritFlourish% = 0
     IF xn > 0 THEN CritFlourish% = GameRoll(xn, player_dmgdie, 0, "CRIT FLOURISH -- +" + _TRIM$(STR$(xn)) + " dice")
 END FUNCTION
+
+
+' ENDURE: a monster has landed the biggest blow its die allows. Nail the CRIT zone and you
+' brace into it for HALF damage; anything else and you take it whole.
+'
+' Offered ONLY to a character with a CON bonus, which is the point -- this is the moment CON
+' stops being "a few more HP per level" and becomes a thing you DO. A frail character simply
+' never sees this prompt, and that asymmetry is the reward.
+'
+' Returns the damage to actually apply.
+FUNCTION EndureDamage% (mon AS STRING, dmg AS INTEGER, depth AS INTEGER, skill AS INTEGER)
+    DIM z AS INTEGER, half AS INTEGER
+    EndureDamage% = dmg
+    z = GaugeLock%("BRACE!", "SPACE in the PURPLE to take it on your guard", -1, depth, skill)
+    IF z <> 2 THEN
+        Banner "It lands full force.", "You had no answer for that one.   [ press any key ]"
+        WaitKey
+        EXIT FUNCTION
+    END IF
+    half = dmg \ 2
+    IF half < 1 THEN half = 1                    ' braced or not, a maximum blow still hurts
+    Sfx "saveok"
+    Banner "** BRACED! **", "You turn your shoulder into it -- " + _TRIM$(STR$(dmg)) + " becomes " + _TRIM$(STR$(half)) + ".   [ press any key ]"
+    WaitKey
+    EndureDamage% = half
+END FUNCTION
+
+
+' MAGIC FLOURISH: the same gesture as a crit follow-through, shaping a spell instead of a
+' swing. Crit zone = +2 dice, hit = +1, miss/timeout = +0 -- deliberately the SAME payout as
+' CritFlourish, so the player learns one gauge rather than two similar ones.
+'
+' The bonus dice are d6, matching how spells roll, not the weapon die: a Wizard shaping a
+' fireball is making the FIRE bigger, not swinging harder.
+FUNCTION MagicFlourish% (mon AS STRING, depth AS INTEGER, skill AS INTEGER, elem AS STRING)
+    DIM z AS INTEGER, xn AS INTEGER
+    z = GaugeLock%("SHAPE THE " + UCASE$(elem) + "!", "SPACE to pour more into it", 0, depth, skill)
+    xn = 0
+    IF z = 2 THEN xn = 2
+    IF z = 1 THEN xn = 1
+    MagicFlourish% = 0
+    IF xn > 0 THEN MagicFlourish% = GameRoll(xn, 6, 0, "MAGIC FLOURISH -- +" + _TRIM$(STR$(xn)) + "d6")
+END FUNCTION

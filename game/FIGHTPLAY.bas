@@ -329,14 +329,28 @@ END FUNCTION
 ' The player's felt SKILL TIER (0..2) from their character level. Game-side, because character
 ' level is a DUNGEON! concept -- the engine takes the tier as a number and never asks how it was
 ' derived. Shared by the fight screen and the board's SECOND WIND / CRIT FLOURISH.
+' How well the character reads a timing gauge: 0 clumsy .. 2 practised.
+'
+' Character level is the base -- experience is most of it -- but DEX shifts the tier, which is
+' what "flourishes influenced by stats (bar sizes, target sizes, timing tightness)" means in
+' practice: the tier feeds GaugeKnobs, which sets every one of those widths. A nimble novice
+' now reads the bar better than a clumsy veteran, which is the right way round.
 FUNCTION SkillTier%
+    DIM t AS INTEGER
     IF char_level <= 1 THEN
-        SkillTier% = 0
+        t = 0
     ELSEIF char_level >= 5 THEN
-        SkillTier% = 2
+        t = 2
     ELSE
-        SkillTier% = 1
+        t = 1
     END IF
+    IF NOT opt_oldschool THEN
+        IF AbilMod(player_dex) >= 3 THEN t = t + 1        ' very nimble: one tier up
+        IF AbilMod(player_dex) <= -2 THEN t = t - 1       ' clumsy: one tier down
+    END IF
+    IF t < 0 THEN t = 0
+    IF t > 2 THEN t = 2
+    SkillTier% = t
 END FUNCTION
 
 SUB FightBuildGauge (k AS GAUGEK, depth AS INTEGER)

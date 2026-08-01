@@ -22,19 +22,19 @@ STR | 0 | wield heavier armour and melee weapons
 
 DEX | 1 | bonus to armour class
 DEX | 1 | movement + reflex saving throws
-DEX | 0 | flourishes: spend timing for extra damage
-DEX | 0 | accuracy with missile weapons
+DEX | 1 | flourishes: spend timing for extra damage
+DEX | 1 | accuracy with missile weapons
 
 CON | 1 | extra HP on every level from here on
 CON | 1 | elemental + endurance saving throws
 CON | 1 | resistance to poison, acid, shock
-CON | 0 | endure a maximum-damage blow for half
+CON | 1 | endure a maximum-damage blow for half
 
 INT | 1 | a Wizard's to hit and damage
 INT | 1 | mental saving throws
 INT | 1 | how many spells you can carry
 INT | 0 | speed of spell recall
-INT | 0 | magic flourishes for greater effects
+INT | 1 | magic flourishes for greater effects
 
 WIS | 1 | awareness saving throws
 WIS | 1 | read the bones: better odds when you gamble

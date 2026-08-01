@@ -378,6 +378,13 @@ DIM SHARED luck_left AS INTEGER, luck_max AS INTEGER
 DIM SHARED opt_luck AS INTEGER            ' SETTINGS toggle: luck re-rolls on/off
 DIM SHARED opt_startheal AS INTEGER       ' SETTINGS: does returning to the entrance heal you?
 
+' --- FLOURISHES: DEX-funded follow-throughs -------------------------------------
+' A pool the DEX modifier funds, refilled on every level-up. A flourish gesture spends one; a
+' natural 20 hands one back (so landing crits keeps you in flourishes) and a natural 1 costs
+' one (so fumbling dries you up). That loop is the mechanic: DEX decides how much rope you
+' have, and how you fight decides how fast you burn it.
+DIM SHARED flourish_left AS INTEGER, flourish_max AS INTEGER
+
 ' --- what each ability DOES (assets/data/<pack>/stats.txt) ---
 ' Shown in the character creator's side panel. SH_LIVE separates what the game does TODAY from
 ' what is designed but unbuilt, so the panel can never promise a mechanic that does not exist.

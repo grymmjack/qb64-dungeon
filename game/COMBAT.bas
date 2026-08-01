@@ -423,7 +423,15 @@ SUB DoCombatDnD (rm AS INTEGER)
     ' where missile weapons complement melee properly -- so when that lands, this is the seam to
     ' widen, not a special case to work around.
     IF curse_turns > 0 THEN thb = thb - 1        ' cursed: your aim is fouled
-    IF item_bow THEN thb = thb + 2
+    ' DEX -- "accuracy with missile weapons". The bow's flat +2 becomes +2 plus the DEX
+    ' modifier, so the Elf's own steadiness is what makes it worth carrying. Floored at +1:
+    ' a clumsy Elf still gains SOMETHING from a magic bow, or the item reads as a downgrade.
+    IF item_bow THEN
+        DIM bowb AS INTEGER
+        bowb = 2 + AbilMod(player_dex)
+        IF bowb < 1 THEN bowb = 1
+        thb = thb + bowb
+    END IF
     god_favor = GodsFavor                       ' desperate last-life spoils-rescue may earn a divine dice boost
     IF god_favor > 0 THEN thb = thb + god_favor
     ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight: monster recovers to full between encounters (ROUND 1 always opens at 100%)
@@ -489,6 +497,12 @@ SUB DoCombatDnD (rm AS INTEGER)
                 CombatPause
             ELSE
                 dmg = GameRoll(spell_dcnt, 6, 0, SpellLabel$(spell_elem) + " on the " + mon)
+                ' "Flourishes work with weapons AND magic" -- a spell can be shaped on the way
+                ' out, the same gesture and the same cost as a follow-through with a blade.
+                IF FlourishReady% THEN
+                    FlourishSpend
+                    dmg = dmg + MagicFlourish%(mon, sec, SkillTier%, spell_elem)
+                END IF
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
@@ -514,7 +528,14 @@ SUB DoCombatDnD (rm AS INTEGER)
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
                 dmg = LuckyRoll%(2, player_dmgdie, player_dmgbonus + item_sword - CurseDmgPenalty%, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
-                IF opt_gestures THEN dmg = dmg + CritFlourish(mon, sec, SkillTier%)   ' Action Gestures: time the gauge for +0/1/2 bonus dice
+                ' A nat 20 hands a flourish back BEFORE the gesture, so landing crits keeps you
+                ' in flourishes and the follow-through on a crit is effectively free. What drains
+                ' the pool is fumbling and using flourishes anywhere else.
+                FlourishCrit
+                IF FlourishReady% THEN
+                    FlourishSpend
+                    dmg = dmg + CritFlourish(mon, sec, SkillTier%)   ' time the gauge for +0/1/2 bonus dice
+                END IF
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
@@ -535,6 +556,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     CombatPause
                 END IF
             ELSEIF last_raw = 1 THEN              ' natural 1: auto-miss (and maybe a mishap)
+                FlourishFumble                    ' fumbling dries up your flourishes
                 RecordFumble mon, rounds
                 IF opt_critfumble THEN
                     DoFumble rm, mon, WeaponName$
@@ -614,6 +636,13 @@ SUB DoCombatDnD (rm AS INTEGER)
                 MonsterEffectStrike mon        ' a crit lands its elemental effect too
             ELSEIF matk >= player_ac + item_armor + item_shield THEN
                 PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
+                ' MAX on the monster's die, and you have the constitution to take it: brace.
+                ' Nested IFs -- QB64's AND evaluates both sides, and this one has a side effect.
+                IF last_raw = 6 THEN
+                    IF opt_gestures THEN
+                        IF AbilMod(player_con) > 0 THEN mdmg = EndureDamage%(mon, mdmg, lvl, SkillTier%)
+                    END IF
+                END IF
                 IF isboss THEN mdmg = mdmg + 3
                 player_hp = player_hp - mdmg
                 IF player_hp < 0 THEN player_hp = 0
@@ -1109,9 +1138,9 @@ SUB GrantLevelClear (lvl AS INTEGER)
         IF LEN(lukey) > 0 THEN Narrate lukey
         Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", lusay + "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
         CombatPause
-        LuckRefill                                  ' luck refills every level -- BEFORE the stat
-        LevelUpStatPoint                            ' point, so raising CHA pays out next level
-        LuckRefill                                  ' ...and again, in case that point WAS CHA
+        LuckRefill: FlourishRefill                  ' both pools refill every level -- BEFORE the
+        LevelUpStatPoint                            ' stat point, so raising CHA/DEX pays out now
+        LuckRefill: FlourishRefill                  ' ...and again, in case that point WAS CHA/DEX
         cursor_erase: cursor_draw: DrawHUD: Present ' the picker painted over the board
     END IF
     IF NOT opt_oldschool THEN                       ' no HP in Dungeon! -- no healing cache either
@@ -1361,3 +1390,36 @@ END FUNCTION
 FUNCTION CurseDmgPenalty%
     IF curse_turns > 0 THEN CurseDmgPenalty% = 1 ELSE CurseDmgPenalty% = 0
 END FUNCTION
+
+
+' Refill flourishes to the DEX modifier. Called at character creation and every level-up,
+' alongside LuckRefill -- the two pools are the same idea funded by different stats.
+SUB FlourishRefill
+    flourish_max = AbilMod(player_dex)
+    IF flourish_max < 0 THEN flourish_max = 0
+    flourish_left = flourish_max
+END SUB
+
+' Is a flourish available to spend right now?
+FUNCTION FlourishReady%
+    FlourishReady% = 0
+    IF NOT opt_gestures THEN EXIT FUNCTION
+    IF opt_oldschool THEN EXIT FUNCTION          ' no ability scores to fund it
+    IF flourish_left <= 0 THEN EXIT FUNCTION
+    FlourishReady% = -1
+END FUNCTION
+
+' Spend one, floored at zero.
+SUB FlourishSpend
+    flourish_left = flourish_left - 1
+    IF flourish_left < 0 THEN flourish_left = 0
+END SUB
+
+' A natural 20 hands one back (never above the pool's size); a natural 1 takes one away.
+SUB FlourishCrit
+    IF flourish_left < flourish_max THEN flourish_left = flourish_left + 1
+END SUB
+
+SUB FlourishFumble
+    IF flourish_left > 0 THEN flourish_left = flourish_left - 1
+END SUB
