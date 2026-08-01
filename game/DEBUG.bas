@@ -382,8 +382,25 @@ SUB DumpCharSheet
     NEXT i
     ShowCharSheetPaint                                 ' paint only -- no WaitKey, no board repaint
     _SAVEIMAGE "charsheet.png", CANVAS
+    ' ...and the OTHER extreme. A maxed hero is not the worst case for every row: the stat
+    ' DERIVATION line is its widest at a plain level-1 HERO ("To-Hit +2 = +2 class +0 STR ...",
+    ' 70 columns against the 67 the span beside the portrait allows), and testing only the
+    ' kitted-out character missed it printing straight over the class art.
+    player_name = "HERO"
+    char_level = 1: char_xp = 0
+    player_str = 10: player_int = 10: player_wis = 10: player_dex = 10: player_con = 10: player_cha = 10
+    player_hp = 24: player_maxhp = 24
+    player_tohit = 2: player_ac = 15: player_dmgdie = 8: player_dmgbonus = 0
+    gold = 0: target_gold = 10000: has_key = 0: key_level = 8
+    item_sword = 0: item_armor = 0: item_shield = 0: item_bow = 0: item_boots = 0
+    item_teleport = 0: item_potion_small = 0: item_potion_large = 0
+    item_secret_card = 0: item_esp = 0: item_crystal = 0
+    spell_fire = 0: spell_bolt = 0
+    LOOT_N(1) = 0
+    ShowCharSheetPaint
+    _SAVEIMAGE "charsheet-fresh.png", CANVAS
     _DEST _CONSOLE
-    PRINT PipeCol$("  wrote |10charsheet.png|07")
+    PRINT PipeCol$("  wrote |10charsheet.png|07 (fully kitted) and |10charsheet-fresh.png|07 (level-1 HERO)")
 END SUB
 
 

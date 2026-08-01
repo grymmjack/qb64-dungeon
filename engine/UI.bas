@@ -179,16 +179,52 @@ SUB PrintCentered (row AS INTEGER, t AS STRING)
 END SUB
 
 ' Centre within a COLUMN SPAN rather than the whole screen -- for text inside a panel, or
-' beside something (a portrait) that owns part of the row. Clamped to the span so an
-' over-long line starts at x1 instead of sliding off the panel's left edge.
+' beside something (a portrait) that owns part of the row.
+'
+' The span is a HARD limit, not a hint. Clamping the start position alone was not enough: a
+' line wider than the span still ran off the right-hand end, and on the character sheet that
+' meant the stat-derivation line printing straight over the class portrait. A helper whose job
+' is "fit this inside x1..x2" must not be able to draw outside it, so an over-long line is cut
+' to the span. Callers that must not lose text should wrap instead -- see PrintWrappedIn%.
 SUB PrintCenteredIn (row AS INTEGER, x1 AS INTEGER, x2 AS INTEGER, t AS STRING)
-    DIM px AS INTEGER, wide AS INTEGER
-    wide = (x2 - x1) * CW
-    IF wide < CW THEN wide = CW
-    px = x1 * CW + (wide - _PRINTWIDTH(t)) \ 2
+    DIM px AS INTEGER, wide AS INTEGER, cols AS INTEGER, s AS STRING
+    cols = x2 - x1
+    IF cols < 1 THEN cols = 1
+    s = t
+    IF _PRINTWIDTH(s) > cols * CW THEN s = LEFT$(s, cols)      ' grid font: 1 cell per char
+    wide = cols * CW
+    px = x1 * CW + (wide - _PRINTWIDTH(s)) \ 2
     IF px < x1 * CW THEN px = x1 * CW
-    _PRINTSTRING (px, row * CH), t
+    _PRINTSTRING (px, row * CH), s
 END SUB
+
+
+' Word-wrap `t` into the span and print it centred, at most `maxrows` rows starting at `row`.
+' Returns the LAST row used, so a caller can lay out what follows without assuming a height.
+' This is the no-data-lost counterpart to PrintCenteredIn's hard cut.
+FUNCTION PrintWrappedIn% (row AS INTEGER, x1 AS INTEGER, x2 AS INTEGER, maxrows AS INTEGER, t AS STRING)
+    DIM w AS STRING, p AS LONG, nl AS LONG, r AS INTEGER
+    r = row
+    ' If it already fits, print it VERBATIM. WrapLines$ collapses runs of spaces (callers pad
+    ' columns with them), which is right when a line must be re-flowed but destroys deliberate
+    ' spacing when it did not need to be -- the character sheet's derivation line is three
+    ' space-separated groups and reads as mush single-spaced.
+    IF _PRINTWIDTH(t) <= (x2 - x1) * CW THEN
+        PrintCenteredIn r, x1, x2, t
+        PrintWrappedIn% = r
+        EXIT FUNCTION
+    END IF
+    w = WrapLines$(t, x2 - x1, maxrows)
+    p = 1
+    DO WHILE p <= LEN(w)
+        nl = INSTR(p, w, CHR$(10))
+        IF nl = 0 THEN nl = LEN(w) + 1
+        PrintCenteredIn r, x1, x2, MID$(w, p, nl - p)
+        p = nl + 1
+        IF p <= LEN(w) THEN r = r + 1
+    LOOP
+    PrintWrappedIn% = r
+END FUNCTION
 
 ' Greedy word-wrap into at most `maxlines` lines of `cols` columns, returned CHR$(10)-joined.
 ' Breaks on spaces; a single word longer than the span is hard-cut rather than allowed to

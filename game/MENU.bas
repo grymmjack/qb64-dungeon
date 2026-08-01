@@ -1152,8 +1152,11 @@ FUNCTION CombatDerivation$ (pc AS INTEGER)
     dexmod = player_ac - baseac
     IF pc = 4 THEN statn = "INT" ELSE statn = "STR"
     s = "To-Hit " + ModStr$(player_tohit) + " = " + ModStr$(baseth) + " class " + ModStr$(atkmod) + " " + statn
-    s = s + "     Dmg " + ModStr$(player_dmgbonus) + " " + statn
-    s = s + "     AC " + _TRIM$(STR$(player_ac)) + " = " + _TRIM$(STR$(baseac)) + " class " + ModStr$(dexmod) + " DEX"
+    ' 3-space gaps, not 5: at 5 this line is 70 columns and the span beside the class portrait
+    ' is 67, so it wrapped (or, before that, printed straight over the art). Three still reads
+    ' as three groups. PrintWrappedIn% remains the safety net if a value ever gets wider.
+    s = s + "   Dmg " + ModStr$(player_dmgbonus) + " " + statn
+    s = s + "   AC " + _TRIM$(STR$(player_ac)) + " = " + _TRIM$(STR$(baseac)) + " class " + ModStr$(dexmod) + " DEX"
     CombatDerivation$ = s
 END FUNCTION
 
@@ -1177,7 +1180,7 @@ SUB ShowCharSheetPaint
     ' invisible while the text is short and catastrophic once it isn't: a full MAGIC: line ran
     ' off both edges of the panel, and the header lines slid under the class portrait. tx1/tx2
     ' are the text column span, narrowed to the portrait's left edge for the rows it occupies.
-    DIM tx1 AS INTEGER, tx2 AS INTEGER, hx2 AS INTEGER, portrait AS INTEGER
+    DIM tx1 AS INTEGER, tx2 AS INTEGER, hx2 AS INTEGER, portrait AS INTEGER, drow AS INTEGER
     DIM px1 AS INTEGER, py1 AS INTEGER, px2 AS INTEGER, py2 AS INTEGER
     effac = player_ac + item_armor + item_shield                     ' AC + worn armor/shield
     efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
@@ -1210,21 +1213,29 @@ SUB ShowCharSheetPaint
     DIM chline AS STRING
     chline = "Champion:  " + who
     IF NOT opt_oldschool THEN chline = chline + "        Level " + _TRIM$(STR$(char_level)) + "    XP " + _TRIM$(STR$(char_xp))
-    COLOR WHITE, BOXBG: PrintCenteredIn 6, tx1, hx2, chline
+    ' Every header row goes through a running CURSOR, and any row that can grow goes through
+    ' PrintWrappedIn% rather than being pinned to a fixed row. Two of these are player-sized and
+    ' will not fit beside the portrait at their longest: the Champion line (a 28-character name
+    ' plus level and XP) and the stat derivation (70 columns for a plain level-1 HERO against
+    ' the 67 available). Pinned rows meant one of them had to lose -- either printing over the
+    ' class art, or being cut off. Wrapping costs a row and loses nothing.
+    COLOR WHITE, BOXBG: drow = PrintWrappedIn%(6, tx1, hx2, 2, chline)
     IF NOT opt_oldschool THEN
         COLOR CYANU, BOXBG
-        PrintCenteredIn 7, tx1, hx2, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha))
+        drow = PrintWrappedIn%(drow + 1, tx1, hx2, 2, "STR " + _TRIM$(STR$(player_str)) + "  INT " + _TRIM$(STR$(player_int)) + "  WIS " + _TRIM$(STR$(player_wis)) + "  DEX " + _TRIM$(STR$(player_dex)) + "  CON " + _TRIM$(STR$(player_con)) + "  CHA " + _TRIM$(STR$(player_cha)))
         COLOR GREENU, BOXBG
-        PrintCenteredIn 8, tx1, hx2, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword)
-        COLOR GREY, BOXBG: PrintCenteredIn 9, tx1, hx2, CombatDerivation$(player_class)   ' where those bonuses come from
+        drow = PrintWrappedIn%(drow + 1, tx1, hx2, 2, "HP " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + "    AC " + _TRIM$(STR$(effac)) + "    To-Hit " + ModStr$(efth) + "    Dmg 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus + item_sword))
+        COLOR GREY, BOXBG
+        drow = PrintWrappedIn%(drow + 1, tx1, hx2, 2, CombatDerivation$(player_class))
     ELSE
-        COLOR GREENU, BOXBG: PrintCenteredIn 8, tx1, hx2, ClassSpecial$(player_class)     ' Dungeon!: just the class + its edge -- no stats, HP, or AC
+        COLOR GREENU, BOXBG
+        drow = PrintWrappedIn%(drow + 2, tx1, hx2, 2, ClassSpecial$(player_class))        ' Dungeon!: class + its edge -- no stats, HP, or AC
     END IF
-    ' wealth line
+    ' wealth line -- sits under however many rows the derivation needed
     COLOR YELLOWU, BOXBG
     ln = "GOLD  " + _TRIM$(STR$(gold)) + " / " + _TRIM$(STR$(target_gold))
     IF has_key THEN ln = ln + "        LEVEL KEY: HELD" ELSE ln = ln + "        LEVEL KEY: on the " + Ordinal$(key_level) + " level"
-    PrintCenteredIn 10, tx1, hx2, ln
+    PrintCenteredIn drow + 1, tx1, hx2, ln
     ' special items held
     inv = ""
     IF item_sword > 0 THEN inv = inv + "Magic Sword +" + _TRIM$(STR$(item_sword)) + "    "
@@ -1245,12 +1256,14 @@ SUB ShowCharSheetPaint
     ' beside the portrait (12..20 while one is drawn, 12..13 otherwise) instead of letting one
     ' long centred line run off both edges of the sheet and across the art.
     DIM mlines AS STRING, mrows AS INTEGER, mp AS INTEGER, mnl AS INTEGER, mrow AS INTEGER
-    mrows = 2: IF portrait THEN mrows = py2 - 12    ' rows 12..(portrait bottom)
+    DIM mtop AS INTEGER
+    mtop = drow + 3                                 ' one blank row under the wealth line
+    mrows = 2: IF portrait THEN mrows = py2 - mtop  ' rows mtop..(portrait bottom)
     IF mrows < 1 THEN mrows = 1
     COLOR WHITE, BOXBG
-    _PRINTSTRING (tx1 * CW, 12 * CH), "MAGIC:"
+    _PRINTSTRING (tx1 * CW, mtop * CH), "MAGIC:"
     mlines = WrapLines$(_TRIM$(inv), hx2 - tx1 - 8, mrows)
-    mrow = 12: mp = 1
+    mrow = mtop: mp = 1
     DO WHILE mp <= LEN(mlines)
         mnl = INSTR(mp, mlines, CHR$(10))
         IF mnl = 0 THEN mnl = LEN(mlines) + 1
