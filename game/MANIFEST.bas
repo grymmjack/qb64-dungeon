@@ -275,7 +275,69 @@ SUB ManOut (s AS STRING)
 END SUB
 
 ' An ASSET line: buffered AND counted. Only these are entries a generator has to make.
+' ============================================================================
+'  PACK AUDIT -- `dungeon.run <any>manifest audit`
+'
+'  A manifest lists every asset the game WANTS. Audit mode prints only the ones the
+'  selected packs do not actually have, in the same format, with the count on line 1.
+'  So the same command that feeds a generator also tells you what is still missing:
+'
+'      dungeon.run audiomanifest        # everything the game wants
+'      dungeon.run audiomanifest audit  # ...only what is missing, ready to generate
+'
+'  Resolution mirrors the loaders exactly -- selected pack first, then `default/`,
+'  per file -- because a partial pack is legal and only the files it actually ships
+'  should count as present.
+' ============================================================================
+
+' Which pack directory does this manifest category resolve through?
+FUNCTION ManPackFor$ (cat AS STRING)
+    SELECT CASE cat
+        CASE "sfx": ManPackFor$ = opt_sfxpack
+        CASE "music": ManPackFor$ = opt_musicpack
+        CASE "narration": ManPackFor$ = opt_narrationpack
+        CASE "pixel-art": ManPackFor$ = opt_artpack
+        CASE "ansi-art": ManPackFor$ = opt_ansipack
+        CASE ELSE: ManPackFor$ = ""
+    END SELECT
+END FUNCTION
+
+' Does the asset named by a manifest line exist in the selected pack or in default/?
+' A path with no extension is AUDIO (the manifest writes `sfx/move`, and the loader picks
+' the extension), so every audio extension is tried before calling it missing.
+FUNCTION ManAssetPresent% (ln AS STRING)
+    DIM pth AS STRING, cat AS STRING, rest AS STRING, sl AS INTEGER, bar AS INTEGER
+    DIM pk AS STRING, e AS INTEGER
+    ManAssetPresent% = -1                       ' unknown shapes count as PRESENT, never as a false alarm
+    bar = INSTR(ln, "|")
+    IF bar > 0 THEN pth = _TRIM$(LEFT$(ln, bar - 1)) ELSE pth = _TRIM$(ln)
+    IF LEN(pth) = 0 THEN EXIT FUNCTION
+    sl = INSTR(pth, "/")
+    IF sl <= 0 THEN EXIT FUNCTION
+    cat = LEFT$(pth, sl - 1): rest = MID$(pth, sl + 1)
+    pk = ManPackFor$(cat)
+    IF LEN(pk) = 0 THEN pk = "default"
+    IF INSTR(rest, ".") > 0 THEN                ' an explicit extension: a straight two-place check
+        IF _FILEEXISTS("assets/" + cat + "/" + pk + "/" + rest) THEN EXIT FUNCTION
+        IF _FILEEXISTS("assets/" + cat + "/default/" + rest) THEN EXIT FUNCTION
+        ManAssetPresent% = 0
+        EXIT FUNCTION
+    END IF
+    ' AudioExt$ already carries the leading dot (".ogg"), so do NOT add one here.
+    FOR e = 1 TO AUDIOPREF_N                    ' no extension: audio, try each in preference order
+        IF _FILEEXISTS("assets/" + cat + "/" + pk + "/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
+        IF _FILEEXISTS("assets/" + cat + "/default/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
+    NEXT e
+    ManAssetPresent% = 0
+END FUNCTION
+
+
 SUB ManAsset (s AS STRING)
+    ' In AUDIT mode a present asset is not an entry at all -- it is neither counted nor
+    ' printed, so `head -1` gives the number still to make and the body is a work list.
+    IF man_audit THEN
+        IF ManAssetPresent%(s) THEN EXIT SUB
+    END IF
     MAN_ENTRIES = MAN_ENTRIES + 1
     ManOut s
 END SUB
@@ -283,7 +345,11 @@ END SUB
 ' Print the machine-readable header. FIRST LINE IS THE COUNT, deliberately: fetchable with
 ' `head -1`, comparable with a stored value, no parsing required.
 SUB ManHeader (title AS STRING)
-    PRINT "# ENTRIES: " + LTRIM$(STR$(MAN_ENTRIES))
+    IF man_audit THEN
+        PRINT "# MISSING: " + LTRIM$(STR$(MAN_ENTRIES))
+    ELSE
+        PRINT "# ENTRIES: " + LTRIM$(STR$(MAN_ENTRIES))
+    END IF
     PRINT "# " + title
     IF MAN_N >= MAN_MAX THEN PRINT "# !! TRUNCATED at " + LTRIM$(STR$(MAN_MAX)) + " lines -- raise MAN_MAX in ENGINE.BI"
 END SUB

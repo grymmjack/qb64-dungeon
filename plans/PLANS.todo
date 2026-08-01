@@ -297,11 +297,17 @@ Huge UI Efforts:
         ☐ Inventory change
 
 Game Tweaks:
-    ☐ Create audit mode for packs @high
-      ☐ command line option *manifest (new option: audit)
-        ☐ Checks against manifest for missing entries in the pack
-          ☐ Returns them in same format as manifest with count of missing at top
-            ☐ e.g. dungeon.run audiomanifest audit
+    ✔ Create audit mode for packs @done(26-08-01)
+      ✔ command line option *manifest (new option: audit) -- works on ALL FOUR manifests @done(26-08-01)
+        ✔ audiomanifest / imagemanifest / uimanifest / fightmanifest @done(26-08-01)
+        ✔ Checks against manifest for missing entries in the pack @done(26-08-01)
+          ✔ Returns them in same format as manifest with count of missing at top @done(26-08-01)
+            ✔ e.g. dungeon.run audiomanifest audit -> "# MISSING: 137" then the work list @done(26-08-01)
+      ✔ resolution mirrors the loaders exactly (selected pack, then default/, per file), so a @done(26-08-01)
+        ✔ partial pack counts only the files it actually ships @done(26-08-01)
+      ✔ FIRST RESULT: audio 137 missing and ALL of them narration; image/ui/fight 0 missing @done(26-08-01)
+      ✔ `audit` is matched as a WHOLE ARGUMENT, not by INSTR -- dev modes match by substring @done(26-08-01)
+        ✔ and a sloppy test would fire on any mode whose name happened to contain it @done(26-08-01)
 
     ☐ Create command line option balancedump
       ☐ Dumps in a table: (fetches from stats with --includestats *)

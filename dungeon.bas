@@ -198,6 +198,14 @@ LoadPlaylist                     ' load the per-level music map (assets/music/pl
 
 ' text-only manifests exit HERE -- after the data they need, before the heavy graphics init
 ' (dice atlases / fonts / vignette). Window stays hidden ($SCREENHIDE), so no black flash.
+' `audit` turns any manifest into a WORK LIST: only the assets the selected packs do not
+' actually have. Matched as a WHOLE ARGUMENT, not with INSTR -- dev-mode names here are matched
+' by substring and a sloppy test would fire on any mode whose name happened to contain it.
+DIM mac AS INTEGER
+FOR mac = 1 TO _COMMANDCOUNT
+    IF UCASE$(_TRIM$(COMMAND$(mac))) = "AUDIT" THEN man_audit = TRUE
+NEXT mac
+
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest: SYSTEM
