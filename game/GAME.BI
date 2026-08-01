@@ -332,6 +332,11 @@ DIM SHARED SP_ROOM(1 TO 30) AS INTEGER   ' each named label bound to its nearest
 DIM SHARED MAXHIT(1 TO 30) AS STRING, MAXHIT_N AS INTEGER                  ' max-damage combat flavor
 DIM SHARED FORFEIT_FLAV(1 TO 30) AS STRING, FORFEIT_N AS INTEGER           ' sad epitaphs shown when a run is forfeited
 DIM SHARED LEVELUP_FLAV(1 TO 30) AS STRING, LEVELUP_N AS INTEGER           ' what gaining a character level FEELS like
+' --- AMBIENCE: the dungeon making noise at you (assets/data/<pack>/ambience.txt) ---
+DIM SHARED AMB_LVL(1 TO 120) AS INTEGER, AMB_NAME(1 TO 120) AS STRING
+DIM SHARED AMB_W(1 TO 120) AS INTEGER, AMB_N AS INTEGER
+DIM SHARED amb_ticks AS LONG                                               ' frames until the next ambient noise
+DIM SHARED AMB_SECS_MIN AS INTEGER, AMB_SECS_MAX AS INTEGER                ' gap between noises; MIN 0 = ambience off
 DIM SHARED fx_critkill AS INTEGER                                           ' TRUE = the killing blow was a CRIT (picks the killcrit aftermath text)
 DIM SHARED CHM_FLAV_NAME(1 TO 32) AS STRING, CHM_FLAV_TXT(1 TO 32) AS STRING, CHM_FLAV_N AS INTEGER   ' per-chamber descriptions
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)

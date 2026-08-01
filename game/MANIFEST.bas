@@ -15,7 +15,10 @@
 ' and registers each (loads a file if one exists, else the beeper covers it); `audiomanifest`
 ' dumps the same list, so it stays one source of truth.
 FUNCTION Game_SfxNames$
-    Game_SfxNames$ = "move bump door strongdoor breakdoor secret secretpass key idle treasure trap hit miss crit fumble search win lose saveok savebad chest boom hiss fizzle alarm select levelup voice diceroll diceland dice_edge dice_settle dice-math-1 dice-math-2 monster-pain player-pain death monster-death maxhit heartbeat curio poison-proc frost-proc teleport fireball lightning-bolt"
+    Game_SfxNames$ = "move bump door strongdoor breakdoor secret secretpass key idle treasure trap hit miss crit fumble search win lose saveok savebad chest boom hiss fizzle alarm select levelup voice diceroll diceland dice_edge dice_settle dice-math-1 dice-math-2 monster-pain player-pain death monster-death maxhit heartbeat curio poison-proc frost-proc teleport fireball lightning-bolt" + _
+        " amb-thump amb-hinge amb-slam amb-chains amb-wind amb-drone amb-scream" + _
+        " amb-squeak amb-hiss amb-gibber amb-growl amb-slither amb-laugh amb-howl" + _
+        " amb-bark amb-moan amb-whisper"
 END FUNCTION
 
 ' Look up want in the parallel keys()/vals() arrays (case-insensitive), or a placeholder.

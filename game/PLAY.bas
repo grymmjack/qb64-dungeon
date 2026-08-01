@@ -1,3 +1,46 @@
+
+' ============================================================================
+'  AMBIENCE -- a distant noise every so often, chosen by which level you are on.
+'
+'  Called once per play-loop frame. It is deliberately NOT wired into combat,
+'  menus or banners: a scream landing on top of a combat banner reads as a bug,
+'  and the point of ambience is the quiet between events.
+'
+'  Ambience never falls back to the tone beeper. Sfx would happily beep a missing
+'  effect, but a PC-speaker blip is a UI sound -- a distant noise that is not
+'  there should be SILENCE, not a chirp. So this checks SfxHandle& first.
+' ============================================================================
+SUB AmbienceTick
+    DIM i AS INTEGER, tot AS LONG, pick AS LONG, lvl AS INTEGER, span AS INTEGER
+    IF AMB_SECS_MIN <= 0 THEN EXIT SUB                 ' tuning.txt: ambience switched off
+    IF NOT opt_sfx THEN EXIT SUB
+    IF AMB_N <= 0 THEN EXIT SUB
+    IF amb_ticks > 0 THEN amb_ticks = amb_ticks - 1: EXIT SUB
+    span = AMB_SECS_MAX - AMB_SECS_MIN
+    IF span < 1 THEN span = 1
+    amb_ticks = (AMB_SECS_MIN + RollDie(span)) * 60&    ' _LIMIT 60, so a frame is 1/60s
+    lvl = PlayerLevel%
+    ' Weighted pick across this level's rows PLUS the level-0 "any level" rows. Two passes:
+    ' total the weights, then walk them again -- with no live sound file the row is skipped, so
+    ' a pack that ships half the ambience still picks fairly among what it actually has.
+    tot = 0
+    FOR i = 1 TO AMB_N
+        IF AMB_LVL(i) = 0 OR AMB_LVL(i) = lvl THEN
+            IF SfxHandle&(AMB_NAME(i)) > 0 THEN tot = tot + AMB_W(i)
+        END IF
+    NEXT i
+    IF tot <= 0 THEN EXIT SUB                          ' nothing audible for this level -- stay quiet
+    pick = RollDie(tot)
+    FOR i = 1 TO AMB_N
+        IF AMB_LVL(i) = 0 OR AMB_LVL(i) = lvl THEN
+            IF SfxHandle&(AMB_NAME(i)) > 0 THEN
+                pick = pick - AMB_W(i)
+                IF pick <= 0 THEN Sfx AMB_NAME(i): EXIT SUB
+            END IF
+        END IF
+    NEXT i
+END SUB
+
 ' ============================================================================
 '  PLAY.bas -- GAME play-loop support (extracted from dungeon.bas).
 '

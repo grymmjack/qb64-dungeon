@@ -189,6 +189,7 @@ InitLabels                       ' build the room-label table + the label-cell m
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
 LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
+LoadAmbience                      ' load the per-level ambient noise table (assets/data/ambience.txt)
 LoadChamberEvents                 ' load the chamber event table (assets/data/chamber-events.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
@@ -638,6 +639,7 @@ FUNCTION PlayGame%
     DO
         _LIMIT 60
         AudioTick                                 ' advance music crossfade + narration fade each frame
+        AmbienceTick                              ' a distant noise now and then, chosen by the level you are on
         IF display_dirty THEN                     ' ...and repaint the whole board once it has settled
             display_dirty = 0
             cursor_erase: cursor_draw: DrawHUD: Present

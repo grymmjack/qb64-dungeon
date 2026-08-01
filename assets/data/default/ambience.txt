@@ -1,0 +1,77 @@
+# ============================================================================
+#  AMBIENCE -- the dungeon making noise at you while you walk.
+#
+#  A random line fires every AMB_SECS_MIN..AMB_SECS_MAX seconds of PLAY (never
+#  during combat, menus or banners -- AmbienceTick only runs in the play loop).
+#  Set AMB_SECS_MIN to 0 in tuning.txt to turn ambience off entirely.
+#
+#  Format:  level | sfx name | weight
+#     level   1-9, or 0 = "any level" (these are always in the pool)
+#     sfx     an effect name; it resolves through the SFX PACK like any other,
+#             so a pack can re-voice the whole dungeon. A name with NO file is
+#             simply SILENT -- ambience never falls back to the tone beeper,
+#             because a PC-speaker blip is a UI sound, not a distant noise.
+#     weight  relative odds within that level's pool (1 = rare, 5 = often)
+#
+#  Levels have a character: the Torture Chamber screams, the Crypt moans, the
+#  Wizard's floor mutters to itself. Keep the pools small and thematic -- the
+#  point is punctuation, not a soundscape.
+# ============================================================================
+
+# ---- any level: the building itself ----
+0 | amb-wind    | 3
+0 | amb-drone   | 2
+0 | amb-thump   | 2
+0 | amb-hinge   | 2
+
+# ---- 1 MAIN GALLERY -- open, echoing, still close to the entrance ----
+1 | amb-wind    | 4
+1 | amb-whisper | 2
+1 | amb-thump   | 2
+
+# ---- 2 GUARD ROOM -- occupied, and they are not quiet about it ----
+2 | amb-bark    | 3
+2 | amb-gibber  | 3
+2 | amb-slam    | 3
+2 | amb-chains  | 2
+
+# ---- 3 ARMORY -- steel on stone ----
+3 | amb-slam    | 3
+3 | amb-chains  | 3
+3 | amb-thump   | 3
+
+# ---- 4 STORE ROOM -- vermin in the stores ----
+4 | amb-squeak  | 4
+4 | amb-slither | 2
+4 | amb-hinge   | 2
+4 | amb-moan    | 1
+
+# ---- 5 TORTURE CHAMBER -- the worst floor, and it sounds like it ----
+5 | amb-scream  | 4
+5 | amb-moan    | 4
+5 | amb-chains  | 3
+5 | amb-laugh   | 2
+
+# ---- 6 KING'S QUARTERS -- courtly, hushed, watched ----
+6 | amb-whisper | 4
+6 | amb-hinge   | 3
+6 | amb-drone   | 2
+
+# ---- 7 WIZ'S QUARTERS -- something is being muttered, and it is not for you ----
+7 | amb-gibber  | 4
+7 | amb-whisper | 3
+7 | amb-drone   | 3
+7 | amb-laugh   | 2
+
+# ---- 8 QUEEN'S QUARTERS -- grief, and a draught ----
+8 | amb-moan    | 3
+8 | amb-whisper | 3
+8 | amb-wind    | 3
+8 | amb-hinge   | 2
+
+# ---- 9 THE CRYPT -- the dead are restless and the living are outnumbered ----
+9 | amb-moan    | 4
+9 | amb-whisper | 3
+9 | amb-slither | 3
+9 | amb-howl    | 2
+9 | amb-drone   | 2

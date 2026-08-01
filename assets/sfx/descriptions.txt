@@ -56,3 +56,27 @@ frost-proc     | 0.35 | a brittle icy crackle of lingering frost biting the skin
 teleport       | 0.60 | a swirling magical whoosh rising in pitch as reality folds (reading a Teleport Scroll)
 fireball       | 0.60 | a roaring burst of flame, a fiery whoosh and low rumble
 lightning-bolt | 0.45 | a sharp electric crack and crackle of a lightning strike
+
+# --- AMBIENCE -----------------------------------------------------------------------
+# Distant dungeon noises, fired by AmbienceTick every AMB_SECS_MIN..MAX seconds of play.
+# Per-level pools live in assets/data/<pack>/ambience.txt. These ship in the `default`
+# SFX pack, so every other pack inherits them unless it overrides one by name.
+# These are DISTANT: quiet, a little muffled, with room tone -- the opposite of the dry
+# UI blips above. A dry, close ambient noise reads as something standing next to you.
+amb-thump      | 3    | a distant heavy thud deep in the stone, muffled by rock
+amb-hinge      | 3    | an old iron hinge creaking somewhere out of sight
+amb-slam       | 2    | a door slamming far off down the corridor
+amb-chains     | 3    | chains rattling in the dark
+amb-wind       | 4    | a low wind moving through stone corridors
+amb-drone      | 5    | a deep subterranean drone, felt more than heard
+amb-scream     | 2    | a distant scream of pain, cut short
+amb-squeak     | 1    | vermin squeaking among the stores
+amb-hiss       | 2    | a long hiss from somewhere in the dark
+amb-gibber     | 3    | muttered gibberish, no words you know
+amb-growl      | 2    | a low growl from somewhere ahead
+amb-slither    | 3    | something wet dragging itself across stone
+amb-laugh      | 2    | a mad laugh, far away and delighted
+amb-howl       | 3    | a howl carrying up from a lower floor
+amb-bark       | 1    | a sharp guttural bark -- an order, or a challenge
+amb-moan       | 3    | a long low moan of the hurt or the dead
+amb-whisper    | 3    | a faint whisper you cannot quite make out

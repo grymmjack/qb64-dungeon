@@ -15,6 +15,7 @@ SUB LoadTuning
     POTION_SMALL_DIE = 4: POTION_LARGE_DIE = 8: POTION_LARGE_BONUS = 1
     TREASURE_POTION_PCT = 15: TREASURE_LARGE_PCT = 25: LEVELCLEAR_LARGE_PCT = 30
     IDLE_ENCOUNTER_PCT = 30: LOITER_THRESHOLD = 3: WANDER_GOLD_DIV = 6
+    AMB_SECS_MIN = 18: AMB_SECS_MAX = 45          ' seconds between ambient noises (MIN 0 = off)
     XP_PER_KILL_LVL = 10: CHEST_PCT = 20: CHEST_TRAP_PCT = 25
     CURIO_PATH_PCT = 3: CURIO_COOLDOWN = 16
     SIREN_ENCOUNTER_BOOST = 20: SIREN_MOVE_PCT = 15
@@ -63,6 +64,8 @@ SUB LoadTuning
             CASE "LOITER_THRESHOLD": LOITER_THRESHOLD = v
             CASE "WANDER_GOLD_DIV": IF v >= 1 THEN WANDER_GOLD_DIV = v    ' guard: it's a divisor
             CASE "XP_PER_KILL_LVL": XP_PER_KILL_LVL = v
+            CASE "AMB_SECS_MIN": IF v >= 0 THEN AMB_SECS_MIN = v          ' 0 = ambience off
+            CASE "AMB_SECS_MAX": IF v >= 1 THEN AMB_SECS_MAX = v
             CASE "CHEST_PCT": CHEST_PCT = v
             CASE "CHEST_TRAP_PCT": CHEST_TRAP_PCT = v
             CASE "CURIO_PATH_PCT": CURIO_PATH_PCT = v
@@ -194,6 +197,26 @@ SUB LoadEffects
 END SUB
 
 ' -- curio traps: kind | name | save | word | sfx | die | trigger | savemsg | failtitle | failbody --
+' Load the AMBIENCE table: which distant noises each dungeon level makes, and how often.
+' Rows are `level | sfx | weight`, level 0 = any level. See assets/data/<pack>/ambience.txt.
+SUB LoadAmbience
+    DIM i AS INTEGER, lv AS INTEGER, w AS INTEGER
+    AMB_N = 0
+    ReadDataFile "assets/data/ambience.txt"
+    FOR i = 1 TO DLINE_N
+        lv = VAL(DField$(DLINE(i), 1))
+        w = VAL(DField$(DLINE(i), 3))
+        IF w < 1 THEN w = 1
+        IF lv >= 0 AND lv <= 9 THEN
+            IF AMB_N < UBOUND(AMB_LVL) THEN
+                AMB_N = AMB_N + 1
+                AMB_LVL(AMB_N) = lv: AMB_NAME(AMB_N) = DField$(DLINE(i), 2): AMB_W(AMB_N) = w
+            END IF
+        END IF
+    NEXT i
+END SUB
+
+
 SUB LoadTraps
     DIM i AS INTEGER
     NTRAP = 0

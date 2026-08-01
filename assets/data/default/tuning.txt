@@ -118,3 +118,10 @@ STANCE_STAGGER_IN_PCT  | 160
 HP_GRAZED_PCT         | 60
 HP_WOUNDED_PCT        | 35
 HP_BLOODIED_PCT       | 15
+
+# --- AMBIENCE (distant dungeon noises during play; see ambience.txt) ---
+# Seconds between noises, picked at random in this range. AMB_SECS_MIN = 0 turns
+# ambience off entirely. Keep the gap long -- ambience is punctuation, and a noise
+# every few seconds stops being atmosphere and starts being a nuisance.
+AMB_SECS_MIN | 18
+AMB_SECS_MAX | 45
