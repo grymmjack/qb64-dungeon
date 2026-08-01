@@ -143,8 +143,9 @@ SUB DoMonsterFumble (rm AS INTEGER, mon AS STRING)
     Banner "** the " + mon + " FUMBLES! **  (natural 1)", fl
     _DELAY 2.0
     SELECT CASE MFUMBLE(i).kind
-        CASE 3                                     ' self-damage
-            amt = RollDie(MFUMBLE(i).die): IF amt < 1 THEN amt = 1
+        CASE 3, 6                                  ' self-damage (3 = roll the die, 6 = exact)
+            IF MFUMBLE(i).kind = 6 THEN amt = MFUMBLE(i).die ELSE amt = RollDie(MFUMBLE(i).die)
+            IF amt < 1 THEN amt = 1
             ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - amt
             IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
             Banner "The " + mon + " wounds ITSELF!", "It takes " + _TRIM$(STR$(amt)) + " damage.   [ press any key ]"

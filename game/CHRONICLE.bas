@@ -14,7 +14,7 @@ END FUNCTION
 ' (so monsters you haven't met yet still list, at 0). Call at the start of every run.
 SUB ChronicleReset
     DIM i AS INTEGER, lv AS INTEGER, sl AS INTEGER, nm AS STRING, dummy AS INTEGER
-    g_rooms_explored = 0: g_monsters_slain = 0: g_treasures_found = 0
+    g_rooms_explored = 0: g_monsters_slain = 0: g_treasures_found = 0: start_heals = 0
     g_items_looted = 0: g_levels_completed = 0: g_secrets_found = 0
     g_crits = 0: g_fumbles = 0: g_wander_enc = 0: g_run_deaths = 0
     g_gold_found = 0: EVLOG_N = 0
@@ -206,6 +206,7 @@ SUB ShowGameSummary
     SumRow y, "Wandering ambushes", g_wander_enc: y = y + 2
     SumRow y, "Critical hits / fumbles", g_crits: COLOR WHITE, BOXBG: _PRINTSTRING (70 * CW, y * CH), EvNum$(g_crits) + "  /  " + EvNum$(g_fumbles): y = y + 2
     SumRow y, "Deaths this run", g_run_deaths: y = y + 2
+    SumRow y, "Trips home to heal", start_heals: y = y + 2
     COLOR CYANU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$("Time played", 26): COLOR WHITE, BOXBG: _PRINTSTRING (70 * CW, y * CH), tmr
     COLOR YELLOWU, BOXBG: PrintCentered 43, "[ press any key ]"
     Present: WaitKey: ChronicleClose

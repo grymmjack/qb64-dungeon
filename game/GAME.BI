@@ -302,6 +302,11 @@ DIM SHARED cur_level AS INTEGER
 ' entrance zone under your own power. Without it a Teleport Scroll was a free full heal, and
 ' the obelisk's "reality folds" outcome was strictly better than any potion.
 DIM SHARED start_heal_locked AS INTEGER
+' The HP the character STARTED the run with. The entrance heals exactly this much -- a fixed
+' number, not "to full" -- so going home matters less and less as you level, instead of being a
+' free full heal forever. Captured at character creation, never re-derived.
+DIM SHARED hp_start_amount AS INTEGER
+DIM SHARED start_heals AS INTEGER              ' how many times the entrance has patched you up this run
 DIM SHARED CHM_GX(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER   ' 3 spread grave cells per chamber
 DIM SHARED CHM_GY(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER
 

@@ -44,7 +44,28 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
     atstart = 0
     IF ABS(cx - START_CX) <= 1 AND ABS(cy - START_CY) <= 1 THEN atstart = -1
     IF atstart THEN
-        IF NOT start_heal_locked THEN player_hp = player_maxhp
+        ' The entrance restores exactly what you STARTED with -- 15 max HP at creation means 15
+        ' HP back, every time, forever. It used to heal to FULL, which made walking home a free
+        ' reset that only got stronger as max HP grew; a fixed amount does the opposite.
+        '
+        ' Gated: you must be alive (1+ HP -- the entrance patches you up, it does not raise the
+        ' dead) and actually hurt (under 75% of max), so topping off a scratch is not worth the
+        ' trip. start_heals counts it, which is what makes the abuse visible in the summary.
+        ' A save written before this existed, or a champion loaded from the hall of fame, has
+        ' no captured starting HP. Derive it once rather than bump the save format -- the worst
+        ' case is a returning hero whose "starting" HP is their current max, which is exactly
+        ' the old behaviour they were already playing with.
+        IF hp_start_amount <= 0 THEN hp_start_amount = player_maxhp
+        IF NOT start_heal_locked THEN
+            IF player_hp >= 1 AND player_hp < (player_maxhp * 3) \ 4 THEN
+                player_hp = player_hp + hp_start_amount
+                IF player_hp > player_maxhp THEN player_hp = player_maxhp
+                start_heals = start_heals + 1
+                start_heal_locked = TRUE           ' one heal per trip out; leaving clears it
+                Sfx "levelup"
+                LogEvent "The entrance restores you (" + _TRIM$(STR$(hp_start_amount)) + " HP)."
+            END IF
+        END IF
     ELSE
         start_heal_locked = FALSE                  ' out in the dungeon again -- the walk home counts
     END IF

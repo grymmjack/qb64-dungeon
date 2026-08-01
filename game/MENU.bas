@@ -61,6 +61,7 @@ SUB InitDefaultChar (pc AS INTEGER)
     player_str = 10: player_int = 10: player_wis = 10
     player_dex = 10: player_con = 10: player_cha = 10
     player_maxhp = CLASSES(pc).hp: player_hp = player_maxhp
+    hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
     player_tohit = CLASSES(pc).tohit
     player_ac = CLASSES(pc).ac
     player_dmgdie = CLASSES(pc).dmg
@@ -306,6 +307,7 @@ SUB RollCharacter (pc AS INTEGER)
         hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
         player_maxhp = hproll + 3 * AbilMod(player_con)
         IF player_maxhp < 3 THEN player_maxhp = 3
+        hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
         player_hp = player_maxhp
         DeriveFromStats pc                             ' to-hit / AC / damage from the ability scores
         DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt

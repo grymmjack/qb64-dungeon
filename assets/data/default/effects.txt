@@ -2,8 +2,12 @@
 # One effect per line, pipe-delimited (fields trimmed). Re-read at launch (F5).
 #
 # table: 1 = player CRITICAL HIT   2 = player FUMBLE   3 = monster natural-1 (self-mishap)
-# kind : 0 flavor-only   1 heal player   2 extra damage to foe   3 self-damage
-#        4 lose a turn   5 drop gold
+# kind : 0 flavor-only   1 heal player   2 extra damage to foe   3 self-damage (roll `die`)
+#        4 lose a turn   5 drop gold   6 self-damage, EXACT (`die` IS the amount)
+#
+# Kind 6 exists so a table can express a fixed-odds/fixed-damage distribution. The monster
+# fumble table below is 10 rows read uniformly, so the ROW COUNT is the probability:
+# 1 row = 10%. Rolling a die instead would smear the intended 6 / 3 / 1 into a range.
 # die  : magnitude die for the mechanical effect (0 = none)
 # text : the line shown. Tokens {mon} and {weapon} are filled in at show time. No pipes in text.
 #
@@ -24,8 +28,20 @@
 2 | 4 | 0 | You trip on a loose stone and sprawl at the {mon}'s feet!
 2 | 0 | 0 | Overbalanced, you flail -- the blow whistles harmlessly past!
 2 | 0 | 0 | Your boot skids in the muck; {weapon} bites only air.
-3 | 3 | 4 | The {mon} lunges, trips, and gashes itself on its own claws!
-3 | 0 | 0 | The {mon} overreaches and sprawls, wasting its turn!
-3 | 3 | 4 | The {mon} snaps at you, misses, and bites its own flank!
-3 | 0 | 0 | The {mon} slips in its own filth and crashes down!
-3 | 3 | 4 | The {mon} swings so hard it wrenches itself and reels!
+
+# --- table 3: MONSTER natural-1 self-mishap ------------------------------------------
+# 10 rows, read uniformly, so the row count IS the chance:
+#   1 row  kind 6 die 6  -> 10% for 6 damage
+#   2 rows kind 6 die 3  -> 20% for 3 damage
+#   3 rows kind 6 die 1  -> 30% for 1 damage
+#   4 rows kind 4        -> 40% no damage, but its attack is wasted
+3 | 6 | 6 | The {mon} lunges, trips, and gashes itself open on its own claws!
+3 | 6 | 3 | The {mon} snaps at you, misses, and bites its own flank!
+3 | 6 | 3 | The {mon} swings so hard it wrenches itself and tears something!
+3 | 6 | 1 | The {mon} clips itself on the backswing and hisses at the sting.
+3 | 6 | 1 | The {mon} catches its own claw on stone and splits it.
+3 | 6 | 1 | The {mon} overbalances and barks its head on the wall.
+3 | 4 | 0 | The {mon} overreaches and sprawls, wasting its turn!
+3 | 4 | 0 | The {mon} slips in its own filth and crashes down!
+3 | 4 | 0 | The {mon} reels, tangled in its own momentum, and finds only air.
+3 | 4 | 0 | The {mon} lurches past you and has to gather itself again.

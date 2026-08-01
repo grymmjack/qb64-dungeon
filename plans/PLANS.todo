@@ -364,11 +364,14 @@ Game Tweaks:
         ☐ 20% chance of arrow trap - SAVE VS DEX or -1D6 HP
         ☐ 10% chance of monster ambush - extra monster attack to start combat no chance to flee surprised
         ☐ 50% nothing happens regular entry
-    ☐ When monsters fumble can take damage hitting themselves
-      ☐ 10% chance of 6 damage
-      ☐ 20% chance of 3 damage
-      ☐ 30% chance of 1 damage
-      ☐ 40% chance of no damage but lose next attack
+    ✔ When monsters fumble can take damage hitting themselves @done(26-08-01)
+      ✔ 10% chance of 6 damage @done(26-08-01)
+      ✔ 20% chance of 3 damage @done(26-08-01)
+      ✔ 30% chance of 1 damage @done(26-08-01)
+      ✔ 40% chance of no damage but lose next attack @done(26-08-01)
+      ✔ done as DATA: effects.txt table 3 is now 10 rows read uniformly, so the ROW COUNT is @done(26-08-01)
+        ✔ the probability (1 row = 10%). New effect kind 6 = self-damage EXACT, because the @done(26-08-01)
+        ✔ old kind 3 rolls `die` and would smear the intended 6 / 3 / 1 into a range @done(26-08-01)
     ☐ Give monsters appropriate elemental effects:
       ☐ All can be avoided with successful saving throw
       ☐ GIANT SPIDER, GIANT SNAKE:
@@ -383,11 +386,15 @@ Game Tweaks:
       ☐ GREEN SLIME, PURPLE WORM, BLACK PUDDING:
         ☐ ACID SPRAY chance 25% -1D6 1 time at time of impact, -1 HP for 3 rounds after
         ☐ Save vs. DEX
-    ☐ Returning to the start after receiving damage fully heals the player for the amount they STARTED with
-      ☐ e.g. if they started with 15 HP, heals 15 HP.
-      ☐ The player must have at least 1 HP before they can be healed.
-      ☐ The player must have less than 75% of their HP before this will work.
-        ☐ Count how many times they do this and if they start abusing it
+    ✔ Returning to the start heals the amount they STARTED with @done(26-08-01)
+      ✔ e.g. if they started with 15 HP, heals 15 HP (hp_start_amount, captured at creation) @done(26-08-01)
+      ✔ The player must have at least 1 HP before they can be healed @done(26-08-01)
+      ✔ The player must have less than 75% of their HP before this will work @done(26-08-01)
+        ✔ start_heals counts it, and it shows in the Game Summary as "Trips home to heal" @done(26-08-01)
+      ✔ this REPLACES a heal-to-full, which got stronger as max HP grew; a fixed amount does @done(26-08-01)
+        ✔ the opposite, so going home matters less and less as you level @done(26-08-01)
+      ✔ old saves / loaded champions have no captured value, so it derives once from maxhp @done(26-08-01)
+        ✔ rather than bumping the save format -- worst case is exactly the old behaviour @done(26-08-01)
         ☐ On return back to start increase the likelihood of random encounters by +10% each time after 2 times up to 50% chance
       ☐ Scrawling text with rest image (add to imagemanifest and ansimanifest)
       ☐ Narration: Having sustained wounds you rest at the entrance to heal and recouperate. You are healed after a few days.
