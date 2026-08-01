@@ -173,6 +173,11 @@ FUNCTION IsWizard%
     IsWizard% = (player_class = 4)
 END FUNCTION
 
+' TRUE if the active player is an Elf -- the only class trained to the bow.
+FUNCTION IsElf%
+    IsElf% = (player_class = 2)
+END FUNCTION
+
 ' TRUE if `mon` shrugs off a spell element ("fire"/"lightning"). Thematic: fiery/infernal things
 ' are immune to fire, constructs/metal/storm things to lightning -- so when one element fizzles,
 ' the Wizard casts the OTHER. Loose name match; edit the word lists to taste.
@@ -410,7 +415,14 @@ SUB DoCombatDnD (rm AS INTEGER)
     END IF
     thb = player_tohit                          ' final to-hit incl. ability modifier
     IF item_sword > 0 THEN thb = thb + item_sword   ' a Magic Sword +N sharpens the SWING as well as the wound (+N hit AND +N dmg)
-    IF item_bow THEN thb = thb + 2              ' Magic Bow: +2 to-hit, any class (ranged accuracy) -- stacks with the blade
+    ' Magic Bow: +2 to-hit, stacking with the blade. ELF ONLY -- ClaimTreasure sells it to any
+    ' other class, so a non-Elf can never be holding one here.
+    '
+    ' This is the game's first MISSILE weapon, and deliberately a thin one: right now it is a
+    ' to-hit bonus plus the SHOOT action in tactical combat. The plan is a top-down perspective
+    ' where missile weapons complement melee properly -- so when that lands, this is the seam to
+    ' widen, not a special case to work around.
+    IF item_bow THEN thb = thb + 2
     god_favor = GodsFavor                       ' desperate last-life spoils-rescue may earn a divine dice boost
     IF god_favor > 0 THEN thb = thb + god_favor
     ROOMS(rm).mhp_now = ROOMS(rm).mhp   ' fresh fight: monster recovers to full between encounters (ROUND 1 always opens at 100%)
@@ -907,8 +919,12 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                     line2 = "You already wear good armor -- the spare set goes in your pack to sell in town (+750 gold)."
                 END IF
             END IF
-        CASE 9                                     ' Magic Bow (+2 to-hit) -- a D&D-mode item
-            IF opt_oldschool THEN                   ' 2d6 combat has no to-hit bonus -- sell it
+        CASE 9                                     ' Magic Bow (+2 to-hit) -- an ELF item, D&D mode
+            IF NOT IsElf% THEN                      ' only the Elf is trained to the bow
+                gold = gold + 500
+                LogTreasure _TRIM$(tname) + " (sold)", 500
+                line2 = "A fine " + tname + " -- but only an Elf is trained to it; you sell it for 500 gold."
+            ELSEIF opt_oldschool THEN               ' 2d6 combat has no to-hit bonus -- sell it
                 gold = gold + 500
                 LogTreasure _TRIM$(tname) + " (sold)", 500
                 line2 = "A fine " + tname + " -- but it lends no edge to a 2d6 fight; you sell it for 500 gold."

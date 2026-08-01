@@ -207,7 +207,11 @@ SUB GrantCurioItem (sec AS INTEGER, got AS STRING)
     n = 0
     IF player_class <> 4 AND item_sword < 2 THEN n = n + 1: opt(n) = 1
     IF item_armor < 3 OR item_shield < 2 THEN n = n + 1: opt(n) = 2
-    IF item_bow = 0 THEN n = n + 1: opt(n) = 3
+    ' Only offer the bow to an Elf -- offering it and then having the player sell it on pickup
+    ' reads as the game wasting your reward. Nested IF: QB64's AND evaluates both sides.
+    IF item_bow = 0 THEN
+        IF IsElf% THEN n = n + 1: opt(n) = 3
+    END IF
     IF item_boots = 0 THEN n = n + 1: opt(n) = 4
     IF item_esp = 0 THEN n = n + 1: opt(n) = 5
     IF item_crystal = 0 THEN n = n + 1: opt(n) = 6

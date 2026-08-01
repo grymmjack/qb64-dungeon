@@ -159,6 +159,9 @@ Huge UI Efforts:
         ☐ Inventory change
 
 Game Tweaks:
+    ✔ Magic Bow is ELF-ONLY (any other class sells it; the curio no longer offers it to them) @done(26-08-01)
+      ✔ first MISSILE weapon -- thin on purpose (+2 to-hit + SHOOT) until the top-down @done(26-08-01)
+        ✔ perspective lands; the to-hit line is the seam to widen, see plans/DAY-NOTES.md @done(26-08-01)
 
     ☐ Create command line option balancedump @high
       ☐ Dumps in a table: (fetches from stats with --includestats *)

@@ -133,3 +133,27 @@ first gives door traps almost for free.
 - **Two map items are quietly large**: "level 4 cannot reach level 9" and "stairs lead only to
   the next/previous level" both mean editing the board art and re-verifying with `roomlint` /
   `fogdump` / `sectorauto`. They are untagged right now.
+
+
+---
+
+## Design intent captured while working (26-08-01)
+
+**The Magic Bow is the first MISSILE weapon, not a stat trinket.** Rick: *"I have plans to add
+more to the engine/game where it has a top-down perspective too, and missile weapons will
+complement melee weapons -- we are just starting small to get the engine solid, and play test."*
+
+So the bow is now **Elf-only** (`IsElf%`, mirroring the Wizard/Magic-Sword refusal): any other
+class sells it on pickup, and the curio no longer *offers* one to a class that cannot use it —
+offering a reward and then having the player sell it reads as the game wasting your time.
+
+Today it is deliberately thin: +2 to-hit, plus the SHOOT action in tactical combat. The comment
+at that bonus now says so, because the risk was a future reader treating "+2 to-hit" as the
+whole idea and building around it. **That line is the seam to widen when the top-down
+perspective lands — not a special case to work around.**
+
+Consequences already accepted:
+- `items/elven-blade` **stays** — the Elf's melee weapon is unchanged; the bow is additional.
+- `WeaponSprite$` deliberately shows the MELEE weapon in the combat bar, because [SPACE] attack
+  is a melee swing. When missiles become a real mode, the panel will need to show which one is
+  in hand rather than assuming.
