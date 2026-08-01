@@ -95,6 +95,10 @@ $RESIZE:ON
 CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
 FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
+' The board is BOTH the picture and the collision map, so it is kept as two images: what the
+' player sees (above) and what movement samples (below). See BuildBoardImages in engine/BOARD.bas.
+FULL_COLLIDE = _NEWIMAGE(SW * CW, SH * CH, 32)
+COLLIDE_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "DUNGEON"
 SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)   ' the WINDOW -- starts at 1:1 with the canvas
 _DISPLAYORDER _SOFTWARE , _HARDWARE      ' Present's smooth path draws on the HARDWARE layer,
@@ -157,6 +161,21 @@ opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time /
 LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
 IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
 BOARD_ANSI = _READFILE$(AnsiFile$("board-132x50-no-labels.ans"))   ' same map, with secret doors (ANSI-pack aware)
+' The collision + decoration LAYERS (`dungeon.run boardsplit` generates them from the board art).
+' Fallback is per-file and deliberate: an art pack that ships only a combined board still plays,
+' it just has no walk-over decoration. layer-1 alone is meaningless -- it would double-draw over
+' a board that already contains it -- so a missing layer-0 discards both.
+DIM lay0 AS STRING, lay1 AS STRING
+lay0 = AnsiFile$("layer-0-board-collisions.ans")
+lay1 = AnsiFile$("layer-1-board-decoration.ans")
+IF LEN(lay0) > 0 THEN
+    IF _FILEEXISTS(lay0) THEN COLLIDE_ANSI = _READFILE$(lay0)
+END IF
+IF LEN(lay1) > 0 THEN
+    IF _FILEEXISTS(lay1) THEN DECOR_ANSI = _READFILE$(lay1)
+END IF
+IF LEN(COLLIDE_ANSI) = 0 THEN DECOR_ANSI = ""   ' no layer-0 -> layer-1 alone would double-draw
+'                                                  (BuildBoardImages falls back to BOARD_ANSI)
 LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
 LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
@@ -269,7 +288,7 @@ IF INSTR(UCASE$(COMMAND$), "BOARDFIX") > 0 THEN BoardFix
 
 '--- dev: `dungeon.run sectorauto` derives each level's rect from the art and checks overlaps ---
 IF INSTR(UCASE$(COMMAND$), "SECTORAUTO") > 0 THEN
-    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    BuildBoardImages
     LoadSectorMask                       ' the mask supersedes the rects -- measure what the GAME sees
     SectorAutoDerive
 END IF
@@ -277,7 +296,7 @@ END IF
 '--- dev: `dungeon.run roomlint` reports rooms holding cells the player cannot stand on ---
 ' Needs a built board (the art IS the map), so it runs the same setup chamberdump does.
 IF INSTR(UCASE$(COMMAND$), "ROOMLINT") > 0 THEN
-    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    BuildBoardImages
     DetectSecretDoors
     Game_PopulateBoard
     RandomizeRooms                  ' so the monster/treasure placement it reports is the real thing
@@ -287,7 +306,7 @@ END IF
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---
 IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     DIM AS INTEGER ddx, ddy, ddc
-    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    BuildBoardImages
     DetectSecretDoors
     Game_PopulateBoard                   ' rooms + chambers (game hook #8)
     _DEST CANVAS: _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
@@ -328,7 +347,7 @@ END IF
 
 '--- dev: `dungeon.run fogdump` composes the fogged board (secret rooms + specks blacked) ---
 IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
-    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    BuildBoardImages
     InitFog
     _SAVEIMAGE "fogdump.png", CANVAS
     '--- region-overlay render (mimics the [~] mask view: per-region tint + level-coloured doors) ---
@@ -416,7 +435,7 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
         PRINT PipeCol$("hand-painted mask). |12Delete the file first|07 if you really want a fresh starter.")
         SYSTEM
     END IF
-    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)
+    BuildBoardImages
     InitFog                                   ' floods SECRET() (mask file not present yet)
     DIM mgf AS INTEGER, mgy AS INTEGER, mgx AS INTEGER, mgs AS STRING, sauce AS STRING, eofc AS STRING, mglast AS INTEGER
     mgs = "": mglast = -999
@@ -568,6 +587,8 @@ _DELAY 0.5
 _FREEIMAGE CANVAS
 _FREEIMAGE CANVAS_COPY
 _FREEIMAGE FULL_BOARD
+_FREEIMAGE FULL_COLLIDE
+_FREEIMAGE COLLIDE_BOARD
 IF FX_BUF <> 0 THEN _FREEIMAGE FX_BUF
 SYSTEM
 

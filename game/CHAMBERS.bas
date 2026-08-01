@@ -8,11 +8,11 @@
 '
 '  Moved out of engine/BOARD.bas -- the engine's board setup now calls the single
 '  Game_PopulateBoard() hook (#8) and the game claims BOTH its region kinds there.
-'  Reads FULL_BOARD via _SOURCE (the caller sets it, or these set it themselves).
+'  Reads FULL_COLLIDE via _SOURCE (the caller sets it, or these set it themselves).
 ' ============================================================================
 
 ' Openness of a cell: how many of the surrounding 5x5 cells are walkable (CellKind 1).
-' Chambers are wide-open (approaching 25); corridors are thin (~10). _SOURCE = FULL_BOARD.
+' Chambers are wide-open (approaching 25); corridors are thin (~10). _SOURCE = FULL_COLLIDE.
 FUNCTION CellOpen% (cx AS INTEGER, cy AS INTEGER)
     DIM dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, cnt AS INTEGER
     FOR dy = -2 TO 2
@@ -72,7 +72,7 @@ FUNCTION LoadChambers%
     FOR x = 1 TO MAXCHAMBER: CHM_DEAD(x) = 0: CHM_EVDONE(x) = 0: CHM_SEEN(x) = 0: NEXT
     NCHAMBER = 0: cur_chamber = 0
     whole = _READFILE$(cf)
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE
     p = 1
     DO WHILE p <= LEN(whole)
         nl = INSTR(p, whole, CHR$(10))
@@ -117,7 +117,7 @@ FUNCTION LoadChambers%
 END FUNCTION
 
 ' Detect the named CHAMBERS -- the large yellow spaces -- by flooding the wide-open area
-' near each chamber label (so thin corridors are excluded). Call AFTER FULL_BOARD is
+' near each chamber label (so thin corridors are excluded). Call AFTER FULL_COLLIDE is
 ' painted. Fallback only: the hand-authored chambers.txt map wins when present.
 SUB DetectChambers
     DIM i AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER, j AS INTEGER, skp AS INTEGER
@@ -128,7 +128,7 @@ SUB DetectChambers
     FOR ny = 0 TO 60: FOR nx = 0 TO 131: CHAMBERAT(nx, ny) = 0: NEXT: NEXT
     FOR i = 1 TO MAXCHAMBER: CHM_DEAD(i) = 0: CHM_EVDONE(i) = 0: CHM_SEEN(i) = 0: NEXT
     NCHAMBER = 0: cur_chamber = 0
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE
     FOR i = 1 TO LBL_N
         '--- skip a second word of a multi-word chamber name: if an adjacent EARLIER label
         '    already seeded a chamber, this word belongs to it (THE+CRYPT, TORTURE+CHAMBER) ---

@@ -91,7 +91,7 @@ SUB DrawDebug
     cx = c.x \ CW: cy = c.y \ CH
     sec = PlayerLevel%
     img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     onpath = image_is_monochromatic(img, YELLOW)
     onsecret = image_is_monochromatic(img, BRIGHT_BLUE)
     _FREEIMAGE img
@@ -126,7 +126,7 @@ SUB DrawDebug
     ELSE
         dbg_click_armed = 0
     END IF
-    oldsrc = _SOURCE: _SOURCE CANVAS_COPY
+    oldsrc = _SOURCE: _SOURCE COLLIDE_BOARD
     kind = CellKind(mcx, mcy)
     _SOURCE oldsrc
     SELECT CASE kind

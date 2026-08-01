@@ -283,7 +283,15 @@ DIM SHARED last_raw AS INTEGER                    ' last natural dice sum (befor
 ' --- board detection: secret + regular doors auto-detected from the ANSI art ---
 DIM SHARED SD_X(1 TO 500) AS INTEGER, SD_Y(1 TO 500) AS INTEGER
 DIM SHARED SD_FOUND(1 TO 500) AS INTEGER, SD_N AS INTEGER
-DIM SHARED FULL_BOARD AS LONG                     ' pristine board (doors + secret rooms visible)
+DIM SHARED FULL_BOARD AS LONG                     ' pristine DISPLAY board (layer-0 + layer-1, everything visible)
+' --- the two board LAYERS (see BuildBoardImages) ---
+' The board art is both the picture and the collision map, which used to force every painted
+' cell to mean something to movement. Splitting it lets layer-1 hold decoration the player can
+' WALK ON: it reaches the display images and never reaches the one collision samples.
+DIM SHARED FULL_COLLIDE AS LONG                   ' pristine COLLISION board (layer-0 alone)
+DIM SHARED COLLIDE_BOARD AS LONG                  ' played collision board (secret cells blacked)
+DIM SHARED COLLIDE_ANSI AS STRING                 ' layer-0 art; falls back to the combined board
+DIM SHARED DECOR_ANSI AS STRING                   ' layer-1 art; "" = no decoration layer
 DIM SHARED SAVE_FILE AS STRING                    ' the save slot's path -- the GAME sets this at startup
 '                                                   (was hardcoded in SAVEIO + SAVEGAME; parameterising it
 '                                                    is what lets `savetest` round-trip without touching

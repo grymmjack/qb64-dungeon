@@ -434,7 +434,7 @@ SUB DetectRooms
     FOR cy = 0 TO SH - 1
         FOR cx = 0 TO SW - 1: ROOMAT(cx, cy) = 0: NEXT cx
     NEXT cy
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE
     FOR cy = 1 TO SH - 2
         FOR cx = 1 TO SW - 1
             IF ROOMAT(cx, cy) = 0 THEN

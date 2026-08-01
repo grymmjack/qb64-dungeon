@@ -7,7 +7,9 @@
 '  RevealRegionFromDoor, which the game calls.)
 
 
-' Classify a cell of FULL_BOARD by its centre pixel (caller sets _SOURCE FULL_BOARD):
+' Classify a cell by its centre pixel. The caller sets _SOURCE -- FULL_COLLIDE for the
+' pristine map, COLLIDE_BOARD for the played one (fog applied). Never a DISPLAY image:
+' layer-1 decoration is walkable and must not read as terrain.
 ' 0 = wall, 1 = walkable terrain (path/room/door), 2 = secret-door tile.
 
 FUNCTION CellKind% (cx AS INTEGER, cy AS INTEGER)
@@ -23,12 +25,12 @@ FUNCTION CellKind% (cx AS INTEGER, cy AS INTEGER)
 END FUNCTION
 
 
-' Scan FULL_BOARD for bright-blue secret-door tiles and record their cells.
+' Scan the collision board for bright-blue secret-door tiles and record their cells.
 
 SUB DetectSecretDoors
     DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, blue AS INTEGER
     SD_N = 0
-    _SOURCE FULL_BOARD
+    _SOURCE FULL_COLLIDE
     FOR cy = 1 TO SH - 4
         FOR cx = 1 TO SW - 2
             blue = 0
@@ -46,7 +48,7 @@ SUB DetectSecretDoors
 END SUB
 
 
-' Scan FULL_BOARD for regular (brown) door tiles and record their cells.
+' Scan the collision board for regular (brown) door tiles and record their cells.
 SUB DetectDoors
     ' GOTCHA: the hit counter must NOT be named `brown`. QB64 identifiers are
     ' case-insensitive, so a local `brown` shadows the shared BROWN colour and
@@ -56,7 +58,7 @@ SUB DetectDoors
     ' DetectSecretDoors, whose `blue` vs BRIGHT_BLUE never collided and worked.
     DIM cx AS INTEGER, cy AS INTEGER, px AS INTEGER, py AS INTEGER, hits AS INTEGER
     DOOR_N = 0
-    _SOURCE FULL_BOARD
+    _SOURCE FULL_COLLIDE
     FOR cy = 1 TO SH - 4
         FOR cx = 1 TO SW - 2
             hits = 0
@@ -222,7 +224,7 @@ FUNCTION RegionAtDoor% (di AS INTEGER)
 END FUNCTION
 
 ' TRUE if cell is a PUBLIC walkable floor (not secret) -- a door touching one is a
-' level-1 entry from the open dungeon. (_SOURCE must be FULL_BOARD.)
+' level-1 entry from the open dungeon. (_SOURCE must be FULL_COLLIDE.)
 FUNCTION NeighPublic% (x AS INTEGER, y AS INTEGER)
     NeighPublic = 0
     IF x < 0 OR x > SW - 1 OR y < 0 OR y > SH - 1 THEN EXIT FUNCTION
@@ -251,7 +253,7 @@ SUB ComputeMaskLevels
     DIM di AS INTEGER, r AS INTEGER, p AS INTEGER, it AS INTEGER, changed AS INTEGER, oldsrc AS LONG
     DIM k AS INTEGER
     FOR k = 0 TO UBOUND(MASKLVL): MASKLVL(k) = 0: NEXT
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE
     FOR di = 1 TO SD_N                                   ' level 1: doors opening from public floor
         r = DOOR_REGION(di)
         IF r > 0 AND r <= UBOUND(MASKLVL) THEN
@@ -317,7 +319,7 @@ SUB InitFog
     ELSE
         ' -- FALLBACK: no mask file -> the openness/flood heuristic --
         ' 1) BFS the public area from START (doors are treated as walls)
-        _SOURCE FULL_BOARD
+        _SOURCE FULL_COLLIDE
         head = 0: tail = 0
         QX(0) = START_CX: QY(0) = START_CY: VIS(START_CX, START_CY) = 1: tail = 1
         DO WHILE head < tail
@@ -345,14 +347,18 @@ SUB InitFog
         LOOP
     END IF
 
-    ' 3) compose the played board: full board, then black out the secret cells
+    ' 3) compose the played boards: pristine, then black out the secret cells.
+    '    BOTH the display pair AND the collision board are fogged -- a secret cell that stayed
+    '    walkable in COLLIDE_BOARD would let the player walk through a wall they cannot see.
     _PUTIMAGE (0, 0), FULL_BOARD, CANVAS_COPY
     _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
+    _PUTIMAGE (0, 0), FULL_COLLIDE, COLLIDE_BOARD
     FOR cy = 0 TO SH - 1
         FOR cx = 0 TO SW - 1
             IF SECRET(cx, cy) = 1 THEN
                 _DEST CANVAS_COPY: LINE (cx * CW, cy * CH)-(cx * CW + CW - 1, cy * CH + CH - 1), BLACK, BF
                 _DEST CANVAS: LINE (cx * CW, cy * CH)-(cx * CW + CW - 1, cy * CH + CH - 1), BLACK, BF
+                _DEST COLLIDE_BOARD: LINE (cx * CW, cy * CH)-(cx * CW + CW - 1, cy * CH + CH - 1), BLACK, BF
             END IF
         NEXT cx
     NEXT cy
@@ -412,13 +418,16 @@ SUB SecretVisit (nx AS INTEGER, ny AS INTEGER, tail AS INTEGER)
 END SUB
 
 
-' Copy one cell's pristine pixels from FULL_BOARD back onto the played canvases.
+' Copy one cell's pristine pixels back onto the played boards -- the display pair from
+' FULL_BOARD, and the collision board from FULL_COLLIDE. Restoring only the display would
+' reveal a door the player still could not walk through.
 
 SUB RevealCell (cx AS INTEGER, cy AS INTEGER)
     DIM px AS INTEGER, py AS INTEGER
     px = cx * CW: py = cy * CH
     _PUTIMAGE (px, py)-(px + CW - 1, py + CH - 1), FULL_BOARD, CANVAS_COPY, (px, py)-(px + CW - 1, py + CH - 1)
     _PUTIMAGE (px, py)-(px + CW - 1, py + CH - 1), FULL_BOARD, CANVAS, (px, py)-(px + CW - 1, py + CH - 1)
+    _PUTIMAGE (px, py)-(px + CW - 1, py + CH - 1), FULL_COLLIDE, COLLIDE_BOARD, (px, py)-(px + CW - 1, py + CH - 1)
 END SUB
 
 
@@ -427,7 +436,7 @@ END SUB
 
 SUB RevealRegionFromDoor (di AS INTEGER)
     DIM cx AS INTEGER, cy AS INTEGER, head AS INTEGER, tail AS INTEGER, rg AS INTEGER
-    _SOURCE FULL_BOARD
+    _SOURCE FULL_COLLIDE
     IF MASK_ON THEN
         ' mask fog: reveal EXACTLY the door's painted region (no flood, no ambiguity)
         rg = DOOR_REGION(di): IF rg <= 0 THEN EXIT SUB
@@ -451,7 +460,7 @@ SUB RevealRegionFromDoor (di AS INTEGER)
 END SUB
 
 
-' BFS helper for reveal: reveal a hidden, walkable, non-door neighbour. (_SOURCE = FULL_BOARD)
+' BFS helper for reveal: reveal a hidden, walkable, non-door neighbour. (_SOURCE = FULL_COLLIDE)
 
 SUB RevealVisit (nx AS INTEGER, ny AS INTEGER, tail AS INTEGER)
     IF nx < 0 OR nx > SW - 1 OR ny < 0 OR ny > SH - 1 THEN EXIT SUB
@@ -547,8 +556,39 @@ SUB FovRender
 END SUB
 
 
+' Build the two pristine board images from the ANSI art.
+'
+'   FULL_COLLIDE = layer-0 alone -- the COLLISION map: walkable colours and nothing else.
+'   FULL_BOARD   = layer-0 with layer-1 composited over it (black transparent) -- what the
+'                  player SEES. boardsplit proves that composite is the original board, pixel
+'                  for pixel, so the picture is unchanged by the split.
+'
+' Keeping them apart is the whole point: decoration drawn into layer-1 shows up but is invisible
+' to collision, so it can be walked over. When the layer files are absent -- an art pack that
+' ships only a combined board -- both images ARE that board, which is exactly the old behaviour.
+SUB BuildBoardImages
+    DIM deco AS LONG, collide AS STRING
+    ' The fallback lives HERE, not in the game's startup, so every game on this engine inherits
+    ' it. When it lived in dungeon.bas, examples/minimal -- which sets BOARD_ANSI and knows
+    ' nothing about layers -- got a blank collision image and detected no doors or rooms at all.
+    collide = COLLIDE_ANSI
+    IF LEN(collide) = 0 THEN collide = BOARD_ANSI
+    _DEST FULL_COLLIDE: _FONT CH: CLS , BLACK: ANSI_Print (collide)
+    _DEST FULL_BOARD: _FONT CH: CLS , BLACK
+    _PUTIMAGE (0, 0), FULL_COLLIDE, FULL_BOARD
+    IF LEN(DECOR_ANSI) > 0 THEN
+        deco = _NEWIMAGE(SW * CW, SH * CH, 32)
+        _DEST deco: _FONT CH: CLS , BLACK: ANSI_Print (DECOR_ANSI)
+        _CLEARCOLOR BLACK, deco                       ' decoration: black is transparent
+        _DEST FULL_BOARD: _PUTIMAGE (0, 0), deco, FULL_BOARD
+        _FREEIMAGE deco
+    END IF
+    ' leave _DEST on FULL_BOARD -- callers of the old single-render inherited that
+END SUB
+
+
 SUB StartBoard
-    _DEST FULL_BOARD: _FONT CH: CLS , BLACK: ANSI_Print (BOARD_ANSI)    ' pristine board (everything visible)
+    BuildBoardImages                 ' pristine display board + the collision board behind it
     InitFog                          ' build the fogged CANVAS_COPY + CANVAS (secret areas sealed)
     c.cursor_color = _RGB32(&HFF, &H00, &H00, &HAA)
     c.x = START_CX * CW: c.y = START_CY * CH
@@ -564,7 +604,7 @@ END SUB
 FUNCTION OnDoorNow%
     DIM img AS LONG, r AS INTEGER
     img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     r = image_is_monochromatic(img, BROWN)
     IF NOT r THEN r = image_is_diachromatic(img, YELLOW, BROWN)
     _FREEIMAGE img
@@ -584,7 +624,7 @@ END FUNCTION
 FUNCTION NeighborHasColor% (kol AS _UNSIGNED LONG)
     DIM cx AS INTEGER, cy AS INTEGER, oldsrc AS LONG, res AS INTEGER
     cx = c.x \ CW: cy = c.y \ CH
-    oldsrc = _SOURCE: _SOURCE CANVAS_COPY
+    oldsrc = _SOURCE: _SOURCE COLLIDE_BOARD
     res = FALSE
     IF CellColorAt(cx - 1, cy) = kol THEN res = TRUE
     IF CellColorAt(cx + 1, cy) = kol THEN res = TRUE
@@ -627,7 +667,7 @@ END FUNCTION
 FUNCTION OnSecretDoorNow%
     DIM img AS LONG, r AS INTEGER
     img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     r = image_is_monochromatic(img, BRIGHT_BLUE)
     IF NOT r THEN r = image_is_diachromatic(img, YELLOW, BRIGHT_BLUE)
     _FREEIMAGE img
@@ -639,7 +679,7 @@ END FUNCTION
 FUNCTION CanMove%
     DIM img AS LONG, ok AS INTEGER, sec AS INTEGER, col AS _UNSIGNED LONG
     img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     ok = image_is_monochromatic(img, YELLOW)                        ' path
     IF NOT ok THEN ok = image_is_diachromatic(img, YELLOW, BROWN)         ' door on path
     IF NOT ok THEN ok = image_is_diachromatic(img, YELLOW, BRIGHT_BLUE)   ' secret door on path
@@ -665,7 +705,7 @@ FUNCTION InRoomNow%
     col = Game_FloorColorAt~&(c.x, c.y)                ' game hook: room-floor colour here
     IF col = 0 THEN InRoomNow = FALSE: EXIT FUNCTION
     img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), CANVAS_COPY, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
     r = image_is_monochromatic(img, col)
     IF NOT r THEN r = image_is_diachromatic(img, col, BROWN)
     IF NOT r THEN r = image_is_diachromatic(img, col, BRIGHT_BLUE)

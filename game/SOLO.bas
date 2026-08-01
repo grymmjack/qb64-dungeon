@@ -115,7 +115,7 @@ FUNCTION HunterAdvance%
     REDIM hqx(0 TO 8192) AS INTEGER, hqy(0 TO 8192) AS INTEGER   ' local BFS queue (NOT the shared static QX/QY -> avoids "Duplicate definition")
 
     px = c.x \ CW: py = c.y \ CH
-    oldsrc = _SOURCE: _SOURCE FULL_BOARD            ' path over FULL_BOARD -> secret doors are passable
+    oldsrc = _SOURCE: _SOURCE FULL_COLLIDE          ' path over the PRISTINE collision board -> secret doors are passable
     FOR y = 0 TO 60: FOR x = 0 TO 131: HDIST(x, y) = -1: NEXT: NEXT
     HDIST(px, py) = 0: hqx(0) = px: hqy(0) = py: hd = 0: tl = 1
     DO WHILE hd < tl

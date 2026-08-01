@@ -525,9 +525,34 @@ checks — anti-aliasing or an off-by-one color silently breaks movement. Board 
 rendered with `$RESIZE:STRETCH` + `_FULLSCREEN _SQUAREPIXELS, _SMOOTH`.
 
 **Two-canvas draw/erase.** `CANVAS` is what's shown and drawn onto; `CANVAS_COPY` holds
-the pristine board. The cursor `_PUTIMAGE`s a clean copy back to erase, and samples
-`CANVAS_COPY` (never the dirtied `CANVAS`) when testing collision, so the cursor's own
+the pristine board. The cursor `_PUTIMAGE`s a clean copy back to erase, so the cursor's own
 pixels can't be mistaken for terrain.
+
+**Board LAYERS — display and collision are separate images.** The art is both the picture and
+the collision map, which used to force every painted cell to mean something to movement.
+`BuildBoardImages` (engine/BOARD.bas) renders two pristine images from
+`assets/ansi-art/<pack>/`:
+
+| | |
+|---|---|
+| `FULL_COLLIDE` | **layer-0** alone (`layer-0-board-collisions.ans`) — walkable colours, nothing else |
+| `FULL_BOARD`   | layer-0 with **layer-1** (`layer-1-board-decoration.ans`) composited over it via `_CLEARCOLOR BLACK` — what the player SEES |
+
+`InitFog` builds `CANVAS_COPY`/`CANVAS` (display) **and** `COLLIDE_BOARD` (collision) from those,
+blacking secret cells in **all three**; `RevealCell` restores all three, because a revealed door
+must become *walkable*, not merely visible. Every collision read goes to a collision image —
+detection scans (`DetectRooms`/`DetectDoors`/`DetectSecretDoors`/`DetectChambers`/solo pathing)
+use `FULL_COLLIDE`; runtime cell samples (`InRoomNow`/`OnDoorNow`/`is_path`/`CellKind`) use
+`COLLIDE_BOARD`. Erase, FOV and the label/token draws stay on `CANVAS_COPY`.
+
+**The point is walk-over decoration**: art drawn into layer-1 reaches the display and is invisible
+to collision, so painting a decoration onto a corridor cell no longer makes it a wall. Generate
+the layers with **`dungeon.run boardsplit`**, which refuses to write unless layer-0 + layer-1
+composites back to the source board pixel for pixel. **Fallback is per-file and lives in
+`BuildBoardImages`, not in game startup** — a missing layer-0 means both images are the combined
+board (the old behaviour), which is what keeps `examples/minimal` working.
+
+Colors are exact `_RGB32` matches, so **art must use the exact palette values** the code checks.
 
 **Sectors.** The board is divided into 9 `SECTOR`s (`SECTORS(1 TO 9)`), loaded from
 `assets/data/sectors.txt` (rectangle + `kolor` + `label` per level). `SECTOR.get_by_xy`
