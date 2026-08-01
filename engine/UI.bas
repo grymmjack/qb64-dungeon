@@ -393,10 +393,10 @@ SUB Present
     IF sw0 < 1 OR sh0 < 1 THEN _DISPLAY: EXIT SUB
     ' HOW the canvas fills the window is the player's call, via SETTINGS "Window Scaling":
     '
-    '   integer (opt_smooth off) -- INTEGER scale only. Every character cell keeps exactly the
+    '   integer (opt_smoothamt 0) -- INTEGER scale only. Every character cell keeps exactly the
     '           same pixel size. The cost is black bars: a 2600x1400 window only allows 1x,
     '           because 816*2 = 1632 does not fit in 1400.
-    '   fit     (opt_smooth on)  -- largest scale that FITS, fractions allowed. Fills the window
+    '   fit     (opt_smoothamt 1+) -- largest scale that FITS, fractions allowed. Fills the window
     '           at any aspect, at the cost of unevenly-sized cells.
     '
     ' NEITHER IS FILTERED, and do not add a comment claiming otherwise: QB64's _PUTIMAGE does
@@ -404,12 +404,12 @@ SUB Present
     ' canvas comes out with the SAME 7 distinct colours as the unscaled original, where any
     ' interpolation would have produced hundreds of blended values at the glyph edges. Real
     ' filtering needs a hardware image (_COPYIMAGE ..., 33) and the GL compositor, which is why
-    ' opt_smooth ALSO selects _FULLSCREEN _SMOOTH -- that path is scaled by the driver.
+    ' opt_smoothamt ALSO selects _FULLSCREEN _SMOOTH -- that path is scaled by the driver.
     '
     ' Either way the ASPECT is preserved and the whole canvas is drawn -- _PUTIMAGE maps the
     ' entire source into the destination rectangle, so unlike $RESIZE:STRETCH nothing can be
     ' cropped or dropped no matter how odd the window shape is.
-    IF opt_smooth THEN
+    IF opt_smoothamt > 0 THEN
         dw = sw0: dh = CLNG(sw0) * (SH * CH) / (SW * CW)          ' fit to width...
         IF dh > sh0 THEN dh = sh0: dw = CLNG(sh0) * (SW * CW) / (SH * CH)   ' ...or to height
     ELSE
@@ -430,7 +430,69 @@ SUB Present
         CLS , BLACK
         pres_lastw = dw: pres_lasth = dh: pres_winw = sw0: pres_winh = sh0
     END IF
-    _PUTIMAGE (ox, oy)-(ox + dw - 1, oy + dh - 1), CANVAS, 0
+    ' SMOOTH windowed scaling needs the GPU, and the GPU is only reachable via a HARDWARE image
+    ' (_COPYIMAGE ..., 33) drawn with _MAPTRIANGLE ..., _SMOOTH ("applies linear filtering").
+    ' Neither half of that is optional -- measured on a 10.9x upscale of the same source:
+    '   _PUTIMAGE, software           -> hard stair-stepped edges
+    '   _MAPTRIANGLE _SMOOTH, software-> hard stair-stepped edges (the flag is ignored)
+    '   _MAPTRIANGLE _SMOOTH, HARDWARE-> clean filtered curves
+    ' Fullscreen does not come through here: ApplyDisplay sizes screen 0 to the canvas so
+    ' _FULLSCREEN _SMOOTH does that scaling in the driver.
+    DIM wantsmooth AS INTEGER, pre AS INTEGER, ifac AS INTEGER
+    DIM srcimg AS LONG, sw2 AS INTEGER, sh2 AS INTEGER
+    wantsmooth = 0
+    IF opt_smoothamt > 0 THEN
+        IF dw <> SW * CW THEN                       ' 1:1 needs no filtering (fullscreen IS 1:1 here)
+            IF pres_nohw = 0 THEN wantsmooth = -1   ' ...and the GPU has not already refused
+        END IF
+    END IF
+    IF wantsmooth THEN
+        ' STRENGTH, via how much of the scale is done CRISPLY first. Linear filtering blurs over
+        ' one SOURCE texel, so the finer the source, the less blur survives -- prescale the canvas
+        ' by a whole number with nearest-neighbour (perfectly sharp), then let the GPU filter only
+        ' the leftover fraction. This is the emulator trick, and it is the only real "amount"
+        ' control there is: GL filtering itself is binary, nearest or linear, with nothing between.
+        ifac = dw \ (SW * CW): IF ifac < 1 THEN ifac = 1
+        SELECT CASE opt_smoothamt
+            CASE 1: pre = ifac                      ' LIGHT  -- crisp as far as possible
+            CASE 2: pre = (ifac + 1) \ 2            ' MEDIUM -- half crisp, half filtered
+            CASE ELSE: pre = 1                      ' FULL   -- straight linear, softest
+        END SELECT
+        IF pre > 4 THEN pre = 4                     ' cap the intermediate's memory (4x = 54 MB)
+        IF pre > 1 THEN
+            IF pres_pre_scale <> pre THEN
+                IF pres_pre <> 0 THEN _FREEIMAGE pres_pre
+                pres_pre = _NEWIMAGE(SW * CW * pre, SH * CH * pre, 32)
+                pres_pre_scale = pre
+            END IF
+            _PUTIMAGE (0, 0)-(SW * CW * pre - 1, SH * CH * pre - 1), CANVAS, pres_pre   ' nearest = sharp
+            srcimg = pres_pre
+        ELSE
+            srcimg = CANVAS
+        END IF
+        IF pres_hw <> 0 THEN _FREEIMAGE pres_hw
+        pres_hw = _COPYIMAGE(srcimg, 33)            ' a fresh GPU texture of this frame
+        ' A hardware image needs a working GL context. It is not guaranteed -- a software-only
+        ' rasteriser, a remote X session without GLX, or a headless run can all refuse (this
+        ' returns "Invalid handle" under $SCREENHIDE, which is how it was found). Latch the
+        ' refusal so we stop asking 60 times a second, and fall through to the crisp path.
+        IF pres_hw >= -1 THEN pres_hw = 0: pres_nohw = -1
+    ELSE
+        ' MUST release these. Left alive, the branch below would keep re-drawing the last texture
+        ' it held -- so turning smoothing off, or sizing the window back to 1:1, would freeze the
+        ' picture on whatever frame was showing when that happened.
+        IF pres_hw <> 0 THEN _FREEIMAGE pres_hw: pres_hw = 0
+        IF pres_pre <> 0 THEN _FREEIMAGE pres_pre: pres_pre = 0: pres_pre_scale = 0
+    END IF
+    IF pres_hw < -1 THEN
+        ' Two triangles cover the destination rect. Source coords are the SOURCE image's pixels,
+        ' which is the prescaled intermediate when one is in use -- not the canvas.
+        sw2 = _WIDTH(pres_hw) - 1: sh2 = _HEIGHT(pres_hw) - 1
+        _MAPTRIANGLE (0, 0)-(sw2, 0)-(0, sh2), pres_hw TO (ox, oy)-(ox + dw - 1, oy)-(ox, oy + dh - 1), , _SMOOTH
+        _MAPTRIANGLE (sw2, 0)-(sw2, sh2)-(0, sh2), pres_hw TO (ox + dw - 1, oy)-(ox + dw - 1, oy + dh - 1)-(ox, oy + dh - 1), , _SMOOTH
+    ELSE
+        _PUTIMAGE (ox, oy)-(ox + dw - 1, oy + dh - 1), CANVAS, 0
+    END IF
     _DEST olddest
     _DISPLAY
 END SUB
@@ -1401,7 +1463,7 @@ END FUNCTION
 
 
 ' Apply the display SETTINGS (the one place the _FULLSCREEN calls route through).
-' Moved from game/MENU.bas: it reads only opt_fullscreen / opt_smooth, both ENGINE.BI
+' Moved from game/MENU.bas: it reads only opt_fullscreen / opt_smoothamt, both ENGINE.BI
 ' globals, and touches nothing game-specific. Those two options showed up as
 ' "declared in ENGINE.BI but never used by engine/" purely because their one consumer
 ' sat on the game side -- here the global was right and the CODE was misfiled.
@@ -1437,7 +1499,7 @@ SUB ApplyDisplay
             SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)   ' 1:1 with the canvas -- give the driver the whole scale
             _DEST CANVAS
         END IF
-        IF opt_smooth THEN
+        IF opt_smoothamt > 0 THEN
             _FULLSCREEN _SQUAREPIXELS, _SMOOTH       ' square pixels, antialiased by the GPU
         ELSE
             _FULLSCREEN _SQUAREPIXELS                ' square pixels, no filtering

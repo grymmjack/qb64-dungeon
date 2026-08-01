@@ -386,7 +386,6 @@ DIM SHARED OOZE_X(1 TO NOOZE) AS INTEGER, OOZE_LEN(1 TO NOOZE) AS INTEGER, OOZE_
 DIM SHARED UIF_LABEL AS LONG, UIF_MSG AS LONG, UIF_COMBAT AS LONG, UIF_MENU AS LONG, UIF_HUD AS LONG
 DIM SHARED opt_dice3d_set AS INTEGER, opt_mon_dice3d_set AS INTEGER   ' 1-based index into dicesets.txt
 DIM SHARED opt_dicefont AS INTEGER    ' which numeral font (1-based index into dicefonts.txt)
-DIM SHARED opt_smooth AS INTEGER      ' TRUE: bilinear-smoothed fullscreen; FALSE: crisp pixel-doubled
 
 ' --- WINDOW RESIZE (handled inside Present, engine/UI.bas) --------------------
 ' The window surface is OURS: screen 0 is a real window-sized image and CANVAS is an offscreen
@@ -408,6 +407,20 @@ DIM SHARED pres_deferred AS INTEGER
 ' The windowed size to come back to when leaving fullscreen. Entering fullscreen forces screen 0
 ' to the canvas size so _FULLSCREEN _SMOOTH has the whole scale to antialias (see ApplyDisplay).
 DIM SHARED pres_winsave_w AS LONG, pres_winsave_h AS LONG
+' This frame's canvas as a HARDWARE texture, for smooth windowed scaling. Rebuilt per frame
+' because QB64 has no way to update a hardware image in place -- and only when the window is
+' actually scaling, so a 1:1 window pays nothing. 0 = none, and Present falls back to _PUTIMAGE.
+DIM SHARED pres_hw AS LONG
+' SETTINGS "Smoothing": 0 off (crisp, integer scale) .. 3 full (softest). Above 0 it also picks
+' fit-to-window scaling, because a fractional scale is only worth having if it gets filtered.
+DIM SHARED opt_smoothamt AS INTEGER
+' The crisp integer PRESCALE buffer and its factor. Filtering blurs over one source texel, so
+' blowing the canvas up sharply first and filtering only the remainder is what makes "how much"
+' adjustable at all -- GL itself offers only nearest or linear.
+DIM SHARED pres_pre AS LONG, pres_pre_scale AS INTEGER
+' Latched TRUE once _COPYIMAGE(..., 33) has refused: no GL context (software rasteriser, remote
+' X without GLX, headless). Stops us asking 60 times a second and pins the crisp fallback.
+DIM SHARED pres_nohw AS INTEGER
 DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key
 DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 ' --- active-character stat scaffolding (generic RPG stats; JUICE reads player_hp) ---

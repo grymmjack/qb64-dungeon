@@ -95,6 +95,8 @@ CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
 FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "DUNGEON"
 SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)   ' the WINDOW -- starts at 1:1 with the canvas
+_DISPLAYORDER _SOFTWARE , _HARDWARE      ' Present's smooth path draws on the HARDWARE layer,
+'                                          which must composite OVER the software letterbox bars
 _DEST CANVAS                             ' ...but everything draws to the canvas
 _FONT CH
 ' NOTHING decides fullscreen here. This used to force `_FULLSCREEN _SQUAREPIXELS, _SMOOTH`
@@ -134,7 +136,7 @@ opt_dicespeed = 2                             ' dice tumble pacing: 0 Slow, 1 No
 opt_dicelight = 3                             ' 3D dice top-light: 0 Off, 1 Soft, 2 Normal, 3 Strong
 opt_diceround = 5                             ' 3D dice edge roundness 0 (sharp) .. 10 (very round)
 opt_bloodstrength = 10                        ' near-death blood-grime intensity 0 (none) .. 10 (max)
-opt_smooth = TRUE                             ' default: bilinear-smoothed fullscreen (off = crisp pixel-doubled)
+opt_smoothamt = 2                             ' Smoothing: 0 off (crisp/integer) .. 3 full (softest)
 opt_artstyle = 2                              ' default: Hybrid -- ANSI board + pixel-art portraits where they exist
 opt_combatspeed = 1                           ' (legacy) superseded by opt_msgdelay
 opt_msgdelay = 3                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key

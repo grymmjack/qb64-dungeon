@@ -52,7 +52,7 @@ _FONT CH
 
 ' engine defaults this demo cares about (no settings file, no SETTINGS screen)
 opt_music = FALSE: opt_sfx = FALSE: opt_voice = FALSE
-opt_fov = FALSE: opt_juice = FALSE: opt_smooth = FALSE
+opt_fov = FALSE: opt_juice = FALSE: opt_smoothamt = 0
 opt_artpack = "default": opt_ansipack = "default": opt_datapack = "default"
 
 BOARD_ANSI = _READFILE$(AnsiFile$("board-132x50-no-labels.ans"))

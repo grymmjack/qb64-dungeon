@@ -440,7 +440,7 @@ SUB SaveSettings
     PRINT #f, "dicelight " + _TRIM$(STR$(opt_dicelight))
     PRINT #f, "diceround " + _TRIM$(STR$(opt_diceround))
     PRINT #f, "bloodstrength " + _TRIM$(STR$(opt_bloodstrength))
-    PRINT #f, "smooth " + _TRIM$(STR$(opt_smooth))
+    PRINT #f, "smoothamt " + _TRIM$(STR$(opt_smoothamt))
     PRINT #f, "combatspeed " + _TRIM$(STR$(opt_combatspeed))
     PRINT #f, "msgdelay " + _TRIM$(STR$(opt_msgdelay))
     PRINT #f, "hardcore " + _TRIM$(STR$(opt_hardcore))
@@ -511,7 +511,10 @@ SUB LoadSettings
                 CASE "dicelight": opt_dicelight = v
                 CASE "diceround": opt_diceround = v
                 CASE "bloodstrength": opt_bloodstrength = v
-                CASE "smooth": opt_smooth = v
+                CASE "smoothamt": opt_smoothamt = v
+                ' pre-0-3 files stored a BOOLEAN "smooth" -- carry it over as medium rather
+                ' than silently dropping the player's preference
+                CASE "smooth": IF v <> 0 THEN opt_smoothamt = 2 ELSE opt_smoothamt = 0
                 CASE "combatspeed": opt_combatspeed = v
                 CASE "msgdelay": opt_msgdelay = v
                 CASE "hardcore": opt_hardcore = v

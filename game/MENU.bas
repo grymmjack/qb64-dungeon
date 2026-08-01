@@ -813,7 +813,11 @@ SUB RunSettings
                 CASE 18
                     opt_fullscreen = NOT opt_fullscreen
                     ApplyDisplay
-                CASE 19: opt_smooth = NOT opt_smooth: ApplyDisplay
+                CASE 19
+                    opt_smoothamt = opt_smoothamt + delta
+                    IF opt_smoothamt < 0 THEN opt_smoothamt = 3
+                    IF opt_smoothamt > 3 THEN opt_smoothamt = 0
+                    ApplyDisplay
                 CASE 20: opt_fov = NOT opt_fov
                 CASE 21
                     opt_msgdelay = opt_msgdelay + 1
@@ -952,8 +956,13 @@ SUB RunSettings
                     '                 filtering, because that scaling is done by the driver.
                     ' It was labelled "Pixel Smoothing / smooth" for both, which promised a
                     ' filtered window and delivered nearest-neighbour at a different size.
-                    lbl = "Pixel Smoothing"
-                    IF opt_smooth THEN vtxt = "smooth / fit" ELSE vtxt = "crisp / integer"
+                    lbl = "Smoothing"
+                    SELECT CASE opt_smoothamt
+                        CASE 0: vtxt = "off (crisp, integer)"
+                        CASE 1: vtxt = "light"
+                        CASE 2: vtxt = "medium"
+                        CASE ELSE: vtxt = "full (softest)"
+                    END SELECT
                 CASE 20: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
                 CASE 21
                     lbl = "Message Delay": slider = TRUE
