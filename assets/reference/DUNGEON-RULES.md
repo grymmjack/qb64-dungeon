@@ -175,6 +175,35 @@ FALSE`).
 - **Move Style** is a setting so the player can choose the faithful "up to 5" or the popular
   roll-1d6 house variant.
 
+### Clearing a floor (D&D mode)
+
+Kill the monster in **every lair on a dungeon level** and the floor is *cleared*. This is the
+main way you get stronger, so it is worth going out of your way for:
+
+- You gain a **character level**: roll your class hit die (plus your CON modifier) for extra
+  maximum HP, and you are **restored to full**.
+- You find a **healing cache** — always a small potion, sometimes a large one.
+- The floor becomes a **safe haven**: nothing wanders there any more. Hammering a reinforced
+  door on a cleared floor draws almost nothing, where on a live floor the noise compounds with
+  every attempt.
+
+### Going home to heal
+
+Returning to the entrance patches you up — but by a **fixed amount**: exactly the HP you
+started the run with. Fifteen maximum HP at character creation means fifteen HP back, every
+time, for the whole run. As your maximum grows the trip home is worth relatively less, so it
+stops being a free reset and becomes a decision.
+
+It only works if you are **alive** (at least 1 HP — the entrance patches you up, it does not
+raise the dead) and **actually hurt** (below 75% of your maximum), and only **once per trip
+out**: you have to go back into the dungeon before it will help you again.
+
+### The 9th level
+
+**The Crypt forces line of sight**, whatever your Field of View setting says. Its darkness is
+a property of the place, not a display preference — you see only what your light reaches. A
+**Wizard** is exempt; light is the one thing they can always make.
+
 ## Edition notes
 - **1975 / 1980 / 1981 (classic):** Elf, Hero, Superhero, Wizard; the rules above.
 - **1989 "The New Dungeon!":** six classes (Warrior, Elf, Dwarf, Wizard, Paladin, Thief);

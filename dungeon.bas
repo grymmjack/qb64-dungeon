@@ -689,6 +689,7 @@ FUNCTION PlayGame%
         IF k = "P" THEN PauseGame: idle_ticks = 0
         IF k = "G" THEN SaveAndToast: idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
         IF k = "?" OR k = "/" THEN ShowKeys
+        IF k = CHR$(9) THEN FindPlayerFlash: idle_ticks = 0   ' [TAB] -- where am I?
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
         IF k = "~" OR k = "`" THEN
             dbg_on = NOT dbg_on

@@ -223,9 +223,13 @@ Small UI Tweaks:
     ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll
       ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
       ☐ Run gesture as normal from that point
-    ☐ Explain to player in rules that clearing all rooms in a level gains character level, and fully heals/resets stuff, etc.
-    ☐ Press TAB during game to find player 
-      ☐ Dims screen except circle around the player and flashes a circle around them 5 times
+    ✔ Explain in rules that clearing all rooms in a level gains a character level @done(26-08-01)
+      ✔ new "Clearing a floor (D&D mode)" section in DUNGEON-RULES.md, which [M] Rules reads @done(26-08-01)
+      ✔ also documented "Going home to heal" (the new fixed amount + gates) and "The 9th level" @done(26-08-01)
+    ✔ Press TAB during game to find player @done(26-08-01)
+      ✔ Dims screen except circle around the player and flashes a circle around them 5 times @done(26-08-01)
+        ✔ FindPlayerFlash draws onto CANVAS and repaints from CANVAS_COPY, so it holds no state @done(26-08-01)
+        ✔ and cannot leave anything behind; listed in [?] CONTROLS @done(26-08-01)
     ☐ Make Bestiary only show what has been ever found during any game run
       ☐ If a creature has not yet been discovered, show a mystery slot ? with image ?
     ☐ Monsters images move down and center slightly when attacking

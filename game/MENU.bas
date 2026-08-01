@@ -1378,7 +1378,8 @@ SUB ShowKeys
     ky(13) = "H": ds(13) = "Quaff a healing potion"
     ky(14) = "P": ds(14) = "Pause the game (bio break)"
     ky(15) = "G": ds(15) = "Save game (solo; CONTINUE on entry)"
-    n = 15
+    ky(16) = "TAB": ds(16) = "Where am I? -- flashes a ring around you"
+    n = 16
     _DEST CANVAS
     LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), BOXBG, BF
     LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), CYANU, B

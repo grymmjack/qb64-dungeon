@@ -245,3 +245,43 @@ SUB EntityShiftFind (r AS INTEGER, ox AS INTEGER, oy AS INTEGER)
         NEXT dy
     NEXT rad
 END SUB
+
+
+' ============================================================================
+'  [TAB] WHERE AM I -- dim the board and pulse a ring around the player.
+'
+'  On a 132x51 board of coloured blocks the token is genuinely easy to lose, and
+'  hunting for it breaks the spell far worse than a two-second flash does.
+'
+'  Draws straight onto CANVAS and repaints from CANVAS_COPY afterwards, so it needs
+'  no state and cannot leave anything behind: the board underneath is untouched.
+' ============================================================================
+SUB FindPlayerFlash
+    DIM i AS INTEGER, f AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM r AS INTEGER, hole AS INTEGER, y AS INTEGER, dy AS INTEGER, half AS INTEGER
+    px = c.x + CW \ 2: py = c.y + CH \ 2
+    hole = 5 * CW                                  ' the clear disc left around the player
+    FOR i = 1 TO 5                                 ' five pulses, as specified
+        FOR f = 0 TO 1
+            cursor_erase: cursor_draw               ' clean board + token, then veil it
+            ' Dim everything EXCEPT a disc around the player: scanline bars either side of the
+            ' hole. Cheap, and it reads as the dark closing in rather than as a drawn circle.
+            FOR y = 0 TO SH * CH - 1
+                dy = y - py
+                IF ABS(dy) >= hole THEN
+                    LINE (0, y)-(SW * CW - 1, y), _RGBA32(0, 0, 0, 170), BF
+                ELSE
+                    half = INT(SQR(hole * hole - dy * dy))
+                    LINE (0, y)-(px - half, y), _RGBA32(0, 0, 0, 170), BF
+                    LINE (px + half, y)-(SW * CW - 1, y), _RGBA32(0, 0, 0, 170), BF
+                END IF
+            NEXT y
+            r = hole - f * (CW \ 2)                 ' the ring itself pulses in and out
+            CIRCLE (px, py), r, _RGB32(&HFF, &HE0, &H40)
+            CIRCLE (px, py), r - 1, _RGB32(&HFF, &HE0, &H40)
+            Present
+            _DELAY 0.09
+        NEXT f
+    NEXT i
+    cursor_erase: cursor_draw: DrawHUD: Present     ' put the board back exactly as it was
+END SUB
