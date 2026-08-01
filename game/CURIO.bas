@@ -66,6 +66,9 @@ SUB TickStatus
         END IF
     END IF
     IF siren_turns > 0 THEN siren_turns = siren_turns - 1
+    ' A curse costs no HP -- it just makes you worse at fighting -- so it ticks here with the
+    ' siren rather than in the damage-over-time block above.
+    IF curse_turns > 0 THEN curse_turns = curse_turns - 1
     IF dead = 0 THEN                              ' a death already repainted the board itself
         IF StatusFxKey% <> snap THEN cursor_erase: cursor_draw: DrawHUD: Present
     END IF

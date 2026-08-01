@@ -45,6 +45,7 @@ SUB LoadActivePlayer (p AS INTEGER)
     spell_fire = PLAYERS(p).sp_fire: spell_bolt = PLAYERS(p).sp_bolt
     char_level = PLAYERS(p).clevel: char_xp = PLAYERS(p).cxp
     poison_turns = PLAYERS(p).t_poison: fire_turns = PLAYERS(p).t_fire
+    curse_turns = PLAYERS(p).t_curse
     frost_turns = PLAYERS(p).t_frost: siren_turns = PLAYERS(p).t_siren
     ' Re-seed the STICKY level from THIS seat's position (see PlayerLevel%). Without it, a seat
     ' standing in an unclaimed corridor would inherit the previous player's depth -- pass the
@@ -75,6 +76,7 @@ SUB SaveActivePlayer (p AS INTEGER)
     PLAYERS(p).sp_fire = spell_fire: PLAYERS(p).sp_bolt = spell_bolt
     PLAYERS(p).clevel = char_level: PLAYERS(p).cxp = char_xp
     PLAYERS(p).t_poison = poison_turns: PLAYERS(p).t_fire = fire_turns
+    PLAYERS(p).t_curse = curse_turns
     PLAYERS(p).t_frost = frost_turns: PLAYERS(p).t_siren = siren_turns
 END SUB
 
@@ -149,6 +151,7 @@ SUB SetupPlayers
         PLAYERS(p).pot_sm = 0: PLAYERS(p).pot_lg = 0
         PLAYERS(p).clevel = 1: PLAYERS(p).cxp = 0
         PLAYERS(p).t_poison = 0: PLAYERS(p).t_fire = 0
+        PLAYERS(p).t_curse = 0
         PLAYERS(p).t_frost = 0: PLAYERS(p).t_siren = 0
         IF klass = 4 THEN
             ' INT -- "how many spells you can carry". 3/3/2 is the baseline (INT 10-11); every

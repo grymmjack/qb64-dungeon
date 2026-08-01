@@ -27,7 +27,7 @@ DEX | 0 | accuracy with missile weapons
 
 CON | 1 | extra HP on every level from here on
 CON | 1 | elemental + endurance saving throws
-CON | 0 | resistance to poison, acid, shock
+CON | 1 | resistance to poison, acid, shock
 CON | 0 | endure a maximum-damage blow for half
 
 INT | 1 | a Wizard's to hit and damage

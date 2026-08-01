@@ -422,6 +422,7 @@ SUB DoCombatDnD (rm AS INTEGER)
     ' to-hit bonus plus the SHOOT action in tactical combat. The plan is a top-down perspective
     ' where missile weapons complement melee properly -- so when that lands, this is the seam to
     ' widen, not a special case to work around.
+    IF curse_turns > 0 THEN thb = thb - 1        ' cursed: your aim is fouled
     IF item_bow THEN thb = thb + 2
     god_favor = GodsFavor                       ' desperate last-life spoils-rescue may earn a divine dice boost
     IF god_favor > 0 THEN thb = thb + god_favor
@@ -503,7 +504,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             ' ---------- player attacks ----------
             atk = LuckyRoll%(1, 20, thb, "to hit the " + mon)   ' luck may buy a second d20
             IF last_raw = 20 THEN                 ' natural 20: crit, auto-hit, double dice
-                dmg = LuckyRoll%(2, player_dmgdie, player_dmgbonus + item_sword, "CRITICAL damage on the " + mon)
+                dmg = LuckyRoll%(2, player_dmgdie, player_dmgbonus + item_sword - CurseDmgPenalty%, "CRITICAL damage on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 IF opt_gestures THEN dmg = dmg + CritFlourish(mon, sec, SkillTier%)   ' Action Gestures: time the gauge for +0/1/2 bonus dice
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
@@ -537,7 +538,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     CombatPause
                 END IF
             ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
-                dmg = LuckyRoll%(1, player_dmgdie, player_dmgbonus + item_sword, "your DAMAGE on the " + mon)
+                dmg = LuckyRoll%(1, player_dmgdie, player_dmgbonus + item_sword - CurseDmgPenalty%, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
@@ -602,6 +603,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 FX_DMG = mdmg
                 EventBanner "** the " + mon + " " + MonVerb$(mon, "CRITS", "CRIT") + " you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
                 CombatPause
+                MonsterEffectStrike mon        ' a crit lands its elemental effect too
             ELSEIF matk >= player_ac + item_armor + item_shield THEN
                 PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
                 IF isboss THEN mdmg = mdmg + 3
@@ -615,6 +617,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 FX_DMG = mdmg
                 NarrateT "combat.hurt", NARR_COMBAT   ' spoken "it wounds you" (Combat tier)
                 EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
+                MonsterEffectStrike mon        ' venom / blight / curse / acid, if this one carries any
                 CombatPause
             ELSE
                 FX_DMG = 0
@@ -1342,4 +1345,11 @@ FUNCTION BuyPrice& (amt AS LONG)
     w = amt - (amt * pct) \ 100
     IF w < 1 THEN w = 1
     BuyPrice& = w
+END FUNCTION
+
+
+' A curse costs you a point of damage as well as a point of to-hit -- "-1 to attack and damage"
+' is the whole effect, and applying only half of it would make curses read as a rounding error.
+FUNCTION CurseDmgPenalty%
+    IF curse_turns > 0 THEN CurseDmgPenalty% = 1 ELSE CurseDmgPenalty% = 0
 END FUNCTION

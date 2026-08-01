@@ -246,6 +246,25 @@ SUB LoadStatHelp
 END SUB
 
 
+' Load the monster elemental-effect table (assets/data/<pack>/monster-effects.txt).
+SUB LoadMonsterEffects
+    DIM i AS INTEGER
+    ME_N = 0
+    ReadDataFile "assets/data/monster-effects.txt"
+    FOR i = 1 TO DLINE_N
+        IF ME_N < UBOUND(ME_MON) THEN
+            ME_N = ME_N + 1
+            ME_MON(ME_N) = UCASE$(DField$(DLINE(i), 1))
+            ME_KIND(ME_N) = LCASE$(DField$(DLINE(i), 2))
+            ME_PCT(ME_N) = VAL(DField$(DLINE(i), 3))
+            ME_SAVE(ME_N) = UCASE$(DField$(DLINE(i), 4))
+            ME_DIE(ME_N) = VAL(DField$(DLINE(i), 5))
+            ME_ROUNDS(ME_N) = VAL(DField$(DLINE(i), 6))
+        END IF
+    NEXT i
+END SUB
+
+
 SUB LoadTraps
     DIM i AS INTEGER
     NTRAP = 0

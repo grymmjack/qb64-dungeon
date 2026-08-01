@@ -1,0 +1,39 @@
+# ============================================================================
+#  MONSTER ELEMENTAL EFFECTS -- what a monster does to you BEYOND its damage.
+#
+#  Rolled after a monster lands a hit. Every one can be avoided with a successful
+#  SAVING THROW against the named ability, so a resistant character shrugs them off.
+#
+#  FORMAT:  monster | kind | chance | save | die | rounds
+#    monster  name as it appears in monsters.txt ("*" = any monster)
+#    kind     poison | blight | curse | acid        (mechanics are in code, keyed by this)
+#    chance   percent chance the effect is attempted at all
+#    save     STR INT WIS DEX CON -- the ability that avoids it
+#    die      immediate damage die (0 = none).  blight/acid hit at once.
+#    rounds   duration die (0 = none). poison/acid tick -1 HP per round; curse is -1
+#             to hit and damage while it lasts.
+#
+#  CON is the resistance stat: besides its save, the CON modifier is SUBTRACTED from
+#  every duration (never below 1 round). A hardy character is poisoned briefly; a
+#  frail one stays poisoned. That is what "resistance to poison, acid, shock" means
+#  here -- not immunity, which would make the whole table stop mattering.
+# ============================================================================
+
+# --- venom: a lingering bleed rather than a big hit ---
+GIANT SPIDER  | poison | 20 | CON | 0 | 4
+GIANT SNAKE   | poison | 20 | CON | 0 | 4
+
+# --- the undead wither you: one sharp drain, no lingering ---
+SKELETON      | blight | 10 | CON | 4 | 0
+GHOULS        | blight | 10 | CON | 4 | 0
+MUMMY         | blight | 10 | CON | 4 | 0
+VAMPIRE       | blight | 10 | CON | 4 | 0
+
+# --- spellcasters foul your aim: no damage at all, but you fight badly ---
+WITCH         | curse  | 20 | WIS | 0 | 4
+EVIL WIZARD   | curse  | 20 | WIS | 0 | 4
+
+# --- acid: a hit AND a burn, the nastiest of the four ---
+GREEN SLIME   | acid   | 25 | DEX | 6 | 3
+PURPLE WORM   | acid   | 25 | DEX | 6 | 3
+BLACK PUDDING | acid   | 25 | DEX | 6 | 3

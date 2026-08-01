@@ -1487,6 +1487,7 @@ FUNCTION StatusTag$
     DIM s AS STRING
     s = ""
     IF poison_turns > 0 THEN s = s + " {PSN" + _TRIM$(STR$(poison_turns)) + "}"
+    IF curse_turns > 0 THEN s = s + " {CRS" + _TRIM$(STR$(curse_turns)) + "}"   ' cursed: -1 hit/damage
     IF fire_turns > 0 THEN s = s + " {FIRE" + _TRIM$(STR$(fire_turns)) + "}"
     IF frost_turns > 0 THEN s = s + " {FRZ" + _TRIM$(STR$(frost_turns)) + "}"
     IF siren_turns > 0 THEN s = s + " {SIREN" + _TRIM$(STR$(siren_turns)) + "}"

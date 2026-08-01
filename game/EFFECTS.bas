@@ -154,3 +154,101 @@ SUB DoMonsterFumble (rm AS INTEGER, mon AS STRING)
     END SELECT
     CombatPause
 END SUB
+
+
+' ============================================================================
+'  MONSTER ELEMENTAL EFFECTS -- what a monster does to you beyond its damage.
+'
+'  Rolled once after a monster lands a hit. Table-driven (assets/data/<pack>/
+'  monster-effects.txt) so which monster does what, how often, and against which
+'  ability is content, not code -- only the four MECHANICS live here.
+'
+'  Every one is avoidable with a saving throw, which is what keeps them from feeling
+'  like arbitrary punishment: a spider's venom is a CON problem, a witch's curse is a
+'  WIS problem, and acid is something you should have dodged.
+' ============================================================================
+SUB MonsterEffectStrike (mon AS STRING)
+    DIM i AS INTEGER, k AS STRING, dmg AS INTEGER, dur AS INTEGER, saved AS INTEGER
+    DIM u AS STRING, abmod AS INTEGER
+    IF opt_oldschool THEN EXIT SUB               ' 2d6 Dungeon! has no status effects
+    u = UCASE$(_TRIM$(mon))
+    FOR i = 1 TO ME_N
+        IF ME_MON(i) = u OR ME_MON(i) = "*" THEN
+            IF RollDie(100) <= ME_PCT(i) THEN
+                k = ME_KIND(i)
+                abmod = SaveStatMod%(ME_SAVE(i))
+                saved = SaveThrow%(abmod, EffectName$(k) + " from the " + _TRIM$(mon))
+                IF saved THEN
+                    Banner "You shrug off the " + EffectName$(k) + "!", "(saved vs " + _TRIM$(ME_SAVE(i)) + ")   [ press any key ]"
+                    WaitKey
+                ELSE
+                    dmg = 0: dur = 0
+                    IF ME_DIE(i) > 0 THEN dmg = RollDie(ME_DIE(i))
+                    IF ME_ROUNDS(i) > 0 THEN dur = ResistDuration%(RollDie(ME_ROUNDS(i)))
+                    ApplyMonsterEffect k, dmg, dur, _TRIM$(mon)
+                END IF
+                EXIT SUB                         ' one effect per hit, whichever row matched first
+            END IF
+        END IF
+    NEXT i
+END SUB
+
+' CON is the RESISTANCE stat: its modifier comes off every duration, never below 1 round.
+' Resistance, not immunity -- immunity would make the whole table stop mattering, and a table
+' that stops mattering is a table nobody tunes.
+FUNCTION ResistDuration% (d AS INTEGER)
+    DIM v AS INTEGER
+    v = d - AbilMod(player_con)
+    IF v < 1 THEN v = 1
+    ResistDuration% = v
+END FUNCTION
+
+' The ability modifier a named save uses.
+FUNCTION SaveStatMod% (nm AS STRING)
+    SELECT CASE UCASE$(_TRIM$(nm))
+        CASE "STR": SaveStatMod% = AbilMod(player_str)
+        CASE "INT": SaveStatMod% = AbilMod(player_int)
+        CASE "WIS": SaveStatMod% = AbilMod(player_wis)
+        CASE "DEX": SaveStatMod% = AbilMod(player_dex)
+        CASE ELSE: SaveStatMod% = AbilMod(player_con)
+    END SELECT
+END FUNCTION
+
+FUNCTION EffectName$ (k AS STRING)
+    SELECT CASE LCASE$(_TRIM$(k))
+        CASE "poison": EffectName$ = "VENOM"
+        CASE "blight": EffectName$ = "BLIGHT"
+        CASE "curse": EffectName$ = "CURSE"
+        CASE "acid": EffectName$ = "ACID"
+        CASE ELSE: EffectName$ = UCASE$(_TRIM$(k))
+    END SELECT
+END FUNCTION
+
+' The four mechanics. Everything above this decides WHETHER; this decides WHAT.
+SUB ApplyMonsterEffect (k AS STRING, dmg AS INTEGER, dur AS INTEGER, mon AS STRING)
+    DIM msg AS STRING
+    SELECT CASE LCASE$(_TRIM$(k))
+        CASE "poison"
+            poison_turns = poison_turns + dur
+            Sfx "poison-proc"
+            msg = "The " + mon + "'s venom burns in the wound -- " + _TRIM$(STR$(dur)) + " rounds of poison."
+        CASE "blight"
+            player_hp = player_hp - dmg
+            IF player_hp < 0 THEN player_hp = 0
+            Sfx "monster-pain"
+            msg = "The " + mon + "'s touch withers you for " + _TRIM$(STR$(dmg)) + " -- the wound will not close."
+        CASE "curse"
+            curse_turns = curse_turns + dur
+            Sfx "fizzle"
+            msg = "The " + mon + " fouls your aim: -1 to hit and damage for " + _TRIM$(STR$(dur)) + " rounds."
+        CASE "acid"
+            player_hp = player_hp - dmg
+            IF player_hp < 0 THEN player_hp = 0
+            poison_turns = poison_turns + dur    ' the burn keeps eating after the splash
+            Sfx "poison-proc"
+            msg = "Acid sears you for " + _TRIM$(STR$(dmg)) + " and keeps burning for " + _TRIM$(STR$(dur)) + " rounds."
+    END SELECT
+    Banner "** " + EffectName$(k) + "! **", msg + "   [ press any key ]"
+    WaitKey
+    LogEvent _TRIM$(player_name) + " suffered " + EffectName$(k) + " from the " + mon
+END SUB

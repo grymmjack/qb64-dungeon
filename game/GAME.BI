@@ -204,6 +204,7 @@ TYPE PLAYER
     t_fire   AS INTEGER         '                 bomb fire (-1 HP/turn)
     t_frost  AS INTEGER         '                 frost bomb (movement frozen)
     t_siren  AS INTEGER         '                 magic siren (encounter chance up)
+    t_curse  AS INTEGER         '                 cursed: -1 hit/damage
 END TYPE
 
 DIM SHARED SECTORS(1 TO 9) AS SECTOR
@@ -472,6 +473,12 @@ DIM SHARED poison_turns AS INTEGER   ' poison darts: -1 HP per turn (damage over
 DIM SHARED fire_turns AS INTEGER     ' bomb fire: -1 HP per turn (damage over time)
 DIM SHARED frost_turns AS INTEGER    ' frost bomb: movement frozen this many turns
 DIM SHARED siren_turns AS INTEGER    ' magic siren: encounter chance raised while it wails
+DIM SHARED curse_turns AS INTEGER    ' cursed: -1 to hit AND damage while it lasts
+' --- MONSTER ELEMENTAL EFFECTS (assets/data/<pack>/monster-effects.txt) ---
+DIM SHARED ME_MON(1 TO 60) AS STRING, ME_KIND(1 TO 60) AS STRING
+DIM SHARED ME_PCT(1 TO 60) AS INTEGER, ME_SAVE(1 TO 60) AS STRING
+DIM SHARED ME_DIE(1 TO 60) AS INTEGER, ME_ROUNDS(1 TO 60) AS INTEGER
+DIM SHARED ME_N AS INTEGER
 DIM SHARED has_key AS INTEGER                     ' player holds the Level Key
 DIM SHARED key_level AS INTEGER                   ' which dungeon level (2..9) hides the Level Key this game
 DIM SHARED key_room AS INTEGER                    ' the ROOMS() index whose treasure IS the Level Key (Crystal Ball reveals it)

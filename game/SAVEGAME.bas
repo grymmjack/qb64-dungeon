@@ -43,6 +43,10 @@ SUB SaveGame
     PRINT #f, player_str; player_int; player_wis; player_dex; player_con; player_cha
     PRINT #f, player_tohit; player_ac; player_dmgdie; player_dmgbonus
     PRINT #f, item_sword; item_secret_card; item_esp; item_crystal; item_armor; item_bow; item_boots; item_teleport; item_potion_small; item_potion_large; item_shield; spell_fire; spell_bolt
+    ' curse_turns is deliberately NOT written. The token stream is positional, so a fifth int
+    ' here would shift every field after it and orphan every existing save -- and a curse lasts
+    ' a few combat rounds, unlike poison which can carry for many turns and kill you. It IS
+    ' parked per seat (PLAYER.t_curse) so hot-seat is correct; it simply does not survive a quit.
     PRINT #f, poison_turns; fire_turns; frost_turns; siren_turns
     PRINT #f, c.x; c.y; c.prev_x; c.prev_y
     PRINT #f, moves_made; turn_num; steps_left; need_roll; loiter
