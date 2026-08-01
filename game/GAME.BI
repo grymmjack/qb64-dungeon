@@ -374,6 +374,12 @@ DIM SHARED fx_critkill AS INTEGER                                           ' TR
 CONST LUCK_FUSE_SEC = 2.0
 DIM SHARED luck_left AS INTEGER, luck_max AS INTEGER
 DIM SHARED opt_luck AS INTEGER            ' SETTINGS toggle: luck re-rolls on/off
+
+' --- what each ability DOES (assets/data/<pack>/stats.txt) ---
+' Shown in the character creator's side panel. SH_LIVE separates what the game does TODAY from
+' what is designed but unbuilt, so the panel can never promise a mechanic that does not exist.
+DIM SHARED SH_STAT(1 TO 60) AS INTEGER, SH_LIVE(1 TO 60) AS INTEGER
+DIM SHARED SH_TEXT(1 TO 60) AS STRING, SH_N AS INTEGER
 DIM SHARED luck_rerolling AS INTEGER      ' guard: a re-roll can never itself be re-rolled
 DIM SHARED CHM_FLAV_NAME(1 TO 32) AS STRING, CHM_FLAV_TXT(1 TO 32) AS STRING, CHM_FLAV_N AS INTEGER   ' per-chamber descriptions
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)

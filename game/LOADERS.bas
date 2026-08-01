@@ -220,6 +220,32 @@ SUB LoadAmbience
 END SUB
 
 
+' Load the ability-score help table (assets/data/<pack>/stats.txt).
+SUB LoadStatHelp
+    DIM i AS INTEGER, nm AS STRING, ix AS INTEGER
+    SH_N = 0
+    ReadDataFile "assets/data/stats.txt"
+    FOR i = 1 TO DLINE_N
+        nm = UCASE$(DField$(DLINE(i), 1))
+        ix = 0
+        SELECT CASE nm
+            CASE "STR": ix = 1
+            CASE "INT": ix = 2
+            CASE "WIS": ix = 3
+            CASE "DEX": ix = 4
+            CASE "CON": ix = 5
+            CASE "CHA": ix = 6
+        END SELECT
+        IF ix > 0 AND SH_N < UBOUND(SH_STAT) THEN
+            SH_N = SH_N + 1
+            SH_STAT(SH_N) = ix
+            SH_LIVE(SH_N) = (VAL(DField$(DLINE(i), 2)) <> 0)
+            SH_TEXT(SH_N) = DField$(DLINE(i), 3)
+        END IF
+    NEXT i
+END SUB
+
+
 SUB LoadTraps
     DIM i AS INTEGER
     NTRAP = 0

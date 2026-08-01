@@ -201,6 +201,7 @@ SUB DrawFlexStats (pc AS INTEGER, sc() AS INTEGER, cur AS INTEGER, moving AS INT
     COLOR GREENU, BLACK: PrintCentered 20, "AC " + _TRIM$(STR$(pac)) + "  (" + _TRIM$(STR$(CLASSES(pc).ac)) + " class " + ModStr$(AbilMod(sc(4))) + " DEX)      To-Hit " + ModStr$(pth) + "  (" + ModStr$(CLASSES(pc).tohit) + " class " + ModStr$(atkm) + " " + statn + ")"
     COLOR GREY, BLACK: PrintCentered 21, "Damage 1d" + _TRIM$(STR$(CLASSES(pc).dmg)) + " " + ModStr$(atkm) + " " + statn + "      CON " + ModStr$(AbilMod(sc(5))) + " -> " + ModStr$(3 * AbilMod(sc(5))) + " HP      -- every +2 in a stat = +1 modifier --"
     COLOR CYANU, BLACK: PrintCentered 24, info
+    DrawStatHelp cur, 42, 27, 48        ' what the stat under the cursor actually does
     COLOR YELLOWU, BLACK
     IF mode = 2 THEN
         PrintCentered 44, "[Up/Dn] pick stat     [Left] -1     [Right] +1     [ENTER] done     [ESC] cancel"
@@ -1731,4 +1732,45 @@ SUB LevelUpStatPaint (sel AS INTEGER)
         END IF
     NEXT i
     COLOR YELLOWU, BOXBG: PrintCentered 34, "[Up/Down] choose    [ENTER] spend the point"
+END SUB
+
+
+' ============================================================================
+'  What the highlighted ability actually DOES -- the character-creator side panel.
+'
+'  Lines come from assets/data/<pack>/stats.txt, each flagged live or planned. LIVE lines print
+'  normally; PLANNED ones print dim and marked "(soon)".
+'
+'  Showing the planned ones is deliberate. Hiding them would make WIS and CHA look like dump
+'  stats when they are not -- they are simply early. Showing them WITHOUT the mark would be
+'  worse than saying nothing at all: the player would spend points on a mechanic that does not
+'  exist yet. The flag is what makes the panel honest either way.
+' ============================================================================
+SUB DrawStatHelp (stat AS INTEGER, col AS INTEGER, row AS INTEGER, wid AS INTEGER)
+    DIM i AS INTEGER, y AS INTEGER, t AS STRING, nlive AS INTEGER
+    IF stat < 1 OR stat > 6 THEN EXIT SUB
+    _DEST CANVAS
+    COLOR YELLOWU, BLACK
+    _PRINTSTRING (col * CW, row * CH), StatName$(stat) + " -- what it does"
+    LINE (col * CW, (row + 1) * CH - 2)-((col + wid) * CW, (row + 1) * CH - 1), CYANU, BF
+    y = row + 2
+    FOR i = 1 TO SH_N
+        IF SH_STAT(i) = stat THEN
+            t = _TRIM$(SH_TEXT(i))
+            IF LEN(t) > wid - 4 THEN t = LEFT$(t, wid - 4)
+            IF SH_LIVE(i) THEN
+                COLOR GREENU, BLACK
+                _PRINTSTRING (col * CW, y * CH), "  " + t
+                nlive = nlive + 1
+            ELSE
+                COLOR GREY, BLACK
+                _PRINTSTRING (col * CW, y * CH), "  " + t + "  (soon)"
+            END IF
+            y = y + 1
+        END IF
+    NEXT i
+    IF SH_N = 0 THEN
+        COLOR GREY, BLACK
+        _PRINTSTRING (col * CW, y * CH), "  (assets/data/stats.txt is missing)"
+    END IF
 END SUB

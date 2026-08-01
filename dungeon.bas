@@ -204,6 +204,7 @@ InitEffects                      ' load the crit/fumble effect tables (assets/da
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
 LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
 LoadAmbience                      ' load the per-level ambient noise table (assets/data/ambience.txt)
+LoadStatHelp                      ' what each ability DOES, for the character-creator panel
 LoadChamberEvents                 ' load the chamber event table (assets/data/chamber-events.txt)
 InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
 InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
@@ -222,6 +223,16 @@ NEXT mac
 
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "CREATORSHOT") > 0 THEN
+    DIM csArg AS INTEGER, csSel AS INTEGER
+    csSel = 6
+    FOR csArg = 1 TO _COMMANDCOUNT
+        IF VAL(COMMAND$(csArg)) >= 1 AND VAL(COMMAND$(csArg)) <= 6 THEN csSel = VAL(COMMAND$(csArg)): EXIT FOR
+    NEXT csArg
+    DumpCreatorShot csSel
+    SYSTEM
+END IF
+
 IF INSTR(UCASE$(COMMAND$), "STATSHOT") > 0 THEN
     BuildBoardImages
     DetectSecretDoors

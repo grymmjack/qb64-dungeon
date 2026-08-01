@@ -34,37 +34,20 @@ Small UI Tweaks:
       ☐ On stairs, have a random encounter 50% of the time - sentry guards, or 30% for a random trap
     ☐ Modify map so that level 4 cannot reach level 9
     ☐ Modify map so that stairs lead to only the next level or the previous level
-    ☐ Explain in character creator what each stat does in a side panel @critical
-      ☐ STR:
-        ☐ extra damage in combat per successful strike
-        ☐ chance to break through doors and chests
-        ☐ ablility to use stronger armor and melee weapons
-        ☐ physical based saving throws
-      ☐ DEX:
-        ☐ bonus to armor class and dodging
-        ☐ use flourishes to do more damage
-        ☐ ability to use more precise missile weapons
-        ☐ movement based saving throws and checks
-      ☐ CON:
-        ☐ extra HP per level
-        ☐ resistances to elemental effects (poison, acid, shock, etc.)
-        ☐ ability to endure great damage
-        ☐ elemental based saving throws and checks
-      ☐ INT:
-        ☐ number of spells that can be cast
-        ☐ speed of ambient spell recall 
-        ☐ use magic flourishes for greater spell effects
-        ☐ mental based saving throws and checks
-      ☐ WIS:
-        ☐ distance of vision and detection
-        ☐ bonus to finding hidden things
-        ☐ resistance to spell effects
-        ☐ universal awareness saving throws bonus
-      ☐ CHA:
-        ☐ luck points (re-rolls)
-        ☐ barter modifier (how much things cost, and how much you sell for)
-        ☐ fate skew - less CHA = worse fate, more CHA = better fate
-        ☐ reaction saving throws
+    ✔ Explain in character creator what each stat does in a side panel @done(26-08-01)
+      ✔ DATA: assets/data/<pack>/stats.txt, rows of `STAT | live | text` @done(26-08-01)
+      ✔ the `live` flag is what makes the panel HONEST: 12 lines are true today, 14 are @done(26-08-01)
+        ✔ designed-not-built. Live lines print green; planned ones print dim and marked @done(26-08-01)
+        ✔ "(soon)" @done(26-08-01)
+      ✔ showing the planned ones is deliberate -- hiding them makes WIS and CHA look like dump @done(26-08-01)
+        ✔ stats when they are only EARLY; showing them unmarked would be worse than silence, @done(26-08-01)
+        ✔ because the player would spend points on a mechanic that does not exist @done(26-08-01)
+      ✔ every stat has at least one LIVE line today (audited, not assumed): @done(26-08-01)
+        ✔ STR damage/to-hit/doors, DEX AC, CON HP-per-level, INT wizard attack, WIS + CHA saves, @done(26-08-01)
+        ✔ CHA luck re-rolls (built earlier today) @done(26-08-01)
+      ✔ `dungeon.run creatorshot [stat]` renders it, and takes a stat index so the THINNEST @done(26-08-01)
+        ✔ ones (WIS/CHA) can be checked -- those are the rows most likely to look wrong @done(26-08-01)
+      ✔ flip a 0 to a 1 in stats.txt as each mechanic lands; no code change needed @done(26-08-01)
 
     ☐ Initiative modifier is the users level / 2. 
       ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be

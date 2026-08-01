@@ -632,3 +632,19 @@ SUB DumpStatPicker
     _SAVEIMAGE "statshot.png", CANVAS
     PRINT PipeCol$("  wrote |14statshot.png|07")
 END SUB
+
+
+' `dungeon.run creatorshot [stat]` -- the character creator's stat screen with the side panel.
+' Takes a stat index so the thinnest one (WIS/CHA, mostly planned lines) can be checked too --
+' those are the rows most likely to overflow or look wrong.
+SUB DumpCreatorShot (statsel AS INTEGER)
+    DIM sc(1 TO 6) AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15creatorshot|07 -- character creator + the 'what it does' side panel")
+    DevPackOverride
+    player_name = "Higgs the Unluckiest of All"
+    sc(1) = 16: sc(2) = 9: sc(3) = 11: sc(4) = 14: sc(5) = 13: sc(6) = 8
+    DrawFlexStats 1, sc(), statsel, 0, 2, "12 points left to spend"
+    _SAVEIMAGE "creatorshot.png", CANVAS
+    PRINT PipeCol$("  wrote |14creatorshot.png|07  (cursor on " + StatName$(statsel) + ")")
+END SUB

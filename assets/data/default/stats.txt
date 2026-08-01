@@ -1,0 +1,47 @@
+# ============================================================================
+#  STATS -- what each ability score actually DOES, shown in the character
+#  creator's side panel so the choice is informed.
+#
+#  FORMAT:  STAT | live | text
+#    STAT   STR INT WIS DEX CON CHA
+#    live   1 = the game does this TODAY.  0 = designed, not built yet.
+#    text   one short line, <= 44 chars so it fits the panel
+#
+#  The `live` flag exists so this panel can never lie. A character creator that
+#  promises "barter modifier" when nothing in the game barters is worse than
+#  saying nothing -- the player spends points on a promise. Planned lines still
+#  show, dimmed and marked, because knowing where a stat is HEADED is genuinely
+#  useful when choosing what to raise. Flip the flag to 1 as each lands.
+# ============================================================================
+
+STR | 1 | +damage on every successful strike
+STR | 1 | +to hit (except a Wizard, who swings by INT)
+STR | 1 | force reinforced doors open
+STR | 1 | physical saving throws
+STR | 0 | wield heavier armour and melee weapons
+
+DEX | 1 | bonus to armour class
+DEX | 1 | movement + reflex saving throws
+DEX | 0 | flourishes: spend timing for extra damage
+DEX | 0 | accuracy with missile weapons
+
+CON | 1 | extra HP on every level from here on
+CON | 1 | elemental + endurance saving throws
+CON | 0 | resistance to poison, acid, shock
+CON | 0 | endure a maximum-damage blow for half
+
+INT | 1 | a Wizard's to hit and damage
+INT | 1 | mental saving throws
+INT | 0 | how many spells you can carry
+INT | 0 | speed of spell recall
+INT | 0 | magic flourishes for greater effects
+
+WIS | 1 | awareness saving throws
+WIS | 0 | how far you can see and detect
+WIS | 0 | bonus to finding hidden things
+WIS | 0 | resistance to spell effects
+
+CHA | 1 | luck points: re-roll a bad die
+CHA | 0 | barter: what you pay and what you get
+CHA | 0 | fate skew -- the dungeon's mood toward you
+CHA | 0 | reaction saving throws
