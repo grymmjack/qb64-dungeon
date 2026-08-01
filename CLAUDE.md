@@ -707,6 +707,20 @@ character `Q` printed in the d20 font:
   handle"**, and any `... * CH` coordinate silently becomes `0`. Never name a local after a
   short shared global (`CH`/`CW`/`SW`/`SH`/`c`); the char-code locals are `chcode`. UDT string
   fields are also kept **fixed-length** (`name AS STRING * 16`, `_TRIM$` on read) as the safe idiom.
+- **`AND` / `OR` never short-circuit — but `_ANDALSO` / `_ORELSE` DO.** `IF n > 0 AND ROOMS(n).x`
+  still reads `ROOMS(0)`; with `$CHECKING:ON` that is a hard `Subscript out of range`. QB64PE now
+  provides short-circuiting operators, **verified in this repo's compiler**:
+
+  | with `n = 0` | |
+  |---|---|
+  | `IF n > 0 _ANDALSO a(n) = 11` | survives — right side skipped |
+  | `IF n = 0 _ORELSE a(n) = 11`  | survives — right side skipped |
+  | `IF n > 0 AND a(n) = 11`      | **`Subscript out of range`** |
+
+  So a bounds guard or a side-effecting call (a die roll!) can now be written on one line with
+  `_ANDALSO`, instead of nesting `IF`s. `tests/audit-shortcircuit.sh` still flags plain `AND`/`OR`
+  guards — nesting and `_ANDALSO` are both valid fixes. Existing nested `IF`s are correct as-is;
+  there is no need to churn them.
 - **Gotcha:** single-line `IF` does not support `ELSEIF` / `ELSE IF` chains, and `LINE`, `SEG`,
   `VAL`, `CLS` are reserved words that can't be used as variable names.
 - **Gotcha:** relative paths resolve against the **executable's** directory, not the shell's cwd

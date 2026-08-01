@@ -86,6 +86,7 @@ for f, i, v, arr, src in hits:
     seen.add(key)
     print(f"  {f}:{i}   guard on `{v}` but `{arr}({v}...)` is still evaluated")
     if verbose: print(f"      {src}")
-print(f"\n{len(seen)} site(s). Fix by nesting the IFs.")
+print(f"\n{len(seen)} site(s). Fix by nesting the IFs, or use _ANDALSO / _ORELSE,")
+print("which DO short-circuit (verified on this QB64PE: the right side is never evaluated).")
 sys.exit(1)
 PY
