@@ -550,7 +550,11 @@ SUB DumpImageBody
         ' CurioSprite$ returns a resolved PATH or "" -- reduce it to the bare basename.
         IF LEN(w) > 0 THEN
             w = MID$(w, _INSTRREV(w, "/") + 1)
-            IF RIGHT$(LCASE$(w), 4) = ".png" THEN w = LEFT$(w, LEN(w) - 4)
+            ' Strip WHATEVER extension came back, not just ".png". ArtFile$ is style-aware
+            ' now, so in ANSI mode this resolves to a .ans path -- and stripping only .png
+            ' left the basename as "curio-chest.ans", which the manifest then asked the
+            ' generators to make as "curio-chest.ans.png". Every curio listed as missing.
+            IF _INSTRREV(w, ".") > 0 THEN w = LEFT$(w, _INSTRREV(w, ".") - 1)
             PutArtBoth "events", w, "a " + UnSlug$(w), "a dungeon curio prop", "384x384", "18x12", seen
         ELSE
             ' No art mapping for this kind yet: still ask for one, named after the kind, so a new

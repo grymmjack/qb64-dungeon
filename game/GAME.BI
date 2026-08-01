@@ -353,6 +353,14 @@ DIM SHARED DOORNOISE_PCT AS INTEGER, DOORNOISE_CLEAR_PCT AS INTEGER        ' doo
 ' <any>manifest audit`). GAME.BI, not ENGINE.BI: the manifests are game content and every
 ' consumer lives in game/MANIFEST.bas -- audit-boundary.sh catches exactly this misfiling.
 DIM SHARED man_audit AS INTEGER
+' TRUE = build MAN_BUF but print nothing and do not clear it, so a caller can READ the manifest
+' instead of emitting it (placeholders does exactly that -- it needs the paths and sizes).
+DIM SHARED man_quiet AS INTEGER
+CONST PLACEHOLDER_LIST = "assets/PLACEHOLDERS.txt"   ' what `placeholders clean` deletes
+' Paths written by `dungeon.run placeholders`. The AUDIT treats these as MISSING even though
+' the file exists -- a stand-in is a reminder, not an asset, and an audit that counted it as
+' done would quietly hide the very thing it is for.
+DIM SHARED PH_PATH(1 TO 400) AS STRING, PH_N AS INTEGER, PH_LOADED AS INTEGER
 DIM SHARED fx_critkill AS INTEGER                                           ' TRUE = the killing blow was a CRIT (picks the killcrit aftermath text)
 DIM SHARED CHM_FLAV_NAME(1 TO 32) AS STRING, CHM_FLAV_TXT(1 TO 32) AS STRING, CHM_FLAV_N AS INTEGER   ' per-chamber descriptions
 DIM SHARED deaths(1 TO 4) AS INTEGER              ' per-player death tally (skull counter in the HUD)

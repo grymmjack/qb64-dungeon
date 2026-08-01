@@ -331,6 +331,39 @@ END SUB
 '  should count as present.
 ' ============================================================================
 
+' Does a REAL asset live here? A file written by `dungeon.run placeholders` does not count:
+' a stand-in is a reminder, not an asset, and an audit that counted it as done would hide the
+' very gap it exists to show. So placeholders keep reporting as MISSING until real art lands.
+FUNCTION RealAssetAt% (full AS STRING)
+    RealAssetAt% = 0
+    IF NOT _FILEEXISTS(full) THEN EXIT FUNCTION
+    IF IsPlaceholder%(full) THEN EXIT FUNCTION
+    RealAssetAt% = -1
+END FUNCTION
+
+' Is this path one the placeholder tool wrote? Read from the list it keeps -- a PNG carries no
+' marker saying "I am a stand-in", so content-sniffing would eventually misjudge real art.
+FUNCTION IsPlaceholder% (full AS STRING)
+    DIM i AS INTEGER, f AS INTEGER, ln AS STRING
+    IsPlaceholder% = 0
+    IF NOT PH_LOADED THEN
+        PH_LOADED = -1: PH_N = 0
+        IF _FILEEXISTS(PLACEHOLDER_LIST) THEN
+            f = FREEFILE
+            OPEN PLACEHOLDER_LIST FOR INPUT AS #f
+            DO UNTIL EOF(f)
+                LINE INPUT #f, ln
+                ln = _TRIM$(ln)
+                IF LEN(ln) > 0 AND PH_N < UBOUND(PH_PATH) THEN PH_N = PH_N + 1: PH_PATH(PH_N) = ln
+            LOOP
+            CLOSE #f
+        END IF
+    END IF
+    FOR i = 1 TO PH_N
+        IF PH_PATH(i) = full THEN IsPlaceholder% = -1: EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
 ' Which pack directory does this manifest category resolve through?
 FUNCTION ManPackFor$ (cat AS STRING)
     SELECT CASE cat
@@ -359,15 +392,15 @@ FUNCTION ManAssetPresent% (ln AS STRING)
     pk = ManPackFor$(cat)
     IF LEN(pk) = 0 THEN pk = "default"
     IF INSTR(rest, ".") > 0 THEN                ' an explicit extension: a straight two-place check
-        IF _FILEEXISTS("assets/" + cat + "/" + pk + "/" + rest) THEN EXIT FUNCTION
-        IF _FILEEXISTS("assets/" + cat + "/default/" + rest) THEN EXIT FUNCTION
+        IF RealAssetAt%("assets/" + cat + "/" + pk + "/" + rest) THEN EXIT FUNCTION
+        IF RealAssetAt%("assets/" + cat + "/default/" + rest) THEN EXIT FUNCTION
         ManAssetPresent% = 0
         EXIT FUNCTION
     END IF
     ' AudioExt$ already carries the leading dot (".ogg"), so do NOT add one here.
     FOR e = 1 TO AUDIOPREF_N                    ' no extension: audio, try each in preference order
-        IF _FILEEXISTS("assets/" + cat + "/" + pk + "/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
-        IF _FILEEXISTS("assets/" + cat + "/default/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
+        IF RealAssetAt%("assets/" + cat + "/" + pk + "/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
+        IF RealAssetAt%("assets/" + cat + "/default/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
     NEXT e
     ManAssetPresent% = 0
 END FUNCTION
@@ -386,6 +419,7 @@ END SUB
 ' Print the machine-readable header. FIRST LINE IS THE COUNT, deliberately: fetchable with
 ' `head -1`, comparable with a stored value, no parsing required.
 SUB ManHeader (title AS STRING)
+    IF man_quiet THEN EXIT SUB
     IF man_audit THEN
         PRINT "# MISSING: " + LTRIM$(STR$(MAN_ENTRIES))
     ELSE
@@ -397,6 +431,7 @@ END SUB
 
 SUB ManFlush
     DIM i AS INTEGER
+    IF man_quiet THEN EXIT SUB                  ' leave the buffer for a caller to read
     FOR i = 1 TO MAN_N
         PRINT MAN_BUF(i)
     NEXT i

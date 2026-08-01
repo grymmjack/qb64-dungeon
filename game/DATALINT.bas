@@ -1575,3 +1575,159 @@ SUB WalkLint
         PRINT PipeCol$("  |12" + _TRIM$(STR$(badnd)) + " of " + _TRIM$(STR$(nd)) + " DOORS are not passable|07 (first at " + _TRIM$(STR$(dx)) + "," + _TRIM$(STR$(dy)) + ")")
     END IF
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run placeholders` -- fill every MISSING art asset with a labelled stand-in.
+'
+'  Missing art is currently INVISIBLE: DrawSpriteFit% silently draws nothing, so a
+'  subject with no picture looks identical to a subject that was never meant to have
+'  one. A placeholder makes the gap loud, at exactly the right size, and lets the game
+'  be played and laid out before the render farm has run.
+'
+'  Runs the image manifest in AUDIT mode (missing only) and writes each entry at the
+'  size the manifest asks for: a PNG for pixel-art, a real .ans for ansi-art. Never
+'  overwrites -- if a file exists, it is not missing, and the audit will not list it.
+' ============================================================================
+SUB MakePlaceholders
+    DIM i AS INTEGER, ln AS STRING, pth AS STRING, sz AS STRING, made AS LONG
+    DIM f1 AS INTEGER, f2 AS INTEGER, nm AS STRING
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15placeholders|07 -- writing a labelled stand-in for every missing art asset")
+    IF _FILEEXISTS(PLACEHOLDER_LIST) THEN KILL PLACEHOLDER_LIST   ' fresh list each run
+    man_audit = TRUE: man_quiet = TRUE           ' build the list, print nothing, keep the buffer
+    DumpImageManifest                            ' fills MAN_BUF with ONLY the missing entries
+    man_quiet = FALSE
+    FOR i = 1 TO MAN_N
+        ln = MAN_BUF(i)
+        IF LEFT$(ln, 1) <> "#" AND LEN(_TRIM$(ln)) > 0 THEN
+            f1 = INSTR(ln, "|")
+            IF f1 > 0 THEN
+                pth = _TRIM$(LEFT$(ln, f1 - 1))
+                f2 = INSTR(f1 + 1, ln, "|")
+                IF f2 > 0 THEN
+                    sz = _TRIM$(MID$(ln, f2 + 1, INSTR(f2 + 1, ln, "|") - f2 - 1))
+                    nm = MID$(pth, _INSTRREV(pth, "/") + 1)
+                    IF _INSTRREV(nm, ".") > 0 THEN nm = LEFT$(nm, _INSTRREV(nm, ".") - 1)
+                    IF RIGHT$(LCASE$(pth), 4) = ".ans" THEN
+                        IF WritePlaceholderAns%(pth, sz, nm) THEN made = made + 1
+                    ELSE
+                        IF WritePlaceholderPng%(pth, sz, nm) THEN made = made + 1
+                    END IF
+                END IF
+            END IF
+        END IF
+    NEXT i
+    MAN_N = 0
+    PRINT PipeCol$("  wrote |10" + _TRIM$(STR$(made)) + "|07 placeholder(s), listed in |14" + PLACEHOLDER_LIST + "|07")
+    PRINT PipeCol$("  they still report as |14MISSING|07 in the audit -- a stand-in is a reminder,")
+    PRINT PipeCol$("  not an asset, so the work list stays honest while the game stops showing holes.")
+    PRINT PipeCol$("  |08dungeon.run placeholders clean|07 removes them when the real art lands.")
+END SUB
+
+' Delete every placeholder this tool wrote, using the manifest it kept. A LIST is the honest
+' way to do it: a PNG carries no marker saying "I am a stand-in", so guessing from content
+' would eventually delete somebody's real art.
+SUB CleanPlaceholders
+    DIM f AS INTEGER, ln AS STRING, n AS LONG, gone AS LONG
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15placeholders clean|07 -- removing the stand-ins so the audit tells the truth")
+    IF NOT _FILEEXISTS(PLACEHOLDER_LIST) THEN
+        PRINT PipeCol$("  |10nothing to clean|07 (no " + PLACEHOLDER_LIST + ")")
+        EXIT SUB
+    END IF
+    f = FREEFILE
+    OPEN PLACEHOLDER_LIST FOR INPUT AS #f
+    DO UNTIL EOF(f)
+        LINE INPUT #f, ln
+        ln = _TRIM$(ln)
+        IF LEN(ln) > 0 THEN
+            n = n + 1
+            IF _FILEEXISTS(ln) THEN KILL ln: gone = gone + 1
+        END IF
+    LOOP
+    CLOSE #f
+    KILL PLACEHOLDER_LIST
+    PRINT PipeCol$("  deleted |10" + _TRIM$(STR$(gone)) + "|07 of " + _TRIM$(STR$(n)) + " listed placeholder(s)")
+END SUB
+
+' Append a written placeholder to the list, so `placeholders clean` can find it again.
+SUB NotePlaceholder (full AS STRING)
+    DIM f AS INTEGER
+    f = FREEFILE
+    OPEN PLACEHOLDER_LIST FOR APPEND AS #f
+    PRINT #f, full
+    CLOSE #f
+END SUB
+
+' A placeholder PNG: a dashed frame, a diagonal, and the subject name, at the asked-for size.
+FUNCTION WritePlaceholderPng% (pth AS STRING, sz AS STRING, nm AS STRING)
+    DIM img AS LONG, d AS INTEGER, prevdest AS LONG, full AS STRING, lbl AS STRING
+    WritePlaceholderPng% = 0
+    d = VAL(sz): IF d < 16 THEN d = 128
+    full = "assets/" + PlaceholderPackPath$(pth)
+    IF _FILEEXISTS(full) THEN EXIT FUNCTION
+    img = _NEWIMAGE(d, d, 32)
+    IF img >= -1 THEN EXIT FUNCTION
+    prevdest = _DEST: _DEST img
+    CLS , _RGBA32(0, 0, 0, 0)                    ' transparent, like the real item art
+    LINE (1, 1)-(d - 2, d - 2), _RGB32(&HFF, &H00, &HFF), B
+    LINE (1, 1)-(d - 2, d - 2), _RGB32(&H80, &H00, &H80)
+    _FONT 8
+    COLOR _RGB32(&HFF, &HFF, &H55), _RGBA32(0, 0, 0, 0)
+    _PRINTSTRING (4, 4), "PLACEHOLDER"
+    lbl = nm
+    IF LEN(lbl) * 8 > d - 8 THEN lbl = LEFT$(lbl, (d - 8) \ 8)
+    COLOR _RGB32(&HFF, &HFF, &HFF), _RGBA32(0, 0, 0, 0)
+    _PRINTSTRING (4, d - 12), lbl
+    _DEST prevdest
+    _SAVEIMAGE full, img
+    _FREEIMAGE img
+    NotePlaceholder full
+    WritePlaceholderPng% = -1
+END FUNCTION
+
+' A placeholder .ans: a magenta box of exactly the asked-for character size with the subject
+' name inside, plus a SAUCE record so AnsiSprite& reads the right dimensions back.
+FUNCTION WritePlaceholderAns% (pth AS STRING, sz AS STRING, nm AS STRING)
+    DIM cols AS INTEGER, rows AS INTEGER, xp AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    DIM body AS STRING, full AS STRING, lbl AS STRING, f AS INTEGER, glyph AS STRING   ' `glyph`, not `ch`: CH is the shared font-cell height
+    WritePlaceholderAns% = 0
+    xp = INSTR(sz, "x")
+    IF xp > 0 THEN cols = VAL(LEFT$(sz, xp - 1)): rows = VAL(MID$(sz, xp + 1))
+    IF cols < 2 THEN cols = 18
+    IF rows < 2 THEN rows = 12
+    full = "assets/" + PlaceholderPackPath$(pth)
+    IF _FILEEXISTS(full) THEN EXIT FUNCTION
+    lbl = LEFT$(nm, cols - 2)
+    body = CHR$(27) + "[0;1;35m"                 ' bright magenta -- unmistakably not real art
+    FOR cy = 0 TO rows - 1
+        FOR cx = 0 TO cols - 1
+            IF cy = 0 OR cy = rows - 1 OR cx = 0 OR cx = cols - 1 THEN
+                glyph = CHR$(219)
+            ELSEIF cy = rows \ 2 AND cx >= 1 AND cx - 1 < LEN(lbl) THEN
+                glyph = MID$(lbl, cx, 1)
+            ELSE
+                glyph = " "
+            END IF
+            body = body + glyph
+        NEXT cx
+    NEXT cy
+    f = FREEFILE
+    OPEN full FOR BINARY AS #f
+    PUT #f, 1, body
+    glyph = CHR$(26): PUT #f, , glyph
+    glyph = SauceRecord$("PLACEHOLDER " + nm, cols, rows, LEN(body)): PUT #f, , glyph
+    CLOSE #f
+    NotePlaceholder full
+    WritePlaceholderAns% = -1
+END FUNCTION
+
+' Manifest paths are pack-less ("pixel-art/items/sword.png"); placeholders go in the DEFAULT
+' pack, which every other pack falls back to -- so one placeholder covers every pack at once.
+FUNCTION PlaceholderPackPath$ (pth AS STRING)
+    DIM sl AS INTEGER
+    sl = INSTR(pth, "/")
+    IF sl <= 0 THEN PlaceholderPackPath$ = pth: EXIT FUNCTION
+    PlaceholderPackPath$ = LEFT$(pth, sl) + "default/" + MID$(pth, sl + 1)
+END FUNCTION

@@ -42,6 +42,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
     PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
     PRINT PipeCol$("  |10fightshot|07     render the tactical-combat screen with a synthetic 1-vs-4 encounter -> |14fightshot.png|07")
+    PRINT PipeCol$("  |10placeholders|07 write a labelled stand-in for every MISSING art asset;  |10placeholders clean|07 removes them again")
     PRINT PipeCol$("  |10panelshot|07 |14[class]|07  render the D&D combat panel (portrait + weapon) -> panelshot.png")
     PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
@@ -210,6 +211,14 @@ NEXT mac
 
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "PLACEHOLDERS") > 0 THEN
+    DIM phArg AS INTEGER, phClean AS INTEGER
+    FOR phArg = 1 TO _COMMANDCOUNT
+        IF UCASE$(_TRIM$(COMMAND$(phArg))) = "CLEAN" THEN phClean = TRUE
+    NEXT phArg
+    IF phClean THEN CleanPlaceholders ELSE MakePlaceholders
+    SYSTEM
+END IF
 IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "FIGHTMANIFEST") > 0 THEN DumpFightManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0 THEN DumpFightLayout: SYSTEM
