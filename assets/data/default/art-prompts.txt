@@ -42,6 +42,9 @@ items/esp-medallion                        | item     | 128  | a mystic amulet w
 items/key-medallion                        | item     | 128  | an ornate golden dungeon level key with a skull-shaped bow on a chain, single item icon, centered
 items/magic-armor                          | item     | 128  | a gleaming enchanted breastplate of plate armor with a faint golden aura, single item icon, centered
 items/magic-bow                            | item     | 128  | an elegant enchanted longbow with a glowing green bowstring and carved limbs, single item icon, centered
+items/sword                                 | item     | 128  | a plain but well-kept steel longsword, leather-wrapped grip, straight crossguard, single item icon, centered
+items/staff                                 | item     | 128  | a gnarled wooden wizard's staff, iron-shod tip, worn smooth where it is gripped, single item icon, centered
+items/elven-blade                           | item     | 128  | a slender curved elven blade, pale etched leaf patterns down the fuller, green-wrapped hilt, single item icon, centered
 items/magic-sword-1                        | item     | 128  | a glowing enchanted longsword with a faint blue aura, ornate crossguard, single item icon, centered
 items/magic-sword-2                        | item     | 128  | a legendary flaming longsword with a golden runed hilt, radiant fire, single item icon, centered
 items/secret-door-card                     | item     | 128  | an old parchment card marked with a glowing arcane secret-door rune, single item icon, centered

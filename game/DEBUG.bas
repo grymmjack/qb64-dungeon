@@ -579,3 +579,37 @@ SUB DevPackOverride
         END IF
     NEXT i
 END SUB
+
+
+' `dungeon.run panelshot [class]` -- render the D&D COMBAT PANEL to panelshot.png.
+'
+' Same reasoning as charsheet: the panel only misbehaves when it is FULL, and now it also
+' bookends itself with a class portrait and a weapon tile, which is exactly the kind of layout
+' that looks fine until a long monster name or a long caption runs into it.
+'
+' Takes a class number so all four portraits and all three base weapons can be eyeballed:
+'   dungeon.run panelshot 4     the Wizard, so the staff art shows
+SUB DumpCombatPanel (pc AS INTEGER)
+    DIM rm AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15panelshot|07 -- the D&D combat panel, worst case for the layout")
+    DevPackOverride
+    player_class = pc: class_name = _TRIM$(CLASSES(pc).name)
+    player_name = "Higgs the Unluckiest of All"
+    char_level = 5
+    player_hp = 31: player_maxhp = 74
+    player_ac = 15: item_armor = 3: item_shield = 2
+    item_sword = 0                                   ' base weapon: the common case, and the new art
+    item_potion_small = 6: item_potion_large = 2
+    spell_fire = 3: spell_bolt = 3
+    combat_round = 3
+    ' a scratch room with the longest monster name in the game, to squeeze the centred text
+    rm = ROOM_N + 2
+    ROOMS(rm).sec = 9
+    ROOMS(rm).monster = "BLACK PUDDING"
+    ROOMS(rm).mhp = 88: ROOMS(rm).mhp_now = 61: ROOMS(rm).mac = 17
+    cursor_erase
+    DrawCombatPanel rm, _TRIM$(ROOMS(rm).monster), _TRIM$(ROOMS(rm).monster)
+    _SAVEIMAGE "panelshot.png", CANVAS
+    PRINT PipeCol$("  wrote |14panelshot.png|07  (" + _TRIM$(class_name) + ", base weapon, mid-fight)")
+END SUB

@@ -343,6 +343,26 @@ END SUB
 
 ' Path to a NAMED room's location scene (assets/pixel-art/rooms), by its flavor key.
 ' All 13 named rooms map 1:1 to a room sprite. "" if none / art absent.
+' The art for the weapon the player is actually swinging. A found Magic Sword outranks the
+' class weapon, because that is what WeaponName$ says too -- the picture and the prose must
+' agree or the panel contradicts itself.
+FUNCTION WeaponSprite$
+    DIM p AS STRING
+    IF item_sword >= 2 THEN
+        p = ArtFile$("items/magic-sword-2.png"): IF LEN(p) > 0 THEN WeaponSprite$ = p: EXIT FUNCTION
+    END IF
+    IF item_sword > 0 THEN
+        p = ArtFile$("items/magic-sword-1.png"): IF LEN(p) > 0 THEN WeaponSprite$ = p: EXIT FUNCTION
+    END IF
+    SELECT CASE player_class
+        CASE 4: p = ArtFile$("items/staff.png")
+        CASE 2: p = ArtFile$("items/elven-blade.png")
+        CASE ELSE: p = ArtFile$("items/sword.png")
+    END SELECT
+    IF LEN(p) = 0 THEN p = ArtFile$("items/magic-sword-1.png")   ' last resort: a sword is a sword
+    WeaponSprite$ = p
+END FUNCTION
+
 FUNCTION SpecialSprite$ (ky AS STRING)
     DIM k AS STRING, nm AS STRING, p AS STRING
     k = UCASE$(_TRIM$(ky))
@@ -492,6 +512,13 @@ SUB DumpImageBody
     ' but TreasureSprite$ resolves any name containing "KEY" to items/key-medallion. Real art the
     ' game uses, which no manifest had ever asked for.
     PutArtBoth "items", "key-medallion", "a level key medallion", "a magic item", "256x256", "16x12", seen
+    ' The BASE WEAPONS. Art for the +1/+2 blades already existed, but an unarmed-of-magic hero
+    ' carries "your sword" / "your staff" / "your elven blade" (WeaponName$) and no manifest had
+    ' ever asked for those -- so the combat bar's weapon slot had nothing to draw for the most
+    ' common case in the game: a character who has not found a Magic Sword yet.
+    PutArtBoth "items", "sword", "a plain steel longsword", "a weapon", "256x256", "16x12", seen
+    PutArtBoth "items", "staff", "a wizard's wooden staff", "a weapon", "256x256", "16x12", seen
+    PutArtBoth "items", "elven-blade", "a slender elven blade", "a weapon", "256x256", "16x12", seen
     ManOut ""
     ManOut "# --- markers (board overlays) ---"
     lst = "gravestone player-body lost-cache cursed-rune ": p = 1

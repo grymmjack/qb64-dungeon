@@ -19,7 +19,17 @@ Small UI Tweaks:
     ☐ Add art pixel/ansi for: @critical
       ☐ YOU DIED screen
       ☐ YOU WIN screen
-    ☐ Add player portrait to combat bar, left side, with weapon using on right side of box @critical
+    ✔ Add player portrait to combat bar, left side, with weapon on right side of box @done(26-08-01)
+      ✔ PanelArt draws each tile with its caption on the frame's BOTTOM edge -- CombatArtBox @done(26-08-01)
+        ✔ puts the caption ABOVE, which here would land outside the panel @done(26-08-01)
+      ✔ drawn BEFORE the text, so a long monster name overlaps the art rather than the art @done(26-08-01)
+        ✔ punching a hole through the words @done(26-08-01)
+      ✔ WeaponSprite$ picks +2 blade > +1 blade > the class weapon, matching WeaponName$ -- @done(26-08-01)
+        ✔ the picture and the prose have to agree or the panel contradicts itself @done(26-08-01)
+      ✔ 3 NEW art subjects for the generation batch: items/sword, items/staff, items/elven-blade @done(26-08-01)
+        ✔ art existed for the +1/+2 blades but NOT for the base weapons -- i.e. nothing to draw @done(26-08-01)
+        ✔ in the commonest case in the game, a hero who has not found a Magic Sword yet @done(26-08-01)
+      ✔ `dungeon.run panelshot [class]` renders it -- the panel only misbehaves when FULL @done(26-08-01)
     ☐ Make D4 angle a little easier to read - point it more downward. @high
       ☐ On stairs, have a random encounter 50% of the time - sentry guards, or 30% for a random trap
     ☐ Modify map so that level 4 cannot reach level 9

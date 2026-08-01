@@ -662,6 +662,11 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     _DEST CANVAS
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    ' WHO you are and WHAT you are swinging, bookending the panel. Drawn BEFORE the text so a
+    ' long line overlaps the art rather than the art punching a hole through the words -- and
+    ' both are silently skipped when the selected art style has nothing for them.
+    PanelArt ClassSprite$(player_class), bx + 1, 13, by + 2, 7, _TRIM$(class_name), GREENU
+    PanelArt WeaponSprite$, bx + bw - 14, 13, by + 2, 7, WeaponLabel$, CYANU
     UIFontOn UIF_COMBAT                          ' configurable combat font (loaded MONOSPACE so the HP bars stay even)
     COLOR YELLOWU, BOXBG
     IF combat_round > 1 THEN                      ' between rounds -- the fight is on-going; prompt to act again
@@ -1158,3 +1163,33 @@ SUB LogTreasure (nm AS STRING, g AS LONG)
     LOOT_NAME(cur_player, LOOT_N(cur_player)) = nm
     LOOT_GOLD(cur_player, LOOT_N(cur_player)) = g
 END SUB
+
+
+' A small framed art tile INSIDE the combat panel, with its caption on the bottom edge of the
+' frame (CombatArtBox puts the caption ABOVE, which here would land outside the panel).
+' Silent when the path is empty -- ArtFile$ returns "" whenever the selected art style has no
+' art for the subject, so no art style needs a special case here.
+SUB PanelArt (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER, caption AS STRING, edge AS _UNSIGNED LONG)
+    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER, cap AS STRING, capx AS INTEGER
+    IF LEN(path) = 0 THEN EXIT SUB
+    bx = col * CW: by = row * CH: bw = cols * CW: bh = rows * CH
+    _DEST CANVAS
+    LINE (bx, by)-(bx + bw, by + bh), edge, B
+    IF DrawSpriteFit%(path, bx + 1, by + 1, bw - 2, bh - 2) = 0 THEN EXIT SUB
+    cap = caption
+    IF LEN(cap) > cols THEN cap = LEFT$(cap, cols)
+    capx = bx + (bw - LEN(cap) * CW) \ 2
+    COLOR edge, BOXBG
+    _PRINTSTRING (capx, by + bh - CH \ 2), cap
+END SUB
+
+' WeaponName$ is written for prose ("your +1 blade"), which reads oddly as a label under a
+' picture. Same weapon, named for a caption.
+FUNCTION WeaponLabel$
+    IF item_sword > 0 THEN WeaponLabel$ = "+" + _TRIM$(STR$(item_sword)) + " BLADE": EXIT FUNCTION
+    SELECT CASE player_class
+        CASE 4: WeaponLabel$ = "STAFF"
+        CASE 2: WeaponLabel$ = "ELVEN BLADE"
+        CASE ELSE: WeaponLabel$ = "SWORD"
+    END SELECT
+END FUNCTION

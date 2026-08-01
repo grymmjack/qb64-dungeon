@@ -42,6 +42,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
     PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
     PRINT PipeCol$("  |10fightshot|07     render the tactical-combat screen with a synthetic 1-vs-4 encounter -> |14fightshot.png|07")
+    PRINT PipeCol$("  |10panelshot|07 |14[class]|07  render the D&D combat panel (portrait + weapon) -> panelshot.png")
     PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
@@ -245,6 +246,21 @@ IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
 '--- dev: `dungeon.run charsheet` renders the [C] CHARACTER sheet to a PNG and exits ---
 ' Seeds a MAXED-OUT hero, because that is the only state the sheet's layout can break in.
 IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
+
+'--- dev: `dungeon.run panelshot [class]` renders the D&D combat panel -> panelshot.png ---
+IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN
+    DIM psArg AS INTEGER, psPc AS INTEGER
+    psPc = 1
+    FOR psArg = 1 TO _COMMANDCOUNT
+        IF VAL(COMMAND$(psArg)) >= 1 AND VAL(COMMAND$(psArg)) <= 4 THEN psPc = VAL(COMMAND$(psArg)): EXIT FOR
+    NEXT psArg
+    BuildBoardImages
+    DetectSecretDoors
+    Game_PopulateBoard
+    RandomizeRooms
+    DumpCombatPanel psPc
+    SYSTEM
+END IF
 
 '--- dev: `dungeon.run fight [lvl] [foes]` drops STRAIGHT into a playable tactical fight ---
 ' Unlike `fightshot` (which writes a PNG and exits) this is INTERACTIVE: it shows the window and
