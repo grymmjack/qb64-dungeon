@@ -132,6 +132,35 @@ END SUB
 ' the menu, combat, the reference screens, and the key-wait helpers). It is TIME-based
 ' (TIMER - start), so irregular ticking never leaves a fade stuck -- it lands at the right
 ' level by wall-clock the moment any loop calls it.
+' Queue a narration key to be spoken after whatever is already speaking/queued.
+' Silently ignored when narration is off or the pack has no file for the key, so a caller can
+' queue a name unconditionally and simply get the generic line on its own.
+SUB NarrateQueue (nkey AS STRING)
+    IF NOT opt_narration THEN EXIT SUB
+    IF LEN(NarratePath$(nkey)) = 0 THEN EXIT SUB
+    IF narrq_n >= NARRQ_MAX THEN EXIT SUB
+    narrq_n = narrq_n + 1: NARRQ(narrq_n) = nkey
+END SUB
+
+' Drop anything queued but not yet spoken -- used when the moment has passed (fleeing a fight,
+' leaving a screen) so a stale name does not surface over the next thing that happens.
+SUB NarrateQueueClear
+    narrq_n = 0: narrq_i = 0
+END SUB
+
+' Start the next queued line if nothing is speaking. Called from AudioTick, so the queue
+' advances on the same frame tick everything else audio does.
+SUB NarrateQueueTick
+    IF narrq_i >= narrq_n THEN
+        IF narrq_n > 0 THEN narrq_n = 0: narrq_i = 0    ' drained -- reset so the array reuses
+        EXIT SUB
+    END IF
+    IF narr_handle > 0 THEN IF _SNDPLAYING(narr_handle) THEN EXIT SUB
+    narrq_i = narrq_i + 1
+    Narrate NARRQ(narrq_i)
+END SUB
+
+
 SUB AudioTick
     DIM tv AS SINGLE, el AS DOUBLE, frac AS SINGLE
     DIM npos AS DOUBLE, g AS SINGLE, g2 AS SINGLE
@@ -187,6 +216,7 @@ SUB AudioTick
         IF g > 0 AND g < 1 THEN g = g ^ narr_curve   ' SHAPE the ramp (linear sounds abrupt on speech): <1 sharp, >1 gentle
         _SNDVOL narr_handle, (opt_voicevol / 10) * chgain_voice * g   ' VOICE CHANNEL mixdown: slider x channel gain x envelope
     END IF
+    NarrateQueueTick                                ' start the next composed clip once this one ends
 END SUB
 
 ' --- audio MIXER helpers ---------------------------------------------------
@@ -547,6 +577,20 @@ END SUB
 ' still silent if narration is off or no voice file exists for the key.
 SUB NarrateT (nkey AS STRING, tier AS INTEGER)
     IF opt_narrfreq >= tier THEN Narrate nkey
+END SUB
+
+' Tiered narration that SAYS A NAME FIRST: "GOBLINS." then the generic line. `namekey` is
+' queued ahead of `nkey`, so one short recording per monster composes with any line rather
+' than needing a recording per (monster x line) pair.
+'
+' Degrades in the useful direction at every step: no name file -> just the line; no line file
+' -> just the name; neither -> silence. So a pack can ship names alone and still gain something.
+SUB NarrateNamed (namekey AS STRING, nkey AS STRING, tier AS INTEGER)
+    IF opt_narrfreq < tier THEN EXIT SUB
+    NarrateQueueClear                               ' this moment supersedes anything still pending
+    NarrateQueue namekey
+    NarrateQueue nkey
+    NarrateQueueTick                                ' start immediately rather than waiting a frame
 END SUB
 
 ' TRUE if narration is on AND a voice file exists for this key -- callers use it to decide

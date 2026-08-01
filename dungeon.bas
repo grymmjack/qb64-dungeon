@@ -51,6 +51,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
     PRINT PipeCol$("  |10sectorauto|07   derive each level's rect from the art colours; report overlaps")
     PRINT PipeCol$("  |10boardsplit|07   split the board art into |14layer-0-board-collisions.ans|07 + |14layer-1-board-decoration.ans|07")
+    PRINT PipeCol$("  |10eventsaudit|07  sensory coverage of the flavor text (sight/sound/touch/smell/taste)")
     PRINT PipeCol$("  |10boardfix|07     re-spell half-block cells so the collision colour is the FOREGROUND (same pixels, verified); backs up to .bak")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
@@ -289,6 +290,8 @@ IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
 IF INSTR(UCASE$(COMMAND$), "ECONDUMP") > 0 THEN EconDump
 
 '--- dev: `dungeon.run boardsplit` writes the collision + decoration layers, then exits ---
+IF INSTR(UCASE$(COMMAND$), "EVENTSAUDIT") > 0 THEN EventsAuditSensory: SYSTEM
+
 IF INSTR(UCASE$(COMMAND$), "BOARDSPLIT") > 0 THEN BoardSplit
 
 '--- dev: `dungeon.run boardfix [minsize]` repaints stray BROWN floor patches as path yellow ---

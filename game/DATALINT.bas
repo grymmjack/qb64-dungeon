@@ -1395,3 +1395,100 @@ END SUB
 FUNCTION RPad$ (s AS STRING, w AS INTEGER)
     IF LEN(s) >= w THEN RPad$ = s + " " ELSE RPad$ = s + SPACE$(w - LEN(s))
 END FUNCTION
+
+
+' ============================================================================
+'  `dungeon.run eventsaudit sensory` -- SENSORY COVERAGE of the flavor text.
+'
+'  Prose that only ever describes what you SEE goes flat: a dungeon should also
+'  sound, smell and feel like one. This reads every flavor pool and reports, per
+'  pool, how many lines reach each of the five senses -- so a thin sense is a
+'  number rather than a hunch.
+'
+'  Word lists are deliberately visible and editable below. This is a WRITING aid,
+'  not a test: it never fails a build, and a low count is a prompt to look, not a
+'  defect. Taste especially will always be low, and should be -- a line about
+'  taste has to earn its place.
+' ============================================================================
+SUB EventsAuditSensory
+    DIM i AS INTEGER
+    DIM tot(1 TO 5) AS LONG, lines AS LONG, hit(1 TO 5) AS LONG, none AS LONG
+    DIM sname(1 TO 5) AS STRING
+    _DEST _CONSOLE
+    sname(1) = "Sight": sname(2) = "Sound": sname(3) = "Touch": sname(4) = "Smell": sname(5) = "Taste"
+    PRINT PipeCol$("|15events audit --sensory|07 -- which senses the flavor text actually reaches")
+    PRINT
+
+    SensoryPool "monster_events (all)", 1, tot(), lines, none
+    SensoryPool "class_events (all)", 2, tot(), lines, none
+    PRINT
+    PRINT PipeCol$("  |08a line can reach more than one sense, so the percentages do not total 100")
+END SUB
+
+' Report one EVT category, and accumulate into the totals.
+SUB SensoryPool (title AS STRING, cat AS INTEGER, tot() AS LONG, lines AS LONG, none AS LONG)
+    ' `scount`, not `c` -- QB64 identifiers are case-insensitive and `c` is the shared CURSOR.
+    ' tests/audit-shadow.sh caught this one the moment it was written.
+    DIM i AS INTEGER, s AS INTEGER, n AS LONG, scount(1 TO 5) AS LONG, nn AS LONG, txt AS STRING
+    DIM sname(1 TO 5) AS STRING, bar AS STRING, pc AS INTEGER
+    sname(1) = "Sight": sname(2) = "Sound": sname(3) = "Touch": sname(4) = "Smell": sname(5) = "Taste"
+    FOR i = 1 TO EVT_N
+        IF EVT(i).cat = cat THEN
+            n = n + 1
+            txt = " " + LCASE$(_TRIM$(EVT(i).text)) + " "
+            nn = 0
+            FOR s = 1 TO 5
+                IF SenseHit%(txt, s) THEN scount(s) = scount(s) + 1: nn = nn + 1
+            NEXT s
+            IF nn = 0 THEN none = none + 1
+        END IF
+    NEXT i
+    PRINT PipeCol$("  |11" + title + "|07  (" + _TRIM$(STR$(n)) + " lines)")
+    IF n = 0 THEN EXIT SUB
+    FOR s = 1 TO 5
+        pc = INT(scount(s) * 100 / n)
+        ' ASCII bar: this goes to the terminal, and CHR$(254) is a CP437 block that a UTF-8
+    ' console renders as mojibake. The grid font is not in play here.
+    bar = STRING$(pc \ 4, 35)
+        IF pc >= 25 THEN
+            PRINT PipeCol$("     " + PadR$(sname(s), 7) + PadR$(_TRIM$(STR$(scount(s))), 5) + "|10" + PadR$(bar, 25) + "|07" + _TRIM$(STR$(pc)) + "%")
+        ELSEIF pc >= 8 THEN
+            PRINT PipeCol$("     " + PadR$(sname(s), 7) + PadR$(_TRIM$(STR$(scount(s))), 5) + "|14" + PadR$(bar, 25) + "|07" + _TRIM$(STR$(pc)) + "%")
+        ELSE
+            PRINT PipeCol$("     " + PadR$(sname(s), 7) + PadR$(_TRIM$(STR$(scount(s))), 5) + "|12" + PadR$(bar, 25) + "|07" + _TRIM$(STR$(pc)) + "%  <- thin")
+        END IF
+    NEXT s
+END SUB
+
+' Does this line reach sense `s` (1 Sight .. 5 Taste)? The word lists ARE the definition --
+' edit them freely. Each word is matched with spaces around it, so "ear" cannot fire inside
+' "heard" and "see" cannot fire inside "sees" unless "sees" is listed too.
+FUNCTION SenseHit% (txt AS STRING, s AS INTEGER)
+    DIM w AS STRING, lst AS STRING, p AS INTEGER, q AS INTEGER
+    SELECT CASE s
+        CASE 1: lst = "see sees saw seen sight look looks looking glint gleam shimmer flash dark darkness shadow shadows light vision blink blinks glance glancing red blood watch watching visage glow glowing"
+        CASE 2: lst = "hear hears heard sound roar roars scream screams screaming shriek shrieks cry cries echo echoes echoing snarl growl growls hiss hisses silence shout shouts crack crash thud rattle whisper whispers"
+        CASE 3: lst = "feel feels felt pain ache aches throb throbs cold heat hot burning grip grips shaking shiver shivering weight force impact sting stings raw numb wet soaked drenched touch clammy"
+        CASE 4: lst = "smell smells stench reek reeks stink stinks rot rotting fetid acrid musty odour odor damp"
+        CASE 5: lst = "taste tastes tasted salt salty bitter copper coppery mouth tongue swallow"
+    END SELECT
+    SenseHit% = 0
+    lst = " " + lst + " "
+    p = 1
+    DO
+        q = INSTR(p, lst, " ")
+        IF q = 0 THEN EXIT DO
+        p = q + 1
+        q = INSTR(p, lst, " ")
+        IF q = 0 THEN EXIT DO
+        w = MID$(lst, p, q - p)
+        IF LEN(w) > 0 THEN
+            IF INSTR(txt, " " + w + " ") > 0 THEN SenseHit% = -1: EXIT FUNCTION
+            IF INSTR(txt, " " + w + ",") > 0 THEN SenseHit% = -1: EXIT FUNCTION
+            IF INSTR(txt, " " + w + ".") > 0 THEN SenseHit% = -1: EXIT FUNCTION
+            IF INSTR(txt, " " + w + "!") > 0 THEN SenseHit% = -1: EXIT FUNCTION
+            IF INSTR(txt, " " + w + ";") > 0 THEN SenseHit% = -1: EXIT FUNCTION
+        END IF
+        p = q
+    LOOP
+END FUNCTION

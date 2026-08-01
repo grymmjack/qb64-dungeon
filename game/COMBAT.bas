@@ -234,7 +234,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
     ROOMS(rm).monster_fought = TRUE
     combat_crits = 0                               ' per-fight crit tally -> the post-fight potion reward
     RecordEncounter mon                            ' bestiary: # times faced
-    NarrateT "combat.encounter", NARR_COMBAT       ' spoken "a monster bars your path" (both modes; Combat tier)
+    NarrateNamed "mon." + NarrSlug$(mon), "combat.encounter", NARR_COMBAT   ' "GOBLINS." then the line
     ' TACTICAL SCREEN. Branched HERE because DoCombat% is the single funnel every encounter goes
     ' through -- room monsters, chamber monsters, wandering monsters, and a curio that turns out to
     ' be a MIMIC. One branch covers all of them; wiring each call site separately would guarantee
@@ -974,7 +974,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     ELSE
         PopArt tname, _TRIM$(tname)                        ' flash the treasure/item art you just claimed
     END IF
-    NarrateT "combat.slay", NARR_COMBAT                     ' spoken "you slay it" (both modes; Combat tier)
+    NarrateNamed "mon." + NarrSlug$(mon), "combat.slay", NARR_COMBAT        ' the name, then "you slay it"
     Banner slay, line2 + "   [ press any key ]"
     CombatPause
     CritPotionReward                                        ' crits you landed pay out in healing (any fight)

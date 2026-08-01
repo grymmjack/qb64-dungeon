@@ -41,6 +41,16 @@ DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door 
 ' writing the override into the setting would persist it and silently change their config.
 DIM SHARED fov_forced AS INTEGER
 
+' --- NARRATION QUEUE -----------------------------------------------------------
+' Narrate deliberately refuses to cut off a line that is still speaking, which is right for
+' unrelated lines but makes COMPOSED speech impossible -- "Goblins" followed by "bar your path"
+' is two clips, and the second would simply be dropped. The queue lets a caller line up a few
+' short clips that are meant to be heard as one sentence; AudioTick starts the next when the
+' current one ends. Kept tiny on purpose: this is for a name plus a line, not a monologue.
+CONST NARRQ_MAX = 4
+DIM SHARED NARRQ(1 TO NARRQ_MAX) AS STRING
+DIM SHARED narrq_n AS INTEGER, narrq_i AS INTEGER
+
 ' What kind of room cell is at a board position -- see CellRoomKind% in engine/BOARD.bas.
 ' FLOOR is where a monster or a headstone belongs; DOOR is walkable but is a threshold, not a
 ' place to stand something; MIXED is the art's decorative half-block lip and is not walkable.

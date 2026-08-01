@@ -104,6 +104,38 @@ SUB DumpAudioManifest
     FOR i = 1 TO LEVELUP_N
         IF LEN(_TRIM$(LEVELUP_KEY(i))) > 0 THEN ManAsset "narration/" + _TRIM$(LEVELUP_KEY(i)) + " | " + _TRIM$(LEVELUP_FLAV(i))
     NEXT i
+    ' SPOKEN NAMES. Just the name, said plainly -- these are BUILDING BLOCKS, queued in front of
+    ' a generic line so "a huge shadow rises and blocks your way" can become "GOBLINS. They bar
+    ' your path." One short clip per monster and per treasure, rather than one recording per
+    ' (monster x line) combination, which would be thousands.
+    ' Keep the delivery flat and unhurried: it has to sit in front of ANY line without clashing.
+    ManOut ""
+    ManOut "# --- SPOKEN NAMES : queued before a generic line (see NarrateQueue) ---"
+    DIM mlvl AS INTEGER, mslot AS INTEGER, nm2 AS STRING, seen2 AS STRING
+    seen2 = " "
+    FOR mlvl = 1 TO 9
+        FOR mslot = 1 TO 3
+            nm2 = _TRIM$(MON_NAME(mlvl, mslot))
+            IF LEN(nm2) > 0 THEN
+                IF INSTR(seen2, " " + UCASE$(nm2) + " ") = 0 THEN
+                    seen2 = seen2 + UCASE$(nm2) + " "
+                    ManAsset "narration/mon." + NarrSlug$(nm2) + " | " + nm2
+                END IF
+            END IF
+        NEXT mslot
+    NEXT mlvl
+    seen2 = " "
+    FOR mlvl = 1 TO 9
+        FOR mslot = 1 TO 3
+            nm2 = _TRIM$(TRE_NAME(mlvl, mslot))
+            IF LEN(nm2) > 0 THEN
+                IF INSTR(seen2, " " + UCASE$(nm2) + " ") = 0 THEN
+                    seen2 = seen2 + UCASE$(nm2) + " "
+                    ManAsset "narration/treasure." + NarrSlug$(nm2) + " | " + nm2
+                END IF
+            END IF
+        NEXT mslot
+    NEXT mlvl
     ' combat narration -- generic per-event voiced lines (Combat tier; see NarrateT / game/COMBAT.bas).
     ' Keep them short and atmospheric; they play OVER the combat banners, so they set mood, not detail.
     ManAsset "narration/combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself."
