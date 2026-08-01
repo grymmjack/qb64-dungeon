@@ -11,6 +11,15 @@
 # Grammar tokens (agree with singular vs PLURAL monsters like GIANT RATS / GHOULS):
 #   verb{s} verb{es}  ->  drop the ending in the plural (strike{s} = strikes / strike)
 #   {is}=is/are  {was}=was/were  {has}=has/have  {it}=it/they  {its}=its/their
+#
+# NARRATION KEY (optional 4th field). A line with a key can be SPOKEN: the audio file is
+# assets/narration/<pack>/<key>.<ext>, and `dungeon.run audiomanifest` lists it for the
+# generator. A line with NO key is shown but never spoken.
+#
+# Only TOKEN-FREE lines get a key. A line containing {mon} / {dmg} / {weapon} reads
+# differently every fight, so no single recording can ever match it -- pre-recording
+# "You strike the {mon} for {dmg} damage" would literally say "the mon". Keep that rule if
+# you add lines: put the token version and a spoken version in as SEPARATE rows.
 # --------------------------------------------------------------------------------------
 
 # ================= generic fallback for ANY monster =================
@@ -18,150 +27,150 @@
 # GHOULS...):  verb{s}/{es} drop their ending in the plural, {is}/{its}/{it} agree too.
 * | attack | The {mon} strike{s} you for {dmg} damage.
 * | attack | The {mon} press{es} {its} attack and land{s} a blow for {dmg}.
-* | miss   | The {mon} lunge{s}, but you weather the assault.
-* | miss   | The {mon} strike{s} wide -- you dance out of reach.
-* | miss   | You duck the blow aimed at your head.
-* | miss   | You twist aside as the {mon} lunge{s} past.
-* | miss   | The {mon} snap{s} at the empty air where you stood.
-* | miss   | You throw yourself clear of the {mon}.
-* | miss   | The {mon} overreach{es}; you slip beneath {its} guard.
-* | miss   | You parry the attack at the last instant.
-* | miss   | The {mon} misjudge{s} the distance and find{s} only air.
-* | miss   | You sidestep, and the attack whistles harmlessly past.
-* | miss   | The {mon} lash{es} out -- but you are already gone.
-* | crit   | The {mon} catch{es} you flush -- a savage blow for {dmg}!
+* | miss | The {mon} lunge{s}, but you weather the assault.
+* | miss | The {mon} strike{s} wide -- you dance out of reach.
+* | miss | You duck the blow aimed at your head. | combat.mon.miss.duck-blow-aimed
+* | miss | You twist aside as the {mon} lunge{s} past.
+* | miss | The {mon} snap{s} at the empty air where you stood.
+* | miss | You throw yourself clear of the {mon}.
+* | miss | The {mon} overreach{es}; you slip beneath {its} guard.
+* | miss | You parry the attack at the last instant. | combat.mon.miss.parry-attack-last
+* | miss | The {mon} misjudge{s} the distance and find{s} only air.
+* | miss | You sidestep, and the attack whistles harmlessly past. | combat.mon.miss.sidestep-attack-whistles
+* | miss | The {mon} lash{es} out -- but you are already gone.
+* | crit | The {mon} catch{es} you flush -- a savage blow for {dmg}!
 * | fumble | The {mon} lash{es} out wildly and {its} attack finds only stone.
 * | fumble | The {mon} misjudge{s} the strike -- the blow goes wide and wasted.
-* | death  | The {mon} shudder{s} and collapse{s}, slain.
-* | death  | The {mon} fall{s} still at last.
+* | death | The {mon} shudder{s} and collapse{s}, slain.
+* | death | The {mon} fall{s} still at last.
 
 # --- biology-appropriate fumbles (no stumbling/legs where there are none) ---
-GIANT SNAKE | fumble | The snake strikes and misses, recoiling into a tight, hissing coil.
-GREEN SLIME | fumble | The slime lunges wide and splatters uselessly against the wall.
-BLACK PUDDING | fumble | The pudding surges past and slaps wetly against the stone.
-PURPLE WORM | fumble | The worm's maw snaps shut on empty air, jarring the whole floor.
-RED DRAGON | fumble | The dragon's claws rake only stone, striking a shower of sparks.
-BLUE DRAGON | fumble | The dragon's strike goes wide and gouges a furrow in the wall.
-GREEN SLIME | crit   | The slime engulfs you whole; acid sears everywhere at once for {dmg}!
-BLACK PUDDING | fumble | You slither free as the pudding overreaches and flattens itself.
+GIANT SNAKE | fumble | The snake strikes and misses, recoiling into a tight, hissing coil. | combat.mon.fumble.snake-strikes-misses
+GREEN SLIME | fumble | The slime lunges wide and splatters uselessly against the wall. | combat.mon.fumble.slime-lunges-wide
+BLACK PUDDING | fumble | The pudding surges past and slaps wetly against the stone. | combat.mon.fumble.pudding-surges-past
+PURPLE WORM | fumble | The worm's maw snaps shut on empty air, jarring the whole floor. | combat.mon.fumble.worm-s-maw
+RED DRAGON | fumble | The dragon's claws rake only stone, striking a shower of sparks. | combat.mon.fumble.dragon-s-claws
+BLUE DRAGON | fumble | The dragon's strike goes wide and gouges a furrow in the wall. | combat.mon.fumble.dragon-s-strike
+GREEN SLIME | crit | The slime engulfs you whole; acid sears everywhere at once for {dmg}!
+BLACK PUDDING | fumble | You slither free as the pudding overreaches and flattens itself. | combat.mon.fumble.slither-free-pudding
 
 # ================= level 1 =================
 GIANT RATS | attack | The rats swarm up your legs, biting and clawing for {dmg}.
-GIANT RATS | crit   | The pack surges over you in a biting frenzy -- {dmg} damage!
-GIANT RATS | death  | The rats scatter, squealing, leaving their dead behind.
+GIANT RATS | crit | The pack surges over you in a biting frenzy -- {dmg} damage!
+GIANT RATS | death | The rats scatter, squealing, leaving their dead behind. | combat.mon.death.rats-scatter-squealing
 GIANT LIZARD | attack | The lizard's jaws clamp down for {dmg} damage.
-GIANT LIZARD | death  | The great lizard thrashes once and goes limp.
+GIANT LIZARD | death | The great lizard thrashes once and goes limp. | combat.mon.death.great-lizard-thrashes
 GOBLINS | attack | A goblin darts in and jabs its rusty blade for {dmg}.
-GOBLINS | death  | The goblins break and flee into the dark.
+GOBLINS | death | The goblins break and flee into the dark. | combat.mon.death.goblins-break-flee
 
 # ================= level 2-3 =================
 SKELETON | attack | The skeleton's bony claws rake you for {dmg}.
 SKELETON | attack | Fleshless fingers close on you, cold as the grave -- {dmg} damage.
-SKELETON | crit   | The skeleton's blade slips between your ribs for {dmg}!
-SKELETON | death  | The skeleton clatters apart into a heap of loose bones.
+SKELETON | crit | The skeleton's blade slips between your ribs for {dmg}!
+SKELETON | death | The skeleton clatters apart into a heap of loose bones. | combat.mon.death.skeleton-clatters-apart
 GIANT SPIDER | attack | The spider's fangs sink in, venom burning, for {dmg}.
-GIANT SPIDER | miss   | The spider skitters back, mandibles clacking.
-GIANT SPIDER | death  | The spider curls its legs inward and goes still.
+GIANT SPIDER | miss | The spider skitters back, mandibles clacking. | combat.mon.miss.spider-skitters-back
+GIANT SPIDER | death | The spider curls its legs inward and goes still. | combat.mon.death.spider-curls-legs
 GHOULS | attack | Rotting claws tear at you for {dmg}, and the stench alone sickens.
-GHOULS | death  | The ghoul slumps into the filth it crawled from.
+GHOULS | death | The ghoul slumps into the filth it crawled from. | combat.mon.death.ghoul-slumps-filth
 GARGOYLE | attack | The gargoyle's stone talons gouge you for {dmg}.
-GARGOYLE | death  | The gargoyle cracks and crumbles back into lifeless rock.
+GARGOYLE | death | The gargoyle cracks and crumbles back into lifeless rock. | combat.mon.death.gargoyle-cracks-crumbles
 
 # ================= level 4-5 =================
 GIANT SNAKE | attack | The serpent's fangs strike deep, pumping venom for {dmg}.
 GIANT SNAKE | attack | Coils tighten around you, crushing the breath out -- {dmg} damage.
-GIANT SNAKE | crit   | The snake constricts with terrible force for {dmg}!
-GIANT SNAKE | death  | The great serpent's coils go slack and slide to the floor.
+GIANT SNAKE | crit | The snake constricts with terrible force for {dmg}!
+GIANT SNAKE | death | The great serpent's coils go slack and slide to the floor. | combat.mon.death.great-serpent-s
 WEREWOLF | attack | The werewolf rakes you with its claws for {dmg}.
-WEREWOLF | crit   | The beast's jaws close on your shoulder and shake -- {dmg} damage!
-WEREWOLF | death  | The werewolf shudders, its form half-collapsing as it dies.
+WEREWOLF | crit | The beast's jaws close on your shoulder and shake -- {dmg} damage!
+WEREWOLF | death | The werewolf shudders, its form half-collapsing as it dies. | combat.mon.death.werewolf-shudders-form
 OGRE | attack | The ogre's club smashes down on you for {dmg}.
-OGRE | death  | The ogre topples like a felled tree and lies still.
+OGRE | death | The ogre topples like a felled tree and lies still. | combat.mon.death.ogre-topples-like
 
 # ================= level 6-7 =================
 MUMMY | attack | The mummy's wrappings brush you and rotting hands squeeze for {dmg}.
-MUMMY | death  | The mummy crumbles to dust and ancient bandages.
+MUMMY | death | The mummy crumbles to dust and ancient bandages. | combat.mon.death.mummy-crumbles-dust
 TROLL | attack | The troll's talons rip into you for {dmg}.
-TROLL | death  | The troll collapses -- best not linger while it lies twitching.
+TROLL | death | The troll collapses -- best not linger while it lies twitching. | combat.mon.death.troll-collapses-best
 VAMPIRE | attack | The vampire's fangs find your throat and draw {dmg} of your life.
-VAMPIRE | crit   | The vampire drinks deep, draining {dmg} in a chilling rush!
-VAMPIRE | death  | The vampire hisses, withers, and crumbles to grey ash.
+VAMPIRE | crit | The vampire drinks deep, draining {dmg} in a chilling rush!
+VAMPIRE | death | The vampire hisses, withers, and crumbles to grey ash. | combat.mon.death.vampire-hisses-withers
 GIANT | attack | The giant's fist hammers down and crushes you for {dmg}.
-GIANT | death  | The giant crashes to the ground, shaking the whole chamber.
+GIANT | death | The giant crashes to the ground, shaking the whole chamber. | combat.mon.death.giant-crashes-ground
 WITCH | attack | The witch spits a curse that sears you for {dmg}.
-WITCH | death  | The witch shrieks a final hex and collapses.
+WITCH | death | The witch shrieks a final hex and collapses. | combat.mon.death.witch-shrieks-final
 GREEN SLIME | attack | The slime oozes over you; acid eats into flesh for {dmg}.
 GREEN SLIME | attack | A pseudopod of slime engulfs your arm, dissolving it for {dmg}.
-GREEN SLIME | miss   | The slime lunges but sloughs harmlessly off your gear.
-GREEN SLIME | crit   | The slime surges over you, acid searing for {dmg}!
-GREEN SLIME | death  | The slime bubbles, splits, and dissolves into inert muck.
+GREEN SLIME | miss | The slime lunges but sloughs harmlessly off your gear. | combat.mon.miss.slime-lunges-sloughs
+GREEN SLIME | crit | The slime surges over you, acid searing for {dmg}!
+GREEN SLIME | death | The slime bubbles, splits, and dissolves into inert muck. | combat.mon.death.slime-bubbles-splits
 
 # ================= level 8-9 =================
 PURPLE WORM | attack | The worm's maw closes over you, crushing for {dmg}.
-PURPLE WORM | crit   | The worm nearly swallows you whole -- {dmg} damage!
-PURPLE WORM | death  | The worm heaves, shudders, and goes still across the floor.
+PURPLE WORM | crit | The worm nearly swallows you whole -- {dmg} damage!
+PURPLE WORM | death | The worm heaves, shudders, and goes still across the floor. | combat.mon.death.worm-heaves-shudders
 BLACK PUDDING | attack | The pudding flows over you; caustic ooze burns for {dmg}.
 BLACK PUDDING | attack | The pudding engulfs your leg, digesting it for {dmg}.
-BLACK PUDDING | miss   | You tear free of the pudding before it can close over you.
-BLACK PUDDING | crit   | The pudding smothers you, acid eating deep for {dmg}!
-BLACK PUDDING | death  | The pudding stops writhing and spreads into a dead, glistening pool.
+BLACK PUDDING | miss | You tear free of the pudding before it can close over you. | combat.mon.miss.tear-free-pudding
+BLACK PUDDING | crit | The pudding smothers you, acid eating deep for {dmg}!
+BLACK PUDDING | death | The pudding stops writhing and spreads into a dead, glistening pool. | combat.mon.death.pudding-stops-writhing
 EVIL WIZARD | attack | The evil wizard hurls a bolt of dark magic for {dmg}.
-EVIL WIZARD | crit   | Black lightning erupts from the wizard's hands for {dmg}!
-EVIL WIZARD | death  | The evil wizard's spell collapses and he falls, robes smoking.
+EVIL WIZARD | crit | Black lightning erupts from the wizard's hands for {dmg}!
+EVIL WIZARD | death | The evil wizard's spell collapses and he falls, robes smoking. | combat.mon.death.evil-wizard-s
 RED DRAGON | attack | The red dragon rakes you with talons of iron for {dmg}.
 RED DRAGON | attack | The dragon looses a gout of roaring flame that sears you for {dmg}.
-RED DRAGON | crit   | The dragon engulfs you in a firestorm -- {dmg} damage!
-RED DRAGON | miss   | The dragon's flames wash past as you dive behind cover.
-RED DRAGON | death  | The red dragon rears, roars, and crashes down dead in its hoard.
+RED DRAGON | crit | The dragon engulfs you in a firestorm -- {dmg} damage!
+RED DRAGON | miss | The dragon's flames wash past as you dive behind cover. | combat.mon.miss.dragon-s-flames
+RED DRAGON | death | The red dragon rears, roars, and crashes down dead in its hoard. | combat.mon.death.red-dragon-rears
 BLUE DRAGON | attack | The blue dragon's claws tear into you for {dmg}.
 BLUE DRAGON | attack | A crackling bolt of lightning arcs from the dragon for {dmg}.
-BLUE DRAGON | crit   | Lightning engulfs you in a blinding blast -- {dmg} damage!
-BLUE DRAGON | death  | The blue dragon convulses in a last crackle of sparks and falls.
+BLUE DRAGON | crit | Lightning engulfs you in a blinding blast -- {dmg} damage!
+BLUE DRAGON | death | The blue dragon convulses in a last crackle of sparks and falls. | combat.mon.death.blue-dragon-convulses
 
 # --- the monster's DEATH THROES (player kills it) --------------------
-* | death  | Your foe falls before you and you breathe a sigh of relief.. for now.
-* | death  | Your enemy lies before you in a crumpled heap, its life's essence seeping out slowly.
-* | death  | The creature looks pathetic and harmless in its state of frozen pain and death.
-* | death  | Exasperated and grateful you step over your opponent and carry on.
-* | death  | The place reeks of blood and bits and sweat and pain and you smile in victory.
-* | death  | With a deep sigh and a gathering of courage you press on.
-* | death  | You wipe yourself clean of the fluids your enemy shared with you in their dance of death.
-* | death  | Twitching and breathing a final breath your foe perishes from this realm.
-* | death  | Another one meets the clearing at the end of the path. You strengthen your resolve for more.
-* | death  | Death. Dealt. The cards to come unknown but the dealer you are just the same.
+* | death | Your foe falls before you and you breathe a sigh of relief.. for now. | combat.mon.death.foe-falls-before
+* | death | Your enemy lies before you in a crumpled heap, its life's essence seeping out slowly. | combat.mon.death.enemy-lies-before
+* | death | The creature looks pathetic and harmless in its state of frozen pain and death. | combat.mon.death.creature-looks-pathetic
+* | death | Exasperated and grateful you step over your opponent and carry on. | combat.mon.death.exasperated-grateful-step
+* | death | The place reeks of blood and bits and sweat and pain and you smile in victory. | combat.mon.death.place-reeks-blood
+* | death | With a deep sigh and a gathering of courage you press on. | combat.mon.death.deep-sigh-gathering
+* | death | You wipe yourself clean of the fluids your enemy shared with you in their dance of death. | combat.mon.death.wipe-yourself-clean
+* | death | Twitching and breathing a final breath your foe perishes from this realm. | combat.mon.death.twitching-breathing-final
+* | death | Another one meets the clearing at the end of the path. You strengthen your resolve for more. | combat.mon.death.another-one-meets
+* | death | Death. Dealt. The cards to come unknown but the dealer you are just the same. | combat.mon.death.death-dealt-cards
 
 # --- KILLED BY A CRITICAL: the aftermath, seen through battle-sickness
-* | killcrit | The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponent's demise.
-* | killcrit | A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred?
-* | killcrit | The glint of light is fuzzy and hazy and red haloed shimmering with battle sick -- you blink them away.
-* | killcrit | Still attacking and shaking, your rage finally subsides and you awake to a vision of disgust and anatomical ruin.
-* | killcrit | With the final move you finish the dance in a crescendo of precision and deliberateness -- everywhere blood.
-* | killcrit | Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success.
-* | killcrit | The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy.
-* | killcrit | Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS!
-* | killcrit | Shivering and careful you survey your surroundings; a grim visage of death and destruction.
-* | killcrit | RAAAARRRRGGH! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness.
+* | killcrit | The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponent's demise. | combat.mon.killcrit.place-horror-blood
+* | killcrit | A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred? | combat.mon.killcrit.ghastly-sight-entrails
+* | killcrit | The glint of light is fuzzy and hazy and red haloed shimmering with battle sick -- you blink them away. | combat.mon.killcrit.glint-light-fuzzy
+* | killcrit | Still attacking and shaking, your rage finally subsides and you awake to a vision of disgust and anatomical ruin. | combat.mon.killcrit.still-attacking-shaking
+* | killcrit | With the final move you finish the dance in a crescendo of precision and deliberateness -- everywhere blood. | combat.mon.killcrit.final-move-finish
+* | killcrit | Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success. | combat.mon.killcrit.blood-hands-arms
+* | killcrit | The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy. | combat.mon.killcrit.echoes-pain-fear
+* | killcrit | Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS! | combat.mon.killcrit.sparks-rage-primordial
+* | killcrit | Shivering and careful you survey your surroundings; a grim visage of death and destruction. | combat.mon.killcrit.shivering-careful-survey
+* | killcrit | RAAAARRRRGGH! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness. | combat.mon.killcrit.raaaarrrrggh-charged-electric
 
 # --- the monster HITS you --------------------------------------------
-* | attack | You blink, glancing at the onslaught impact just in time to feel the sharp jagged rawness of it.
-* | attack | This beast seems seasoned, and as it tears into you it growls a tribal cry of fury.
-* | attack | Red, all red, and darkness. It hurts -- the pain is distant but patiently waiting for you.
-* | attack | Your body aches and tenses with the impact of the attack.
-* | attack | Rushing and unstoppable, the merciless fangs and teeth and limbs come at you.
-* | attack | A fair blow from your foe. You cannot deny it.
-* | attack | You catalog the pain and unthrottle your rage for payback.
-* | attack | Blinking in disbelief, as you thought you had out-maneuvered that attack.
-* | attack | Your rage grows commensurate with your pain, and your anger throbs ready to pounce and repay the debt of wounds.
-* | attack | God! That hurts!
+* | attack | You blink, glancing at the onslaught impact just in time to feel the sharp jagged rawness of it. | combat.mon.attack.blink-glancing-onslaught
+* | attack | This beast seems seasoned, and as it tears into you it growls a tribal cry of fury. | combat.mon.attack.beast-seems-seasoned
+* | attack | Red, all red, and darkness. It hurts -- the pain is distant but patiently waiting for you. | combat.mon.attack.red-all-red
+* | attack | Your body aches and tenses with the impact of the attack. | combat.mon.attack.body-aches-tenses
+* | attack | Rushing and unstoppable, the merciless fangs and teeth and limbs come at you. | combat.mon.attack.rushing-unstoppable-merciless
+* | attack | A fair blow from your foe. You cannot deny it. | combat.mon.attack.fair-blow-foe
+* | attack | You catalog the pain and unthrottle your rage for payback. | combat.mon.attack.catalog-pain-unthrottle
+* | attack | Blinking in disbelief, as you thought you had out-maneuvered that attack. | combat.mon.attack.blinking-disbelief-thought
+* | attack | Your rage grows commensurate with your pain, and your anger throbs ready to pounce and repay the debt of wounds. | combat.mon.attack.rage-grows-commensurate
+* | attack | God! That hurts! | combat.mon.attack.god-hurts
 
 # --- the monster CRITS you -------------------------------------------
-* | crit   | How can this be?! It will not happen again.
-* | crit   | A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake.
-* | crit   | A mess of fangs, scales, claws, and bones -- and you can only bite your own teeth as you feel the immediate brutal pain.
-* | crit   | MY! GOD!! THAT REALLY HURTS!
-* | crit   | SON OF A..! YOU DIRTY!
-* | crit   | Though you try to dodge, the enemy is faster, and you feel the speed and force in its fullness.
-* | crit   | This creature is either lucky or powerful, or both.
-* | crit   | With only your grit are you able to absorb the incredible force and the pain, and promise to pay it back.
-* | crit   | It is as if you might actually have to try here.
-* | crit   | DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse.
+* | crit | How can this be?! It will not happen again. | combat.mon.crit.how-can-will
+* | crit | A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake. | combat.mon.crit.fair-painful-lesson
+* | crit | A mess of fangs, scales, claws, and bones -- and you can only bite your own teeth as you feel the immediate brutal pain. | combat.mon.crit.mess-fangs-scales
+* | crit | MY! GOD!! THAT REALLY HURTS! | combat.mon.crit.my-god-really
+* | crit | SON OF A..! YOU DIRTY! | combat.mon.crit.son-dirty
+* | crit | Though you try to dodge, the enemy is faster, and you feel the speed and force in its fullness. | combat.mon.crit.though-try-dodge
+* | crit | This creature is either lucky or powerful, or both. | combat.mon.crit.creature-either-lucky
+* | crit | With only your grit are you able to absorb the incredible force and the pain, and promise to pay it back. | combat.mon.crit.only-grit-able
+* | crit | It is as if you might actually have to try here. | combat.mon.crit.if-might-actually
+* | crit | DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse. | combat.mon.crit.do-give-up

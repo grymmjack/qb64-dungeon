@@ -341,6 +341,7 @@ DIM SHARED SP_ROOM(1 TO 30) AS INTEGER   ' each named label bound to its nearest
 DIM SHARED MAXHIT(1 TO 30) AS STRING, MAXHIT_N AS INTEGER                  ' max-damage combat flavor
 DIM SHARED FORFEIT_FLAV(1 TO 30) AS STRING, FORFEIT_N AS INTEGER           ' sad epitaphs shown when a run is forfeited
 DIM SHARED LEVELUP_FLAV(1 TO 30) AS STRING, LEVELUP_N AS INTEGER           ' what gaining a character level FEELS like
+DIM SHARED LEVELUP_KEY(1 TO 30) AS STRING                                  ' narration key per level-up line ('' = not spoken)
 ' --- AMBIENCE: the dungeon making noise at you (assets/data/<pack>/ambience.txt) ---
 DIM SHARED AMB_LVL(1 TO 120) AS INTEGER, AMB_NAME(1 TO 120) AS STRING
 DIM SHARED AMB_W(1 TO 120) AS INTEGER, AMB_N AS INTEGER
@@ -390,10 +391,15 @@ TYPE EVTROW
     mkey AS STRING * 24      ' monster name / class name (UPPER), or "*"  (KEY is reserved)
     evt  AS INTEGER          ' 1 attack, 2 miss, 3 crit, 4 fumble, 5 death
     text AS STRING * 140     ' template; tokens like {mon} {dmg} {player} are filled at show time
+    nkey AS STRING * 48      ' narration key, or "" -- only TOKEN-FREE lines can have one
 END TYPE
 DIM SHARED EVT(1 TO 1400) AS EVTROW, EVT_N AS INTEGER
 ' flavor-context globals: combat sets these so Fill$ can resolve the {tokens}
 DIM SHARED FX_MON AS STRING, FX_DMG AS INTEGER, FX_LEVEL AS INTEGER
+' The narration key of the line EventLine$ last picked, so the banner can speak the very line
+' it is showing. Set on every call (empty when that line has no key) -- never left stale, or a
+' templated line would borrow the previous line's audio.
+DIM SHARED FX_NARRKEY AS STRING
 DIM SHARED FX_ROOM AS STRING, FX_TREASURE AS STRING, FX_ITEM AS STRING
 
 DIM SHARED AS LONG gold, target_gold

@@ -98,8 +98,19 @@ SUB AddFlavorLine (ln AS STRING, mode AS INTEGER)
         IF FORFEIT_N < UBOUND(FORFEIT_FLAV) THEN FORFEIT_N = FORFEIT_N + 1: FORFEIT_FLAV(FORFEIT_N) = _TRIM$(ln)
         EXIT SUB
     END IF
-    IF mode = 5 THEN                                       ' level-up: whole line is the text
-        IF LEVELUP_N < UBOUND(LEVELUP_FLAV) THEN LEVELUP_N = LEVELUP_N + 1: LEVELUP_FLAV(LEVELUP_N) = _TRIM$(ln)
+    IF mode = 5 THEN                                       ' level-up:  text | narration key
+        DIM lp AS INTEGER
+        IF LEVELUP_N < UBOUND(LEVELUP_FLAV) THEN
+            LEVELUP_N = LEVELUP_N + 1
+            lp = INSTR(ln, "|")
+            IF lp > 0 THEN
+                LEVELUP_FLAV(LEVELUP_N) = _TRIM$(LEFT$(ln, lp - 1))
+                LEVELUP_KEY(LEVELUP_N) = _TRIM$(MID$(ln, lp + 1))
+            ELSE
+                LEVELUP_FLAV(LEVELUP_N) = _TRIM$(ln)       ' no key: shown, never spoken
+                LEVELUP_KEY(LEVELUP_N) = ""
+            END IF
+        END IF
         EXIT SUB
     END IF
     p = INSTR(ln, "|")
@@ -238,9 +249,12 @@ END SUB
 ' A random line for the LEVEL UP banner. Empty when the pool is missing, so the caller
 ' keeps its own mechanical text and simply gains no flavour.
 FUNCTION LevelUpSaying$
-    LevelUpSaying$ = ""
+    DIM i AS INTEGER
+    LevelUpSaying$ = "": FX_NARRKEY = ""
     IF LEVELUP_N <= 0 THEN EXIT FUNCTION
-    LevelUpSaying$ = Fill$(LEVELUP_FLAV(RollDie(LEVELUP_N)))
+    i = RollDie(LEVELUP_N)
+    FX_NARRKEY = LEVELUP_KEY(i)                    ' the caller narrates the line it is showing
+    LevelUpSaying$ = Fill$(LEVELUP_FLAV(i))
 END FUNCTION
 
 ' A random sad epitaph for the FORFEIT screen (all lives spent). Falls back to a

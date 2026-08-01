@@ -99,6 +99,7 @@ SUB LoadEventText (path AS STRING, cat AS INTEGER)
                 EVT(EVT_N).mkey = UCASE$(DField$(DLINE(i), 1))
                 EVT(EVT_N).evt = ec
                 EVT(EVT_N).text = DField$(DLINE(i), 3)
+                EVT(EVT_N).nkey = DField$(DLINE(i), 4)      ' optional; "" = shown but never spoken
             END IF
         END IF
     NEXT i
@@ -136,15 +137,20 @@ FUNCTION EventLine$ (cat AS INTEGER, kk AS STRING, evt AS INTEGER)
             END IF
         NEXT i
     END IF
-    IF ni = 0 THEN EventLine$ = "": EXIT FUNCTION
-    EventLine$ = Fill$(_TRIM$(EVT(idx(RollDie(ni))).text))
+    IF ni = 0 THEN EventLine$ = "": FX_NARRKEY = "": EXIT FUNCTION
+    DIM pick AS INTEGER
+    pick = idx(RollDie(ni))
+    FX_NARRKEY = _TRIM$(EVT(pick).nkey)              ' set EVERY time, even to "" -- see GAME.BI
+    EventLine$ = Fill$(_TRIM$(EVT(pick).text))
 END FUNCTION
 
 ' Show a combat banner whose BODY is a random (cat,key,evt) flavor line -- or the
 ' given fallback text if that key/event has no line. Title carries the mechanics.
 SUB EventBanner (title AS STRING, cat AS INTEGER, kk AS STRING, evt AS INTEGER, fallback AS STRING)
-    DIM fl AS STRING
+    DIM fl AS STRING, nk AS STRING
     fl = EventLine$(cat, kk, evt)
-    IF LEN(fl) = 0 THEN fl = fallback
+    nk = FX_NARRKEY                                  ' capture BEFORE the fallback clears the picture
+    IF LEN(fl) = 0 THEN fl = fallback: nk = ""       ' the fallback is code text -- nothing recorded it
     Banner title, fl + "   [ press any key ]"
+    IF LEN(nk) > 0 THEN Narrate nk                   ' speak the very line on screen, if a pack has it
 END SUB

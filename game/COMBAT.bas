@@ -1071,7 +1071,10 @@ SUB GrantLevelClear (lvl AS INTEGER)
         Sfx "key"
         DIM lusay AS STRING
         lusay = LevelUpSaying$
+        DIM lukey AS STRING
+        lukey = FX_NARRKEY                          ' captured before anything else picks a line
         IF LEN(lusay) > 0 THEN lusay = lusay + "   " ELSE lusay = ""
+        IF LEN(lukey) > 0 THEN Narrate lukey
         Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", lusay + "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
         CombatPause
     END IF

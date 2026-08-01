@@ -6,72 +6,81 @@
 # Up to a handful of lines per (class,event); one is picked at random. Re-read at F5.
 #
 # Tokens: {player} {class} {mon} {dmg} {deaths} {level} {room} {treasure} {weapon}/{item}
+#
+# NARRATION KEY (optional 4th field). A line with a key can be SPOKEN: the audio file is
+# assets/narration/<pack>/<key>.<ext>, and `dungeon.run audiomanifest` lists it for the
+# generator. A line with NO key is shown but never spoken.
+#
+# Only TOKEN-FREE lines get a key. A line containing {mon} / {dmg} / {weapon} reads
+# differently every fight, so no single recording can ever match it -- pre-recording
+# "You strike the {mon} for {dmg} damage" would literally say "the mon". Keep that rule if
+# you add lines: put the token version and a spoken version in as SEPARATE rows.
 # --------------------------------------------------------------------------------------
 
 # ---- generic fallback for any class ----
 * | attack | You strike the {mon} for {dmg} damage.
-* | miss   | Your blow whistles past the {mon}.
-* | crit   | A perfect strike tears into the {mon}!
+* | miss | Your blow whistles past the {mon}.
+* | crit | A perfect strike tears into the {mon}!
 * | fumble | You overreach and stumble past the {mon}.
-* | death  | The {mon} land{s} the final blow. Darkness takes you.
+* | death | The {mon} land{s} the final blow. Darkness takes you.
 
 # ---- HERO: a bold warrior, sword and shield ----
 HERO | attack | You hew into the {mon} with {weapon}, biting deep for {dmg}.
 HERO | attack | Steel rings as {weapon} carves the {mon} for {dmg} damage.
 HERO | attack | You plant your feet and drive {weapon} home for {dmg}.
-HERO | miss   | The {mon} slips your guard and {weapon} finds only air.
-HERO | miss   | You swing wide -- the {mon} ducks under {weapon}.
-HERO | crit   | You roar and bring {weapon} down in a shattering arc -- {dmg} damage!
-HERO | crit   | A hero's blow! {weapon} splits the {mon}'s defense wide open.
+HERO | miss | The {mon} slips your guard and {weapon} finds only air.
+HERO | miss | You swing wide -- the {mon} ducks under {weapon}.
+HERO | crit | You roar and bring {weapon} down in a shattering arc -- {dmg} damage!
+HERO | crit | A hero's blow! {weapon} splits the {mon}'s defense wide open.
 HERO | fumble | Your boot skids and {weapon} bites the stone instead of the {mon}.
-HERO | death  | You fall to one knee, shield splintered, as the {mon} looms over you.
-HERO | death  | A warrior's end -- {weapon} slips from your hand as the dark closes in.
+HERO | death | You fall to one knee, shield splintered, as the {mon} looms over you.
+HERO | death | A warrior's end -- {weapon} slips from your hand as the dark closes in.
 
 # ---- ELF: swift and graceful, an elven blade ----
 ELF | attack | You dart in and open the {mon} with {weapon} for {dmg}.
 ELF | attack | Quick as moonlight, {weapon} flickers across the {mon} for {dmg}.
-ELF | miss   | You feint, but the {mon} refuses the bait.
-ELF | crit   | You pirouette past its guard -- {weapon} finds the vital mark for {dmg}!
+ELF | miss | You feint, but the {mon} refuses the bait.
+ELF | crit | You pirouette past its guard -- {weapon} finds the vital mark for {dmg}!
 ELF | fumble | Your graceful lunge tangles and {weapon} goes wide.
-ELF | death  | You stumble, the forest-song fading, as the {mon} claims you.
+ELF | death | You stumble, the forest-song fading, as the {mon} claims you.
 
 # ---- SUPERHERO: mighty beyond mortal measure ----
 SUPERHERO | attack | You batter the {mon} with a thunderous blow for {dmg}.
 SUPERHERO | attack | The {mon} buckles as you hammer it for {dmg} damage.
-SUPERHERO | miss   | You swing with such force the {mon} scrambles clear.
-SUPERHERO | crit   | A legendary strike! The {mon} is nearly torn asunder -- {dmg} damage!
+SUPERHERO | miss | You swing with such force the {mon} scrambles clear.
+SUPERHERO | crit | A legendary strike! The {mon} is nearly torn asunder -- {dmg} damage!
 SUPERHERO | fumble | Your mighty swing carries you past the {mon}, off-balance.
-SUPERHERO | death  | Even a champion can fall. The {mon} stands over your broken form.
+SUPERHERO | death | Even a champion can fall. The {mon} stands over your broken form.
 
 # ---- WIZARD: arcane might, staff and spell ----
 WIZARD | attack | You loose a bolt of force that sears the {mon} for {dmg}.
 WIZARD | attack | Arcane fire leaps from {weapon} and scorches the {mon} for {dmg}.
-WIZARD | miss   | Your spell fizzles and the {mon} shrugs it off.
-WIZARD | crit   | Raw magic erupts -- the {mon} is blasted for {dmg}!
-WIZARD | fumble | The incantation twists in your mouth and the magic gutters out.
-WIZARD | death  | Your wards fail. The {mon} tears through the last of your magic.
+WIZARD | miss | Your spell fizzles and the {mon} shrugs it off.
+WIZARD | crit | Raw magic erupts -- the {mon} is blasted for {dmg}!
+WIZARD | fumble | The incantation twists in your mouth and the magic gutters out. | combat.cls.fumble.incantation-twists-mouth
+WIZARD | death | Your wards fail. The {mon} tears through the last of your magic.
 
 # --- YOU hit the monster ---------------------------------------------
-* | attack | The creature blinks in dismay and disbelief as you chip away at its mortality; you almost feel sorry for it. Almost.
-* | attack | With precision timing and strategy you bring death and harbor no mercy.
-* | attack | A salty vision of blood and entrails coats the floor; wet death, theirs.
-* | attack | Instinct takes over and you feel as if your movements are controlled by a god's grace.
-* | attack | The thrill of battle and survival soaks you cold and slows time. It is as if your enemy is underwater and you are not.
-* | attack | One strike at a time chips away at your foe's composure and flow of life.
-* | attack | Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in its eyes.
-* | attack | More. MORE! COME ON!!! you shout, spit into the face of your foe, gritting your teeth as your attack lands.
-* | attack | Frenzy, absolute and all encompassing, has made you into a killing machine.
-* | attack | Rage and blood and fever embrace your cold movements as the dealer of death.
-* | attack | Is there no end to your prowess and ability? Stunned and stricken your enemy cries in pain.
+* | attack | The creature blinks in dismay and disbelief as you chip away at its mortality; you almost feel sorry for it. Almost. | combat.cls.attack.creature-blinks-dismay
+* | attack | With precision timing and strategy you bring death and harbor no mercy. | combat.cls.attack.precision-timing-strategy
+* | attack | A salty vision of blood and entrails coats the floor; wet death, theirs. | combat.cls.attack.salty-vision-blood
+* | attack | Instinct takes over and you feel as if your movements are controlled by a god's grace. | combat.cls.attack.instinct-takes-over
+* | attack | The thrill of battle and survival soaks you cold and slows time. It is as if your enemy is underwater and you are not. | combat.cls.attack.thrill-battle-survival
+* | attack | One strike at a time chips away at your foe's composure and flow of life. | combat.cls.attack.one-strike-time
+* | attack | Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in its eyes. | combat.cls.attack.another-brilliant-maneuver
+* | attack | More. MORE! COME ON!!! you shout, spit into the face of your foe, gritting your teeth as your attack lands. | combat.cls.attack.more-more-come
+* | attack | Frenzy, absolute and all encompassing, has made you into a killing machine. | combat.cls.attack.frenzy-absolute-all
+* | attack | Rage and blood and fever embrace your cold movements as the dealer of death. | combat.cls.attack.rage-blood-fever
+* | attack | Is there no end to your prowess and ability? Stunned and stricken your enemy cries in pain. | combat.cls.attack.there-no-end
 
 # --- YOU crit the monster --------------------------------------------
-* | crit   | PRECISION! ARTISTRY! Your attack sends the creature reeling, screaming!
-* | crit   | FEEL THE PAIN! DIE! you scream, baring your teeth in a grimace of hatred.
-* | crit   | GET OFF ME! BASTARD! Your attack finds home, tilting the balance of battle.
-* | crit   | You are soaked with the blood of your enemy as it juts and sprays and coats the place.
-* | crit   | Cold calmness and deliberation come upon you. This is a dance, not a fight.
-* | crit   | The battle sickness overtakes you. You are no longer here, you are watching yourself, and you are perfect.
-* | crit   | A vision of heat, fur, scales, and steel -- blurry and primal.
-* | crit   | TAKE THAT! you shout as you unleash your potential into the fray.
-* | crit   | DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you.
-* | crit   | You were born for this. You live for this. You are unstoppable!
+* | crit | PRECISION! ARTISTRY! Your attack sends the creature reeling, screaming! | combat.cls.crit.precision-artistry-attack
+* | crit | FEEL THE PAIN! DIE! you scream, baring your teeth in a grimace of hatred. | combat.cls.crit.feel-pain-die
+* | crit | GET OFF ME! BASTARD! Your attack finds home, tilting the balance of battle. | combat.cls.crit.get-off-me
+* | crit | You are soaked with the blood of your enemy as it juts and sprays and coats the place. | combat.cls.crit.soaked-blood-enemy
+* | crit | Cold calmness and deliberation come upon you. This is a dance, not a fight. | combat.cls.crit.cold-calmness-deliberation
+* | crit | The battle sickness overtakes you. You are no longer here, you are watching yourself, and you are perfect. | combat.cls.crit.battle-sickness-overtakes
+* | crit | A vision of heat, fur, scales, and steel -- blurry and primal. | combat.cls.crit.vision-heat-fur
+* | crit | TAKE THAT! you shout as you unleash your potential into the fray. | combat.cls.crit.take-shout-unleash
+* | crit | DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you. | combat.cls.crit.do-want-some
+* | crit | You were born for this. You live for this. You are unstoppable! | combat.cls.crit.born-live-unstoppable

@@ -180,8 +180,15 @@ Narration Small Tweaks:
       ☐ BLOCKED 26-08-01: needs spoken audio (soundmon --narrate-file / Kokoro), and no
         ☐ ComfyUI server was reachable. `dungeon.run audiomanifest audit` prints the exact
         ☐ work list -- 137 lines, all narration, in `narration/<key> | <line>` form
-    ☐ Add all the monster event descriptions into narration manifest and have them play if combat is used for narration
-      ☐ BLOCKED 26-08-01: same -- the TEXT now exists (63 new combat lines), the VOICE does not
+    ✔ Add all the monster event descriptions into narration manifest and have them play @done(26-08-01)
+      ✔ optional 4th field in monster_events/class_events = the NARRATION KEY; levelup.txt @done(26-08-01)
+        ✔ takes `text | key`. Authored INTO the files, so re-ordering cannot re-point audio @done(26-08-01)
+      ✔ ONLY token-free lines get a key: a line with {mon}/{dmg} reads differently every fight, @done(26-08-01)
+        ✔ so no recording can match it -- pre-recording it would literally say "the mon" @done(26-08-01)
+      ✔ EventLine$ sets FX_NARRKEY on every pick (even to ""), EventBanner speaks the very @done(26-08-01)
+        ✔ line it is showing; the code FALLBACK text is never narrated -- nothing recorded it @done(26-08-01)
+      ✔ manifest 224 -> 331 entries (107 new); all keys unique and filesystem-safe @done(26-08-01)
+      ☐ REMAINS: generate the audio (needs a ComfyUI server). 244 missing, all narration.
     ☐ Audit existing events for sensory coverage and make diverse if not where appropriate:
       ☐ Sight
       ☐ Sound

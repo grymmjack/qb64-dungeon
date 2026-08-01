@@ -95,6 +95,15 @@ SUB DumpAudioManifest
     NEXT si
     FOR i = 1 TO CHM_FLAV_N: ManAsset "narration/chamber." + NarrSlug$(_TRIM$(CHM_FLAV_NAME(i))) + " | " + _TRIM$(CHM_FLAV_TXT(i)): NEXT i
     FOR i = 1 TO NCURIO: ManAsset "narration/curio." + _TRIM$(CURIOS(i).kind) + " | " + _TRIM$(CURIOS(i).prompt): NEXT i
+    ' Every combat / level-up flavor line that carries a NARRATION KEY. Only token-free lines
+    ' have one: a line containing {mon} or {dmg} reads differently every fight, so no single
+    ' recording can ever match it -- see the header note in the flavor files.
+    FOR i = 1 TO EVT_N
+        IF LEN(_TRIM$(EVT(i).nkey)) > 0 THEN ManAsset "narration/" + _TRIM$(EVT(i).nkey) + " | " + _TRIM$(EVT(i).text)
+    NEXT i
+    FOR i = 1 TO LEVELUP_N
+        IF LEN(_TRIM$(LEVELUP_KEY(i))) > 0 THEN ManAsset "narration/" + _TRIM$(LEVELUP_KEY(i)) + " | " + _TRIM$(LEVELUP_FLAV(i))
+    NEXT i
     ' combat narration -- generic per-event voiced lines (Combat tier; see NarrateT / game/COMBAT.bas).
     ' Keep them short and atmospheric; they play OVER the combat banners, so they set mood, not detail.
     ManAsset "narration/combat.encounter | A monstrous shape rears up from the dark, barring your path. Steel yourself."

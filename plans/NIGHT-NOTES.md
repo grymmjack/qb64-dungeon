@@ -218,3 +218,33 @@ call can be second-guessed cheaply.
 | Crypt forced sight | separate `fov_forced` + `FovOn%` | Set `opt_fov` directly. Rejected: that is the player's *saved* setting and would persist the override into their config. |
 | Torch item | left open | Invent an item code and drop-table entry unprompted. Rejected: new player-facing items are a design decision, not a chore. |
 | Typos in the authored flavor lines | fixed silently (`it's`→`its`, `wreaks`→`reeks`, `prowress`→`prowess`) | Ship verbatim. Rejected: they read as errors in-game. Easy to revert — they are one commit. |
+
+
+---
+
+## Narration keys (added 26-08-01, after the night run)
+
+Every combat / level-up flavor line that CAN be voiced now carries a stable **narration key**,
+and the manifest emits it — so one generation pass covers everything.
+
+- **Where:** an optional **4th field** in `monster_events.txt` / `class_events.txt`
+  (`MONSTER | event | text | key`), and `text | key` in `levelup.txt`. The key is *authored into
+  the file*, not derived from row order — re-ordering or inserting a line cannot silently
+  re-point an existing recording.
+- **Only token-free lines get a key.** A line containing `{mon}` / `{dmg}` / `{weapon}` reads
+  differently every fight, so no single recording can ever match it — pre-recording
+  "You strike the {mon} for {dmg} damage" would literally say *"the mon"*. Templated lines are
+  shown but never spoken. If you want a line both ways, write it as two rows.
+- **Playback:** `EventLine$` sets `FX_NARRKEY` on *every* pick, including to `""` — never left
+  stale, or a templated line would borrow the previous line's audio. `EventBanner` then speaks
+  the very line it is showing. The code *fallback* text is deliberately never narrated: nothing
+  ever recorded it.
+- **Counts:** 75 narratable in `monster_events`, 22 in `class_events`, 10 in `levelup` — 107 new
+  manifest entries. Audio manifest **224 → 331**; missing **137 → 244**, all narration.
+  Verified: no duplicate keys, all filesystem-safe.
+
+Generate with:
+
+```bash
+dungeon.run audiomanifest audit nocolor | grep '^narration/'   # the exact work list
+```
