@@ -140,3 +140,11 @@ DOORNOISE_CLEAR_PCT | 5
 # is a different proposition from doing it on the 9th.
 REST_ENC_PCT | 12
 REST_ENC_PER_LVL | 3
+
+# --- CLOSE CALL (see CloseCallReward) ---
+# A fight lasting MORE than CLOSECALL_ROUNDS that leaves you under CLOSECALL_HP percent
+# of maximum earns healing: 10% a full restore, 50% two large potions, 40% one large and
+# two small. Rewards SURVIVING, not winning cleanly -- the fights that nearly kill you are
+# exactly the ones that leave you too weak for the next.
+CLOSECALL_ROUNDS | 10
+CLOSECALL_HP | 25

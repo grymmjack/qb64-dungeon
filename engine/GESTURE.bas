@@ -226,3 +226,21 @@ FUNCTION MagicFlourish% (mon AS STRING, depth AS INTEGER, skill AS INTEGER, elem
     MagicFlourish% = 0
     IF xn > 0 THEN MagicFlourish% = GameRoll(xn, 6, 0, "MAGIC FLOURISH -- +" + _TRIM$(STR$(xn)) + "d6")
 END FUNCTION
+
+
+' CONFIRM: a maximum-damage blow that was NOT a natural 20. Nail the crit zone and it is
+' upgraded to a critical -- the damage doubles.
+'
+' Confirmed crits get NO flourish (the plan is explicit): only a real natural 20 earns the
+' follow-through. Otherwise max damage would be strictly better than a nat 20, which is
+' backwards -- this is a consolation prize, not a second jackpot.
+'
+' Returns the damage to apply.
+FUNCTION ConfirmCrit% (mon AS STRING, dmg AS INTEGER, depth AS INTEGER, skill AS INTEGER)
+    DIM z AS INTEGER
+    ConfirmCrit% = dmg
+    z = GaugeLock%("CONFIRM THE CRIT!", "SPACE in the PURPLE -- turn it into a critical", -1, depth, skill)
+    IF z <> 2 THEN EXIT FUNCTION
+    Sfx "crit"
+    ConfirmCrit% = dmg * 2
+END FUNCTION

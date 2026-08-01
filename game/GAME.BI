@@ -389,6 +389,7 @@ DIM SHARED flourish_left AS INTEGER, flourish_max AS INTEGER
 DIM SHARED opt_rest AS INTEGER             ' SETTINGS: is in-dungeon resting allowed at all?
 DIM SHARED g_rests AS INTEGER              ' how many points you have rested back this run
 DIM SHARED REST_ENC_PCT AS INTEGER, REST_ENC_PER_LVL AS INTEGER   ' tuning.txt
+DIM SHARED CLOSECALL_ROUNDS AS INTEGER, CLOSECALL_HP AS INTEGER   ' a long fight barely survived
 
 ' --- what each ability DOES (assets/data/<pack>/stats.txt) ---
 ' Shown in the character creator's side panel. SH_LIVE separates what the game does TODAY from

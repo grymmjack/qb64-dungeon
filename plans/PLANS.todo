@@ -214,10 +214,15 @@ Game Tweaks:
         ☐ Total Damage done under: big number
         ☐ Total Gold found: Big number
         ☐ Snapshot death screen for fallen lords, and their stats like legendary lords, but those who failed
-    ☐ If a single combat goes > 10 rounds and player is < 25% HP at end @high
-      ☐ Give them a 10% chance at a full heal curio as they drop to their knees and pray for strength
-      ☐ Give them a 50% chance at finding 2 Large potions of healing
-      ☐ Give them a 40% chance of finding 1 Large potion and 2 small potions of healing
+    ✔ If a single combat goes > 10 rounds and player is < 25% HP at end @done(26-08-01)
+      ✔ 10% full heal as they drop to their knees and pray for strength @done(26-08-01)
+      ✔ 50% two Large potions of healing @done(26-08-01)
+      ✔ 40% one Large and two small potions @done(26-08-01)
+      ✔ fires on a WON fight only, so it can never read as a consolation prize for dying @done(26-08-01)
+      ✔ rewards SURVIVING rather than winning cleanly, on purpose: the fights that nearly kill @done(26-08-01)
+        ✔ you are exactly the ones that leave you too weak for the next, and a player who @done(26-08-01)
+        ✔ scrapes through at 8 HP otherwise has no good options @done(26-08-01)
+      ✔ both thresholds are tuning.txt knobs (CLOSECALL_ROUNDS / CLOSECALL_HP) @done(26-08-01)
     ☐ Add auto-combat game options
       ☐ Auto-combat: ON/OFF
         ☐ Auto-combat simply simulates the player actually playing the combat sequence
@@ -289,8 +294,10 @@ Game Tweaks:
         ☐ Replenished every time character levels up
       ☐ Luck re-rolls: ON/OFF in settings
       ☐ Add this to the RULES for D&D if it's a setting that's enabled
-    ☐ On max damage use gesture to check a critical @high
-      ☐ Criticals confirmed like this don't get flourishes - only real nat 20s get flourishes
+    ✔ On max damage use gesture to check a critical @done(26-08-01)
+      ✔ Criticals confirmed like this don't get flourishes - only real nat 20s do @done(26-08-01)
+        ✔ otherwise max damage would be strictly BETTER than a nat 20, which is backwards -- @done(26-08-01)
+        ✔ this is a consolation prize, not a second jackpot @done(26-08-01)
     ✔ Add Flourishes based on DEX mechanic @done(26-08-01)
       ✔ Flourishes influenced by stats: DEX shifts SkillTier%, which feeds GaugeKnobs -- and @done(26-08-01)
         ✔ GaugeKnobs is what sets bar sizes, target sizes AND timing tightness, so one change @done(26-08-01)

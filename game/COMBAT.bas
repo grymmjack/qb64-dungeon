@@ -581,6 +581,25 @@ SUB DoCombatDnD (rm AS INTEGER)
                 EventBanner "You HIT!  (d20+" + _TRIM$(STR$(thb)) + " = " + _TRIM$(STR$(atk)) + " vs AC " + _TRIM$(STR$(ROOMS(rm).mac)) + ")", 2, class_name, 1, "You deal " + _TRIM$(STR$(dmg)) + " damage."
                 CombatPause
                 IF last_raw = player_dmgdie THEN            ' MAX on the damage die -- brutal flavor (even without a crit)
+                    ' ...and a chance to make it a real critical. No flourish follows a
+                    ' CONFIRMED crit -- only a natural 20 earns that -- or max damage would be
+                    ' strictly better than a nat 20, which is backwards.
+                    IF opt_gestures THEN
+                        DIM cdmg AS INTEGER
+                        cdmg = ConfirmCrit%(mon, dmg, sec, SkillTier%)
+                        IF cdmg > dmg THEN
+                            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - (cdmg - dmg)
+                            IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
+                            IF ROOMS(rm).mhp_now <= 0 THEN fx_critkill = TRUE
+                            tot_dealt = tot_dealt + (cdmg - dmg)
+                            RecordCrit mon, cdmg
+                            DrawCombatPanel rm, mon, lead
+                            IF opt_juice THEN CritBoom cdmg
+                            Banner "** CRITICAL -- CONFIRMED! **", "You turn a crushing blow into a killing one: " + _TRIM$(STR$(dmg)) + " becomes " + _TRIM$(STR$(cdmg)) + ".   [ press any key ]"
+                            CombatPause
+                            dmg = cdmg
+                        END IF
+                    END IF
                     mhs = MaxHitSaying$(mon, WeaponName$)
                     IF LEN(mhs) > 0 THEN
                         Sfx "maxhit"
@@ -601,6 +620,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 Sfx "treasure"
                 ClaimTreasure rm, rounds
                 StatLog sec, rm, mon, isboss, wander, "killed", rounds, tot_dealt, tot_taken
+                CloseCallReward rounds            ' a long fight you nearly lost earns something
                 EXIT SUB
             END IF
         END IF
@@ -1422,4 +1442,46 @@ END SUB
 
 SUB FlourishFumble
     IF flourish_left > 0 THEN flourish_left = flourish_left - 1
+END SUB
+
+
+' ============================================================================
+'  CLOSE CALL -- you won, but only just, and it took forever.
+'
+'  A fight lasting more than CLOSECALL_ROUNDS that leaves you under CLOSECALL_HP percent
+'  earns a reward: 10% a full heal, 50% two large potions, 40% one large and two small.
+'
+'  Why reward surviving rather than winning cleanly? Because the alternative is a
+'  difficulty spiral: the fights that nearly kill you are exactly the ones that leave you
+'  too weak for the next, and a player who scrapes through at 8 HP has no good options.
+'  This hands them one, and it is thematic -- you drop to your knees and something answers.
+'
+'  It fires on a WON fight only, so it can never read as a consolation prize for dying.
+' ============================================================================
+SUB CloseCallReward (rounds AS INTEGER)
+    DIM r AS INTEGER, pct AS INTEGER
+    IF opt_oldschool THEN EXIT SUB               ' no HP, no close calls
+    IF rounds <= CLOSECALL_ROUNDS THEN EXIT SUB
+    IF player_maxhp <= 0 THEN EXIT SUB
+    pct = (player_hp * 100) \ player_maxhp
+    IF pct >= CLOSECALL_HP THEN EXIT SUB
+    r = RollDie(100)
+    IF r <= 10 THEN
+        player_hp = player_maxhp
+        Sfx "levelup"
+        Banner "** YOU DROP TO YOUR KNEES **", "You pray for strength -- and something answers. You are made WHOLE.   [ press any key ]"
+        LogEvent _TRIM$(player_name) + " was restored after a " + _TRIM$(STR$(rounds)) + "-round fight"
+    ELSEIF r <= 60 THEN
+        item_potion_large = item_potion_large + 2
+        Sfx "treasure"
+        Banner "** YOU DROP TO YOUR KNEES **", "Your groping hand finds TWO LARGE HEALING POTIONS among the bones.   [ press any key ]"
+        LogEvent _TRIM$(player_name) + " found 2 large potions after a long fight"
+    ELSE
+        item_potion_large = item_potion_large + 1
+        item_potion_small = item_potion_small + 2
+        Sfx "treasure"
+        Banner "** YOU DROP TO YOUR KNEES **", "Among the bones: ONE LARGE and TWO SMALL healing potions.   [ press any key ]"
+        LogEvent _TRIM$(player_name) + " found potions after a long fight"
+    END IF
+    WaitKey
 END SUB
