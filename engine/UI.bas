@@ -391,13 +391,20 @@ SUB Present
     END IF
     sw0 = _WIDTH(0): sh0 = _HEIGHT(0)
     IF sw0 < 1 OR sh0 < 1 THEN _DISPLAY: EXIT SUB
-    ' HOW the canvas fills the window is the player's call, via SETTINGS "Pixel Smoothing":
+    ' HOW the canvas fills the window is the player's call, via SETTINGS "Window Scaling":
     '
-    '   crisp  (opt_smooth off) -- INTEGER scale only. Every character cell keeps exactly the
-    '          same pixel size, so the ANSI art stays razor sharp. The cost is black bars: a
-    '          2600x1400 window only allows 1x, because 816*2 = 1632 does not fit in 1400.
-    '   smooth (opt_smooth on)  -- largest scale that FITS, fractions allowed. Fills the window
-    '          properly at any aspect; glyph edges soften slightly.
+    '   integer (opt_smooth off) -- INTEGER scale only. Every character cell keeps exactly the
+    '           same pixel size. The cost is black bars: a 2600x1400 window only allows 1x,
+    '           because 816*2 = 1632 does not fit in 1400.
+    '   fit     (opt_smooth on)  -- largest scale that FITS, fractions allowed. Fills the window
+    '           at any aspect, at the cost of unevenly-sized cells.
+    '
+    ' NEITHER IS FILTERED, and do not add a comment claiming otherwise: QB64's _PUTIMAGE does
+    ' nearest-neighbour sampling for software images, always. Measured -- a 1.71x scale of this
+    ' canvas comes out with the SAME 7 distinct colours as the unscaled original, where any
+    ' interpolation would have produced hundreds of blended values at the glyph edges. Real
+    ' filtering needs a hardware image (_COPYIMAGE ..., 33) and the GL compositor, which is why
+    ' opt_smooth ALSO selects _FULLSCREEN _SMOOTH -- that path is scaled by the driver.
     '
     ' Either way the ASPECT is preserved and the whole canvas is drawn -- _PUTIMAGE maps the
     ' entire source into the destination rectangle, so unlike $RESIZE:STRETCH nothing can be
@@ -1401,19 +1408,49 @@ END FUNCTION
 ' Apply the fullscreen + pixel-smoothing preferences to the display. _SMOOTH gives
 ' bilinear-filtered scaling (soft, and it makes the tumbling dice shimmer); without
 ' it the canvas is pixel-doubled crisp -- better suited to the ANSI/text art.
+' Apply the Full Screen + Pixel Smoothing settings.
+'
+' THE SIZE OF SCREEN 0 IS THE WHOLE TRICK. Per the wiki, `_FULLSCREEN [_STRETCH|_SQUAREPIXELS]
+' [, _SMOOTH]` scales THE SCREEN IMAGE to the monitor, and _SMOOTH "applies antialiasing to the
+' stretched screen" -- so _SMOOTH only does anything to the extent _FULLSCREEN is actually
+' scaling something.
+'
+' Since screen 0 became the WINDOW surface (so windowed resize could work at all), a player who
+' had resized or maximised first went fullscreen with screen 0 already near monitor size. There
+' was then almost nothing left for _FULLSCREEN to scale, so _SMOOTH had nothing to antialias --
+' and Present had already blitted the canvas up to that size with nearest-neighbour sampling,
+' mangling the grid before the driver ever saw it. Fullscreen looked unfiltered because it was.
+'
+' So: entering fullscreen puts screen 0 back to EXACTLY the canvas size. Present's blit is then
+' 1:1 and lossless, and _FULLSCREEN performs the one and only scale, antialiased by the driver.
+' Leaving fullscreen restores the windowed size the player had.
 SUB ApplyDisplay
     ' Entering or leaving fullscreen raises a _RESIZE just like a drag does. Present must not
     ' mistake it for the player resizing the window and "correct" us back to the old size --
     ' so book the echo before making the change. (Same guard TakeWindowSize uses.)
     pres_deferred = pres_deferred + 1
-    pres_lastw = -1                  ' Pixel Smoothing also changes Present's geometry -> repaint bars
+    pres_lastw = -1                  ' geometry changes either way -> repaint the letterbox bars
     IF opt_fullscreen THEN
+        IF _WIDTH(0) <> SW * CW OR _HEIGHT(0) <> SH * CH THEN
+            IF _WIDTH(0) > 0 THEN pres_winsave_w = _WIDTH(0): pres_winsave_h = _HEIGHT(0)
+            pres_deferred = pres_deferred + 1
+            SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)   ' 1:1 with the canvas -- give the driver the whole scale
+            _DEST CANVAS
+        END IF
         IF opt_smooth THEN
-            _FULLSCREEN _SQUAREPIXELS, _SMOOTH
+            _FULLSCREEN _SQUAREPIXELS, _SMOOTH       ' square pixels, antialiased by the GPU
         ELSE
-            _FULLSCREEN _SQUAREPIXELS
+            _FULLSCREEN _SQUAREPIXELS                ' square pixels, no filtering
         END IF
     ELSE
         _FULLSCREEN _OFF
+        ' Back to the window the player had before fullscreen (first run: leave it alone).
+        IF pres_winsave_w > 0 THEN
+            IF _WIDTH(0) <> pres_winsave_w OR _HEIGHT(0) <> pres_winsave_h THEN
+                pres_deferred = pres_deferred + 1
+                SCREEN _NEWIMAGE(pres_winsave_w, pres_winsave_h, 32)
+                _DEST CANVAS
+            END IF
+        END IF
     END IF
 END SUB

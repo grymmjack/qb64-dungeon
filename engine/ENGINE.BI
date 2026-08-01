@@ -405,6 +405,9 @@ DIM SHARED pres_lastw AS LONG, pres_lasth AS LONG, pres_winw AS LONG, pres_winh 
 ' a feedback loop that looks like the display having a fit. (DRAW calls this
 ' SCREEN_DEFERRED_RESIZE%; same idea, same reason.)
 DIM SHARED pres_deferred AS INTEGER
+' The windowed size to come back to when leaving fullscreen. Entering fullscreen forces screen 0
+' to the canvas size so _FULLSCREEN _SMOOTH has the whole scale to antialias (see ApplyDisplay).
+DIM SHARED pres_winsave_w AS LONG, pres_winsave_h AS LONG
 DIM SHARED opt_msgdelay AS INTEGER    ' auto-advance hold for banner messages: 1..5 seconds, or 0 = wait for a key
 DIM SHARED SVTOK(1 TO 12000) AS STRING, SVTOK_N AS INTEGER, SVTOK_I AS INTEGER   ' save-file token stream
 ' --- active-character stat scaffolding (generic RPG stats; JUICE reads player_hp) ---

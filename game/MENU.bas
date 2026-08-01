@@ -944,8 +944,16 @@ SUB RunSettings
                     IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
                 CASE 18: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE 19
+                    ' Named for what it ACTUALLY does, which differs by display mode:
+                    '   windowed   -- fit-to-window vs integer scale. BOTH are crisp: QB64's
+                    '                 _PUTIMAGE never interpolates, so a software blit is always
+                    '                 nearest-neighbour no matter what ratio it scales by.
+                    '   fullscreen -- also selects _FULLSCREEN _SMOOTH, which IS real GPU
+                    '                 filtering, because that scaling is done by the driver.
+                    ' It was labelled "Pixel Smoothing / smooth" for both, which promised a
+                    ' filtered window and delivered nearest-neighbour at a different size.
                     lbl = "Pixel Smoothing"
-                    IF opt_smooth THEN vtxt = "smooth" ELSE vtxt = "crisp pixels"
+                    IF opt_smooth THEN vtxt = "smooth / fit" ELSE vtxt = "crisp / integer"
                 CASE 20: lbl = "Line of Sight": vtxt = OnOff$(opt_fov)
                 CASE 21
                     lbl = "Message Delay": slider = TRUE
