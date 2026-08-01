@@ -1922,17 +1922,18 @@ END SUB
 ' Field n of a comma-separated line, honouring "quoted, cells" -- the log writes monster and
 ' hero names through CsvCell$, so a naive split on commas would mangle any name with one in it.
 FUNCTION CsvField$ (ln AS STRING, n AS INTEGER)
-    DIM i AS INTEGER, fld AS INTEGER, inq AS INTEGER, ch AS STRING, cur AS STRING
+    ' `c1`, not `ch`: CH is the shared font-cell height (QB64 is case-insensitive)
+    DIM i AS INTEGER, fld AS INTEGER, inq AS INTEGER, c1 AS STRING, cur AS STRING
     fld = 1
     FOR i = 1 TO LEN(ln)
-        ch = MID$(ln, i, 1)
-        IF ch = CHR$(34) THEN
+        c1 = MID$(ln, i, 1)
+        IF c1 = CHR$(34) THEN
             inq = NOT inq
-        ELSEIF ch = "," AND NOT inq THEN
+        ELSEIF c1 = "," AND NOT inq THEN
             IF fld = n THEN CsvField$ = _TRIM$(cur): EXIT FUNCTION
             fld = fld + 1: cur = ""
         ELSE
-            cur = cur + ch
+            cur = cur + c1
         END IF
     NEXT i
     IF fld = n THEN CsvField$ = _TRIM$(cur)
