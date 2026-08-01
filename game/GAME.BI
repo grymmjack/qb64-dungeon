@@ -391,6 +391,11 @@ DIM SHARED g_rests AS INTEGER              ' how many points you have rested bac
 DIM SHARED REST_ENC_PCT AS INTEGER, REST_ENC_PER_LVL AS INTEGER   ' tuning.txt
 DIM SHARED CLOSECALL_ROUNDS AS INTEGER, CLOSECALL_HP AS INTEGER   ' a long fight barely survived
 
+' --- balancedump --includestats: per-monster tallies read back from the fight log ---
+DIM SHARED FS_MON(1 TO 60) AS STRING, FS_ENC(1 TO 60) AS LONG
+DIM SHARED FS_FLED(1 TO 60) AS LONG, FS_KILL(1 TO 60) AS LONG, FS_DIED(1 TO 60) AS LONG
+DIM SHARED FS_N AS INTEGER
+
 ' --- what each ability DOES (assets/data/<pack>/stats.txt) ---
 ' Shown in the character creator's side panel. SH_LIVE separates what the game does TODAY from
 ' what is designed but unbuilt, so the panel can never promise a mechanic that does not exist.

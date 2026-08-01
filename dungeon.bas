@@ -49,6 +49,7 @@ IF wanthelp THEN
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
+    PRINT PipeCol$("  |10balancedump|07 |14[--includestats]|07  monster curve + player ascension, with hits-to-die vs hits-to-kill")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
     PRINT PipeCol$("  |10sectorauto|07   derive each level's rect from the art colours; report overlaps")
@@ -241,6 +242,15 @@ IF INSTR(UCASE$(COMMAND$), "STATSHOT") > 0 THEN
     DetectSecretDoors
     Game_PopulateBoard
     DumpStatPicker
+    SYSTEM
+END IF
+
+IF INSTR(UCASE$(COMMAND$), "BALANCEDUMP") > 0 THEN
+    DIM bdArg AS INTEGER, bdStats AS INTEGER
+    FOR bdArg = 1 TO _COMMANDCOUNT
+        IF INSTR(UCASE$(COMMAND$(bdArg)), "INCLUDESTATS") > 0 THEN bdStats = TRUE
+    NEXT bdArg
+    BalanceDump bdStats
     SYSTEM
 END IF
 

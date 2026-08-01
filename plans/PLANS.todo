@@ -187,12 +187,22 @@ Game Tweaks:
       ✔ first MISSILE weapon -- thin on purpose (+2 to-hit + SHOOT) until the top-down @done(26-08-01)
         ✔ perspective lands; the to-hit line is the seam to widen, see plans/DAY-NOTES.md @done(26-08-01)
 
-    ☐ Create command line option balancedump @high
-      ☐ Dumps in a table: (fetches from stats with --includestats *)
-        ☐ Levels and Monsters:
-          ☐ Level | Monster | HP | ToHitBonus | AC | XP | DMG range | Gold | Items | * # Encountered | * # PlayerFled | * # Killed | * # KillPlayer
-        ☐ Player ascension:
-          ☐ Level | Player Class | Level | HP Range | ToHitBonus Range | AC Range | DMG range | Avg Hits to Die | Avg Hits to Kill
+    ✔ Create command line option balancedump @done(26-08-01)
+      ✔ LEVELS AND MONSTERS: level, monster, HP min-avg-max, to-hit, AC, XP, dmg, gold @done(26-08-01)
+        ✔ HP is SAMPLED (400 rolls) rather than formula'd, because MonsterStats rolls dice -- @done(26-08-01)
+        ✔ printing a single number would be a fiction @done(26-08-01)
+      ✔ --includestats folds in what ACTUALLY happened from dungeon-stats.csv: @done(26-08-01)
+        ✔ encountered / fled / killed / killed-you per monster, designed numbers beside @done(26-08-01)
+        ✔ observed ones -- the only way to tell a bad model from bad luck @done(26-08-01)
+        ✔ a monster never met prints dashes, not zeroes: "0 kills" and "never fought" are @done(26-08-01)
+        ✔ different facts and the table must not conflate them @done(26-08-01)
+      ✔ PLAYER ASCENSION: level, class, HP, to-hit, AC, dmg, avg hits to DIE, avg hits to KILL @done(26-08-01)
+        ✔ plus a verdict column (comfortable / tight / LOSING) -- a level where DIE <= KILL @done(26-08-01)
+        ✔ kills the average character, and adjacent columns say that better than any table @done(26-08-01)
+      ✔ FIRST FINDING: the ELF is tight from level 6 and LOSING at level 9 (9.8 to die vs @done(26-08-01)
+        ✔ 10.6 to kill); the Wizard goes tight at 9. Model assumes all abilities 12 and NO @done(26-08-01)
+        ✔ magic items, so the Elf's bow and the Wizard's spells are not counted -- it is a @done(26-08-01)
+        ✔ flag to investigate, not a verdict @done(26-08-01)
             - hits to die - average monster DMG, vs. player AC, vs. Player HP = avg number of hits to kill player
               - e.g. Level 1 monsters HP average is 10, ToHitbonus is 0, DMG range is 5, and player ac at same level is 11, and HP is 12 = 12/5 = 2 hits to die at level 1
             - hits to kill - average monster HP vs Player DMG range average + ToHitBonus average = avg number of hits to kill

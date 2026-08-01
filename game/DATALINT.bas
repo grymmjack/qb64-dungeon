@@ -1773,3 +1773,183 @@ SUB BestiaryTest
     KILL BESTIARY_FILE                              ' leave no trace: this is not the player's data
     SYSTEM 0
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run balancedump [--includestats]`
+'
+'  Two tables the game's own numbers, side by side, so a balance change can be READ
+'  instead of playtested into existence:
+'
+'    1. LEVELS AND MONSTERS -- what you face at each depth
+'    2. PLAYER ASCENSION    -- what you bring, and the two numbers that matter:
+'                              avg hits to DIE and avg hits to KILL
+'
+'  Those two are the whole point. A level where hits-to-die falls below hits-to-kill is
+'  a level that kills you on average, and no amount of staring at HP tables says that as
+'  plainly as putting the two numbers in adjacent columns.
+'
+'  --includestats folds in what ACTUALLY happened, from gameplay-data-saves/dungeon-stats.csv:
+'  encountered / fled / killed / killed-you per monster. Designed numbers next to observed
+'  ones, which is the only way to tell a bad model from bad luck.
+' ============================================================================
+SUB BalanceDump (withstats AS INTEGER)
+    DIM lv AS INTEGER, sl AS INTEGER, i AS INTEGER
+    DIM hpMin AS INTEGER, hpMax AS INTEGER, hpSum AS LONG, ac AS INTEGER, th AS INTEGER
+    DIM hp AS INTEGER, a AS INTEGER, nm AS STRING, gp AS LONG
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15balancedump|07 -- designed numbers, and (optionally) what actually happened")
+    IF withstats THEN
+        LoadFightStats
+        PRINT PipeCol$("  |08read " + _TRIM$(STR$(FS_N)) + " logged fights from gameplay-data-saves/dungeon-stats.csv")
+    END IF
+    PRINT
+
+    PRINT PipeCol$("|11LEVELS AND MONSTERS|07")
+    IF withstats THEN
+        PRINT PipeCol$("|08 lvl monster           HP(min-avg-max)  hit   AC   XP  dmg   gold   enc fled kill died")
+    ELSE
+        PRINT PipeCol$("|08 lvl monster           HP(min-avg-max)  hit   AC   XP  dmg   gold")
+    END IF
+    FOR lv = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(MON_NAME(lv, sl))
+            IF LEN(nm) > 0 THEN
+                ' MonsterStats ROLLS, so sample it rather than pretend it is a formula.
+                hpMin = 32767: hpMax = 0: hpSum = 0
+                FOR i = 1 TO 400
+                    MonsterStats lv, MK_ROOM, hp, a
+                    IF hp < hpMin THEN hpMin = hp
+                    IF hp > hpMax THEN hpMax = hp
+                    hpSum = hpSum + hp
+                NEXT i
+                ac = a: th = MonsterToHit%(lv, MK_ROOM)
+                gp = TRE_GOLD(lv, sl)
+                PRINT PipeCol$("  " + PadR$(_TRIM$(STR$(lv)), 4) + PadR$(nm, 18) + _
+                    PadR$(_TRIM$(STR$(hpMin)) + "-" + _TRIM$(STR$(hpSum \ 400)) + "-" + _TRIM$(STR$(hpMax)), 17) + _
+                    PadR$(ModStr$(th), 6) + PadR$(_TRIM$(STR$(ac)), 5) + _
+                    PadR$(_TRIM$(STR$(XP_PER_KILL_LVL * lv)), 5) + PadR$("1d6" + ModStr$(lv \ 3), 6) + _
+                    PadR$(_TRIM$(STR$(gp)), 7) + FightStatCols$(nm, withstats))
+            END IF
+        NEXT sl
+    NEXT lv
+
+    PRINT
+    PRINT PipeCol$("|11PLAYER ASCENSION|07   |08(assumes every ability 12 -- the point-buy average -- and no magic items)")
+    PRINT PipeCol$("|08 lvl class      HP   hit   AC  dmg    hits to DIE   hits to KILL   verdict")
+    FOR lv = 1 TO 9
+        FOR i = 1 TO 4
+            PlayerAscensionRow lv, i
+        NEXT i
+    NEXT lv
+    PRINT
+    PRINT PipeCol$("  |08hits to DIE  = your HP / average monster damage at that depth")
+    PRINT PipeCol$("  |08hits to KILL = average monster HP / your average damage")
+    PRINT PipeCol$("  |08a level where DIE <= KILL is one that kills the average character")
+END SUB
+
+' One class at one character level, against the monsters of the matching depth.
+SUB PlayerAscensionRow (lv AS INTEGER, pc AS INTEGER)
+    DIM hp AS INTEGER, th AS INTEGER, ac AS INTEGER, dmg AS SINGLE
+    DIM mhp AS INTEGER, mdmg AS SINGLE, a AS INTEGER, i AS INTEGER, sum AS LONG
+    ' `ntodie`/`ntokill`: KILL is a QB64 statement and DIE reads like one
+    DIM ntodie AS SINGLE, ntokill AS SINGLE, verdict AS STRING, col AS STRING
+    ' Ability 12 everywhere => +1 modifier, which is what a point-buy character lands on.
+    hp = CLASSES(pc).hp + (lv - 1) * ((CLASSES(pc).hitdie / 2) + 1 + 1)
+    th = CLASSES(pc).tohit + 1
+    ac = CLASSES(pc).ac + 1
+    dmg = (CLASSES(pc).dmg / 2) + 0.5 + 1                  ' avg ntodie + STR/INT modifier
+    sum = 0
+    FOR i = 1 TO 200
+        MonsterStats lv, MK_ROOM, mhp, a
+        sum = sum + mhp
+    NEXT i
+    mhp = sum \ 200
+    mdmg = 3.5 + (lv \ 3)                                  ' the monster's 1d6 + depth bonus
+    ntodie = hp / mdmg
+    ntokill = mhp / dmg
+    IF ntodie > ntokill * 1.35 THEN
+        verdict = "comfortable": col = "|10"
+    ELSEIF ntodie > ntokill THEN
+        verdict = "tight": col = "|14"
+    ELSE
+        verdict = "LOSING": col = "|12"
+    END IF
+    PRINT PipeCol$("  " + PadR$(_TRIM$(STR$(lv)), 4) + PadR$(_TRIM$(CLASSES(pc).name), 11) + _
+        PadR$(_TRIM$(STR$(hp)), 5) + PadR$(ModStr$(th), 6) + PadR$(_TRIM$(STR$(ac)), 5) + _
+        PadR$(_TRIM$(STR$(INT(dmg * 10) / 10)), 7) + _
+        PadR$(_TRIM$(STR$(INT(ntodie * 10) / 10)), 14) + PadR$(_TRIM$(STR$(INT(ntokill * 10) / 10)), 15) + _
+        col + verdict)
+END SUB
+
+
+' Aggregate gameplay-data-saves/dungeon-stats.csv into per-monster tallies, so balancedump
+' can print DESIGNED numbers beside OBSERVED ones. Only the columns balance cares about:
+' monster name and outcome.
+SUB LoadFightStats
+    DIM f AS INTEGER, ln AS STRING, mon AS STRING, outc AS STRING, i AS INTEGER, hit AS INTEGER
+    FS_N = 0
+    FOR i = 1 TO UBOUND(FS_MON): FS_MON(i) = "": FS_ENC(i) = 0: FS_FLED(i) = 0: FS_KILL(i) = 0: FS_DIED(i) = 0: NEXT i
+    IF NOT _FILEEXISTS("gameplay-data-saves/dungeon-stats.csv") THEN EXIT SUB
+    f = FREEFILE
+    OPEN "gameplay-data-saves/dungeon-stats.csv" FOR INPUT AS #f
+    DO UNTIL EOF(f)
+        LINE INPUT #f, ln
+        IF LEFT$(ln, 4) <> "date" AND LEN(_TRIM$(ln)) > 0 THEN
+            mon = UCASE$(CsvField$(ln, 10))
+            outc = LCASE$(CsvField$(ln, 13))
+            IF LEN(mon) > 0 THEN
+                hit = 0
+                FOR i = 1 TO FS_N
+                    IF FS_MON(i) = mon THEN hit = i: EXIT FOR
+                NEXT i
+                IF hit = 0 THEN
+                    IF FS_N >= UBOUND(FS_MON) THEN _CONTINUE
+                    FS_N = FS_N + 1: FS_MON(FS_N) = mon: hit = FS_N
+                END IF
+                FS_ENC(hit) = FS_ENC(hit) + 1
+                SELECT CASE outc
+                    CASE "killed": FS_KILL(hit) = FS_KILL(hit) + 1
+                    CASE "fled": FS_FLED(hit) = FS_FLED(hit) + 1
+                    CASE "died": FS_DIED(hit) = FS_DIED(hit) + 1
+                END SELECT
+            END IF
+        END IF
+    LOOP
+    CLOSE #f
+END SUB
+
+' Field n of a comma-separated line, honouring "quoted, cells" -- the log writes monster and
+' hero names through CsvCell$, so a naive split on commas would mangle any name with one in it.
+FUNCTION CsvField$ (ln AS STRING, n AS INTEGER)
+    DIM i AS INTEGER, fld AS INTEGER, inq AS INTEGER, ch AS STRING, cur AS STRING
+    fld = 1
+    FOR i = 1 TO LEN(ln)
+        ch = MID$(ln, i, 1)
+        IF ch = CHR$(34) THEN
+            inq = NOT inq
+        ELSEIF ch = "," AND NOT inq THEN
+            IF fld = n THEN CsvField$ = _TRIM$(cur): EXIT FUNCTION
+            fld = fld + 1: cur = ""
+        ELSE
+            cur = cur + ch
+        END IF
+    NEXT i
+    IF fld = n THEN CsvField$ = _TRIM$(cur)
+END FUNCTION
+
+' The four observed columns for one monster, or "" when stats were not asked for.
+FUNCTION FightStatCols$ (nm AS STRING, withstats AS INTEGER)
+    DIM i AS INTEGER, u AS STRING
+    FightStatCols$ = ""
+    IF NOT withstats THEN EXIT FUNCTION
+    u = UCASE$(_TRIM$(nm))
+    FOR i = 1 TO FS_N
+        IF FS_MON(i) = u THEN
+            FightStatCols$ = PadR$(_TRIM$(STR$(FS_ENC(i))), 6) + PadR$(_TRIM$(STR$(FS_FLED(i))), 5) + _
+                             PadR$(_TRIM$(STR$(FS_KILL(i))), 5) + _TRIM$(STR$(FS_DIED(i)))
+            EXIT FUNCTION
+        END IF
+    NEXT i
+    FightStatCols$ = "|08     -    -    -    -"      ' never met: dashes, not zeroes
+END FUNCTION
