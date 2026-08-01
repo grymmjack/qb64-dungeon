@@ -1,205 +1,14 @@
-
-Room detection (from the BUG-*.png screenshots): @critical
-    ☐ NOTE: board generation shifted (5 fewer monster rooms -- the 4-cell plaques; the other 6
-      ☐ were already under the old MIN_ROOM gate), so an in-flight save rebuilds the same MAP
-      ☐ with the same cleared/looted flags, but rooms hold different monsters
-      ☐ Expected gold fell 383k -> 355k; every class goal is still met by clearing level 1-2
-      ☐ UPDATE 26-08-01: rooms now come from the ART alone, so the 12 LOST ROOMS are recovered
-      ☐ (floor 918 -> 934 cells, doors 42 -> 44). Room COUNT is unchanged at 82 and gold at
-      ☐ 354943, so this caveat still stands as written -- an old save rebuilds the same map
-
-Board layering (WIRED -- layer-1 decoration is drawn and walk-over): @next
-    ✔ `dungeon.run sectorauto` PROVED the payoff: over the raw board the per-colour bounding @done(26-08-01 05:05)
-      ✔ boxes overlap 15 ways (logo + legend + top frame all paint in level colours); exclude @done(26-08-01)
-      ✔ exactly what would move to layer-1 and it is 9/9 CLEAN, no overlaps @done(26-08-01)
-      ✔ LANDED: with roomlint/sectorauto sampling FULL_COLLIDE, ALL THREE passes report NO @done(26-08-01)
-        ✔ OVERLAPS -- including "over the WHOLE image", which used to fail 15 ways @done(26-08-01)
-      ✔ and "every walkable cell resolves to a level" (was 91 unclaimed): PlayerLevel%'s @done(26-08-01)
-        ✔ sticky fallback now has nothing left to cover @done(26-08-01)
-      ✔ -> sectors.txt rects and board-132x50-sector-mask.ans BOTH RETIRED as authored files @done(26-08-01)
-        ✔ the mask file is deleted and `sectorgen` is gone; sectors.txt keeps only id|label|colour @done(26-08-01)
-      ✔ -> DeriveSectors: tight per-colour boxes from the art, then expand each until it meets a @done(26-08-01)
-        ✔ neighbour or the board edge -- that expansion is what claims the CORRIDORS @done(26-08-01)
-        ✔ SECTOR.get_by_xy is now a straight SECTORAT lookup; no rect fallback, no mask @done(26-08-01)
-        ✔ art always wins: a cell painted a level colour is reassigned to it after the boxes land @done(26-08-01)
-    ✔ Game_FloorColorAt~& READS THE PIXEL, not geometry: returns the cell's own colour when the @done(26-08-01)
-      ✔ game recognises it as a level floor colour, else 0 @done(26-08-01)
-      ✔ GOTCHA: it samples _SOURCE, and CanMove/InRoomNow reach the board by _PUTIMAGE rather @done(26-08-01)
-        ✔ than _SOURCE -- both now pin _SOURCE COLLIDE_BOARD around the call, or the answer @done(26-08-01)
-        ✔ comes from whatever image the previous caller happened to leave selected @done(26-08-01)
-    ✔ DetectRooms/RoomVisit no longer consult sectors -- the ART states the level, so a block is @done(26-08-01)
-      ✔ seeded wherever it is painted a level colour and takes its level FROM that colour @done(26-08-01)
-      ✔ RESULT: "no lost rooms -- every painted floor block inside the play area became a room" @done(26-08-01)
-        ✔ (was 12 LOST, 38 door-connected floor cells stranded); floor 918 -> 934, doors 42 -> 44 @done(26-08-01)
-      ✔ roomlint and boardsplit now share ONE InPlayArea% -- they disagreed about where the board @done(26-08-01)
-        ✔ ends, so six FRAME strips reported as lost rooms DetectRooms never scans @done(26-08-01)
-      ✔ economy unchanged at 354943 expected gold; room COUNT still 82 (recovered cells merged @done(26-08-01)
-        ✔ into existing blocks rather than adding new ones) @done(26-08-01)
-    ✔ ansilint verifies layer-0 is clean: `CollisionLayerLint` reports any pixel that is not path @done(26-08-01)
-      ✔ / door / secret door / a zone floor colour, via the existing Game_ZoneByColor% hook so it @done(26-08-01)
-      ✔ stays engine code; layer-0 reports CLEAN, verified against a deliberately broken copy @done(26-08-01)
-      ✔ WHY IT MATTERS: a stray colour in layer-0 is INVISIBLE in play -- the display composites @done(26-08-01)
-        ✔ layer-1 over it and looks correct while the player walks into nothing @done(26-08-01)
-    ✔ the F7/F8 half-horizontal label marks inside the map were classified as collision @done(26-08-01)
-      ✔ COLOUR alone cannot tell label trim from a structural room lip -- but NEIGHBOURS can: @done(26-08-01)
-        ✔ a real lip always touches the room it edges, so a half block with nothing painted @done(26-08-01)
-        ✔ around it in the collision layer is trim. boardsplit moves those to decoration @done(26-08-01)
-      ✔ 13 islands found; marked in full before any are moved, so one removal cannot blank the @done(26-08-01)
-        ✔ neighbour that made the next cell non-island (the result would depend on scan order) @done(26-08-01)
-      ✔ RESULT: OrphanBlockScan now reports NOTHING -- no lost rooms, no unclaimed blocks, no @done(26-08-01)
-        ✔ blocks with no cell to stand on. Every painted block in layer-0 is a real room @done(26-08-01)
-      ✔ the 158 remaining decorative half-blocks are lips INSIDE rooms -- correct, and expected @done(26-08-01)
-
-
 Needs Thorough Testing:
     ☐ Strategic Combat
       ☐ This is happening way too fast and needs tuned
       ☐ We do not want fuse mechanics until a "ready" is given by player like when recording with an armed count-in metronome for music
       ☐ We need confirmations and "ready to proceed" moments as the pace is way too frantic right now
 
-SFX Tweaks:
-    ✔ Add ambient sound effects according to taste/level area: @done(26-08-01)
-      ✔ Thumps @done(26-08-01)
-      ✔ Hinges @done(26-08-01)
-      ✔ Slams @done(26-08-01)
-      ✔ Chains @done(26-08-01)
-      ✔ Wind @done(26-08-01)
-      ✔ Deep drones @done(26-08-01)
-      ✔ Screams @done(26-08-01)
-      ✔ Monster chatter @done(26-08-01)
-        ✔ Squeaks @done(26-08-01)
-        ✔ Hisses @done(26-08-01)
-        ✔ Gibberish @done(26-08-01)
-        ✔ Growls @done(26-08-01)
-        ✔ Slithers @done(26-08-01)
-        ✔ Laughter @done(26-08-01)
-        ✔ Howls @done(26-08-01)
-        ✔ Barks @done(26-08-01)
-        ✔ Moans @done(26-08-01)
-        ✔ Whispers @done(26-08-01)
-      ✔ ALL 17 exist as assets/sfx/default/amb-*.ogg -- the `default` pack is the fallback @done(26-08-01)
-        ✔ every other SFX pack resolves through, so all packs inherit them unshipped @done(26-08-01)
-      ✔ "according to taste/level area" is DATA: assets/data/<pack>/ambience.txt gives each @done(26-08-01)
-        ✔ level its own weighted pool (Torture Chamber screams, Crypt moans, Wizard mutters) @done(26-08-01)
-      ✔ AmbienceTick fires one every AMB_SECS_MIN..MAX sec of PLAY only -- never during @done(26-08-01)
-        ✔ combat/menus/banners; AMB_SECS_MIN=0 in tuning.txt turns it off @done(26-08-01)
-      ✔ never falls back to the tone beeper: a missing ambient noise is SILENCE, because a @done(26-08-01)
-        ✔ PC-speaker blip is a UI sound, not something heard down a corridor @done(26-08-01)
-      ✔ generated with soundmon --chipfx (PSG synthesis, needs no GPU) @done(26-08-01)
-
 Narration Small Tweaks:
-    ✔ Add additional narrations for combat - stop the repeat of "blood runs..." @done(26-08-01)
-      ✔ ROOT CAUSE: class_events.txt had exactly ONE line per event, so every player hit, @done(26-08-01)
-        ✔ crit, miss and fumble printed the same sentence, every fight, forever @done(26-08-01)
-      ✔ default pools now: class attack 1->12, class crit 1->11, monster attack 2->12, @done(26-08-01)
-        ✔ monster crit 1->11, monster death 2->12  (lines below, copy-edited for typos) @done(26-08-01)
-      ✔ NEW killcrit event (code 6): a crit that FINISHES a monster gets its own aftermath @done(26-08-01)
-        ✔ text -- the plain death line reads as a quiet expiry, wrong after you open one up @done(26-08-01)
-      ✔ level-up lines live in a NEW assets/flavor/<pack>/levelup.txt (flavor pool 5) @done(26-08-01)
-      ✔ Player kills monster: @done(26-08-01)
-        ✔ Your foe falls before you and you breathe a sigh of relief.. for now. @done(26-08-01)
-        ✔ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly. @done(26-08-01)
-        ✔ The creature looks pathetic and harmless in it's state of frozen pain and death. @done(26-08-01)
-        ✔ Exasperated and grateful you step over your opponent and carry on. @done(26-08-01)
-        ✔ The place wreaks of blood and bits and sweat and pain and you smile in victory. @done(26-08-01)
-        ✔ With a deep sigh and a gathering of courage you press on. @done(26-08-01)
-        ✔ You wipe yourself clean of the fluids your enemy shared with you in their dance of death. @done(26-08-01)
-        ✔ Twitching and breathing a final breath your foe perishes from this realm. @done(26-08-01)
-        ✔ Another one meets the clearing at the end of the path. You strengthen your resolve for more. @done(26-08-01)
-        ✔ Death. Dealt. The cards to come unknown but the dealer you are just the same. @done(26-08-01)
-      ✔ Player kills monster with critical: @done(26-08-01)
-        ✔ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise. @done(26-08-01)
-        ✔ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred? @done(26-08-01)
-        ✔ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away. @done(26-08-01)
-        ✔ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin. @done(26-08-01)
-        ✔ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood. @done(26-08-01)
-        ✔ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success. @done(26-08-01)
-        ✔ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy. @done(26-08-01)
-        ✔ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS! @done(26-08-01)
-        ✔ Shivering and careful you survey your surroundings; a grim visage of death and destruction. @done(26-08-01)
-        ✔ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness. @done(26-08-01)
-      ✔ When character levels up - add 10 flavor texts: @done(26-08-01)
-        ✔ You have learned much and conquered more! You are emboldened and filled with vigor @done(26-08-01)
-        ✔ Everything that has stood between you and your goal has been ... handled. Well done. @done(26-08-01)
-        ✔ You feel as if nothing can stop you and you are determined to push ahead even if it means your end. @done(26-08-01)
-        ✔ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more. @done(26-08-01)
-        ✔ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge. @done(26-08-01)
-        ✔ Pain and suffering is no match for endurance and resolve. You will ascend and you will win. @done(26-08-01)
-        ✔ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them. @done(26-08-01)
-        ✔ What is life without achievement? What is existence without testing the limits of such? Press on hero! @done(26-08-01)
-        ✔ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own. @done(26-08-01)
-        ✔ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate. @done(26-08-01)
-      ✔ Player hits monster: @done(26-08-01)
-        ✔ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost. @done(26-08-01)
-        ✔ With precision timing and strategy you bring death and harbor no mercy. @done(26-08-01)
-        ✔ A salty vision of blood and entrails coat the floor; wet death, theirs. @done(26-08-01)
-        ✔ Instinct takes over and you feel as if your movements are controlled by gods grace. @done(26-08-01)
-        ✔ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not. @done(26-08-01)
-        ✔ One strike at a time chips away at your foes composure and flow of life. @done(26-08-01)
-        ✔ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes. @done(26-08-01)
-        ✔ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands. @done(26-08-01)
-        ✔ Frenzy, absolute and all encompassing has made you into a killing machine. @done(26-08-01)
-        ✔ Rage and blood and fever embrace your cold movements as the dealer of death. @done(26-08-01)
-        ✔ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain. @done(26-08-01)
-      ✔ Player crits monster: @done(26-08-01)
-        ✔ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming! @done(26-08-01)
-        ✔ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred. @done(26-08-01)
-        ✔ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle. @done(26-08-01)
-        ✔ You are soaked with the blood of your enemy as it juts and sprays and coats the place. @done(26-08-01)
-        ✔ Cold calmness and deliberation come upon you. This is a dance, not a fight.  @done(26-08-01)
-        ✔ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect. @done(26-08-01)
-        ✔ A vision of heat, fur, scales, and steel blurry and primal. @done(26-08-01)
-        ✔ TAKE THAT! you shout as you unleash your potential into the fray. @done(26-08-01)
-        ✔ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you. @done(26-08-01)
-        ✔ You were born for this. You live for this. You are unstoppable! @done(26-08-01)
-      ✔ Monster hits player: @done(26-08-01)
-        ✔ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it. @done(26-08-01)
-        ✔ This beast seems seasoned and as it tears into you growls a tribal cry of fury. @done(26-08-01)
-        ✔ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you. @done(26-08-01)
-        ✔ Your body aches and tenses with the impact of the attack. @done(26-08-01)
-        ✔ Rushing and unstoppable the merciless fangs and teeth and limbs come at you. @done(26-08-01)
-        ✔ A fair blow from your foe, you cannot deny it. @done(26-08-01)
-        ✔ You catalog the pain and unthrottle your rage for payback. @done(26-08-01)
-        ✔ Blinking in disbelief as you thought you had out maneuvered that attack. @done(26-08-01)
-        ✔ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds. @done(26-08-01)
-        ✔ God! That hurts! @done(26-08-01)
-      ✔ Monster crits player: @done(26-08-01)
-        ✔ How can this be?! It won't happen again. @done(26-08-01)
-        ✔ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake. @done(26-08-01)
-        ✔ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain. @done(26-08-01)
-        ✔ MY! GOD!! THAT REALLY HURTS!  @done(26-08-01)
-        ✔ SON OF A.. ! YOU DIRTY!  @done(26-08-01)
-        ✔ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness. @done(26-08-01)
-        ✔ This creature is either lucky or powerful or both. @done(26-08-01)
-        ✔ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back. @done(26-08-01)
-        ✔ It's as if you might actually have to try here. @done(26-08-01)
-        ✔ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse.  @done(26-08-01)
-    ✔ Add monster names, and item names into narration and manifest so they can be @done(26-08-01)
-      ✔ dynamically spoken during the game @done(26-08-01)
-      ✔ 37 SPOKEN NAMES in the manifest (narration/mon.<slug>, narration/treasure.<slug>) -- @done(26-08-01)
-        ✔ just the name, said plainly. One clip per monster, not one per (monster x line), @done(26-08-01)
-        ✔ which would be thousands @done(26-08-01)
-      ✔ NarrateQueue + NarrateNamed compose them: "GOBLINS." then the generic line. Narrate @done(26-08-01)
-        ✔ refuses to cut off a playing line, so composed speech needed a real QUEUE, drained @done(26-08-01)
-        ✔ by AudioTick. Encounter and slay both use it @done(26-08-01)
-      ✔ degrades in the useful direction: no name file -> just the line; no line -> just the @done(26-08-01)
-        ✔ name; neither -> silence. A pack can ship names alone and still gain something @done(26-08-01)
       ☐ BLOCKED 26-08-01: needs spoken audio (soundmon --narrate-file / Kokoro), and no
         ☐ ComfyUI server was reachable. `dungeon.run audiomanifest audit` prints the exact
         ☐ work list -- 137 lines, all narration, in `narration/<key> | <line>` form
-    ✔ Add all the monster event descriptions into narration manifest and have them play @done(26-08-01)
-      ✔ optional 4th field in monster_events/class_events = the NARRATION KEY; levelup.txt @done(26-08-01)
-        ✔ takes `text | key`. Authored INTO the files, so re-ordering cannot re-point audio @done(26-08-01)
-      ✔ ONLY token-free lines get a key: a line with {mon}/{dmg} reads differently every fight, @done(26-08-01)
-        ✔ so no recording can match it -- pre-recording it would literally say "the mon" @done(26-08-01)
-      ✔ EventLine$ sets FX_NARRKEY on every pick (even to ""), EventBanner speaks the very @done(26-08-01)
-        ✔ line it is showing; the code FALLBACK text is never narrated -- nothing recorded it @done(26-08-01)
-      ✔ manifest 224 -> 331 entries (107 new); all keys unique and filesystem-safe @done(26-08-01)
       ☐ REMAINS: generate the audio (needs a ComfyUI server). 244 missing, all narration.
-    ✔ Audit existing events for sensory coverage -- `dungeon.run eventsaudit` @done(26-08-01)
-      ✔ Sight / Sound / Touch / Smell / Taste, counted per pool with a bar and a "thin" flag @done(26-08-01)
-      ✔ word lists live in SenseHit% and are meant to be edited -- this is a WRITING aid, not @done(26-08-01)
-        ✔ a test: it never fails a build, and a low count is a prompt to look @done(26-08-01)
       ☐ ACT ON IT -- first reading (26-08-01):
         ☐ monster_events: Sight 13% Sound 6% Touch 15% Smell 2% Taste 0%
         ☐ class_events:   Sight 14% Sound 12% Touch 24% Smell 0% Taste 3%
@@ -207,18 +16,15 @@ Narration Small Tweaks:
         ☐ SMELL is near-absent in both -- the cheapest, most dungeon-y sense to add
 
 Small UI Tweaks:
-    ☐ Add art pixel/ansi for:
+    ☐ Add art pixel/ansi for: @critical
       ☐ YOU DIED screen
       ☐ YOU WIN screen
-    ☐ Add player portrait to combat bar, left side, with weapon using on right side of box
-    ☐ Make D4 angle a little easier to read - point it more downward.
-    ✔ Add layer under player movement layer for drawing stairs and decorations @done(26-08-01)
-      ✔ this is layer-1: anything drawn there is composited into the DISPLAY and is invisible to @done(26-08-01)
-        ✔ collision, so it can be walked over (proven with 40 glyphs painted onto plain corridor) @done(26-08-01)
+    ☐ Add player portrait to combat bar, left side, with weapon using on right side of box @critical
+    ☐ Make D4 angle a little easier to read - point it more downward. @high
       ☐ On stairs, have a random encounter 50% of the time - sentry guards, or 30% for a random trap
     ☐ Modify map so that level 4 cannot reach level 9
     ☐ Modify map so that stairs lead to only the next level or the previous level
-    ☐ Explain in character creator what each stat does in a side panel
+    ☐ Explain in character creator what each stat does in a side panel @critical
       ☐ STR:
         ☐ extra damage in combat per successful strike
         ☐ chance to break through doors and chests
@@ -253,43 +59,36 @@ Small UI Tweaks:
     ☐ Initiative modifier is the users level / 2. 
       ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be
       ☐ D20 for initiative
-    ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage"
+    ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage" @high
       ☐ Can 1/2 the damage if successful
-    ☐ On level up let player add 1 point to a stat up to 18
+    ☐ On level up let player add 1 point to a stat up to 18 @critical
       ☐ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is setup - a free life basically
-    ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll
+    ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll @high
       ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
       ☐ Run gesture as normal from that point
-    ✔ Explain in rules that clearing all rooms in a level gains a character level @done(26-08-01)
-      ✔ new "Clearing a floor (D&D mode)" section in DUNGEON-RULES.md, which [M] Rules reads @done(26-08-01)
-      ✔ also documented "Going home to heal" (the new fixed amount + gates) and "The 9th level" @done(26-08-01)
-    ✔ Press TAB during game to find player @done(26-08-01)
-      ✔ Dims screen except circle around the player and flashes a circle around them 5 times @done(26-08-01)
-        ✔ FindPlayerFlash draws onto CANVAS and repaints from CANVAS_COPY, so it holds no state @done(26-08-01)
-        ✔ and cannot leave anything behind; listed in [?] CONTROLS @done(26-08-01)
-    ☐ Make Bestiary only show what has been ever found during any game run
+    ☐ Make Bestiary only show what has been ever found during any game run @critical
       ☐ If a creature has not yet been discovered, show a mystery slot ? with image ?
-    ☐ Monsters images move down and center slightly when attacking
-    ☐ Add blood overlay on monsters when taking damage - closer to death = more blood
+    ☐ Monsters images move down and center slightly when attacking @low
+    ☐ Add blood overlay on monsters when taking damage - closer to death = more blood @high
       ☐ If no blood, use black for undead
-    ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character)
+    ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character) @low
 
 Big UI Tweaks:
-    ☐ New Dice option: Roll style:
+    ☐ New Dice option: Roll style: @high
       ☐ Hold and shake:
         ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
       ☐ Hold and shake and spin:
         ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
         ☐ Use gesture to spin the dice and change it's spin amount - just a fun thing
-    ☐ New Dice option: Box shake:
+    ☐ New Dice option: Box shake: @high
       ☐ When rolling, draw a fuse (quick one) to allow the dice to be juggled around and shaken in the box, to adjust a bad roll.
       ☐ Except for nat 1s and fumbles, this will be a fun way to play real dice on a computer
       ☐ While it's technically cheaty, it could be fun.
       ☐ You can only shake the box one time per roll
-    ☐ Add ansi-art into the game where currently only pixel-art exists
-    ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern
-    ☐ Create item display frames for monsters, curios, and locations
-    ☐ Add stats box (resets per game) - also tracked in game summary and stats log:
+    ☐ Add ansi-art into the game where currently only pixel-art exists @critical
+    ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern @low
+    ☐ Create item display frames for monsters, curios, and locations @low
+    ☐ Add stats box (resets per game) - also tracked in game summary and stats log: @high
       ☐ Time elapsed
       ☐ Turns taken
       ☐ Distance Traveled
@@ -338,19 +137,8 @@ Huge UI Efforts:
         ☐ Inventory change
 
 Game Tweaks:
-    ✔ Create audit mode for packs @done(26-08-01)
-      ✔ command line option *manifest (new option: audit) -- works on ALL FOUR manifests @done(26-08-01)
-        ✔ audiomanifest / imagemanifest / uimanifest / fightmanifest @done(26-08-01)
-        ✔ Checks against manifest for missing entries in the pack @done(26-08-01)
-          ✔ Returns them in same format as manifest with count of missing at top @done(26-08-01)
-            ✔ e.g. dungeon.run audiomanifest audit -> "# MISSING: 137" then the work list @done(26-08-01)
-      ✔ resolution mirrors the loaders exactly (selected pack, then default/, per file), so a @done(26-08-01)
-        ✔ partial pack counts only the files it actually ships @done(26-08-01)
-      ✔ FIRST RESULT: audio 137 missing and ALL of them narration; image/ui/fight 0 missing @done(26-08-01)
-      ✔ `audit` is matched as a WHOLE ARGUMENT, not by INSTR -- dev modes match by substring @done(26-08-01)
-        ✔ and a sloppy test would fire on any mode whose name happened to contain it @done(26-08-01)
 
-    ☐ Create command line option balancedump
+    ☐ Create command line option balancedump @high
       ☐ Dumps in a table: (fetches from stats with --includestats *)
         ☐ Levels and Monsters:
           ☐ Level | Monster | HP | ToHitBonus | AC | XP | DMG range | Gold | Items | * # Encountered | * # PlayerFled | * # Killed | * # KillPlayer
@@ -359,7 +147,7 @@ Game Tweaks:
             - hits to die - average monster DMG, vs. player AC, vs. Player HP = avg number of hits to kill player
               - e.g. Level 1 monsters HP average is 10, ToHitbonus is 0, DMG range is 5, and player ac at same level is 11, and HP is 12 = 12/5 = 2 hits to die at level 1
             - hits to kill - average monster HP vs Player DMG range average + ToHitBonus average = avg number of hits to kill
-    ☐ On death screen:
+    ☐ On death screen: @high
       ☐ Show stats from main screen, and play time, etc.
       ☐ Animate:
         ☐ Gravestone: Here Lies ... newline {player name}
@@ -377,7 +165,7 @@ Game Tweaks:
         ☐ Total Damage done under: big number
         ☐ Total Gold found: Big number
         ☐ Snapshot death screen for fallen lords, and their stats like legendary lords, but those who failed
-    ☐ If a single combat goes > 10 rounds and player is < 25% HP at end
+    ☐ If a single combat goes > 10 rounds and player is < 25% HP at end @high
       ☐ Give them a 10% chance at a full heal curio as they drop to their knees and pray for strength
       ☐ Give them a 50% chance at finding 2 Large potions of healing
       ☐ Give them a 40% chance of finding 1 Large potion and 2 small potions of healing
@@ -397,25 +185,12 @@ Game Tweaks:
           ☐ At <50% HP
           ☐ At <25% HP
           ☐ Off
-    ✔ When attempting to break down a door @done(26-08-01)
-      ✔ Chance of wandering encounter hearing the noise is +25% each attempt @done(26-08-01)
-      ✔ Unless the entire level is cleared then 5% each attempt @done(26-08-01)
-        ✔ the tally is per DOOR (door_noise_idx) -- switch doors and it restarts, because it is @done(26-08-01)
-        ✔ this door's racket, not a running penalty on you; both % are tuning.txt knobs @done(26-08-01)
-      ☐ Chance of door having trap when it takes > 1 time to break through:
+      ☐ Chance of door having trap when it takes > 1 time to break through: @high
         ☐ 20% chance of swamp gas - SAVE VS POISON or -2 HP
         ☐ 20% chance of arrow trap - SAVE VS DEX or -1D6 HP
         ☐ 10% chance of monster ambush - extra monster attack to start combat no chance to flee surprised
         ☐ 50% nothing happens regular entry
-    ✔ When monsters fumble can take damage hitting themselves @done(26-08-01)
-      ✔ 10% chance of 6 damage @done(26-08-01)
-      ✔ 20% chance of 3 damage @done(26-08-01)
-      ✔ 30% chance of 1 damage @done(26-08-01)
-      ✔ 40% chance of no damage but lose next attack @done(26-08-01)
-      ✔ done as DATA: effects.txt table 3 is now 10 rows read uniformly, so the ROW COUNT is @done(26-08-01)
-        ✔ the probability (1 row = 10%). New effect kind 6 = self-damage EXACT, because the @done(26-08-01)
-        ✔ old kind 3 rolls `die` and would smear the intended 6 / 3 / 1 into a range @done(26-08-01)
-    ☐ Give monsters appropriate elemental effects:
+    ☐ Give monsters appropriate elemental effects: @high
       ☐ All can be avoided with successful saving throw
       ☐ GIANT SPIDER, GIANT SNAKE:
       ☐ POISON chance 20% for 1D4 rounds -1HP each round
@@ -429,24 +204,8 @@ Game Tweaks:
       ☐ GREEN SLIME, PURPLE WORM, BLACK PUDDING:
         ☐ ACID SPRAY chance 25% -1D6 1 time at time of impact, -1 HP for 3 rounds after
         ☐ Save vs. DEX
-    ✔ Returning to the start heals the amount they STARTED with @done(26-08-01)
-      ✔ e.g. if they started with 15 HP, heals 15 HP (hp_start_amount, captured at creation) @done(26-08-01)
-      ✔ The player must have at least 1 HP before they can be healed @done(26-08-01)
-      ✔ The player must have less than 75% of their HP before this will work @done(26-08-01)
-        ✔ start_heals counts it, and it shows in the Game Summary as "Trips home to heal" @done(26-08-01)
-      ✔ this REPLACES a heal-to-full, which got stronger as max HP grew; a fixed amount does @done(26-08-01)
-        ✔ the opposite, so going home matters less and less as you level @done(26-08-01)
-      ✔ old saves / loaded champions have no captured value, so it derives once from maxhp @done(26-08-01)
-        ✔ rather than bumping the save format -- worst case is exactly the old behaviour @done(26-08-01)
         ☐ On return back to start increase the likelihood of random encounters by +10% each time after 2 times up to 50% chance
-      ☐ Scrawling text with rest image (add to imagemanifest and ansimanifest)
-      ☐ Narration: Having sustained wounds you rest at the entrance to heal and recouperate. You are healed after a few days.
-      ☐ Transition: Screen fade in to white then back to normal quickly
-      ☐ SFX: Running water, gold shining and deep breathe and exhale calmly
-      ☐ This allows the player to reuse the starting point
-      ☐ Return to Start Heals setting should be a game option: ON/OFF
-      ☐ Add this to the RULES for D&D if it's a setting that's enabled
-    ☐ Add [R]est option while in dungeon (D&D mode)
+    ☐ Add [R]est option while in dungeon (D&D mode) @high
       ☐ When resting, for each R pressed, heals 1 HP but chance of random encounter
         ☐ Encounter is never a curio
         ☐ Encounter is always a random monster (but not a boss) in the same sector/level they are in
@@ -457,7 +216,7 @@ Game Tweaks:
         ☐ This adds a risk reward mechanic to resting
       ☐ Resting should be a game option: ON/OFF
       ☐ Add this to the RULES for D&D if it's a setting that's enabled
-    ☐ Add a luck mechanic for re-rolls - luck comes from CHA (therefore making CHA a non throwaway stat)
+    ☐ Add a luck mechanic for re-rolls - luck comes from CHA (therefore making CHA a non throwaway stat) @critical
       ☐ Toggle in settings for game options on / off
       ☐ Re-roll is permanent no matter the outcome
       ☐ Cannot re-roll re-rolls
@@ -465,24 +224,25 @@ Game Tweaks:
         ☐ Replenished every time character levels up
       ☐ Luck re-rolls: ON/OFF in settings
       ☐ Add this to the RULES for D&D if it's a setting that's enabled
-    ☐ On max damage use gesture to check a critical
+    ☐ On max damage use gesture to check a critical @high
       ☐ Criticals confirmed like this don't get flourishes - only real nat 20s get flourishes
-    ☐ Add Flourishes based on DEX mechanic (therefore giving DEX more weight)
+    ☐ Add Flourishes based on DEX mechanic (therefore giving DEX more weight) @high
       ☐ Flourishes influenced by stats (bar sizes, target sizes, timing tightness, etc)
       ☐ Number of flourishes based on dex bonus
       ☐ Replenished every time character levels up
       ☐ +1 Given one back when a crit occurs nat 20
       ☐ -1 Lose one when a fumble occurs nat 1
       ☐ Flourishes work with weapons AND magic
-    ✔ When breaking down doors chance for random encounter due to noise @done(26-08-01)
-      ✔ superseded by the escalating version above (+25% per attempt, 5% on a cleared floor) @done(26-08-01)
-    ✔ Crypt forces line of sight even if disabled in settings - 9th level @done(26-08-01)
-      ✔ via a separate fov_forced flag + FovOn%, never by writing opt_fov -- opt_fov is the @done(26-08-01)
-        ✔ player's SAVED setting and must come back unchanged when they leave the floor @done(26-08-01)
-      ✔ every visibility test now asks FovOn%; entering builds the LOS masks and banners @done(26-08-01)
-      ✔ If wizard ... can light to get line of sight disabled (Wizards are exempt) @done(26-08-01)
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
+    Rest systems: @critical
+        ☐ Scrawling text with rest image (add to imagemanifest and ansimanifest)
+        ☐ Narration: Having sustained wounds you rest at the entrance to heal and recouperate. You are healed after a few days.
+        ☐ Transition: Screen fade in to white then back to normal quickly
+        ☐ SFX: Running water, gold shining and deep breathe and exhale calmly
+        ☐ This allows the player to reuse the starting point
+        ☐ Return to Start Heals setting should be a game option: ON/OFF
+        ☐ Add this to the RULES for D&D if it's a setting that's enabled
 
 Roadmap (future / bigger efforts):
     ☐ Auto-move: ON/OFF (will be used for computer players later)
@@ -672,6 +432,239 @@ Refinement-2 backlog (from live playtest 26-07-24 -- see REFINEMENT-2-REVIEW.md)
       marker to the baked .ans (art-side edit; the code already draws both via DrawEntities).
 
 Archive:
+\t\t✔ NOTE: board generation shifted (5 fewer monster rooms -- the 4-cell plaques; the other 6 @done(26-08-01 13:28) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ were already under the old MIN_ROOM gate), so an in-flight save rebuilds the same MAP @done(26-08-01 13:27) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ with the same cleared/looted flags, but rooms hold different monsters @done(26-08-01 13:27) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ Expected gold fell 383k -> 355k; every class goal is still met by clearing level 1-2 @done(26-08-01 13:27) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ UPDATE 26-08-01: rooms now come from the ART alone, so the 12 LOST ROOMS are recovered @done(26-08-01 13:27) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ (floor 918 -> 934 cells, doors 42 -> 44). Room COUNT is unchanged at 82 and gold at @done(26-08-01 13:27) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ 354943, so this caveat still stands as written -- an old save rebuilds the same map @done(26-08-01 13:27) @project(Room detection (from the BUG-*.png screenshots))
+\t\t✔ `dungeon.run sectorauto` PROVED the payoff: over the raw board the per-colour bounding @done(26-08-01 05:05) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ boxes overlap 15 ways (logo + legend + top frame all paint in level colours); exclude @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ exactly what would move to layer-1 and it is 9/9 CLEAN, no overlaps @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ LANDED: with roomlint/sectorauto sampling FULL_COLLIDE, ALL THREE passes report NO @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ OVERLAPS -- including "over the WHOLE image", which used to fail 15 ways @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ and "every walkable cell resolves to a level" (was 91 unclaimed): PlayerLevel%'s @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ sticky fallback now has nothing left to cover @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ -> sectors.txt rects and board-132x50-sector-mask.ans BOTH RETIRED as authored files @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ the mask file is deleted and `sectorgen` is gone; sectors.txt keeps only id|label|colour @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ -> DeriveSectors: tight per-colour boxes from the art, then expand each until it meets a @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ neighbour or the board edge -- that expansion is what claims the CORRIDORS @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ SECTOR.get_by_xy is now a straight SECTORAT lookup; no rect fallback, no mask @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ art always wins: a cell painted a level colour is reassigned to it after the boxes land @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ Game_FloorColorAt~& READS THE PIXEL, not geometry: returns the cell's own colour when the @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ game recognises it as a level floor colour, else 0 @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ GOTCHA: it samples _SOURCE, and CanMove/InRoomNow reach the board by _PUTIMAGE rather @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ than _SOURCE -- both now pin _SOURCE COLLIDE_BOARD around the call, or the answer @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ comes from whatever image the previous caller happened to leave selected @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ DetectRooms/RoomVisit no longer consult sectors -- the ART states the level, so a block is @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ seeded wherever it is painted a level colour and takes its level FROM that colour @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ RESULT: "no lost rooms -- every painted floor block inside the play area became a room" @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ (was 12 LOST, 38 door-connected floor cells stranded); floor 918 -> 934, doors 42 -> 44 @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ roomlint and boardsplit now share ONE InPlayArea% -- they disagreed about where the board @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ ends, so six FRAME strips reported as lost rooms DetectRooms never scans @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ economy unchanged at 354943 expected gold; room COUNT still 82 (recovered cells merged @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ into existing blocks rather than adding new ones) @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ ansilint verifies layer-0 is clean: `CollisionLayerLint` reports any pixel that is not path @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ / door / secret door / a zone floor colour, via the existing Game_ZoneByColor% hook so it @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ stays engine code; layer-0 reports CLEAN, verified against a deliberately broken copy @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ WHY IT MATTERS: a stray colour in layer-0 is INVISIBLE in play -- the display composites @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ layer-1 over it and looks correct while the player walks into nothing @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ the F7/F8 half-horizontal label marks inside the map were classified as collision @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ COLOUR alone cannot tell label trim from a structural room lip -- but NEIGHBOURS can: @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ a real lip always touches the room it edges, so a half block with nothing painted @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ around it in the collision layer is trim. boardsplit moves those to decoration @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ 13 islands found; marked in full before any are moved, so one removal cannot blank the @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ neighbour that made the next cell non-island (the result would depend on scan order) @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ RESULT: OrphanBlockScan now reports NOTHING -- no lost rooms, no unclaimed blocks, no @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ blocks with no cell to stand on. Every painted block in layer-0 is a real room @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ the 158 remaining decorative half-blocks are lips INSIDE rooms -- correct, and expected @done(26-08-01) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
+\t\t✔ Add ambient sound effects according to taste/level area: @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Thumps @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Hinges @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Slams @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Chains @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Wind @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Deep drones @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Screams @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Monster chatter @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Squeaks @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Hisses @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Gibberish @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Growls @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Slithers @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Laughter @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Howls @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Barks @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Moans @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Whispers @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ ALL 17 exist as assets/sfx/default/amb-*.ogg -- the `default` pack is the fallback @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ every other SFX pack resolves through, so all packs inherit them unshipped @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ "according to taste/level area" is DATA: assets/data/<pack>/ambience.txt gives each @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ level its own weighted pool (Torture Chamber screams, Crypt moans, Wizard mutters) @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ AmbienceTick fires one every AMB_SECS_MIN..MAX sec of PLAY only -- never during @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ combat/menus/banners; AMB_SECS_MIN=0 in tuning.txt turns it off @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ never falls back to the tone beeper: a missing ambient noise is SILENCE, because a @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ PC-speaker blip is a UI sound, not something heard down a corridor @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ generated with soundmon --chipfx (PSG synthesis, needs no GPU) @done(26-08-01) @project(SFX Tweaks)
+\t\t✔ Add additional narrations for combat - stop the repeat of "blood runs..." @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ ROOT CAUSE: class_events.txt had exactly ONE line per event, so every player hit, @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ crit, miss and fumble printed the same sentence, every fight, forever @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ default pools now: class attack 1->12, class crit 1->11, monster attack 2->12, @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ monster crit 1->11, monster death 2->12  (lines below, copy-edited for typos) @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ NEW killcrit event (code 6): a crit that FINISHES a monster gets its own aftermath @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ text -- the plain death line reads as a quiet expiry, wrong after you open one up @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ level-up lines live in a NEW assets/flavor/<pack>/levelup.txt (flavor pool 5) @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Player kills monster: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Your foe falls before you and you breathe a sigh of relief.. for now. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The creature looks pathetic and harmless in it's state of frozen pain and death. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Exasperated and grateful you step over your opponent and carry on. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The place wreaks of blood and bits and sweat and pain and you smile in victory. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ With a deep sigh and a gathering of courage you press on. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You wipe yourself clean of the fluids your enemy shared with you in their dance of death. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Twitching and breathing a final breath your foe perishes from this realm. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Another one meets the clearing at the end of the path. You strengthen your resolve for more. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Death. Dealt. The cards to come unknown but the dealer you are just the same. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Player kills monster with critical: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred? @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS! @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Shivering and careful you survey your surroundings; a grim visage of death and destruction. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ When character levels up - add 10 flavor texts: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You have learned much and conquered more! You are emboldened and filled with vigor @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Everything that has stood between you and your goal has been ... handled. Well done. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You feel as if nothing can stop you and you are determined to push ahead even if it means your end. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Pain and suffering is no match for endurance and resolve. You will ascend and you will win. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ What is life without achievement? What is existence without testing the limits of such? Press on hero! @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Player hits monster: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ With precision timing and strategy you bring death and harbor no mercy. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ A salty vision of blood and entrails coat the floor; wet death, theirs. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Instinct takes over and you feel as if your movements are controlled by gods grace. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ One strike at a time chips away at your foes composure and flow of life. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Frenzy, absolute and all encompassing has made you into a killing machine. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Rage and blood and fever embrace your cold movements as the dealer of death. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Player crits monster: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming! @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You are soaked with the blood of your enemy as it juts and sprays and coats the place. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Cold calmness and deliberation come upon you. This is a dance, not a fight.  @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ A vision of heat, fur, scales, and steel blurry and primal. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ TAKE THAT! you shout as you unleash your potential into the fray. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You were born for this. You live for this. You are unstoppable! @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Monster hits player: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ This beast seems seasoned and as it tears into you growls a tribal cry of fury. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Your body aches and tenses with the impact of the attack. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Rushing and unstoppable the merciless fangs and teeth and limbs come at you. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ A fair blow from your foe, you cannot deny it. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ You catalog the pain and unthrottle your rage for payback. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Blinking in disbelief as you thought you had out maneuvered that attack. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ God! That hurts! @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Monster crits player: @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ How can this be?! It won't happen again. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ MY! GOD!! THAT REALLY HURTS!  @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ SON OF A.. ! YOU DIRTY!  @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ This creature is either lucky or powerful or both. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ It's as if you might actually have to try here. @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse.  @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Add monster names, and item names into narration and manifest so they can be @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ dynamically spoken during the game @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ 37 SPOKEN NAMES in the manifest (narration/mon.<slug>, narration/treasure.<slug>) -- @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ just the name, said plainly. One clip per monster, not one per (monster x line), @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ which would be thousands @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ NarrateQueue + NarrateNamed compose them: "GOBLINS." then the generic line. Narrate @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ refuses to cut off a playing line, so composed speech needed a real QUEUE, drained @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ by AudioTick. Encounter and slay both use it @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ degrades in the useful direction: no name file -> just the line; no line -> just the @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ name; neither -> silence. A pack can ship names alone and still gain something @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Add all the monster event descriptions into narration manifest and have them play @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ optional 4th field in monster_events/class_events = the NARRATION KEY; levelup.txt @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ takes `text | key`. Authored INTO the files, so re-ordering cannot re-point audio @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ ONLY token-free lines get a key: a line with {mon}/{dmg} reads differently every fight, @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ so no recording can match it -- pre-recording it would literally say "the mon" @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ EventLine$ sets FX_NARRKEY on every pick (even to ""), EventBanner speaks the very @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ line it is showing; the code FALLBACK text is never narrated -- nothing recorded it @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ manifest 224 -> 331 entries (107 new); all keys unique and filesystem-safe @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Audit existing events for sensory coverage -- `dungeon.run eventsaudit` @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Sight / Sound / Touch / Smell / Taste, counted per pool with a bar and a "thin" flag @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ word lists live in SenseHit% and are meant to be edited -- this is a WRITING aid, not @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ a test: it never fails a build, and a low count is a prompt to look @done(26-08-01) @project(Narration Small Tweaks)
+\t\t✔ Add layer under player movement layer for drawing stairs and decorations @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ this is layer-1: anything drawn there is composited into the DISPLAY and is invisible to @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ collision, so it can be walked over (proven with 40 glyphs painted onto plain corridor) @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ Explain in rules that clearing all rooms in a level gains a character level @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ new "Clearing a floor (D&D mode)" section in DUNGEON-RULES.md, which [M] Rules reads @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ also documented "Going home to heal" (the new fixed amount + gates) and "The 9th level" @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ Press TAB during game to find player @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ Dims screen except circle around the player and flashes a circle around them 5 times @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ FindPlayerFlash draws onto CANVAS and repaints from CANVAS_COPY, so it holds no state @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ and cannot leave anything behind; listed in [?] CONTROLS @done(26-08-01) @project(Small UI Tweaks)
+\t\t✔ Create audit mode for packs @done(26-08-01) @project(Game Tweaks)
+\t\t✔ command line option *manifest (new option: audit) -- works on ALL FOUR manifests @done(26-08-01) @project(Game Tweaks)
+\t\t✔ audiomanifest / imagemanifest / uimanifest / fightmanifest @done(26-08-01) @project(Game Tweaks)
+\t\t✔ Checks against manifest for missing entries in the pack @done(26-08-01) @project(Game Tweaks)
+\t\t✔ Returns them in same format as manifest with count of missing at top @done(26-08-01) @project(Game Tweaks)
+\t\t✔ e.g. dungeon.run audiomanifest audit -> "# MISSING: 137" then the work list @done(26-08-01) @project(Game Tweaks)
+\t\t✔ resolution mirrors the loaders exactly (selected pack, then default/, per file), so a @done(26-08-01) @project(Game Tweaks)
+\t\t✔ partial pack counts only the files it actually ships @done(26-08-01) @project(Game Tweaks)
+\t\t✔ FIRST RESULT: audio 137 missing and ALL of them narration; image/ui/fight 0 missing @done(26-08-01) @project(Game Tweaks)
+\t\t✔ `audit` is matched as a WHOLE ARGUMENT, not by INSTR -- dev modes match by substring @done(26-08-01) @project(Game Tweaks)
+\t\t✔ and a sloppy test would fire on any mode whose name happened to contain it @done(26-08-01) @project(Game Tweaks)
+\t\t✔ When attempting to break down a door @done(26-08-01) @project(Game Tweaks)
+\t\t✔ Chance of wandering encounter hearing the noise is +25% each attempt @done(26-08-01) @project(Game Tweaks)
+\t\t✔ Unless the entire level is cleared then 5% each attempt @done(26-08-01) @project(Game Tweaks)
+\t\t✔ the tally is per DOOR (door_noise_idx) -- switch doors and it restarts, because it is @done(26-08-01) @project(Game Tweaks)
+\t\t✔ this door's racket, not a running penalty on you; both % are tuning.txt knobs @done(26-08-01) @project(Game Tweaks)
+\t\t✔ When monsters fumble can take damage hitting themselves @done(26-08-01) @project(Game Tweaks)
+\t\t✔ 10% chance of 6 damage @done(26-08-01) @project(Game Tweaks)
+\t\t✔ 20% chance of 3 damage @done(26-08-01) @project(Game Tweaks)
+\t\t✔ 30% chance of 1 damage @done(26-08-01) @project(Game Tweaks)
+\t\t✔ 40% chance of no damage but lose next attack @done(26-08-01) @project(Game Tweaks)
+\t\t✔ done as DATA: effects.txt table 3 is now 10 rows read uniformly, so the ROW COUNT is @done(26-08-01) @project(Game Tweaks)
+\t\t✔ the probability (1 row = 10%). New effect kind 6 = self-damage EXACT, because the @done(26-08-01) @project(Game Tweaks)
+\t\t✔ old kind 3 rolls `die` and would smear the intended 6 / 3 / 1 into a range @done(26-08-01) @project(Game Tweaks)
+\t\t✔ Returning to the start heals the amount they STARTED with @done(26-08-01) @project(Game Tweaks)
+\t\t✔ e.g. if they started with 15 HP, heals 15 HP (hp_start_amount, captured at creation) @done(26-08-01) @project(Game Tweaks)
+\t\t✔ The player must have at least 1 HP before they can be healed @done(26-08-01) @project(Game Tweaks)
+\t\t✔ The player must have less than 75% of their HP before this will work @done(26-08-01) @project(Game Tweaks)
+\t\t✔ start_heals counts it, and it shows in the Game Summary as "Trips home to heal" @done(26-08-01) @project(Game Tweaks)
+\t\t✔ this REPLACES a heal-to-full, which got stronger as max HP grew; a fixed amount does @done(26-08-01) @project(Game Tweaks)
+\t\t✔ the opposite, so going home matters less and less as you level @done(26-08-01) @project(Game Tweaks)
+\t\t✔ old saves / loaded champions have no captured value, so it derives once from maxhp @done(26-08-01) @project(Game Tweaks)
+\t\t✔ rather than bumping the save format -- worst case is exactly the old behaviour @done(26-08-01) @project(Game Tweaks)
+\t\t✔ When breaking down doors chance for random encounter due to noise @done(26-08-01) @project(Game Tweaks)
+\t\t✔ superseded by the escalating version above (+25% per attempt, 5% on a cleared floor) @done(26-08-01) @project(Game Tweaks)
+\t\t✔ Crypt forces line of sight even if disabled in settings - 9th level @done(26-08-01) @project(Game Tweaks)
+\t\t✔ via a separate fov_forced flag + FovOn%, never by writing opt_fov -- opt_fov is the @done(26-08-01) @project(Game Tweaks)
+\t\t✔ player's SAVED setting and must come back unchanged when they leave the floor @done(26-08-01) @project(Game Tweaks)
+\t\t✔ every visibility test now asks FovOn%; entering builds the LOS masks and banners @done(26-08-01) @project(Game Tweaks)
+\t\t✔ If wizard ... can light to get line of sight disabled (Wizards are exempt) @done(26-08-01) @project(Game Tweaks)
 \t\t☑ layer-0-board-collisions.ans   walkable geometry ONLY -- full blocks, exact palette, sampled @done @project(Board layering) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
 \t\t☑ generated by `dungeon.run boardsplit` from the board art; 4466 collision cells @done @project(Board layering) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
 \t\t☑ rule is "the cell contains a collision colour, VERBATIM" -- v1 classified by glyph and @done @project(Board layering) @project(Board layering (WIRED -- layer-1 decoration is drawn and walk-over))
