@@ -31,23 +31,28 @@ full farm pass and leaves half the game with placeholder art in between.
 
 **Group 1 — asset-generating (do first, then generate):**
 
-| item | tag | adds |
-|---|---|---|
-| YOU DIED / YOU WIN screen art | @critical | pixel + ansi |
-| Player portrait in the combat bar | @critical | class portraits (new size?) |
-| ANSI art where only pixel art exists | @critical | ~168 ansi entries |
-| Rest systems → rest image | @critical | pixel + ansi |
-| Rest systems → narration + SFX | @critical | 1 narration, ~4 sfx |
-| Death screen (gravestone) | @high | art + possibly animation frames |
-| Stats box | @high | maybe a frame |
-| ANSI 9-grid boxes; item display frames | @low | ansi frames |
-| White level door | Doors | **board art** (hand-painted, not generated) |
-| Board legend: `$` recoverable, fallen-body | Refinement-2 | **board art** |
-| More SOUND / SMELL flavor lines (from `eventsaudit`) | — | narration |
+**CORRECTED after checking the manifest against disk.** Two of the biggest-looking @critical
+"art" items turn out to need **no generation at all** — the assets already exist and the gap is
+code. That shrinks the batch a lot and moves work into the code phase:
 
-Two of those are **hand-painted board art**, not generator output — the white door and the
-legend. Those gate `roomlint`/`boardsplit` re-verification, so they want doing before a
-generation run rather than after.
+| item | tag | verdict |
+|---|---|---|
+| **ANSI art where only pixel art exists** | @critical | **NOT an asset item.** The manifest is already at 84 pixel + 84 ansi in *parity*, and `imagemanifest audit` reports **0 missing** — every `.ans` is on disk. `opt_artstyle` (0 = ANSI only / 1 = Pixel / 2 = Hybrid) exists too. The gap is that **every draw path calls `DrawSpriteFit%`, which only loads a PNG** — so `opt_artstyle = 0` renders *nothing*. This is a rendering feature: load the `.ans` through `ANSI_Print` into an image and blit it. **No generation needed.** |
+| **Player portrait in the combat bar** | @critical | **NOT an asset item.** `classes/{hero,elf,superhero,wizard}` already exist in **both** `.png` and `.ans`. This is layout + placement code. |
+| **Death screen (gravestone)** | @high | Mostly not — `markers/gravestone` already exists in both forms. New work is the *animation*, which is code. |
+| YOU DIED / YOU WIN screen art | @critical | **GENUINELY NEW** — 0 entries today. |
+| Rest image | @critical | **GENUINELY NEW.** |
+| ANSI 9-grid frames; item display frames | @low | **GENUINELY NEW** — 0 `frame` entries today. |
+| Rest narration + SFX | @critical | **GENUINELY NEW** — 1 narration line, ~4 sfx. |
+| More SOUND / SMELL flavor lines | — | **GENUINELY NEW** narration, and must be written *before* the run. |
+| White level door | Doors | **hand-painted BOARD art**, not generated. |
+| Board legend: `$` recoverable, fallen-body | Refinement-2 | **hand-painted BOARD art**, not generated. |
+
+So the real generation batch is **five new subjects** (two end screens, a rest image, a frame
+set, item frames), a handful of SFX, and some narration — not the ~170 entries it looked like.
+
+The board art is hand-painted and gates `roomlint` / `boardsplit` re-verification, so it wants
+doing before a generation run rather than after.
 
 ---
 
