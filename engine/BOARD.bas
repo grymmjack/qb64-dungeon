@@ -793,6 +793,46 @@ END FUNCTION
 ' a missing SAUCE record, and colours that map to no dungeon level. Renders the file both
 ' raw (as ANSIPrint sees it) and through MaskNormalize$ (as the loaders now do), reports the
 ' difference, then the caller SYSTEMs. Everything here mirrors what MaskNormalize$ repairs.
+' How many SGR runs in this art set a BRIGHT background? Either spelling counts: the iCE form
+' (blink bit `5` alongside a 40-47 background) and the aixterm form (100-107). Used by ansilint
+' to decide whether the SAUCE iCE flag is required -- a file with none does not need it.
+FUNCTION BrightBgRuns& (raw AS STRING, datalen AS LONG)
+    DIM i AS LONG, b AS INTEGER, seq AS STRING, blink AS INTEGER, n AS LONG
+    DIM p1 AS INTEGER, tok AS STRING, v AS INTEGER, hasbg AS INTEGER
+    i = 1
+    DO WHILE i <= datalen
+        b = ASC(raw, i)
+        IF b = 27 AND i < datalen THEN
+            IF ASC(raw, i + 1) = 91 THEN
+                seq = "": i = i + 2
+                DO WHILE i <= datalen
+                    b = ASC(raw, i)
+                    IF b >= 64 AND b <= 126 THEN EXIT DO
+                    seq = seq + CHR$(b): i = i + 1
+                LOOP
+                IF b = 109 THEN                              ' 'm' -- a colour run
+                    hasbg = 0
+                    seq = seq + ";"
+                    DO WHILE LEN(seq) > 0
+                        p1 = INSTR(seq, ";")
+                        tok = LEFT$(seq, p1 - 1): seq = MID$(seq, p1 + 1)
+                        v = VAL(tok)
+                        IF v = 0 THEN blink = 0
+                        IF v = 5 THEN blink = -1
+                        IF v = 25 THEN blink = 0
+                        IF v >= 40 AND v <= 47 THEN hasbg = -1
+                        IF v >= 100 AND v <= 107 THEN n = n + 1
+                    LOOP
+                    IF blink AND hasbg THEN n = n + 1
+                END IF
+            END IF
+        END IF
+        i = i + 1
+    LOOP
+    BrightBgRuns& = n
+END FUNCTION
+
+
 SUB AnsiLint (pth AS STRING)
     _DEST _CONSOLE
     PRINT PipeCol$("== ansilint: |11" + pth)
@@ -857,6 +897,21 @@ SUB AnsiLint (pth AS STRING)
             srows = ASC(raw, soff + 99) + ASC(raw, soff + 100) * 256
             IF scols <> SW THEN snote = "  |12(cols should be " + LTRIM$(STR$(SW)) + ")" ELSE snote = "  |10(cols OK)"
             PRINT PipeCol$("   SAUCE: |10present|07  dims=" + LTRIM$(STR$(scols)) + "x" + LTRIM$(STR$(srows)) + snote)
+            ' TFlags bit 0 = iCE colours. This art paints bright BACKGROUNDS, which are spelled
+            ' with the blink bit -- an editor told "iCE off" drops that bit and renders every
+            ' bright background as its dim twin, so a mask's teal level 6 reads as level 7's
+            ' bright cyan. The file is then silently WRONG in the one tool used to hand-edit it.
+            DIM tflags AS INTEGER, nbrightbg AS LONG
+            tflags = ASC(raw, soff + 106)
+            nbrightbg = BrightBgRuns&(raw, datalen)
+            IF nbrightbg = 0 THEN
+                PRINT PipeCol$("   iCE: |10n/a|07 (no bright backgrounds used)")
+            ELSEIF (tflags AND 1) = 1 THEN
+                PRINT PipeCol$("   iCE: |10declared|07 (TFlags=&H" + HEX$(tflags) + ", " + LTRIM$(STR$(nbrightbg)) + " bright-bg runs)")
+            ELSE
+                PRINT PipeCol$("   iCE: |12NOT declared|07 (TFlags=&H" + HEX$(tflags) + ") but " + LTRIM$(STR$(nbrightbg)) + " bright-bg runs are used --")
+                PRINT PipeCol$("        |14editors will render every bright background as its DIM twin.|07 Re-save with iCE on.")
+            END IF
         ELSE
             PRINT PipeCol$("   SAUCE: |12MISSING|07 -- ANSI editors will guess 80 cols and mangle the layout.")
         END IF

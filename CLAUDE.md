@@ -92,6 +92,14 @@ Also useful, not in the gate:
   plaques as DECORATION, and those are dropped from `ROOMS()` entirely, so **every room holds a
   monster**. Keep it clean: the art is data, so an edit can silently strand a room's monster
   again. See "Room detection" below.
+- **`dungeon.run boardfix`** — re-spells half-block cells so the **collision colour is the
+  FOREGROUND**. A half-block shows two colours and which one is "foreground" is arbitrary, but the
+  collision map reads a cell BY its colour — four secret doors on the level-5 rooms were spelled
+  with the door blue in the *background*, so they read as magenta cells with blue behind them.
+  Flipping the glyph (`▀`↔`▄`, `▌`↔`▐`) and swapping the pair is the same picture spelled the other
+  way. It is **not** a repaint: `SameRender%` renders both versions through `ANSI_Print` and refuses
+  to write unless every pixel matches, and it is idempotent. iCE / bright backgrounds are fine and
+  used freely — the flip is only about which half is named first, never about dimming anything.
 - **`dungeon.run charsheet`** — renders the `[C]` character sheet for a fully-kitted hero to
   `charsheet.png`. Layout only breaks when the sheet is FULL, so a default-state shot proves
   nothing.
@@ -341,13 +349,25 @@ Environment specifics that dictate this approach:
   so each cell is self-contained, and stop at the `0x1A` EOF so SAUCE isn't rendered — which
   `LoadSectorMask` and `LoadSecretMask` both apply. Two CLI tools pair with it: **`dungeon.run
   ansilint [file]`** (read-only; no file = both board masks) reports line endings, per-row printable
-  width, SAUCE dims, how many cells `MaskNormalize$` changes (0 = clean), and each painted colour
-  mapped to its level (flagging unmapped colours and unpainted levels); **`dungeon.run ansifix
+  width, SAUCE dims, **the iCE flag**, how many cells `MaskNormalize$` changes (0 = clean), and each
+  painted colour mapped to its level (flagging unmapped colours and unpainted levels); **`dungeon.run ansifix
   <file>`** rewrites a mask to the clean canonical form (`MaskNormalize$` + fresh SAUCE), backing the
   original up to `<file>.bak` (loaders already normalise at load — this just cleans the *stored*
   file). **Gotcha:** ANSIPrint renders each SGR bg correctly *in isolation*; the corruption only
   appears in a full file, so verify a mask by rendering the WHOLE thing (or run `ansilint`), never a
-  single code. **Colored CLI:** all dev-mode/`--help` console output goes through `PipeCol$` (DATA.bas),
+  single code.
+- **iCE colours must be DECLARED in SAUCE.** Bright backgrounds are used freely and are the right
+  tool — but a bright background is spelled with the **blink bit**, so an editor has to be told the
+  file means "bright", not "blinking". That is `SAUCE.TFlags` bit 0 (`&H13` = iCE + 8-pixel font +
+  square pixels, what `SauceRecord$` writes). Leave it clear and an editor honours it literally: it
+  drops the bit and renders every bright background as its **dim twin**, so the yellow halls read as
+  brown islands and a mask's teal level 6 reads as level 7's bright cyan — the file is silently
+  wrong in the one tool used to hand-edit it, while the game (whose ANSIPrint honours iCE) looks
+  fine. `SauceRecord$` hardcoded TFlags to 0 for a long time, so **every** generator
+  (`boardsplit`/`boardfix`/`maskgen`/`sectorgen`/`ansifix`) quietly stripped the flag back off any
+  hand-fixed art. `ansilint` now reports it, and only complains when the file actually uses bright
+  backgrounds.
+- **Colored CLI:** all dev-mode/`--help` console output goes through `PipeCol$` (DATA.bas),
   a self-contained Mystic-BBS-style pipe-colour formatter (`|10` green = OK, `|12` red = BAD, `|14`
   yellow = WARN, `|PI` = literal `|`) — same `|NN` notation as `QB64_GJ_LIB/PIPEPRINT` but with no
   submodule dependency (keeps the plain-checkout build). Honours the `CLI_COLOR` global, which

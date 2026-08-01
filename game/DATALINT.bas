@@ -283,7 +283,9 @@ SUB BoardSplit
             END IF
         NEXT cx
     NEXT cy
-    PRINT PipeCol$("  board art: |11" + _TRIM$(STR$(nbrown)) + "|07 cells carry BROWN (the door colour); DetectDoors finds |11" + _TRIM$(STR$(DOOR_N)) + "|07 doors")
+    ' NOT a door count -- this mode never runs DetectDoors, and brown is also used as floor.
+    ' `dungeon.run roomlint` is what reports doorways.
+    PRINT PipeCol$("  board art: |11" + _TRIM$(STR$(nbrown)) + "|07 cells carry BROWN (doors, plus some floor)")
     PRINT PipeCol$("  half-block cells: |11" + _TRIM$(STR$(nhalf)) + "|07 total, |11" + _TRIM$(STR$(nhalf2)) + "|07 with TWO non-black colours (first at " + _TRIM$(STR$(hx)) + "," + _TRIM$(STR$(hy)) + ")")
     ' Which glyph, and which colour pair? A room lip against a corridor is structural; a pair of
     ' greys or a colour-on-colour dash is label trim. Print the top pairs so the call is on data.
@@ -316,6 +318,128 @@ SUB BoardSplit
     BoardSplitVerify raw, p0, p1
     SYSTEM 0
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run boardfix` -- put the COLLISION COLOUR in the foreground.
+'
+'  A half-block cell shows two colours, and which one is the "foreground" is arbitrary: an
+'  upper-half blue on yellow and a lower-half yellow on blue are the same picture spelled two
+'  ways. That arbitrariness matters, because a cell's identity to the collision map is its
+'  colour -- and four secret doors on the level-5 rooms are currently spelled with the door
+'  blue in the BACKGROUND, so they read as magenta cells that happen to have blue behind them.
+'
+'  This flips those cells so the collision colour (secret-door blue, then door brown) is always
+'  the foreground. iCE / bright backgrounds are fine and are used freely -- the flip is only
+'  about WHICH half is named first, never about dimming anything.
+'
+'      upper half 223 <-> lower half 220, colours swapped
+'      left half  221 <-> right half  222, colours swapped
+'
+'  Not a repaint: the rendered pixels are proven identical before anything is written, and a
+'  cell whose foreground is ALREADY a collision colour is left alone. The original is backed
+'  up to <file>.bak first, like ansifix.
+' ============================================================================
+SUB BoardFix
+    DIM cx AS INTEGER, cy AS INTEGER, fixed AS LONG, t AS INTEGER
+    DIM src AS STRING, raw AS STRING, outp AS STRING, f AS INTEGER
+    DIM chA(0 TO 131, 0 TO 60) AS INTEGER, fgA(0 TO 131, 0 TO 60) AS INTEGER, bgA(0 TO 131, 0 TO 60) AS INTEGER
+    _DEST _CONSOLE
+    src = AnsiFile$("board-132x50-no-labels.ans")
+    raw = _READFILE$(src)
+    IF LEN(raw) = 0 THEN PRINT PipeCol$("|12cannot read " + src + "|07"): SYSTEM 1
+    PRINT PipeCol$("|15boardfix|07 -- re-spelling half-block cells so the collision colour is the FOREGROUND")
+    AnsiToCells raw, chA(), fgA(), bgA()
+    FOR cy = 0 TO SH - 2
+        FOR cx = 0 TO SW - 1
+            IF IsHalfGlyph%(chA(cx, cy)) THEN
+                ' Flip only when the background carries a collision colour the foreground does
+                ' not -- otherwise the swap would just move the problem to the other half.
+                IF CollisionRank%(bgA(cx, cy)) > CollisionRank%(fgA(cx, cy)) THEN
+                    SELECT CASE chA(cx, cy)
+                        CASE 223: chA(cx, cy) = 220
+                        CASE 220: chA(cx, cy) = 223
+                        CASE 221: chA(cx, cy) = 222
+                        CASE 222: chA(cx, cy) = 221
+                    END SELECT
+                    t = fgA(cx, cy): fgA(cx, cy) = bgA(cx, cy): bgA(cx, cy) = t
+                    fixed = fixed + 1
+                    PRINT PipeCol$("    " + _TRIM$(STR$(cx)) + "," + _TRIM$(STR$(cy)) + " -- " + ColorRoleName$(fgA(cx, cy)) + " moved to the foreground")
+                END IF
+            END IF
+        NEXT cx
+    NEXT cy
+    IF fixed = 0 THEN
+        PRINT PipeCol$("  |10every collision colour is already in the foreground|07 -- art unchanged")
+        SYSTEM 0
+    END IF
+    outp = CellsToAnsi$(chA(), fgA(), bgA(), SH - 1)
+    ' The whole claim of this tool is "same picture, different spelling", so PROVE it before
+    ' touching the file: render both strings through the real ANSI renderer and compare every
+    ' pixel. If they differ at all, the rewrite is wrong -- bail rather than corrupt the board.
+    IF NOT SameRender%(raw, outp) THEN
+        PRINT PipeCol$("  |12the rewrite does NOT render identically|07 -- refusing to write; art untouched")
+        SYSTEM 1
+    END IF
+    f = FREEFILE: OPEN src + ".bak" FOR OUTPUT AS #f: PRINT #f, raw;: CLOSE #f
+    f = FREEFILE: OPEN src FOR OUTPUT AS #f
+    PRINT #f, outp;
+    PRINT #f, CHR$(26);
+    PRINT #f, SauceRecord$("DUNGEON! board", SW, SH - 1, LEN(outp));
+    CLOSE #f
+    PRINT
+    PRINT PipeCol$("  re-spelled |10" + _TRIM$(STR$(fixed)) + "|07 cell(s) -- |10verified pixel-for-pixel identical|07")
+    PRINT PipeCol$("  original backed up to |14" + src + ".bak|07")
+    PRINT PipeCol$("  |08re-run `dungeon.run boardsplit` to regenerate the layers from the corrected art")
+    SYSTEM 0
+END SUB
+
+
+' Is this glyph one of the four half-blocks -- the only cells that show two colours at once?
+FUNCTION IsHalfGlyph% (g AS INTEGER)
+    SELECT CASE g
+        CASE 220, 221, 222, 223: IsHalfGlyph% = -1
+        CASE ELSE: IsHalfGlyph% = 0
+    END SELECT
+END FUNCTION
+
+
+' How much does the collision map care about this colour? Higher wins the foreground.
+' A secret door outranks a plain door: it is the one the fog machinery has to find.
+FUNCTION CollisionRank% (idx AS INTEGER)
+    IF idx = PaletteIndex%(BRIGHT_BLUE) THEN CollisionRank% = 3: EXIT FUNCTION
+    IF idx = PaletteIndex%(BROWN) THEN CollisionRank% = 2: EXIT FUNCTION
+    CollisionRank% = 0
+END FUNCTION
+
+
+FUNCTION ColorRoleName$ (idx AS INTEGER)
+    IF idx = PaletteIndex%(BRIGHT_BLUE) THEN ColorRoleName$ = "secret door": EXIT FUNCTION
+    IF idx = PaletteIndex%(BROWN) THEN ColorRoleName$ = "door": EXIT FUNCTION
+    ColorRoleName$ = "colour " + _TRIM$(STR$(idx))
+END FUNCTION
+
+
+' Do two .ans strings put the SAME pixels on screen? Renders both through ANSI_Print and
+' compares. Used to gate boardfix -- a re-spelling that changes any pixel is a bug, not a fix.
+FUNCTION SameRender% (a AS STRING, b AS STRING)
+    DIM ia AS LONG, ib AS LONG, olddest AS LONG, oldsrc AS LONG
+    DIM x AS INTEGER, y AS INTEGER, diff AS LONG
+    olddest = _DEST: oldsrc = _SOURCE
+    ia = _NEWIMAGE(SW * CW, SH * CH, 32)
+    ib = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _DEST ia: _FONT CH: CLS , BLACK: ANSI_Print (a)
+    _DEST ib: _FONT CH: CLS , BLACK: ANSI_Print (b)
+    _SOURCE ia
+    FOR y = 0 TO SH * CH - 1
+        FOR x = 0 TO SW * CW - 1
+            IF POINT(x, y) <> PointOf~&(ib, x, y) THEN diff = diff + 1
+        NEXT x
+    NEXT y
+    _SOURCE oldsrc: _DEST olddest
+    _FREEIMAGE ia: _FREEIMAGE ib
+    SameRender% = (diff = 0)
+END FUNCTION
 
 
 ' PROVE the split is lossless: render the original, render layer-0 with layer-1 composited over

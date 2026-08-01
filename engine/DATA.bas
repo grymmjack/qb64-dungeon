@@ -278,7 +278,12 @@ FUNCTION SauceRecord$ (title AS STRING, cols AS INTEGER, rows AS INTEGER, datale
     s = s + MID$(DATE$, 7, 4) + MID$(DATE$, 1, 2) + MID$(DATE$, 4, 2)   ' Date CCYYMMDD
     s = s + MKL$(datalen) + CHR$(1) + CHR$(1)                            ' FileSize, DataType Char, FileType ANSi
     s = s + MKI$(cols) + MKI$(rows) + MKI$(0) + MKI$(0)                  ' TInfo1..4
-    s = s + CHR$(0) + CHR$(0) + "IBM VGA" + STRING$(15, 0)               ' Comments, TFlags, font
+    ' TFlags &H13: bit 0 = iCE COLOURS, bits 1-2 = 8-pixel font, bits 3-4 = square pixels.
+    ' Bit 0 is not optional here -- this art paints bright BACKGROUNDS, and a bright background
+    ' is spelled with the blink bit. An editor told "iCE off" honours that literally: it drops
+    ' the bit and renders every bright background as its dim twin, so the yellow halls read as
+    ' brown. Leaving TFlags at 0 made every generator quietly strip the flag off hand-fixed art.
+    s = s + CHR$(0) + CHR$(&H13) + "IBM VGA" + STRING$(15, 0)            ' Comments, TFlags, font
     SauceRecord$ = s
 END FUNCTION
 
