@@ -311,6 +311,7 @@ DIM SHARED hp_start_amount AS INTEGER
 ' DOORNOISE_PCT to the chance something in the dark comes to see what the racket is. Reset when
 ' the door gives way or you go and bother a different one.
 DIM SHARED door_noise_tries AS INTEGER, door_noise_idx AS INTEGER
+DIM SHARED door_ambush AS INTEGER          ' TRUE for one encounter: it struck first, and you cannot flee
 DIM SHARED start_heals AS INTEGER              ' how many times the entrance has patched you up this run
 DIM SHARED CHM_GX(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER   ' 3 spread grave cells per chamber
 DIM SHARED CHM_GY(1 TO MAXCHAMBER, 1 TO 3) AS INTEGER

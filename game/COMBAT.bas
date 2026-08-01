@@ -449,7 +449,15 @@ SUB DoCombatDnD (rm AS INTEGER)
         k = INKEY$
         acted = 0: did_attack = 0
         IF k = CHR$(27) THEN                     ' attempt to flee
-            IF FleeFails(lvl) THEN               ' the deeper you are, the likelier it grabs you
+            ' AMBUSHED: they chose the moment, so there is no slipping away from it. The flee
+            ' key still does something -- it tells you WHY it did nothing, which is better than
+            ' a key that silently ignores you.
+            IF door_ambush THEN
+                Sfx "bump"
+                Banner "AMBUSHED -- there is no retreat!", "They picked this moment; you are off balance and boxed in.   [ press any key ]"
+                CombatPause
+                dirty = -1
+            ELSEIF FleeFails(lvl) THEN           ' the deeper you are, the likelier it grabs you
                 Sfx "bump"
                 Banner "The " + mon + " " + MonVerb$(mon, "lunges and drags", "lunge and drag") + " you back!", "You cannot flee!   [ press any key ]"
                 CombatPause

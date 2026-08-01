@@ -445,8 +445,16 @@ SUB WanderEncounter
     Sfx "trap"
     DIM wm AS STRING: wm = _TRIM$(ROOMS(w).monster)
     RecordWander wm, sec                          ' chronicle: wandering ambush
-    Banner MonVerb$(wm, "A WANDERING " + wm + " bursts", "WANDERING " + wm + " burst") + " from the shadows!", "Your lingering has drawn " + MonVerb$(wm, "it", "them") + " to you.   [ press any key ]"
+    IF door_ambush THEN
+        Banner MonVerb$(wm, "The " + wm + " was WAITING", "The " + wm + " were WAITING") + " behind the door!", "You are still off balance -- " + MonVerb$(wm, "it strikes", "they strike") + " first.   [ press any key ]"
+    ELSE
+        Banner MonVerb$(wm, "A WANDERING " + wm + " bursts", "WANDERING " + wm + " burst") + " from the shadows!", "Your lingering has drawn " + MonVerb$(wm, "it", "them") + " to you.   [ press any key ]"
+    END IF
     WaitKey
+    ' AMBUSH: "extra monster attack to start combat". Landed here rather than inside DoCombat's
+    ' round loop, because a free strike is a thing that happens BEFORE the fight, not a special
+    ' case threaded through every round -- and the loop is the last place that wants another flag.
+    IF door_ambush THEN AmbushFirstBlow w, wm, sec
     res = DoCombat(w)
     cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
@@ -601,7 +609,7 @@ END SUB
 ' Engine owns DOOR_BROKEN and which door is ahead (StrongDoorAhead); the STR check
 ' against DC 13 is a game rule reading the character's ability scores.
 FUNCTION BreakDoorAttempt% (idx AS INTEGER)
-    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING, pct AS INTEGER, lvl AS INTEGER
+    DIM roll AS INTEGER, m AS INTEGER, tag AS STRING, pct AS INTEGER, lvl AS INTEGER, breached AS INTEGER
     Sfx "strongdoor"
     ' Throwing yourself at a reinforced door is the loudest thing you can do down here, and the
     ' racket compounds: each attempt on the SAME door adds DOORNOISE_PCT. Switch doors and the
@@ -616,6 +624,7 @@ FUNCTION BreakDoorAttempt% (idx AS INTEGER)
         Sfx "breakdoor"
         Banner "You SMASH through the reinforced door!" + tag, "It bursts off its hinges.   [ press any key ]"
         BreakDoorAttempt = TRUE
+        breached = TRUE                          ' check for a trap AFTER the noise roll below
     ELSE
         Banner "A REINFORCED DOOR resists your shoulder!" + tag, "It holds firm -- hurl yourself at it again.   [ press any key ]"
         BreakDoorAttempt = FALSE
@@ -631,6 +640,7 @@ FUNCTION BreakDoorAttempt% (idx AS INTEGER)
         pct = DOORNOISE_PCT * door_noise_tries
     END IF
     IF pct > 100 THEN pct = 100
+    IF breached THEN DoorTrapCheck idx           ' a door that took two shoves may have been rigged
     IF pct > 0 AND RollDie(100) <= pct THEN
         door_noise_tries = 0                       ' the noise was answered -- the tally is spent
         LogEvent "The racket at the door drew something."
@@ -716,4 +726,83 @@ SUB ChamberBoon (lvl AS INTEGER)
         Banner "Coin, tucked away and forgotten.", "You gather " + _TRIM$(STR$(g)) + " gold.   [ press any key ]"
     END IF
     WaitKey
+END SUB
+
+
+' ============================================================================
+'  DOOR TRAPS -- a door that fought back once may be rigged.
+'
+'  Per the plan: only when it takes MORE THAN ONE attempt to get through, and then
+'  20% swamp gas (CON), 20% arrow (DEX), 10% ambush, 50% nothing.
+'
+'  The gate on door_noise_tries is the whole design: a door that opens first shove is
+'  just a door. It is the one you had to hit twice that was braced, wired, or watched --
+'  so the trap is the cost of a fight you already lost once.
+'
+'  Both saves go through SaveThrow%, the same routine curios and monster elemental
+'  effects use, so "save vs poison" means exactly one thing everywhere in the game.
+' ============================================================================
+SUB DoorTrapCheck (idx AS INTEGER)
+    DIM r AS INTEGER, dmg AS INTEGER
+    IF opt_oldschool THEN EXIT SUB               ' no HP, no saves, no traps
+    IF door_noise_tries <= 1 THEN EXIT SUB       ' opened first try -- it was only ever a door
+    r = RollDie(100)
+    IF r <= 20 THEN
+        ' SWAMP GAS -- the cheap one: a fixed, survivable bite
+        IF SaveThrow%(AbilMod(player_con), "SWAMP GAS from the broken door") THEN
+            Banner "Foul gas billows from the shattered frame.", "You hold your breath and push through.   [ press any key ]"
+        ELSE
+            player_hp = player_hp - 2
+            IF player_hp < 0 THEN player_hp = 0
+            Sfx "poison-proc"
+            Banner "** SWAMP GAS! **", "The stench sears your lungs -- you lose 2 HP.   [ press any key ]"
+            LogEvent _TRIM$(player_name) + " breathed swamp gas forcing a door"
+        END IF
+        WaitKey
+    ELSEIF r <= 40 THEN
+        ' ARROW -- the dangerous one: a real damage die
+        IF SaveThrow%(AbilMod(player_dex), "an ARROW TRAP in the door frame") THEN
+            Banner "A bowstring snaps somewhere in the frame.", "The shaft buries itself in the wall beside your head.   [ press any key ]"
+        ELSE
+            dmg = RollDie(6)
+            player_hp = player_hp - dmg
+            IF player_hp < 0 THEN player_hp = 0
+            Sfx "hit"
+            IF opt_juice THEN ImpactFX ShakeMag(dmg), 0
+            Banner "** ARROW TRAP! **", "A shaft takes you as the door gives -- " + _TRIM$(STR$(dmg)) + " damage.   [ press any key ]"
+            LogEvent _TRIM$(player_name) + " was shot forcing a door (" + _TRIM$(STR$(dmg)) + ")"
+        END IF
+        WaitKey
+    ELSEIF r <= 50 THEN
+        ' AMBUSH -- no save. Something was waiting for exactly this, and it gets the first
+        ' word: WanderEncounter with the surprised flag set, so fleeing is off the table.
+        Sfx "alarm"
+        Banner "** AMBUSH! **", "They were waiting for the door to give -- and you are still off balance.   [ press any key ]"
+        WaitKey
+        door_ambush = TRUE                       ' consumed by DoCombat: no flee, monster strikes first
+        WanderEncounter
+        door_ambush = FALSE
+    END IF
+    ' 50%: nothing. The door was just a door after all.
+    IF player_hp <= 0 THEN DoTDeath "a door trap"
+END SUB
+
+
+' The free blow an ambusher gets for choosing the moment. Automatic -- no to-hit roll: you were
+' not defending, and rolling to hit a target that cannot dodge is theatre.
+SUB AmbushFirstBlow (w AS INTEGER, wm AS STRING, sec AS INTEGER)
+    DIM mdmg AS INTEGER
+    IF opt_oldschool THEN EXIT SUB               ' 2d6 combat has no HP to take a free blow off
+    PushMonsterDice
+    mdmg = GameRoll(1, 6, sec \ 3, "the " + wm + "'s AMBUSH blow -- roll ITS d6")
+    PopMonsterDice
+    IF mdmg < 1 THEN mdmg = 1
+    player_hp = player_hp - mdmg
+    IF player_hp < 0 THEN player_hp = 0
+    Sfx "player-pain"
+    IF opt_juice THEN ImpactFX ShakeMag(mdmg) * 1.1, 0
+    Banner "** AMBUSHED! **", MonVerb$(wm, "It catches", "They catch") + " you flat-footed for " + _TRIM$(STR$(mdmg)) + " damage.   [ press any key ]"
+    WaitKey
+    LogEvent _TRIM$(player_name) + " was ambushed forcing a door (" + _TRIM$(STR$(mdmg)) + ")"
+    IF player_hp <= 0 THEN DoTDeath "an ambush at a broken door"
 END SUB

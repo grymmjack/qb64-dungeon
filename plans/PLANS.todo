@@ -232,11 +232,18 @@ Game Tweaks:
           ☐ At <50% HP
           ☐ At <25% HP
           ☐ Off
-      ☐ Chance of door having trap when it takes > 1 time to break through: @high
-        ☐ 20% chance of swamp gas - SAVE VS POISON or -2 HP
-        ☐ 20% chance of arrow trap - SAVE VS DEX or -1D6 HP
-        ☐ 10% chance of monster ambush - extra monster attack to start combat no chance to flee surprised
-        ☐ 50% nothing happens regular entry
+      ✔ Chance of door having trap when it takes > 1 time to break through @done(26-08-01)
+        ✔ 20% chance of swamp gas - SAVE VS CON or -2 HP @done(26-08-01)
+        ✔ 20% chance of arrow trap - SAVE VS DEX or -1D6 HP @done(26-08-01)
+        ✔ 10% chance of monster ambush - extra monster attack to start combat, no flee @done(26-08-01)
+        ✔ 50% nothing happens regular entry @done(26-08-01)
+        ✔ the >1-attempt gate IS the design: a door that opens first shove is just a door; the @done(26-08-01)
+          ✔ one you had to hit twice was braced, wired or watched @done(26-08-01)
+        ✔ both saves go through SaveThrow%, the same routine curios and monster elemental @done(26-08-01)
+          ✔ effects use, so "save vs poison" means one thing everywhere @done(26-08-01)
+        ✔ the ambush blow lands BEFORE DoCombat rather than as another flag threaded through @done(26-08-01)
+          ✔ the round loop, and is automatic -- rolling to hit someone who cannot dodge is theatre @done(26-08-01)
+        ✔ ESC while ambushed still responds: it says WHY you cannot flee, rather than ignoring you @done(26-08-01)
     ☐ Give monsters appropriate elemental effects: @high
       ☐ All can be avoided with successful saving throw
       ☐ GIANT SPIDER, GIANT SNAKE:
