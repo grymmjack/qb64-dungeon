@@ -1,0 +1,6 @@
+assets/pixel-art/default/items/sword.png
+assets/ansi-art/default/items/sword.ans
+assets/pixel-art/default/items/staff.png
+assets/ansi-art/default/items/staff.ans
+assets/pixel-art/default/items/elven-blade.png
+assets/ansi-art/default/items/elven-blade.ans

@@ -1594,7 +1594,9 @@ SUB MakePlaceholders
     DIM f1 AS INTEGER, f2 AS INTEGER, nm AS STRING
     _DEST _CONSOLE
     PRINT PipeCol$("|15placeholders|07 -- writing a labelled stand-in for every missing art asset")
-    IF _FILEEXISTS(PLACEHOLDER_LIST) THEN KILL PLACEHOLDER_LIST   ' fresh list each run
+    ' Do NOT clear the list first. The audit treats listed paths as missing, so wiping it makes
+    ' existing placeholders look like real art -- the audit then reports 0 missing, nothing gets
+    ' written, and the list stays empty. Re-running the tool destroyed its own tracking.
     man_audit = TRUE: man_quiet = TRUE           ' build the list, print nothing, keep the buffer
     DumpImageManifest                            ' fills MAN_BUF with ONLY the missing entries
     man_quiet = FALSE
@@ -1654,10 +1656,12 @@ END SUB
 ' Append a written placeholder to the list, so `placeholders clean` can find it again.
 SUB NotePlaceholder (full AS STRING)
     DIM f AS INTEGER
+    IF IsPlaceholder%(full) THEN EXIT SUB        ' already tracked -- never list one twice
     f = FREEFILE
     OPEN PLACEHOLDER_LIST FOR APPEND AS #f
     PRINT #f, full
     CLOSE #f
+    IF PH_N < UBOUND(PH_PATH) THEN PH_N = PH_N + 1: PH_PATH(PH_N) = full   ' keep the cache in step
 END SUB
 
 ' A placeholder PNG: a dashed frame, a diagonal, and the subject name, at the asked-for size.
