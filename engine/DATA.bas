@@ -95,6 +95,119 @@ FUNCTION MaskNormalize$ (raw AS STRING)
     MaskNormalize$ = nrm
 END FUNCTION
 
+' ============================================================================
+'  ANSI <-> CELL GRID.  Read an .ans back into the CHARACTERS and COLOURS that made it, and
+'  write a grid back out as .ans.
+'
+'  Everything else in this engine samples the RENDERED PIXELS, because that is what collision
+'  needs. That is the wrong tool for splitting or editing art: from pixels you can tell a cell
+'  is white-on-magenta, but not that it is the letter "s" -- you would be reduced to OCR against
+'  the CP437 font. The characters are right there in the source file, so read the source.
+'
+'  Deliberately narrow: the board art is a plain SGR + printable stream with no cursor motion,
+'  so this handles SGR (m) and skips any other CSI rather than pretending to be a terminal.
+'  Rows AUTO-WRAP at SW columns (the board files carry no line breaks at all) and CR/LF are
+'  honoured when present, so a hand-edited file with line endings still reads correctly.
+' ============================================================================
+
+' Parse `raw` into per-cell character + palette INDEX (0-15) arrays. Cells the file never
+' writes are left as space on black. Stops at the 0x1A EOF so SAUCE is never parsed as art.
+SUB AnsiToCells (raw AS STRING, chOut() AS INTEGER, fgOut() AS INTEGER, bgOut() AS INTEGER)
+    DIM i AS LONG, b AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    DIM fg AS INTEGER, bg AS INTEGER, bold AS INTEGER, blink AS INTEGER
+    DIM prm AS STRING, fin AS STRING, n AS INTEGER, p AS INTEGER, v AS INTEGER
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1: chOut(cx, cy) = 32: fgOut(cx, cy) = 7: bgOut(cx, cy) = 0: NEXT cx
+    NEXT cy
+    fg = 7: bg = 0: bold = 0: blink = 0: cx = 0: cy = 0
+    i = 1
+    DO WHILE i <= LEN(raw)
+        b = ASC(raw, i)
+        IF b = 26 THEN EXIT DO                             ' 0x1A -- SAUCE follows, not art
+        IF b = 27 AND i < LEN(raw) THEN
+            IF MID$(raw, i + 1, 1) = "[" THEN
+                ' gather the parameter bytes, then the final letter
+                prm = "": i = i + 2
+                DO WHILE i <= LEN(raw)
+                    fin = MID$(raw, i, 1)
+                    IF fin >= "0" AND fin <= "9" THEN
+                        prm = prm + fin
+                    ELSEIF fin = ";" THEN
+                        prm = prm + ";"
+                    ELSE
+                        EXIT DO
+                    END IF
+                    i = i + 1
+                LOOP
+                IF i <= LEN(raw) THEN fin = MID$(raw, i, 1) ELSE fin = ""
+                IF fin = "m" THEN
+                    IF LEN(prm) = 0 THEN prm = "0"
+                    p = 1
+                    DO WHILE p <= LEN(prm)
+                        n = INSTR(p, prm, ";"): IF n = 0 THEN n = LEN(prm) + 1
+                        v = VAL(MID$(prm, p, n - p))
+                        SELECT CASE v
+                            CASE 0: fg = 7: bg = 0: bold = 0: blink = 0
+                            CASE 1: bold = -1
+                            CASE 5: blink = -1
+                            CASE 22: bold = 0
+                            CASE 25: blink = 0
+                            CASE 30 TO 37: fg = v - 30
+                            CASE 40 TO 47: bg = v - 40
+                            CASE 90 TO 97: fg = v - 90: bold = -1
+                            CASE 100 TO 107: bg = v - 100: blink = -1
+                        END SELECT
+                        p = n + 1
+                    LOOP
+                END IF
+                i = i + 1
+                _CONTINUE                                   ' any other CSI: consumed, ignored
+            END IF
+        END IF
+        i = i + 1
+        IF b = 10 THEN cx = 0: cy = cy + 1: _CONTINUE
+        IF b = 13 THEN cx = 0: _CONTINUE
+        IF b = 27 THEN _CONTINUE                            ' a bare ESC we did not understand
+        IF cx >= 0 AND cx <= SW - 1 AND cy >= 0 AND cy <= SH - 1 THEN
+            chOut(cx, cy) = b
+            ' NOT `fg + 8 * (bold <> 0)`: BASIC TRUE is -1, so that SUBTRACTS 8 and hands back
+            ' a negative palette index. Every bright cell then matched nothing.
+            IF bold THEN fgOut(cx, cy) = fg + 8 ELSE fgOut(cx, cy) = fg
+            IF blink THEN bgOut(cx, cy) = bg + 8 ELSE bgOut(cx, cy) = bg
+        END IF
+        cx = cx + 1
+        IF cx >= SW THEN cx = 0: cy = cy + 1                ' auto-wrap, exactly as ANSI_Print does
+    LOOP
+END SUB
+
+' Emit a cell grid as .ans. Writes a full SGR (with a leading reset) only when the attribute
+' actually changes -- the reset is what stops the sticky-attribute leak MaskNormalize$ exists
+' to repair, so a file written here is already clean. No line breaks: rows auto-wrap at SW,
+' which is how the working board art is stored.
+FUNCTION CellsToAnsi$ (chIn() AS INTEGER, fgIn() AS INTEGER, bgIn() AS INTEGER, rows AS INTEGER)
+    DIM cx AS INTEGER, cy AS INTEGER, s AS STRING, lastf AS INTEGER, lastb AS INTEGER
+    lastf = -1: lastb = -1
+    FOR cy = 0 TO rows - 1
+        FOR cx = 0 TO SW - 1
+            IF fgIn(cx, cy) <> lastf OR bgIn(cx, cy) <> lastb THEN
+                s = s + CHR$(27) + "[0;" + SgrPair$(fgIn(cx, cy), bgIn(cx, cy)) + "m"
+                lastf = fgIn(cx, cy): lastb = bgIn(cx, cy)
+            END IF
+            s = s + CHR$(chIn(cx, cy))
+        NEXT cx
+    NEXT cy
+    CellsToAnsi$ = s
+END FUNCTION
+
+' fg/bg palette indexes (0-15) -> the SGR parameter list, iCE style: bold for bright ink,
+' the blink bit for a bright background (which is how the vendored ANSIPrint reads them).
+FUNCTION SgrPair$ (f AS INTEGER, b AS INTEGER)
+    DIM s AS STRING
+    IF f >= 8 THEN s = "1;" + _TRIM$(STR$(30 + f - 8)) ELSE s = _TRIM$(STR$(30 + f))
+    IF b >= 8 THEN s = s + ";5;" + _TRIM$(STR$(40 + b - 8)) ELSE s = s + ";" + _TRIM$(STR$(40 + b))
+    SgrPair$ = s
+END FUNCTION
+
 ' Mystic-BBS-style PIPE COLOURS for console (CLI-mode) output -> ANSI SGR. Self-contained (no
 ' QB64_GJ_LIB dependency) so the game still builds from a plain checkout, and using the same
 ' |NN notation as QB64_GJ_LIB/PIPEPRINT: |00-|15 foreground (|10 bright green = OK, |12 bright

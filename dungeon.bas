@@ -51,6 +51,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
     PRINT PipeCol$("  |10sectorauto|07   derive each level's rect from the art colours; report overlaps")
+    PRINT PipeCol$("  |10boardsplit|07   split the board art into |14layer-0-board-collisions.ans|07 + |14layer-1-board-decoration.ans|07")
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
@@ -258,6 +259,9 @@ IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
 
 '--- dev: `dungeon.run econdump` reports the expected gold economy + win pacing, then exits ---
 IF INSTR(UCASE$(COMMAND$), "ECONDUMP") > 0 THEN EconDump
+
+'--- dev: `dungeon.run boardsplit` writes the collision + decoration layers, then exits ---
+IF INSTR(UCASE$(COMMAND$), "BOARDSPLIT") > 0 THEN BoardSplit
 
 '--- dev: `dungeon.run sectorauto` derives each level's rect from the art and checks overlaps ---
 IF INSTR(UCASE$(COMMAND$), "SECTORAUTO") > 0 THEN

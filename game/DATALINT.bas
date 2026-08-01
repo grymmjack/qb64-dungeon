@@ -156,6 +156,296 @@ END SUB
 
 
 ' ============================================================================
+'  `dungeon.run boardsplit` -- split the board into COLLISION and DECORATION layers.
+'
+'  Today one file answers two questions that do not have the same answer: "what does this look
+'  like" and "what can I walk on". That is why decorative half-block lips read as room floor to
+'  the detector but as wall to movement, and why the level plaques became rooms. Splitting them
+'  makes both questions answerable, and lets art be drawn that the player can simply walk over.
+'
+'  THE RULE. A cell goes to layer-0 (collision) when it is UNIFORMLY one collision colour --
+'  a full block, or a space whose background is that colour. Those are exactly the cells the
+'  movement code already accepts, so the walkable set is preserved EXACTLY and no run plays
+'  differently. Everything else -- half-blocks, shading, the text of the level plaques -- is
+'  decoration and goes to layer-1 verbatim.
+'
+'  Layer-0 is emitted as space-on-background rather than a block glyph on a foreground: an
+'  editor draws a block character with a hairline gap that samples as black, which would punch
+'  holes in the collision map (the same trap sectorgen documents).
+'
+'  This works off the ANSI SOURCE, not the rendered pixels. From pixels you can see that a cell
+'  is white-on-magenta but not that it is the letter "s", so the plaques could not be carried
+'  across losslessly -- the characters are in the file, so read the file.
+' ============================================================================
+SUB BoardSplit
+    DIM cx AS INTEGER, cy AS INTEGER, raw AS STRING, kept AS LONG, deco AS LONG
+    DIM src AS STRING, p0 AS STRING, p1 AS STRING, f AS INTEGER, ok AS INTEGER
+    DIM chA(0 TO 131, 0 TO 60) AS INTEGER, fgA(0 TO 131, 0 TO 60) AS INTEGER, bgA(0 TO 131, 0 TO 60) AS INTEGER
+    DIM ch0(0 TO 131, 0 TO 60) AS INTEGER, fg0(0 TO 131, 0 TO 60) AS INTEGER, bg0(0 TO 131, 0 TO 60) AS INTEGER
+    DIM ch1(0 TO 131, 0 TO 60) AS INTEGER, fg1(0 TO 131, 0 TO 60) AS INTEGER, bg1(0 TO 131, 0 TO 60) AS INTEGER
+    DIM col AS INTEGER
+    _DEST _CONSOLE
+    src = AnsiFile$("board-132x50-no-labels.ans")
+    PRINT PipeCol$("|15boardsplit|07 -- splitting |11" + src + "|07 into collision + decoration layers")
+    raw = _READFILE$(src)
+    IF LEN(raw) = 0 THEN PRINT PipeCol$("  |12cannot read the board art|07"): SYSTEM 1
+    AnsiToCells raw, chA(), fgA(), bgA()
+
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            ch0(cx, cy) = 32: fg0(cx, cy) = 7: bg0(cx, cy) = 0     ' layer-0 default: black = wall
+            ch1(cx, cy) = 32: fg1(cx, cy) = 7: bg1(cx, cy) = 0     ' layer-1 default: black = transparent
+            ' OUTSIDE THE PLAY AREA is decoration whatever it is painted in. The DUNGEON logo
+            ' (cols 116+) is drawn in level-3 red and level-4 salmon, the bottom legend swatches
+            ' in the path/door/secret colours, and the frame in level-3 red -- all of which the
+            ' "contains a collision colour" rule would otherwise pull into the collision map as
+            ' walkable floor. `sectorauto` measured the map as cols 0-115, rows 1-47.
+            IF cx > 115 OR cy < 1 OR cy > 47 THEN
+                ch1(cx, cy) = chA(cx, cy)
+                fg1(cx, cy) = fgA(cx, cy): bg1(cx, cy) = bgA(cx, cy)
+                IF chA(cx, cy) <> 32 OR bgA(cx, cy) <> 0 THEN deco = deco + 1
+            ELSEIF CellIsCollision%(chA(cx, cy), fgA(cx, cy), bgA(cx, cy)) THEN
+                ch0(cx, cy) = chA(cx, cy)                          ' VERBATIM -- see the note below
+                fg0(cx, cy) = fgA(cx, cy): bg0(cx, cy) = bgA(cx, cy)
+                kept = kept + 1
+            ELSE
+                ch1(cx, cy) = chA(cx, cy)                          ' decoration, carried over verbatim
+                fg1(cx, cy) = fgA(cx, cy): bg1(cx, cy) = bgA(cx, cy)
+                IF chA(cx, cy) <> 32 OR bgA(cx, cy) <> 0 THEN deco = deco + 1
+            END IF
+        NEXT cx
+    NEXT cy
+
+    p0 = CellsToAnsi$(ch0(), fg0(), bg0(), SH - 1)
+    p1 = CellsToAnsi$(ch1(), fg1(), bg1(), SH - 1)
+    ok = -1
+    ok = ok AND WriteAnsiLayer%(AnsiOutPath$("layer-0-board-collisions.ans"), p0, "DUNGEON! collision layer")
+    ok = ok AND WriteAnsiLayer%(AnsiOutPath$("layer-1-board-decoration.ans"), p1, "DUNGEON! decoration layer")
+    PRINT
+    PRINT PipeCol$("  collision cells: |10" + _TRIM$(STR$(kept)) + "|07 (walkable set preserved exactly)")
+    PRINT PipeCol$("  decoration cells: |11" + _TRIM$(STR$(deco)) + "|07 (half-blocks, shading, the level plaques)")
+    PRINT PipeCol$("  |08layer-0 keeps the source's own glyphs and colours, so it renders identically in")
+    PRINT PipeCol$("  |08any ANSI viewer -- and a half-painted door stays half-painted, as movement expects.")
+    ' Which collision colours ended up ONLY in decoration? A cell that is half secret-door blue
+    ' is two-coloured, so the rule above sends it to layer-1 -- and then layer-0 has no secret
+    ' door there at all. DetectSecretDoors finds those today because it samples the COMBINED
+    ' board and accepts a partial-blue cell; the moment collision reads layer-0 alone, they
+    ' vanish. Count them rather than discover it in play.
+    DIM lostblue AS LONG, lostdoor AS LONG, lostfloor AS LONG, q AS INTEGER, ci AS INTEGER
+    DIM blueminr AS INTEGER, bluemaxr AS INTEGER, brnminr AS INTEGER, brnmaxr AS INTEGER
+    blueminr = 999: brnminr = 999: bluemaxr = -1: brnmaxr = -1
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            IF NOT CellIsCollision%(chA(cx, cy), fgA(cx, cy), bgA(cx, cy)) THEN
+                ' not solid -- but does it CONTAIN a collision colour in either half?
+                FOR q = 0 TO 1
+                    IF q = 0 THEN ci = fgA(cx, cy) ELSE ci = bgA(cx, cy)
+                    IF ci <> 0 THEN
+                        IF ci = PaletteIndex%(BRIGHT_BLUE) THEN
+                            lostblue = lostblue + 1
+                            IF cy < blueminr THEN blueminr = cy
+                            IF cy > bluemaxr THEN bluemaxr = cy
+                        END IF
+                        IF ci = PaletteIndex%(BROWN) THEN
+                            lostdoor = lostdoor + 1
+                            IF cy < brnminr THEN brnminr = cy
+                            IF cy > brnmaxr THEN brnmaxr = cy
+                        END IF
+                    END IF
+                NEXT q
+            END IF
+        NEXT cx
+    NEXT cy
+    PRINT PipeCol$("  cells holding a collision colour that went to DECORATION (lettering):")
+    PRINT PipeCol$("    secret-door blue: |14" + _TRIM$(STR$(lostblue)) + "|07 (rows " + _TRIM$(STR$(blueminr)) + "-" + _TRIM$(STR$(bluemaxr)) + ")     door brown: |14" + _TRIM$(STR$(lostdoor)) + "|07 (rows " + _TRIM$(STR$(brnminr)) + "-" + _TRIM$(STR$(brnmaxr)) + ")")
+    IF blueminr >= 48 AND brnminr >= 48 THEN
+        PRINT PipeCol$("    |10all below row 48 -- the board's own legend swatches, correctly decoration|07")
+    ELSE
+        PRINT PipeCol$("    |12some sit INSIDE the play area -- layer-0 would be missing a real door|07")
+    END IF
+    ' --- what the ART actually contains, so a judgement call is made on data ---
+    DIM nbrown AS LONG, nhalf AS LONG, nhalf2 AS LONG, hx AS INTEGER, hy AS INTEGER
+    DIM isHalf AS INTEGER
+    hx = -1
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            IF fgA(cx, cy) = PaletteIndex%(BROWN) OR bgA(cx, cy) = PaletteIndex%(BROWN) THEN nbrown = nbrown + 1
+            isHalf = 0
+            SELECT CASE chA(cx, cy)
+                CASE 220, 221, 222, 223: isHalf = -1
+            END SELECT
+            IF isHalf THEN
+                nhalf = nhalf + 1
+                IF fgA(cx, cy) <> 0 AND bgA(cx, cy) <> 0 THEN
+                    nhalf2 = nhalf2 + 1                     ' TWO non-black colours: a colour transition
+                    IF hx < 0 THEN hx = cx: hy = cy
+                END IF
+            END IF
+        NEXT cx
+    NEXT cy
+    PRINT PipeCol$("  board art: |11" + _TRIM$(STR$(nbrown)) + "|07 cells carry BROWN (the door colour); DetectDoors finds |11" + _TRIM$(STR$(DOOR_N)) + "|07 doors")
+    PRINT PipeCol$("  half-block cells: |11" + _TRIM$(STR$(nhalf)) + "|07 total, |11" + _TRIM$(STR$(nhalf2)) + "|07 with TWO non-black colours (first at " + _TRIM$(STR$(hx)) + "," + _TRIM$(STR$(hy)) + ")")
+    ' Which glyph, and which colour pair? A room lip against a corridor is structural; a pair of
+    ' greys or a colour-on-colour dash is label trim. Print the top pairs so the call is on data.
+    DIM pk AS INTEGER, pj AS INTEGER, best AS LONG, bi AS INTEGER, bj AS INTEGER, bg2 AS INTEGER
+    DIM pair(0 TO 15, 0 TO 15) AS LONG, glyphc(0 TO 255) AS LONG, rrow AS STRING
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            SELECT CASE chA(cx, cy)
+                CASE 220, 221, 222, 223
+                    IF fgA(cx, cy) <> 0 AND bgA(cx, cy) <> 0 THEN
+                        pair(fgA(cx, cy), bgA(cx, cy)) = pair(fgA(cx, cy), bgA(cx, cy)) + 1
+                        glyphc(chA(cx, cy)) = glyphc(chA(cx, cy)) + 1
+                    END IF
+            END SELECT
+        NEXT cx
+    NEXT cy
+    PRINT PipeCol$("    by glyph -> lower(220):" + _TRIM$(STR$(glyphc(220))) + "  left(221):" + _TRIM$(STR$(glyphc(221))) + "  right(222):" + _TRIM$(STR$(glyphc(222))) + "  upper(223):" + _TRIM$(STR$(glyphc(223))))
+    FOR pj = 1 TO 5
+        best = 0: bi = -1
+        FOR pk = 0 TO 15
+            FOR bg2 = 0 TO 15
+                IF pair(pk, bg2) > best THEN best = pair(pk, bg2): bi = pk: bj = bg2
+            NEXT bg2
+        NEXT pk
+        IF bi < 0 THEN EXIT FOR
+        PRINT PipeCol$("    fg " + _TRIM$(STR$(bi)) + " on bg " + _TRIM$(STR$(bj)) + " x" + _TRIM$(STR$(best)))
+        pair(bi, bj) = 0
+    NEXT pj
+    PRINT
+    BoardSplitVerify raw, p0, p1
+    SYSTEM 0
+END SUB
+
+
+' PROVE the split is lossless: render the original, render layer-0 with layer-1 composited over
+' it (black = transparent), and compare every pixel. A split that changes one cell changes the
+' board, and "it looked right" is not a check -- the whole point is that nothing moved.
+SUB BoardSplitVerify (raw AS STRING, p0 AS STRING, p1 AS STRING)
+    DIM iorig AS LONG, ia AS LONG, ib AS LONG, olddest AS LONG, oldsrc AS LONG
+    DIM x AS INTEGER, y AS INTEGER, diff AS LONG, fx AS INTEGER, fy AS INTEGER
+    olddest = _DEST: oldsrc = _SOURCE
+    iorig = _NEWIMAGE(SW * CW, SH * CH, 32)
+    ia = _NEWIMAGE(SW * CW, SH * CH, 32)
+    ib = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _DEST iorig: _FONT CH: CLS , BLACK: ANSI_Print (raw)
+    _DEST ia: _FONT CH: CLS , BLACK: ANSI_Print (p0)
+    _DEST ib: _FONT CH: CLS , BLACK: ANSI_Print (p1)
+    _CLEARCOLOR BLACK, ib                        ' decoration: black is transparent
+    _DEST ia: _PUTIMAGE (0, 0), ib, ia           ' composite = what the game would show
+    fx = -1
+    _SOURCE ia
+    FOR y = 0 TO SH * CH - 1
+        FOR x = 0 TO SW * CW - 1
+            IF POINT(x, y) <> PointOf~&(iorig, x, y) THEN
+                diff = diff + 1
+                IF fx < 0 THEN fx = x: fy = y
+            END IF
+        NEXT x
+    NEXT y
+    _SOURCE oldsrc: _DEST olddest
+    _FREEIMAGE iorig: _FREEIMAGE ia: _FREEIMAGE ib
+    _DEST _CONSOLE
+    IF diff = 0 THEN
+        PRINT PipeCol$("  |10VERIFIED lossless|07 -- layer-0 + layer-1 composites to the original, pixel for pixel")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(diff)) + " pixels differ|07 from the original (first at " + _TRIM$(STR$(fx)) + "," + _TRIM$(STR$(fy)) + ", cell " + _TRIM$(STR$(fx \ CW)) + "," + _TRIM$(STR$(fy \ CH)) + ")")
+    END IF
+END SUB
+
+
+' POINT from a specific image without disturbing the caller's _SOURCE for the rest of a scan.
+FUNCTION PointOf~& (img AS LONG, x AS INTEGER, y AS INTEGER)
+    DIM s AS LONG
+    s = _SOURCE: _SOURCE img
+    PointOf~& = POINT(x, y)
+    _SOURCE s
+END FUNCTION
+
+' Does this cell belong to the COLLISION layer?
+'
+' The first rule was "solid cells only" -- a full block or a space on that background -- on the
+' theory that only whole-cell colour matters. That was wrong, and measurably: 36 secret-door and
+' 266 door cells are painted as HALF blocks, so they fell into decoration and layer-0 had no
+' door there at all. Movement already accepts those (CanMove tests diachromatic(floor, BROWN)
+' and diachromatic(floor, BRIGHT_BLUE)), and DetectSecretDoors counts partial blue.
+'
+' So the rule is "does the cell CONTAIN a collision colour", and matching cells are copied
+' VERBATIM rather than flattened to one colour. Flattening would destroy the second fact a
+' two-coloured cell carries -- a floor+door cell is both walkable AND a doorway, and squashing
+' it to plain brown would make InRoomNow stop seeing room floor there.
+'
+' Verbatim has a second benefit: layer-0 keeps the source's own encoding, so it renders in any
+' ANSI viewer exactly as the board does. The earlier space-on-bright-background form needed a
+' viewer that honours iCE bright backgrounds, and one that does not showed the yellow paths as
+' brown -- fine for the game, confusing to hand-edit.
+'
+' TEXT GLYPHS are excluded whatever colour they sit on. That is the level plaques ("4th", "5th"):
+' a block of level colour with letters on it, which is decoration wearing a floor colour.
+FUNCTION CellIsCollision% (chcode AS INTEGER, f AS INTEGER, b AS INTEGER)
+    ' `chcode`, not `c`: QB64 identifiers are case-insensitive and `c` is the shared CURSOR --
+    ' a parameter named c would shadow it silently. tests/audit-shadow.sh catches exactly this.
+    CellIsCollision% = 0
+    IF NOT IsBlockGlyph%(chcode) THEN EXIT FUNCTION            ' lettering is never collision
+    IF f <> 0 THEN
+        IF IsCollisionIndex%(f) THEN CellIsCollision% = -1: EXIT FUNCTION
+    END IF
+    IF b <> 0 THEN
+        IF IsCollisionIndex%(b) THEN CellIsCollision% = -1
+    END IF
+END FUNCTION
+
+' Space, the full block, the four half blocks, and the three shade patterns -- the glyphs the
+' board draws GEOMETRY with. Anything else is lettering.
+FUNCTION IsBlockGlyph% (chcode AS INTEGER)
+    SELECT CASE chcode
+        CASE 32, 219, 220, 221, 222, 223, 176, 177, 178: IsBlockGlyph% = -1
+        CASE ELSE: IsBlockGlyph% = 0
+    END SELECT
+END FUNCTION
+
+' Is this palette index one the movement code treats as walkable -- a path, a door, a secret
+' door, or one of the level floor colours?
+FUNCTION IsCollisionIndex% (idx AS INTEGER)
+    DIM s AS INTEGER
+    IsCollisionIndex% = 0
+    IF idx = PaletteIndex%(YELLOW) THEN IsCollisionIndex% = -1: EXIT FUNCTION
+    IF idx = PaletteIndex%(BROWN) THEN IsCollisionIndex% = -1: EXIT FUNCTION
+    IF idx = PaletteIndex%(BRIGHT_BLUE) THEN IsCollisionIndex% = -1: EXIT FUNCTION
+    FOR s = 1 TO 9
+        IF idx = PaletteIndex%(SECTORS(s).kolor) THEN IsCollisionIndex% = -1: EXIT FUNCTION
+    NEXT s
+END FUNCTION
+
+' A palette colour -> its 0-15 index, via the SGR table so there is only one palette mapping
+' in the codebase rather than a second copy that can drift from it.
+FUNCTION PaletteIndex% (col AS _UNSIGNED LONG)
+    DIM v AS INTEGER
+    v = VAL(SGRForColor$(col))
+    IF v >= 90 THEN PaletteIndex% = v - 90 + 8 ELSE PaletteIndex% = v - 30
+END FUNCTION
+
+' Write one layer + its SAUCE record. Refuses to clobber an existing file, like maskgen and
+' sectorgen -- these are STARTERS to hand-tune, and silently overwriting hours of editing
+' would be the worst thing a generator could do.
+FUNCTION WriteAnsiLayer% (path AS STRING, body AS STRING, title AS STRING)
+    DIM f AS INTEGER
+    WriteAnsiLayer% = -1
+    IF _FILEEXISTS(path) THEN
+        PRINT PipeCol$("  |14skipped|07 " + path + " -- already exists (delete it to regenerate)")
+        EXIT FUNCTION
+    END IF
+    f = FREEFILE
+    OPEN path FOR OUTPUT AS #f
+    PRINT #f, body;
+    PRINT #f, CHR$(26);                                        ' EOF marker, then SAUCE
+    PRINT #f, SauceRecord$(title, SW, SH - 1, LEN(body));
+    CLOSE #f
+    PRINT PipeCol$("  wrote |10" + path + "|07 (" + _TRIM$(STR$(LEN(body))) + " bytes of art)")
+END FUNCTION
+
+
+' ============================================================================
 '  `dungeon.run sectorauto` -- can the SECTOR RECTANGLES be derived from the art alone?
 '
 '  THE IDEA (grymmjack's): each dungeon level paints its rooms in its own colour, and the

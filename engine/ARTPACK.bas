@@ -103,6 +103,18 @@ FUNCTION AnsiFile$ (subpath AS STRING)
     IF _FILEEXISTS(p) THEN AnsiFile$ = p ELSE AnsiFile$ = ""
 END FUNCTION
 
+' Where a NEW ansi-art file should be WRITTEN. AnsiFile$ is a reader -- it returns "" for a
+' path that does not exist yet, which is exactly wrong for a generator's output (it silently
+' hands back an empty filename). This builds the path in the selected pack instead, so a pack
+' gets its own generated layers rather than writing them into default/.
+FUNCTION AnsiOutPath$ (subpath AS STRING)
+    IF LEN(opt_ansipack) > 0 THEN
+        AnsiOutPath$ = "assets/ansi-art/" + opt_ansipack + "/" + subpath
+    ELSE
+        AnsiOutPath$ = "assets/ansi-art/default/" + subpath
+    END IF
+END FUNCTION
+
 ' Fill ANSIPACKS() with every subfolder of assets/ansi-art/ (each is a pack, incl "default").
 ' Same model as ScanArtPacks: the folder list IS the pack list; a vanished pick -> "default".
 SUB ScanAnsiPacks
