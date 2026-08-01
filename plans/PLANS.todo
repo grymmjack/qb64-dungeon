@@ -58,110 +58,130 @@ Needs Thorough Testing:
       ☐ We need confirmations and "ready to proceed" moments as the pace is way too frantic right now
 
 SFX Tweaks:
-    ☐ Add ambient sound effects according to taste/level area:
-      ☐ Thumps
-      ☐ Hinges
-      ☐ Slams
-      ☐ Chains
-      ☐ Wind
-      ☐ Deep drones
-      ☐ Screams
-      ☐ Monster chatter
-        ☐ Squeaks
-        ☐ Hisses
-        ☐ Gibberish
-        ☐ Growls
-        ☐ Slithers
-        ☐ Laughter
-        ☐ Howls
-        ☐ Barks
-        ☐ Moans
-        ☐ Whispers
+    ✔ Add ambient sound effects according to taste/level area: @done(26-08-01)
+      ✔ Thumps @done(26-08-01)
+      ✔ Hinges @done(26-08-01)
+      ✔ Slams @done(26-08-01)
+      ✔ Chains @done(26-08-01)
+      ✔ Wind @done(26-08-01)
+      ✔ Deep drones @done(26-08-01)
+      ✔ Screams @done(26-08-01)
+      ✔ Monster chatter @done(26-08-01)
+        ✔ Squeaks @done(26-08-01)
+        ✔ Hisses @done(26-08-01)
+        ✔ Gibberish @done(26-08-01)
+        ✔ Growls @done(26-08-01)
+        ✔ Slithers @done(26-08-01)
+        ✔ Laughter @done(26-08-01)
+        ✔ Howls @done(26-08-01)
+        ✔ Barks @done(26-08-01)
+        ✔ Moans @done(26-08-01)
+        ✔ Whispers @done(26-08-01)
+      ✔ ALL 17 exist as assets/sfx/default/amb-*.ogg -- the `default` pack is the fallback @done(26-08-01)
+        ✔ every other SFX pack resolves through, so all packs inherit them unshipped @done(26-08-01)
+      ✔ "according to taste/level area" is DATA: assets/data/<pack>/ambience.txt gives each @done(26-08-01)
+        ✔ level its own weighted pool (Torture Chamber screams, Crypt moans, Wizard mutters) @done(26-08-01)
+      ✔ AmbienceTick fires one every AMB_SECS_MIN..MAX sec of PLAY only -- never during @done(26-08-01)
+        ✔ combat/menus/banners; AMB_SECS_MIN=0 in tuning.txt turns it off @done(26-08-01)
+      ✔ never falls back to the tone beeper: a missing ambient noise is SILENCE, because a @done(26-08-01)
+        ✔ PC-speaker blip is a UI sound, not something heard down a corridor @done(26-08-01)
+      ✔ generated with soundmon --chipfx (PSG synthesis, needs no GPU) @done(26-08-01)
 
 Narration Small Tweaks:
-    ☐ Add additional narrations for combat - stop the repeat of "blood runs..."
-      ☐ Player kills monster:
-        ☐ Your foe falls before you and you breathe a sigh of relief.. for now.
-        ☐ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly.
-        ☐ The creature looks pathetic and harmless in it's state of frozen pain and death.
-        ☐ Exasperated and grateful you step over your opponent and carry on.
-        ☐ The place wreaks of blood and bits and sweat and pain and you smile in victory.
-        ☐ With a deep sigh and a gathering of courage you press on.
-        ☐ You wipe yourself clean of the fluids your enemy shared with you in their dance of death.
-        ☐ Twitching and breathing a final breath your foe perishes from this realm.
-        ☐ Another one meets the clearing at the end of the path. You strengthen your resolve for more.
-        ☐ Death. Dealt. The cards to come unknown but the dealer you are just the same.
-      ☐ Player kills monster with critical:
-        ☐ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise.
-        ☐ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred?
-        ☐ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away.
-        ☐ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin.
-        ☐ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood.
-        ☐ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success.
-        ☐ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy.
-        ☐ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS!
-        ☐ Shivering and careful you survey your surroundings; a grim visage of death and destruction.
-        ☐ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness.
-      ☐ When character levels up - add 10 flavor texts:
-        ☐ You have learned much and conquered more! You are emboldened and filled with vigor
-        ☐ Everything that has stood between you and your goal has been ... handled. Well done.
-        ☐ You feel as if nothing can stop you and you are determined to push ahead even if it means your end.
-        ☐ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more.
-        ☐ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
-        ☐ Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
-        ☐ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them.
-        ☐ What is life without achievement? What is existence without testing the limits of such? Press on hero!
-        ☐ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
-        ☐ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.
-      ☐ Player hits monster:
-        ☐ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost.
-        ☐ With precision timing and strategy you bring death and harbor no mercy.
-        ☐ A salty vision of blood and entrails coat the floor; wet death, theirs.
-        ☐ Instinct takes over and you feel as if your movements are controlled by gods grace.
-        ☐ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not.
-        ☐ One strike at a time chips away at your foes composure and flow of life.
-        ☐ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes.
-        ☐ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands.
-        ☐ Frenzy, absolute and all encompassing has made you into a killing machine.
-        ☐ Rage and blood and fever embrace your cold movements as the dealer of death.
-        ☐ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain.
-      ☐ Player crits monster:
-        ☐ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming!
-        ☐ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred.
-        ☐ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle.
-        ☐ You are soaked with the blood of your enemy as it juts and sprays and coats the place.
-        ☐ Cold calmness and deliberation come upon you. This is a dance, not a fight. 
-        ☐ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect.
-        ☐ A vision of heat, fur, scales, and steel blurry and primal.
-        ☐ TAKE THAT! you shout as you unleash your potential into the fray.
-        ☐ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you.
-        ☐ You were born for this. You live for this. You are unstoppable!
-      ☐ Monster hits player:
-        ☐ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it.
-        ☐ This beast seems seasoned and as it tears into you growls a tribal cry of fury.
-        ☐ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you.
-        ☐ Your body aches and tenses with the impact of the attack.
-        ☐ Rushing and unstoppable the merciless fangs and teeth and limbs come at you.
-        ☐ A fair blow from your foe, you cannot deny it.
-        ☐ You catalog the pain and unthrottle your rage for payback.
-        ☐ Blinking in disbelief as you thought you had out maneuvered that attack.
-        ☐ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds.
-        ☐ God! That hurts!
-      ☐ Monster crits player:
-        ☐ How can this be?! It won't happen again.
-        ☐ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake.
-        ☐ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain.
-        ☐ MY! GOD!! THAT REALLY HURTS! 
-        ☐ SON OF A.. ! YOU DIRTY! 
-        ☐ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness.
-        ☐ This creature is either lucky or powerful or both.
-        ☐ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back.
-        ☐ It's as if you might actually have to try here.
-        ☐ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse. 
+    ✔ Add additional narrations for combat - stop the repeat of "blood runs..." @done(26-08-01)
+      ✔ ROOT CAUSE: class_events.txt had exactly ONE line per event, so every player hit, @done(26-08-01)
+        ✔ crit, miss and fumble printed the same sentence, every fight, forever @done(26-08-01)
+      ✔ default pools now: class attack 1->12, class crit 1->11, monster attack 2->12, @done(26-08-01)
+        ✔ monster crit 1->11, monster death 2->12  (lines below, copy-edited for typos) @done(26-08-01)
+      ✔ NEW killcrit event (code 6): a crit that FINISHES a monster gets its own aftermath @done(26-08-01)
+        ✔ text -- the plain death line reads as a quiet expiry, wrong after you open one up @done(26-08-01)
+      ✔ level-up lines live in a NEW assets/flavor/<pack>/levelup.txt (flavor pool 5) @done(26-08-01)
+      ✔ Player kills monster: @done(26-08-01)
+        ✔ Your foe falls before you and you breathe a sigh of relief.. for now. @done(26-08-01)
+        ✔ Your enemy lies before you in a crumpled heap, it's lifes essence seeping out slowly. @done(26-08-01)
+        ✔ The creature looks pathetic and harmless in it's state of frozen pain and death. @done(26-08-01)
+        ✔ Exasperated and grateful you step over your opponent and carry on. @done(26-08-01)
+        ✔ The place wreaks of blood and bits and sweat and pain and you smile in victory. @done(26-08-01)
+        ✔ With a deep sigh and a gathering of courage you press on. @done(26-08-01)
+        ✔ You wipe yourself clean of the fluids your enemy shared with you in their dance of death. @done(26-08-01)
+        ✔ Twitching and breathing a final breath your foe perishes from this realm. @done(26-08-01)
+        ✔ Another one meets the clearing at the end of the path. You strengthen your resolve for more. @done(26-08-01)
+        ✔ Death. Dealt. The cards to come unknown but the dealer you are just the same. @done(26-08-01)
+      ✔ Player kills monster with critical: @done(26-08-01)
+        ✔ The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponents demise. @done(26-08-01)
+        ✔ A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred? @done(26-08-01)
+        ✔ The glint of light is fuzzy and hazy and red haloed shimmering with battle sick - you blink them away. @done(26-08-01)
+        ✔ Still attacking and shaking your rage finally subsides and you awake to a vision of disgust and anatomical ruin. @done(26-08-01)
+        ✔ With the final move you finish the dance in a crescendo of precision and deliberateness - everywhere blood. @done(26-08-01)
+        ✔ Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success. @done(26-08-01)
+        ✔ The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy. @done(26-08-01)
+        ✔ Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS! @done(26-08-01)
+        ✔ Shivering and careful you survey your surroundings; a grim visage of death and destruction. @done(26-08-01)
+        ✔ RAAAARRRRGGhgh! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness. @done(26-08-01)
+      ✔ When character levels up - add 10 flavor texts: @done(26-08-01)
+        ✔ You have learned much and conquered more! You are emboldened and filled with vigor @done(26-08-01)
+        ✔ Everything that has stood between you and your goal has been ... handled. Well done. @done(26-08-01)
+        ✔ You feel as if nothing can stop you and you are determined to push ahead even if it means your end. @done(26-08-01)
+        ✔ Though the path has been perilous you have overcome and for that you are grateful and your soul galvanized for more. @done(26-08-01)
+        ✔ Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge. @done(26-08-01)
+        ✔ Pain and suffering is no match for endurance and resolve. You will ascend and you will win. @done(26-08-01)
+        ✔ Lesser mortals would turn back now knowing greater challenges await, but not you, you welcome them. @done(26-08-01)
+        ✔ What is life without achievement? What is existence without testing the limits of such? Press on hero! @done(26-08-01)
+        ✔ This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own. @done(26-08-01)
+        ✔ You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate. @done(26-08-01)
+      ✔ Player hits monster: @done(26-08-01)
+        ✔ The creature blinks in dismay and disbelief as you chip away at it's mortality, you almost feel sorry for it. almost. @done(26-08-01)
+        ✔ With precision timing and strategy you bring death and harbor no mercy. @done(26-08-01)
+        ✔ A salty vision of blood and entrails coat the floor; wet death, theirs. @done(26-08-01)
+        ✔ Instinct takes over and you feel as if your movements are controlled by gods grace. @done(26-08-01)
+        ✔ The thrill of battle and survival soak you cold and slow time. It's as if your enemy is underwater and you are not. @done(26-08-01)
+        ✔ One strike at a time chips away at your foes composure and flow of life. @done(26-08-01)
+        ✔ Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in it's eyes. @done(26-08-01)
+        ✔ More. MORE! COME ON!!! you shout spit into the face of your foe gritting your teeth as your attack lands. @done(26-08-01)
+        ✔ Frenzy, absolute and all encompassing has made you into a killing machine. @done(26-08-01)
+        ✔ Rage and blood and fever embrace your cold movements as the dealer of death. @done(26-08-01)
+        ✔ Is there no end to your prowress and ability? Stunned and stricken your enemy cries in pain. @done(26-08-01)
+      ✔ Player crits monster: @done(26-08-01)
+        ✔ PRECISION! ARTISTRY! your attack sends the creature reeling, screaming! @done(26-08-01)
+        ✔ FEEL THE PAIN! DIE! you scream baring your teeth in a grimace of hatred. @done(26-08-01)
+        ✔ GET OFF ME! BASTARD! your attack finds home tilting the balance of battle. @done(26-08-01)
+        ✔ You are soaked with the blood of your enemy as it juts and sprays and coats the place. @done(26-08-01)
+        ✔ Cold calmness and deliberation come upon you. This is a dance, not a fight.  @done(26-08-01)
+        ✔ The battle sickness overtakes you, you are no longer here, you are watching yourself, and you are perfect. @done(26-08-01)
+        ✔ A vision of heat, fur, scales, and steel blurry and primal. @done(26-08-01)
+        ✔ TAKE THAT! you shout as you unleash your potential into the fray. @done(26-08-01)
+        ✔ DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you. @done(26-08-01)
+        ✔ You were born for this. You live for this. You are unstoppable! @done(26-08-01)
+      ✔ Monster hits player: @done(26-08-01)
+        ✔ You blink glancing at the onslaught impact just in time to feel the sharp jagged rawness of it. @done(26-08-01)
+        ✔ This beast seems seasoned and as it tears into you growls a tribal cry of fury. @done(26-08-01)
+        ✔ Red, all red, and darkness. It hurts, the pain is distant but patiently waiting for you. @done(26-08-01)
+        ✔ Your body aches and tenses with the impact of the attack. @done(26-08-01)
+        ✔ Rushing and unstoppable the merciless fangs and teeth and limbs come at you. @done(26-08-01)
+        ✔ A fair blow from your foe, you cannot deny it. @done(26-08-01)
+        ✔ You catalog the pain and unthrottle your rage for payback. @done(26-08-01)
+        ✔ Blinking in disbelief as you thought you had out maneuvered that attack. @done(26-08-01)
+        ✔ Your rage grows commensurate with your pain and your anger throbs ready to pounce and repay the debt of wounds. @done(26-08-01)
+        ✔ God! That hurts! @done(26-08-01)
+      ✔ Monster crits player: @done(26-08-01)
+        ✔ How can this be?! It won't happen again. @done(26-08-01)
+        ✔ A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake. @done(26-08-01)
+        ✔ A mess of fangs, scales, claws, and bones and you can only bite your own teeth as you feel the immediate brutal pain. @done(26-08-01)
+        ✔ MY! GOD!! THAT REALLY HURTS!  @done(26-08-01)
+        ✔ SON OF A.. ! YOU DIRTY!  @done(26-08-01)
+        ✔ Though you try to dodge the enemy is faster, and you feel the speed and force in it's fullness. @done(26-08-01)
+        ✔ This creature is either lucky or powerful or both. @done(26-08-01)
+        ✔ With only your grit are you able to absorb the incredible force and the pain and promise to pay it back. @done(26-08-01)
+        ✔ It's as if you might actually have to try here. @done(26-08-01)
+        ✔ DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse.  @done(26-08-01)
     ☐ Add monster names, and item names into narration and manifest so they can be 
       ☐ dynamically spoken during the game - instead of "a huge shadow rises and blocks your way"
       ☐ Goblins bar your path, grimacing their decaying grins and leaping at you from the shadows.. etc
+      ☐ BLOCKED 26-08-01: needs spoken audio (soundmon --narrate-file / Kokoro), and no
+        ☐ ComfyUI server was reachable. `dungeon.run audiomanifest audit` prints the exact
+        ☐ work list -- 137 lines, all narration, in `narration/<key> | <line>` form
     ☐ Add all the monster event descriptions into narration manifest and have them play if combat is used for narration
+      ☐ BLOCKED 26-08-01: same -- the TEXT now exists (63 new combat lines), the VOICE does not
     ☐ Audit existing events for sensory coverage and make diverse if not where appropriate:
       ☐ Sight
       ☐ Sound

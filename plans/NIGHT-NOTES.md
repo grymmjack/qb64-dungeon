@@ -1,5 +1,20 @@
 # Night session notes — 2026-08-01
 
+> ## STANDING RULE for unattended / overnight runs
+>
+> **Do not call `AskUserQuestion` when the user has said they are away.** It is *not* a
+> permission prompt, so "bypass permissions" has no effect on it, and this machine's
+> `askUserQuestionTimeout` is `"never"` — one question stalls the entire run until someone
+> comes back to the keyboard. It cost most of a night once already.
+>
+> Instead: pick the most defensible option, do the work, and record the decision **and the
+> alternatives I rejected** here under "Judgement calls" so it can be reviewed and reversed.
+> Everything goes through git, so a wrong call is one `git revert` away — which is a far
+> cheaper failure than a run that did nothing.
+>
+> Related: the persisted `defaultMode` in `~/.claude/settings.json` is `"auto"`, not bypass.
+> Bypass enabled per-session via `/permissions` will not survive a resume.
+
 Working notes from the autonomous run. `plans/PLANS.todo` stays clean; the detail lives here.
 
 ---
@@ -180,3 +195,21 @@ Ready to run the moment ComfyUI is up:
 - **Bestiary showing only discovered monsters** — needs cross-run persistence, which is a save
   format question, not a UI one.
 - Everything under "Big UI Tweaks" and "Huge UI Efforts" — these are design work, not chores.
+
+
+---
+
+## Judgement calls made without asking (2026-08-01)
+
+Per the standing rule above. Each is reversible; the alternative I rejected is stated so the
+call can be second-guessed cheaply.
+
+| decision | what I did | the alternative |
+|---|---|---|
+| Ambient sound source | soundmon `--chipfx` PSG synthesis | Wait for a GPU and use Stable Audio. Rejected: it would have meant shipping nothing, and the PSG sounds are pack-overridable, so replacing them later costs nothing. |
+| Where ambience lives | new `assets/sfx/default/` (the shared fallback) | Put them in the active pack. Rejected: then only that one pack has ambience. |
+| Fumble odds | rebalanced `effects.txt` table 3 to 10 rows + new `kind 6` | Hardcode the 10/20/30/40 in `DoMonsterFumble`. Rejected: the table is data everywhere else, and code would put the odds out of reach. |
+| Entrance heal on old saves | derive `hp_start_amount` from `player_maxhp` once | Bump the save format. Rejected: risks orphaning the player's real save for a cosmetic gain. |
+| Crypt forced sight | separate `fov_forced` + `FovOn%` | Set `opt_fov` directly. Rejected: that is the player's *saved* setting and would persist the override into their config. |
+| Torch item | left open | Invent an item code and drop-table entry unprompted. Rejected: new player-facing items are a design decision, not a chore. |
+| Typos in the authored flavor lines | fixed silently (`it's`→`its`, `wreaks`→`reeks`, `prowress`→`prowess`) | Ship verbatim. Rejected: they read as errors in-game. Easy to revert — they are one commit. |
