@@ -31,7 +31,9 @@ END FUNCTION
 FUNCTION DrawSpriteFit% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER)
     DIM h AS LONG, iw AS INTEGER, ih AS INTEGER, sc AS SINGLE, dw AS INTEGER, dh AS INTEGER, dx AS INTEGER, dy AS INTEGER
     DrawSpriteFit% = 0
-    h = Sprite&(path)
+    ' A path may now be EITHER form -- ArtFile$ decides which, per opt_artstyle. ANSI art is
+    ' rendered at its authored character size and then scaled here like any other image.
+    IF LCASE$(RIGHT$(path, 4)) = ".ans" THEN h = AnsiSprite&(path) ELSE h = Sprite&(path)
     IF h = 0 THEN EXIT FUNCTION
     iw = _WIDTH(h): ih = _HEIGHT(h)
     IF iw < 1 OR ih < 1 THEN EXIT FUNCTION
@@ -50,14 +52,109 @@ END FUNCTION
 ' exists. `subpath` is e.g. "monsters/undead/skeleton.png". A partial pack overrides only the
 ' sprites it ships; everything else falls back to the main art.
 FUNCTION ArtFile$ (subpath AS STRING)
+    DIM px AS STRING, an AS STRING
+    px = PixelArtFile$(subpath)
+    SELECT CASE opt_artstyle
+        CASE ARTSTYLE_PIXEL
+            ArtFile$ = px
+        CASE ARTSTYLE_ANSI
+            ArtFile$ = AnsiArtFile$(subpath)
+        CASE ELSE                                   ' HYBRID: the richer form, then the other one
+            IF LEN(px) > 0 THEN ArtFile$ = px ELSE ArtFile$ = AnsiArtFile$(subpath)
+    END SELECT
+END FUNCTION
+
+' The PIXEL half of ArtFile$: selected art pack, then the default pack, per file.
+FUNCTION PixelArtFile$ (subpath AS STRING)
     DIM p AS STRING
     IF LEN(opt_artpack) > 0 THEN
         p = "assets/pixel-art/" + opt_artpack + "/" + subpath
-        IF _FILEEXISTS(p) THEN ArtFile$ = p: EXIT FUNCTION
+        IF _FILEEXISTS(p) THEN PixelArtFile$ = p: EXIT FUNCTION
     END IF
     p = "assets/pixel-art/default/" + subpath       ' fall back to the DEFAULT pack (every pack is a named subfolder)
-    IF _FILEEXISTS(p) THEN ArtFile$ = p ELSE ArtFile$ = ""
+    IF _FILEEXISTS(p) THEN PixelArtFile$ = p ELSE PixelArtFile$ = ""
 END FUNCTION
+
+' The ANSI half: same subpath with .png swapped for .ans, under assets/ansi-art/<pack>/.
+' Same per-file pack-then-default fallback, so a partial ANSI pack behaves like a partial
+' pixel one.
+FUNCTION AnsiArtFile$ (subpath AS STRING)
+    DIM sp AS STRING, p AS STRING, dot AS INTEGER
+    sp = subpath
+    dot = _INSTRREV(sp, ".")
+    IF dot > 0 THEN sp = LEFT$(sp, dot - 1)
+    sp = sp + ".ans"
+    IF LEN(opt_ansipack) > 0 THEN
+        p = "assets/ansi-art/" + opt_ansipack + "/" + sp
+        IF _FILEEXISTS(p) THEN AnsiArtFile$ = p: EXIT FUNCTION
+    END IF
+    p = "assets/ansi-art/default/" + sp
+    IF _FILEEXISTS(p) THEN AnsiArtFile$ = p ELSE AnsiArtFile$ = ""
+END FUNCTION
+
+' Render a .ans entity sprite into a cached image AT ITS AUTHORED CHARACTER SIZE.
+'
+' The size is not negotiable: ANSI_Print auto-wraps at the destination image's width, so
+' rendering 18-column art into a wider image does not scale it, it REFLOWS it into garbage.
+' The authored size comes from the file's own SAUCE record (ansimon writes one); 18x12 is the
+' fallback, which is what assets/data/art-prompts.txt asks the generator for.
+'
+' Cached by path, like FightAnsiTile& -- ANSI_Print walks the whole byte stream, and doing that
+' per frame for a portrait that never changes would dominate the frame.
+FUNCTION AnsiSprite& (path AS STRING)
+    DIM i AS INTEGER, img AS LONG, raw AS STRING, prevdest AS LONG
+    DIM cols AS INTEGER, rows AS INTEGER
+    AnsiSprite& = 0
+    FOR i = 1 TO ASPR_N
+        IF ASPR_PATH(i) = path THEN AnsiSprite& = ASPR_IMG(i): EXIT FUNCTION
+    NEXT i
+    IF LEN(path) = 0 THEN EXIT FUNCTION
+    IF _FILEEXISTS(path) = 0 THEN EXIT FUNCTION
+    raw = _READFILE$(path)
+    IF LEN(raw) = 0 THEN EXIT FUNCTION
+    AnsiArtDims raw, cols, rows
+    img = _NEWIMAGE(cols * 8, rows * 8, 32)
+    IF img >= -1 THEN EXIT FUNCTION                 ' _NEWIMAGE failure -- no art rather than a crash
+    prevdest = _DEST
+    _DEST img
+    _FONT 8                                         ' entity art is authored on an 8x8 cell
+    CLS , BLACK
+    ANSI_Print (raw)
+    _DEST prevdest
+    IF ASPR_N < ASPR_MAX THEN
+        ASPR_N = ASPR_N + 1
+        ASPR_PATH(ASPR_N) = path: ASPR_IMG(ASPR_N) = img
+    END IF
+    AnsiSprite& = img
+END FUNCTION
+
+' Authored character dimensions of a .ans, from its SAUCE record. Falls back to 18x12 -- the
+' size art-prompts.txt asks for -- when there is no SAUCE or it reports nonsense.
+SUB AnsiArtDims (raw AS STRING, cols AS INTEGER, rows AS INTEGER)
+    DIM soff AS LONG
+    cols = 18: rows = 12
+    IF LEN(raw) < 128 THEN EXIT SUB
+    soff = LEN(raw) - 128
+    IF MID$(raw, soff + 1, 7) <> "SAUCE00" THEN EXIT SUB
+    ' `sc`/`sr`, not `c`/`r` -- `c` is the shared CURSOR and QB64 identifiers are
+    ' case-insensitive. tests/audit-shadow.sh catches exactly this.
+    DIM sc AS INTEGER, sr AS INTEGER
+    sc = ASC(raw, soff + 97) + ASC(raw, soff + 98) * 256
+    sr = ASC(raw, soff + 99) + ASC(raw, soff + 100) * 256
+    IF sc >= 1 AND sc <= 200 THEN cols = sc
+    IF sr >= 1 AND sr <= 200 THEN rows = sr
+END SUB
+
+' Drop every cached ANSI sprite. Call when the art pack or art style changes -- otherwise a
+' switch keeps showing the previous pack's art, and the handles leak.
+SUB FreeAnsiSprites
+    DIM i AS INTEGER
+    FOR i = 1 TO ASPR_N
+        IF ASPR_IMG(i) < -1 THEN _FREEIMAGE ASPR_IMG(i)
+        ASPR_PATH(i) = "": ASPR_IMG(i) = 0
+    NEXT i
+    ASPR_N = 0
+END SUB
 
 ' Fill ARTPACKS() with EVERY subfolder of assets/pixel-art/ -- each one is a pack (including
 ' "default"). No flat "main" and no category special-casing: the folder list IS the pack list.

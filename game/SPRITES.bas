@@ -253,11 +253,14 @@ END FUNCTION
 ' Pop a framed piece of item/treasure ART into the middle of the screen for a beat
 ' (a quick scale-in, then a skippable hold), then restore the frame underneath. Shown
 ' when you USE an item or FIND treasure. Resolves art via TreasureSprite$; silent if
-' the player turned pixel art off or nothing fits.
+' nothing fits the subject in the selected art style.
 SUB PopArt (nm AS STRING, caption AS STRING)
     DIM sp AS STRING, buf AS LONG, i AS INTEGER, sc AS SINGLE, k AS STRING, junk AS INTEGER
     DIM bw AS INTEGER, bh AS INTEGER, cxp AS INTEGER, cyp AS INTEGER, dw AS INTEGER, dh AS INTEGER, bx AS INTEGER, by AS INTEGER
-    IF opt_artstyle = 0 THEN EXIT SUB
+    ' No artstyle gate. This used to be `IF opt_artstyle = 0 THEN EXIT SUB`, i.e. "in ANSI mode,
+    ' draw nothing" -- which is why choosing ANSI showed no monsters, treasures or locations at
+    ' all. ArtFile$ now resolves .png or .ans per opt_artstyle and returns "" when that style has
+    ' no art for the subject, so the empty-path checks below are the only guard needed.
     sp = TreasureSprite$(nm): IF LEN(sp) = 0 THEN EXIT SUB
     buf = _NEWIMAGE(SW * CW, SH * CH, 32): _PUTIMAGE (0, 0), CANVAS, buf
     bw = 24 * CW: bh = 16 * CH
@@ -290,10 +293,10 @@ END SUB
 ' scene framed top-RIGHT -- on CANVAS. Positioned clear of the centre dice tray
 ' (rows ~9-22), the banner (rows 21-30), the D&D combat panel (rows 39-49) and the
 ' HUD (row 50), so it stays painted through a whole fight in BOTH combat modes.
-' Pixel-art modes only; each half is skipped silently if its sprite is absent.
+' Either art form; each half is skipped silently if its sprite is absent.
 SUB DrawCombatArt (nm AS STRING, sec AS INTEGER)
     DIM mp AS STRING, lp AS STRING
-    IF opt_artstyle = 0 THEN EXIT SUB
+    ' no artstyle gate -- see PopArt
     mp = MonsterSprite$(nm)
     lp = LocationSprite$(sec)
     IF LEN(mp) > 0 THEN CombatArtBox mp, 1, 18, 4, 12, "-= " + _TRIM$(nm) + " =-", REDU
@@ -329,10 +332,10 @@ END FUNCTION
 
 ' Draw a curio's prop framed top-LEFT on CANVAS -- same clear zone as the combat
 ' monster, so it persists behind the centre prompt banner. Gold frame marks it as
-' a curio (vs the red combat frame). Pixel-art modes only; silent if no sprite.
+' a curio (vs the red combat frame). Either art form; silent if no sprite.
 SUB DrawCurioArt (kd AS STRING, caption AS STRING)
     DIM p AS STRING
-    IF opt_artstyle = 0 THEN EXIT SUB
+    ' no artstyle gate -- see PopArt
     p = CurioSprite$(kd)
     IF LEN(p) = 0 THEN EXIT SUB
     CombatArtBox p, 1, 18, 4, 12, "-= " + _TRIM$(caption) + " =-", YELLOWU
@@ -376,7 +379,7 @@ END SUB
 ' (they share names -- ARMORY, THE CRYPT, ...), which one hardcoded "room." prefix could not do.
 SUB ScrollTextArtKey (title AS STRING, body AS STRING, sprPath AS STRING, narrkey AS STRING)
     DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
-    IF opt_artstyle > 0 AND LEN(sprPath) > 0 THEN
+    IF LEN(sprPath) > 0 THEN                 ' no artstyle gate -- see PopArt
         IF _FILEEXISTS(sprPath) THEN
             bw = 30 * CW: bh = 10 * CH
             bx = (SW * CW - bw) \ 2: by = 1 * CH

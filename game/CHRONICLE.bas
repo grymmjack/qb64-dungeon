@@ -271,7 +271,7 @@ SUB ShowBestiary
         '--- detail panel (right) ---
         IF sel >= 1 AND sel <= BEAST_N THEN
             sp = MonsterSprite$(BEAST_NAME(sel))
-            IF LEN(sp) > 0 AND opt_artstyle <> 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(BEAST_NAME(sel)) + " =-", REDU
+            IF LEN(sp) > 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(BEAST_NAME(sel)) + " =-", REDU   ' no artstyle guard: ArtFile$ returns "" when the chosen style has no art for this subject
             y = 26
             COLOR CYANU, BOXBG: _PRINTSTRING (36 * CW, y * CH), _TRIM$(BEAST_NAME(sel))
             y = y + 1: COLOR GREY, BOXBG: _PRINTSTRING (36 * CW, y * CH), "Haunts: " + BeastHaunts$(BEAST_NAME(sel))
@@ -344,7 +344,7 @@ SUB ShowTreasury
         '--- detail panel (right) ---
         IF sel >= 1 AND sel <= TRE_STAT_N THEN
             sp = TreasureSprite$(TRE_STATNAME(sel))
-            IF LEN(sp) > 0 AND opt_artstyle <> 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(TRE_STATNAME(sel)) + " =-", YELLOWU
+            IF LEN(sp) > 0 THEN CombatArtBox sp, 36, 34, 7, 17, "-= " + _TRIM$(TRE_STATNAME(sel)) + " =-", YELLOWU   ' no artstyle guard: ArtFile$ returns "" when the chosen style has no art for this subject
             y = 26
             COLOR CYANU, BOXBG: _PRINTSTRING (36 * CW, y * CH), _TRIM$(TRE_STATNAME(sel))
             y = y + 3

@@ -856,6 +856,9 @@ SUB RunSettings
                 CASE 34: opt_flexstats = opt_flexstats + 1: IF opt_flexstats > 2 THEN opt_flexstats = 0
                 CASE 35
                     opt_artstyle = opt_artstyle + 1: IF opt_artstyle > 2 THEN opt_artstyle = 0
+                    ' the ANSI sprite cache is keyed by PATH, and switching style changes which
+                    ' path every subject resolves to -- keeping it would show the old form
+                    FreeAnsiSprites
                 CASE 36: opt_gestures = NOT opt_gestures
                 CASE 37: opt_juice = NOT opt_juice
                 CASE 38
@@ -1022,9 +1025,9 @@ SUB RunSettings
                 CASE 35
                     lbl = "Art Style"
                     SELECT CASE opt_artstyle
-                        CASE 1: vtxt = "Pixel Art"
-                        CASE 2: vtxt = "Hybrid (ANSI + pixel)"
-                        CASE ELSE: vtxt = "ANSI"
+                        CASE ARTSTYLE_PIXEL: vtxt = "Pixel Art only"
+                        CASE ARTSTYLE_HYBRID: vtxt = "Hybrid (pixel, else ANSI)"
+                        CASE ELSE: vtxt = "ANSI only"
                     END SELECT
                 CASE 36
                     lbl = "Action Gestures"
@@ -1208,9 +1211,10 @@ SUB ShowCharSheetPaint
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
     tx1 = 23: tx2 = 109                                              ' inside the panel border
     px1 = 92: py1 = 5: px2 = 108: py2 = 21                           ' the portrait frame, in cells
-    ' pixel-art class portrait, top-right of the sheet (Hybrid/Pixel modes, if it exists)
+    ' class portrait, top-right of the sheet -- in WHICHEVER form opt_artstyle selects.
+    ' ArtFile$ resolves .png or .ans and returns "" if that style has none, so no guard here.
     portrait = FALSE
-    IF opt_artstyle > 0 THEN
+    IF TRUE THEN
         DIM csp AS STRING, ddrew AS INTEGER
         csp = ClassSprite$(player_class)
         IF LEN(csp) > 0 THEN

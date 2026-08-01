@@ -85,7 +85,19 @@ Big UI Tweaks:
       ☐ Except for nat 1s and fumbles, this will be a fun way to play real dice on a computer
       ☐ While it's technically cheaty, it could be fun.
       ☐ You can only shake the box one time per roll
-    ☐ Add ansi-art into the game where currently only pixel-art exists @critical
+    ✔ Add ansi-art into the game where currently only pixel-art exists @done(26-08-01)
+      ✔ ROOT CAUSE: it was never an ART gap. The manifest was ALREADY 84 pixel + 84 ansi in @done(26-08-01)
+        ✔ parity with 0 missing -- every .ans was on disk. SPRITES.bas simply had three literal @done(26-08-01)
+        ✔ `IF opt_artstyle = 0 THEN EXIT SUB`, i.e. "in ANSI mode, draw nothing" @done(26-08-01)
+      ✔ ArtFile$ is now STYLE-AWARE and is the single funnel: PixelArtFile$ / AnsiArtFile$, @done(26-08-01)
+        ✔ each with its own per-file pack-then-default fallback @done(26-08-01)
+      ✔ HYBRID redefined per Rick: pixel art if it exists, ANSI otherwise (was "ANSI board + @done(26-08-01)
+        ✔ pixel portraits"). Settings now reads "Pixel Art only / Hybrid (pixel, else ANSI) / ANSI only" @done(26-08-01)
+      ✔ AnsiSprite& renders a .ans at its AUTHORED character size from SAUCE (18x12), cached by @done(26-08-01)
+        ✔ path, then DrawSpriteFit% scales it. Size is not negotiable: ANSI_Print auto-wraps at @done(26-08-01)
+        ✔ the destination width, so rendering into a wider image REFLOWS it into garbage @done(26-08-01)
+      ✔ every artstyle suppression gate removed (SPRITES x4, CHRONICLE x2, LORDS, MENU) @done(26-08-01)
+      ✔ TEST-ARTPACK now covers all THREE styles (25 assertions, was 19) @done(26-08-01)
     ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern @low
     ☐ Create item display frames for monsters, curios, and locations @low
     ☐ Add stats box (resets per game) - also tracked in game summary and stats log: @high

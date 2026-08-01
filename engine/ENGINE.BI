@@ -266,6 +266,11 @@ DIM SHARED FF_PEND(0 TO FIGHT_MAXFOE) AS INTEGER  ' completed; the attack is not
 ' blitted, and re-rendering five portraits every frame would be absurd -- so each is rendered
 ' once at its region's pixel size and kept. Keyed by path, small and fixed: at most 5 actors
 ' plus the frame are on screen, and the cache is dropped between fights (FightFreeTiles).
+' cached ANSI entity sprites, rendered at their authored character size (see AnsiSprite&)
+CONST ASPR_MAX = 64
+DIM SHARED ASPR_PATH(1 TO ASPR_MAX) AS STRING, ASPR_IMG(1 TO ASPR_MAX) AS LONG
+DIM SHARED ASPR_N AS INTEGER
+
 CONST FTILE_MAX = 24
 DIM SHARED FTILE_PATH(1 TO FTILE_MAX) AS STRING, FTILE_IMG(1 TO FTILE_MAX) AS LONG
 DIM SHARED FTILE_N AS INTEGER
@@ -343,6 +348,15 @@ DIM SHARED opt_narrfreq AS INTEGER
 DIM SHARED opt_artpack AS STRING
 DIM SHARED ARTPACKS(0 TO 32) AS STRING, ARTPACK_N AS INTEGER
 DIM SHARED opt_ansipack AS STRING                ' selected ANSI-art pack (assets/ansi-art/<pack>/); "default" = the base
+' Which FORM of entity art to draw. A rendering preference, so it lives with the other display
+' globals rather than in GAME.BI -- ArtFile$ (engine) is what acts on it.
+'   0 = ANSI only     -- .ans only; nothing drawn if a subject has no ANSI art
+'   1 = Pixel Art     -- .png only
+'   2 = Hybrid        -- .png if it exists, else fall back to .ans
+CONST ARTSTYLE_ANSI = 0
+CONST ARTSTYLE_PIXEL = 1
+CONST ARTSTYLE_HYBRID = 2
+DIM SHARED opt_artstyle AS INTEGER
 DIM SHARED ANSIPACKS(0 TO 32) AS STRING, ANSIPACK_N AS INTEGER
 DIM SHARED opt_datapack AS STRING                ' selected DATA pack (assets/data/<pack>/ + assets/flavor/<pack>/); "default" = base game content
 DIM SHARED DATAPACKS(0 TO 32) AS STRING, DATAPACK_N AS INTEGER

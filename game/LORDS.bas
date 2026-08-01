@@ -294,7 +294,9 @@ SUB ShowLordSheet (nm AS STRING, klass AS STRING, gld AS LONG, secs AS LONG, det
     _DEST CANVAS: _FONT CH: CLS , BLACK
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
-    IF opt_artstyle > 0 THEN                                       ' class portrait, top-right
+    IF TRUE THEN                                                   ' class portrait, top-right
+        '  no artstyle guard: ClassSprite$ -> ArtFile$ already returns "" when the chosen
+        '  style has no art, so ANSI mode now gets a portrait instead of a blank corner
         csp = ClassSprite$(pc)
         IF LEN(csp) > 0 THEN
             IF _FILEEXISTS(csp) THEN

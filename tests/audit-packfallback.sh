@@ -22,7 +22,8 @@ fail=0
 
 # file | routine | asset type | the default-pack path fragment it must name
 CHECKS=(
-  "engine/ARTPACK.bas|ArtFile\$|pixel art|assets/pixel-art/default/"
+  "engine/ARTPACK.bas|PixelArtFile\$|pixel art|assets/pixel-art/default/"
+  "engine/ARTPACK.bas|AnsiArtFile\$|ansi art|assets/ansi-art/default/"
   "engine/ARTPACK.bas|AnsiFile\$|ANSI art|assets/ansi-art/default/"
   "engine/MUSIC.bas|RegisterSfx|sound effects|assets/sfx/default/"
   "engine/MUSIC.bas|ResolveMusic\$|music|assets/music/default/"
