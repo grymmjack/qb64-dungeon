@@ -34,7 +34,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN SAVE_FILE FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 8"
+    PRINT #f, "DUNGEONSAVE 9"   ' v9: curse_turns joins the status ints
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -43,11 +43,7 @@ SUB SaveGame
     PRINT #f, player_str; player_int; player_wis; player_dex; player_con; player_cha
     PRINT #f, player_tohit; player_ac; player_dmgdie; player_dmgbonus
     PRINT #f, item_sword; item_secret_card; item_esp; item_crystal; item_armor; item_bow; item_boots; item_teleport; item_potion_small; item_potion_large; item_shield; spell_fire; spell_bolt
-    ' curse_turns is deliberately NOT written. The token stream is positional, so a fifth int
-    ' here would shift every field after it and orphan every existing save -- and a curse lasts
-    ' a few combat rounds, unlike poison which can carry for many turns and kill you. It IS
-    ' parked per seat (PLAYER.t_curse) so hot-seat is correct; it simply does not survive a quit.
-    PRINT #f, poison_turns; fire_turns; frost_turns; siren_turns
+    PRINT #f, poison_turns; fire_turns; frost_turns; siren_turns; curse_turns
     PRINT #f, c.x; c.y; c.prev_x; c.prev_y
     PRINT #f, moves_made; turn_num; steps_left; need_roll; loiter
     ' NOTE: separate every value with a SPACE. STR$ of a negative has no leading space,
@@ -119,7 +115,7 @@ SUB SaveGame
         PRINT #f, PLAYERS(i).armor; PLAYERS(i).shield; PLAYERS(i).bow; PLAYERS(i).boots; PLAYERS(i).teleport;
         PRINT #f, PLAYERS(i).pot_sm; PLAYERS(i).pot_lg; PLAYERS(i).sp_fire; PLAYERS(i).sp_bolt;
         PRINT #f, PLAYERS(i).clevel; PLAYERS(i).cxp;
-        PRINT #f, PLAYERS(i).t_poison; PLAYERS(i).t_fire; PLAYERS(i).t_frost; PLAYERS(i).t_siren;
+        PRINT #f, PLAYERS(i).t_poison; PLAYERS(i).t_fire; PLAYERS(i).t_frost; PLAYERS(i).t_siren; PLAYERS(i).t_curse;
         PRINT #f, " " + StrSubst$(_TRIM$(PLAYERS(i).name), " ", CHR$(1))
     NEXT i
 
@@ -156,7 +152,7 @@ SUB LoadGameApply
     item_potion_small = NextI: item_potion_large = NextI
     IF sver >= 3 THEN item_shield = NextI            ' shield is its own slot as of v3 (old saves had it folded into item_armor)
     IF sver >= 4 THEN spell_fire = NextI: spell_bolt = NextI  ' Wizard spell charges (v4)
-    poison_turns = NextI: fire_turns = NextI: frost_turns = NextI: siren_turns = NextI
+    poison_turns = NextI: fire_turns = NextI: frost_turns = NextI: siren_turns = NextI: curse_turns = NextI
     scx = NextI: scy = NextI: spx = NextI: spy = NextI       ' restored AFTER StartBoard (which resets it)
     moves_made = NextI: turn_num = NextI: steps_left = NextI: need_roll = NextI: loiter = NextI
     FOR i = 1 TO 9: lvl_kills(i) = NextI: NEXT i
@@ -293,6 +289,7 @@ SUB LoadGameApply
                     PLAYERS(i).clevel = NextI: PLAYERS(i).cxp = NextL
                     PLAYERS(i).t_poison = NextI: PLAYERS(i).t_fire = NextI
                     PLAYERS(i).t_frost = NextI: PLAYERS(i).t_siren = NextI
+                    PLAYERS(i).t_curse = NextI
                 END IF
                 PLAYERS(i).name = StrSubst$(NextTok$, CHR$(1), " ")
             NEXT i
@@ -369,7 +366,7 @@ SUB SaveRoundTripTest
     DIM wpot(1 TO 4) AS INTEGER, wfire(1 TO 4) AS INTEGER, wxp(1 TO 4) AS LONG
     DIM wpois(1 TO 4) AS INTEGER, wtel(1 TO 4) AS INTEGER
     _DEST _CONSOLE
-    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v8)"
+    PRINT "savetest: hot-seat seat isolation + save/load round-trip (save v9)"
 
     realpath = SAVE_FILE
     SAVE_FILE = "tests/tmp/savetest.dat"          ' never touch the player's real slot
@@ -383,10 +380,10 @@ SUB SaveRoundTripTest
     num_players = 2
     PLAYERS(1).klass = 1: PLAYERS(1).maxhp = 20: PLAYERS(1).hp = 20: PLAYERS(1).goal = 10000
     PLAYERS(1).pot_sm = 3: PLAYERS(1).sp_fire = 0: PLAYERS(1).cxp = 100: PLAYERS(1).clevel = 2
-    PLAYERS(1).t_poison = 0: PLAYERS(1).teleport = 0: PLAYERS(1).name = "Seat One"
+    PLAYERS(1).t_poison = 0: PLAYERS(1).t_curse = 0: PLAYERS(1).teleport = 0: PLAYERS(1).name = "Seat One"
     PLAYERS(2).klass = 4: PLAYERS(2).maxhp = 14: PLAYERS(2).hp = 14: PLAYERS(2).goal = 30000
     PLAYERS(2).pot_sm = 0: PLAYERS(2).sp_fire = 3: PLAYERS(2).cxp = 900: PLAYERS(2).clevel = 5
-    PLAYERS(2).t_poison = 4: PLAYERS(2).teleport = 2: PLAYERS(2).name = "Seat Two"
+    PLAYERS(2).t_poison = 4: PLAYERS(2).t_curse = 2: PLAYERS(2).teleport = 2: PLAYERS(2).name = "Seat Two"
 
     cur_player = 1: LoadActivePlayer 1
     IF item_potion_small <> 3 THEN PRINT "  FAIL seat1 potions not restored": bad = -1
@@ -402,6 +399,7 @@ SUB SaveRoundTripTest
     IF spell_fire <> 3 THEN PRINT "  FAIL seat2 Wizard spellbook missing": bad = -1
     IF char_xp <> 900 THEN PRINT "  FAIL LEAK: seat2 sees seat1's xp (" + _TRIM$(STR$(char_xp)) + ")": bad = -1
     IF poison_turns <> 4 THEN PRINT "  FAIL seat2 poison timer": bad = -1
+    IF curse_turns <> 2 THEN PRINT "  FAIL seat2 curse timer": bad = -1
     IF item_teleport <> 2 THEN PRINT "  FAIL seat2 teleport charges": bad = -1
 
     spell_fire = 1                                ' seat 2 casts two Fire Balls
@@ -412,6 +410,7 @@ SUB SaveRoundTripTest
     IF char_xp <> 175 THEN PRINT "  FAIL seat1 xp gain did not persist": bad = -1
     IF spell_fire <> 0 THEN PRINT "  FAIL LEAK: seat1 sees seat2's spell charges": bad = -1
     IF poison_turns <> 0 THEN PRINT "  FAIL LEAK: seat1 caught seat2's poison": bad = -1
+    IF curse_turns <> 0 THEN PRINT "  FAIL LEAK: seat1 caught seat2's curse": bad = -1
     IF NOT bad THEN PRINT "  seat isolation OK -- potions/spells/XP/status/teleport swap per seat"
     _DEST _CONSOLE
 
