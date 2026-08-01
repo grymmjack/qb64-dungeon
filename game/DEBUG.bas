@@ -613,3 +613,22 @@ SUB DumpCombatPanel (pc AS INTEGER)
     _SAVEIMAGE "panelshot.png", CANVAS
     PRINT PipeCol$("  wrote |14panelshot.png|07  (" + _TRIM$(class_name) + ", base weapon, mid-fight)")
 END SUB
+
+
+' `dungeon.run statshot` -- the level-up ability picker, with one score already maxed so both
+' the selectable and the "(maxed)" states are visible in one shot.
+SUB DumpStatPicker
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15statshot|07 -- the level-up ability picker (one score maxed, longest blurbs)")
+    DevPackOverride
+    player_class = 1: class_name = _TRIM$(CLASSES(1).name)
+    player_name = "Higgs the Unluckiest of All"
+    char_level = 4
+    player_str = 18: player_int = 9: player_wis = 11: player_dex = 14: player_con = 12: player_cha = 8
+    player_hp = 40: player_maxhp = 52
+    DeriveFromStats player_class
+    cursor_erase
+    LevelUpStatPaint 4
+    _SAVEIMAGE "statshot.png", CANVAS
+    PRINT PipeCol$("  wrote |14statshot.png|07")
+END SUB

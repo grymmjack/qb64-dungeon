@@ -1533,3 +1533,191 @@ END SUB
 
 
 
+
+
+' ============================================================================
+'  LEVEL-UP: spend one point on an ability score (cap 18).
+'
+'  This is the moment the ability scores stop being a roll you got stuck with, so it is a
+'  CHOICE, not an automatic bump -- the player picks where the character is growing.
+'
+'  Per the design call: the combat numbers re-derive IMMEDIATELY, except CON. A CON bump
+'  improves every FUTURE level-up hit-die roll but does not retroactively grant max HP for
+'  levels already gained -- otherwise one late point would pay out a lump of HP for a whole
+'  career. DeriveFromStats does exactly the right thing here by only reading STR/INT/DEX.
+'
+'  When every score is already 18 there is nothing to buy, so the point converts: +1d4 max HP,
+'  or a life back if the run allows more than one death and one has been spent.
+' ============================================================================
+SUB LevelUpStatPoint
+    DIM sel AS INTEGER, i AS INTEGER, k AS STRING, y AS INTEGER, v AS INTEGER
+    DIM anyroom AS INTEGER, gain AS INTEGER, canlife AS INTEGER
+    IF opt_oldschool THEN EXIT SUB               ' Dungeon! has no ability scores to spend on
+    FOR i = 1 TO 6
+        IF StatValue%(i) < 18 THEN anyroom = -1
+    NEXT i
+    IF NOT anyroom THEN
+        canlife = 0
+        IF opt_maxdeaths > 1 THEN
+            IF deaths(cur_player) > 0 THEN canlife = -1
+        END IF
+        LevelUpMaxedReward canlife
+        EXIT SUB
+    END IF
+    sel = 1
+    DO WHILE StatValue%(sel) >= 18: sel = sel + 1: IF sel > 6 THEN sel = 1
+    LOOP
+    DO
+        LevelUpStatPaint sel
+        Present
+        k = ""
+        DO
+            k = NormKey$(UCASE$(INKEY$))
+            IF k <> "" THEN EXIT DO
+            _LIMIT 60
+        LOOP
+        SELECT CASE k
+            CASE "UP"
+                DO
+                    sel = sel - 1: IF sel < 1 THEN sel = 6
+                LOOP WHILE StatValue%(sel) >= 18
+            CASE "DOWN"
+                DO
+                    sel = sel + 1: IF sel > 6 THEN sel = 1
+                LOOP WHILE StatValue%(sel) >= 18
+            CASE CHR$(13), " "
+                SetStatValue sel, StatValue%(sel) + 1
+                DeriveFromStats player_class     ' to-hit / damage / AC now; HP is NOT backfilled
+                Sfx "levelup"
+                Banner _TRIM$(StatName$(sel)) + " rises to " + _TRIM$(STR$(StatValue%(sel))) + "!", StatGainLine$(sel) + "   [ press any key ]"
+                WaitKey
+                LogEvent _TRIM$(player_name) + " grew: " + _TRIM$(StatName$(sel)) + " " + _TRIM$(STR$(StatValue%(sel)))
+                EXIT SUB
+        END SELECT
+    LOOP
+END SUB
+
+' Nothing left to raise -- the point becomes HP, or a life back.
+SUB LevelUpMaxedReward (canlife AS INTEGER)
+    DIM gain AS INTEGER, k AS STRING
+    IF canlife THEN
+        _DEST CANVAS
+        LINE (34 * CW, 18 * CH)-(98 * CW, 30 * CH), BOXBG, BF
+        LINE (34 * CW, 18 * CH)-(98 * CW, 30 * CH), YELLOWU, B
+        COLOR YELLOWU, BOXBG: PrintCentered 20, "-=  NOTHING LEFT TO LEARN  =-"
+        COLOR GREY, BOXBG: PrintCentered 22, "Every ability stands at 18. Take instead:"
+        COLOR GREENU, BOXBG: PrintCentered 25, "[H]  +1d4 maximum HP"
+        COLOR CYANU, BOXBG: PrintCentered 27, "[L]  a LIFE back (one death forgiven)"
+        Present
+        DO
+            k = UCASE$(INKEY$)
+            IF k = "H" OR k = "L" THEN EXIT DO
+            _LIMIT 60
+        LOOP
+        IF k = "L" THEN
+            deaths(cur_player) = deaths(cur_player) - 1
+            IF deaths(cur_player) < 0 THEN deaths(cur_player) = 0
+            Sfx "levelup"
+            Banner "A death is forgiven.", "The dungeon loosens its grip -- you have " + _TRIM$(STR$(opt_maxdeaths - deaths(cur_player))) + " life/lives left.   [ press any key ]"
+            WaitKey
+            LogEvent _TRIM$(player_name) + " bought back a life at level " + _TRIM$(STR$(char_level))
+            EXIT SUB
+        END IF
+    END IF
+    gain = RollDie(4)
+    player_maxhp = player_maxhp + gain
+    player_hp = player_maxhp
+    Sfx "levelup"
+    Banner "Every ability stands at 18.", "There is nothing left to raise -- the effort becomes flesh: +" + _TRIM$(STR$(gain)) + " max HP.   [ press any key ]"
+    WaitKey
+    LogEvent _TRIM$(player_name) + " gained +" + _TRIM$(STR$(gain)) + " max HP (all abilities maxed)"
+END SUB
+
+' The six ability globals behind one index, so the picker is a loop and not six copies.
+FUNCTION StatValue% (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: StatValue% = player_str
+        CASE 2: StatValue% = player_int
+        CASE 3: StatValue% = player_wis
+        CASE 4: StatValue% = player_dex
+        CASE 5: StatValue% = player_con
+        CASE ELSE: StatValue% = player_cha
+    END SELECT
+END FUNCTION
+
+SUB SetStatValue (i AS INTEGER, v AS INTEGER)
+    SELECT CASE i
+        CASE 1: player_str = v
+        CASE 2: player_int = v
+        CASE 3: player_wis = v
+        CASE 4: player_dex = v
+        CASE 5: player_con = v
+        CASE ELSE: player_cha = v
+    END SELECT
+END SUB
+
+' What this ability actually DOES, in a few words. Shown beside the choice so the decision is
+' informed -- the fuller explanation is the character-creator side panel.
+FUNCTION StatBlurb$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: StatBlurb$ = "hit + damage, forcing doors"
+        CASE 2: StatBlurb$ = "a Wizard's hit + damage"
+        CASE 3: StatBlurb$ = "saves vs. curses"
+        CASE 4: StatBlurb$ = "armour class, dodging traps"
+        CASE 5: StatBlurb$ = "HP per level from here on"
+        CASE ELSE: StatBlurb$ = "luck, and how the world reacts"
+    END SELECT
+END FUNCTION
+
+' The consequence of THIS point, said plainly -- CON is called out because it is the one that
+' does not pay out immediately, and a player who is not told will read that as a bug.
+FUNCTION StatGainLine$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: StatGainLine$ = "Your arm is surer: to hit " + ModStr$(AbilMod(player_str)) + ", damage " + ModStr$(AbilMod(player_str)) + "."
+        CASE 2: StatGainLine$ = "Your mind sharpens -- a Wizard strikes by wit."
+        CASE 3: StatGainLine$ = "Your will hardens against what the dark whispers."
+        CASE 4: StatGainLine$ = "You move better: armour class " + _TRIM$(STR$(player_ac)) + "."
+        CASE 5: StatGainLine$ = "You are hardier -- every level FROM HERE rolls better HP (past levels are not redone)."
+        CASE ELSE: StatGainLine$ = "The world warms to you, and fortune leans a little your way."
+    END SELECT
+END FUNCTION
+
+
+' Paint-only half of the level-up picker, so `dungeon.run statshot` can render it without an
+' input loop -- the same split ShowCharSheet/ShowCharSheetPaint uses, and for the same reason:
+' this layout only misbehaves when the blurbs are long and every row is filled.
+SUB LevelUpStatPaint (sel AS INTEGER)
+    DIM i AS INTEGER, y AS INTEGER, v AS INTEGER
+    ' Panel cols 34..98. It was 38..94, and the longest blurb ("luck, and how the world
+    ' reacts", 30 chars) starting at col 64 ran straight through the right border. The blurb
+    ' column is also CLIPPED below, so adding a longer one later cannot reopen this.
+    DIM bl AS STRING, room AS INTEGER
+    _DEST CANVAS
+    LINE (34 * CW, 14 * CH)-(98 * CW, 36 * CH), BOXBG, BF
+    LINE (34 * CW, 14 * CH)-(98 * CW, 36 * CH), YELLOWU, B
+    COLOR YELLOWU, BOXBG: PrintCentered 16, "-=  A POINT OF GROWTH  =-"
+    COLOR GREY, BOXBG: PrintCentered 18, "Level " + _TRIM$(STR$(char_level)) + " -- raise one ability by 1 (max 18)"
+    FOR i = 1 TO 6
+        y = 21 + (i - 1) * 2
+        v = StatValue%(i)
+        IF v >= 18 THEN
+            COLOR GREY, BOXBG                    ' already maxed -- shown, but not selectable
+        ELSEIF i = sel THEN
+            COLOR WHITE, REDU
+        ELSE
+            COLOR GREENU, BOXBG
+        END IF
+        _PRINTSTRING (38 * CW, y * CH), PadR$("  " + StatName$(i) + "  " + _TRIM$(STR$(v)), 14)
+        room = 97 - 54                           ' columns available before the right border
+        IF v < 18 THEN
+            COLOR CYANU, BOXBG
+            bl = "-> " + _TRIM$(STR$(v + 1)) + "   " + StatBlurb$(i)
+            IF LEN(bl) > room THEN bl = LEFT$(bl, room)
+            _PRINTSTRING (54 * CW, y * CH), bl
+        ELSE
+            COLOR GREY, BOXBG
+            _PRINTSTRING (54 * CW, y * CH), "(maxed)"
+        END IF
+    NEXT i
+    COLOR YELLOWU, BOXBG: PrintCentered 34, "[Up/Down] choose    [ENTER] spend the point"
+END SUB

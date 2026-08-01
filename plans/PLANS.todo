@@ -71,8 +71,17 @@ Small UI Tweaks:
       ☐ D20 for initiative
     ☐ When monsters do max damage, and the player has a CON bonus, allow a gesture based "endure damage" @high
       ☐ Can 1/2 the damage if successful
-    ☐ On level up let player add 1 point to a stat up to 18 @critical
-      ☐ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is setup - a free life basically
+    ✔ On level up let player add 1 point to a stat up to 18 @done(26-08-01)
+      ✔ If all stats 18 already, can add 1D4 HP instead OR another chance at death if >1 is @done(26-08-01)
+        ✔ setup - a free life basically (offered as [H] HP / [L] life; the life option only @done(26-08-01)
+        ✔ appears when the run allows >1 death AND one has actually been spent) @done(26-08-01)
+      ✔ a CHOICE, not an automatic bump -- this is where ability scores stop being a roll you @done(26-08-01)
+        ✔ got stuck with; maxed scores are shown but unselectable @done(26-08-01)
+      ✔ combat numbers re-derive IMMEDIATELY except CON: a CON bump improves every FUTURE @done(26-08-01)
+        ✔ level-up hit die but does NOT backfill max HP for levels already gained. The banner @done(26-08-01)
+        ✔ says so out loud, or a player reads the missing HP as a bug @done(26-08-01)
+      ✔ `dungeon.run statshot` renders it -- caught the longest blurb running through the @done(26-08-01)
+        ✔ right border; panel widened to cols 34..98 and the blurb column is now clipped @done(26-08-01)
     ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll @high
       ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
       ☐ Run gesture as normal from that point

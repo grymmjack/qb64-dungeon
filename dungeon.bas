@@ -211,6 +211,14 @@ NEXT mac
 
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "STATSHOT") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    Game_PopulateBoard
+    DumpStatPicker
+    SYSTEM
+END IF
+
 IF INSTR(UCASE$(COMMAND$), "BESTIARYTEST") > 0 THEN BestiaryTest
 
 IF INSTR(UCASE$(COMMAND$), "PLACEHOLDERS") > 0 THEN

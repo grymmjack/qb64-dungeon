@@ -1098,6 +1098,8 @@ SUB GrantLevelClear (lvl AS INTEGER)
         IF LEN(lukey) > 0 THEN Narrate lukey
         Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", lusay + "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
         CombatPause
+        LevelUpStatPoint                            ' ...and one point to put somewhere (cap 18)
+        cursor_erase: cursor_draw: DrawHUD: Present ' the picker painted over the board
     END IF
     IF NOT opt_oldschool THEN                       ' no HP in Dungeon! -- no healing cache either
         item_potion_small = item_potion_small + 1
