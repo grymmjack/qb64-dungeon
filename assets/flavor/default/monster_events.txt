@@ -117,3 +117,51 @@ BLUE DRAGON | attack | The blue dragon's claws tear into you for {dmg}.
 BLUE DRAGON | attack | A crackling bolt of lightning arcs from the dragon for {dmg}.
 BLUE DRAGON | crit   | Lightning engulfs you in a blinding blast -- {dmg} damage!
 BLUE DRAGON | death  | The blue dragon convulses in a last crackle of sparks and falls.
+
+# --- the monster's DEATH THROES (player kills it) --------------------
+* | death  | Your foe falls before you and you breathe a sigh of relief.. for now.
+* | death  | Your enemy lies before you in a crumpled heap, its life's essence seeping out slowly.
+* | death  | The creature looks pathetic and harmless in its state of frozen pain and death.
+* | death  | Exasperated and grateful you step over your opponent and carry on.
+* | death  | The place reeks of blood and bits and sweat and pain and you smile in victory.
+* | death  | With a deep sigh and a gathering of courage you press on.
+* | death  | You wipe yourself clean of the fluids your enemy shared with you in their dance of death.
+* | death  | Twitching and breathing a final breath your foe perishes from this realm.
+* | death  | Another one meets the clearing at the end of the path. You strengthen your resolve for more.
+* | death  | Death. Dealt. The cards to come unknown but the dealer you are just the same.
+
+# --- KILLED BY A CRITICAL: the aftermath, seen through battle-sickness
+* | killcrit | The place is a horror, blood is everywhere, the walls are still echoing with the pain of your opponent's demise.
+* | killcrit | A ghastly sight of entrails and liquids coats all surfaces. What happened? What nightmare here occurred?
+* | killcrit | The glint of light is fuzzy and hazy and red haloed shimmering with battle sick -- you blink them away.
+* | killcrit | Still attacking and shaking, your rage finally subsides and you awake to a vision of disgust and anatomical ruin.
+* | killcrit | With the final move you finish the dance in a crescendo of precision and deliberateness -- everywhere blood.
+* | killcrit | Blood. On your hands, your arms, your face, in your mouth. The salt of life. It tastes like success.
+* | killcrit | The echoes of pain and fear reverberate off the surfaces of this place as you blink slowly back to normalcy.
+* | killcrit | Sparks of rage and primordial electric currents of survival dance across your vision and course through your shaking body. VICTORY! YOURS!
+* | killcrit | Shivering and careful you survey your surroundings; a grim visage of death and destruction.
+* | killcrit | RAAAARRRRGGH! Charged electric with battle sickness and rage you cry victoriously into the unknown darkness.
+
+# --- the monster HITS you --------------------------------------------
+* | attack | You blink, glancing at the onslaught impact just in time to feel the sharp jagged rawness of it.
+* | attack | This beast seems seasoned, and as it tears into you it growls a tribal cry of fury.
+* | attack | Red, all red, and darkness. It hurts -- the pain is distant but patiently waiting for you.
+* | attack | Your body aches and tenses with the impact of the attack.
+* | attack | Rushing and unstoppable, the merciless fangs and teeth and limbs come at you.
+* | attack | A fair blow from your foe. You cannot deny it.
+* | attack | You catalog the pain and unthrottle your rage for payback.
+* | attack | Blinking in disbelief, as you thought you had out-maneuvered that attack.
+* | attack | Your rage grows commensurate with your pain, and your anger throbs ready to pounce and repay the debt of wounds.
+* | attack | God! That hurts!
+
+# --- the monster CRITS you -------------------------------------------
+* | crit   | How can this be?! It will not happen again.
+* | crit   | A fair and painful lesson at the hand of your enemy. You shall learn and not make that same mistake.
+* | crit   | A mess of fangs, scales, claws, and bones -- and you can only bite your own teeth as you feel the immediate brutal pain.
+* | crit   | MY! GOD!! THAT REALLY HURTS!
+* | crit   | SON OF A..! YOU DIRTY!
+* | crit   | Though you try to dodge, the enemy is faster, and you feel the speed and force in its fullness.
+* | crit   | This creature is either lucky or powerful, or both.
+* | crit   | With only your grit are you able to absorb the incredible force and the pain, and promise to pay it back.
+* | crit   | It is as if you might actually have to try here.
+* | crit   | DO NOT GIVE UP! you silently scream in your mind as the rising levels of heat and soreness throb and pulse.

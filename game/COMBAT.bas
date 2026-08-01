@@ -497,6 +497,9 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg
+                ' A crit that FINISHES the monster earns the killcrit aftermath text rather than
+                ' the quiet death line. Read here, consumed by ClaimTreasure.
+                IF ROOMS(rm).mhp_now <= 0 THEN fx_critkill = TRUE
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
                 RecordCrit mon, dmg
                 Sfx "crit"
@@ -777,7 +780,11 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
     lvl = ROOMS(rm).sec: goldbefore = gold                 ' chronicle this kill + its haul
     FX_MON = mon: FX_LEVEL = lvl: FX_TREASURE = tname      ' flavor context for the death line
     Sfx "monster-death"                                    ' the monster falls -- every slay funnels through here
-    dfl = EventLine$(1, mon, 5)                            ' the monster's own death throes, if any
+    ' A crit that KILLS gets its own aftermath text -- the ordinary death line reads as a
+    ' quiet expiry, which is the wrong note right after you have opened something up.
+    IF fx_critkill THEN dfl = EventLine$(1, mon, 6) ELSE dfl = ""
+    IF LEN(dfl) = 0 THEN dfl = EventLine$(1, mon, 5)        ' the monster's own death throes, if any
+    fx_critkill = FALSE                                    ' consumed -- one kill, one aftermath
     IF LEN(dfl) > 0 THEN
         Sfx "treasure"
         Banner "The " + mon + " " + MonVerb$(mon, "is", "are") + " slain!", dfl + "   [ press any key ]"
@@ -1062,7 +1069,10 @@ SUB GrantLevelClear (lvl AS INTEGER)
         player_maxhp = player_maxhp + hpgain
         player_hp = player_maxhp                    ' fully restored on level-up
         Sfx "key"
-        Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
+        DIM lusay AS STRING
+        lusay = LevelUpSaying$
+        IF LEN(lusay) > 0 THEN lusay = lusay + "   " ELSE lusay = ""
+        Banner "** LEVEL UP! **  You are now character level " + _TRIM$(STR$(char_level)) + ".", lusay + "+" + _TRIM$(STR$(hpgain)) + " max HP (now " + _TRIM$(STR$(player_maxhp)) + ") and fully rested.   [ press any key ]"
         CombatPause
     END IF
     IF NOT opt_oldschool THEN                       ' no HP in Dungeon! -- no healing cache either

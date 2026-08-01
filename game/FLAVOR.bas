@@ -13,7 +13,7 @@
 SUB InitFlavor
     DIM i AS INTEGER
     FOR i = 1 TO 9: REG_N(i) = 0: NEXT i
-    SP_N = 0: MAXHIT_N = 0: FORFEIT_N = 0
+    SP_N = 0: MAXHIT_N = 0: FORFEIT_N = 0: LEVELUP_N = 0
     ' Named-room anchors: the board-label cell (see render_room_labels) + the key
     ' that must match assets/flavor/special.txt. Detection = the label cell (or a
     ' neighbour) belongs to the room you just entered.
@@ -34,6 +34,7 @@ SUB InitFlavor
     ParseFlavorFile "assets/flavor/special.txt", 2
     ParseFlavorFile "assets/flavor/maxhit.txt", 3
     ParseFlavorFile "assets/flavor/forfeit.txt", 4
+    ParseFlavorFile "assets/flavor/levelup.txt", 5    ' what gaining a character level FEELS like
     LoadChamberFlavor
 END SUB
 
@@ -95,6 +96,10 @@ SUB AddFlavorLine (ln AS STRING, mode AS INTEGER)
     END IF
     IF mode = 4 THEN                                       ' forfeit epitaph: whole line is the text
         IF FORFEIT_N < UBOUND(FORFEIT_FLAV) THEN FORFEIT_N = FORFEIT_N + 1: FORFEIT_FLAV(FORFEIT_N) = _TRIM$(ln)
+        EXIT SUB
+    END IF
+    IF mode = 5 THEN                                       ' level-up: whole line is the text
+        IF LEVELUP_N < UBOUND(LEVELUP_FLAV) THEN LEVELUP_N = LEVELUP_N + 1: LEVELUP_FLAV(LEVELUP_N) = _TRIM$(ln)
         EXIT SUB
     END IF
     p = INSTR(ln, "|")
@@ -229,6 +234,14 @@ END SUB
 SUB FlavorLine (txt AS STRING)
     FlavorLineVO txt, ""
 END SUB
+
+' A random line for the LEVEL UP banner. Empty when the pool is missing, so the caller
+' keeps its own mechanical text and simply gains no flavour.
+FUNCTION LevelUpSaying$
+    LevelUpSaying$ = ""
+    IF LEVELUP_N <= 0 THEN EXIT FUNCTION
+    LevelUpSaying$ = Fill$(LEVELUP_FLAV(RollDie(LEVELUP_N)))
+END FUNCTION
 
 ' A random sad epitaph for the FORFEIT screen (all lives spent). Falls back to a
 ' built-in line if assets/flavor/forfeit.txt is missing.

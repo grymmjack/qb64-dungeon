@@ -1,0 +1,16 @@
+# levelup.txt -- what it FEELS like to gain a character level. One line per entry,
+# picked at random and shown under the LEVEL UP banner (D&D mode only -- Dungeon!
+# has no XP and no character levels). '#' = comment, blank lines skipped.
+#
+# Tokens: {player} {class} {mon} {dmg} {deaths} {level} {room} {treasure} {weapon}
+# --------------------------------------------------------------------------------------
+You have learned much and conquered more! You are emboldened and filled with vigor.
+Everything that has stood between you and your goal has been ... handled. Well done.
+You feel as if nothing can stop you, and you are determined to push ahead even if it means your end.
+Though the path has been perilous you have overcome, and for that you are grateful and your soul galvanized for more.
+Before you lies god only knows, but you are not afraid; in fact you are thrilled and excited to meet the next challenge.
+Pain and suffering is no match for endurance and resolve. You will ascend and you will win.
+Lesser mortals would turn back now knowing greater challenges await -- but not you. You welcome them.
+What is life without achievement? What is existence without testing the limits of such? Press on, hero!
+This place has never before seen the likes of one such as you, clearly. You sense waiting dread, but it is not your own.
+You brook no quarter and suffer no fools. Onward you shall go, and into the hands of fate.

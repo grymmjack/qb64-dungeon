@@ -29,6 +29,7 @@ FUNCTION EvtCode% (s AS STRING)
         CASE "CRIT": EvtCode = 3
         CASE "FUMBLE": EvtCode = 4
         CASE "DEATH": EvtCode = 5
+        CASE "KILLCRIT": EvtCode = 6                ' slain BY A CRIT -- the aftermath, not the blow
         CASE ELSE: EvtCode = 0
     END SELECT
 END FUNCTION

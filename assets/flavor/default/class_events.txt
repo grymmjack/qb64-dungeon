@@ -50,3 +50,28 @@ WIZARD | miss   | Your spell fizzles and the {mon} shrugs it off.
 WIZARD | crit   | Raw magic erupts -- the {mon} is blasted for {dmg}!
 WIZARD | fumble | The incantation twists in your mouth and the magic gutters out.
 WIZARD | death  | Your wards fail. The {mon} tears through the last of your magic.
+
+# --- YOU hit the monster ---------------------------------------------
+* | attack | The creature blinks in dismay and disbelief as you chip away at its mortality; you almost feel sorry for it. Almost.
+* | attack | With precision timing and strategy you bring death and harbor no mercy.
+* | attack | A salty vision of blood and entrails coats the floor; wet death, theirs.
+* | attack | Instinct takes over and you feel as if your movements are controlled by a god's grace.
+* | attack | The thrill of battle and survival soaks you cold and slows time. It is as if your enemy is underwater and you are not.
+* | attack | One strike at a time chips away at your foe's composure and flow of life.
+* | attack | Another brilliant maneuver and the creature becomes more and more pitiful; regret and fear in its eyes.
+* | attack | More. MORE! COME ON!!! you shout, spit into the face of your foe, gritting your teeth as your attack lands.
+* | attack | Frenzy, absolute and all encompassing, has made you into a killing machine.
+* | attack | Rage and blood and fever embrace your cold movements as the dealer of death.
+* | attack | Is there no end to your prowess and ability? Stunned and stricken your enemy cries in pain.
+
+# --- YOU crit the monster --------------------------------------------
+* | crit   | PRECISION! ARTISTRY! Your attack sends the creature reeling, screaming!
+* | crit   | FEEL THE PAIN! DIE! you scream, baring your teeth in a grimace of hatred.
+* | crit   | GET OFF ME! BASTARD! Your attack finds home, tilting the balance of battle.
+* | crit   | You are soaked with the blood of your enemy as it juts and sprays and coats the place.
+* | crit   | Cold calmness and deliberation come upon you. This is a dance, not a fight.
+* | crit   | The battle sickness overtakes you. You are no longer here, you are watching yourself, and you are perfect.
+* | crit   | A vision of heat, fur, scales, and steel -- blurry and primal.
+* | crit   | TAKE THAT! you shout as you unleash your potential into the fray.
+* | crit   | DO YOU WANT SOME MORE?! you shriek as you flawlessly execute as your master had trained you.
+* | crit   | You were born for this. You live for this. You are unstoppable!
