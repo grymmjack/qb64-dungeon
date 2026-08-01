@@ -21,11 +21,16 @@ Working notes from the autonomous run. `plans/PLANS.todo` stays clean; the detai
 
 ## Generator availability (checked at the start of the session)
 
-| tool | on PATH | usable tonight? |
+| tool | repo | usable that night? |
 |---|---|---|
-| `pixelmon` | `~/.local/bin/pixelmon` | **No** — repo dir `~/git/pixelmon` does not exist, and no ComfyUI server is up |
-| `soundmon` | `~/.local/bin/soundmon` | **Partly** — the *synthesis* paths work; the model paths do not |
-| `ansimon`  | `~/.local/bin/ansimon`  | **No** — needs ComfyUI |
+| `pixelmon` | `~/pixelmon` (**not** `~/git/`) | **No** — no ComfyUI server was up |
+| `soundmon` | `~/git/soundmon` | **Partly** — the *synthesis* paths work; the model paths do not |
+| `ansimon`  | `~/git/ansimon` | **No** — needs ComfyUI |
+
+CORRECTION (26-08-01, from Rick): I looked for pixelmon at `~/git/pixelmon` and wrongly concluded
+it was absent. It is at **`~/pixelmon`**, and its `servers.json` is the FULLER farm list —
+`local` / `titan` 192.168.1.172 / `rtx` / `mac`, where soundmon's has no `titan`. Only the
+servers being down was real; pixelmon itself was fine.
 
 All three ComfyUI servers in `~/git/soundmon/servers.json` were unreachable:
 
