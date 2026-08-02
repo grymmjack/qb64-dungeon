@@ -826,6 +826,11 @@ FUNCTION PlayGame%
     DIM startlvl AS INTEGER                        ' start this level's music before the first step
     StopLevelMusic                                 ' kill any leftover track (last run/menu) so it can't linger if the start sector has none
     startlvl = PlayerLevel%
+    ' SEED the deepest-level stat from where you are STANDING, not from the first step you take.
+    ' RecordDepth was written but never called by anything, so `deepest level` sat at 0 for a whole
+    ' run; and even once the play loop bumps it per move, a player who has not moved yet is still
+    ' honestly ON level 1, not on level 0.
+    RecordDepth startlvl
     IF LEN(_TRIM$(MUSIC_FILE(startlvl))) = 0 THEN startlvl = 1   ' start sector has no track -> fall back to level 1's
     PlayLevelMusic startlvl
 
@@ -1004,6 +1009,7 @@ FUNCTION PlayGame%
                         IF RollDie(100) <= SIREN_MOVE_PCT THEN WanderEncounter
                     END IF
                     curlvl = PlayerLevel%                 ' chronicle the levels you tread (sticky in unclaimed corridors)
+                    RecordDepth curlvl                    ' "deepest level reached" in the run stats
                     IF curlvl >= 1 AND curlvl <= 9 THEN
                         IF NOT lvl_reached(curlvl) THEN
                             lvl_reached(curlvl) = TRUE
