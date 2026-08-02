@@ -198,6 +198,7 @@ SUB StopLevelMusic
     RetireSound music_handle
     RetireSound music_fadeout
     music_handle = 0: music_fadeout = 0: music_fading = 0
+    music_path = "": music_fadeout_path = ""
     music_level = 0: music_curfile = ""
 END SUB
 
@@ -210,10 +211,13 @@ SUB BeginTrack (path AS STRING, doloop AS INTEGER)
     IF audio_muted THEN EXIT SUB                    ' dev/headless: no mixing-graph nodes (see OpenSfx&)
     RetireSound music_fadeout                       ' retire the last fade-out track (deferred close)
     music_fadeout = music_handle                    ' the current track (if any) becomes the fade-OUT track
+    music_fadeout_path = music_path                 ' ...and its path travels with it (asset telemetry)
     music_handle = 0
+    music_path = ""
     IF LEN(path) > 0 THEN
         music_handle = _SNDOPEN(path)
         IF music_handle > 0 THEN
+            music_path = path                        ' asset telemetry: the FILE, not just the bare name
             _SNDVOL music_handle, 0                  ' ALWAYS start silent -> AudioTick rings it up over MUSIC_FADE_SEC:
             IF doloop THEN _SNDLOOP music_handle ELSE _SNDPLAY music_handle   ' a crossfade if a track fades out under it, else a plain fade-in from silence
         END IF
@@ -271,7 +275,7 @@ SUB AudioTick
         IF frac >= 1 THEN
             frac = 1
             RetireSound music_fadeout
-            music_fadeout = 0
+            music_fadeout = 0: music_fadeout_path = ""
             music_fading = 0
         END IF
     END IF
@@ -410,12 +414,14 @@ END SUB
 ' selected SFX PACK: try assets/sfx/<pack>/<nm>.<ext> first, then fall back to the flat
 ' assets/sfx/<nm>.<ext> -- so a partial pack overrides only the effects it actually ships.
 SUB RegisterSfx (nm AS STRING)
-    DIM h AS LONG
+    DIM h AS LONG, p AS STRING
     h = 0
-    IF LEN(opt_sfxpack) > 0 THEN h = OpenSfx&("assets/sfx/" + opt_sfxpack + "/" + nm)
-    IF h <= 0 THEN h = OpenSfx&("assets/sfx/default/" + nm)   ' fall back to the DEFAULT pack (was the flat dir)
+    IF LEN(opt_sfxpack) > 0 THEN h = OpenSfxP&("assets/sfx/" + opt_sfxpack + "/" + nm, p)
+    IF h <= 0 THEN h = OpenSfxP&("assets/sfx/default/" + nm, p)   ' fall back to the DEFAULT pack (was the flat dir)
     IF h > 0 THEN
-        IF SFX_N < UBOUND(SFX_NAME) THEN SFX_N = SFX_N + 1: SFX_NAME(SFX_N) = nm: SFX_HND(SFX_N) = h
+        IF SFX_N < UBOUND(SFX_NAME) THEN
+            SFX_N = SFX_N + 1: SFX_NAME(SFX_N) = nm: SFX_HND(SFX_N) = h: SFX_PATH(SFX_N) = p
+        END IF
     END IF
 END SUB
 
@@ -455,15 +461,24 @@ END FUNCTION
 
 ' Open the first existing <bpath>.<ext> in the player's preferred order -> handle, or 0.
 FUNCTION OpenSfx& (bpath AS STRING)
+    DIM discard AS STRING
+    OpenSfx& = OpenSfxP&(bpath, discard)
+END FUNCTION
+
+' As OpenSfx&, but also reports WHICH file won the preference ladder. The dev console's
+' `dump sfx` is only useful if it can name the actual file behind each effect -- "which of my
+' four formats did it pick, and out of which pack" is exactly the guesswork this removes.
+FUNCTION OpenSfxP& (bpath AS STRING, outpath AS STRING)
     DIM h AS LONG
     h = 0
+    outpath = ""
     ' A muted run (any dev mode) can never PLAY these, and opening them is not free of
     ' consequence: each _SNDOPEN adds a node to miniaudio's mixing graph, and SYSTEM tears the
     ' device down while the mixing THREAD is still reading it. That race aborted roughly one dev
     ' run in ten -- sometimes as `corrupted double-linked list`, sometimes as miniaudio's own
     ' `pOutputBus->pNode != NULL` assertion, which is the same fault seen at a different moment.
     ' Open nothing and there is no graph to race on. See also BeginTrack / Narrate.
-    IF audio_muted THEN OpenSfx& = 0: EXIT FUNCTION
+    IF audio_muted THEN OpenSfxP& = 0: EXIT FUNCTION
     ' PREFERENCE ORDER: ogg, mp3, flac, wav -- lossy-compact first, then lossless, then raw.
     ' _SNDOPEN is miniaudio-backed, so all four decode natively. NOTE the consequence of an order:
     ' if two formats of the same sound both exist, the EARLIER one wins and the other is silently
@@ -472,9 +487,9 @@ FUNCTION OpenSfx& (bpath AS STRING)
     FOR ax = 1 TO AUDIOPREF_N
         px = bpath + AudioExt$(ax)
         IF _FILEEXISTS(px) THEN h = _SNDOPEN(px)
-        IF h > 0 THEN EXIT FOR
+        IF h > 0 THEN outpath = px: EXIT FOR
     NEXT ax
-    OpenSfx& = h
+    OpenSfxP& = h
 END FUNCTION
 
 ' Release every loaded SFX file and empty the map (before reloading on a pack change).
@@ -485,7 +500,7 @@ SUB FreeSfxFiles
         ' triggered (every pack cycle ends in Sfx "select") can still be live on the mixer when the
         ' next keypress reloads the pack. Closing the source under it is the same race as the music.
         RetireSound SFX_HND(i)
-        SFX_HND(i) = 0: SFX_NAME(i) = ""
+        SFX_HND(i) = 0: SFX_NAME(i) = "": SFX_PATH(i) = ""
     NEXT i
     SFX_N = 0
 END SUB
@@ -677,6 +692,7 @@ SUB Narrate (nkey AS STRING)
         IF narr_fadein > 0 THEN _SNDVOL narr_handle, 0 ELSE _SNDVOL narr_handle, opt_voicevol / 10
         _SNDPLAY narr_handle
         narr_start = TIMER
+        narr_key = nkey: narr_path = p: narr_at = narr_start   ' asset telemetry
         narr_len = _SNDLEN(narr_handle)             ' read once; 0 if the format doesn't report length (-> no fade-out)
     END IF
 END SUB

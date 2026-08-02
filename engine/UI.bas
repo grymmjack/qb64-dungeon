@@ -572,6 +572,11 @@ SUB Present
     END IF
     _DEST olddest
     IF NOT pres_noflip THEN _DISPLAY
+    ' THE DEV CONSOLE HOTKEY LIVES HERE for exactly the reason the resize does (see above): this
+    ' is the only thing all ~40 loops call every frame, so [`] works in menus, dialogs, the dice
+    ' tumble and mid-fade without any of them knowing about it. _KEYDOWN reads keyboard STATE, so
+    ' the poll never steals a keypress from whatever loop owns the screen.
+    ConsoleHotkeyTick
 END SUB
 
 ' Put the canvas on screen WITHOUT flipping, so a caller can draw ON TOP and flip itself.
@@ -736,7 +741,8 @@ SUB Sfx (kind AS STRING)
     IF NOT opt_sfx THEN EXIT SUB
     DIM h AS LONG
     h = SfxHandle(kind)                         ' a real audio file for this effect?
-    IF h > 0 THEN _SNDPLAYCOPY h, opt_sfxvol / 10 * chgain_sfx: EXIT SUB   ' SFX CHANNEL mixdown: slider x channel gain (copy so effects overlap)
+    LogSfxPlayed kind, SfxPathFor$(kind)        ' asset telemetry -- logs the BEEPER case too, which is the
+    IF h > 0 THEN _SNDPLAYCOPY h, opt_sfxvol / 10 * chgain_sfx: EXIT SUB   ' one you most want to see ("why is this a bleep?")
     SELECT CASE kind                            ' otherwise fall back to the tone beeper
         CASE "move": Tone 350, 0.08
         CASE "bump": Tone 170, 0.12

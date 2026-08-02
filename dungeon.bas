@@ -122,7 +122,6 @@ DIM SHARED err_seen AS INTEGER
 ' curated `devmode` list: "is a human looking at a window" is the real question, and a list of
 ' mode names has to be updated every time a dev mode is added -- which is how `settingsshot`
 ' ended up aborting-not-aborting and hanging on a dialog nobody could click.
-DIM SHARED screen_shown AS INTEGER
 ' NO $RESIZE:STRETCH. The window surface is OURS (see Present in engine/UI.bas): CANVAS is an
 ' offscreen 132x51 character grid and screen 0 is a real window-sized image that Present blits
 ' into at an INTEGER scale. Letting the metacommand stretch a character grid by a fractional
@@ -908,6 +907,15 @@ FUNCTION PlayGame%
             Sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
             idle_ticks = 0
         END IF
+        ' [Shift-TAB] -- swap that same box between RUN STATS and BEARINGS (what is playing, what
+        ' art is on screen, which sector/cell you are standing on). It SHOWS the box as well as
+        ' swapping it, because pressing it while the box is hidden otherwise looks like a dead key.
+        IF k = CHR$(0) + CHR$(15) THEN
+            overlay_mode = 1 - overlay_mode
+            opt_statsoverlay = TRUE
+            Sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
+            idle_ticks = 0
+        END IF
         IF k = "L" THEN FindPlayerFlash: idle_ticks = 0        ' [L] -- locate me (was TAB)
         IF k = "Z" AND opt_automove THEN                       ' [Z] -- let the walker take over
             AutoMoveBegin
@@ -918,7 +926,9 @@ FUNCTION PlayGame%
         END IF
         IF k = "R" THEN DoRest: idle_ticks = 0                ' [R] -- rest a point, and roll for company
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
-        IF k = "~" OR k = "`" THEN
+        ' [~] only -- BACKTICK is the dev console now, and it is handled in Present so it opens
+        ' from every screen, not just this loop.
+        IF k = "~" THEN
             dbg_on = NOT dbg_on
             IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: Present   ' wipe the frozen debug overlay off the board
         END IF

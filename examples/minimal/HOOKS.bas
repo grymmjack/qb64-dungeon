@@ -78,3 +78,14 @@ END FUNCTION
 FUNCTION Game_SightRadius%
     Game_SightRadius% = 10
 END FUNCTION
+
+' --- dev-console dump hooks. The engine's [`] console asks the game to declare and run its own
+'     dump topics; a game with no game-specific state to show just declares none. Both must
+'     exist even when empty -- an undefined Game_* called as a statement parses as a LABEL and
+'     silently never runs (see the note at the top of this file).
+SUB Game_RegisterDumps
+END SUB
+
+FUNCTION Game_DevDump% (topic AS STRING)
+    Game_DevDump% = 0                            ' this game claims no topics
+END FUNCTION

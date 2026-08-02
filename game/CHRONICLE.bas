@@ -446,6 +446,9 @@ END SUB
 SUB DrawStatsOverlay
     DIM i AS INTEGER, x AS INTEGER, y AS INTEGER
     IF NOT opt_statsoverlay THEN EXIT SUB
+    ' [Shift-TAB] swaps which view this box shows. Same key, same box -- BEARINGS is a second
+    ' page of the scoreboard, not a second widget competing for the same corner.
+    IF overlay_mode = 1 THEN DrawBearingsOverlay: EXIT SUB
     x = 96
     _DEST CANVAS
     ' Rows run 4..3+STATROW_N and a row drawn at y occupies y..y+1, so the frame closes TWO
@@ -852,7 +855,12 @@ SUB GameMenu
         k = NormKey$(UCASE$(INKEY$))
         IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 8
         IF k = "S" THEN sel = sel + 1: IF sel > 8 THEN sel = 1
-        IF k = CHR$(27) THEN EXIT SUB
+        ' BOTH exits go through ChronicleClose. ChroniclePanel leaves _PRINTMODE _KEEPBACKGROUND
+        ' set while a frame is up, and leaking that back into the play loop means every later
+        ' _PRINTSTRING keeps whatever pixels are under it instead of filling its own background --
+        ' which is why the player token came back as a bare white "1" floating on the board art,
+        ' its blue cell never painted, until the next move redrew things some other way.
+        IF k = CHR$(27) THEN ChronicleClose: EXIT SUB
         IF k = " " OR k = CHR$(13) THEN
             SELECT CASE sel
                 CASE 1: ShowCharSheet
@@ -862,7 +870,7 @@ SUB GameMenu
                 CASE 5: ShowTreasury
                 CASE 6: ShowRules
                 CASE 7: ShowKeys
-                CASE 8: EXIT SUB
+                CASE 8: ChronicleClose: EXIT SUB
             END SELECT
         END IF
     LOOP

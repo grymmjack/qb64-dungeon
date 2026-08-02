@@ -44,6 +44,7 @@ FUNCTION DrawSpriteFit% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INT
     IF dh < 1 THEN dh = 1
     dx = bx + (bw - dw) \ 2: dy = by + (bh - dh) \ 2
     _PUTIMAGE (dx, dy)-(dx + dw, dy + dh), h, CANVAS
+    LogImageDrawn path                          ' asset telemetry: "which art is on screen right now"
     DrawSpriteFit% = -1
 END FUNCTION
 

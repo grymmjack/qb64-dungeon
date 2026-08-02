@@ -585,6 +585,9 @@ DIM SHARED opt_autocombat AS INTEGER
 DIM SHARED opt_autodelay AS INTEGER    ' 1, 2 or 3 seconds between auto actions
 DIM SHARED autocombat_run AS INTEGER
 DIM SHARED opt_statsoverlay AS INTEGER
+' Which view that overlay box shows: 0 = RUN STATS (the original), 1 = BEARINGS (what is playing
+' and being drawn, plus where you are). [TAB] shows/hides the box; [Shift-TAB] swaps the view.
+DIM SHARED overlay_mode AS INTEGER
 DIM SHARED g_rooms_cleared AS INTEGER   ' rooms whose monster you killed (NOT chamber spawns)
 DIM SHARED g_chambers_cleared AS INTEGER
 DIM SHARED g_max_level AS INTEGER       ' deepest level actually stood on
@@ -656,6 +659,9 @@ DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC 
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter
+' Scratch marks for Dump_Monster's nearest-first walk (game/DUMP.bas). Its own array on purpose:
+' a dump must never be able to change the thing it is describing.
+DIM SHARED DUMPMARK(1 TO 400) AS INTEGER
 DIM SHARED settingsshot_on AS INTEGER                 ' dev: `settingsshot` -- save the SETTINGS render to PNG + exit (layout check)
 DIM SHARED dbg_click_armed AS INTEGER                 ' debounce for debug click-to-place
 DIM SHARED player_dmgbonus AS INTEGER  ' STR/INT damage mod

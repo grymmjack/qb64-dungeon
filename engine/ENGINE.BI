@@ -459,6 +459,10 @@ DIM SHARED pres_scale AS SINGLE        ' window px per canvas px, published by P
 DIM SHARED pres_ox AS LONG, pres_oy AS LONG, pres_dw AS LONG, pres_dh AS LONG   ' the letterboxed canvas rect
 DIM SHARED pres_noflip AS INTEGER      ' Present: blit the canvas but leave the flip to the caller
 DIM SHARED audio_muted AS INTEGER
+' TRUE once _SCREENSHOW has run -- i.e. "is a human looking at a window". The fatal-error
+' handler branches on this rather than a curated dev-mode list, and the dev console refuses to
+' open without it (a headless dev mode has no one to type into it).
+DIM SHARED screen_shown AS INTEGER
 DIM SHARED ui_autoadvance AS SINGLE
 ' DEV: when non-empty, the next dice roll saves its SETTLED frame to this file and clears the
 ' flag. Set by `dungeon.run rollshot`. It captures the real roll functions at the exact moment
@@ -566,3 +570,65 @@ DIM SHARED MUSIC_FILE(1 TO 9) AS STRING          ' music file assigned to each d
 DIM SHARED music_level AS INTEGER                ' the level whose track is loaded right now (0 = none)
 DIM SHARED music_curfile AS STRING               ' the file currently loaded (so same-file levels don't restart it)
 DIM SHARED SFX_NAME(1 TO 48) AS STRING, SFX_HND(1 TO 48) AS LONG, SFX_N AS INTEGER
+DIM SHARED SFX_PATH(1 TO 48) AS STRING           ' the file each slot actually resolved to ("" = beeper fallback)
+
+' --- ASSET TELEMETRY -- "what is playing / showing RIGHT NOW", for the [`] dev console and the
+'     [Shift-TAB] bearings overlay. Recording is deliberately at the CHOKEPOINTS (Sfx, Narrate,
+'     BeginTrack, DrawSpriteFit%) rather than at call sites, so a feature added later is logged
+'     without anyone remembering to log it -- the same argument that puts the resize in Present. ---
+DIM SHARED music_path AS STRING                  ' resolved FILE behind music_handle (music_curfile is the bare NAME)
+DIM SHARED music_fadeout_path AS STRING          ' ...and behind the outgoing crossfade track
+DIM SHARED narr_key AS STRING                    ' strings.txt key of the current/last narration line
+DIM SHARED narr_path AS STRING                   ' ...and the file it resolved to
+DIM SHARED narr_at AS DOUBLE                     ' TIMER when it started
+CONST SNDLOG_MAX = 24                            ' recent-SFX ring depth
+DIM SHARED SFXLOG_NAME(1 TO SNDLOG_MAX) AS STRING, SFXLOG_PATH(1 TO SNDLOG_MAX) AS STRING
+DIM SHARED SFXLOG_AT(1 TO SNDLOG_MAX) AS DOUBLE
+DIM SHARED SFXLOG_W AS INTEGER                   ' ring WRITE cursor (wraps; 0 = nothing logged yet)
+CONST IMGLOG_MAX = 32                            ' recently-BLITTED sprite ring depth
+DIM SHARED IMGLOG_PATH(1 TO IMGLOG_MAX) AS STRING, IMGLOG_AT(1 TO IMGLOG_MAX) AS DOUBLE
+DIM SHARED IMGLOG_W AS INTEGER
+CONST RECENT_SEC = 10                            ' "playing or played recently" window, seconds
+
+' ============================================================================
+'  DEV CONSOLE  [`]  +  the DUMP REGISTRY
+'
+'  A Quake-style drop-down console, opened by BACKTICK from ANY screen -- menus,
+'  dialogs, the dice tumble, a fade -- because its hotkey is polled in Present,
+'  this game's one true per-frame chokepoint (see the long note there; the same
+'  argument that put _RESIZE handling in Present rather than in forty loops).
+'  [~] is unchanged and still toggles the board debug overlay.
+'
+'  THE DUMP REGISTRY exists so these stay maintained rather than rotting into a
+'  pile of orphaned one-offs. The contract is mechanical, and tests/audit-dumps.sh
+'  enforces both halves of it:
+'
+'    * a topic named `foo` is implemented by a SUB named exactly `Dump_Foo`
+'    * every Dump_* SUB is registered, and every registered topic has a Dump_* SUB
+'
+'  So adding a dump is: write Dump_Thing, register it, done -- and forgetting
+'  either half fails the gate instead of silently shipping a dead `dump thing`.
+'  Engine topics live in engine/CONSOLE.bas; game topics live in game/DUMP.bas
+'  and are reached through the Game_RegisterDumps / Game_DevDump% hook pair, so
+'  the engine still names no game symbol.
+' ============================================================================
+CONST DUMP_MAX = 32
+DIM SHARED DUMP_NAME(1 TO DUMP_MAX) AS STRING    ' topic word typed after `dump`
+DIM SHARED DUMP_DESC(1 TO DUMP_MAX) AS STRING    ' one-line help, shown by `dump` with no argument
+DIM SHARED DUMP_OWNER(1 TO DUMP_MAX) AS STRING   ' "engine" | "game" -- which side implements it
+DIM SHARED DUMP_N AS INTEGER
+DIM SHARED dump_registered AS INTEGER            ' registry built once, lazily (order-independent startup)
+
+CONST CON_MAX = 500                              ' scrollback lines
+CONST CON_HIST = 32                              ' command history depth
+CONST CON_ROWS = 24                              ' visible rows of the drop-down panel
+DIM SHARED CONBUF(1 TO CON_MAX) AS STRING
+DIM SHARED CONCOL(1 TO CON_MAX) AS _UNSIGNED LONG
+DIM SHARED CON_N AS INTEGER                      ' lines written (ring: oldest scrolled off)
+DIM SHARED con_scroll AS INTEGER                 ' rows scrolled back from the newest (0 = bottom)
+DIM SHARED con_line AS STRING                    ' the input line being typed
+DIM SHARED con_active AS INTEGER                 ' -1 while the console owns the screen (re-entry guard for Present)
+DIM SHARED con_snap AS LONG                      ' snapshot of CANVAS taken on open, restored on close
+DIM SHARED con_down AS INTEGER                   ' backtick edge-detect: was it held on the previous poll?
+DIM SHARED CONHIST(1 TO CON_HIST) AS STRING
+DIM SHARED CONHIST_N AS INTEGER, CONHIST_I AS INTEGER
