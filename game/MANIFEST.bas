@@ -368,6 +368,10 @@ END FUNCTION
 
 ' Which pack directory does this manifest category resolve through?
 FUNCTION ManPackFor$ (cat AS STRING)
+    ' An explicit pack=<name> applies to every category at once: a generator run fills ONE
+    ' named pack across art, ansi, sfx and narration, so per-category settings are not what
+    ' it is asking about.
+    IF LEN(_TRIM$(man_pack)) > 0 THEN ManPackFor$ = _TRIM$(man_pack): EXIT FUNCTION
     SELECT CASE cat
         CASE "sfx": ManPackFor$ = opt_sfxpack
         CASE "music": ManPackFor$ = opt_musicpack
@@ -376,6 +380,35 @@ FUNCTION ManPackFor$ (cat AS STRING)
         CASE "ansi-art": ManPackFor$ = opt_ansipack
         CASE ELSE: ManPackFor$ = ""
     END SELECT
+END FUNCTION
+
+' Does an asset present only in default/ COUNT as present?
+'
+' It depends entirely on which question is being asked, and they are different questions:
+'
+'   no pack=   "will the game find art here?"  -- YES, packs fall back to default/ per file,
+'              so a partial pack is fine and default/ genuinely satisfies the lookup.
+'   pack=<n>   "what must I generate to fill THIS pack?" -- default/ satisfies nothing. The
+'              whole point of naming a pack is that its own files do not exist yet.
+'
+' Answering the first when the second was asked is how you get a generator run that produces
+' twelve files and calls a pack finished.
+FUNCTION ManPackStrict% ()
+    IF LEN(_TRIM$(man_pack)) > 0 THEN ManPackStrict% = -1
+END FUNCTION
+
+' The pack name the header reports: an explicit pack=<name>, else "(per settings)" -- because
+' with no override the categories genuinely CAN resolve to different packs, and printing any one
+' of them as though it were THE pack would be a lie a generator would act on.
+FUNCTION ManPackName$ ()
+    IF LEN(_TRIM$(man_pack)) > 0 THEN ManPackName$ = _TRIM$(man_pack) ELSE ManPackName$ = "(per settings; pass pack=<name> to pin it)"
+END FUNCTION
+
+FUNCTION ManPackExample$ ()
+    DIM pk AS STRING
+    pk = _TRIM$(man_pack): IF LEN(pk) = 0 THEN pk = _TRIM$(opt_artpack)
+    IF LEN(pk) = 0 THEN pk = "default"
+    ManPackExample$ = "pixel-art/monsters/beasts/goblin.png -> assets/pixel-art/" + pk + "/monsters/beasts/goblin.png"
 END FUNCTION
 
 ' Does the asset named by a manifest line exist in the selected pack or in default/?
@@ -395,14 +428,18 @@ FUNCTION ManAssetPresent% (ln AS STRING)
     IF LEN(pk) = 0 THEN pk = "default"
     IF INSTR(rest, ".") > 0 THEN                ' an explicit extension: a straight two-place check
         IF RealAssetAt%("assets/" + cat + "/" + pk + "/" + rest) THEN EXIT FUNCTION
-        IF RealAssetAt%("assets/" + cat + "/default/" + rest) THEN EXIT FUNCTION
+        IF ManPackStrict% = 0 THEN
+            IF RealAssetAt%("assets/" + cat + "/default/" + rest) THEN EXIT FUNCTION
+        END IF
         ManAssetPresent% = 0
         EXIT FUNCTION
     END IF
     ' AudioExt$ already carries the leading dot (".ogg"), so do NOT add one here.
     FOR e = 1 TO AUDIOPREF_N                    ' no extension: audio, try each in preference order
         IF RealAssetAt%("assets/" + cat + "/" + pk + "/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
-        IF RealAssetAt%("assets/" + cat + "/default/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
+        IF ManPackStrict% = 0 THEN
+            IF RealAssetAt%("assets/" + cat + "/default/" + rest + AudioExt$(e)) THEN EXIT FUNCTION
+        END IF
     NEXT e
     ManAssetPresent% = 0
 END FUNCTION
@@ -428,6 +465,18 @@ SUB ManHeader (title AS STRING)
         PRINT "# ENTRIES: " + LTRIM$(STR$(MAN_ENTRIES))
     END IF
     PRINT "# " + title
+    ' Every manifest path is <category>/<rest>; the PACK dir goes between the two. Say so
+    ' outright and name the pack, rather than leaving a generator to reconstruct the rule.
+    IF ManPackStrict% THEN
+        PRINT "# PACK: " + ManPackName$
+        PRINT "# WRITE: assets/<category>/" + _TRIM$(man_pack) + "/<rest>"
+        PRINT "#   e.g. " + ManPackExample$
+        IF man_audit THEN PRINT "#   audit is STRICT: art present only in default/ still counts as MISSING for this pack."
+    ELSE
+        PRINT "# PACK: " + ManPackName$
+        PRINT "#   paths are <category>/<rest>; the pack dir goes between them, e.g. " + ManPackExample$
+        IF man_audit THEN PRINT "#   audit counts default/ as present (that is the game's real per-file fallback)."
+    END IF
     IF MAN_N >= MAN_MAX THEN PRINT "# !! TRUNCATED at " + LTRIM$(STR$(MAN_MAX)) + " lines -- raise MAN_MAX in ENGINE.BI"
 END SUB
 

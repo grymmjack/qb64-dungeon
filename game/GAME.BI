@@ -355,6 +355,11 @@ DIM SHARED DOORNOISE_PCT AS INTEGER, DOORNOISE_CLEAR_PCT AS INTEGER        ' doo
 ' <any>manifest audit`). GAME.BI, not ENGINE.BI: the manifests are game content and every
 ' consumer lives in game/MANIFEST.bas -- audit-boundary.sh catches exactly this misfiling.
 DIM SHARED man_audit AS INTEGER
+' `pack=<name>` on any manifest command. Overrides the pack EVERY category resolves through,
+' for both the audit's "does it exist" check and the WRITE path printed in the header -- so a
+' generator filling a new pack is told exactly where its output goes, instead of the manifest
+' silently describing whichever packs the player's saved settings happen to select.
+DIM SHARED man_pack AS STRING
 ' TRUE = build MAN_BUF but print nothing and do not clear it, so a caller can READ the manifest
 ' instead of emitting it (placeholders does exactly that -- it needs the paths and sizes).
 DIM SHARED man_quiet AS INTEGER

@@ -40,6 +40,9 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10imagemanifest|07 dump |14path | prompt|07 for every entity as pixel-art (.png) AND ansi-art (.ans)")
     PRINT PipeCol$("  |10uimanifest|07    dump |14path | prompt|07 for the decorative ANSI UI chrome (logos, menu pieces)")
     PRINT PipeCol$("  |10fightmanifest|07 dump |14path | kind | size | prompt|07 for the tactical-combat art (|14ansi|07 in chars, |14pixel|07 in px)")
+    PRINT PipeCol$("                any manifest also takes |14audit|07 (only what is missing) and |14pack=<name>|07")
+    PRINT PipeCol$("                |14pack=|07 names the pack to WRITE into (printed in the header) and makes")
+    PRINT PipeCol$("                |14audit|07 STRICT -- art present only in |11default/|07 still counts as missing")
     PRINT PipeCol$("  |10fightlayout|07   render the named regions of |11ui-fight-layout.txt|07 as labelled boxes -> |14fightlayout.png|07")
     PRINT PipeCol$("  |10fightshot|07     render the tactical-combat screen with a synthetic 1-vs-4 encounter -> |14fightshot.png|07")
     PRINT PipeCol$("  |10placeholders|07 write a labelled stand-in for every MISSING art asset;  |10placeholders clean|07 removes them again")
@@ -223,6 +226,8 @@ LoadPlaylist                     ' load the per-level music map (assets/music/pl
 DIM mac AS INTEGER
 FOR mac = 1 TO _COMMANDCOUNT
     IF UCASE$(_TRIM$(COMMAND$(mac))) = "AUDIT" THEN man_audit = TRUE
+    ' pack=<name> -- which pack the manifest describes (audit target AND write path).
+    IF UCASE$(LEFT$(_TRIM$(COMMAND$(mac)), 5)) = "PACK=" THEN man_pack = MID$(_TRIM$(COMMAND$(mac)), 6)
 NEXT mac
 
 IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
