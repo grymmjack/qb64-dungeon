@@ -50,10 +50,7 @@ FUNCTION NineGridLoad& (path AS STRING)
     IF LCASE$(RIGHT$(path, 4)) <> ".ans" THEN            ' pixel art: already an image
         img = Sprite&(path)
         IF img = 0 THEN EXIT FUNCTION
-        IF NG_N < NG_MAX THEN
-            NG_N = NG_N + 1
-            NG_PATH(NG_N) = path: NG_IMG(NG_N) = img
-        END IF
+        NineGridCache path, img, 0             ' 0: a Sprite& handle -- Sprite& owns it
         NineGridLoad& = img
         EXIT FUNCTION
     END IF
@@ -85,12 +82,30 @@ FUNCTION NineGridLoad& (path AS STRING)
     IF INSTR(raw, CHR$(26)) > 0 THEN raw = LEFT$(raw, INSTR(raw, CHR$(26)) - 1)
     ANSI_Print (raw)
     _DEST prevdest
-    IF NG_N < NG_MAX THEN
-        NG_N = NG_N + 1
-        NG_PATH(NG_N) = path: NG_IMG(NG_N) = img
-    END IF
+    NineGridCache path, img, -1                 ' -1: we rendered this image, so we may free it
     NineGridLoad& = img
 END FUNCTION
+
+' Put a rendered frame in the cache, EVICTING the oldest entry when full.
+'
+' The eviction is the point. Declining to cache once full -- and returning the image anyway --
+' means every later redraw of that frame allocates another one, in a path that runs every
+' displayed frame. `owned` says whether the image is ours to free: a .ans is rendered here and
+' is ours; a .png comes from Sprite&, which owns its own cache, and freeing it would leave that
+' cache holding a dangling handle.
+SUB NineGridCache (path AS STRING, img AS LONG, owned AS INTEGER)
+    DIM i AS INTEGER
+    IF NG_N < NG_MAX THEN
+        NG_N = NG_N + 1
+        i = NG_N
+    ELSE
+        NG_EVICT = NG_EVICT + 1                 ' round-robin, so no entry is pinned forever
+        IF NG_EVICT > NG_MAX THEN NG_EVICT = 1
+        i = NG_EVICT
+        IF NG_OWNED(i) AND NG_IMG(i) < -1 THEN _FREEIMAGE NG_IMG(i)
+    END IF
+    NG_PATH(i) = path: NG_IMG(i) = img: NG_OWNED(i) = owned
+END SUB
 
 ' Blit one source tile, clipped to a destination rect. `sc/sr` are the tile's grid coordinates
 ' (0..2). Clipping is what lets a box be any size rather than a multiple of the tile.
@@ -106,7 +121,11 @@ SUB NineGridTile (img AS LONG, tw AS INTEGER, th AS INTEGER, sc AS INTEGER, sr A
         ox = 0
         DO WHILE ox < dw
             pw = w: IF ox + pw > dw THEN pw = dw - ox
-            _PUTIMAGE (dx + ox, dy + oy)-(dx + ox + pw, dy + oy + ph), img, CANVAS, (sx, sy)-(sx + pw, sy + ph)
+            ' -1 on both rects: QB64's _PUTIMAGE corners are INCLUSIVE. Using (sx, sy)-(sx+pw,
+            ' sy+ph) asks for one pixel column and row PAST the tile, and for the right/bottom
+            ' tiles that is past the image itself -- an out-of-bounds read that showed up as an
+            ' intermittent "corrupted double-linked list" abort rather than anything visible.
+            _PUTIMAGE (dx + ox, dy + oy)-(dx + ox + pw - 1, dy + oy + ph - 1), img, CANVAS, (sx, sy)-(sx + pw - 1, sy + ph - 1)
             ox = ox + pw
         LOOP
         oy = oy + ph

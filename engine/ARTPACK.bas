@@ -295,10 +295,27 @@ SUB CombatArtBoxOff (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INT
     capy = by - 4 - CH
     LINE (bx - 4, capy - 2)-(bx + bw + 4, by - 4), BOXBG, BF
     LINE (bx - 4, capy - 2)-(bx + bw + 4, by - 4), edge, B
-    ' the framed art box
-    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
-    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), edge, B
-    IF DrawSpriteFit%(path, bx + dxp, by + dyp, bw, bh) THEN
+    ' The art box. Framed if art is available -- and INSET rather than outset, unlike every
+    ' other panel: these two boxes are anchored to the screen EDGES (the monster at column 1,
+    ' the location hard against the right), so there is no room to grow a border outward. The
+    ' sprite shrinks into the frame's content rect instead, which is the correct trade for a
+    ' portrait: it stays a portrait, just a smaller one inside a nicer box.
+    DIM abx AS INTEGER, aby AS INTEGER, abw AS INTEGER, abh AS INTEGER, aframed AS INTEGER
+    DIM ic AS INTEGER, ir AS INTEGER, iw AS INTEGER, ih AS INTEGER
+    abx = bx: aby = by: abw = bw: abh = bh
+    IF UiFramed%(UIF_PANEL) THEN
+        aframed = UiPanel%(UIF_PANEL, col, row, cols, rows)
+        IF aframed THEN
+            UiPanelInner UIF_PANEL, col, row, cols, rows, ic, ir, iw, ih
+            abx = ic * CW: aby = ir * CH: abw = iw * CW: abh = ih * CH
+        END IF
+    END IF
+    IF NOT aframed THEN
+        LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
+        LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), edge, B
+    END IF
+    IF abw <= 0 OR abh <= 0 THEN EXIT SUB          ' frame bigger than the box: nothing to draw into
+    IF DrawSpriteFit%(path, abx + dxp, aby + dyp, abw, abh) THEN
         cap = caption
         IF LEN(cap) > cols + 2 THEN cap = LEFT$(cap, cols + 2)   ' never spill the bar
         capx = bx + (bw - LEN(cap) * CW) \ 2

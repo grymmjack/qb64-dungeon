@@ -411,8 +411,13 @@ DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 
 ' mode, a demo or a headless capture all want exactly the same thing, and none of them should
 ' have to know what combat is.
 ' --- NINE-GRID UI FRAMES (engine GDK, see engine/NINEGRID.bas) ---
-' Cache of frame ANSIs rendered at the UI cell. Small on purpose: a game has a handful of
-' frame styles, not hundreds.
+' Cache of frame art rendered at the UI cell.
+'
+' Sized well ABOVE the number of frames a game registers, and NineGridCache EVICTS when full
+' rather than declining to cache. That combination is load-bearing: panels are redrawn every
+' displayed frame, so a frame that MISSES the cache allocates a fresh image every time and never
+' frees it. At NG_MAX 12 with eleven frames registered, one more would have started leaking
+' images until the heap gave out.
 ' The UI's CURRENT panel frame. Engine STATE, not an engine decision: the game populates it
 ' (LoadUIFrames) from its own data, and the engine merely draws with whatever is there. Empty
 ' path = no frame, and every panel falls back to the plain LINE box it always drew.
@@ -445,10 +450,11 @@ CONST UIF_SLOTS = 5
 DIM SHARED UI_FRAME_PATH(0 TO UIF_SLOTS - 1) AS STRING
 DIM SHARED UI_FRAME_TW(0 TO UIF_SLOTS - 1) AS INTEGER, UI_FRAME_TH(0 TO UIF_SLOTS - 1) AS INTEGER
 DIM SHARED UI_FRAME_FILL(0 TO UIF_SLOTS - 1) AS INTEGER
-CONST NG_MAX = 12
+CONST NG_MAX = 48
 DIM SHARED NG_PATH(1 TO NG_MAX) AS STRING
 DIM SHARED NG_IMG(1 TO NG_MAX) AS LONG
-DIM SHARED NG_N AS INTEGER
+DIM SHARED NG_OWNED(1 TO NG_MAX) AS INTEGER   ' TRUE if this image is ours to _FREEIMAGE
+DIM SHARED NG_N AS INTEGER, NG_EVICT AS INTEGER
 ' The shipped frame's tile size, in CHARACTER cells -- the authored art is 3x these.
 CONST NG_TILEW = 4
 CONST NG_TILEH = 2
