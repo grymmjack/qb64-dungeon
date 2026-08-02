@@ -499,6 +499,7 @@ SUB Present
     ' pixels and cannot see this, so anything composited over the canvas has to be told -- see
     ' PresentScale!.
     IF SW * CW > 0 THEN pres_scale = dw / (SW * CW)
+    pres_ox = ox: pres_oy = oy: pres_dw = dw: pres_dh = dh
     _DEST 0
     ' Repaint the letterbox bars only when the geometry CHANGES. A full CLS every frame at
     ' 4K is real work for pixels that never change.

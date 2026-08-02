@@ -101,6 +101,37 @@ CONST DICE3D_HW_PXPERUNIT = 103.0
 ' is the classic 4d6-drop-lowest ability roll. The DICE3D module owns the mechanic: we
 ' just build the "4d6dl1" notation, and it animates all four, fades the lowest, and
 ' totals the kept three (dice3d_total%). droplow = 0 is an ordinary NdS roll.
+' CANVAS pixels -> GL units, for the hardware layer.
+'
+' The GL layer addresses the WHOLE WINDOW, while the canvas is drawn into a centred, scaled
+' sub-rect of it (letterboxed: a 1056x816 canvas is 1.29 aspect, a 16:9 display is 1.78, so
+' there are bars either side). Treating the canvas centre as the window centre therefore puts
+' everything off by the letterbox offset -- which is why the dice sat left of their labels.
+'
+' DICE3D_HW_PXPERUNIT is "px per model unit" calibrated at a 1056-wide window, and the
+' projection is window-relative, so the real px-per-unit is PXPERUNIT * winW / (SW*CW).
+FUNCTION GlUnitsPerCanvasPx! ()
+    DIM ww AS LONG
+    ww = _WIDTH(0)
+    IF ww <= 0 OR pres_dw <= 0 THEN GlUnitsPerCanvasPx! = 1! / DICE3D_HW_PXPERUNIT: EXIT FUNCTION
+    GlUnitsPerCanvasPx! = pres_dw / (DICE3D_HW_PXPERUNIT * ww)
+END FUNCTION
+
+' GL offset of a CANVAS x (or y), measured from the WINDOW centre, in model units.
+FUNCTION GlX! (cx AS SINGLE)
+    DIM ww AS LONG
+    ww = _WIDTH(0)
+    IF ww <= 0 OR pres_dw <= 0 THEN GlX! = (cx - SW * CW * 0.5) / DICE3D_HW_PXPERUNIT: EXIT FUNCTION
+    GlX! = (pres_ox + cx * pres_scale - ww * 0.5) / (DICE3D_HW_PXPERUNIT * ww / (SW * CW))
+END FUNCTION
+
+FUNCTION GlY! (cy AS SINGLE)
+    DIM wh AS LONG, ww AS LONG
+    ww = _WIDTH(0): wh = _HEIGHT(0)
+    IF ww <= 0 OR pres_dh <= 0 THEN GlY! = -(cy - SH * CH * 0.5) / DICE3D_HW_PXPERUNIT: EXIT FUNCTION
+    GlY! = -(pres_oy + cy * pres_scale - wh * 0.5) / (DICE3D_HW_PXPERUNIT * ww / (SW * CW))
+END FUNCTION
+
 FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
     DIM AS INTEGER tw, th, tx, ty, hf, hbw, hbx
@@ -149,14 +180,14 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' window, so it grows with the window on its own. Multiplying by the present scale on top of
     ' that scales everything twice, and at 3840x2160 (scale 2.65) the d20s filled the corners of
     ' the screen. DICE3D_HW_PXPERUNIT already carries the whole conversion.
-    pxk = 1.0 / DICE3D_HW_PXPERUNIT
+    pxk = GlUnitsPerCanvasPx!                       ' canvas px -> GL units, letterbox-aware
     DICE3D_HW = -1
     DICE3D_HWATLAS = 0
     DICE3D_HW_Z = DICE3D_HW_ZBASE
     DICE3D_HW_PXK = pxk
     DICE3D_HW_S = cfg.DIE_SIZE * pxk               ' render the die at its physics footprint
-    DICE3D_HW_CX = 0                               ' tray centred horizontally on screen
-    DICE3D_HW_CY = -((ty + th * 0.5) - SH * CH * 0.5) * pxk   ' shift up to the tray row
+    DICE3D_HW_CX = GlX!(SW * CW * 0.5)             ' tray centred horizontally on the CANVAS
+    DICE3D_HW_CY = GlY!(ty + th * 0.5)             ' ...and on the tray row
     DICE3D_UPRIGHT = -1                            ' show each die's result upright + readable
 
     ' Sound: a throw rattle now, then per-bounce BEEPS + a settle BOOP straight from the
@@ -341,12 +372,12 @@ SUB DrawDice3DPreviewDie (ccol AS INTEGER, growy AS INTEGER, atlas AS LONG, setc
     cfg = setcfg
     ApplyDiceLight cfg                              ' preview reflects the SETTINGS "Dice Light" level
     cfg.BOX_W = 110: cfg.BOX_H = 110: cfg.DIE_SIZE = 30
-    pxk = 1.0 / DICE3D_HW_PXPERUNIT
+    pxk = GlUnitsPerCanvasPx!
     DICE3D_HWATLAS = atlas
     DICE3D_HW_Z = DICE3D_HW_ZBASE: DICE3D_HW_PXK = pxk
     DICE3D_HW_S = cfg.DIE_SIZE * pxk
-    DICE3D_HW_CX = (scx - SW * CW * 0.5) * pxk
-    DICE3D_HW_CY = -(scy - SH * CH * 0.5) * pxk
+    DICE3D_HW_CX = GlX!(scx)
+    DICE3D_HW_CY = GlY!(scy)
     DICE3D_DICE(0).PX = cfg.BOX_W * 0.5: DICE3D_DICE(0).PY = cfg.BOX_H * 0.5: DICE3D_DICE(0).PZ = 0
     dice3d_render_die_hw DICE3D_DICE(0), cfg
 END SUB

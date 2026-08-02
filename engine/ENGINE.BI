@@ -456,6 +456,7 @@ CONST NG_TILEH = 2
 ' full test pass is minutes of beeps at whoever is sitting there. Checked at the two sound
 ' primitives everything funnels through, so nothing can leak past by another route.
 DIM SHARED pres_scale AS SINGLE        ' window px per canvas px, published by Present
+DIM SHARED pres_ox AS LONG, pres_oy AS LONG, pres_dw AS LONG, pres_dh AS LONG   ' the letterboxed canvas rect
 DIM SHARED pres_noflip AS INTEGER      ' Present: blit the canvas but leave the flip to the caller
 DIM SHARED audio_muted AS INTEGER
 DIM SHARED ui_autoadvance AS SINGLE
