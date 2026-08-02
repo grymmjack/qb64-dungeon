@@ -317,7 +317,7 @@ SUB DrawCombatArt (nm AS STRING, sec AS INTEGER, wound AS SINGLE)
     mp = MonsterSprite$(nm)
     lp = LocationSprite$(sec)
     IF LEN(mp) > 0 THEN
-        CombatArtBox mp, 1, 18, 4, 12, "-= " + _TRIM$(nm) + " =-", REDU
+        CombatArtBoxOff mp, 1, 18, 4, 12, "-= " + _TRIM$(nm) + " =-", REDU, combat_lunge_x, combat_lunge_y
         IF wound > 0 THEN GoreSplat 1 * CW, 4 * CH, 18 * CW, 12 * CH, wound, GoreColor~&(nm), NameSeed&(nm)
     END IF
     IF LEN(lp) > 0 THEN CombatArtBox lp, SW - 19, 18, 4, 12, RoomShortName$(sec), CYANU
@@ -334,6 +334,27 @@ FUNCTION NameSeed& (nm AS STRING)
     NEXT i
     NameSeed& = h
 END FUNCTION
+
+' The monster LUNGES: its portrait drives down and toward the centre of the screen, then
+' settles back. Called at the moment it strikes, so the picture and the blow land together.
+'
+' It moves the SPRITE inside its frame rather than the frame -- a creature leaning out of its
+' own portrait reads as an attack; the whole box sliding reads as a UI glitch. Down AND right
+' because the monster box is top-LEFT, so "toward the centre" is right from there.
+SUB MonsterLunge (nm AS STRING, sec AS INTEGER, wound AS SINGLE)
+    DIM f AS INTEGER, amt AS INTEGER
+    IF NOT opt_juice THEN EXIT SUB               ' Screen Effects off: no animation anywhere
+    FOR f = 0 TO 7
+        ' out fast (frames 0-3), back slower -- a lunge is a snap and a recovery, not a wobble
+        IF f <= 3 THEN amt = f * 3 ELSE amt = (7 - f) * 3
+        combat_lunge_x = amt: combat_lunge_y = amt \ 2
+        DrawCombatArt nm, sec, wound
+        Present
+        _LIMIT 45
+    NEXT f
+    combat_lunge_x = 0: combat_lunge_y = 0
+    DrawCombatArt nm, sec, wound
+END SUB
 
 ' Back-compat shim: old call sites that only had a monster name.
 SUB DrawMonsterArt (nm AS STRING)

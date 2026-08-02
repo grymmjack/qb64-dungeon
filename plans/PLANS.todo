@@ -109,7 +109,11 @@ Small UI Tweaks:
       ✔ LoadBestiary runs INSIDE ChronicleReset, after the roster is seeded: with BEAST_N still @done(26-08-01)
         ✔ 0 every saved name resolves to nothing and the whole history evaporates silently @done(26-08-01)
       ✔ `dungeon.run bestiarytest` is in the gate -- a save round-trip cannot cover this @done(26-08-01)
-    ☐ Monsters images move down and center slightly when attacking @low
+    ✔ Monsters images move down and center slightly when attacking @low @done(26-08-02)
+      ✔ MonsterLunge moves the SPRITE inside its frame, not the frame: a creature leaning out @done(26-08-02)
+        ✔ of its own portrait reads as an attack, the whole box sliding reads as a UI glitch @done(26-08-02)
+      ✔ Down AND right because the monster box is top-LEFT, so "toward centre" is right @done(26-08-02)
+      ✔ Out fast, back slower -- a lunge is a snap and a recovery, not a wobble @done(26-08-02)
     ✔ Add blood overlay on monsters when taking damage - closer to death = more blood @high @done(26-08-01)
       ✔ If no blood, use black for undead -- GoreColor~& (game/SPRITES.bas) is the only place @done(26-08-01)
         ✔ that knows; the engine primitive just takes a colour @done(26-08-01)
@@ -122,7 +126,13 @@ Small UI Tweaks:
       ✔ Gore draws BEFORE the dead-dim, so a corpse's wounds dim with the body @done(26-08-01)
       ✔ Verify: `dungeon.run fightshot pixel 6` -- its four HP tiers ARE the ramp, and level 6 @done(26-08-01)
         ✔ fields two undead beside a troll, so both gore colours are in one shot @done(26-08-01)
-    ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character) @low
+    ✔ Closer to death make the combat UI move and shake around subtle @low @done(26-08-02)
+      ✔ PanelShudder: under a third HP, 1-2px, magnitude scaling to death's door @done(26-08-02)
+      ✔ Re-blits the FINISHED panel rather than offsetting the drawing -- the panel body is laid @done(26-08-02)
+        ✔ out in CHARACTER rows, so shifting it properly meant touching every _PRINTSTRING @done(26-08-02)
+      ✔ TIMER-driven sine, not RND: a random offset every frame is static, a fast sine is a tremor @done(26-08-02)
+      ✔ Grab region is deliberately larger than the panel, so the vacated sliver duplicates its @done(26-08-02)
+        ✔ surroundings instead of showing a hard black edge @done(26-08-02)
 
 Big UI Tweaks:
     ✔ New Dice option: Roll style: @high @done(26-08-01)
@@ -132,13 +142,16 @@ Big UI Tweaks:
       ✔ Style 2 turns hold time into spin (2D) and into throw strength as well (3D) @done(26-08-01)
       ✔ Unattended rolls auto-throw after SHAKE_ARM_SEC, so it can never wait on a key @done(26-08-01)
     ✔ New Dice option: Box shake: @high @done(26-08-01)
-    ☐ Export the 3D dice meshes as Wavefront OBJ so they can be rendered in Blender @low
-      ☐ Wanted for 2D art: render the game's ACTUAL dice for menus/promo instead of redrawing them
-      ☐ Cheap -- DICE3D_MV already holds the verts and DICE3D_MF the faces, so this is a
-        ☐ writer, not a conversion: `dungeon.run diceobj [set]` -> one .obj + .mtl per die
-      ☐ The face NUMERALS are an atlas, not geometry, so also dump the atlas PNG + per-face UVs
-        ☐ (dice3d_make_atlas already computes them) or the meshes import blank
-      ☐ Include the BEVEL geometry -- opt_diceround changes the mesh, so export at a stated value
+    ✔ Export the 3D dice meshes as Wavefront OBJ so they can be rendered in Blender @low @done(26-08-02)
+      ✔ `dungeon.run diceobj [set]` -> diceobj/{d4,d6,d8,d10,d12,d20}.obj + .mtl + atlas PNG @done(26-08-02)
+      ✔ Atlas + per-triangle UVs exported, or every die imports as a blank polyhedron @done(26-08-02)
+      ✔ BEVEL: dice3d_build reads the SHARED DICE3D_BEVEL, not cfg -- the roll path sets it and @done(26-08-02)
+        ✔ the exporter is not on that path, so the first run wrote SHARP hulls while the header @done(26-08-02)
+        ✔ stated a roundness (d6 8 verts; now 128) @done(26-08-02)
+      ✔ ObjNum$: STR$ switches to scientific notation for small values and `LEFT$(STR$(v),10)` @done(26-08-02)
+        ✔ CHOPPED the exponent -- "4.166667E" is not a number, and every file was malformed in @done(26-08-02)
+        ✔ exactly the places a coordinate happened to be small. Looked fine until parsed @done(26-08-02)
+      ✔ Verified by PARSING the output: indices in range, UVs in [0,1], atlas beside each file @done(26-08-02)
       ✔ Offered from GameRoll -- the single funnel -- so all three renderers inherit it @done(26-08-01)
       ✔ 1.2s fuse, same widget language as the luck fuse and the gesture gauge @done(26-08-01)
       ✔ Never offered on a natural 1 or 20 on a single d20: the face IS the outcome, and @done(26-08-01)

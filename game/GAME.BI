@@ -559,6 +559,9 @@ CONST STATROW_N = 24                    ' rows in the run scorecard (StatRowLabe
 ' worth a decision. `automove_run` is the RUNTIME flag; the option is the player's preference.
 CONST AUTOMOVE_STEP_SEC = 0.14         ' one auto step per this many seconds -- fast enough to
 '                                        watch, slow enough that a halt banner is readable
+' Pixel nudge applied to the MONSTER portrait inside its frame (MonsterLunge).
+DIM SHARED PANEL_BUF AS LONG           ' scratch for the near-death panel tremor (PanelShudder)
+DIM SHARED combat_lunge_x AS INTEGER, combat_lunge_y AS INTEGER
 DIM SHARED opt_automove AS INTEGER
 DIM SHARED automove_run AS INTEGER
 DIM SHARED automove_t0 AS SINGLE

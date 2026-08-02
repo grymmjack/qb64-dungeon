@@ -896,3 +896,129 @@ SUB DumpAutoMoveTest
     END IF
     PRINT PipeCol$("|10automovetest: PASS|07 -- pathed, progressed, never wedged")
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run diceobj [set]` -- export the 3D dice as Wavefront OBJ + MTL + atlas PNG,
+'  so the game's ACTUAL dice can be rendered in Blender for 2D art.
+'
+'  The meshes are already explicit (DICE3D_MV vertices, DICE3D_TA/TB/TC triangles), so this is
+'  a writer rather than a conversion. The part that is easy to get wrong is the TEXTURE: the
+'  numerals are not geometry, they are an atlas, and per-triangle UVs already exist in
+'  DICE3D_TUX/TUY. Export the geometry alone and every die imports as a blank polyhedron.
+'
+'  Two coordinate conventions have to be converted, and both are silent if missed:
+'    * OBJ indices are 1-BASED; DICE3D's are 0-based.
+'    * OBJ V runs BOTTOM-UP; the atlas is top-down, so v = 1 - (y / height).
+'
+'  BEVEL is real geometry (opt_diceround drives DICE3D_CFG.BEVEL), so the export states the
+'  roundness it was built at -- a re-export at a different setting is a different mesh.
+' ============================================================================
+' A plain fixed-point decimal, with no exponent and no truncation.
+'
+' Needed because QB64's STR$ switches to scientific notation for small magnitudes, and the
+' obvious `LEFT$(STR$(v), 10)` then CHOPS the exponent: 4.166667E-02 became "4.166667E", which
+' is not a number. Every exported OBJ was malformed in exactly the places where a coordinate
+' happened to be small -- and it looked completely fine until something tried to parse it.
+FUNCTION ObjNum$ (nval AS SINGLE)
+    DIM neg AS INTEGER, iv AS LONG, fv AS LONG, a AS DOUBLE, o AS STRING
+    a = nval
+    IF a < 0 THEN neg = -1: a = -a
+    iv = INT(a)
+    fv = INT((a - iv) * 1000000 + 0.5)
+    IF fv >= 1000000 THEN iv = iv + 1: fv = 0
+    o = LTRIM$(STR$(iv)) + "." + RIGHT$("00000" + LTRIM$(STR$(fv)), 6)
+    IF neg THEN o = "-" + o
+    ObjNum$ = o
+END FUNCTION
+
+SUB DumpDiceObj
+    DIM sides(1 TO 6) AS INTEGER, si AS INTEGER, sd AS INTEGER
+    DIM cfg AS DICE3D_CONFIG, atlas AS LONG, idx AS INTEGER
+    DIM f AS INTEGER, t AS INTEGER, v AS INTEGER, fh AS INTEGER
+    DIM bnm AS STRING, obj AS STRING, mtl AS STRING, png AS STRING, odir AS STRING
+    DIM aw AS INTEGER, ah AS INTEGER, i AS INTEGER, argn AS STRING
+    _DEST _CONSOLE
+    sides(1) = 4: sides(2) = 6: sides(3) = 8: sides(4) = 10: sides(5) = 12: sides(6) = 20
+
+    LoadDiceFonts: LoadDiceSets
+    idx = 0
+    FOR i = 1 TO _COMMANDCOUNT                     ' optional dice-set name from the manifest
+        argn = _TRIM$(COMMAND$(i))
+        FOR t = 1 TO DSET_COUNT
+            IF LCASE$(argn) = LCASE$(_TRIM$(DSET_NAME(t))) THEN opt_dice3d_set = t: LoadDiceSets
+        NEXT t
+    NEXT i
+
+    odir = "diceobj"
+    IF _DIREXISTS(odir) = 0 THEN MKDIR odir
+    PRINT PipeCol$("|15diceobj|07 -- exporting the dice meshes for Blender")
+    PRINT PipeCol$("  set |14" + _TRIM$(DSET_NAME(opt_dice3d_set)) + "|07   roundness |14" + LTRIM$(STR$(opt_diceround)) + "/10")
+
+    FOR si = 1 TO 6
+        sd = sides(si)
+        idx = dice3d_set_index%(sd): IF idx < 0 THEN idx = 0
+        cfg = DSET3D(idx)
+        cfg.BEVEL = opt_diceround / 10             ' the mesh IS the roundness setting
+        SetDiceFont cfg
+        ' dice3d_build reads the SHARED DICE3D_BEVEL, not cfg -- the roll path sets it and we are
+        ' not on the roll path. Without this line every die exports as its SHARP hull while the
+        ' header cheerfully states a roundness, which is worse than not offering the setting.
+        DICE3D_BEVEL = cfg.BEVEL * 0.18
+        dice3d_build sd
+        atlas = dice3d_make_atlas&(cfg, cfg.BODY_KOLOR, 0)
+        IF atlas = 0 THEN
+            PRINT PipeCol$("|12  d" + LTRIM$(STR$(sd)) + ": no atlas -- skipped")
+            GOTO nextDie
+        END IF
+        aw = _WIDTH(atlas): ah = _HEIGHT(atlas)
+
+        bnm = "d" + LTRIM$(STR$(sd))
+        obj = odir + "/" + bnm + ".obj"
+        mtl = odir + "/" + bnm + ".mtl"
+        png = odir + "/" + bnm + "-atlas.png"
+        _SAVEIMAGE png, atlas
+
+        fh = FREEFILE
+        OPEN mtl FOR OUTPUT AS #fh
+        PRINT #fh, "newmtl " + bnm
+        PRINT #fh, "Ka 1.000 1.000 1.000"
+        PRINT #fh, "Kd 1.000 1.000 1.000"
+        PRINT #fh, "d 1.0"
+        PRINT #fh, "illum 1"
+        PRINT #fh, "map_Kd " + bnm + "-atlas.png"
+        CLOSE #fh
+
+        fh = FREEFILE
+        OPEN obj FOR OUTPUT AS #fh
+        PRINT #fh, "# " + bnm + " from qb64-dungeon (DICE3D)"
+        PRINT #fh, "# set: " + _TRIM$(DSET_NAME(opt_dice3d_set)) + "   bevel: " + ObjNum$(cfg.BEVEL)
+        PRINT #fh, "# atlas is " + LTRIM$(STR$(aw)) + "x" + LTRIM$(STR$(ah)) + " -- the FIRST column is full-bright;"
+        PRINT #fh, "# the columns to its right are pre-darkened lighting levels the GAME samples."
+        PRINT #fh, "# For rendering, light it yourself and use column 0 only (that is what these UVs use)."
+        PRINT #fh, "mtllib " + bnm + ".mtl"
+        PRINT #fh, "o " + bnm
+        FOR v = 0 TO DICE3D_NV - 1
+            PRINT #fh, "v " + ObjNum$(DICE3D_MV(v).X) + " " + ObjNum$(DICE3D_MV(v).Y) + " " + ObjNum$(DICE3D_MV(v).Z)
+        NEXT v
+        ' One vt per triangle CORNER: the same vertex carries different UVs on different faces,
+        ' so they cannot be shared per-vertex the way positions are.
+        FOR t = 0 TO DICE3D_NT - 1
+            FOR i = 0 TO 2
+                PRINT #fh, "vt " + ObjNum$(DICE3D_TUX(t, i) / aw) + " " + ObjNum$(1 - DICE3D_TUY(t, i) / ah)
+            NEXT i
+        NEXT t
+        PRINT #fh, "usemtl " + bnm
+        FOR t = 0 TO DICE3D_NT - 1
+            PRINT #fh, "f " + _
+                LTRIM$(STR$(DICE3D_TA(t) + 1)) + "/" + LTRIM$(STR$(t * 3 + 1)) + " " + _
+                LTRIM$(STR$(DICE3D_TB(t) + 1)) + "/" + LTRIM$(STR$(t * 3 + 2)) + " " + _
+                LTRIM$(STR$(DICE3D_TC(t) + 1)) + "/" + LTRIM$(STR$(t * 3 + 3))
+        NEXT t
+        CLOSE #fh
+        _FREEIMAGE atlas
+        PRINT PipeCol$("  |10d" + LTRIM$(STR$(sd)) + "|07  " + LTRIM$(STR$(DICE3D_NV)) + " verts, " + LTRIM$(STR$(DICE3D_NT)) + " tris, " + LTRIM$(STR$(DICE3D_NF)) + " faces -> |14" + obj)
+        nextDie:
+    NEXT si
+    PRINT PipeCol$("  wrote |14" + odir + "/|07 -- import the .obj; the .mtl and atlas sit beside it")
+END SUB

@@ -52,6 +52,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10summaryshot|07   render the run scorecard: Game Summary panel + the [TAB] overlay")
     PRINT PipeCol$("  |10deathshot|07    run the animated death screen and capture it -> |14deathshot.png|07")
     PRINT PipeCol$("  |10automovetest|07 drive the auto-walker across the real board; asserts it makes progress")
+    PRINT PipeCol$("  |10diceobj|07 |14[set]|07   export the 3D dice as OBJ + MTL + atlas PNG (Blender) -> |14diceobj/|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
@@ -320,6 +321,8 @@ IF INSTR(UCASE$(COMMAND$), "SUMMARYSHOT") > 0 THEN DumpSummaryShot: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "DEATHSHOT") > 0 THEN DumpDeathShot: SYSTEM
 
 '--- dev: `dungeon.run automovetest` walks the real board and asserts progress ---
+IF INSTR(UCASE$(COMMAND$), "DICEOBJ") > 0 THEN DumpDiceObj: SYSTEM
+
 IF INSTR(UCASE$(COMMAND$), "AUTOMOVETEST") > 0 THEN
     ' Same board a real run gets. Without this the cursor is at 0,0 on an unbuilt board and
     ' every path is trivially "unreachable" -- which is a broken TEST, not a broken walker.

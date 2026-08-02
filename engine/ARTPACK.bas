@@ -280,6 +280,13 @@ END FUNCTION
 ' Draw one framed art box with a caption bar anchored to a character-cell rect;
 ' the art is fit inside and the caption centred in a bar just above the frame.
 SUB CombatArtBox (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER, caption AS STRING, edge AS _UNSIGNED LONG)
+    CombatArtBoxOff path, col, cols, row, rows, caption, edge, 0, 0
+END SUB
+
+' As CombatArtBox, but the SPRITE is nudged (dxp, dyp) pixels inside its frame while the frame
+' itself stays put. That is what makes a lunge read as the creature moving rather than the whole
+' panel sliding: the box is repainted every frame anyway, so the nudge costs nothing extra.
+SUB CombatArtBoxOff (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER, caption AS STRING, edge AS _UNSIGNED LONG, dxp AS INTEGER, dyp AS INTEGER)
     DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER
     DIM capx AS INTEGER, capy AS INTEGER, cap AS STRING
     bx = col * CW: by = row * CH: bw = cols * CW: bh = rows * CH
@@ -291,7 +298,7 @@ SUB CombatArtBox (path AS STRING, col AS INTEGER, cols AS INTEGER, row AS INTEGE
     ' the framed art box
     LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
     LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), edge, B
-    IF DrawSpriteFit%(path, bx, by, bw, bh) THEN
+    IF DrawSpriteFit%(path, bx + dxp, by + dyp, bw, bh) THEN
         cap = caption
         IF LEN(cap) > cols + 2 THEN cap = LEFT$(cap, cols + 2)   ' never spill the bar
         capx = bx + (bw - LEN(cap) * CW) \ 2

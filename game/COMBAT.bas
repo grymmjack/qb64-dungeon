@@ -840,6 +840,11 @@ SUB DoCombatDnD (rm AS INTEGER)
         END IF
 
         IF acted THEN                             ' attacked OR healed -> the monster takes its turn
+            ' It comes at you. Drawn before the roll so the picture and the blow land together.
+            DIM lwnd AS SINGLE
+            IF ROOMS(rm).mhp > 0 THEN lwnd = 1 - ROOMS(rm).mhp_now / ROOMS(rm).mhp
+            IF lwnd < 0 THEN lwnd = 0
+            MonsterLunge mon, sec, lwnd
             IF NOT did_attack THEN rounds = rounds + 1: combat_round = rounds   ' a heal spends a round too
 
             ' ---------- monster strikes back (you roll its dice in Real-Dice mode, else shown) ----------
@@ -943,6 +948,36 @@ END SUB
 
 
 ' Draw the D&D combat panel: monster + player HP bars and the action prompt.
+' The combat UI SHUDDERS as you bleed out -- the panel is the character, so it should look
+' like the character feels. Subtle on purpose: 1-2 pixels, and only under a third HP.
+'
+' Done as a re-blit of the finished panel rather than by offsetting the drawing, because the
+' panel's body is laid out in CHARACTER rows (by + 1, by + 5, ...) and shifting it properly
+' would mean touching every _PRINTSTRING in it. The grab region is deliberately a little larger
+' than the panel so the vacated sliver duplicates its surroundings instead of showing a hard
+' black edge -- which reads as the whole area vibrating, which is the intent.
+SUB PanelShudder (bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER)
+    DIM frac AS SINGLE, mag AS SINGLE, dxp AS INTEGER, dyp AS INTEGER
+    DIM x1 AS INTEGER, y1 AS INTEGER, w AS INTEGER, h AS INTEGER
+    IF NOT opt_juice THEN EXIT SUB
+    IF player_maxhp <= 0 OR player_hp <= 0 THEN EXIT SUB
+    frac = player_hp / player_maxhp
+    IF frac >= 0.34 THEN EXIT SUB                ' steady while you are still in the fight
+    mag = (0.34 - frac) * 6                      ' ~0 at the threshold, ~2px at death's door
+    IF mag > 2 THEN mag = 2
+    ' TIMER-driven, not RND: a random offset every frame is static, a fast sine is a tremor.
+    dxp = INT(SIN(TIMER * 37) * mag)
+    dyp = INT(COS(TIMER * 29) * mag)
+    IF dxp = 0 AND dyp = 0 THEN EXIT SUB
+    x1 = bx * CW - 4: y1 = by * CH - 4
+    w = (bw + 1) * CW + 8: h = (bh + 1) * CH + 8
+    IF x1 < 0 THEN x1 = 0
+    IF y1 < 0 THEN y1 = 0
+    IF PANEL_BUF = 0 THEN PANEL_BUF = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _PUTIMAGE (0, 0)-(w, h), CANVAS, PANEL_BUF, (x1, y1)-(x1 + w, y1 + h)
+    _PUTIMAGE (x1 + dxp, y1 + dyp)-(x1 + dxp + w, y1 + dyp + h), PANEL_BUF, CANVAS, (0, 0)-(w, h)
+END SUB
+
 SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     DIM AS INTEGER bx, by, bw, bh
     bx = 16: by = 39: bw = 100: bh = 10
@@ -986,6 +1021,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     IF ROOMS(rm).mhp > 0 THEN gwound = 1 - ROOMS(rm).mhp_now / ROOMS(rm).mhp
     IF gwound < 0 THEN gwound = 0
     DrawCombatArt mon, ROOMS(rm).sec, gwound    ' pixel-art: monster (left) + location (right) framed above the panel
+    PanelShudder bx, by, bw, bh                 ' near-death tremor, applied to the FINISHED panel
     Present
 END SUB
 
