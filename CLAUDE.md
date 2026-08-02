@@ -69,8 +69,26 @@ after any structural change. It runs, in order:
 - **`audit-shortcircuit.sh`** — QB64's `AND`/`OR` always evaluate both sides, so `IF n > 0 AND
   ROOMS(n).x` still reads `ROOMS(0)`, and an `AND` around anything with a side effect (a die
   roll) is a correctness bug, not just a bounds risk.
+- **`audit-dumps.sh`** — the `[`]` dev console's DUMP REGISTRY, checked in all three directions:
+  topic `foo` ⇄ `SUB Dump_Foo` ⇄ a `RegisterDump` line ⇄ a dispatch `CASE`. The missing-`CASE` case
+  is the dangerous one — QB64 parses a call to an undefined SUB as a **label** and silently never
+  runs it. Convention: `Dump_X` (underscore) declares a topic; `DumpX` is a private helper.
+- **`audit-mute.sh`** — can any sound escape a headless run? `audio_muted` gated every *sample*
+  path, but `SOUND` is a QB64 statement rather than a call into the audio layer, so raw uses
+  bypassed it entirely and blipped the PC speaker at whoever ran the gate. Raw `SOUND` is allowed
+  only where the mute is provably applied (`Tone`, `VoiceBlip`, and DICE3D's physics — gated at
+  the call site via `cfg.SOUND_ENABLED`), **and** those sites must still actually check it.
 - **`dungeon.run datalint`** — validates the ACTIVE data pack's content tables: item drop odds vs
   pool contents, unhandled item codes, chamber-event kinds with no mechanic, unwinnable class goals.
+- **`dungeon.run settingsshot`** — renders SETTINGS to PNG **and** fails if any live option id was
+  never given a column and a row by `BuildSetLayout`. An unplaced id simply does not draw: no
+  error, the screen looks normal, one row is missing. That is exactly how three rows vanished when
+  the id space outgrew `SL_COL`/`SL_ROW`/`SORD`'s hardcoded 64 (now sized from `SETOPT_MAX`).
+  Retired ids are listed in `SetIdRetired%` so a genuine loss still fails.
+- **`dungeon.run ruleslint`** — the rules screen's GENERATED sections (the live "your game, right
+  now" table and the ability reference built from `stats.txt`) exist in no file on disk, so nothing
+  else can see them. An empty ability section — what a missing/renamed `stats.txt` looks like from
+  the player's side — fails rather than quietly saying less.
 - **`dungeon.run fogdump`** — VERDICTS on secret-mask reachability. A hand-painted region that no
   door opens is unreachable forever, and killing the monster in `key_room` is the ONLY way to get
   the Level Key, so an art edit could otherwise strand it and make runs quietly unwinnable.
@@ -82,6 +100,10 @@ after any structural change. It runs, in order:
 
 Also useful, not in the gate:
 
+- **`dungeon.run rollshot`** also reconciles each dice style's published per-die faces
+  (`DIE_FACE`/`PublishFaces`) against its own returned total. Combat initiative throws two d20s in
+  ONE animation and reads them apart, so a renderer publishing nothing would decide every fight's
+  turn order from zeroes with nothing on screen looking wrong.
 - **`dungeon.run econdump`** — expected gold economy + win pacing per class, and the **monster
   curve** (HP range / AC / to-hit per depth for room, chamber-LORD and boss spawns, straight out
   of `MonsterStats`/`MonsterToHit%`), so a balance change can be measured instead of playtested.
@@ -371,7 +393,30 @@ Environment specifics that dictate this approach:
   yellow = WARN, `|PI` = literal `|`) — same `|NN` notation as `QB64_GJ_LIB/PIPEPRINT` but with no
   submodule dependency (keeps the plain-checkout build). Honours the `CLI_COLOR` global, which
   `dungeon.bas` clears on `NO_COLOR` (env) or a `nocolor` arg — then the codes are stripped to plain text.
-- **`[~]` debug overlay & test panel** (`DrawDebug`/`DebugTestMenu`, BOARD.bas). `[~]` (or backtick)
+- **`[`]` DEV CONSOLE + the DUMP REGISTRY** (`engine/CONSOLE.bas`, `engine/TELEMETRY.bas`,
+  `game/DUMP.bas`). A Quake-style drop-down opened by **backtick from ANY screen** — menus,
+  dialogs, the dice tumble, mid-fade. That works because its hotkey is polled in **`Present`**,
+  this game's one per-frame chokepoint: there is no main loop, there are ~40 nested blocking loops,
+  and the long note in `engine/UI.bas` already settled the same argument for `_RESIZE`. It polls
+  **`_KEYDOWN`, not `INKEY$`**, so it never steals a keypress from the loop that owns the screen,
+  and it **photographs `CANVAS` on open and restores it on close**, so it works over screens it
+  knows nothing about. Type `dump` for the topic list, or a topic name directly.
+  **The registry is the point**: a dump is not a one-off, it is
+  `topic foo` ⇄ `SUB Dump_Foo` ⇄ a `RegisterDump` line ⇄ a dispatch `CASE`, all four enforced by
+  `tests/audit-dumps.sh`. Engine topics (`summary audio music sfx narration images vars sounds`)
+  live in `CONSOLE.bas`; game topics (`game character map monster`) live in `game/DUMP.bas` behind
+  the `Game_RegisterDumps` / `Game_DevDump%` hook pair, so `engine/` still names no game symbol.
+  **TELEMETRY is recorded at the CHOKEPOINTS, never at call sites** — `Sfx`, `Narrate`,
+  `BeginTrack` and `DrawSpriteFit%` each log one line, so a feature added later is covered without
+  anyone remembering. It is a separate dependency-free module because `TEST-ARTPACK` compiles
+  `ARTPACK.bas` in isolation and a one-line log call would otherwise drag the whole console in.
+- **`[TAB]` / `[Shift-TAB]` overlay** — `[TAB]` shows/hides the overlay box; `[Shift-TAB]` swaps it
+  between **RUN STATS** and **BEARINGS** (`DrawBearingsOverlay`, game/DUMP.bas): what music / sfx /
+  narration / art is playing or drawn *with full resolved paths* and the beeper fallback marked as
+  such, plus level, cell, room and chamber. It reads the same telemetry rings the console does, so
+  the two views can never disagree.
+- **`[~]` debug overlay & test panel** (`DrawDebug`/`DebugTestMenu`, BOARD.bas). `[~]` **only** —
+  backtick is the dev console now.  `[~]`
   toggles the overlay — region/sector/chamber tints and a mouse readout (`sec:/reg:/lvl:/door→/cham:/
   dead:`); toggling **off repaints** the board (`cursor_erase`/`cursor_draw`/`DrawHUD`) so the frozen
   overlay is wiped, not left stuck. With it on, **left-click teleports** the player to any cell
@@ -388,18 +433,21 @@ Environment specifics that dictate this approach:
   into a reusable **`engine/`** (`ENGINE.BI` header + `BOARD` / `CURSOR` / `MUSIC` / `JUICE` /
   `GESTURE` / `STATS` / `DATA` (game-free reader) / `PLAYERS` / `UI` (fades + UI primitives + sound +
   the dice subsystem) / `ARTPACK` (pixel-art load/fit/pack) / `SAVEIO` (save plumbing) / `MARKDOWN`
-  (md→text renderer) / `TEXT` (string utils)), a swappable **`game/`** (`GAME.BI` header + `HOOKS` /
+  (md→text renderer) / `TEXT` (string utils) / `CONSOLE` (the `[`]` dev console + dump registry) /
+  `TELEMETRY` (what is playing/showing, logged at the chokepoints)), a swappable **`game/`**
+  (`GAME.BI` header + `HOOKS` /
   `OVERLAYS` (board overlays + render hooks) / `LOADERS` / `CHAMBERS` (named-hall detection) /
   `MANIFEST` (audio manifest + SFX roster) / `DEBUG` (`[~]` overlay + `[0]` cheat panel) /
   `PLAYERS` (hot-seat seats) /
-  `COMBAT` (combat/treasure) / `PLAY` (drops/loiter/encounters/search/doors) / `MENU` (screens +
+  `COMBAT` (combat/treasure) / `DUMP` (game dump topics + the bearings overlay) / `PLAY`
+  (drops/loiter/encounters/search/doors) / `MENU` (screens +
   char-gen + HUD) / `SPRITES` (entity→sprite + manifests) / `SECTOR` / `SOLO` / `FLAVOR` / `CTEXT` /
   `CURIO` / `EFFECTS` / `SAVEGAME` / `CHRONICLE` / `LORDS`). `dungeon.bas` is now a thin assembly
   (setup + state machine + `PlayGame` + the `$INCLUDE` block). The vendored `ansi/` renderer, the
   `DICE3D/` module and its `DICE3D_GAME` presentation layer now live under **`engine/`**, so that
   directory is self-contained on disk; `include/` holds only the `Toolbox64` / `QB64_GJ_LIB`
   reference submodules, **not** compiled.
-  **`engine/` names no `game/` symbol** — every engine→game call goes through one of 11 `Game_*`
+  **`engine/` names no `game/` symbol** — every engine→game call goes through one of 14 `Game_*`
   hooks, enforced by `tests/audit-boundary.sh`, and `examples/minimal` is a second game on
   `engine/` alone that proves it.
   **[engine/ENGINE.md](engine/ENGINE.md) is the authority** (layout, the `Game_*` hook contract, and
@@ -423,6 +471,15 @@ Environment specifics that dictate this approach:
   and every sprite path (`MonsterSprite$`/`TreasureSprite$`/`ClassSprite$`/`LocationSprite$`/
   `SpecialSprite$`/`CurioSprite$`) routes through it. `ScanArtPacks` enumerates subdirs that AREN'T a
   known category (`IsArtCategory%`); sprites resolve on demand so switching packs needs no reload.
+  **Which FORMAT wins** is two settings, not one: **Audio Format** (`opt_audiopref`) is the
+  inherited order every category follows, and **Music / SFX / Voice Format** (`opt_fmt_music` /
+  `opt_fmt_sfx` / `opt_fmt_narr`) override it per category. The model is **override-THEN-inherit,
+  never a hard filter** — the explicit choice is tried first and the inherited ladder still runs
+  behind it, so picking FLAC for music does not silence a pack that only ships `.ogg`. Music can
+  also prefer **trackers** (a different kind of asset, not a container choice) and SFX can pick the
+  **PC speaker**, which resolves to an empty ladder so every effect falls through to its hand-tuned
+  `Tone`. All three resolvers (`OpenSfx&` / `ResolveMusicIn$` / `FirstAudioFile$`) build their
+  extension list from one `AudioLadder`, so the categories cannot drift apart.
   **Narration** is a THIRD
   pack type (`assets/narration/`, `opt_narration`/`opt_narrationpack`, one SETTINGS row cycling
   *off → (main) → packs* via `CycleNarration`): spoken audio named after a **`strings.txt` key**
@@ -438,6 +495,23 @@ Environment specifics that dictate this approach:
   the level music — `victory`/`lose` (one screen) and `combat-low`/`combat-high`/`combat-intense`
   (`CombatCueName$` by level/boss, looped through a D&D fight, `EndCue` restores the level track).
   `PlayCue` is a no-op when the cue file is absent, so cues never cut to silence.
+- **NOTHING calls `_SNDCLOSE` directly — it calls `RetireSound`.** `_SNDOPEN` hangs a node on
+  miniaudio's mixing graph that a **device thread** walks every buffer callback; `_SNDCLOSE` frees
+  that node from the game thread, and freeing one the mixer is mid-read of corrupts the heap. With
+  13 music packs on disk, walking the SETTINGS Music Pack row ran `_SNDCLOSE` + `_SNDOPEN` at
+  key-repeat rate — always inside the 2.5s crossfade, with the outgoing track still audible — and
+  aborted a real session with `double free or corruption (fasttop)` behind a GLX `BadAccess` (the
+  render thread simply drew the next bad pointer). Same class as the `SYSTEM`-teardown race
+  documented in `OpenSfx&`. `RetireSound` **silences and stops** a handle at once (writes to a node
+  the mixer owns are benign; only the FREE is fatal) and parks it; `ReapSounds`, called from
+  `AudioTick`, frees it once it is both old enough (`SND_RETIRE_SEC`) and no longer playing, with a
+  hard cap (`SND_RETIRE_CAP_SEC`) so a handle whose `_SNDPLAYING` never settles cannot pin decoded
+  audio forever. `dump sounds` shows the queue — one that never drains is a bug.
+- **A headless run must be SILENT, and `audio_muted` is not enough on its own.** Every *sample*
+  path checks it, but `SOUND` is a QB64 **statement**, not a call into the audio layer, so a raw
+  `SOUND` bypasses the mute completely. That is how the DICE3D per-bounce clicks and `VoiceBlip`'s
+  typewriter fallback blipped the PC speaker at whoever ran the gate. `tests/audit-mute.sh` is the
+  rule: raw `SOUND` only where the mute is provably applied — and those sites must still check it.
 - **Sound routing / themeability.** Every distinct sound goes through the `Sfx` dispatcher (file if a
   pack/flat sample exists, else a hand-tuned `Tone` beeper fallback), so ALL are pack-overridable.
   Two helpers keep animation audio themeable without losing the crafted fallback: `SfxOr(nm, freq,

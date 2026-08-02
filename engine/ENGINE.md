@@ -114,6 +114,11 @@ engine/
   FUSE               parallel attack fuses + target selection (pure model, no drawing)
   STATUS             per-actor status effects (duration + damage-over-time) + stances
   TABLE              weighted/percentile random tables (PctChance%/WeightPick%/WeightPickLvl%)
+  CONSOLE            the [`] dev console (hotkey polled in Present, so it opens from ANY loop)
+                     + the DUMP REGISTRY -- Dump_* topics, enforced by tests/audit-dumps.sh
+  TELEMETRY          what is playing / showing right now, logged at the CHOKEPOINTS (Sfx,
+                     Narrate, BeginTrack, DrawSpriteFit%). Kept dependency-free and separate
+                     from CONSOLE because TEST-ARTPACK compiles ARTPACK.bas in isolation
 game/
   _ALL.BI  _ALL.BM   roll-ups: every game header / every game body, one line each
   GAME.BI            DUNGEON!-specific globals/types/consts (loaded AFTER ENGINE.BI)
@@ -124,6 +129,8 @@ game/
   MANIFEST.bas       audio manifest dump + Game_SfxNames$ roster (was in engine/MUSIC.bas)
   DEBUG.bas          [~] dev overlay + [0] cheat panel (was in engine/BOARD.bas)
   DATALINT.bas       `datalint` dev mode: validate the loaded content tables
+  DUMP.bas           the game's dump topics (game/character/map/monster) behind the two dump
+                     hooks, + the [Shift-TAB] BEARINGS overlay
   PLAYERS.bas        hot-seat seats: park/restore player state + turn passing (was engine/)
   COMBAT PLAY        combat/treasure + play-loop support (drops/loiter/encounters/search/doors)
   MENU               game screens: class-select, char-gen, intro, menu/settings, HUD
@@ -284,6 +291,7 @@ would make the *assembly* reusable; it is not required for `engine/` to be separ
 | — | `Game_SfxNames$()` — the roster of themeable effect names to register | ✅ done | `SfxNameList$` in `engine/MUSIC.bas` |
 | — | `Game_FloorColorAt~&(px,py)` — **what colour counts as room floor here** (0 = none). Reads the cell's own pixel from the current `_SOURCE`, which must be a COLLISION image | ✅ done | `SECTOR.get_by_xy`+`SECTORS().kolor` inside `CellKind`/`CanMove`/`InRoomNow` |
 | — | `Game_ZoneByColor%` / `Game_ZoneName$` / `Game_ZoneCount%` — zone identity for the mask linter | ✅ done | `SectorByColor%`/`SECTORS().label` inside `AnsiLint` |
+| — | `Game_RegisterDumps` / `Game_DevDump%(topic)` — the game declares and runs its own `[`]` dev-console dump topics. Two hooks rather than one so a bare `dump` can LIST the game's topics without running any of them | ✅ done | would have been the console naming `ROOMS`/`player_*` directly |
 | 3 | `Game_Play%()` / `Game_ShowIntro` / `Game_ShowEnd(win)` — state-machine bodies | planned | `dungeon.bas` state machine |
 | 4 | `Game_RunOver%()` — lose/forfeit predicate (`player_out`/`solo_result`) | planned | play loop |
 | 5 | `Game_RenderHUD()` — repaint the game's HUD layer after the engine wipes an overlay | ✅ done | `DrawHUD` call inside the 3D dice roller |
