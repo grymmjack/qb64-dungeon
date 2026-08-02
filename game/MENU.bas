@@ -1687,12 +1687,15 @@ SUB LevelUpStatPoint
             IF k <> "" THEN EXIT DO
             _LIMIT 60
         LOOP
+        ' NormKey$ folds the arrows into WASD -- it does NOT return "UP"/"DOWN". Matching those
+        ' meant neither arm could ever fire, so the level-up picker took ENTER but would not
+        ' MOVE: whatever stat it opened on was the only one you could spend the point in.
         SELECT CASE k
-            CASE "UP"
+            CASE "W", "UP"
                 DO
                     sel = sel - 1: IF sel < 1 THEN sel = 6
                 LOOP WHILE StatValue%(sel) >= 18
-            CASE "DOWN"
+            CASE "S", "DOWN"
                 DO
                     sel = sel + 1: IF sel > 6 THEN sel = 1
                 LOOP WHILE StatValue%(sel) >= 18
