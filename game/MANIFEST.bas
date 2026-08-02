@@ -397,6 +397,15 @@ FUNCTION ManPackStrict% ()
     IF LEN(_TRIM$(man_pack)) > 0 THEN ManPackStrict% = -1
 END FUNCTION
 
+' Is this manifest category AUDIO -- i.e. stored without an extension, with the loader choosing
+' one from the player's format preference? The alternative to asking this is guessing from the
+' path text, which is what broke the narration audit.
+FUNCTION ManIsAudioCat% (cat AS STRING)
+    SELECT CASE cat
+        CASE "sfx", "music", "narration": ManIsAudioCat% = -1
+    END SELECT
+END FUNCTION
+
 ' The pack name the header reports: an explicit pack=<name>, else "(per settings)" -- because
 ' with no override the categories genuinely CAN resolve to different packs, and printing any one
 ' of them as though it were THE pack would be a lie a generator would act on.
@@ -426,7 +435,20 @@ FUNCTION ManAssetPresent% (ln AS STRING)
     cat = LEFT$(pth, sl - 1): rest = MID$(pth, sl + 1)
     pk = ManPackFor$(cat)
     IF LEN(pk) = 0 THEN pk = "default"
-    IF INSTR(rest, ".") > 0 THEN                ' an explicit extension: a straight two-place check
+    ' Does this path carry its own file extension, or does the loader pick one?
+    '
+    ' This used to ask `INSTR(rest, ".") > 0`, i.e. "is there a dot anywhere". That is wrong for
+    ' the exact case it matters most: NARRATION keys are DOTTED (narration/chamber.armory,
+    ' narration/regular.4.9), so every one of them looked like a filename-with-extension, the
+    ' audio-extension loop was skipped, and the check went looking for a file literally named
+    ' `chamber.armory`. Result: all 282 narration lines reported MISSING in every pack --
+    ' including packs holding 137 perfectly good .ogg files. SFX and music names contain no
+    ' dots, which is precisely why those audited correctly and hid the bug.
+    '
+    ' The reliable question is the CATEGORY, not the punctuation: audio categories are stored
+    ' WITHOUT an extension because the player's format preference picks it (AudioExt$), and art
+    ' categories always carry one. Ask that instead of sniffing the string.
+    IF NOT ManIsAudioCat%(cat) THEN            ' art: an explicit extension, a two-place check
         IF RealAssetAt%("assets/" + cat + "/" + pk + "/" + rest) THEN EXIT FUNCTION
         IF ManPackStrict% = 0 THEN
             IF RealAssetAt%("assets/" + cat + "/default/" + rest) THEN EXIT FUNCTION
