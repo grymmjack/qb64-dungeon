@@ -597,7 +597,7 @@ SUB BuildSetLayout
     ' Column 2 -- DICE, then MONSTER DICE
     SetLayHdr 2, "DICE", prow()
     SetLayRow 2, 7, prow(): SetLayRow 2, 30, prow(): SetLayRow 2, 10, prow(): SetLayRow 2, 11, prow()
-    SetLayRow 2, 12, prow(): SetLayRow 2, 13, prow(): SetLayRow 2, 57, prow(): SetLayRow 2, 58, prow()
+    SetLayRow 2, 12, prow(): SetLayRow 2, 13, prow()
     SetLayRow 2, 38, prow(): SetLayRow 2, 39, prow()
     SetLayRow 2, 31, prow(): SetLayRow 2, 33, prow(): SetLayRow 2, 8, prow(): SetLayRow 2, 9, prow()
     SetLayRow 2, 36, prow()                          ' Action Gestures: a timing-bar mechanic, and
@@ -711,11 +711,6 @@ SUB RunSettings
                     opt_autodelay = opt_autodelay + delta
                     IF opt_autodelay < 1 THEN opt_autodelay = 3
                     IF opt_autodelay > 3 THEN opt_autodelay = 1
-                    Sfx "select"
-                CASE 57
-                    opt_rollstyle = opt_rollstyle + delta
-                    IF opt_rollstyle < 0 THEN opt_rollstyle = 2
-                    IF opt_rollstyle > 2 THEN opt_rollstyle = 0
                     Sfx "select"
                 CASE 16
                     num_players = num_players + delta
@@ -834,10 +829,6 @@ SUB RunSettings
                 CASE 13
                     opt_dicespeed = opt_dicespeed + 1
                     IF opt_dicespeed > 3 THEN opt_dicespeed = 0
-                CASE 57
-                    opt_rollstyle = opt_rollstyle + 1
-                    IF opt_rollstyle > 2 THEN opt_rollstyle = 0
-                CASE 58: opt_boxshake = NOT opt_boxshake
                 CASE 59: opt_statsoverlay = NOT opt_statsoverlay
                 CASE 60: opt_autocombat = NOT opt_autocombat
                 CASE 62: opt_automove = NOT opt_automove
@@ -947,6 +938,12 @@ SUB RunSettings
             _PRINTSTRING (SL_COLX(SLH_COL(hh)) * CW, SLH_ROW(hh) * CH), "- " + SLH_TXT(hh) + " " + STRING$(dsh, "-")
         NEXT hh
         FOR i = 1 TO NSET
+            ' An id inside NSET that BuildSetLayout never PLACED has SL_COL = 0, and SL_COLX is
+            ' dimensioned 1..NSCOL -- so drawing it indexes SL_COLX(0) and the whole screen dies
+            ' with "Subscript out of range". That happens the moment an option is retired without
+            ' also lowering NSET, which is exactly what removing Roll Style and Box Shake did.
+            ' Skipping unplaced ids makes NSET a safe upper bound rather than an exact count.
+            IF SL_COL(i) < 1 THEN GOTO nextSetRow
             y = SL_ROW(i)                      ' columnar grouped layout -- BuildSetLayout placed each option
             slider = FALSE
             SELECT CASE i
@@ -976,16 +973,6 @@ SUB RunSettings
                         CASE 3: vtxt = "instant"
                         CASE ELSE: vtxt = "normal"
                     END SELECT
-                CASE 57
-                    lbl = "  Roll Style": slider = TRUE
-                    SELECT CASE opt_rollstyle
-                        CASE 1: vtxt = "hold [SPACE] to shake"
-                        CASE 2: vtxt = "hold to shake + spin"
-                        CASE ELSE: vtxt = "throw"
-                    END SELECT
-                CASE 58
-                    lbl = "  Box Shake"
-                    IF opt_boxshake THEN vtxt = "ON (one re-shake)" ELSE vtxt = "off"
                 CASE 62
                     lbl = "Auto-Move"
                     IF opt_automove THEN vtxt = "ON ([Z] to walk)" ELSE vtxt = "off"
@@ -1193,11 +1180,14 @@ SUB RunSettings
             _PRINTSTRING ((cx0 + 1) * CW, y * CH), lbl     ' label left
             IF LEN(vtxt) > 0 THEN _PRINTSTRING ((cx0 + SCOLW - LEN(vtxt)) * CW, y * CH), vtxt   ' value right-aligned (Back has none)
             _PRINTMODE _FILLBACKGROUND
+            nextSetRow:
         NEXT i
         ' live dice previews in the free strip BELOW the columns (repositioned to row 31)
         IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
-            DrawDice3DPreviewAt 4, " your 3D dice", DicePreviewRow%, PREV3D_P, DSET3D(dice3d_set_index%(20))
-            DrawDice3DPreviewAt 46, " monster 3D dice", DicePreviewRow%, PREV3D_M, MSET3D(dice3d_set_index%(20))
+            ' Symmetric about the screen centre (column 66) and close to it -- see the note on
+            ' DrawDice3DPreviewAt: the GL layer's placement error grows with distance from centre.
+            DrawDice3DPreviewAt 52, "your 3D dice", DicePreviewRow%, PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 80, "monster 3D dice", DicePreviewRow%, PREV3D_M, MSET3D(dice3d_set_index%(20))
         ELSE                                                    ' font dice: the live 2x3 sample grid
             DrawDicePreview 4, " your dice", DicePreviewRow%
             PushMonsterDice: DrawDicePreview 46, " monster dice", DicePreviewRow%: PopMonsterDice

@@ -678,6 +678,7 @@ END FUNCTION
 ' One tone at the current SFX volume.  All effects route through here so the
 ' SFX Vol slider (opt_sfxvol, 0..10) scales every sound at once.
 SUB Tone (freq AS INTEGER, dur AS SINGLE)
+    IF audio_muted THEN EXIT SUB                 ' dev/headless runs stay silent -- see audio_muted
     SOUND freq, dur, opt_sfxvol / 10
 END SUB
 
@@ -685,6 +686,7 @@ END SUB
 ' Named sound effects (SOUND queues in the background, so short sequences play out).
 
 SUB Sfx (kind AS STRING)
+    IF audio_muted THEN EXIT SUB
     IF NOT opt_sfx THEN EXIT SUB
     DIM h AS LONG
     h = SfxHandle(kind)                         ' a real audio file for this effect?
@@ -1008,7 +1010,6 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
         NEXT j
 
         DiceTiming frames, rate, settle, hold
-        ShakeReset
         FOR f = 1 TO frames
             _DEST CANVAS
             IF RollTray%(x1, ytop, x2, ybot) THEN _PRINTMODE _KEEPBACKGROUND
@@ -1035,7 +1036,6 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
             IF opt_sfx THEN
                 DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
             END IF
-            IF ShakeHold%(f, settle, ybot \ CH - 1) THEN f = f - 1   ' still shaking -- replay this frame
             Present
             AudioTick
             _LIMIT rate
@@ -1075,7 +1075,7 @@ END FUNCTION
 ' tumbler) plus a modifier -- honouring Real-Dice / Dice-Math exactly like DoRoll.
 ' Used by D&D-mode combat for d20 to-hit and weapon damage dice.
 FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS STRING)
-    DIM raw AS INTEGER, t AS INTEGER, tries AS INTEGER
+    DIM raw AS INTEGER, t AS INTEGER
     IF opt_realdice THEN
         raw = PromptRoll(n, sides, bonus, what)
         die_a = 0: die_b = 0
@@ -1086,18 +1086,7 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
         END IF
         EXIT FUNCTION
     END IF
-    ' Animated dice. The Box Shake option gets ONE go at re-rolling the result --
-    ' offered here, in the single funnel, so all three renderers inherit it without
-    ' knowing it exists.
-    tries = 0
-    DO
-        t = AnimatedRoll%(n, sides, bonus, what)
-        tries = tries + 1
-        IF tries > 1 THEN EXIT DO                          ' one shake per roll, and only one
-        IF NOT BoxShakeEligible%(n, sides, t) THEN EXIT DO
-        IF NOT BoxShakeOffer%(t, sides) THEN EXIT DO
-        Sfx "diceroll"
-    LOOP
+    t = AnimatedRoll%(n, sides, bonus, what)
     GameRoll = t + bonus: last_raw = t
 END FUNCTION
 
@@ -1234,158 +1223,9 @@ SUB DiceTiming (frames AS INTEGER, rate AS INTEGER, settle AS INTEGER, hold AS S
 END SUB
 
 
-' ============================================================================
-'  ROLL STYLE -- "hold [SPACE] to shake, release to throw"
-'
-'  Every animated renderer already runs the same shape of loop: tumble the dice
-'  until frame `settle`, then ease them into their row. So the shake does not
-'  need its own animation at all -- it just needs the loop to STOP ADVANCING
-'  while the player is holding the key. Each renderer therefore needs one line:
-'
-'      IF ShakeHold%(f, settle, promptrow) THEN f = f - 1   ' replay this frame
-'
-'  ...which is why this is a state machine in shared state rather than a nice
-'  self-contained blocking SUB: the caller owns the drawing, we only own time.
-'
-'  The faces were rolled BEFORE the animation began (in every renderer), so no
-'  amount of shaking changes the result. Theatre, not mechanics.
-' ============================================================================
-
-' Start a fresh shake phase. Called at the top of each animated renderer.
-SUB ShakeReset
-    shk_state = 2                       ' default: nothing to do, throw immediately
-    shk_held = 0
-    IF opt_rollstyle <= 0 THEN EXIT SUB
-    IF opt_realdice THEN EXIT SUB       ' the player is holding actual dice
-    IF NOT opt_showdice THEN EXIT SUB
-    shk_state = 0
-    shk_t0 = TIMER
-END SUB
-
-' TRUE while the player is still shaking -- the caller should replay this frame.
-' `promptrow` is the text row to draw the hint on (0 = draw nothing).
-FUNCTION ShakeHold% (f AS INTEGER, settle AS INTEGER, promptrow AS INTEGER)
-    DIM el AS SINGLE, down AS INTEGER
-    ShakeHold% = 0
-    IF shk_state = 2 THEN EXIT FUNCTION
-    IF f >= settle THEN shk_state = 2: EXIT FUNCTION   ' too late -- they are already landing
-    el = TIMER - shk_t0
-    IF el < 0 THEN el = el + 86400!                    ' TIMER wraps at midnight
-    down = _KEYDOWN(32)
-    SELECT CASE shk_state
-        CASE 0                                          ' waiting for the player to grab it
-            IF down THEN
-                shk_state = 1: shk_t0 = TIMER: shk_held = 0
-            ELSEIF el >= SHAKE_ARM_SEC THEN
-                shk_state = 2: EXIT FUNCTION            ' unattended -- throw it for them
-            END IF
-        CASE 1                                          ' being shaken
-            shk_held = el
-            IF (NOT down) OR el >= SHAKE_MAX_SEC THEN
-                shk_state = 2: EXIT FUNCTION            ' released (or a stuck key) -- throw
-            END IF
-    END SELECT
-    IF promptrow > 0 THEN
-        _FONT CH
-        IF shk_state = 1 THEN
-            COLOR YELLOWU, BOXBG
-            PrintCentered promptrow, "shaking...  release [SPACE] to throw"
-        ELSE
-            COLOR GREY, BOXBG
-            PrintCentered promptrow, "hold [SPACE] to shake"
-        END IF
-    END IF
-    ShakeHold% = -1
-END FUNCTION
-
-' Blocking form, for renderers with no frame loop to hook (the 3D dice, whose whole
-' animation is one call into the DICE3D module). Runs the same state machine to
-' completion over a static screen, so the dice are still "in your hand" -- which is
-' why the 3D path can convert the hold into throw strength rather than mid-air spin.
-SUB ShakeWait (promptrow AS INTEGER)
-    ShakeReset
-    IF shk_state = 2 THEN EXIT SUB
-    DO WHILE ShakeHold%(0, 32767, promptrow)      ' settle far away: only the clock ends this
-        Present
-        AudioTick
-        _LIMIT 60
-    LOOP
-END SUB
-
-' How much harder the dice spin for having been shaken. Style 1 is a plain shake
-' and always returns 1; only style 2 converts hold time into spin.
-FUNCTION ShakeSpinBoost! ()
-    ShakeSpinBoost! = 1!
-    IF opt_rollstyle < 2 THEN EXIT FUNCTION
-    DIM b AS SINGLE
-    b = 1! + shk_held * 0.9!            ' ~1.0 at a tap, ~3.7 after holding the full 3s
-    IF b > 4! THEN b = 4!
-    ShakeSpinBoost! = b
-END FUNCTION
 
 
-' ============================================================================
-'  BOX SHAKE -- one re-shake of a settled roll, on a quick fuse.
-'
-'  Offered from GameRoll (the single funnel every roll passes through), so it
-'  works for the pip dice, the font dice and the 3D dice without any of them
-'  knowing it exists.
-' ============================================================================
 
-' May this roll be re-shaken? Excludes a natural 1 or 20 on a single d20: those
-' faces ARE the outcome (fumble / crit), and letting the box undo them would
-' quietly delete both from the game.
-FUNCTION BoxShakeEligible% (n AS INTEGER, sides AS INTEGER, raw AS INTEGER)
-    BoxShakeEligible% = 0
-    IF NOT opt_boxshake THEN EXIT FUNCTION
-    IF opt_realdice THEN EXIT FUNCTION
-    IF NOT opt_showdice THEN EXIT FUNCTION
-    IF sides = 20 AND n = 1 THEN
-        IF raw = 1 OR raw = 20 THEN EXIT FUNCTION
-    END IF
-    BoxShakeEligible% = -1
-END FUNCTION
-
-' The fuse. TRUE if the player asked for the re-shake before it burned out.
-FUNCTION BoxShakeOffer% (raw AS INTEGER, sides AS INTEGER)
-    DIM t0 AS DOUBLE, el AS SINGLE, frac AS SINGLE, k AS STRING, saveimg AS LONG
-    BoxShakeOffer% = 0
-    saveimg = _NEWIMAGE(SW * CW, SH * CH, 32)        ' transient -- put the screen back after
-    _PUTIMAGE (0, 0), CANVAS, saveimg
-    t0 = TIMER
-    DO
-        el = TIMER - t0
-        IF el < 0 THEN el = el + 86400!
-        frac = 1! - (el / BOXSHAKE_FUSE_SEC)
-        IF frac <= 0 THEN EXIT DO
-        DrawBoxShakePrompt raw, sides, frac
-        Present
-        k = UCASE$(INKEY$)
-        IF k = "B" THEN BoxShakeOffer% = -1: EXIT DO
-        IF k = CHR$(27) OR k = " " THEN EXIT DO      ' decline early rather than wait it out
-        _LIMIT 60
-    LOOP
-    _PUTIMAGE (0, 0), saveimg, CANVAS
-    _FREEIMAGE saveimg
-END FUNCTION
-
-' "Shake the box? [B]" over a draining bar -- same widget language as the luck
-' fuse and the gesture gauge, so all three read as one mechanic.
-SUB DrawBoxShakePrompt (raw AS INTEGER, sides AS INTEGER, frac AS SINGLE)
-    DIM bx AS INTEGER, bw AS INTEGER, by AS INTEGER, bh AS INTEGER
-    DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG
-    bx = 40: bw = 52: by = 32: bh = 5
-    _DEST CANVAS
-    _FONT CH
-    IF PromptPanel%(bx, by, bw, bh, CYANU) THEN _PRINTMODE _KEEPBACKGROUND
-    COLOR CYANU, BOXBG: PrintCentered by + 1, "Shake the box?  [B]"
-    COLOR GREY, BOXBG: PrintCentered by + 2, "you rolled " + _TRIM$(STR$(raw)) + " of " + _TRIM$(STR$(sides))
-    fx = (bx + 3) * CW: fw = (bw - 6) * CW
-    LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
-    IF frac > 0.35 THEN fcol = _RGB32(70, 150, 170) ELSE fcol = _RGB32(220, 60, 50)
-    LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
-    _PRINTMODE _FILLBACKGROUND
-END SUB
 
 
 ' Which glyph slot (0-based, 0 = 'A'/'a') shows `face` on a `sides`-sided die.
@@ -1556,7 +1396,6 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
     NEXT i
 
     DiceTiming frames, rate, settle, hold
-    ShakeReset
     FOR f = 1 TO frames
         _DEST CANVAS
         ' The dice tray is drawn from PIXEL coords (the dice bounce in pixels), so the frame is
@@ -1574,10 +1413,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
                 IF px(i) < leftw THEN px(i) = leftw: vx(i) = -vx(i) * 0.6: spin(i) = -spin(i)
                 IF px(i) > rightw - dw THEN px(i) = rightw - dw: vx(i) = -vx(i) * 0.6: spin(i) = -spin(i)
                 IF py(i) > floory THEN py(i) = floory: vy(i) = -vy(i) * 0.55: vx(i) = vx(i) * 0.85
-                ' spin as it tumbles; walls reverse it. In roll style 2 the boost grows while
-                ' SPACE is held and then FREEZES at release, so the dice visibly wind up and
-                ' carry that spin into the throw.
-                ang(i) = ang(i) + spin(i) * ShakeSpinBoost!
+                ang(i) = ang(i) + spin(i)                            ' spin as it tumbles; walls reverse it
                 RenderDieToScratch sides, RollDie(sides)
                 RotoBlit DFROT, DFROT_W, DFROT_H, px(i) + dw \ 2, py(i) + dh \ 2, ang(i), CANVAS
             ELSE
@@ -1589,7 +1425,6 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
         IF opt_sfx THEN
             DiceAnimSfx f, settle, 300 + (f MOD 5) * 40, 0.04
         END IF
-        IF ShakeHold%(f, settle, y2 \ CH - 1) THEN f = f - 1   ' still shaking -- replay this frame
         Present
         AudioTick
         _LIMIT rate

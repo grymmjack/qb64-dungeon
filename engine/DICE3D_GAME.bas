@@ -172,19 +172,6 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     COLOR YELLOWU, boxviolet: PrintCentered 10 + DICE3D_YOFF, hdr
     Present
 
-    ' Roll style "hold & shake": the dice have not been thrown yet, so the shake happens
-    ' over the empty tray -- they are still in your hand. Style 2 spends the hold on THROW
-    ' strength as well as spin, which is the 3D analogue of the 2D winding-up spin.
-    IF opt_rollstyle > 0 THEN
-        DIM boost AS SINGLE
-        ShakeWait (ty + th) \ CH + 1
-        boost = ShakeSpinBoost!
-        cfg.SPIN_STRENGTH = cfg.SPIN_STRENGTH * boost
-        cfg.THROW_STRENGTH = cfg.THROW_STRENGTH * boost
-        IF cfg.SPIN_STRENGTH > 60 THEN cfg.SPIN_STRENGTH = 60      ' past this it reads as noise
-        IF cfg.THROW_STRENGTH > 34 THEN cfg.THROW_STRENGTH = 34    ' and this just pins them to a wall
-    END IF
-
     Sfx "diceroll"                                  ' AFTER any shake -- the rattle is the throw
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
@@ -311,19 +298,32 @@ END SUB
 ' side's hardware atlas + its set cfg (for the camera angle). Called each settings frame,
 ' so the preview looks exactly like the smooth roll. DICE3D_HW is left off (we call the
 ' hardware renderer directly, without the software-present branch).
-SUB DrawDice3DPreviewAt (gxc AS INTEGER, lbl AS STRING, growy AS INTEGER, atlas AS LONG, setcfg AS DICE3D_CONFIG)
+' `ccol` is the CENTRE column of the preview, not its left edge.
+'
+' That change is the fix, not a tidy-up. The 3D dice draw on the hardware GL layer, whose
+' position is set as an OFFSET FROM SCREEN CENTRE (DICE3D_HW_CX), converted with a constant
+' calibrated for a 1056x816 canvas. The software canvas is then SCALED into whatever window the
+' player has -- but the GL layer is not scaled the same way, so the offset drifts, and the drift
+' is PROPORTIONAL TO THE DISTANCE FROM CENTRE. A preview parked at the far left (its caption at
+' column 4) drifted right off the screen.
+'
+' So: give the caller a centre to aim at, and place the two previews symmetrically and CLOSE to
+' the middle. Near the centre the drift is small; symmetric means whatever is left of it is the
+' same for both. Smaller dice, too -- 30px rather than 42 -- so the pair fits in the strip.
+SUB DrawDice3DPreviewAt (ccol AS INTEGER, lbl AS STRING, growy AS INTEGER, atlas AS LONG, setcfg AS DICE3D_CONFIG)
     DIM AS INTEGER gx, gy, scx, scy
     DIM cfg AS DICE3D_CONFIG, pxk AS SINGLE
-    gx = gxc * CW: gy = growy * CH                  ' strip below the columnar list (the CALLER decides;
-'                                                     engine cannot read the game's layout state)
+    gy = growy * CH
+    scx = ccol * CW: scy = gy + 46                  ' screen centre of this preview
+    gx = scx - (LEN(lbl) * CW) \ 2                  ' caption centred under the die
+    IF gx < 0 THEN gx = 0
     _DEST CANVAS: _FONT CH
     COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
     IF atlas = 0 THEN EXIT SUB
     IF UBOUND(DICE3D_DICE) < LBOUND(DICE3D_DICE) THEN EXIT SUB
     cfg = setcfg
     ApplyDiceLight cfg                              ' preview reflects the SETTINGS "Dice Light" level
-    cfg.BOX_W = 150: cfg.BOX_H = 150: cfg.DIE_SIZE = 42
-    scx = gx + 75: scy = gy + 60                    ' screen centre of this preview
+    cfg.BOX_W = 110: cfg.BOX_H = 110: cfg.DIE_SIZE = 30
     pxk = 1.0 / DICE3D_HW_PXPERUNIT
     DICE3D_HWATLAS = atlas
     DICE3D_HW_Z = DICE3D_HW_ZBASE: DICE3D_HW_PXK = pxk

@@ -73,6 +73,17 @@ IF wanthelp THEN
     SYSTEM
 END IF
 _CONSOLE OFF                            ' normal run: hide the console, go graphics
+' SILENCE EVERY CLI RUN.
+'
+' Dev modes and tests still play through the real audio device -- xvfb hides the window, not the
+' speakers -- so a full gate run is minutes of beeps and buzzes at whoever is sitting there.
+'
+' The test is "was this started with ARGUMENTS", not a list of mode names, for the same reason
+' the error handler tests screen_shown rather than devmode: a curated list silently rots every
+' time a mode is added, and the next person to add one will not know to update it. Launching the
+' game to play it passes no arguments.
+audio_muted = (_COMMANDCOUNT > 0)
+
 ' CLI dev modes (manifests / dumps / mask tools) are console-only -- keep the graphics
 ' window HIDDEN and skip fullscreen so they never flash a black screen over the terminal.
 DIM devmode AS INTEGER

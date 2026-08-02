@@ -442,12 +442,10 @@ SUB SaveSettings
     PRINT #f, "dicesolid " + _TRIM$(STR$(opt_dicesolid))
     PRINT #f, "d6pips " + _TRIM$(STR$(opt_d6pips))
     PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
-    PRINT #f, "rollstyle " + _TRIM$(STR$(opt_rollstyle))
     PRINT #f, "statsoverlay " + _TRIM$(STR$(opt_statsoverlay))
     PRINT #f, "autocombat " + _TRIM$(STR$(opt_autocombat))
     PRINT #f, "automove " + _TRIM$(STR$(opt_automove))
     PRINT #f, "autodelay " + _TRIM$(STR$(opt_autodelay))
-    PRINT #f, "boxshake " + _TRIM$(STR$(opt_boxshake))
     PRINT #f, "dicelight " + _TRIM$(STR$(opt_dicelight))
     PRINT #f, "diceround " + _TRIM$(STR$(opt_diceround))
     PRINT #f, "bloodstrength " + _TRIM$(STR$(opt_bloodstrength))
@@ -522,12 +520,10 @@ SUB LoadSettings
                 CASE "dicesolid": opt_dicesolid = v
                 CASE "d6pips": opt_d6pips = v
                 CASE "dicespeed": opt_dicespeed = v
-                CASE "rollstyle": opt_rollstyle = v
                 CASE "statsoverlay": opt_statsoverlay = v
                 CASE "autocombat": opt_autocombat = v
                 CASE "automove": opt_automove = v
                 CASE "autodelay": opt_autodelay = v
-                CASE "boxshake": opt_boxshake = v
                 CASE "dicelight": opt_dicelight = v
                 CASE "diceround": opt_diceround = v
                 CASE "bloodstrength": opt_bloodstrength = v
@@ -574,7 +570,6 @@ SUB LoadSettings
     opt_voicevol = Clamp10(opt_voicevol)
     IF opt_dicecolor < 0 OR opt_dicecolor > 5 THEN opt_dicecolor = 1
     IF opt_dicespeed < 0 OR opt_dicespeed > 3 THEN opt_dicespeed = 1
-    IF opt_rollstyle < 0 OR opt_rollstyle > 2 THEN opt_rollstyle = 0
     IF opt_autodelay < 1 OR opt_autodelay > 3 THEN opt_autodelay = 2
     IF opt_dicelight < 0 OR opt_dicelight > 3 THEN opt_dicelight = 2
     IF opt_diceround < 0 OR opt_diceround > 10 THEN opt_diceround = 6

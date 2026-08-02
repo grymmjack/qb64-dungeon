@@ -400,12 +400,6 @@ DIM SHARED opt_mon_d6pips AS INTEGER, opt_mon_dicespeed AS INTEGER
 DIM SHARED sav_dicecolor AS INTEGER, sav_dicesolid AS INTEGER, sav_d6pips AS INTEGER, sav_dicespeed AS INTEGER
 DIM SHARED opt_dice3d AS INTEGER, opt_mon_dice3d AS INTEGER, sav_dice3d AS INTEGER, dice3d_use_mon AS INTEGER
 DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 default)
-' -- ROLL STYLE: how the dice leave your hand (see ShakeHold%) --
-'    0 Throw          the dice are simply thrown (the original behaviour, and the default)
-'    1 Hold & Shake   hold [SPACE] to keep them rattling; release to throw
-'    2 Hold, Shake & Spin   as above, and how LONG you held sets how hard they spin
-' Purely presentational -- the faces are rolled before the animation starts in every style,
-' so shaking longer cannot change what you rolled. That is deliberate: the shake is theatre.
 ' Seconds after which a "press any key" prompt advances BY ITSELF. 0 = wait for a real key.
 ' Deliberately generic and engine-side: the game sets it while auto-combat runs, but an attract
 ' mode, a demo or a headless capture all want exactly the same thing, and none of them should
@@ -458,18 +452,11 @@ DIM SHARED NG_N AS INTEGER, NG_EVICT AS INTEGER
 ' The shipped frame's tile size, in CHARACTER cells -- the authored art is 3x these.
 CONST NG_TILEW = 4
 CONST NG_TILEH = 2
+' HARD MUTE for headless/dev runs: those still reach the real audio device under xvfb, so a
+' full test pass is minutes of beeps at whoever is sitting there. Checked at the two sound
+' primitives everything funnels through, so nothing can leak past by another route.
+DIM SHARED audio_muted AS INTEGER
 DIM SHARED ui_autoadvance AS SINGLE
-DIM SHARED opt_rollstyle AS INTEGER
-CONST SHAKE_ARM_SEC = 2.5              ' if nobody grabs SPACE within this, throw anyway
-CONST SHAKE_MAX_SEC = 8.0              ' a stuck key must never hang the roll
-DIM SHARED shk_state AS INTEGER        ' 0 waiting for SPACE, 1 held, 2 thrown/done
-DIM SHARED shk_t0 AS DOUBLE            ' when the current shake phase began
-DIM SHARED shk_held AS SINGLE          ' seconds actually held -- drives the spin boost
-' -- BOX SHAKE: one re-shake of a settled roll, offered on a quick fuse (BoxShakeOffer%) --
-' Frankly cheaty, and that is the point; it is off by default and never offered on a natural
-' 1 or 20, where the die face IS the outcome and re-rolling it would gut crits and fumbles.
-DIM SHARED opt_boxshake AS INTEGER
-CONST BOXSHAKE_FUSE_SEC = 1.2          ' deliberately shorter than the luck fuse -- it is a reflex
 DIM SHARED gauge_quality AS SINGLE     ' 0..1 closeness to dead-centre on the last gesture lock
 DIM SHARED opt_juice AS INTEGER        ' SETTINGS "Screen Effects": hit-shake, blood/poison splatter, near-death vignette
 DIM SHARED FX_BUF AS LONG              ' offscreen snapshot buffer for the screen-shake blit
