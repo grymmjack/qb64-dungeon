@@ -235,10 +235,15 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' Sound: a throw rattle now, then per-bounce BEEPS + a settle BOOP straight from the
     ' physics (tone fallback via DICE3D_SND_VOL) -- or real per-bounce clacks + settle thud
     ' if you drop assets/sfx/dice_edge.* / dice_settle.* files in.
-    cfg.SOUND_ENABLED = opt_sfx
+    ' audio_muted, not just opt_sfx. The DICE3D physics emits its per-bounce clicks with a RAW
+    ' `SOUND` statement (engine/DICE3D/_PHYSICS.BM), which never passes through Tone and so never
+    ' sees the mute -- so every headless dev mode that rolls dice (rollshot, and anything reaching
+    ' AnimatedRoll) blipped the PC speaker at whoever ran the gate. Muting has to happen HERE, at
+    ' the layer that owns the setting; the vendored module only knows the flag it is handed.
+    cfg.SOUND_ENABLED = opt_sfx AND NOT audio_muted
     cfg.SND_EDGE_H = SfxHandle("dice_edge")
     cfg.SND_SETTLE_H = SfxHandle("dice_settle")
-    IF opt_sfx THEN DICE3D_SND_VOL = opt_sfxvol / 10 ELSE DICE3D_SND_VOL = 0
+    IF cfg.SOUND_ENABLED THEN DICE3D_SND_VOL = opt_sfxvol / 10 ELSE DICE3D_SND_VOL = 0
     DICE3D_ATLAS_DIE = 96                           ' bake a hi-res atlas so the numerals stay sharp
     SetDiceFont cfg                                 ' apply the chosen dice numeral font
 
@@ -284,6 +289,9 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
             sum3d = sum3d + d10val
         END IF
     NEXT
+    ' Per-die faces, for callers that need the dice APART rather than summed (see DIE_FACE).
+    ' The KEPT dice, in roll order -- a dropped die is not one of the results.
+    PublishFaces keptv(), kept
     tail = "": IF LEN(dropstr) > 0 THEN tail = "   (drop " + dropstr + ")"
 
     ' Each beat is an accumulated snapshot of the running sum. But on a single d20

@@ -117,6 +117,8 @@ devrun() {
     if tests/audit-shortcircuit.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shortcircuit"); fi
     echo "-- dump registry (tests/audit-dumps.sh) --"
     if tests/audit-dumps.sh | tail -1; then :; else (( fail++ )); failed+=("audit-dumps"); fi
+    echo "-- headless mute (tests/audit-mute.sh) --"
+    if tests/audit-mute.sh | tail -1; then :; else (( fail++ )); failed+=("audit-mute"); fi
 
     echo "-- pack-fallback audit (a partial pack must degrade to default/) --"
     if tests/audit-packfallback.sh | tail -3; then :; else (( fail++ )); failed+=("audit-packfallback"); fi

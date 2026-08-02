@@ -576,14 +576,50 @@ FUNCTION InitiativeMod% ()
     InitiativeMod% = char_level \ 2
 END FUNCTION
 
+' "you 14+2=16  vs  it 9+3=12" -- show BOTH sides of the contest with their modifiers, so a lost
+' initiative is a number you can see rather than a verdict you are handed.
+FUNCTION InitiativeLine$ (pface AS INTEGER, mface AS INTEGER, montohit AS INTEGER)
+    DIM pm AS INTEGER, mm AS INTEGER
+    pm = InitiativeMod%: mm = montohit \ 2
+    InitiativeLine$ = "you " + _TRIM$(STR$(pface)) + "+" + _TRIM$(STR$(pm)) + "=" + _TRIM$(STR$(pface + pm)) + _
+                      "   vs   it " + _TRIM$(STR$(mface)) + "+" + _TRIM$(STR$(mm)) + "=" + _TRIM$(STR$(mface + mm))
+END FUNCTION
+
 ' TRUE if the player acts first. The monster's bonus is its depth-scaled to-hit, halved -- so a
 ' level 9 horror is genuinely quicker off the mark than a level 1 rat, without a second table.
-FUNCTION WinsInitiative% (montohit AS INTEGER)
-    DIM pr AS INTEGER, mr AS INTEGER
-    pr = GameRoll(1, 20, InitiativeMod%, "INITIATIVE")
-    mr = RollDie(20) + montohit \ 2
+'
+' BOTH d20s are thrown TOGETHER, in one animation the player watches. It used to animate the
+' player's die and roll the monster's silently off the RNG, which meant half of a contested roll
+' happened where nobody could see it -- you were shown a 14 and simply told you had lost, with no
+' way to know what beat it. Initiative is the one roll in the game that is explicitly player
+' AGAINST monster, so it should look like two dice hitting the table at once.
+'
+' The faces come back through DIE_FACE (see PublishFaces): die 1 is the player's, die 2 the
+' monster's. Real Dice publishes no faces -- the player rolled physically and the game never saw
+' them -- so that path falls back to two separate prompted rolls, which is what rolling your own
+' dice means anyway.
+'
+' pface / mface report the raw d20s so the caller can show the contest honestly.
+FUNCTION WinsInitiative% (montohit AS INTEGER, pface AS INTEGER, mface AS INTEGER)
+    DIM pr AS INTEGER, mr AS INTEGER, mbonus AS INTEGER, thrown AS INTEGER
+    mbonus = montohit \ 2
+    ' The SUM is meaningless here (two dice that mean different things), but GameRoll is a
+    ' FUNCTION -- QB64 will not let it be called as a statement -- so the total is caught and
+    ' dropped. What matters is the animation and the faces it publishes.
+    thrown = GameRoll(2, 20, 0, "INITIATIVE -- your d20 vs its d20")
+    pface = DieFace%(1): mface = DieFace%(2)
+    IF pface = 0 OR mface = 0 THEN
+        ' Real Dice (or a renderer that published nothing): roll the two sides separately rather
+        ' than inventing faces the player did not throw.
+        pface = GameRoll(1, 20, 0, "INITIATIVE -- your d20")
+        PushMonsterDice
+        mface = GameRoll(1, 20, 0, "INITIATIVE -- the monster's d20")
+        PopMonsterDice
+    END IF
+    pr = pface + InitiativeMod%
+    mr = mface + mbonus
     ' Ties go to the player. Someone has to win them, and the alternative is handing a free
-    ' opening strike to the monster on a coin flip the player never sees rolled.
+    ' opening strike to the monster on a coin flip.
     WinsInitiative% = (pr >= mr)
 END FUNCTION
 
@@ -652,11 +688,14 @@ SUB DoCombatDnD (rm AS INTEGER)
     ' would contradict the word on screen.
     DrawCombatArt mon, sec, 0
     IF NOT door_ambush THEN
-        IF WinsInitiative%(mtohit) THEN
-            Banner "You have the INITIATIVE!", "d20 + " + _TRIM$(STR$(InitiativeMod%)) + " (level " + _TRIM$(STR$(char_level)) + ") -- you move first.   [ press any key ]"
+        DIM ipf AS INTEGER, imf AS INTEGER, iline AS STRING
+        IF WinsInitiative%(mtohit, ipf, imf) THEN
+            iline = InitiativeLine$(ipf, imf, mtohit)
+            Banner "You have the INITIATIVE!", iline + " -- you move first.   [ press any key ]"
             CombatPause
         ELSE
-            Banner lead + " moves first!", "It was ready before you were -- it gets one free strike.   [ press any key ]"
+            iline = InitiativeLine$(ipf, imf, mtohit)
+            Banner lead + " moves first!", iline + " -- it was ready before you were, and gets one free strike.   [ press any key ]"
             CombatPause
             ' The monster's whole turn already hangs off `acted`, so a free strike is a flag,
             ' not a second copy of that code: enter the loop as though the player had acted

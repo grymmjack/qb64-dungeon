@@ -640,6 +640,39 @@ END FUNCTION
 '   * dice3d_force_soft -- the 3D dice's hardware path draws to the WINDOW after the canvas blit,
 '     where _SAVEIMAGE CANVAS cannot reach it. The software renderer composites into the canvas.
 '     So the 3D shots prove LAYOUT (tray, board, sum) but are not a shot of the GL rasteriser.
+' Do the PER-DIE faces the renderer published (DIE_FACE / PublishFaces) agree with the total it
+' returned? Combat initiative throws two d20s in ONE animation and reads them apart -- the player's
+' die and the monster's -- so a renderer that publishes nothing, or publishes the wrong count,
+' silently decides every fight's turn order from zeroes. Nothing on screen would look wrong.
+'
+' Checks count, plausible range, and that the faces sum to the returned raw total. Appends "" when
+' fine so a clean run reads exactly as it did before; anything else is loud.
+FUNCTION FaceReport$ (n AS INTEGER, total AS INTEGER, sides AS INTEGER)
+    DIM i AS INTEGER, sum AS INTEGER, faces AS STRING
+    IF DIE_FACE_N <> n THEN
+        FaceReport$ = "  |12<< DIE_FACE_N=" + _TRIM$(STR$(DIE_FACE_N)) + ", expected " + _TRIM$(STR$(n)) + "|07"
+        rollshot_facebad = -1
+        EXIT FUNCTION
+    END IF
+    sum = 0: faces = ""
+    FOR i = 1 TO n
+        sum = sum + DieFace%(i)
+        IF LEN(faces) > 0 THEN faces = faces + "+"
+        faces = faces + _TRIM$(STR$(DieFace%(i)))
+        IF DieFace%(i) < 1 OR DieFace%(i) > sides THEN
+            FaceReport$ = "  |12<< face " + _TRIM$(STR$(i)) + " = " + _TRIM$(STR$(DieFace%(i))) + " is off a d" + _TRIM$(STR$(sides)) + "|07"
+            rollshot_facebad = -1
+            EXIT FUNCTION
+        END IF
+    NEXT i
+    IF sum <> total THEN
+        FaceReport$ = "  |12<< faces " + faces + " = " + _TRIM$(STR$(sum)) + " but the roll returned " + _TRIM$(STR$(total)) + "|07"
+        rollshot_facebad = -1
+        EXIT FUNCTION
+    END IF
+    FaceReport$ = "  |08faces " + faces + "|07"
+END FUNCTION
+
 SUB DumpRollShot
     DIM AS INTEGER i, bad, r
     DIM nm AS STRING, f AS SINGLE
@@ -669,7 +702,7 @@ SUB DumpRollShot
     dice3d_force_soft = -1                           ' 3D onto the CANVAS, where _SAVEIMAGE can see it
     StartBoard                                       ' a real dungeon under the tray -- that is the check
 
-    bad = 0
+    bad = 0: rollshot_facebad = 0
     FOR i = 1 TO NSHOT
         cursor_erase: cursor_draw                    ' fresh board per shot -- the roll boxes do not
         Present                                      ' clean themselves up between back-to-back rolls,
@@ -688,13 +721,17 @@ SUB DumpRollShot
                 PRINT PipeCol$("  |12BAD|07  " + nm + " -- " + _TRIM$(STR$(INT(f * 100))) + "% non-black: the roll drew on a BLANK screen, not the board")
                 bad = bad + 1
             ELSE
-                PRINT PipeCol$("  |10ok |07  " + nm + "  rolled " + _TRIM$(STR$(r)) + ", " + _TRIM$(STR$(INT(f * 100))) + "% non-black")
+                PRINT PipeCol$("  |10ok |07  " + nm + "  rolled " + _TRIM$(STR$(r)) + ", " + _TRIM$(STR$(INT(f * 100))) + "% non-black" + FaceReport$(shotN(i), r, shotSides(i)))
             END IF
         END IF
     NEXT i
 
+    IF rollshot_facebad THEN
+        PRINT PipeCol$("|12rollshot: a dice style published per-die faces that disagree with its own total|07")
+        bad = bad + 1
+    END IF
     IF bad > 0 THEN
-        PRINT PipeCol$("|12rollshot: " + _TRIM$(STR$(bad)) + " of " + _TRIM$(STR$(NSHOT)) + " dice style(s) did not render over the board|07")
+        PRINT PipeCol$("|12rollshot: " + _TRIM$(STR$(bad)) + " of " + _TRIM$(STR$(NSHOT)) + " dice style(s) failed|07")
         SYSTEM 1
     END IF
     PRINT PipeCol$("  all |14" + _TRIM$(STR$(NSHOT)) + "|07 dice styles rendered over the board")

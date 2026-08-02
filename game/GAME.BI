@@ -672,6 +672,7 @@ DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move
 ' Scratch marks for Dump_Monster's nearest-first walk (game/DUMP.bas). Its own array on purpose:
 ' a dump must never be able to change the thing it is describing.
 DIM SHARED DUMPMARK(1 TO 400) AS INTEGER
+DIM SHARED rollshot_facebad AS INTEGER                ' dev: rollshot -- a dice style published bad DIE_FACE data
 DIM SHARED settingsshot_on AS INTEGER                 ' dev: `settingsshot` -- save the SETTINGS render to PNG + exit (layout check)
 DIM SHARED dbg_click_armed AS INTEGER                 ' debounce for debug click-to-place
 DIM SHARED player_dmgbonus AS INTEGER  ' STR/INT damage mod

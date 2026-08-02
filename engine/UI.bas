@@ -808,7 +808,8 @@ END SUB
 
 ' A single "voice" blip for the typewriter text window, at the Voice volume.
 SUB VoiceBlip (freq AS INTEGER)
-    IF NOT opt_voice THEN EXIT SUB
+    IF audio_muted THEN EXIT SUB                   ' dev/headless: the fallback below is a RAW SOUND,
+    IF NOT opt_voice THEN EXIT SUB                 ' which does not go through Tone and so never saw the mute
     DIM h AS LONG
     h = SfxHandle&("voice")                        ' pack/flat assets/sfx/voice.* if present
     IF h > 0 THEN
@@ -1033,6 +1034,7 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
     END IF
     die_a = v(1): die_b = 0
     IF n >= 2 THEN die_b = v(2)
+    PublishFaces v(), n
     rln = RollLineText$(tot, bonus, n, drop > 0)     ' "5 + 3 = 8", "sum 12", or ""
 
     IF opt_showdice THEN
@@ -1124,6 +1126,23 @@ FUNCTION DoRoll% (n AS INTEGER, bonus AS INTEGER, what AS STRING)
 END FUNCTION
 
 
+' Record the faces of the roll just animated, for callers that need the dice APART rather than
+' summed (see DIE_FACE in ENGINE.BI). Every renderer calls this, so a caller can rely on it
+' without caring which of the four the player has selected.
+SUB PublishFaces (v() AS INTEGER, n AS INTEGER)
+    DIM i AS INTEGER
+    DIE_FACE_N = 0
+    FOR i = 1 TO n
+        IF i <= UBOUND(DIE_FACE) THEN DIE_FACE(i) = v(i): DIE_FACE_N = i
+    NEXT i
+END SUB
+
+' Face of die `i` from the last animated roll, or 0 if it published none (Real Dice).
+FUNCTION DieFace% (i AS INTEGER)
+    DieFace% = 0
+    IF i >= 1 AND i <= DIE_FACE_N THEN DieFace% = DIE_FACE(i)
+END FUNCTION
+
 ' Generalised roll: n dice of any size (d6 shows pips, others show a number
 ' tumbler) plus a modifier -- honouring Real-Dice / Dice-Math exactly like DoRoll.
 ' Used by D&D-mode combat for d20 to-hit and weapon damage dice.
@@ -1131,7 +1150,7 @@ FUNCTION GameRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what AS ST
     DIM raw AS INTEGER, t AS INTEGER
     IF opt_realdice THEN
         raw = PromptRoll(n, sides, bonus, what)
-        die_a = 0: die_b = 0
+        die_a = 0: die_b = 0: DIE_FACE_N = 0        ' physical dice -- the game never saw the faces
         IF opt_dicemath THEN
             GameRoll = raw: last_raw = raw - bonus
         ELSE
@@ -1401,6 +1420,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
         total = total - lo
     END IF
     rln = RollLineText$(total, bonus, n, drop > 0)     ' "5 + 3 = 8", "sum 12", or ""
+    PublishFaces v(), n
     IF NOT opt_showdice THEN ShowRollTextEx = total: EXIT FUNCTION
 
     fh = 0

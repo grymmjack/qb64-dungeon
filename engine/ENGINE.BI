@@ -294,6 +294,14 @@ DIM SHARED bnr_l2 AS STRING, bnr_bx1 AS INTEGER, bnr_bx2 AS INTEGER   ' last Ban
 
 ' --- dice display state + DPoly polyhedron fonts ---
 DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceShow
+' PER-DIE FACES of the last animated roll, published by EVERY renderer (pips, font polyhedra and
+' the 3D dice alike). The roll helpers return a TOTAL, which is all most callers want -- but a
+' roll where the dice mean DIFFERENT THINGS needs them apart. Combat initiative is the case: two
+' d20s thrown together, one the player's and one the monster's, so the two sides are settled by
+' the same throw the player watches rather than by a visible roll and a silent one.
+' DIE_FACE_N = 0 means the last roll published nothing (Real Dice: the player rolled physically,
+' so there are no faces to read).
+DIM SHARED DIE_FACE(1 TO 12) AS INTEGER, DIE_FACE_N AS INTEGER
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
 ' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to
 ' the number tumbler). Each glyph IS a die face: 'A'+n draws the solid variant,
