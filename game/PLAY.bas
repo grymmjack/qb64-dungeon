@@ -875,3 +875,188 @@ SUB DoRest
     LoiterTick                                   ' resting IS lingering -- danger keeps building
     cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
+
+
+' ============================================================================
+'  AUTO-MOVE -- the game walks the dungeon for you, shallowest level first.
+'
+'  It drives by SYNTHESISING A DIRECTION KEY, exactly as auto-combat synthesises the attack
+'  key. That is the whole design: the auto-walker goes through the same TryMove the player
+'  does, so door hops, room entry, chamber triggers, curio rolls, status ticks and the hunter's
+'  step all happen identically. A separate "move the cursor" path would be a second movement
+'  implementation that silently stops firing half the game's events.
+'
+'  Pathing is a BFS flood from the GOAL, then a step down the gradient -- the same shape as
+'  HunterAdvance, with two deliberate differences:
+'    * it floods COLLIDE_BOARD, not FULL_COLLIDE, so it can only walk where the PLAYER can.
+'      The hunter cheats through undiscovered secret doors; the player must not.
+'    * it uses its own ADIST array. HDIST belongs to the hunter, and Monster Prey mode can be
+'      running at the same time -- sharing it would have them overwrite each other's field.
+' ============================================================================
+
+' Pick the cell auto-move is heading for. TRUE if it found one.
+'
+' Order is "lowest level to highest": the shallowest level that is not yet cleared owns the
+' goal, and within it the nearest room that still has something alive. When every level is
+' clear the goal becomes START -- which is how you actually win, so the walker finishes the run
+' rather than stopping with nothing to do.
+'
+' IT COMMITS. The goal is remembered and kept until the room is dealt with, and that is not a
+' refinement -- picking "nearest" fresh every step made it re-target on 394 of 400 steps and
+' never arrive anywhere, because two rooms trade places as nearest while you walk between them.
+' The walker made perfectly legal, closing moves the whole time and still got nothing done, so
+' a progress check alone reported it healthy (`dungeon.run automovetest` counts goal churn
+' precisely because of this).
+FUNCTION AutoMoveGoal% (gx AS INTEGER, gy AS INTEGER)
+    DIM lv AS INTEGER, r AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM bd AS LONG, d AS LONG, found AS INTEGER
+    px = c.x \ CW: py = c.y \ CH
+
+    ' Still chasing a live room? Keep chasing it.
+    IF automove_room >= 1 AND automove_room <= ROOM_N THEN
+        IF ROOMS(automove_room).malive THEN
+            gx = ROOMS(automove_room).cx: gy = ROOMS(automove_room).cy
+            IF gx <> px OR gy <> py THEN AutoMoveGoal% = -1: EXIT FUNCTION
+        END IF
+        automove_room = 0                       ' dead, or we are standing on it -- choose again
+    END IF
+
+    bd = 2147483647
+    FOR lv = 1 TO 9
+        IF NOT lvl_cleared(lv) THEN
+            FOR r = 1 TO ROOM_N
+                IF ROOMS(r).sec = lv AND ROOMS(r).malive AND ROOMS(r).cx > 0 THEN
+                    IF ROOMS(r).cx <> px OR ROOMS(r).cy <> py THEN   ' not the one we are on
+                        ' straight-line pick, not path length: this only chooses WHICH room to
+                        ' head for, and a full BFS per candidate room would cost far more than
+                        ' the better choice could ever be worth.
+                        d = (ROOMS(r).cx - px) * (ROOMS(r).cx - px) + (ROOMS(r).cy - py) * (ROOMS(r).cy - py)
+                        IF d < bd THEN bd = d: gx = ROOMS(r).cx: gy = ROOMS(r).cy: automove_room = r: found = -1
+                    END IF
+                END IF
+            NEXT r
+            IF found THEN EXIT FOR              ' this level still has work: do not look deeper
+        END IF
+    NEXT lv
+    IF NOT found THEN
+        gx = START_CX: gy = START_CY: found = -1   ' everything cleared -> go home and win
+        automove_room = 0
+    END IF
+    AutoMoveGoal% = found
+END FUNCTION
+
+' The direction key that steps one cell closer to (gx,gy), or "" if there is no route.
+FUNCTION AutoMoveDir$ (gx AS INTEGER, gy AS INTEGER)
+    DIM px AS INTEGER, py AS INTEGER, x AS INTEGER, y AS INTEGER
+    DIM hd AS INTEGER, tl AS INTEGER, cxx AS INTEGER, cyy AS INTEGER
+    DIM nx AS INTEGER, ny AS INTEGER, d AS INTEGER, k AS INTEGER
+    DIM bd AS INTEGER, bk AS INTEGER, okmove AS INTEGER, oldsrc AS LONG
+    DIM dx8(0 TO 7) AS INTEGER, dy8(0 TO 7) AS INTEGER
+    DIM nm8(0 TO 7) AS STRING
+    dx8(0) = 1: dx8(1) = -1: dx8(2) = 0: dx8(3) = 0: dx8(4) = 1: dx8(5) = 1: dx8(6) = -1: dx8(7) = -1
+    dy8(0) = 0: dy8(1) = 0: dy8(2) = 1: dy8(3) = -1: dy8(4) = 1: dy8(5) = -1: dy8(6) = 1: dy8(7) = -1
+    nm8(0) = "D": nm8(1) = "A": nm8(2) = "S": nm8(3) = "W"
+    nm8(4) = "SE": nm8(5) = "NE": nm8(6) = "SW": nm8(7) = "NW"
+    REDIM aqx(0 TO 8192) AS INTEGER, aqy(0 TO 8192) AS INTEGER
+    AutoMoveDir$ = ""
+    px = c.x \ CW: py = c.y \ CH
+    IF px = gx AND py = gy THEN EXIT FUNCTION
+    ' CanStandAt% reaches the board by _PUTIMAGE and pins its own _SOURCE, so nothing needs
+    ' pinning here -- and it is the MOVER's own predicate, so the route cannot contain a cell
+    ' TryMove will refuse. Using CellKind% here (one centre pixel) wedged the walker against
+    ' half-block room lips, which read as floor at the centre and are not walkable.
+    oldsrc = _SOURCE
+    FOR y = 0 TO 60: FOR x = 0 TO 131: ADIST(x, y) = -1: NEXT: NEXT
+    ADIST(gx, gy) = 0: aqx(0) = gx: aqy(0) = gy: hd = 0: tl = 1
+    DO WHILE hd < tl
+        cxx = aqx(hd): cyy = aqy(hd): hd = hd + 1
+        FOR d = 0 TO 3
+            nx = cxx + dx8(d): ny = cyy + dy8(d)
+            IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
+                IF ADIST(nx, ny) = -1 THEN
+                    IF CanStandAt%(nx * CW, ny * CH) THEN
+                        ADIST(nx, ny) = ADIST(cxx, cyy) + 1
+                        IF tl <= 8191 THEN aqx(tl) = nx: aqy(tl) = ny: tl = tl + 1
+                    END IF
+                END IF
+            END IF
+        NEXT d
+    LOOP
+    bd = ADIST(px, py): IF bd < 0 THEN bd = 32000
+    bk = -1
+    FOR k = 0 TO 7
+        nx = px + dx8(k): ny = py + dy8(k)
+        IF nx >= 0 AND nx <= 131 AND ny >= 0 AND ny <= 60 THEN
+            IF ADIST(nx, ny) >= 0 THEN
+                okmove = -1
+                IF dx8(k) <> 0 AND dy8(k) <> 0 THEN   ' no corner cutting
+                    IF NOT CanStandAt%((px + dx8(k)) * CW, py * CH) THEN okmove = 0
+                    IF NOT CanStandAt%(px * CW, (py + dy8(k)) * CH) THEN okmove = 0
+                END IF
+                IF okmove THEN
+                    IF ADIST(nx, ny) < bd THEN bd = ADIST(nx, ny): bk = k
+                END IF
+            END IF
+        END IF
+    NEXT k
+    _SOURCE oldsrc
+    IF bk >= 0 THEN AutoMoveDir$ = nm8(bk)
+END FUNCTION
+
+' Stop auto-move and say why. Every halt goes through here so the player is never left
+' wondering whether it finished, got stuck, or was switched off.
+SUB AutoMoveStop (why AS STRING)
+    IF NOT automove_run THEN EXIT SUB
+    automove_run = 0
+    Sfx "select"
+    Banner "AUTO-MOVE STOPPED", why + "   [ press any key ]"
+    WaitKey
+END SUB
+
+' Check the halt conditions. Called once per auto-move step, BEFORE the step is taken.
+'
+' The HP thresholds latch (automove_hpwarn) so crossing 50% stops you once, not on every
+' single step for the rest of the run -- an alarm that repeats forever is an alarm nobody
+' can act on.
+SUB AutoMoveCheck
+    DIM lv AS INTEGER, pct AS INTEGER
+    IF NOT automove_run THEN EXIT SUB
+    lv = PlayerLevel%
+    IF lv >= 1 AND lv <= 9 THEN
+        IF lv <> automove_lastlvl THEN
+            automove_lastlvl = lv
+            AutoMoveStop "You have reached LEVEL " + _TRIM$(STR$(lv)) + "."
+            EXIT SUB
+        END IF
+        IF lvl_cleared(lv) AND automove_lastclear <> lv THEN
+            automove_lastclear = lv
+            AutoMoveStop "LEVEL " + _TRIM$(STR$(lv)) + " is cleared."
+            EXIT SUB
+        END IF
+    END IF
+    IF player_maxhp > 0 THEN
+        pct = (player_hp * 100) \ player_maxhp
+        IF pct < 25 AND automove_hpwarn > 25 THEN
+            automove_hpwarn = 25
+            AutoMoveStop "Your health is below 25% (" + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + ")."
+            EXIT SUB
+        END IF
+        IF pct < 50 AND automove_hpwarn > 50 THEN
+            automove_hpwarn = 50
+            AutoMoveStop "Your health is below 50% (" + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + ")."
+            EXIT SUB
+        END IF
+        IF pct >= 50 THEN automove_hpwarn = 100   ' healed back up: the alarms re-arm
+    END IF
+END SUB
+
+' Begin (or resume) auto-move. Seeds the latches from the CURRENT state so switching it on
+' does not immediately fire "you reached level 3" for the level you are already standing on.
+SUB AutoMoveBegin
+    automove_run = -1
+    automove_lastlvl = PlayerLevel%
+    automove_lastclear = 0
+    automove_hpwarn = 100
+    automove_room = 0                       ' choose a fresh goal on the next step
+    automove_t0 = TIMER
+END SUB

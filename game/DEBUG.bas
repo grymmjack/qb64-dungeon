@@ -801,3 +801,98 @@ SUB DumpDeathShot
     NEXT i
     PRINT PipeCol$("  wrote |14deathshot.png")
 END SUB
+
+
+' `dungeon.run automovetest` -- prove the auto-walker actually walks.
+'
+' This is logic no screenshot can check and no human can be asked to sit through: it either
+' paths across a 132x51 board or it wedges in a corridor, and the difference is invisible until
+' someone plays it. So the test drives Goal -> Dir -> TryMove directly and asserts PROGRESS:
+' the walker must close on its goal, not merely produce legal moves. A path that oscillates
+' between two cells forever is made of perfectly legal moves.
+'
+' automove_run stays 0 throughout: AutoMoveCheck's halts call Banner/WaitKey, which would hang
+' with nobody to press a key.
+SUB DumpAutoMoveTest
+    DIM steps AS INTEGER, i AS INTEGER, dir AS STRING, bad AS INTEGER
+    DIM gx AS INTEGER, gy AS INTEGER, px AS INTEGER, py AS INTEGER
+    DIM startd AS INTEGER, bestd AS INTEGER, stalls AS INTEGER, moved AS INTEGER
+    DIM lastx AS INTEGER, lasty AS INTEGER, lastgx AS INTEGER, lastgy AS INTEGER, goalflips AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15automovetest|07 -- the auto-walker paths the real board")
+
+    IF NOT AutoMoveGoal%(gx, gy) THEN
+        PRINT PipeCol$("|12  FAIL|07 -- no goal on a fresh board (every level uncleared, every room alive)")
+        SYSTEM 1
+    END IF
+    px = c.x \ CW: py = c.y \ CH
+    PRINT PipeCol$("  start |14" + LTRIM$(STR$(px)) + "," + LTRIM$(STR$(py)) + "|07   goal |14" + LTRIM$(STR$(gx)) + "," + LTRIM$(STR$(gy)))
+
+    dir = AutoMoveDir$(gx, gy)
+    IF LEN(dir) = 0 THEN
+        PRINT PipeCol$("|12  FAIL|07 -- no first step: the goal is unreachable from START")
+        SYSTEM 1
+    END IF
+    startd = ADIST(px, py)
+    bestd = startd
+    PRINT PipeCol$("  path length from START: |14" + LTRIM$(STR$(startd)) + "|07 cells")
+
+    steps = 400
+    FOR i = 1 TO steps
+        IF NOT AutoMoveGoal%(gx, gy) THEN EXIT FOR
+        dir = AutoMoveDir$(gx, gy)
+        IF LEN(dir) = 0 THEN EXIT FOR                 ' arrived, or genuinely boxed in
+        lastx = c.x: lasty = c.y
+        IF TryMove(dir) THEN moved = moved + 1
+        IF c.x = lastx AND c.y = lasty THEN
+            ' The walker chose a direction the mover refused. One or two is a doorway quirk;
+            ' a run of them is a wedge, and a wedge is the failure this test exists to catch.
+            stalls = stalls + 1
+            IF stalls > 8 THEN
+                _DEST _CONSOLE
+                PRINT PipeCol$("|12  FAIL|07 -- WEDGED at " + LTRIM$(STR$(c.x \ CW)) + "," + LTRIM$(STR$(c.y \ CH)) + " (chose '" + dir + "', mover refused 9x)")
+                bad = -1
+                EXIT FOR
+            END IF
+        ELSE
+            stalls = 0
+        END IF
+        px = c.x \ CW: py = c.y \ CH
+        IF ADIST(px, py) >= 0 AND ADIST(px, py) < bestd THEN bestd = ADIST(px, py)
+        ' Goal churn is the failure that hides behind a passing progress check: a walker that
+        ' re-targets every step makes legal, closing moves forever and never arrives.
+        IF gx <> lastgx OR gy <> lastgy THEN
+            goalflips = goalflips + 1
+            lastgx = gx: lastgy = gy
+        END IF
+    NEXT i
+
+    ' TryMove draws, and drawing sets _DEST CANVAS -- PRINT follows _DEST, so without this the
+    ' whole verdict renders onto the game canvas and the console shows nothing at all.
+    _DEST _CONSOLE
+    PRINT PipeCol$("  walked |14" + LTRIM$(STR$(moved)) + "|07 cells in " + LTRIM$(STR$(i - 1)) + " steps")
+    PRINT PipeCol$("  closest approach: |14" + LTRIM$(STR$(bestd)) + "|07 (from " + LTRIM$(STR$(startd)) + ")")
+    PRINT PipeCol$("  goal changed |14" + LTRIM$(STR$(goalflips)) + "|07 time(s); ended at " + LTRIM$(STR$(c.x \ CW)) + "," + LTRIM$(STR$(c.y \ CH)))
+    IF moved < 10 THEN
+        PRINT PipeCol$("|12  FAIL|07 -- barely moved; the walker is not walking")
+        bad = -1
+    END IF
+    IF bestd >= startd THEN
+        PRINT PipeCol$("|12  FAIL|07 -- never got closer to a goal (legal moves, no progress)")
+        bad = -1
+    END IF
+    ' CHURN. This is the assertion that matters most, because the bug it guards is invisible to
+    ' every other check here: re-picking "nearest room" each step made the walker re-target on
+    ' 394 of 400 steps, all of them legal closing moves, and arrive nowhere. Some churn is
+    ' expected in this harness (nothing dies, so arriving means picking the next room); a quarter
+    ' of all steps is not.
+    IF goalflips > steps \ 4 THEN
+        PRINT PipeCol$("|12  FAIL|07 -- goal CHURN: re-targeted " + LTRIM$(STR$(goalflips)) + " times in " + LTRIM$(STR$(steps)) + " steps")
+        bad = -1
+    END IF
+    IF bad THEN
+        PRINT PipeCol$("|12automovetest: FAIL")
+        SYSTEM 1
+    END IF
+    PRINT PipeCol$("|10automovetest: PASS|07 -- pathed, progressed, never wedged")
+END SUB

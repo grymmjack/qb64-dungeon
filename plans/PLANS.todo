@@ -391,15 +391,25 @@ Game Tweaks:
           ✔ place is not the same feature as an ordinary action with its own risk @done(26-08-01)
 
 Roadmap (future / bigger efforts):
-    ☐ Auto-move: ON/OFF (will be used for computer players later)
-      ☐ Automatically paths through the map, lowest level to highest level
-      ☐ Stop on:
-        ☐ Combat
-        ☐ Event
-        ☐ Level Cleared
-        ☐ New Level
-        ☐ Health < 50%
-        ☐ Health < 25%
+    ✔ Auto-move: ON/OFF (will be used for computer players later) @done(26-08-01)
+      ✔ Automatically paths through the map, lowest level to highest level @done(26-08-01)
+      ✔ Stop on: Combat / Event / Level Cleared / New Level / Health <50% / Health <25% @done(26-08-01)
+        ✔ ...and on ANY keypress: taking the controls back should not require finding a menu @done(26-08-01)
+        ✔ Combat halts at DoCombat, the ONE funnel every fight passes through -- a stop that has @done(26-08-01)
+          ✔ to be remembered at N call sites is one that gets missed at the N+1th @done(26-08-01)
+        ✔ HP thresholds LATCH and re-arm on healing: an alarm that repeats every step forever @done(26-08-01)
+          ✔ is an alarm nobody can act on @done(26-08-01)
+      ✔ Drives by SYNTHESISING A DIRECTION KEY, so it walks through the same TryMove a player @done(26-08-01)
+        ✔ does -- door hops, room/chamber triggers, curio rolls and status ticks all still fire @done(26-08-01)
+      ✔ SETTINGS "Auto-Move" + [Z] to start; [L] took over "locate me" from TAB @done(26-08-01)
+      ✔ `dungeon.run automovetest` (NEW, in the gate) drives it across the real board @done(26-08-01)
+      ✔ TWO REAL BUGS the test found, neither visible any other way: @done(26-08-01)
+        ✔ 1. GOAL CHURN -- re-picking "nearest room" each step re-targeted on 394 of 400 steps @done(26-08-01)
+          ✔ and arrived nowhere. Every move was legal and closing, so a progress check passed @done(26-08-01)
+          ✔ it. The goal now COMMITS until the room is dealt with; the test asserts churn @done(26-08-01)
+        ✔ 2. WEDGE -- the BFS used CellKind% (ONE centre pixel) while the mover uses a WHOLE- @done(26-08-01)
+          ✔ cell test, so it routed through half-block room lips and jammed against them. @done(26-08-01)
+          ✔ CanStandAt% is now the single walkability predicate and CanMove delegates to it @done(26-08-01)
       ☐ Rival system / preferred enemies
         ☐ When killed by a creature, turns into rival
           ☐ Rivals grant +1 temporary flourish and re-roll

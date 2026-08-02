@@ -51,6 +51,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10gaugeshot|07 |14[depth] [hp]|07  render the action-gesture gauge, timed AND real-dice -> |14gaugeshot*.png|07")
     PRINT PipeCol$("  |10summaryshot|07   render the run scorecard: Game Summary panel + the [TAB] overlay")
     PRINT PipeCol$("  |10deathshot|07    run the animated death screen and capture it -> |14deathshot.png|07")
+    PRINT PipeCol$("  |10automovetest|07 drive the auto-walker across the real board; asserts it makes progress")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
@@ -317,6 +318,22 @@ IF INSTR(UCASE$(COMMAND$), "SUMMARYSHOT") > 0 THEN DumpSummaryShot: SYSTEM
 
 '--- dev: `dungeon.run deathshot [class]` renders the animated death screen ---
 IF INSTR(UCASE$(COMMAND$), "DEATHSHOT") > 0 THEN DumpDeathShot: SYSTEM
+
+'--- dev: `dungeon.run automovetest` walks the real board and asserts progress ---
+IF INSTR(UCASE$(COMMAND$), "AUTOMOVETEST") > 0 THEN
+    ' Same board a real run gets. Without this the cursor is at 0,0 on an unbuilt board and
+    ' every path is trivially "unreachable" -- which is a broken TEST, not a broken walker.
+    BuildBoardImages
+    DetectSecretDoors
+    DetectDoors
+    Game_PopulateBoard
+    RandomizeRooms
+    InitFog
+    c.x = START_CX * CW: c.y = START_CY * CH
+    c.prev_x = c.x: c.prev_y = c.y
+    DumpAutoMoveTest
+    SYSTEM
+END IF
 
 '--- dev: `dungeon.run panelshot [class]` renders the D&D combat panel -> panelshot.png ---
 IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN
@@ -793,6 +810,34 @@ FUNCTION PlayGame%
         k = UCASE$(INKEY$)
         k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
 
+        ' AUTO-MOVE steers by synthesising a DIRECTION key, so the step goes through exactly
+        ' the same TryMove a player drives -- door hops, room/chamber triggers, curio rolls and
+        ' status ticks all still fire. A real keypress is read first and always wins, and ANY
+        ' key stops the walker: taking the controls back should not require finding a menu.
+        IF automove_run THEN
+            IF LEN(k) > 0 THEN
+                AutoMoveStop "You took the controls back."
+            ELSE
+                AutoMoveCheck
+                IF automove_run THEN
+                    IF TIMER - automove_t0 >= AUTOMOVE_STEP_SEC OR TIMER - automove_t0 < 0 THEN
+                        automove_t0 = TIMER
+                        DIM amgx AS INTEGER, amgy AS INTEGER, amdir AS STRING
+                        IF AutoMoveGoal%(amgx, amgy) THEN
+                            amdir = AutoMoveDir$(amgx, amgy)
+                            IF LEN(amdir) > 0 THEN
+                                k = amdir
+                            ELSE
+                                AutoMoveStop "There is no route from here."
+                            END IF
+                        ELSE
+                            AutoMoveStop "Nothing left to walk to."
+                        END IF
+                    END IF
+                END IF
+            END IF
+        END IF
+
         ' HARDCORE only: standing idle counts as lingering -- time passes, danger gathers.
         ' In casual mode (default) you can stand still and plan in perfect safety.
         IF k <> "" THEN
@@ -828,6 +873,13 @@ FUNCTION PlayGame%
             idle_ticks = 0
         END IF
         IF k = "L" THEN FindPlayerFlash: idle_ticks = 0        ' [L] -- locate me (was TAB)
+        IF k = "Z" AND opt_automove THEN                       ' [Z] -- let the walker take over
+            AutoMoveBegin
+            Banner "AUTO-MOVE", "Walking the dungeon, shallowest level first. Any key stops it.   [ press any key ]"
+            WaitKey
+            cursor_erase: cursor_draw: DrawHUD: Present
+            idle_ticks = 0
+        END IF
         IF k = "R" THEN DoRest: idle_ticks = 0                ' [R] -- rest a point, and roll for company
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
         IF k = "~" OR k = "`" THEN

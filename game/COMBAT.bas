@@ -268,6 +268,10 @@ FUNCTION DoCombat% (rm AS INTEGER)
         END IF
         EXIT FUNCTION
     END IF
+    ' Auto-move halts for a fight. Done HERE, in the one funnel every encounter passes through,
+    ' rather than at each of the several places a fight can start -- a stop condition that has to
+    ' be remembered at N call sites is one that will be missed at the N+1th.
+    AutoMoveStop "You have been drawn into COMBAT."
     IF NOT opt_oldschool THEN                      ' D&D d20/HP combat instead of 2d6-vs-target
         combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm

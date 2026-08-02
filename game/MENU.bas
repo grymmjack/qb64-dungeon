@@ -595,7 +595,7 @@ SUB BuildSetLayout
     ' Column 3 -- RULES, then DISPLAY & ART, then Back
     SetLayHdr 3, "RULES", prow()
     SetLayRow 3, 14, prow(): SetLayRow 3, 52, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow()
-    SetLayRow 3, 17, prow(): SetLayRow 3, 60, prow(): SetLayRow 3, 61, prow()
+    SetLayRow 3, 17, prow(): SetLayRow 3, 60, prow(): SetLayRow 3, 61, prow(): SetLayRow 3, 62, prow()
     SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
     SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow(): SetLayRow 3, 55, prow(): SetLayRow 3, 56, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
@@ -659,7 +659,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 61                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 62                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -827,6 +827,7 @@ SUB RunSettings
                 CASE 58: opt_boxshake = NOT opt_boxshake
                 CASE 59: opt_statsoverlay = NOT opt_statsoverlay
                 CASE 60: opt_autocombat = NOT opt_autocombat
+                CASE 62: opt_automove = NOT opt_automove
                 CASE 61
                     opt_autodelay = opt_autodelay + 1
                     IF opt_autodelay > 3 THEN opt_autodelay = 1
@@ -972,6 +973,9 @@ SUB RunSettings
                 CASE 58
                     lbl = "  Box Shake"
                     IF opt_boxshake THEN vtxt = "ON (one re-shake)" ELSE vtxt = "off"
+                CASE 62
+                    lbl = "Auto-Move"
+                    IF opt_automove THEN vtxt = "ON ([Z] to walk)" ELSE vtxt = "off"
                 CASE 60
                     lbl = "Auto-Combat"
                     IF opt_realdice THEN
@@ -1460,15 +1464,19 @@ SUB ShowKeys
     ky(13) = "H": ds(13) = "Quaff a healing potion"
     ky(14) = "P": ds(14) = "Pause the game (bio break)"
     ky(15) = "G": ds(15) = "Save game (solo; CONTINUE on entry)"
-    ky(16) = "TAB": ds(16) = "Where am I? -- flashes a ring around you"
+    ky(16) = "TAB": ds(16) = "Run stats overlay (SETTINGS: Stats Overlay)"
     ky(17) = "R": ds(17) = "Rest: +1 HP, but something may find you"
-    n = 17
+    ky(18) = "L": ds(18) = "Locate me -- flashes a ring around you"
+    ky(19) = "Z": ds(19) = "Auto-move (SETTINGS: Auto-Move); any key stops"
+    n = 19
     _DEST CANVAS
     LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), BOXBG, BF
     LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), CYANU, B
     COLOR YELLOWU, BOXBG: PrintCentered 9, "-=  C O N T R O L S  =-"
+    ' Single-row spacing: at 19 bindings the old 2-row layout ran to row 49 and the box ends
+    ' at 46, so the last three would have been drawn straight through the frame.
     FOR i = 1 TO n
-        y = 13 + (i - 1) * 2
+        y = 12 + (i - 1)
         COLOR GREENU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$(ky(i), 16)
         COLOR WHITE, BOXBG: _PRINTSTRING (48 * CW, y * CH), ds(i)
     NEXT i

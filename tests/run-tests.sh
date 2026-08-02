@@ -186,6 +186,22 @@ devrun() {
     # Bestiary discovery is deliberately NOT in the save, so a save round-trip cannot cover it.
     # The thing worth testing is the thing that makes it useful: discover, throw the run away,
     # come back and still know.
+    # The auto-walker: pure logic no screenshot can check and nobody can be asked to sit
+    # through. It must PATH, PROGRESS, and not churn its goal -- the churn assertion caught a
+    # walker that made 400 legal closing moves and arrived nowhere.
+    echo "-- auto-move pathing (dungeon.run automovetest) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 120 "automovetest: PASS" ./dungeon.run automovetest nocolor; then
+            grep -E 'walked|closest|goal changed' <<<"$DEVRUN_OUT" | sed 's/^/  /'
+        else
+            am="$DEVRUN_OUT"
+            grep -E 'FAIL|walked|closest|goal changed' <<<"$am" | head -6 | sed 's/^/    /'
+            (( fail++ )); failed+=("automovetest")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     echo "-- bestiary discovery survives a new run (dungeon.run bestiarytest) --"
     if [[ -x ./dungeon.run ]]; then
         if devrun 60 "OK --" ./dungeon.run bestiarytest nocolor; then bt="$DEVRUN_OUT"

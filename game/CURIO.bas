@@ -136,6 +136,7 @@ END SUB
 ' Roll for a curio; if one turns up, pick a weighted-random entry and run it.
 ' rm is the room (1..ROOM_N) or 0 out on a path.
 SUB DoCurio (rm AS INTEGER)
+    AutoMoveStop "You have come upon something."      ' an EVENT halts the walker
     DIM sec AS INTEGER, i AS INTEGER, pick AS INTEGER, kd AS STRING
     IF NCURIO <= 0 THEN EXIT SUB                        ' the caller decides IF a curio appears; we pick WHICH
     sec = PlayerLevel%                                  ' sticky: an unclaimed corridor keeps the level you came from

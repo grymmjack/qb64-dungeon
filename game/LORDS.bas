@@ -445,6 +445,7 @@ SUB SaveSettings
     PRINT #f, "rollstyle " + _TRIM$(STR$(opt_rollstyle))
     PRINT #f, "statsoverlay " + _TRIM$(STR$(opt_statsoverlay))
     PRINT #f, "autocombat " + _TRIM$(STR$(opt_autocombat))
+    PRINT #f, "automove " + _TRIM$(STR$(opt_automove))
     PRINT #f, "autodelay " + _TRIM$(STR$(opt_autodelay))
     PRINT #f, "boxshake " + _TRIM$(STR$(opt_boxshake))
     PRINT #f, "dicelight " + _TRIM$(STR$(opt_dicelight))
@@ -524,6 +525,7 @@ SUB LoadSettings
                 CASE "rollstyle": opt_rollstyle = v
                 CASE "statsoverlay": opt_statsoverlay = v
                 CASE "autocombat": opt_autocombat = v
+                CASE "automove": opt_automove = v
                 CASE "autodelay": opt_autodelay = v
                 CASE "boxshake": opt_boxshake = v
                 CASE "dicelight": opt_dicelight = v

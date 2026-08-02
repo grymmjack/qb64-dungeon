@@ -555,6 +555,19 @@ CONST STATROW_N = 24                    ' rows in the run scorecard (StatRowLabe
 ' `autocombat_run` is the RUNTIME flag (the option is the player's preference; the flag is
 ' whether it is actually driving right now), so combat can switch it off for a fight without
 ' rewriting the setting -- see AutoCombatLive%.
+' AUTO-MOVE: the game walks the dungeon for you, shallowest level first, halting on anything
+' worth a decision. `automove_run` is the RUNTIME flag; the option is the player's preference.
+CONST AUTOMOVE_STEP_SEC = 0.14         ' one auto step per this many seconds -- fast enough to
+'                                        watch, slow enough that a halt banner is readable
+DIM SHARED opt_automove AS INTEGER
+DIM SHARED automove_run AS INTEGER
+DIM SHARED automove_t0 AS SINGLE
+' Latches, so each halt condition fires ONCE rather than on every step thereafter.
+DIM SHARED automove_room AS INTEGER    ' the room being walked to; held until it is dealt with
+DIM SHARED automove_lastlvl AS INTEGER, automove_lastclear AS INTEGER, automove_hpwarn AS INTEGER
+' Auto-move's own BFS field. NOT HDIST -- that belongs to the solo hunter, which can be
+' running at the same time, and sharing it would have the two overwrite each other.
+DIM SHARED ADIST(0 TO 131, 0 TO 60) AS INTEGER
 DIM SHARED opt_autocombat AS INTEGER
 DIM SHARED opt_autodelay AS INTEGER    ' 1, 2 or 3 seconds between auto actions
 DIM SHARED autocombat_run AS INTEGER

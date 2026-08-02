@@ -689,10 +689,17 @@ END FUNCTION
 
 
 
-FUNCTION CanMove%
-    DIM img AS LONG, ok AS INTEGER, sec AS INTEGER, col AS _UNSIGNED LONG, oldsrc AS LONG
+' Can the player stand on the cell whose top-left pixel is (pxx, pyy)?
+'
+' THE authority on walkability, and it is a WHOLE-CELL test: every pixel must be a walkable
+' colour. That is what makes it disagree with CellKind%, which samples the cell CENTRE -- the
+' board art draws room lips with half-block glyphs whose centre pixel is floor while the rest
+' of the cell is not. A path planner that trusts CellKind% therefore routes through cells the
+' mover refuses, and wedges against them (auto-move did exactly this until it was pointed here).
+FUNCTION CanStandAt% (pxx AS INTEGER, pyy AS INTEGER)
+    DIM img AS LONG, ok AS INTEGER, col AS _UNSIGNED LONG, oldsrc AS LONG
     img = _NEWIMAGE(CW, CH, 32)
-    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (c.x, c.y)-(c.x + CW, c.y + CH)
+    _PUTIMAGE (0, 0)-(CW, CH), COLLIDE_BOARD, img, (pxx, pyy)-(pxx + CW, pyy + CH)
     ok = image_is_monochromatic(img, YELLOW)                        ' path
     IF NOT ok THEN ok = image_is_diachromatic(img, YELLOW, BROWN)         ' door on path
     IF NOT ok THEN ok = image_is_diachromatic(img, YELLOW, BRIGHT_BLUE)   ' secret door on path
@@ -703,7 +710,7 @@ FUNCTION CanMove%
         ' _PUTIMAGE rather than by _SOURCE -- so pin it, or the answer comes from whatever
         ' image the previous caller happened to leave selected.
         oldsrc = _SOURCE: _SOURCE COLLIDE_BOARD
-        col = Game_FloorColorAt~&(c.x, c.y)            ' game hook: room-floor colour here
+        col = Game_FloorColorAt~&(pxx, pyy)            ' game hook: room-floor colour here
         _SOURCE oldsrc
         IF col <> 0 THEN
             ok = image_is_monochromatic(img, col)
@@ -712,7 +719,13 @@ FUNCTION CanMove%
         END IF
     END IF
     _FREEIMAGE img
-    CanMove = ok
+    CanStandAt% = ok
+END FUNCTION
+
+' Can the cursor stand where it currently is? The mover's own check -- now a one-liner over
+' CanStandAt%, so a path planner and the mover can never disagree about what is walkable.
+FUNCTION CanMove%
+    CanMove% = CanStandAt%(c.x, c.y)
 END FUNCTION
 
 
