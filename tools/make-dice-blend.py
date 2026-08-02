@@ -49,6 +49,9 @@ dice = sorted(glob.glob(os.path.join(OBJDIR, "d*.obj")),
 if not dice:
     raise SystemExit("no diceobj/*.obj -- run `dungeon.run diceobj` first")
 
+# Framing. The row is len(dice) * SPACING wide, and the camera has to see all of it -- the
+# first version used a 65mm lens 14 units back, which framed three of the six.
+SPACING = 2.4
 placed = []
 for i, obj_path in enumerate(dice):
     base = os.path.splitext(os.path.basename(obj_path))[0]
@@ -57,7 +60,7 @@ for i, obj_path in enumerate(dice):
     for m in meshes:
         m.name = base
         # A row along X, evenly spaced, all sitting on Z=0 so the floor plane works.
-        m.location = (i * 2.6 - (len(dice) - 1) * 1.3, 0, 1)
+        m.location = (i * SPACING - (len(dice) - 1) * SPACING * 0.5, 0, 1)
         m.rotation_euler = (0, 0, math.radians(20))
         if os.path.exists(atlas):
             mat = make_material(base + "_mat", atlas)
@@ -99,9 +102,11 @@ for l in (key, fill, rim):
 
 # --- camera ------------------------------------------------------------------------------
 cam_data = bpy.data.cameras.new("camera")
-cam_data.lens = 65
+cam_data.lens = 50
 cam = bpy.data.objects.new("camera", cam_data)
-cam.location = (0, -14, 7)
+# Pulled back far enough for the whole row plus margin: at 50mm the horizontal field is about
+# 40 degrees, so the visible width is roughly 0.73 * distance.
+cam.location = (0, -(len(dice) * SPACING) / 0.62, 6.5)
 bpy.context.collection.objects.link(cam)
 c = cam.constraints.new("TRACK_TO")
 c.target = placed[len(placed) // 2]
