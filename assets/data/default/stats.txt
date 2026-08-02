@@ -18,7 +18,7 @@ STR | 1 | +damage on every successful strike
 STR | 1 | +to hit (except a Wizard, who swings by INT)
 STR | 1 | force reinforced doors open
 STR | 1 | physical saving throws
-STR | 0 | wield heavier armour and melee weapons
+STR | 1 | wield heavier armour and melee weapons
 
 DEX | 1 | bonus to armour class
 DEX | 1 | movement + reflex saving throws
@@ -33,17 +33,17 @@ CON | 1 | endure a maximum-damage blow for half
 INT | 1 | a Wizard's to hit and damage
 INT | 1 | mental saving throws
 INT | 1 | how many spells you can carry
-INT | 0 | speed of spell recall
+INT | 1 | speed of spell recall
 INT | 1 | magic flourishes for greater effects
 
 WIS | 1 | awareness saving throws
 WIS | 1 | read the bones: better odds when you gamble
 WIS | 1 | how far you can see and detect
 WIS | 1 | bonus to finding hidden things
-WIS | 0 | resistance to spell effects
+WIS | 1 | resistance to spell effects
 
 CHA | 1 | luck points: re-roll a bad die
 CHA | 1 | fortune favours you when you gamble
 CHA | 1 | barter: what you pay and what you get
-CHA | 0 | fate skew -- the dungeon's mood toward you
-CHA | 0 | reaction saving throws
+CHA | 1 | fate skew -- the dungeon's mood toward you
+CHA | 1 | reaction saving throws

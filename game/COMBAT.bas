@@ -214,7 +214,13 @@ END FUNCTION
 SUB WizardCastOldschool (rm AS INTEGER, elem AS STRING)
     DIM sec AS INTEGER, mon AS STRING
     sec = ROOMS(rm).sec: mon = _TRIM$(ROOMS(rm).monster)
-    IF elem = "fire" THEN spell_fire = spell_fire - 1 ELSE spell_bolt = spell_bolt - 1
+    ' INT: the words may come straight back, and the charge is never spent.
+    IF SpellInstantRecall% THEN
+        Banner "The words return to you at once!", "Your INTELLECT holds the " + SpellLabel$(elem) + " -- no charge spent.   [ press any key ]"
+        CombatPause
+    ELSE
+        IF elem = "fire" THEN spell_fire = spell_fire - 1 ELSE spell_bolt = spell_bolt - 1
+    END IF
     RecordItemUsed elem + " spell"
     Sfx SpellSfx$(elem)
     IF MonsterImmune%(mon, elem) THEN
@@ -443,6 +449,113 @@ END FUNCTION
 ' instead, so auto-combat cannot hand the player a gauge nobody is there to play.
 FUNCTION GesturesLive% ()
     IF opt_gestures AND autocombat_run = 0 THEN GesturesLive% = -1
+END FUNCTION
+
+' ============================================================================
+'  STR -- "wield heavier armour and melee weapons" (stats.txt).
+'
+'  STR already pays for melee DAMAGE (player_dmgbonus). The missing half was ARMOUR: magic
+'  armour and a shield are heavy, and a weak character should not get their full protection
+'  for free while a strong one gains nothing for the muscle.
+'
+'  So gear AC is now scaled by the STR modifier rather than added flat:
+'    negative STR mod -> you are overloaded and lose that much gear AC (never below none)
+'    STR mod >= 2     -> +1, you carry it well
+'
+'  It only ever touches the GEAR bonus, never base AC -- a weak character in no armour is
+'  exactly as protected as before, which keeps the penalty about the burden and not about them.
+' ============================================================================
+FUNCTION GearAC% ()
+    DIM g AS INTEGER, m AS INTEGER
+    g = item_armor + item_shield
+    IF g <= 0 THEN EXIT FUNCTION                 ' no gear, no burden
+    m = AbilMod(player_str)
+    IF m < 0 THEN
+        g = g + m                                ' m is negative: the weight tells
+        IF g < 0 THEN g = 0
+    ELSEIF m >= 2 THEN
+        g = g + 1
+    END IF
+    GearAC% = g
+END FUNCTION
+
+' The player's ARMOUR CLASS, everything included. The one place it is assembled -- it was
+' spelled out as `player_ac + item_armor + item_shield` in six places, so any change to how
+' armour works had six chances to be applied inconsistently.
+FUNCTION PlayerAC% ()
+    PlayerAC% = player_ac + GearAC%
+END FUNCTION
+
+' ============================================================================
+'  INT -- "speed of spell recall" (stats.txt). Two effects, both on the Wizard:
+'
+'    DEPTH REFILL -- descending grants +1 Fire Ball and +1 Lightning Bolt; a sharp Wizard
+'    recalls more of the deeper magic and gets AbilMod(INT) extra of each.
+'
+'    INSTANT RECALL -- 5% per point of INT modifier that a cast does not spend its charge.
+'    Capped at 25%: past that the spellbook stops being a resource and the Wizard just casts.
+'
+'  It is deliberately NOT a damage bonus. INT already sets the Wizard's to-hit; making it also
+'  scale damage would mean one stat did everything and the other five were decoration.
+' ============================================================================
+FUNCTION SpellRecallBonus% ()
+    DIM m AS INTEGER
+    m = AbilMod(player_int)
+    IF m < 0 THEN m = 0
+    SpellRecallBonus% = m
+END FUNCTION
+
+' TRUE if the spell came back to mind at once and the charge is not spent.
+FUNCTION SpellInstantRecall% ()
+    DIM pct AS INTEGER
+    pct = AbilMod(player_int) * 5
+    IF pct <= 0 THEN EXIT FUNCTION
+    IF pct > 25 THEN pct = 25
+    SpellInstantRecall% = (RollDie(100) <= pct)
+END FUNCTION
+
+' ============================================================================
+'  WIS -- "resistance to spell effects" (stats.txt).
+'
+'  CON already resists the PHYSICAL effects (poison, acid) by shortening every duration.
+'  WIS answers the magical ones, and answers them differently on purpose: not a shorter curse,
+'  but a chance to refuse it outright. That difference is the flavour -- toughness endures a
+'  thing, wisdom sees through it.
+'
+'  Only applies to effects a save-vs-WIS row already marks as magical, so the data still
+'  decides what counts as a spell and this never silently resists a snakebite.
+' ============================================================================
+FUNCTION SpellResist% (savestat AS STRING)
+    DIM pct AS INTEGER
+    IF UCASE$(_TRIM$(savestat)) <> "WIS" THEN EXIT FUNCTION
+    pct = AbilMod(player_wis) * 5
+    IF pct <= 0 THEN EXIT FUNCTION
+    IF pct > 25 THEN pct = 25
+    SpellResist% = (RollDie(100) <= pct)
+END FUNCTION
+
+' ============================================================================
+'  CHA -- "fate skew: the dungeon's mood toward you" and "reaction saving throws".
+'
+'  FateSkew% is a small signed nudge (the CHA modifier) that other systems apply to their own
+'  odds. It is intentionally NOT a die-roll bonus: CHA already buys barter and luck re-rolls,
+'  and a third bonus on top of every roll would make one stat quietly the best.
+'
+'  ReactionSave% is the classic reaction roll -- a creature that has just found you may
+'  hesitate. It only ever COSTS the monster its opening; it never grants the player damage,
+'  so a high-CHA character meets the same dungeon, just less often on the back foot.
+' ============================================================================
+FUNCTION FateSkew% ()
+    FateSkew% = AbilMod(player_cha)
+END FUNCTION
+
+' TRUE if the creature hesitates. d20 + CHA mod vs a depth-scaled target.
+FUNCTION ReactionSave% (depth AS INTEGER)
+    DIM r AS INTEGER, target AS INTEGER
+    IF opt_oldschool THEN EXIT FUNCTION          ' no ability scores in Dungeon! mode
+    target = 10 + depth \ 2
+    r = RollDie(20) + AbilMod(player_cha)
+    ReactionSave% = (r >= target)
 END FUNCTION
 
 FUNCTION InitiativeMod% ()
@@ -751,7 +864,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 EventBanner "** the " + mon + " " + MonVerb$(mon, "CRITS", "CRIT") + " you! **  (natural 20)", 1, mon, 3, "A savage blow lands for " + _TRIM$(STR$(mdmg)) + " damage!"
                 CombatPause
                 MonsterEffectStrike mon        ' a crit lands its elemental effect too
-            ELSEIF matk >= player_ac + item_armor + item_shield THEN
+            ELSEIF matk >= PlayerAC% THEN
                 PushMonsterDice: mdmg = GameRoll(1, 6, lvl \ 3, "the " + mon + "'s DAMAGE -- roll ITS d6"): PopMonsterDice
                 ' MAX on the monster's die, and you have the constitution to take it: brace.
                 ' Nested IFs -- QB64's AND evaluates both sides, and this one has a side effect.
@@ -770,7 +883,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg), 0         ' you take a hit -- the frame lurches
                 FX_DMG = mdmg
                 NarrateT "combat.hurt", NARR_COMBAT   ' spoken "it wounds you" (Combat tier)
-                EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
+                EventBanner "The " + mon + " " + MonVerb$(mon, "HITS", "HIT") + " you!  (d20+" + _TRIM$(STR$(mtohit)) + " = " + _TRIM$(STR$(matk)) + " vs AC " + _TRIM$(STR$(PlayerAC%)) + ")", 1, mon, 1, "You take " + _TRIM$(STR$(mdmg)) + " damage."
                 MonsterEffectStrike mon        ' venom / blight / curse / acid, if this one carries any
                 CombatPause
             ELSE
@@ -849,7 +962,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     COLOR REDU, BOXBG
     PrintCentered by + 3, mon + "   " + HpBar$(ROOMS(rm).mhp_now, ROOMS(rm).mhp, 22) + "  " + _TRIM$(STR$(ROOMS(rm).mhp_now)) + "/" + _TRIM$(STR$(ROOMS(rm).mhp)) + " HP   AC " + _TRIM$(STR$(ROOMS(rm).mac))
     COLOR GREENU, BOXBG
-    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(player_ac + item_armor + item_shield))
+    PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(PlayerAC%))
     COLOR CYANU, BOXBG
     IF item_potion_small > 0 OR item_potion_large > 0 THEN
         PrintCentered by + 8, "[SPACE] attack    [H] potion (" + _TRIM$(STR$(item_potion_small + item_potion_large)) + ")    [ESC] flee"
@@ -1063,7 +1176,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 IF item_shield < 2 THEN
                     item_shield = 2
                     LogTreasure _TRIM$(tname) + " (+2 AC)", 1000
-                    line2 = "You take up the " + tname + " -- +2 AC (now " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")."
+                    line2 = "You take up the " + tname + " -- +2 AC (now " + _TRIM$(STR$(PlayerAC%)) + ")."
                 ELSE
                     gold = gold + SellPrice&(500)
                     LogTreasure "Shield (spare)", 500
@@ -1073,7 +1186,7 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 IF item_armor < 3 THEN
                     item_armor = 3
                     LogTreasure _TRIM$(tname) + " (+3 AC)", 1500
-                    line2 = "You don the " + tname + " -- +3 AC (now " + _TRIM$(STR$(player_ac + item_armor + item_shield)) + ")."
+                    line2 = "You don the " + tname + " -- +3 AC (now " + _TRIM$(STR$(PlayerAC%)) + ")."
                 ELSE
                     gold = gold + SellPrice&(750)
                     LogTreasure "Armor (spare)", 750

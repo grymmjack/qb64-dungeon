@@ -910,9 +910,15 @@ FUNCTION PlayGame%
                         IF NOT lvl_reached(curlvl) THEN
                             lvl_reached(curlvl) = TRUE
                             IF player_class = 4 THEN                    ' a WIZARD's power grows as they descend
-                                spell_fire = spell_fire + 1: spell_bolt = spell_bolt + 1
+                                DIM rcl AS INTEGER
+                                rcl = 1 + SpellRecallBonus%                 ' INT: a sharp Wizard recalls more
+                                spell_fire = spell_fire + rcl: spell_bolt = spell_bolt + rcl
                                 Sfx "levelup"
-                                Banner "The deeper magic answers you.", "You gain a Fire Ball and a Lightning Bolt.   [ press any key ]"
+                                IF rcl > 1 THEN
+                                    Banner "The deeper magic answers you.", "Your INTELLECT recalls " + _TRIM$(STR$(rcl)) + " of each spell.   [ press any key ]"
+                                ELSE
+                                    Banner "The deeper magic answers you.", "You gain a Fire Ball and a Lightning Bolt.   [ press any key ]"
+                                END IF
                                 WaitKey
                             END IF
                         END IF

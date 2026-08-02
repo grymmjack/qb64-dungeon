@@ -403,6 +403,11 @@ SUB LoiterTick
     ELSE
         encpct = IDLE_ENCOUNTER_PCT
         IF siren_turns > 0 THEN encpct = encpct + SIREN_ENCOUNTER_BOOST   ' a siren makes it far worse
+        ' CHA -- "the dungeon's mood toward you". 2 percentage points per point of modifier:
+        ' a charming character is simply found less often. Applied to the ODDS rather than to a
+        ' roll the player makes, because this is meant to be felt over a run and never seen.
+        encpct = encpct - FateSkew% * 2
+        IF encpct < 1 THEN encpct = 1                 ' the dungeon is never entirely done with you
         IF RollDie(100) <= encpct THEN
             loiter = 0
             WanderEncounter                        ' the dungeon sends something after you
@@ -454,6 +459,17 @@ SUB WanderEncounter
     ' AMBUSH: "extra monster attack to start combat". Landed here rather than inside DoCombat's
     ' round loop, because a free strike is a thing that happens BEFORE the fight, not a special
     ' case threaded through every round -- and the loop is the last place that wants another flag.
+    ' CHA -- the reaction roll. Something that has just found you may hesitate, and hesitation
+    ' costs it the ambush. It never grants damage: a high-CHA character meets the same dungeon,
+    ' just less often on the back foot.
+    IF door_ambush THEN
+        IF ReactionSave%(sec) THEN
+            door_ambush = FALSE
+            Sfx "levelup"
+            Banner MonVerb$(wm, "The " + wm + " hesitates.", "The " + wm + " hesitate."), "Something in your bearing gives " + MonVerb$(wm, "it", "them") + " pause -- the ambush is broken.   [ press any key ]"
+            WaitKey
+        END IF
+    END IF
     IF door_ambush THEN AmbushFirstBlow w, wm, sec
     res = DoCombat(w)
     cursor_erase: cursor_draw: DrawHUD: Present

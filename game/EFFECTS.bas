@@ -177,6 +177,17 @@ SUB MonsterEffectStrike (mon AS STRING)
                 k = ME_KIND(i)
                 abmod = SaveStatMod%(ME_SAVE(i))
                 saved = SaveThrow%(abmod, EffectName$(k) + " from the " + _TRIM$(mon))
+                ' WIS answers MAGIC, and answers it differently from CON: not a shorter curse
+                ' but a refusal. Checked after the ordinary save, so it is a second chance and
+                ' never removes the first one.
+                IF NOT saved THEN
+                    IF SpellResist%(ME_SAVE(i)) THEN
+                        saved = -1
+                        Banner "You see through the " + EffectName$(k) + "!", "Your WISDOM refuses it outright.   [ press any key ]"
+                        WaitKey
+                        EXIT SUB
+                    END IF
+                END IF
                 IF saved THEN
                     Banner "You shrug off the " + EffectName$(k) + "!", "(saved vs " + _TRIM$(ME_SAVE(i)) + ")   [ press any key ]"
                     WaitKey

@@ -180,6 +180,21 @@ they are the same work seen from two directions:
 | CHA — barter, fate skew, reaction saves | not yet an entry — needs one |
 | STR — heavier armour and melee weapons | not yet an entry — needs one |
 
-**Flipping the flag is the last step of each feature**, and costs nothing but the edit. Four of
-the eight groups have no PLANS entry yet; worth adding when the @high pass starts so nothing in
-the creator stays permanently "(soon)".
+**Flipping the flag is the last step of each feature**, and costs nothing but the edit.
+
+**DONE, 26-08-01 — `stats.txt` is 28 live / 0 (soon).** Nothing in the character creator
+promises a mechanic that does not exist. The last five:
+
+| stat | mechanic | shape |
+|---|---|---|
+| STR | heavier armour | `GearAC%` scales the ARMOUR bonus by the STR modifier (never base AC) |
+| INT | spell recall | +AbilMod charges on each descent, and 5%/point that a cast keeps its charge |
+| WIS | spell resistance | a second chance to REFUSE a magical effect outright (vs CON, which shortens) |
+| CHA | fate skew | -2 percentage points of wandering-encounter chance per modifier point |
+| CHA | reaction saves | d20+CHA vs 10+depth\2 to break an ambush before it lands |
+
+The through-line in all five: **each stat does something the others do not.** WIS refuses where
+CON endures; CHA changes the odds rather than the roll (it already buys barter and luck, and a
+third flat bonus would have made it quietly the best stat); INT recalls rather than damages,
+because it already sets the Wizard's to-hit and one stat doing everything makes the other five
+decoration.

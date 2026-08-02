@@ -1282,7 +1282,7 @@ SUB ShowCharSheetPaint
     ' are the text column span, narrowed to the portrait's left edge for the rows it occupies.
     DIM tx1 AS INTEGER, tx2 AS INTEGER, hx2 AS INTEGER, portrait AS INTEGER, drow AS INTEGER
     DIM px1 AS INTEGER, py1 AS INTEGER, px2 AS INTEGER, py2 AS INTEGER
-    effac = player_ac + item_armor + item_shield                     ' AC + worn armor/shield
+    effac = PlayerAC%                                                ' AC + worn armor/shield (STR-scaled; see GearAC%)
     efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
     _DEST CANVAS
     LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
