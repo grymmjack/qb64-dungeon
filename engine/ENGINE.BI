@@ -421,8 +421,20 @@ DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 
 DIM SHARED bnr_l2row AS INTEGER        ' the row Banner actually put its prompt line on
 CONST BNR_ROW = 21
 CONST BNR_ROWS = 9
-DIM SHARED UI_FRAME_PATH AS STRING
-DIM SHARED UI_FRAME_TW AS INTEGER, UI_FRAME_TH AS INTEGER
+' Frames are held in SLOTS BY PURPOSE, not by name. Every game has a message banner, a dice
+' tray, a modal prompt -- the engine can name those. It cannot name "the Treasury screen", so
+' game-specific panels resolve their own art game-side (FrameBox%) and never touch these.
+'
+' The GAME fills the slots (PublishUIFrames). An empty slot falls back to slot 0, and an empty
+' slot 0 falls back to the plain LINE box every panel drew before frames existed.
+CONST UIF_PANEL = 0                    ' the generic fallback
+CONST UIF_BANNER = 1                   ' the message bar
+CONST UIF_ROLL = 2                     ' the dice roll box
+CONST UIF_GAUGE = 3                    ' the action-gesture gauge
+CONST UIF_PROMPT = 4                   ' modal fuse prompts (luck, box shake)
+CONST UIF_SLOTS = 5
+DIM SHARED UI_FRAME_PATH(0 TO UIF_SLOTS - 1) AS STRING
+DIM SHARED UI_FRAME_TW(0 TO UIF_SLOTS - 1) AS INTEGER, UI_FRAME_TH(0 TO UIF_SLOTS - 1) AS INTEGER
 CONST NG_MAX = 12
 DIM SHARED NG_PATH(1 TO NG_MAX) AS STRING
 DIM SHARED NG_IMG(1 TO NG_MAX) AS LONG

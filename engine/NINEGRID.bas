@@ -31,6 +31,13 @@ $INCLUDEONCE
 
 ' Render a 9-grid frame ANSI to an image at the UI cell size, cached by path.
 ' Returns 0 if the file is missing or empty -- every caller treats that as "draw nothing".
+' Load a 9-grid frame as an IMAGE, cached by path. ANSI or PIXEL ART -- the slicing does not
+' care which, because it is pure rectangle arithmetic on whatever image comes back.
+'
+' A .png frame must be authored at (3 x tilew x CW) by (3 x tileh x CH) PIXELS, i.e. the same
+' size the ANSI version occupies on screen, so one registry entry describes both and the two
+' are interchangeable. That is the whole reason the registry measures tiles in CHARACTER cells
+' rather than pixels: the cell is the common unit between the two art forms.
 FUNCTION NineGridLoad& (path AS STRING)
     DIM i AS INTEGER, img AS LONG, raw AS STRING, prevdest AS LONG
     DIM cols AS INTEGER, rows AS INTEGER
@@ -40,6 +47,16 @@ FUNCTION NineGridLoad& (path AS STRING)
     NEXT i
     IF LEN(path) = 0 THEN EXIT FUNCTION
     IF _FILEEXISTS(path) = 0 THEN EXIT FUNCTION
+    IF LCASE$(RIGHT$(path, 4)) <> ".ans" THEN            ' pixel art: already an image
+        img = Sprite&(path)
+        IF img = 0 THEN EXIT FUNCTION
+        IF NG_N < NG_MAX THEN
+            NG_N = NG_N + 1
+            NG_PATH(NG_N) = path: NG_IMG(NG_N) = img
+        END IF
+        NineGridLoad& = img
+        EXIT FUNCTION
+    END IF
     raw = _READFILE$(path)
     IF LEN(raw) = 0 THEN EXIT FUNCTION
     AnsiArtDims raw, cols, rows
@@ -98,9 +115,26 @@ END SUB
 
 ' Draw the UI's current panel frame. FALSE if none is set or its art is missing, so every
 ' caller keeps its plain LINE box as the fallback and the game never requires the art.
-FUNCTION UiPanel% (col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
-    IF LEN(UI_FRAME_PATH) = 0 THEN EXIT FUNCTION
-    UiPanel% = NineGridBox%(UI_FRAME_PATH, UI_FRAME_TW, UI_FRAME_TH, col, row, cols, rows)
+' Which slot actually supplies art -- the asked-for one, else the generic panel, else none.
+' Every lookup goes through this so the fallback rule exists in exactly one place.
+FUNCTION UiSlot% (slot AS INTEGER)
+    UiSlot% = -1
+    IF slot >= 0 AND slot < UIF_SLOTS THEN
+        IF LEN(UI_FRAME_PATH(slot)) > 0 THEN UiSlot% = slot: EXIT FUNCTION
+    END IF
+    IF LEN(UI_FRAME_PATH(UIF_PANEL)) > 0 THEN UiSlot% = UIF_PANEL
+END FUNCTION
+
+' TRUE if this slot will draw art -- callers use it to decide _PRINTMODE, since text over a
+' frame must not stamp its own background.
+FUNCTION UiFramed% (slot AS INTEGER)
+    UiFramed% = (UiSlot%(slot) >= 0)
+END FUNCTION
+
+FUNCTION UiPanel% (slot AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
+    DIM s AS INTEGER
+    s = UiSlot%(slot): IF s < 0 THEN EXIT FUNCTION
+    UiPanel% = NineGridBox%(UI_FRAME_PATH(s), UI_FRAME_TW(s), UI_FRAME_TH(s), col, row, cols, rows)
 END FUNCTION
 
 ' The content rect for the current frame -- or a 1-cell inset when there is no frame, which is
@@ -108,14 +142,41 @@ END FUNCTION
 '
 ' Callers MUST ask rather than assume: this frame's border is 4 columns and 2 ROWS thick, so
 ' anything that hardcoded "+1" would draw its first line straight through the art.
-SUB UiPanelInner (col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, icol AS INTEGER, irow AS INTEGER, icols AS INTEGER, irows AS INTEGER)
-    IF LEN(UI_FRAME_PATH) = 0 THEN
+SUB UiPanelInner (slot AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, icol AS INTEGER, irow AS INTEGER, icols AS INTEGER, irows AS INTEGER)
+    DIM s AS INTEGER
+    s = UiSlot%(slot)
+    IF s < 0 THEN
         icol = col + 1: irow = row + 1: icols = cols - 2: irows = rows - 2
         IF icols < 0 THEN icols = 0
         IF irows < 0 THEN irows = 0
         EXIT SUB
     END IF
-    NineGridInner UI_FRAME_TW, UI_FRAME_TH, col, row, cols, rows, icol, irow, icols, irows
+    NineGridInner UI_FRAME_TW(s), UI_FRAME_TH(s), col, row, cols, rows, icol, irow, icols, irows
+END SUB
+
+' The centre tile of a slot's frame, painted across a rect. This is how a caller WIPES part of
+' a framed panel: filling with BOXBG would punch a hole through the artwork.
+SUB UiPanelWipe (slot AS INTEGER, px AS INTEGER, py AS INTEGER, pw AS INTEGER, ph AS INTEGER)
+    DIM s AS INTEGER
+    s = UiSlot%(slot): IF s < 0 THEN EXIT SUB
+    NineGridTile NineGridLoad&(UI_FRAME_PATH(s)), UI_FRAME_TW(s), UI_FRAME_TH(s), 1, 1, px, py, pw, ph
+END SUB
+
+' Grow a box so its CONTENT rect lands exactly where a one-cell-bordered box used to put it.
+'
+' This is the standard move for retrofitting a frame onto an existing panel. The alternative --
+' moving the panel's contents inward -- means re-deriving every coordinate in its drawing code,
+' which looks identical when done right and subtly broken when not. Growing outward leaves all
+' of them untouched and correct.
+'
+' Caller must still bounds-check the result: a thick frame on a panel near the screen edge has
+' nowhere to grow.
+SUB FrameOutset (slot AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, fcol AS INTEGER, frow AS INTEGER, fcols AS INTEGER, frows AS INTEGER)
+    DIM s AS INTEGER
+    fcol = col: frow = row: fcols = cols: frows = rows
+    s = UiSlot%(slot): IF s < 0 THEN EXIT SUB
+    fcol = col + 1 - UI_FRAME_TW(s): frow = row + 1 - UI_FRAME_TH(s)
+    fcols = cols - 2 + 2 * UI_FRAME_TW(s): frows = rows - 2 + 2 * UI_FRAME_TH(s)
 END SUB
 
 ' Where the CONTENT goes -- the blue middle of the 9-grid, in CHARACTER cells.

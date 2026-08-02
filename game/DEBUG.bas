@@ -1067,6 +1067,16 @@ SUB DumpFrameGen
     ' CHR$(26) is the DOS EOF that separates ART from SAUCE. Without it the renderer walks
     ' straight into the metadata and DRAWS it -- the frame came out as "!!IBM VGA 260802".
     o = o + CHR$(26) + SauceRecord$("DUNGEON! GDK 9-grid panel frame", w, h, LEN(o))
+    ' NEVER overwrite art that already exists. This tool writes a STARTER; once a file is on
+    ' disk it belongs to the artist, and clobbering a hand-drawn frame is the most destructive
+    ' thing it could possibly do. (It did exactly that once, which is why this guard is here.)
+    ' Use the EXISTING base as the seed for the copies, so they inherit the real art, not mine.
+    IF _FILEEXISTS(path) THEN
+        PRINT PipeCol$("|15framegen|07 -- |14" + path + "|07 already drawn; left alone")
+        o = _READFILE$(path)
+        FrameSeedCopies o
+        EXIT SUB
+    END IF
     fh = FREEFILE
     OPEN path FOR OUTPUT AS #fh: CLOSE #fh       ' truncate
     OPEN path FOR BINARY AS #fh
@@ -1076,6 +1086,34 @@ SUB DumpFrameGen
     PRINT PipeCol$("  |14" + path + "|07   " + LTRIM$(STR$(w)) + "x" + LTRIM$(STR$(h)) + " chars, tiles " + LTRIM$(STR$(NG_TILEW)) + "x" + LTRIM$(STR$(NG_TILEH)))
     PRINT PipeCol$("  It is just a BOX. Redraw it at that size in any ANSI editor and every")
     PRINT PipeCol$("  panel drawn with NineGridBox% changes with it.")
+    FrameSeedCopies o
+END SUB
+
+' Give every frame registered in ui-frames.txt its own COPY of the base art, if it has none yet.
+'
+' The point is DIVERGENCE: each context starts identical and can then be redrawn separately --
+' a heavy iron combat panel, a lighter scroll for the banner -- with no code change, because the
+' registry already points each context at its own file.
+'
+' Never overwrites. Once a file exists it is the artist's, and regenerating over hand-drawn art
+' would be the single most destructive thing this tool could do.
+SUB FrameSeedCopies (art AS STRING)
+    DIM i AS INTEGER, dest AS STRING, fh AS INTEGER, made AS INTEGER, kept AS INTEGER
+    FOR i = 1 TO UIFRAME_N
+        dest = "assets/ansi-art/default/" + _TRIM$(UIFRAME_FILE(i)) + ".ans"
+        IF _FILEEXISTS(dest) THEN
+            kept = kept + 1
+        ELSE
+            fh = FREEFILE
+            OPEN dest FOR OUTPUT AS #fh: CLOSE #fh
+            OPEN dest FOR BINARY AS #fh
+            PUT #fh, 1, art
+            CLOSE #fh
+            made = made + 1
+            PRINT PipeCol$("  seeded |14" + dest)
+        END IF
+    NEXT i
+    PRINT PipeCol$("  frames: |10" + LTRIM$(STR$(made)) + "|07 seeded, |14" + LTRIM$(STR$(kept)) + "|07 already drawn (never overwritten)")
 END SUB
 
 
@@ -1133,8 +1171,10 @@ END SUB
 SUB DumpBannerShot
     _DEST _CONSOLE
     PRINT PipeCol$("|15bannershot|07 -- message banner, framed")
-    IF LEN(UI_FRAME_PATH) > 0 THEN
-        PRINT PipeCol$("  frame |14" + UI_FRAME_PATH + "|07  border " + LTRIM$(STR$(UI_FRAME_TW)) + " cols x " + LTRIM$(STR$(UI_FRAME_TH)) + " rows")
+    IF UiFramed%(UIF_BANNER) THEN
+        DIM sl AS INTEGER
+        sl = UiSlot%(UIF_BANNER)
+        PRINT PipeCol$("  frame |14" + UI_FRAME_PATH(sl) + "|07  border " + LTRIM$(STR$(UI_FRAME_TW(sl))) + " cols x " + LTRIM$(STR$(UI_FRAME_TH(sl))) + " rows")
     ELSE
         PRINT PipeCol$("  |14no frame published|07 -- falling back to the plain LINE box")
     END IF

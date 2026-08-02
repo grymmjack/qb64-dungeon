@@ -994,10 +994,9 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     ' correct. The panel grows up and out into empty screen (rows 38-49; the banner ends at 30
     ' and the HUD is row 50), which costs nothing.
     DIM fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER, framed AS INTEGER
-    IF LEN(UI_FRAME_PATH) > 0 THEN
-        fx = bx + 1 - UI_FRAME_TW: fy = by + 1 - UI_FRAME_TH
-        fw = bw - 2 + 2 * UI_FRAME_TW: fh = bh - 2 + 2 * UI_FRAME_TH
-        IF fx >= 0 AND fy >= 0 AND fx + fw <= SW AND fy + fh <= SH THEN framed = UiPanel%(fx, fy, fw, fh)
+    IF UiFramed%(UIF_PANEL) THEN
+        FrameOutset UIF_PANEL, bx, by, bw, bh, fx, fy, fw, fh
+        IF fx >= 0 AND fy >= 0 AND fx + fw <= SW AND fy + fh <= SH THEN framed = UiPanel%(UIF_PANEL, fx, fy, fw, fh)
     END IF
     IF NOT framed THEN
         LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF

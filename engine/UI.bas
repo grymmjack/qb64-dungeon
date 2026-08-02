@@ -189,7 +189,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     bx1 = (SW - w) \ 2: bx2 = bx1 + w
     ' The framed panel if the game has published one, else the plain box it always drew.
     DIM ic AS INTEGER, ir AS INTEGER, iw AS INTEGER, ih AS INTEGER, r1 AS INTEGER, r2 AS INTEGER
-    IF UiPanel%(bx1, BNR_ROW, w, BNR_ROWS) = 0 THEN
+    IF UiPanel%(UIF_BANNER, bx1, BNR_ROW, w, BNR_ROWS) = 0 THEN
         LINE (bx1 * CW, BNR_ROW * CH)-(bx2 * CW, (BNR_ROW + BNR_ROWS) * CH), BOXBG, BF
         LINE (bx1 * CW, BNR_ROW * CH)-(bx2 * CW, (BNR_ROW + BNR_ROWS) * CH), REDU, B
     END IF
@@ -197,7 +197,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     ' which sat one cell inside a one-cell border; the framed panel's border is 2 ROWS deep, so
     ' hardcoded rows would print through the art. Centred in the interior instead, so a frame
     ' with thicker or thinner edges moves the text rather than breaking it.
-    UiPanelInner bx1, BNR_ROW, w, BNR_ROWS, ic, ir, iw, ih
+    UiPanelInner UIF_BANNER, bx1, BNR_ROW, w, BNR_ROWS, ic, ir, iw, ih
     IF ih < 2 THEN ih = 2
     r1 = ir + (ih \ 2) - 1
     r2 = r1 + 2
@@ -206,7 +206,7 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     ' artist drew, and stamping BOXBG cells behind every glyph punches dark rectangles through
     ' it. With no frame there is no art to preserve and the opaque fill is what clears the old
     ' message, so the mode follows the frame rather than being chosen once.
-    IF LEN(UI_FRAME_PATH) > 0 THEN _PRINTMODE _KEEPBACKGROUND
+    IF UiFramed%(UIF_BANNER) THEN _PRINTMODE _KEEPBACKGROUND
     COLOR WHITE, BOXBG: PrintCentered r1, l1
     COLOR YELLOWU, BOXBG: PrintCentered r2, l2
     _PRINTMODE _FILLBACKGROUND
@@ -225,9 +225,8 @@ END SUB
 ' With a frame that means REDRAWING the frame's own centre tile across that strip -- a BOXBG bar
 ' would punch a dark rectangle through the artwork. Without one, the bar IS the correct wipe.
 SUB BannerClearPromptRow
-    IF LEN(UI_FRAME_PATH) > 0 THEN
-        NineGridTile NineGridLoad&(UI_FRAME_PATH), UI_FRAME_TW, UI_FRAME_TH, 1, 1, _
-            (bnr_bx1 + 1) * CW, bnr_l2row * CH, (bnr_bx2 - bnr_bx1 - 2) * CW, CH
+    IF UiFramed%(UIF_BANNER) THEN
+        UiPanelWipe UIF_BANNER, (bnr_bx1 + 1) * CW, bnr_l2row * CH, (bnr_bx2 - bnr_bx1 - 2) * CW, CH
     ELSE
         LINE ((bnr_bx1 + 1) * CW, bnr_l2row * CH)-((bnr_bx2 - 1) * CW, (bnr_l2row + 1) * CH), BOXBG, BF
     END IF
@@ -599,7 +598,7 @@ SUB FlashPrompt
     FOR ff = 1 TO 4
         BannerClearPromptRow
         IF ff MOD 2 = 1 THEN COLOR WHITE, REDU ELSE COLOR YELLOWU, BOXBG
-        IF LEN(UI_FRAME_PATH) > 0 THEN _PRINTMODE _KEEPBACKGROUND
+        IF UiFramed%(UIF_BANNER) THEN _PRINTMODE _KEEPBACKGROUND
         PrintCentered bnr_l2row, bnr_l2
         _PRINTMODE _FILLBACKGROUND
         Present
@@ -632,7 +631,7 @@ SUB CombatPause
         l2s = StrSubst$(bnr_l2, "[ press any key ]", "[ press to skip ]")
         _DEST CANVAS: _FONT CH
         BannerClearPromptRow
-        IF LEN(UI_FRAME_PATH) > 0 THEN _PRINTMODE _KEEPBACKGROUND
+        IF UiFramed%(UIF_BANNER) THEN _PRINTMODE _KEEPBACKGROUND
         COLOR YELLOWU, BOXBG: PrintCentered bnr_l2row, l2s
         _PRINTMODE _FILLBACKGROUND
         bnr_l2 = l2s

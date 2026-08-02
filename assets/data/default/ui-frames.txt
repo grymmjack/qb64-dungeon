@@ -1,27 +1,43 @@
-# ui-frames.txt -- the 9-grid UI frames this game can draw with.
+# ui-frames.txt -- the 9-grid UI frames this game draws its panels with.
 #
 # FORMAT:  name | file | tilew | tileh
-#   name    what code asks for -- FrameBox%("panel", ...)
-#   file    under assets/ansi-art/<pack>/ ; resolved through the ANSI art pack like any sprite
-#   tilew   CORNER width  in character cells
-#   tileh   CORNER height in character cells
+#   name    what code asks for -- FrameBox%("treasury", ...) or a published engine slot
+#   file    path under assets/<pixel-art|ansi-art>/<pack>/, WITHOUT an extension
+#   tilew   CORNER width  in CHARACTER cells
+#   tileh   CORNER height in CHARACTER cells
 #
-# The art is a box authored at (3 x tilew) by (3 x tileh) characters. The engine slices it into
-# a 3x3 grid: the four corners are drawn as-is, the top/bottom and left/right EDGES tile to
-# fill, and the CENTRE tiles to fill the content area. So the corner size IS the border
-# thickness, and it is also the inset of the content rect (see NineGridInner).
+# THE ART IS A BOX authored at (3 x tilew) by (3 x tileh) characters. The engine slices it 3x3:
+# the four corners draw as-is, the top/bottom and left/right EDGES tile to fill, and the CENTRE
+# tiles to fill the content area. So the corner size IS the border thickness, and it is also the
+# inset of the content rect (NineGridInner / UiPanelInner).
 #
 #   +--------+------------+--------+
 #   |   TL   |  T (tiles) |   TR   |   <- tileh rows tall
 #   +--------+------------+--------+
-#   |   L    |  CONTENT   |   R    |   <- fills
+#   |   L    |  CONTENT   |   R    |   <- fills; this is the "blue area"
 #   |(tiles) |  (tiles)   |(tiles) |
 #   +--------+------------+--------+
 #   |   BL   |  B (tiles) |   BR   |   <- tileh rows tall
 #   +--------+------------+--------+
 #     tilew                  tilew
 #
-# Draw a new frame at its 3x tile size, drop it in assets/ansi-art/<pack>/frames/, add a line
-# here, and it is available to every panel -- no code change.
-name  | file                    | tilew | tileh
-panel | frames/gdk-panel.ans    | 4     | 2
+# NO EXTENSION on purpose. A frame resolves exactly like every other sprite -- through the Art
+# Style setting and the art packs -- so `frames/combat` finds frames/combat.ans in ANSI mode and
+# frames/combat.png in Pixel mode. A .png frame must be authored at the SAME on-screen size:
+# (3 x tilew x 8) by (3 x tileh x 16) pixels. Ship either, or both.
+#
+# EVERY CONTEXT HAS ITS OWN FILE so they can diverge artistically -- heavy iron around combat, a
+# lighter scroll for the banner -- with no code change. `dungeon.run framegen` seeds any missing
+# one with a copy of the base panel and NEVER overwrites art that already exists.
+name       | file                    | tilew | tileh
+panel      | frames/gdk-panel        | 4     | 2
+banner     | frames/banner           | 4     | 2
+roll       | frames/roll             | 4     | 2
+gauge      | frames/gauge            | 4     | 2
+prompt     | frames/prompt           | 4     | 2
+summary    | frames/summary          | 4     | 2
+eventlog   | frames/eventlog         | 4     | 2
+bestiary   | frames/bestiary         | 4     | 2
+treasury   | frames/treasury         | 4     | 2
+gamemenu   | frames/gamemenu         | 4     | 2
+charsheet  | frames/charsheet        | 4     | 2

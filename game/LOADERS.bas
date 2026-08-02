@@ -341,17 +341,25 @@ SUB LoadUIFrames
             END IF
         END IF
     NEXT i
-    PublishUIFrame "panel"                        ' hand the engine the default panel frame
+    ' Hand the engine one frame per PURPOSE. Each is a separate entry in ui-frames.txt, so they
+    ' can diverge artistically -- a heavy iron combat panel, a lighter scroll for the banner --
+    ' without any of them needing code.
+    PublishUIFrame UIF_PANEL, "panel"
+    PublishUIFrame UIF_BANNER, "banner"
+    PublishUIFrame UIF_ROLL, "roll"
+    PublishUIFrame UIF_GAUGE, "gauge"
+    PublishUIFrame UIF_PROMPT, "prompt"
 END SUB
 
 ' Publish the default panel frame to the ENGINE, so engine-drawn panels (Banner and friends)
 ' can use it without the engine knowing this table exists.
-SUB PublishUIFrame (nm AS STRING)
+SUB PublishUIFrame (slot AS INTEGER, nm AS STRING)
     DIM i AS INTEGER, p AS STRING
-    UI_FRAME_PATH = ""
+    IF slot < 0 OR slot >= UIF_SLOTS THEN EXIT SUB
+    UI_FRAME_PATH(slot) = ""
     i = FrameIdx%(nm): IF i = 0 THEN EXIT SUB
-    p = AnsiFile$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT SUB
-    UI_FRAME_PATH = p: UI_FRAME_TW = UIFRAME_TW(i): UI_FRAME_TH = UIFRAME_TH(i)
+    p = FrameArt$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT SUB
+    UI_FRAME_PATH(slot) = p: UI_FRAME_TW(slot) = UIFRAME_TW(i): UI_FRAME_TH(slot) = UIFRAME_TH(i)
 END SUB
 
 FUNCTION FrameIdx% (nm AS STRING)
@@ -363,10 +371,18 @@ END FUNCTION
 
 ' Draw a registered frame. FALSE if the name is unknown or its art is missing, so every caller
 ' can fall back to a plain LINE box and the game never depends on the art existing.
+' Resolve a frame's art, STYLE-AWARE. The registry names a file with no extension, so a frame
+' is picked exactly like every other sprite: pixel art when the player has chosen Pixel, ANSI
+' when they have chosen ANSI, and whichever exists in Hybrid. That is what lets frames be drawn
+' as pixel art later without touching a line of drawing code.
+FUNCTION FrameArt$ (basepath AS STRING)
+    FrameArt$ = ArtFile$(_TRIM$(basepath) + ".png")   ' ArtFile$ swaps the extension per art style
+END FUNCTION
+
 FUNCTION FrameBox% (nm AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
     DIM i AS INTEGER, p AS STRING
     i = FrameIdx%(nm): IF i = 0 THEN EXIT FUNCTION
-    p = AnsiFile$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT FUNCTION
+    p = FrameArt$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT FUNCTION
     FrameBox% = NineGridBox%(p, UIFRAME_TW(i), UIFRAME_TH(i), col, row, cols, rows)
 END FUNCTION
 
