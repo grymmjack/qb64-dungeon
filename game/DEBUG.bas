@@ -742,7 +742,7 @@ SUB DumpSummaryShot
     start_heals = 3: g_rests = 41: g_run_deaths = 2
 
     _DEST CANVAS: CLS , BLACK
-    ChroniclePanel 14, 3, 118, 40, "G A M E   S U M M A R Y"
+    ChroniclePanel 14, 3, 118, 40, "G A M E   S U M M A R Y", "summary"
     COLOR WHITE, BOXBG: PrintCentered 6, _TRIM$(player_name) + "  the  " + _TRIM$(class_name)
     COLOR GREY, BOXBG: PrintCentered 8, "Level " + EvNum$(char_level) + "    XP " + EvNum$(char_xp) + "    Gold " + EvNum$(gold) + " / " + EvNum$(target_gold)
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, per AS INTEGER, lx AS INTEGER
@@ -754,6 +754,7 @@ SUB DumpSummaryShot
         COLOR CYANU, BOXBG: _PRINTSTRING (lx * CW, y * CH), PadR$(StatRowLabel$(i), 22)
         COLOR WHITE, BOXBG: _PRINTSTRING ((lx + 23) * CW, y * CH), StatRowValue$(i)
     NEXT i
+    _PRINTMODE _FILLBACKGROUND                     ' this shot never calls ChronicleClose
     _SAVEIMAGE "summaryshot.png", CANVAS
 
     _DEST CANVAS: CLS , _RGB32(&H10, &H14, &H10)   ' a dim "board" behind it, so the panel reads

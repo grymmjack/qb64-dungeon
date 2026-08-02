@@ -287,14 +287,38 @@ END SUB
 ' ---------------------------------------------------------------------------
 
 ' A framed panel helper: fills rows y1..y2 (cols x1..x2) + a centred title.
-SUB ChroniclePanel (x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER, title AS STRING)
+' Open a Chronicle screen's panel. `frame` names its entry in ui-frames.txt, so each of these
+' screens can be re-skinned on its own.
+'
+' Framed by GROWING OUTWARD (FrameOutset): every one of these screens lays its body out against
+' the old one-cell border, so moving the contents inward would mean re-deriving coordinates in
+' five separate SUBs. The content rect stays exactly where it was and the frame wraps around it.
+'
+' Sets _PRINTMODE _KEEPBACKGROUND while framed, and ChronicleClose restores it -- the callers
+' draw dozens of lines with `COLOR x, BOXBG` after this returns, and each would otherwise stamp
+' a dark cell through the artwork. The panel/close pairing is what makes that safe.
+SUB ChroniclePanel (x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER, title AS STRING, frame AS STRING)
+    DIM fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER, framed AS INTEGER
+    DIM i AS INTEGER
     _DEST CANVAS
-    LINE (x1 * CW, y1 * CH)-(x2 * CW, y2 * CH), BOXBG, BF
-    LINE (x1 * CW, y1 * CH)-(x2 * CW, y2 * CH), CYANU, B
+    i = FrameIdx%(frame)
+    IF i > 0 THEN
+        fx = x1 + 1 - UIFRAME_TW(i): fy = y1 + 1 - UIFRAME_TH(i)
+        fw = (x2 - x1) - 2 + 2 * UIFRAME_TW(i): fh = (y2 - y1) - 2 + 2 * UIFRAME_TH(i)
+        IF fx >= 0 AND fy >= 0 AND fx + fw <= SW AND fy + fh <= SH THEN framed = FrameBox%(frame, fx, fy, fw, fh)
+    END IF
+    IF NOT framed THEN
+        LINE (x1 * CW, y1 * CH)-(x2 * CW, y2 * CH), BOXBG, BF
+        LINE (x1 * CW, y1 * CH)-(x2 * CW, y2 * CH), CYANU, B
+    END IF
+    chron_framed = framed
+    IF framed THEN _PRINTMODE _KEEPBACKGROUND
     COLOR YELLOWU, BOXBG: PrintCentered y1 + 1, "-=  " + title + "  =-"
 END SUB
 
 SUB ChronicleClose
+    _PRINTMODE _FILLBACKGROUND                   ' paired with ChroniclePanel -- see the note there
+    chron_framed = 0
     cursor_erase: cursor_draw: DrawHUD: Present
 END SUB
 
@@ -382,7 +406,7 @@ END FUNCTION
 
 SUB ShowGameSummary
     DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, per AS INTEGER, lx AS INTEGER
-    ChroniclePanel 14, 3, 118, 40, "G A M E   S U M M A R Y"
+    ChroniclePanel 14, 3, 118, 40, "G A M E   S U M M A R Y", "summary"
     COLOR WHITE, BOXBG: PrintCentered 6, _TRIM$(player_name) + "  the  " + _TRIM$(class_name)
     COLOR GREY, BOXBG: PrintCentered 8, "Level " + EvNum$(char_level) + "    XP " + EvNum$(char_xp) + "    Gold " + EvNum$(gold) + " / " + EvNum$(target_gold)
     ' TWO COLUMNS. At 24 stats a single column at the old 2-row spacing needs 48 rows and the
@@ -426,7 +450,7 @@ SUB ShowEventLog
     per = 30
     top = EVLOG_N - per + 1: IF top < 1 THEN top = 1     ' start at the newest page
     DO
-        ChroniclePanel 6, 3, 126, 47, "E V E N T   L O G   (" + EvNum$(EVLOG_N) + " events)"
+        ChroniclePanel 6, 3, 126, 47, "E V E N T   L O G   (" + EvNum$(EVLOG_N) + " events)", "eventlog"
         IF EVLOG_N = 0 THEN
             COLOR GREY, BOXBG: PrintCentered 24, "Nothing has happened yet. Go make history."
         ELSE
@@ -553,7 +577,7 @@ END FUNCTION
 SUB ShowTreasury
     DIM sel AS INTEGER, i AS INTEGER, y AS INTEGER, k AS STRING, sp AS STRING
     IF TRE_STAT_N = 0 THEN
-        ChroniclePanel 16, 4, 116, 46, "T R E A S U R Y"
+        ChroniclePanel 16, 4, 116, 46, "T R E A S U R Y", "treasury"
         COLOR GREY, BOXBG: PrintCentered 24, "No treasure recovered yet. The hoard awaits."
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[ press any key ]"
         Present: WaitKey: ChronicleClose: EXIT SUB
@@ -793,7 +817,7 @@ SUB GameMenu
     lbl(8) = "Resume Game"
     sel = 1
     DO
-        ChroniclePanel 44, 12, 88, 33, "G A M E   M E N U"
+        ChroniclePanel 44, 12, 88, 33, "G A M E   M E N U", "gamemenu"
         FOR i = 1 TO 8
             y = 15 + (i - 1) * 2
             IF i = sel THEN COLOR WHITE, REDU ELSE COLOR CYANU, BOXBG
