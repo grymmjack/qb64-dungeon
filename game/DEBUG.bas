@@ -1079,6 +1079,26 @@ SUB DumpFrameGen
 END SUB
 
 
+' Draw one demo panel and FILL ITS CONTENT RECT, so the shot proves two separate things: that
+' the frame tiles, and that NineGridInner reports an interior the text actually fits inside.
+' Drawing the caption at a guessed offset would have proved only the first.
+SUB FrameDemo (nm AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, cap AS STRING)
+    DIM ok AS INTEGER, ic AS INTEGER, ir AS INTEGER, iw AS INTEGER, ih AS INTEGER, y AS INTEGER
+    ok = FrameBox%(nm, col, row, cols, rows)
+    IF NOT ok THEN EXIT SUB
+    FrameInner nm, col, row, cols, rows, ic, ir, iw, ih
+    IF iw <= 0 OR ih <= 0 THEN EXIT SUB
+    ' A dim wash over the exact content rect -- this is the "blue area" of the 9-grid diagram.
+    LINE (ic * CW, ir * CH)-((ic + iw) * CW, (ir + ih) * CH), _RGB32(&H10, &H14, &H3A), BF
+    COLOR YELLOWU, _RGB32(&H10, &H14, &H3A)
+    _PRINTSTRING (ic * CW, ir * CH), LEFT$(cap, iw)
+    COLOR GREY, _RGB32(&H10, &H14, &H3A)
+    IF ih >= 2 THEN _PRINTSTRING (ic * CW, (ir + 1) * CH), LEFT$("content " + LTRIM$(STR$(iw)) + "x" + LTRIM$(STR$(ih)), iw)
+    FOR y = 2 TO ih - 1
+        _PRINTSTRING (ic * CW, (ir + y) * CH), STRING$(iw, 250)     ' fill it, so overflow shows
+    NEXT y
+END SUB
+
 ' `dungeon.run frameshot` -- render the GDK frame at several sizes to prove the tiling.
 '
 ' Sizes that do NOT divide evenly by the tile, on purpose: even division is the case that always
@@ -1093,19 +1113,12 @@ SUB DumpFrameShot
     END IF
     PRINT PipeCol$("|15frameshot|07 -- " + p)
     _DEST CANVAS: _FONT CH: CLS , BLACK
-    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 2, 2, 40, 8)
-    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 46, 2, 23, 8)      ' not a multiple of the tile
-    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 72, 2, 8, 4)       ' minimum: corners only
-    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 2, 12, 100, 14)
-    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 2, 28, 17, 19)     ' odd in both axes
-    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 22, 28, 108, 7)
-    COLOR YELLOWU, BLACK
-    _PRINTSTRING (6 * CW, 5 * CH), "40 x 8  (even)"
-    _PRINTSTRING (50 * CW, 5 * CH), "23 x 8  (odd)"
-    _PRINTSTRING (74 * CW, 4 * CH), "8x4 min"
-    _PRINTSTRING (6 * CW, 18 * CH), "100 x 14 -- a wide panel; the rails tile and clip"
-    _PRINTSTRING (6 * CW, 36 * CH), "17 x 19"
-    _PRINTSTRING (26 * CW, 31 * CH), "108 x 7"
+    FrameDemo "panel", 2, 2, 40, 8, "40 x 8 -- even"
+    FrameDemo "panel", 46, 2, 23, 8, "23 x 8 -- odd"
+    FrameDemo "panel", 72, 2, 8, 4, "min"
+    FrameDemo "panel", 2, 12, 100, 14, "100 x 14 -- a wide panel; the rails tile and clip"
+    FrameDemo "panel", 2, 28, 17, 19, "17 x 19"
+    FrameDemo "panel", 22, 28, 108, 7, "108 x 7"
     _SAVEIMAGE "frameshot.png", CANVAS
     _DEST _CONSOLE
     PRINT PipeCol$("  wrote |14frameshot.png|07 (6 boxes, sizes chosen to NOT divide evenly)")
