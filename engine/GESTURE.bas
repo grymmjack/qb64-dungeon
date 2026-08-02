@@ -51,6 +51,16 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
     GaugeKnobs k
     GaugeBegin k
 
+    ' REAL DICE: the bar does not sweep and there is no fuse. A gesture is a test of TIMING,
+    ' and a player rolling a physical d20 has no timing to test -- the old behaviour asked them
+    ' to watch a sweeping marker while reaching for dice, which is two things at once and
+    ' neither of them the game. Instead the bar stands still with the d20 faces mapped along
+    ' it, they roll, they type it, and the marker lands where that face falls.
+    IF opt_realdice THEN
+        GaugeLock% = GaugeLockDice%(title, prompt, swMode, k)
+        EXIT FUNCTION
+    END IF
+
     gsecs = GestureSecs!
     t0 = TIMER: gauge_quality = 0
     _KEYCLEAR                          ' drop the SPACE that opened this so it cannot instant-lock
@@ -92,6 +102,136 @@ FUNCTION GaugeLock% (title AS STRING, prompt AS STRING, swMode AS INTEGER, depth
     LOOP
 END FUNCTION
 
+' The REAL-DICE gesture: a static bar with the 20 d20 faces laid along it, each shaded by the
+' zone it would score. The player rolls their own d20 and types it; the marker goes to that
+' face and the attempt is scored exactly as a timed lock would be.
+'
+' No fuse. The fuse exists to make hesitation cost something on a TIMING test; here there is
+' nothing to hesitate about, and a countdown would only punish someone for the time it takes
+' to pick dice up off a table.
+FUNCTION GaugeLockDice% (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUGEK)
+    DIM entry AS STRING, kk AS STRING, chcode AS INTEGER, v AS INTEGER
+    DIM z AS INTEGER, q AS SINGLE, msg AS STRING, fl AS SINGLE
+    gauge_quality = 0
+    _KEYCLEAR                              ' drop the SPACE that opened this
+    entry = "": msg = ""
+    DO
+        _LIMIT 60
+        ' Live preview: the marker follows what has been TYPED, so a mistyped 1 shows itself
+        ' before ENTER commits it. v = 0 while the entry is empty or out of range -> no marker.
+        v = VAL(entry)
+        IF v >= 1 AND v <= 20 THEN k.p = GaugeDieP!(v, 20)
+        DrawGaugeEx title, prompt, swMode, k, 1, 0, (v >= 1 AND v <= 20)
+        DrawGaugeDiceStrip k, entry, msg
+        Present
+        kk = INKEY$
+        IF kk = CHR$(27) THEN GaugeLockDice% = 0: EXIT FUNCTION      ' ESC forfeits (a miss)
+        IF kk = CHR$(13) THEN
+            IF LEN(entry) > 0 THEN
+                v = VAL(entry)
+                IF v >= 1 AND v <= 20 THEN
+                    k.p = GaugeDieP!(v, 20)
+                    z = GaugeScore%(k, q)
+                    gauge_quality = q
+                    IF z = 2 THEN
+                        Sfx "crit"
+                    ELSEIF z = 1 THEN
+                        Sfx "hit"
+                    ELSE
+                        Sfx "bump"
+                    END IF
+                    fl = TIMER                                        ' freeze on the result, as the timed gauge does
+                    DO
+                        DrawGaugeEx title, GaugeResult$(z, swMode), swMode, k, 1, 0, -1
+                        DrawGaugeDiceStrip k, entry, ""
+                        DrawGaugeLock k.p, z
+                        Present: _LIMIT 60
+                    LOOP UNTIL TIMER - fl >= 0.9 OR TIMER - fl < 0
+                    GaugeLockDice% = z
+                    EXIT FUNCTION
+                ELSE
+                    msg = "A d20 rolls 1 to 20.": entry = ""
+                END IF
+            END IF
+        ELSEIF kk = CHR$(8) THEN
+            IF LEN(entry) > 0 THEN entry = LEFT$(entry, LEN(entry) - 1)
+        ELSEIF LEN(kk) = 1 THEN
+            chcode = ASC(kk)
+            IF chcode >= 48 AND chcode <= 57 AND LEN(entry) < 2 THEN entry = entry + kk
+        END IF
+    LOOP
+END FUNCTION
+
+' The d20 face strip under the bar: twenty cells in the bar's own coordinates, each shaded
+' by the zone that face scores, with the numeric ranges spelled out underneath.
+'
+' It has to be drawn in the SAME gx/gw the bar uses, or the promise the strip makes ("roll a
+' 12 and you land in the purple") is a lie -- the WYSIWYG rule that governs the zones governs
+' this too.
+SUB DrawGaugeDiceStrip (k AS GAUGEK, entry AS STRING, msg AS STRING)
+    DIM bx AS INTEGER, bw AS INTEGER, by AS INTEGER
+    DIM gx AS INTEGER, gw AS INTEGER, sy AS INTEGER, striph AS INTEGER
+    DIM f AS INTEGER, zn AS INTEGER, x1 AS INTEGER, x2 AS INTEGER
+    DIM kol AS _UNSIGNED LONG, lbl AS STRING
+    bx = 18: bw = 96: by = 16
+    gx = (bx + 6) * CW: gw = (bw - 12) * CW
+    sy = (by + 15) * CH: striph = CH - 2                     ' just under the bar (bar ends at by+14)
+    _DEST CANVAS
+    FOR f = 1 TO 20
+        x1 = gx + INT(((f - 1) / 20) * gw)
+        x2 = gx + INT((f / 20) * gw) - 2
+        zn = GaugeZoneAt%(k, GaugeDieP!(f, 20))
+        SELECT CASE zn
+            CASE 2: kol = _RGB32(&HA6, &H66, &HCE)
+            CASE 1: kol = _RGB32(&H2E, &HA0, &H55)
+            CASE ELSE: kol = _RGB32(&H33, &H3B, &H33)
+        END SELECT
+        LINE (x1, sy)-(x2, sy + striph), kol, BF
+    NEXT f
+    ' Spell the ranges out as text as well as colour: at 20 cells across a 84-column bar each
+    ' face is ~4 pixels, which is enough to see a band and not enough to count to fourteen.
+    ' Where the fuse bar would be in the timed form. Same box geometry on purpose -- the two
+    ' presentations should read as one widget -- so the space is explained rather than left blank.
+    COLOR CYANU, BOXBG: PrintCentered by + 5, "the bar is STILL -- your roll decides where the marker lands"
+    COLOR GREY, BOXBG: PrintCentered by + 17, "your d20:   " + GaugeRangeText$(k)
+    COLOR YELLOWU, BOXBG: PrintCentered by + 20, "roll it and type the number:  " + entry + "_"
+    IF LEN(msg) > 0 THEN
+        COLOR REDU, BOXBG: PrintCentered by + 21, msg
+    ELSE
+        COLOR BOXBG, BOXBG: PrintCentered by + 21, SPACE$(44)
+    END IF
+END SUB
+
+' "CRIT 10-11   HIT 8-13   else MISS" -- built by WALKING the faces rather than by inverting
+' the zone arithmetic, so it cannot disagree with the strip drawn directly above it.
+FUNCTION GaugeRangeText$ (k AS GAUGEK)
+    DIM f AS INTEGER, zn AS INTEGER
+    DIM clo AS INTEGER, chi AS INTEGER, hlo AS INTEGER, hhi AS INTEGER
+    FOR f = 1 TO 20
+        zn = GaugeZoneAt%(k, GaugeDieP!(f, 20))
+        IF zn = 2 THEN
+            IF clo = 0 THEN clo = f
+            chi = f
+        END IF
+        IF zn >= 1 THEN
+            IF hlo = 0 THEN hlo = f
+            hhi = f
+        END IF
+    NEXT f
+    DIM o AS STRING
+    IF clo > 0 THEN o = "CRIT " + RangeStr$(clo, chi)
+    IF hlo > 0 AND (hlo < clo OR hhi > chi) THEN
+        IF LEN(o) > 0 THEN o = o + "    "
+        o = o + "HIT " + RangeStr$(hlo, hhi)
+    END IF
+    IF LEN(o) = 0 THEN o = "no zone -- any roll misses" ELSE o = o + "    else MISS"
+    GaugeRangeText$ = o
+END FUNCTION
+
+FUNCTION RangeStr$ (lo AS INTEGER, hi AS INTEGER)
+    IF lo = hi THEN RangeStr$ = _TRIM$(STR$(lo)) ELSE RangeStr$ = _TRIM$(STR$(lo)) + "-" + _TRIM$(STR$(hi))
+END FUNCTION
+
 FUNCTION GaugeResult$ (z AS INTEGER, swMode AS INTEGER)
     IF swMode THEN                                ' SECOND WIND: purple = rise, anything else = you fall
         IF z = 2 THEN GaugeResult$ = "** RISE! **" ELSE GaugeResult$ = "TOO SLOW..."
@@ -115,6 +255,15 @@ END FUNCTION
 ' takes the whole GAUGEK now (as FightDrawGauge already did) so no caller can pick out
 ' the widths and silently leave the centre behind again.
 SUB DrawGauge (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUGEK, fuseFrac AS SINGLE)
+    DrawGaugeEx title, prompt, swMode, k, fuseFrac, -1, -1
+END SUB
+
+' As DrawGauge, but the fuse bar and the marker can each be suppressed.
+'
+' The real-dice gauge needs both off: there is no fuse to show, and drawing a full one implies
+' a countdown that is not running; and before a roll is typed there is no marker position to
+' show -- leaving the sweep's last one there points at a number the player did not choose.
+SUB DrawGaugeEx (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUGEK, fuseFrac AS SINGLE, showfuse AS INTEGER, showmarker AS INTEGER)
     DIM bx AS INTEGER, bw AS INTEGER, by AS INTEGER, bh AS INTEGER
     DIM gx AS INTEGER, gw AS INTEGER, gy AS INTEGER, gh AS INTEGER, mxp AS INTEGER
     DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG
@@ -124,18 +273,22 @@ SUB DrawGauge (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUGEK
     LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
     COLOR YELLOWU, BOXBG: PrintCentered by + 2, "-=  " + title + "  =-"
     ' fuse countdown
-    fx = (bx + 6) * CW: fw = (bw - 12) * CW
-    LINE (fx, (by + 5) * CH)-(fx + fw, (by + 6) * CH - 4), _RGB32(40, 40, 46), BF
-    IF fuseFrac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
-    LINE (fx, (by + 5) * CH)-(fx + INT(fw * fuseFrac), (by + 6) * CH - 4), fcol, BF
+    IF showfuse THEN
+        fx = (bx + 6) * CW: fw = (bw - 12) * CW
+        LINE (fx, (by + 5) * CH)-(fx + fw, (by + 6) * CH - 4), _RGB32(40, 40, 46), BF
+        IF fuseFrac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
+        LINE (fx, (by + 5) * CH)-(fx + INT(fw * fuseFrac), (by + 6) * CH - 4), fcol, BF
+    END IF
     ' the gauge bar with layered zones, centred on the LIVE zone centre k.zc
     gx = (bx + 6) * CW: gw = (bw - 12) * CW: gy = (by + 11) * CH: gh = 3 * CH
     LINE (gx, gy)-(gx + gw, gy + gh), _RGB32(&H33, &H3B, &H33), BF                                  ' dark = miss/fall
     IF swMode = 0 THEN LINE (gx + INT((k.zc - k.ehit) * gw), gy)-(gx + INT((k.zc + k.ehit) * gw), gy + gh), _RGB32(&H2E, &HA0, &H55), BF   ' green = hit (crit flourish only)
     LINE (gx + INT((k.zc - k.ecrit) * gw), gy)-(gx + INT((k.zc + k.ecrit) * gw), gy + gh), _RGB32(&HA6, &H66, &HCE), BF ' purple = crit / second wind
     ' the sweeping marker
-    mxp = gx + INT(k.p * gw)
-    LINE (mxp - 1, gy - 8)-(mxp + 2, gy + gh + 8), _RGB32(&HF0, &HEC, &HD0), BF
+    IF showmarker THEN
+        mxp = gx + INT(k.p * gw)
+        LINE (mxp - 1, gy - 8)-(mxp + 2, gy + gh + 8), _RGB32(&HF0, &HEC, &HD0), BF
+    END IF
     DIM leg AS STRING
     ' The legend must state the SAME mapping CritFlourish% pays out (crit 2 / hit 1 / miss 0).
     IF swMode THEN leg = "purple = SECOND WIND" ELSE leg = "purple (centre) = +2 dice     green = +1 die     dark = +0"

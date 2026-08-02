@@ -663,3 +663,56 @@ SUB DumpCreatorShot (statsel AS INTEGER)
     _SAVEIMAGE "creatorshot.png", CANVAS
     PRINT PipeCol$("  wrote |14creatorshot.png|07  (cursor on " + StatName$(statsel) + ")")
 END SUB
+
+
+' `dungeon.run gaugeshot [depth] [hp]` -- render the ACTION GESTURE gauge to gaugeshot.png.
+'
+' Renders BOTH presentations side by side in one file: the timed sweep (top) and the REAL-DICE
+' static bar with its d20 face strip (bottom). The two must agree about where the zones are --
+' the strip promises "roll a 12 and you land in the purple", and the only way to see that the
+' promise holds is to see the same GAUGEK drawn both ways.
+'
+' depth and hp matter because the zones NARROW with both (GaugeKnobs), so a shot at level 1 in
+' full health shows the widest bands the game ever draws and proves nothing about the tight end.
+SUB DumpGaugeShot
+    DIM k AS GAUGEK, i AS INTEGER, dep AS INTEGER, hpv AS INTEGER, seen AS INTEGER
+    _DEST _CONSOLE
+    dep = 5: hpv = 0
+    FOR i = 1 TO _COMMANDCOUNT
+        IF VAL(COMMAND$(i)) >= 1 THEN
+            seen = seen + 1
+            IF seen = 1 THEN dep = VAL(COMMAND$(i))
+            IF seen = 2 THEN hpv = VAL(COMMAND$(i))
+        END IF
+    NEXT i
+    IF dep < 1 THEN dep = 1
+    IF dep > 9 THEN dep = 9
+    player_maxhp = 24
+    IF hpv > 0 THEN player_hp = hpv ELSE player_hp = 18
+    PRINT PipeCol$("|15gaugeshot|07 -- depth |14" + LTRIM$(STR$(dep)) + "|07, hp |14" + LTRIM$(STR$(player_hp)) + "/" + LTRIM$(STR$(player_maxhp)) + "|07")
+
+    k.skill = 1
+    k.hp = player_hp: k.maxhp = player_maxhp
+    k.willmax = 0: k.will = 0
+    k.wobble = 0: k.press = 0
+    k.depth = dep
+    GaugeKnobs k
+    GaugeBegin k
+    GaugeStep k                                  ' one frame, so the sweeping marker has a position
+
+    _DEST CANVAS: CLS , BLACK
+    DrawGauge "TIMED SWEEP", "[SPACE] lock", 0, k, 0.7
+    _SAVEIMAGE "gaugeshot-timed.png", CANVAS
+    _DEST _CONSOLE                               ' PRINT follows _DEST -- without this it goes to the canvas
+    PRINT PipeCol$("  wrote |14gaugeshot-timed.png")
+
+    _DEST CANVAS: CLS , BLACK
+    k.p = GaugeDieP!(14, 20)                     ' as though 14 had just been typed
+    DrawGaugeEx "REAL DICE", "no fuse -- take your time", 0, k, 1, 0, -1
+    DrawGaugeDiceStrip k, "14", ""
+    _SAVEIMAGE "gaugeshot.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  zone centre |14" + LEFT$(STR$(k.zc), 6) + "|07  crit +/-|14" + LEFT$(STR$(k.ecrit), 6) + "|07  hit +/-|14" + LEFT$(STR$(k.ehit), 6))
+    PRINT PipeCol$("  ranges: |14" + GaugeRangeText$(k))
+    PRINT PipeCol$("  wrote |14gaugeshot.png")
+END SUB

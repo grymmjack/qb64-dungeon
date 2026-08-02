@@ -48,6 +48,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10placeholders|07 write a labelled stand-in for every MISSING art asset;  |10placeholders clean|07 removes them again")
     PRINT PipeCol$("  |10panelshot|07 |14[class]|07  render the D&D combat panel (portrait + weapon) -> panelshot.png")
     PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
+    PRINT PipeCol$("  |10gaugeshot|07 |14[depth] [hp]|07  render the action-gesture gauge, timed AND real-dice -> |14gaugeshot*.png|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
@@ -305,6 +306,9 @@ IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
 '--- dev: `dungeon.run charsheet` renders the [C] CHARACTER sheet to a PNG and exits ---
 ' Seeds a MAXED-OUT hero, because that is the only state the sheet's layout can break in.
 IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
+
+'--- dev: `dungeon.run gaugeshot [depth] [hp]` renders the action-gesture gauge, BOTH forms ---
+IF INSTR(UCASE$(COMMAND$), "GAUGESHOT") > 0 THEN DumpGaugeShot: SYSTEM
 
 '--- dev: `dungeon.run panelshot [class]` renders the D&D combat panel -> panelshot.png ---
 IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN

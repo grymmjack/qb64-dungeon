@@ -174,6 +174,33 @@ FUNCTION GaugeScore% (k AS GAUGEK, q AS SINGLE)
     END IF
 END FUNCTION
 
+' The zone an ARBITRARY point on the bar would score -- pure, no side effects, no q.
+'
+' GaugeScore% cannot be used for this: it reads k.p (only the live marker) and it MUTATES
+' k on a clutch crit, refilling the willpower bank. Asking "what would a 14 score?" twenty
+' times over to paint a legend would hand out twenty refills. Same arithmetic, no memory.
+FUNCTION GaugeZoneAt% (k AS GAUGEK, pp AS SINGLE)
+    DIM d AS SINGLE
+    d = ABS(pp - k.zc)
+    IF d <= k.ecrit THEN
+        GaugeZoneAt% = 2
+    ELSEIF d <= k.ehit THEN
+        GaugeZoneAt% = 1
+    ELSE
+        GaugeZoneAt% = 0
+    END IF
+END FUNCTION
+
+' Where a d20 face sits on the bar: the CENTRE of that face's twentieth, so face 1 is not
+' pinned to the very edge and face 20 is not off the end.
+FUNCTION GaugeDieP! (face AS INTEGER, sides AS INTEGER)
+    DIM f AS INTEGER, sd AS INTEGER
+    sd = sides: IF sd < 2 THEN sd = 20
+    f = face: IF f < 1 THEN f = 1
+    IF f > sd THEN f = sd
+    GaugeDieP! = (f - 0.5) / sd
+END FUNCTION
+
 ' THE SAMPLED TWIN. Same model, no display, no input: seed an attempt, advance one
 ' frame from a random phase, score it. Used for enemy turns, the auto-resolve
 ' accessibility tier, and the safe baseline of the opt-in gamble.

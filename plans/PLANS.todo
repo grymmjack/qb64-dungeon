@@ -71,9 +71,20 @@ Small UI Tweaks:
         ✔ says so out loud, or a player reads the missing HP as a bug @done(26-08-01)
       ✔ `dungeon.run statshot` renders it -- caught the longest blurb running through the @done(26-08-01)
         ✔ right border; panel widened to cols 34..98 and the blurb column is now clipped @done(26-08-01)
-    ☐ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll @high
-      ☐ Ranges are shown under the bar, when roll is input, the indicator goes there
-      ☐ Run gesture as normal from that point
+    ✔ For gestures when using real dice - instead provide dice ranges on a D20 and make the bar not move but wait for roll @high @done(26-08-01)
+      ✔ Ranges are shown under the bar, when roll is input, the indicator goes there @done(26-08-01)
+      ✔ Run gesture as normal from that point -- GaugeScore% is untouched, only k.p differs @done(26-08-01)
+      ✔ No fuse in this mode: a fuse makes hesitation cost something on a TIMING test, and @done(26-08-01)
+        ✔ there is no timing here -- it would only punish reaching for dice on a table @done(26-08-01)
+      ✔ Live preview -- the marker follows what is TYPED, so a mistyped 1 shows before ENTER @done(26-08-01)
+      ✔ GaugeZoneAt% is PURE; GaugeScore% could not be reused for the legend because it @done(26-08-01)
+        ✔ mutates k on a clutch crit, so painting 20 faces would hand out 20 willpower refills @done(26-08-01)
+      ✔ Verify: `dungeon.run gaugeshot [depth] [hp]` (NEW) renders timed + real-dice from ONE @done(26-08-01)
+        ✔ GAUGEK, which is the only way to see the strip and the bar agree @done(26-08-01)
+      ✔ Measured: healthy@1 = CRIT 10% / HIT 40%; wounded@9 = CRIT 5% / HIT 20%. The zone @done(26-08-01)
+        ✔ CENTRE roams per attempt, so the strip must be read each time, not memorised @done(26-08-01)
+      ☐ NOT done: the TACTICAL screen's inline gauge (engine/FIGHT.bas) is a real-time system @low
+        ☐ with per-foe fuses; real dice there is a separate design question, not this one
     ✔ Make Bestiary only show what has been ever found during any game run @done(26-08-01)
       ✔ If a creature has not yet been discovered, show a mystery slot ? with image ? @done(26-08-01)
       ✔ its own file, gameplay-data-saves/dungeon-bestiary.dat -- NOT in the save, so wiping a @done(26-08-01)
