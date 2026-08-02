@@ -343,10 +343,23 @@ FUNCTION RealAssetAt% (full AS STRING)
     RealAssetAt% = -1
 END FUNCTION
 
-' Is this path one the placeholder tool wrote? Read from the list it keeps -- a PNG carries no
-' marker saying "I am a stand-in", so content-sniffing would eventually misjudge real art.
+' Is this path one the placeholder tool wrote?
+'
+' Read from the list it keeps -- a PNG carries no marker saying "I am a stand-in", so
+' content-sniffing would eventually misjudge real art.
+'
+' THE LIST RECORDS A SIZE, and that is the load-bearing part. A bare list of paths goes STALE
+' the moment real art replaces a stand-in: the entry still names the path, so genuine art keeps
+' auditing as MISSING forever. That happened -- an agent filling the art quite reasonably
+' deleted PLACEHOLDERS.txt to get a truthful audit, which also removed the safety net that stops
+' stand-ins being counted as done.
+'
+' So an entry only counts while the file on disk is still EXACTLY the size the tool wrote.
+' Overwrite it with real art and the entry drops itself. Legacy lines with no size FAIL OPEN
+' (treated as real), because a stale list hiding finished art is the worse of the two failures
+' and is precisely the one that bit.
 FUNCTION IsPlaceholder% (full AS STRING)
-    DIM i AS INTEGER, f AS INTEGER, ln AS STRING
+    DIM i AS INTEGER, f AS INTEGER, ln AS STRING, bar AS INTEGER, sz AS LONG
     IsPlaceholder% = 0
     IF NOT PH_LOADED THEN
         PH_LOADED = -1: PH_N = 0
@@ -356,13 +369,31 @@ FUNCTION IsPlaceholder% (full AS STRING)
             DO UNTIL EOF(f)
                 LINE INPUT #f, ln
                 ln = _TRIM$(ln)
-                IF LEN(ln) > 0 AND PH_N < UBOUND(PH_PATH) THEN PH_N = PH_N + 1: PH_PATH(PH_N) = ln
+                IF LEN(ln) > 0 AND PH_N < UBOUND(PH_PATH) THEN
+                    PH_N = PH_N + 1
+                    bar = INSTR(ln, "|")
+                    IF bar > 0 THEN
+                        PH_PATH(PH_N) = _TRIM$(LEFT$(ln, bar - 1))
+                        PH_SIZE(PH_N) = VAL(MID$(ln, bar + 1))
+                    ELSE
+                        PH_PATH(PH_N) = ln
+                        PH_SIZE(PH_N) = 0          ' legacy line: no size recorded -> fail open
+                    END IF
+                END IF
             LOOP
             CLOSE #f
         END IF
     END IF
     FOR i = 1 TO PH_N
-        IF PH_PATH(i) = full THEN IsPlaceholder% = -1: EXIT FUNCTION
+        IF PH_PATH(i) = full THEN
+            IF PH_SIZE(i) <= 0 THEN EXIT FUNCTION      ' unverifiable -> treat as REAL art
+            f = FREEFILE
+            OPEN full FOR BINARY AS #f
+            sz = LOF(f)
+            CLOSE #f
+            IF sz = PH_SIZE(i) THEN IsPlaceholder% = -1
+            EXIT FUNCTION
+        END IF
     NEXT i
 END FUNCTION
 

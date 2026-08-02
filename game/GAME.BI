@@ -368,6 +368,9 @@ CONST PLACEHOLDER_LIST = "assets/PLACEHOLDERS.txt"   ' what `placeholders clean`
 ' the file exists -- a stand-in is a reminder, not an asset, and an audit that counted it as
 ' done would quietly hide the very thing it is for.
 DIM SHARED PH_PATH(1 TO 400) AS STRING, PH_N AS INTEGER, PH_LOADED AS INTEGER
+' Byte size each placeholder was written at. An entry only counts while the file still
+' matches -- real art overwriting a stand-in changes the size and drops the entry itself.
+DIM SHARED PH_SIZE(1 TO 400) AS LONG
 DIM SHARED fx_critkill AS INTEGER                                           ' TRUE = the killing blow was a CRIT (picks the killcrit aftermath text)
 
 ' --- LUCK: CHA-funded re-rolls (SETTINGS "Luck Re-rolls") -----------------------
@@ -609,6 +612,9 @@ DIM SHARED SL_COLX(1 TO NSCOL) AS INTEGER        ' left cell-column x of each op
 ' and the list grows -- hardcoding their row meant adding one option silently drew the preview
 ' caption through the last row of column 3. Derived in BuildSetLayout so it self-adjusts.
 DIM SHARED SL_MAXROW AS INTEGER
+' Per-column bottoms. SL_MAXROW alone is the bottom of the LONGEST column, and hanging the
+' dice previews off that pushes them far below the short columns they actually sit under.
+DIM SHARED SL_COLBOT(1 TO 4) AS INTEGER
 DIM SHARED SL_COL(1 TO 64) AS INTEGER            ' per option id: which column (1..NSCOL)
 DIM SHARED SL_ROW(1 TO 64) AS INTEGER            ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count

@@ -1644,6 +1644,7 @@ SUB CleanPlaceholders
         LINE INPUT #f, ln
         ln = _TRIM$(ln)
         IF LEN(ln) > 0 THEN
+            IF INSTR(ln, "|") > 0 THEN ln = _TRIM$(LEFT$(ln, INSTR(ln, "|") - 1))   ' path|bytes
             n = n + 1
             IF _FILEEXISTS(ln) THEN KILL ln: gone = gone + 1
         END IF
@@ -1654,14 +1655,25 @@ SUB CleanPlaceholders
 END SUB
 
 ' Append a written placeholder to the list, so `placeholders clean` can find it again.
+' Append a written placeholder to the list AS `path|bytes`.
+'
+' The size is what keeps the list from going stale: an entry only counts while the file is still
+' exactly what the tool wrote, so real art overwriting a stand-in silently retires its own entry
+' instead of making finished art audit as missing forever. See IsPlaceholder%.
 SUB NotePlaceholder (full AS STRING)
-    DIM f AS INTEGER
+    DIM f AS INTEGER, sz AS LONG
     IF IsPlaceholder%(full) THEN EXIT SUB        ' already tracked -- never list one twice
     f = FREEFILE
-    OPEN PLACEHOLDER_LIST FOR APPEND AS #f
-    PRINT #f, full
+    OPEN full FOR BINARY AS #f
+    sz = LOF(f)
     CLOSE #f
-    IF PH_N < UBOUND(PH_PATH) THEN PH_N = PH_N + 1: PH_PATH(PH_N) = full   ' keep the cache in step
+    f = FREEFILE
+    OPEN PLACEHOLDER_LIST FOR APPEND AS #f
+    PRINT #f, full + "|" + LTRIM$(STR$(sz))
+    CLOSE #f
+    IF PH_N < UBOUND(PH_PATH) THEN                                        ' keep the cache in step
+        PH_N = PH_N + 1: PH_PATH(PH_N) = full: PH_SIZE(PH_N) = sz
+    END IF
 END SUB
 
 ' A placeholder PNG: a dashed frame, a diagonal, and the subject name, at the asked-for size.
