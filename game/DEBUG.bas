@@ -1123,3 +1123,28 @@ SUB DumpFrameShot
     _DEST _CONSOLE
     PRINT PipeCol$("  wrote |14frameshot.png|07 (6 boxes, sizes chosen to NOT divide evenly)")
 END SUB
+
+
+' `dungeon.run bannershot` -- the message banner, at its widest and its narrowest.
+'
+' The banner AUTO-SIZES to its widest line, so a single shot of one message proves nothing: the
+' box width changes, and with a 9-grid frame the corner art has to keep meeting the rails at
+' every width. Two banners, one minimum-width and one at the 130-column cap.
+SUB DumpBannerShot
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15bannershot|07 -- message banner, framed")
+    IF LEN(UI_FRAME_PATH) > 0 THEN
+        PRINT PipeCol$("  frame |14" + UI_FRAME_PATH + "|07  border " + LTRIM$(STR$(UI_FRAME_TW)) + " cols x " + LTRIM$(STR$(UI_FRAME_TH)) + " rows")
+    ELSE
+        PRINT PipeCol$("  |14no frame published|07 -- falling back to the plain LINE box")
+    END IF
+    _DEST CANVAS: _FONT CH: CLS , BLACK
+    Banner "The GIANT SNAKE bars your path!", "[SPACE] ATTACK   [ESC] FLEE   [ press any key ]"
+    _SAVEIMAGE "bannershot.png", CANVAS
+    _DEST CANVAS: CLS , BLACK
+    Banner "You strike the VAMPIRE for 9 damage, and it reels back into the dark of the crypt, hissing.", "Its wounds are grave -- press the advantage while it staggers.   [ press any key ]"
+    _SAVEIMAGE "bannershot-wide.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  prompt row: |14" + LTRIM$(STR$(bnr_l2row)))
+    PRINT PipeCol$("  wrote |14bannershot.png|07 and |14bannershot-wide.png")
+END SUB

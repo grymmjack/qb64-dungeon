@@ -341,6 +341,17 @@ SUB LoadUIFrames
             END IF
         END IF
     NEXT i
+    PublishUIFrame "panel"                        ' hand the engine the default panel frame
+END SUB
+
+' Publish the default panel frame to the ENGINE, so engine-drawn panels (Banner and friends)
+' can use it without the engine knowing this table exists.
+SUB PublishUIFrame (nm AS STRING)
+    DIM i AS INTEGER, p AS STRING
+    UI_FRAME_PATH = ""
+    i = FrameIdx%(nm): IF i = 0 THEN EXIT SUB
+    p = AnsiFile$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT SUB
+    UI_FRAME_PATH = p: UI_FRAME_TW = UIFRAME_TW(i): UI_FRAME_TH = UIFRAME_TH(i)
 END SUB
 
 FUNCTION FrameIdx% (nm AS STRING)

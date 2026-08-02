@@ -187,16 +187,51 @@ SUB Banner (l1 AS STRING, l2 AS STRING)
     IF w < 96 THEN w = 96
     IF w > 130 THEN w = 130
     bx1 = (SW - w) \ 2: bx2 = bx1 + w
-    LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), BOXBG, BF
-    LINE (bx1 * CW, 21 * CH)-(bx2 * CW, 30 * CH), REDU, B
-    COLOR WHITE, BOXBG: PrintCentered 24, l1
-    COLOR YELLOWU, BOXBG: PrintCentered 27, l2
+    ' The framed panel if the game has published one, else the plain box it always drew.
+    DIM ic AS INTEGER, ir AS INTEGER, iw AS INTEGER, ih AS INTEGER, r1 AS INTEGER, r2 AS INTEGER
+    IF UiPanel%(bx1, BNR_ROW, w, BNR_ROWS) = 0 THEN
+        LINE (bx1 * CW, BNR_ROW * CH)-(bx2 * CW, (BNR_ROW + BNR_ROWS) * CH), BOXBG, BF
+        LINE (bx1 * CW, BNR_ROW * CH)-(bx2 * CW, (BNR_ROW + BNR_ROWS) * CH), REDU, B
+    END IF
+    ' Place the two lines inside the REPORTED content rect. This used to be rows 24 and 27,
+    ' which sat one cell inside a one-cell border; the framed panel's border is 2 ROWS deep, so
+    ' hardcoded rows would print through the art. Centred in the interior instead, so a frame
+    ' with thicker or thinner edges moves the text rather than breaking it.
+    UiPanelInner bx1, BNR_ROW, w, BNR_ROWS, ic, ir, iw, ih
+    IF ih < 2 THEN ih = 2
+    r1 = ir + (ih \ 2) - 1
+    r2 = r1 + 2
+    IF r2 > ir + ih - 1 THEN r2 = ir + ih - 1
+    ' Over a FRAME, print the text ONTO the art: the panel's centre tile is the background the
+    ' artist drew, and stamping BOXBG cells behind every glyph punches dark rectangles through
+    ' it. With no frame there is no art to preserve and the opaque fill is what clears the old
+    ' message, so the mode follows the frame rather than being chosen once.
+    IF LEN(UI_FRAME_PATH) > 0 THEN _PRINTMODE _KEEPBACKGROUND
+    COLOR WHITE, BOXBG: PrintCentered r1, l1
+    COLOR YELLOWU, BOXBG: PrintCentered r2, l2
+    _PRINTMODE _FILLBACKGROUND
     UIFontOff
     bnr_l2 = l2: bnr_bx1 = bx1: bnr_bx2 = bx2      ' remembered so a keypress can flash the prompt
+    bnr_l2row = r2                                 ' ...and WHERE it went: the prompt row now comes
+    '                                                from the frame's content rect, so the two places
+    '                                                that rewrite that line must be told, not guess
     Present
 END SUB
 
 
+
+' Wipe the banner's prompt row so a new prompt can be written over it.
+'
+' With a frame that means REDRAWING the frame's own centre tile across that strip -- a BOXBG bar
+' would punch a dark rectangle through the artwork. Without one, the bar IS the correct wipe.
+SUB BannerClearPromptRow
+    IF LEN(UI_FRAME_PATH) > 0 THEN
+        NineGridTile NineGridLoad&(UI_FRAME_PATH), UI_FRAME_TW, UI_FRAME_TH, 1, 1, _
+            (bnr_bx1 + 1) * CW, bnr_l2row * CH, (bnr_bx2 - bnr_bx1 - 2) * CW, CH
+    ELSE
+        LINE ((bnr_bx1 + 1) * CW, bnr_l2row * CH)-((bnr_bx2 - 1) * CW, (bnr_l2row + 1) * CH), BOXBG, BF
+    END IF
+END SUB
 
 SUB PrintCentered (row AS INTEGER, t AS STRING)
     DIM px AS INTEGER
@@ -562,9 +597,11 @@ SUB FlashPrompt
     IF LEN(_TRIM$(bnr_l2)) = 0 THEN EXIT SUB
     _DEST CANVAS: _FONT CH
     FOR ff = 1 TO 4
-        LINE ((bnr_bx1 + 1) * CW, 27 * CH)-((bnr_bx2 - 1) * CW, 28 * CH), BOXBG, BF
+        BannerClearPromptRow
         IF ff MOD 2 = 1 THEN COLOR WHITE, REDU ELSE COLOR YELLOWU, BOXBG
-        PrintCentered 27, bnr_l2
+        IF LEN(UI_FRAME_PATH) > 0 THEN _PRINTMODE _KEEPBACKGROUND
+        PrintCentered bnr_l2row, bnr_l2
+        _PRINTMODE _FILLBACKGROUND
         Present
         _LIMIT 30
     NEXT ff
@@ -594,8 +631,10 @@ SUB CombatPause
         DIM l2s AS STRING
         l2s = StrSubst$(bnr_l2, "[ press any key ]", "[ press to skip ]")
         _DEST CANVAS: _FONT CH
-        LINE ((bnr_bx1 + 1) * CW, 27 * CH)-((bnr_bx2 - 1) * CW, 28 * CH), BOXBG, BF
-        COLOR YELLOWU, BOXBG: PrintCentered 27, l2s
+        BannerClearPromptRow
+        IF LEN(UI_FRAME_PATH) > 0 THEN _PRINTMODE _KEEPBACKGROUND
+        COLOR YELLOWU, BOXBG: PrintCentered bnr_l2row, l2s
+        _PRINTMODE _FILLBACKGROUND
         bnr_l2 = l2s
         Present
     END IF

@@ -413,6 +413,16 @@ DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 
 ' --- NINE-GRID UI FRAMES (engine GDK, see engine/NINEGRID.bas) ---
 ' Cache of frame ANSIs rendered at the UI cell. Small on purpose: a game has a handful of
 ' frame styles, not hundreds.
+' The UI's CURRENT panel frame. Engine STATE, not an engine decision: the game populates it
+' (LoadUIFrames) from its own data, and the engine merely draws with whatever is there. Empty
+' path = no frame, and every panel falls back to the plain LINE box it always drew.
+' The message banner's box, in character cells. Named because the FLASH-the-prompt path and
+' CombatPause both rewrite a line inside it and must agree with Banner about where it is.
+DIM SHARED bnr_l2row AS INTEGER        ' the row Banner actually put its prompt line on
+CONST BNR_ROW = 21
+CONST BNR_ROWS = 9
+DIM SHARED UI_FRAME_PATH AS STRING
+DIM SHARED UI_FRAME_TW AS INTEGER, UI_FRAME_TH AS INTEGER
 CONST NG_MAX = 12
 DIM SHARED NG_PATH(1 TO NG_MAX) AS STRING
 DIM SHARED NG_IMG(1 TO NG_MAX) AS LONG

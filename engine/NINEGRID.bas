@@ -96,6 +96,28 @@ SUB NineGridTile (img AS LONG, tw AS INTEGER, th AS INTEGER, sc AS INTEGER, sr A
     LOOP
 END SUB
 
+' Draw the UI's current panel frame. FALSE if none is set or its art is missing, so every
+' caller keeps its plain LINE box as the fallback and the game never requires the art.
+FUNCTION UiPanel% (col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
+    IF LEN(UI_FRAME_PATH) = 0 THEN EXIT FUNCTION
+    UiPanel% = NineGridBox%(UI_FRAME_PATH, UI_FRAME_TW, UI_FRAME_TH, col, row, cols, rows)
+END FUNCTION
+
+' The content rect for the current frame -- or a 1-cell inset when there is no frame, which is
+' what the old LINE boxes effectively used.
+'
+' Callers MUST ask rather than assume: this frame's border is 4 columns and 2 ROWS thick, so
+' anything that hardcoded "+1" would draw its first line straight through the art.
+SUB UiPanelInner (col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, icol AS INTEGER, irow AS INTEGER, icols AS INTEGER, irows AS INTEGER)
+    IF LEN(UI_FRAME_PATH) = 0 THEN
+        icol = col + 1: irow = row + 1: icols = cols - 2: irows = rows - 2
+        IF icols < 0 THEN icols = 0
+        IF irows < 0 THEN irows = 0
+        EXIT SUB
+    END IF
+    NineGridInner UI_FRAME_TW, UI_FRAME_TH, col, row, cols, rows, icol, irow, icols, irows
+END SUB
+
 ' Where the CONTENT goes -- the blue middle of the 9-grid, in CHARACTER cells.
 '
 ' Every caller needs this and none of them should compute it: the inset is the CORNER size, so

@@ -55,6 +55,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10diceobj|07 |14[set]|07   export the 3D dice as OBJ + MTL + atlas PNG (Blender) -> |14diceobj/|07")
     PRINT PipeCol$("  |10framegen|07     write the GDK 9-grid UI frame (a plain 12x6 ANSI box you can redraw)")
     PRINT PipeCol$("  |10frameshot|07    render that frame at 6 sizes to prove the tiling -> |14frameshot.png|07")
+    PRINT PipeCol$("  |10bannershot|07   render the message banner framed, narrow AND wide -> |14bannershot*.png|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
@@ -326,6 +327,7 @@ IF INSTR(UCASE$(COMMAND$), "DEATHSHOT") > 0 THEN DumpDeathShot: SYSTEM
 '--- dev: `dungeon.run automovetest` walks the real board and asserts progress ---
 IF INSTR(UCASE$(COMMAND$), "FRAMEGEN") > 0 THEN DumpFrameGen: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "FRAMESHOT") > 0 THEN DumpFrameShot: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "BANNERSHOT") > 0 THEN DumpBannerShot: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "DICEOBJ") > 0 THEN DumpDiceObj: SYSTEM
 
 IF INSTR(UCASE$(COMMAND$), "AUTOMOVETEST") > 0 THEN
