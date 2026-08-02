@@ -235,21 +235,26 @@ Game Tweaks:
             - hits to die - average monster DMG, vs. player AC, vs. Player HP = avg number of hits to kill player
               - e.g. Level 1 monsters HP average is 10, ToHitbonus is 0, DMG range is 5, and player ac at same level is 11, and HP is 12 = 12/5 = 2 hits to die at level 1
             - hits to kill - average monster HP vs Player DMG range average + ToHitBonus average = avg number of hits to kill
-    ☐ On death screen: @high
-      ☐ Show stats from main screen, and play time, etc.
-      ☐ Animate:
-        ☐ Gravestone: Here Lies ... newline {player name}
-        ☐ Saved: {timesSaved} times
-        ☐ Slain by: {monsterKilled} on level {levelKilledOn}
-        ☐ Lasted: {timeSpentInGame} minutes
-        ☐ Tried: {numLives} times
-        ☐ Weapon driving into gravestone
-          ☐ If hero/superhero - sword
-          ☐ If elf bow
-          ☐ If wizard staff
-        ☐ Killed:
-          ☐ Animate in falling from top scaled down images of monsters killed per level starting on level 1
-          ☐ Piles on top of previous level .. level 1, level 2, etc.
+    ✔ On death screen: @high @done(26-08-01)
+      ✔ Show stats from main screen, and play time, etc. -- ShowGameSummary, the SAME 24 rows @done(26-08-01)
+      ✔ Animate: four beats, each needing the previous already on screen @done(26-08-01)
+        ✔ Gravestone rises out of the dark @done(26-08-01)
+        ✔ Epitaph carved a line at a time (chiselled shadow + highlight) @done(26-08-01)
+        ✔ Slain by {mon} on level {lv} -- recorded IN RecordDeath, not reconstructed later: by @done(26-08-01)
+          ✔ end-screen time the fight is over and PlayerLevel% has moved on with the corpse @done(26-08-01)
+        ✔ Saved / Lasted / Tried @done(26-08-01)
+        ✔ Weapon drives into the ground beside the stone (sword / bow / staff by CLASS, not by @done(26-08-01)
+          ✔ what is equipped -- this is the character's icon, not their inventory) @done(26-08-01)
+        ✔ Killed: monsters rain down and pile at the foot, walked in LEVEL order so the pile @done(26-08-01)
+          ✔ reads as the descent -- level 1 lands first and ends up buried under level 9 @done(26-08-01)
+        ✔ Capped at 28 (and 3 per monster): a long run kills 60+ and 60 falling sprites is a @done(26-08-01)
+          ✔ screensaver, not a beat @done(26-08-01)
+      ✔ Every beat SKIPPABLE and the skip LATCHES -- this plays on every death and someone on @done(26-08-01)
+        ✔ their fourth attempt does not want the ceremony @done(26-08-01)
+      ✔ Text is laid against the stone's REAL rect (new engine SpriteFitRect%), not its fit box: @done(26-08-01)
+        ✔ aspect-fitting draws a tall stone far narrower than its box, so box-relative text @done(26-08-01)
+        ✔ ran off both edges. Only the NAME is carved; the record goes on the ground below @done(26-08-01)
+      ✔ Verify: `dungeon.run deathshot [pixel|ansi]` runs the real sequence and captures it @done(26-08-01)
         ☐ Total Damage done under: big number
         ☐ Total Gold found: Big number
         ☐ Snapshot death screen for fallen lords, and their stats like legendary lords, but those who failed

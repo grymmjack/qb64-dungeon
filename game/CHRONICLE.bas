@@ -20,6 +20,7 @@ SUB ChronicleReset
     g_gold_found = 0: EVLOG_N = 0
     g_rooms_cleared = 0: g_chambers_cleared = 0
     g_max_level = 0: g_items_used = 0: g_flourishes = 0
+    g_death_mon = "": g_death_lv = 0: g_saved = 0
     g_dmg_dealt = 0: g_dmg_healed = 0: g_streak = 0: g_streak_best = 0
     BEAST_N = 0
     FOR i = 1 TO MAXBEAST
@@ -175,6 +176,10 @@ SUB RecordHealed (hp AS INTEGER)
     IF hp > 0 THEN g_dmg_healed = g_dmg_healed + hp
 END SUB
 
+SUB RecordSaved
+    g_saved = g_saved + 1
+END SUB
+
 SUB RecordChamberCleared
     g_chambers_cleared = g_chambers_cleared + 1
 END SUB
@@ -189,6 +194,7 @@ END SUB
 
 SUB RecordDeath (lv AS INTEGER, rm AS INTEGER, mon AS STRING, rounds AS INTEGER, goldlost AS LONG)
     g_streak = 0
+    g_death_mon = mon: g_death_lv = lv        ' the epitaph's "slain by X on level Y"
     DIM i AS INTEGER, s AS STRING
     i = BeastIdx%(mon): IF i > 0 THEN BEAST_KILLEDBY(i) = BEAST_KILLEDBY(i) + 1
     g_run_deaths = g_run_deaths + 1

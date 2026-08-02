@@ -540,6 +540,16 @@ DIM SHARED g_gold_found AS LONG, g_secret_tries AS INTEGER
 ' SETTINGS "Stats Overlay" -- the live run scorecard on the board, toggled in-game with TAB
 ' (the scoreboard key, which is what a stats overlay IS). TAB used to be "where am I?"; that
 ' moved to [L]ocate rather than inventing a third key for the thing people already reach for.
+' What the epitaph needs. Recorded at the moment of death rather than reconstructed later:
+' by the time the end screen runs, the fight is over, the room may have been re-entered, and
+' PlayerLevel% has moved on with the corpse.
+DIM SHARED g_death_mon AS STRING, g_death_lv AS INTEGER
+' Where DeathStone last drew the stone ITSELF (not its fit box) -- the weapon and the pile are
+' placed against it, and only DeathStone knows where the aspect fit actually put it.
+DIM SHARED DEATH_STONE_X AS INTEGER, DEATH_STONE_Y AS INTEGER
+DIM SHARED DEATH_STONE_W AS INTEGER, DEATH_STONE_H AS INTEGER
+DIM SHARED death_skipped AS INTEGER    ' latched: one keypress skips the WHOLE death sequence
+DIM SHARED g_saved AS INTEGER          ' times a SECOND WIND pulled you back from a downing blow
 CONST STATROW_N = 24                    ' rows in the run scorecard (StatRowLabel$/StatRowValue$)
 DIM SHARED opt_statsoverlay AS INTEGER
 DIM SHARED g_rooms_cleared AS INTEGER   ' rooms whose monster you killed (NOT chamber spawns)

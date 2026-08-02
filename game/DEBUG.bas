@@ -764,3 +764,40 @@ SUB DumpSummaryShot
     PRINT PipeCol$("  " + LTRIM$(STR$(STATROW_N)) + " stat rows")
     PRINT PipeCol$("  wrote |14summaryshot.png|07 and |14summaryshot-overlay.png")
 END SUB
+
+
+' `dungeon.run deathshot` -- the animated death screen, run for real and captured at the end.
+'
+' Seeds a plausible dead run: a killer, a level, rescues, and kills spread across levels 1-9 so
+' the PILE actually has something to drop. A default-state death would show an empty pile and a
+' blank epitaph, which is precisely the layout that cannot break.
+SUB DumpDeathShot
+    DIM lv AS INTEGER, sl AS INTEGER, nm AS STRING, bi AS INTEGER, i AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15deathshot|07 -- the animated epitaph")
+    DevPackOverride
+    ChronicleReset
+    game_start = TIMER - 1147                       ' 19 minutes in
+    player_name = "GRYMMJACK": class_name = _TRIM$(CLASSES(player_class).name)
+    g_death_mon = "VAMPIRE": g_death_lv = 6
+    g_saved = 2: g_run_deaths = 3
+    ' kills across the depth, so the pile stacks level 1 -> level 9 the way a real run would
+    FOR lv = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(MON_NAME(lv, sl))
+            IF LEN(nm) > 0 THEN
+                bi = BeastIdx%(nm)
+                IF bi > 0 THEN BEAST_SLAIN(bi) = 1 + (lv MOD 3)
+            END IF
+        NEXT sl
+    NEXT lv
+    death_skipped = FALSE
+    DeathScreen
+    _SAVEIMAGE "deathshot.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  class |14" + _TRIM$(class_name) + "|07  weapon |14" + DeathWeaponArt$)
+    FOR i = 1 TO 7
+        IF LEN(EpitaphLine$(i)) > 0 THEN PRINT PipeCol$("  |07" + EpitaphLine$(i))
+    NEXT i
+    PRINT PipeCol$("  wrote |14deathshot.png")
+END SUB

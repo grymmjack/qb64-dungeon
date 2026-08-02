@@ -47,6 +47,30 @@ FUNCTION DrawSpriteFit% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INT
     DrawSpriteFit% = -1
 END FUNCTION
 
+' Where DrawSpriteFit% will ACTUALLY put a sprite inside a box.
+'
+' Fitting preserves aspect, so a tall narrow sprite in a wide box is drawn far narrower than the
+' box -- meaning anything laid out against the BOX (a caption, text carved onto a gravestone)
+' lines up with nothing. Callers that need to place things relative to the IMAGE have to ask.
+' Returns 0 if the sprite will not load, in which case dx/dy/dw/dh are the box itself, so a
+' fallback drawing still has sane bounds.
+FUNCTION SpriteFitRect% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER, dx AS INTEGER, dy AS INTEGER, dw AS INTEGER, dh AS INTEGER)
+    DIM h AS LONG, iw AS INTEGER, ih AS INTEGER, sc AS SINGLE
+    dx = bx: dy = by: dw = bw: dh = bh
+    SpriteFitRect% = 0
+    IF LCASE$(RIGHT$(path, 4)) = ".ans" THEN h = AnsiSprite&(path) ELSE h = Sprite&(path)
+    IF h = 0 THEN EXIT FUNCTION
+    iw = _WIDTH(h): ih = _HEIGHT(h)
+    IF iw < 1 OR ih < 1 THEN EXIT FUNCTION
+    sc = bw / iw
+    IF bh / ih < sc THEN sc = bh / ih
+    dw = INT(iw * sc): dh = INT(ih * sc)
+    IF dw < 1 THEN dw = 1
+    IF dh < 1 THEN dh = 1
+    dx = bx + (bw - dw) \ 2: dy = by + (bh - dh) \ 2
+    SpriteFitRect% = -1
+END FUNCTION
+
 ' Resolve a pixel-art file under assets/pixel-art/ with ART-PACK support: try the selected
 ' pack subdir first (assets/pixel-art/<pack>/<subpath>), then the flat main dir. "" if neither
 ' exists. `subpath` is e.g. "monsters/undead/skeleton.png". A partial pack overrides only the

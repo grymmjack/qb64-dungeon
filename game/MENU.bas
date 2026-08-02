@@ -1486,10 +1486,14 @@ SUB ShowEnd (win AS INTEGER)
     ELSE
         Sfx "lose"
         PlayCue "lose", TRUE                     ' defeat music (if assets/music/lose.* exists)
-        _DEST CANVAS: _FONT CH: CLS , BLACK
-        EndScreenArt "you-died"                 ' banner art behind the text, if the pack has it
-        COLOR REDU, BLACK: PrintCentered 20, Say$("lose.title")
-        COLOR GREY, BLACK: PrintCentered 23, Say$("lose.subtitle")
+        Narrate "lose.title"                    ' spoken line runs UNDER the animation, not after it
+        DeathScreen                             ' the animated epitaph: stone, carving, weapon, the pile
+        WaitKey
+        FadeOut
+        NarrateStop
+        music_cue_active = FALSE: StopLevelMusic
+        ShowGameSummary                         ' "show stats from main screen" -- the same 24 rows
+        EXIT SUB
     END IF
     COLOR YELLOWU, BLACK: PrintCentered 28, Say$("end.return")
     IF win THEN Narrate "win.title" ELSE Narrate "lose.title"   ' spoken line (if a narration pack has it)
@@ -1843,4 +1847,250 @@ SUB EndScreenArt (nm AS STRING)
     bx = (SW * CW - bw) \ 2: by = 3 * CH
     _DEST CANVAS
     IF DrawSpriteFit%(p, bx, by, bw, bh) = 0 THEN EXIT SUB
+END SUB
+
+
+' ============================================================================
+'  THE DEATH SCREEN -- an animated epitaph.
+'
+'  Four beats, in this order, because each one needs the previous one already on screen:
+'    1. the gravestone rises out of the dark
+'    2. the epitaph is carved onto it, a line at a time
+'    3. your own weapon drives into the ground beside it
+'    4. everything you killed rains down and piles at its base, level 1 first
+'
+'  Every beat is SKIPPABLE with a keypress and the whole thing is skippable at once, because
+'  this plays on every death and a player on their fourth attempt does not want the ceremony.
+'  DeathSkip% is checked between beats AND inside each loop for that reason.
+' ============================================================================
+
+' Has the player asked to get on with it? Latches, so one press skips the whole sequence
+' rather than only the beat that happened to be running when the key was pressed.
+FUNCTION DeathSkip% ()
+    IF death_skipped THEN DeathSkip% = -1: EXIT FUNCTION
+    IF LEN(INKEY$) > 0 THEN death_skipped = -1
+    DeathSkip% = death_skipped
+END FUNCTION
+
+' The class's weapon, for the blade driven into the ground. Hero and Superhero get a sword,
+' the Elf their bow, the Wizard the staff -- deliberately the CLASS weapon and not whatever
+' happens to be equipped, because this is the character's icon, not their inventory.
+FUNCTION DeathWeaponArt$ ()
+    DIM p AS STRING, cl AS STRING
+    cl = LCASE$(_TRIM$(class_name))
+    IF INSTR(cl, "wizard") > 0 THEN
+        p = ArtFile$("items/staff.png")
+    ELSEIF INSTR(cl, "elf") > 0 THEN
+        p = ArtFile$("items/magic-bow.png")
+        IF LEN(p) = 0 THEN p = ArtFile$("items/elven-blade.png")
+    ELSE
+        p = ArtFile$("items/sword.png")
+        IF LEN(p) = 0 THEN p = ArtFile$("items/magic-sword-1.png")
+    END IF
+    DeathWeaponArt$ = p
+END FUNCTION
+
+' The epitaph lines. Kept as a function so the shot and the screen cannot drift.
+FUNCTION EpitaphLine$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: EpitaphLine$ = "HERE LIES"
+        CASE 2: EpitaphLine$ = _TRIM$(player_name)
+        CASE 3: EpitaphLine$ = ""
+        CASE 4
+            IF LEN(_TRIM$(g_death_mon)) > 0 THEN
+                EpitaphLine$ = "Slain by " + _TRIM$(g_death_mon) + " on level " + _TRIM$(STR$(g_death_lv))
+            ELSE
+                EpitaphLine$ = "Lost to the dark"      ' timed-out / starved solo runs have no killer
+            END IF
+        CASE 5: EpitaphLine$ = "Saved " + _TRIM$(STR$(g_saved)) + " time" + Plural$(g_saved)
+        CASE 6: EpitaphLine$ = "Lasted " + _TRIM$(STR$(RunMinutes&)) + " minute" + Plural$(RunMinutes&)
+        CASE 7: EpitaphLine$ = "Tried " + _TRIM$(STR$(g_run_deaths)) + " time" + Plural$(g_run_deaths)
+    END SELECT
+END FUNCTION
+
+FUNCTION Plural$ (n AS LONG)
+    IF n = 1 THEN Plural$ = "" ELSE Plural$ = "s"
+END FUNCTION
+
+' Draw the stone + however much of the epitaph has been carved so far (lines 1..upto).
+'
+' Only the NAME is carved on the stone; the detail lines go underneath it. That split is forced
+' by the art, not chosen for looks: the stone fits by ASPECT, so it is drawn far narrower than
+' its box, and "Slain by VAMPIRE on level 6" is simply wider than any gravestone. Carving the
+' long lines onto it ran them off both edges. SpriteFitRect% is how the text finds the real
+' stone rather than the box it was fitted into.
+SUB DeathStone (sy AS INTEGER, upto AS INTEGER)
+    DIM i AS INTEGER, p AS STRING, junk AS INTEGER, ln AS STRING
+    DIM gx AS INTEGER, gw AS INTEGER, gh AS INTEGER
+    DIM sx AS INTEGER, syy AS INTEGER, stw AS INTEGER, sth AS INTEGER
+    DIM cxp AS INTEGER, ty AS INTEGER
+    gw = 26 * CW: gh = 24 * CH
+    gx = (SW * CW - gw) \ 2
+    p = ArtFile$("markers/gravestone.png")
+    IF LEN(p) > 0 THEN
+        junk = SpriteFitRect%(p, gx, sy, gw, gh, sx, syy, stw, sth)
+        junk = DrawSpriteFit%(p, gx, sy, gw, gh)
+    ELSE
+        ' No art: draw a stone. The epitaph is the point of this screen and must never be
+        ' floating on a black field because one asset is missing.
+        sx = gx + 4 * CW: syy = sy + 2 * CH: stw = gw - 8 * CW: sth = gh - 2 * CH
+        LINE (sx, syy)-(sx + stw, syy + sth), _RGB32(&H4A, &H4A, &H52), BF
+        LINE (sx, syy)-(sx + stw, syy + sth), _RGB32(&H6E, &H6E, &H78), B
+    END IF
+    cxp = sx + stw \ 2
+    _FONT CH
+    _PRINTMODE _KEEPBACKGROUND
+    FOR i = 1 TO upto
+        ln = EpitaphLine$(i)
+        IF LEN(ln) > 0 THEN
+            IF i <= 2 THEN
+                ' carved INTO the stone, in its upper third
+                COLOR _RGB32(&H1A, &H18, &H16), 0
+                ty = syy + sth \ 5 + (i - 1) * CH * 2
+                _PRINTSTRING (cxp - (LEN(ln) * CW) \ 2 + 1, ty + 1), ln      ' chiselled shadow
+                COLOR _RGB32(&HEC, &HE8, &HDC), 0
+                _PRINTSTRING (cxp - (LEN(ln) * CW) \ 2, ty), ln
+            ELSE
+                ' the record, on the ground below the stone
+                COLOR _RGB32(&HA8, &HA4, &H98), 0
+                ty = syy + sth + (i - 3) * CH * 2
+                _PRINTSTRING (SW * CW \ 2 - (LEN(ln) * CW) \ 2, ty), ln
+            END IF
+        END IF
+    NEXT i
+    _PRINTMODE _FILLBACKGROUND
+    DEATH_STONE_X = sx: DEATH_STONE_Y = syy: DEATH_STONE_W = stw: DEATH_STONE_H = sth
+END SUB
+
+' Beat 4: everything you killed, raining down and piling at the stone's base.
+'
+' Walks the roster in LEVEL order so the pile reads as the descent itself -- level 1's kills
+' land first and end up buried under level 9's. Capped: a long run can kill sixty monsters and
+' sixty falling sprites is a screensaver, not a beat.
+SUB DeathPile (baseY AS INTEGER)
+    CONST PILE_MAX = 28
+    DIM lv AS INTEGER, sl AS INTEGER, n AS INTEGER, i AS INTEGER, bi AS INTEGER
+    DIM nm AS STRING, p AS STRING, junk AS INTEGER
+    DIM px(1 TO PILE_MAX) AS INTEGER, py(1 TO PILE_MAX) AS INTEGER, pp(1 TO PILE_MAX) AS STRING
+    DIM cnt AS INTEGER, f AS INTEGER, yy AS SINGLE, sz AS INTEGER
+    sz = 5 * CW
+    FOR lv = 1 TO 9
+        FOR sl = 1 TO 3
+            nm = _TRIM$(MON_NAME(lv, sl))
+            IF LEN(nm) > 0 THEN
+                bi = BeastIdx%(nm)
+                IF bi > 0 THEN
+                    n = BEAST_SLAIN(bi)
+                    IF n > 3 THEN n = 3                 ' one monster cannot fill the whole pile
+                    FOR i = 1 TO n
+                        IF cnt < PILE_MAX THEN
+                            p = MonsterSprite$(nm)
+                            IF LEN(p) > 0 THEN
+                                cnt = cnt + 1
+                                pp(cnt) = p
+                                ' spread across the stone's foot, stacking upward as it fills
+                                px(cnt) = SW * CW \ 2 - 24 * CW + ((cnt - 1) MOD 10) * (sz - 6)
+                                py(cnt) = baseY - ((cnt - 1) \ 10) * (sz \ 2)
+                            END IF
+                        END IF
+                    NEXT i
+                END IF
+            END IF
+        NEXT sl
+    NEXT lv
+    IF cnt = 0 THEN EXIT SUB                            ' killed nothing: no pile, and no empty beat
+    FOR i = 1 TO cnt
+        FOR f = 0 TO 9
+            IF DeathSkip% THEN EXIT FOR
+            yy = py(i) - (9 - f) * 26                   ' fall in from above the resting place
+            _PUTIMAGE (0, 0), FX_BUF, CANVAS            ' the settled scene behind it
+            FOR bi = 1 TO i - 1                         ' everything already landed
+                junk = DrawSpriteFit%(pp(bi), px(bi), py(bi), sz, sz)
+            NEXT bi
+            junk = DrawSpriteFit%(pp(i), px(i), INT(yy), sz, sz)
+            Present: _LIMIT 60
+        NEXT f
+        IF opt_sfx THEN Tone 90 + (i MOD 4) * 18, 0.03
+        ' Bank the landed sprite into the backdrop so the next one does not redraw all of them.
+        _PUTIMAGE (0, 0), FX_BUF, CANVAS
+        FOR bi = 1 TO i
+            junk = DrawSpriteFit%(pp(bi), px(bi), py(bi), sz, sz)
+        NEXT bi
+        _PUTIMAGE (0, 0), CANVAS, FX_BUF
+    NEXT i
+END SUB
+
+' The whole sequence. `shotmode` writes PNGs of each beat instead of animating (deathshot).
+SUB DeathScreen
+    DIM i AS INTEGER, f AS INTEGER, sy AS INTEGER, wy AS SINGLE, junk AS INTEGER
+    DIM p AS STRING, stoneY AS INTEGER, wx AS INTEGER, ww AS INTEGER
+    death_skipped = FALSE
+    stoneY = 8 * CH
+    IF FX_BUF = 0 THEN FX_BUF = _NEWIMAGE(SW * CW, SH * CH, 32)
+    _DEST CANVAS: _FONT CH: CLS , BLACK
+
+    ' 1 -- the stone rises out of the dark
+    FOR f = 0 TO 14
+        IF DeathSkip% THEN EXIT FOR
+        CLS , BLACK
+        EndScreenArt "you-died"
+        sy = stoneY + (14 - f) * 8
+        DeathStone sy, 0
+        Present: _LIMIT 45
+    NEXT f
+    CLS , BLACK: EndScreenArt "you-died": DeathStone stoneY, 0: Present
+
+    ' 2 -- the epitaph is carved, a line at a time
+    FOR i = 1 TO 7
+        IF DeathSkip% THEN EXIT FOR
+        CLS , BLACK: EndScreenArt "you-died"
+        DeathStone stoneY, i
+        Present
+        IF opt_sfx AND LEN(EpitaphLine$(i)) > 0 THEN Tone 220 - i * 12, 0.05
+        DelaySkippable 0.42
+    NEXT i
+    CLS , BLACK: EndScreenArt "you-died": DeathStone stoneY, 7: Present
+
+    ' 3 -- the weapon drives into the ground beside the stone. Placed against the stone's REAL
+    ' rect (DEATH_STONE_*), not the fit box, or it plants itself in mid-air next to nothing.
+    p = DeathWeaponArt$
+    IF LEN(p) > 0 THEN
+        DIM wh AS INTEGER, restY AS INTEGER
+        wh = 14 * CH: ww = 8 * CW
+        wx = DEATH_STONE_X + DEATH_STONE_W + 2 * CW
+        restY = DEATH_STONE_Y + DEATH_STONE_H - wh + 3 * CH   ' point buried at the stone's foot
+        _PUTIMAGE (0, 0), CANVAS, FX_BUF                ' the settled stone, to redraw over
+        FOR f = 0 TO 12
+            IF DeathSkip% THEN EXIT FOR
+            wy = restY - 22 * CH + f * ((22 * CH) / 12)
+            _PUTIMAGE (0, 0), FX_BUF, CANVAS
+            junk = DrawSpriteFit%(p, wx, INT(wy), ww, wh)
+            Present: _LIMIT 60
+        NEXT f
+        _PUTIMAGE (0, 0), FX_BUF, CANVAS
+        junk = DrawSpriteFit%(p, wx, restY, ww, wh)
+        Sfx "bump"
+        IF opt_juice THEN ImpactFX 7, 0                 ' the thud you feel
+        Present
+    END IF
+    _PUTIMAGE (0, 0), CANVAS, FX_BUF
+
+    ' 4 -- the dead pile up at its foot
+    ' +16 rows, not +12: the pile STACKS UPWARD (that is what "piles on top of the previous
+    ' level" means), so its highest row sits ~3 rows above this baseline and was landing on
+    ' the last epitaph line.
+    DeathPile DEATH_STONE_Y + DEATH_STONE_H + 16 * CH
+
+    COLOR YELLOWU, BLACK: PrintCentered 47, Say$("end.return")
+    Present
+END SUB
+
+' A _DELAY that a keypress can cut short, so the epitaph does not hold a player hostage.
+SUB DelaySkippable (secs AS SINGLE)
+    DIM t0 AS SINGLE
+    t0 = TIMER
+    DO
+        IF DeathSkip% THEN EXIT SUB
+        _LIMIT 60
+    LOOP UNTIL TIMER - t0 >= secs OR TIMER - t0 < 0
 END SUB

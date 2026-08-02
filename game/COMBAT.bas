@@ -690,6 +690,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 saved = 0
                 IF opt_gestures THEN saved = SecondWind%(mon, sec, SkillTier%)
                 IF saved THEN
+                    RecordSaved
                     dirty = -1                    ' rose where you stand; the fight continues
                 ELSE
                     player_hp = 0

@@ -50,6 +50,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
     PRINT PipeCol$("  |10gaugeshot|07 |14[depth] [hp]|07  render the action-gesture gauge, timed AND real-dice -> |14gaugeshot*.png|07")
     PRINT PipeCol$("  |10summaryshot|07   render the run scorecard: Game Summary panel + the [TAB] overlay")
+    PRINT PipeCol$("  |10deathshot|07    run the animated death screen and capture it -> |14deathshot.png|07")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
@@ -313,6 +314,9 @@ IF INSTR(UCASE$(COMMAND$), "GAUGESHOT") > 0 THEN DumpGaugeShot: SYSTEM
 
 '--- dev: `dungeon.run summaryshot` renders the run scorecard (panel + TAB overlay) ---
 IF INSTR(UCASE$(COMMAND$), "SUMMARYSHOT") > 0 THEN DumpSummaryShot: SYSTEM
+
+'--- dev: `dungeon.run deathshot [class]` renders the animated death screen ---
+IF INSTR(UCASE$(COMMAND$), "DEATHSHOT") > 0 THEN DumpDeathShot: SYSTEM
 
 '--- dev: `dungeon.run panelshot [class]` renders the D&D combat panel -> panelshot.png ---
 IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN
