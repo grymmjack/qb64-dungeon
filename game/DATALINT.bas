@@ -1966,3 +1966,64 @@ FUNCTION FightStatCols$ (nm AS STRING, withstats AS INTEGER)
     NEXT i
     FightStatCols$ = "|08     -    -    -    -"      ' never met: dashes, not zeroes
 END FUNCTION
+
+
+' ============================================================================
+'  `dungeon.run ruleslint` -- print the GENERATED half of the rules screen.
+'
+'  ShowRules concatenates two generated markdown blocks in front of the .md file on disk: the
+'  live "your game, right now" table and the ability reference built from stats.txt. Those are
+'  the sections most worth reading and the only ones no file contains, so nothing could check
+'  them without opening the screen and scrolling. This prints them, and treats an EMPTY ability
+'  section as a failure -- that is exactly what a missing, renamed or mis-parsed stats.txt looks
+'  like to a player, and it would otherwise show as a rules screen that quietly says less.
+' ============================================================================
+SUB RulesLint
+    DIM blk AS STRING, cfg AS STRING, i AS INTEGER, bad AS INTEGER, nplan AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15ruleslint|07 -- the generated sections of the rules screen")
+    cfg = RulesConfigBlock$
+    blk = RulesAbilityBlock$
+    PRINT
+    PRINT MarkdownToConsole$(cfg)
+    PRINT MarkdownToConsole$(blk)
+    bad = 0
+    IF LEN(_TRIM$(cfg)) = 0 THEN
+        PRINT PipeCol$("|12BAD|07  the 'your game, right now' block is empty")
+        bad = bad + 1
+    END IF
+    IF opt_oldschool THEN
+        PRINT PipeCol$("|14note|07 Oldschool mode: no ability scores, so the ability section is omitted by design")
+    ELSEIF LEN(_TRIM$(blk)) = 0 THEN
+        PRINT PipeCol$("|12BAD|07  the ability section is EMPTY -- assets/data/stats.txt missing or unparsed?")
+        bad = bad + 1
+    ELSE
+        FOR i = 1 TO SH_N
+            IF NOT SH_LIVE(i) THEN nplan = nplan + 1
+        NEXT i
+        PRINT PipeCol$("|10ok |07  " + _TRIM$(STR$(SH_N)) + " ability line(s) from stats.txt, " + _TRIM$(STR$(nplan)) + " marked planned")
+    END IF
+    IF bad > 0 THEN SYSTEM 1
+    SYSTEM
+END SUB
+
+' Flatten generated markdown for the console: the rules SCREEN renders it properly, but a dev
+' mode only needs it readable. Headings keep their weight, bullets keep their shape.
+FUNCTION MarkdownToConsole$ (md AS STRING)
+    DIM acc AS STRING, rest AS STRING, one AS STRING, p AS LONG, nl AS STRING
+    nl = CHR$(10)
+    rest = md
+    DO WHILE LEN(rest) > 0
+        p = INSTR(rest, nl)
+        IF p = 0 THEN one = rest: rest = "" ELSE one = LEFT$(rest, p - 1): rest = MID$(rest, p + 1)
+        one = SubstAll$(one, "**", "")
+        IF LEFT$(one, 3) = "## " THEN
+            acc = acc + PipeCol$("|14" + MID$(one, 4) + "|07") + nl
+        ELSEIF LEFT$(one, 2) = "# " THEN
+            acc = acc + PipeCol$("|15" + MID$(one, 3) + "|07") + nl
+        ELSE
+            acc = acc + one + nl
+        END IF
+    LOOP
+    MarkdownToConsole$ = acc
+END FUNCTION

@@ -704,6 +704,60 @@ FUNCTION RulesConfigBlock$ ()
     RulesConfigBlock$ = s
 END FUNCTION
 
+' The ability-score reference for the rules screen, GENERATED from assets/data/stats.txt --
+' the same table the character creator's side panel reads.
+'
+' Generated rather than written into the .md on purpose. The creator already had this text and
+' the rules screen did not, and two hand-maintained copies of "what CON does" is exactly the
+' pair that drifts: the one you edit is never the one the player is reading. Now a line added to
+' stats.txt appears in both, worded identically, with no second edit.
+'
+' The `live` flag carries through as well, so a mechanic that is designed but unbuilt is marked
+' here too. A rules screen that promises something the game does not do is worse than silence.
+' Oldschool mode has no ability scores at all, so the whole section is omitted there.
+FUNCTION RulesAbilityBlock$ ()
+    DIM s AS STRING, nl AS STRING, i AS INTEGER, st AS INTEGER, nplan AS INTEGER
+    nl = CHR$(10)
+    RulesAbilityBlock$ = ""
+    IF opt_oldschool THEN EXIT FUNCTION              ' Dungeon! has no abilities to describe
+    IF SH_N = 0 THEN EXIT FUNCTION                   ' stats.txt missing -- say nothing rather than lie
+    s = "# What your abilities do" + nl + nl
+    s = s + "Every ability feeds real mechanics. The modifier is what actually applies:" + nl
+    s = s + "**(score - 10) / 2, rounded down** -- so it steps every 2 points, and 10-11 is +0." + nl + nl
+    FOR st = 1 TO 6
+        s = s + "## " + AbilFullName$(st) + " (" + StatName$(st) + ")" + nl + nl
+        FOR i = 1 TO SH_N
+            IF SH_STAT(i) = st THEN
+                IF SH_LIVE(i) THEN
+                    s = s + "- " + _TRIM$(SH_TEXT(i)) + nl
+                ELSE
+                    s = s + "- " + _TRIM$(SH_TEXT(i)) + "  *(planned -- not in the game yet)*" + nl
+                    nplan = nplan + 1
+                END IF
+            END IF
+        NEXT i
+        s = s + nl
+    NEXT st
+    IF nplan > 0 THEN
+        s = s + "*Lines marked planned are designed but not yet built -- they are listed so you can" + nl
+        s = s + "see where a score is heading, but nothing in the game reads them today.*" + nl + nl
+    END IF
+    s = s + "---" + nl + nl
+    RulesAbilityBlock$ = s
+END FUNCTION
+
+' "Strength" for "STR" -- the headings read as prose, the table stays terse.
+FUNCTION AbilFullName$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: AbilFullName$ = "Strength"
+        CASE 2: AbilFullName$ = "Intelligence"
+        CASE 3: AbilFullName$ = "Wisdom"
+        CASE 4: AbilFullName$ = "Dexterity"
+        CASE 5: AbilFullName$ = "Constitution"
+        CASE ELSE: AbilFullName$ = "Charisma"
+    END SELECT
+END FUNCTION
+
 SUB ShowRules
     DIM whole AS STRING, rest AS STRING, one AS STRING, content AS STRING, p AS LONG
     DIM kblk AS INTEGER, W AS INTEGER, per AS INTEGER, top AS INTEGER, leftcol AS INTEGER, toprow AS INTEGER
@@ -722,6 +776,7 @@ SUB ShowRules
     DIM rulesfile AS STRING
     IF opt_oldschool THEN rulesfile = "assets/reference/DUNGEON-RULES.md" ELSE rulesfile = "assets/reference/DND-RULES.md"
     whole = RulesConfigBlock$                             ' live "your game" section first
+    whole = whole + RulesAbilityBlock$                    ' then what each ability actually does
     IF _FILEEXISTS(rulesfile) THEN whole = whole + _READFILE$(rulesfile)
     IF LEN(_TRIM$(whole)) = 0 THEN whole = "# Rules" + CHR$(10) + "The rules scroll (" + rulesfile + ") is missing."
     '--- parse the whole document into wrapped, attributed display lines ---

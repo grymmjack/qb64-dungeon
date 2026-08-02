@@ -137,6 +137,22 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # The rules screen's GENERATED sections. Most of what a player reads there is assembled at
+    # display time from live settings + stats.txt, so no file on disk contains it and nothing else
+    # in the gate can see it. An empty ability section is what a missing stats.txt looks like.
+    echo "-- generated rules text (dungeon.run ruleslint) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 60 "ruleslint" ./dungeon.run ruleslint nocolor; then rl="$DEVRUN_OUT"
+            grep -E 'ability line' <<<"$rl" | sed 's/^/  /'
+        else
+            rl="$DEVRUN_OUT"
+            grep -E 'BAD|!!' <<<"$rl" | head -5 | sed 's/^/    /'
+            (( fail++ )); failed+=("ruleslint")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Secret-mask reachability. The mask is hand-painted ART, and a region no door opens is
     # unreachable forever -- which matters because killing the monster in key_room is the ONLY
     # way to get the Level Key. Cheap insurance against an art edit stranding a region.

@@ -60,6 +60,7 @@ IF wanthelp THEN
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
+    PRINT PipeCol$("  |10ruleslint|07    print the GENERATED rules sections (your-game + what each ability does)")
     PRINT PipeCol$("  |10balancedump|07 |14[--includestats]|07  monster curve + player ascension, with hits-to-die vs hits-to-kill")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
@@ -421,6 +422,13 @@ IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 
 '--- dev: `dungeon.run datalint` validates the loaded content tables and exits ---
 IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
+
+'--- dev: `dungeon.run ruleslint` prints the GENERATED half of the rules screen and exits ---
+' The rules screen is assembled at display time from live settings + assets/data/stats.txt, so
+' the parts a player reads most are the parts no file on disk contains. Nothing could check them
+' headlessly. This prints exactly what ShowRules will prepend, and fails when the ability section
+' is empty -- which is what a missing or mis-parsed stats.txt looks like from the player's side.
+IF INSTR(UCASE$(COMMAND$), "RULESLINT") > 0 THEN RulesLint
 
 '--- dev: `dungeon.run econdump` reports the expected gold economy + win pacing, then exits ---
 IF INSTR(UCASE$(COMMAND$), "ECONDUMP") > 0 THEN EconDump
