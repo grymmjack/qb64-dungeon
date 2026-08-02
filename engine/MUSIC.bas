@@ -113,6 +113,7 @@ END SUB
 ' The ramp itself is advanced by AudioTick (called each frame) over MUSIC_FADE_SEC seconds;
 ' this SUB only sets it up and returns immediately, so the game never blocks on a transition.
 SUB BeginTrack (path AS STRING, doloop AS INTEGER)
+    IF audio_muted THEN EXIT SUB                    ' dev/headless: no mixing-graph nodes (see OpenSfx&)
     IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout   ' retire the last fade-out track
     music_fadeout = music_handle                    ' the current track (if any) becomes the fade-OUT track
     music_handle = 0
@@ -361,6 +362,13 @@ END FUNCTION
 FUNCTION OpenSfx& (bpath AS STRING)
     DIM h AS LONG
     h = 0
+    ' A muted run (any dev mode) can never PLAY these, and opening them is not free of
+    ' consequence: each _SNDOPEN adds a node to miniaudio's mixing graph, and SYSTEM tears the
+    ' device down while the mixing THREAD is still reading it. That race aborted roughly one dev
+    ' run in ten -- sometimes as `corrupted double-linked list`, sometimes as miniaudio's own
+    ' `pOutputBus->pNode != NULL` assertion, which is the same fault seen at a different moment.
+    ' Open nothing and there is no graph to race on. See also BeginTrack / Narrate.
+    IF audio_muted THEN OpenSfx& = 0: EXIT FUNCTION
     ' PREFERENCE ORDER: ogg, mp3, flac, wav -- lossy-compact first, then lossless, then raw.
     ' _SNDOPEN is miniaudio-backed, so all four decode natively. NOTE the consequence of an order:
     ' if two formats of the same sound both exist, the EARLIER one wins and the other is silently
@@ -549,6 +557,7 @@ END SUB
 ' No-op if narration is off or no file exists for the key. Volume follows Voice Vol.
 SUB Narrate (nkey AS STRING)
     DIM p AS STRING
+    IF audio_muted THEN EXIT SUB                    ' dev/headless: no mixing-graph nodes (see OpenSfx&)
     IF NOT opt_narration THEN EXIT SUB
     ' POLITENESS: never cut off a line that's still speaking -- let it finish and skip the
     ' new one. (The ambient text-crawl voice keeps playing after its typewriter ends, and
