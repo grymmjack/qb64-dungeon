@@ -1301,8 +1301,23 @@ SUB ShowCharSheetPaint
     effac = PlayerAC%                                                ' AC + worn armor/shield (STR-scaled; see GearAC%)
     efth = player_tohit: IF item_bow THEN efth = efth + 2   ' to-hit + Magic Bow
     _DEST CANVAS
-    LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
-    LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    ' Framed by growing OUTWARD, like every other retrofitted panel: the sheet's whole body is
+    ' laid out against these columns (tx1/tx2, the portrait rect, every row) and must not move.
+    DIM cfx AS INTEGER, cfy AS INTEGER, cfw AS INTEGER, cfh AS INTEGER, csframed AS INTEGER
+    DIM cfi AS INTEGER
+    cfi = FrameIdx%("charsheet")
+    IF cfi > 0 THEN
+        cfx = 22 + 1 - UIFRAME_TW(cfi): cfy = 3 + 1 - UIFRAME_TH(cfi)
+        cfw = (110 - 22) - 2 + 2 * UIFRAME_TW(cfi): cfh = (48 - 3) - 2 + 2 * UIFRAME_TH(cfi)
+        IF cfx >= 0 AND cfy >= 0 AND cfx + cfw <= SW AND cfy + cfh <= SH THEN
+            csframed = FrameBox%("charsheet", cfx, cfy, cfw, cfh)
+        END IF
+    END IF
+    IF NOT csframed THEN
+        LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), BOXBG, BF
+        LINE (22 * CW, 3 * CH)-(110 * CW, 48 * CH), REDU, B
+    END IF
+    IF csframed THEN _PRINTMODE _KEEPBACKGROUND   ' text sits ON the art, never stamps over it
     tx1 = 23: tx2 = 109                                              ' inside the panel border
     px1 = 92: py1 = 5: px2 = 108: py2 = 21                           ' the portrait frame, in cells
     ' class portrait, top-right of the sheet -- in WHICHEVER form opt_artstyle selects.
@@ -1412,6 +1427,7 @@ SUB ShowCharSheetPaint
         END IF
     END IF
     COLOR YELLOWU, BOXBG: PrintCenteredIn 46, tx1, tx2, "[ press any key ]"
+    _PRINTMODE _FILLBACKGROUND                   ' paired with the KEEPBACKGROUND above
 END SUB
 
 

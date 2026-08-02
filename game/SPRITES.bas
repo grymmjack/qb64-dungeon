@@ -291,11 +291,20 @@ SUB PopArt (nm AS STRING, caption AS STRING)
     NEXT
     dw = bw: dh = bh: bx = cxp - dw \ 2: by = cyp - dh \ 2   ' settled frame + caption
     _PUTIMAGE (0, 0), buf, CANVAS
-    LINE (bx, by)-(bx + dw, by + dh), BOXBG, BF
-    LINE (bx, by)-(bx + dw, by + dh), YELLOWU, B
+    ' The SETTLED frame is framed from the 9-grid; the scale-in above stays a plain box, because
+    ' it is redrawn eight times in a fifth of a second and a tiled frame at eight sizes reads as
+    ' flicker rather than as a pop.
+    DIM pfr AS INTEGER
+    pfr = FrameBox%("panel", bx \ CW, by \ CH, dw \ CW, dh \ CH)
+    IF NOT pfr THEN
+        LINE (bx, by)-(bx + dw, by + dh), BOXBG, BF
+        LINE (bx, by)-(bx + dw, by + dh), YELLOWU, B
+    END IF
     junk = DrawSpriteFit%(sp, bx + CW, by + CH, dw - 2 * CW, dh - 3 * CH)
     _FONT CH: COLOR YELLOWU, BOXBG
+    IF pfr THEN _PRINTMODE _KEEPBACKGROUND
     _PRINTSTRING (cxp - (LEN(caption) * CW) \ 2, by + dh - CH - 4), caption
+    _PRINTMODE _FILLBACKGROUND
     Present
     FOR i = 1 TO 42: _LIMIT 60: k = INKEY$: IF k <> "" THEN EXIT FOR
     NEXT

@@ -24,8 +24,19 @@ Small UI Tweaks:
         ☐ with per-foe fuses; real dice there is a separate design question, not this one
 
 Big UI Tweaks:
-    ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern @low
-    ☐ Create item display frames for monsters, curios, and locations @low
+    ✔ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern @low @done(26-08-02)
+      ✔ engine/NINEGRID.bas slices one authored box 3x3; corners drawn as-is, edges and centre @done(26-08-02)
+        ✔ tile and CLIP, so a panel can be any size at least 2x2 tiles @done(26-08-02)
+      ✔ Registered per CONTEXT in assets/data/<pack>/ui-frames.txt, so each panel can be @done(26-08-02)
+        ✔ re-skinned on its own; `fill` decides what the content area gets @done(26-08-02)
+      ✔ Works with PIXEL art too -- the registry names files WITHOUT an extension, so a frame @done(26-08-02)
+        ✔ resolves through Art Style and the art packs like any other sprite @done(26-08-02)
+    ✔ Create item display frames for monsters, curios, and locations @low @done(26-08-02)
+      ✔ Monster portrait + location scene (CombatArtBox) are INSET rather than outset -- both @done(26-08-02)
+        ✔ are anchored to a screen EDGE, so there is no room to grow a border outward @done(26-08-02)
+      ✔ PopArt (the treasure/curio popup) frames its SETTLED panel only: the scale-in redraws @done(26-08-02)
+        ✔ eight times in a fifth of a second, and a tiled frame at eight sizes reads as flicker @done(26-08-02)
+      ✔ Character sheet framed too (grown outward; its body is laid out against fixed columns) @done(26-08-02)
       ☐ Perfect Battles (player killed monsters without getting touched)
 
 Huge UI Efforts:
