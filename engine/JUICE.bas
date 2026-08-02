@@ -337,3 +337,72 @@ FUNCTION ShakeMag! (dmg AS INTEGER)
     IF m > 28 THEN m = 28
     ShakeMag! = m
 END FUNCTION
+
+
+' ============================================================================
+'  GORE OVERLAY -- a wounded portrait gets bloodier as its HP falls.
+'
+'  Two properties matter more than the look:
+'
+'  1. DETERMINISTIC. The portrait is redrawn every frame, so random splats would
+'     crawl and shimmer. Positions come from a tiny LCG seeded by the actor, so
+'     the same wound draws in the same place every frame of the whole fight.
+'  2. ACCUMULATING. Splat i appears once severity passes i/GORE_MAX and never
+'     moves again, so damage LAYERS instead of being redistributed -- which is
+'     what makes it read as "this thing has been bleeding for a while".
+'
+'  The colour is the caller's business: the engine has no idea what an undead is.
+'  See the game's GoreColor~& for who bleeds black.
+' ============================================================================
+CONST GORE_MAX = 16              ' splats at full severity
+
+' Deterministic 16-bit LCG. Small on purpose: the period only has to outlast
+' GORE_MAX draws, and staying inside LONG avoids any overflow question.
+FUNCTION GoreRnd% (s AS LONG, hi AS INTEGER)
+    s = (s * 75 + 74) MOD 65537
+    IF hi <= 0 THEN GoreRnd% = 0 ELSE GoreRnd% = s MOD hi
+END FUNCTION
+
+' A filled blob, drawn as horizontal spans. CIRCLE cannot fill without PAINT, and
+' PAINT would flood across the artwork underneath.
+SUB GoreBlob (cx AS INTEGER, cy AS INTEGER, r AS INTEGER, kol AS _UNSIGNED LONG)
+    DIM dy AS INTEGER, w AS INTEGER
+    FOR dy = -r TO r
+        w = INT(SQR(r * r - dy * dy))
+        IF w > 0 THEN LINE (cx - w, cy + dy)-(cx + w, cy + dy), kol
+    NEXT dy
+END SUB
+
+' Splatter a rect. `sev` is 0..1 (1 = at death's door); `seed` keys the pattern to
+' the actor so two goblins on screen are not wearing identical wounds.
+SUB GoreSplat (px AS INTEGER, py AS INTEGER, pw AS INTEGER, ph AS INTEGER, sev AS SINGLE, kol AS _UNSIGNED LONG, seed AS LONG)
+    DIM i AS INTEGER, n AS INTEGER, s AS LONG
+    DIM gx AS INTEGER, gy AS INTEGER, r AS INTEGER, dl AS INTEGER
+    DIM dark AS _UNSIGNED LONG
+    IF sev <= 0 THEN EXIT SUB
+    IF pw < 8 OR ph < 8 THEN EXIT SUB
+    IF sev > 1 THEN sev = 1
+    n = INT(sev * GORE_MAX)
+    IF n < 1 THEN n = 1
+    ' A darker core inside each blob -- flat colour reads as a sticker, two tones
+    ' read as wet. Derived from the caller's colour so black gore stays black.
+    dark = _RGB32(_RED32(kol) \ 2, _GREEN32(kol) \ 2, _BLUE32(kol) \ 2)
+    s = seed AND 65535
+    IF s = 0 THEN s = 7
+    _DEST CANVAS
+    FOR i = 1 TO n
+        ' Draw the WHOLE sequence every frame and skip nothing: the i'th splat must
+        ' land in the same place whether it is the last one or the first of many, and
+        ' that only holds if the generator is stepped the same number of times.
+        gx = px + 4 + GoreRnd%(s, pw - 8)
+        gy = py + 4 + GoreRnd%(s, ph - 8)
+        r = 2 + GoreRnd%(s, 2 + INT(sev * 4))
+        dl = GoreRnd%(s, 3 + INT(sev * 9))            ' the drip below it
+        GoreBlob gx, gy, r, kol
+        GoreBlob gx, gy, r - 1, dark
+        IF dl > 2 THEN
+            LINE (gx, gy)-(gx, gy + dl), kol
+            IF gy + dl < py + ph THEN GoreBlob gx, gy + dl, 1, kol
+        END IF
+    NEXT i
+END SUB

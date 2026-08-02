@@ -88,8 +88,18 @@ Small UI Tweaks:
         ✔ 0 every saved name resolves to nothing and the whole history evaporates silently @done(26-08-01)
       ✔ `dungeon.run bestiarytest` is in the gate -- a save round-trip cannot cover this @done(26-08-01)
     ☐ Monsters images move down and center slightly when attacking @low
-    ☐ Add blood overlay on monsters when taking damage - closer to death = more blood @high
-      ☐ If no blood, use black for undead
+    ✔ Add blood overlay on monsters when taking damage - closer to death = more blood @high @done(26-08-01)
+      ✔ If no blood, use black for undead -- GoreColor~& (game/SPRITES.bas) is the only place @done(26-08-01)
+        ✔ that knows; the engine primitive just takes a colour @done(26-08-01)
+      ✔ GoreSplat (engine/JUICE.bas) is DETERMINISTIC (LCG seeded per actor) -- the portrait @done(26-08-01)
+        ✔ redraws every frame, so random splats would crawl and shimmer @done(26-08-01)
+      ✔ ...and ACCUMULATING: splat i appears once severity passes i/GORE_MAX and never moves, @done(26-08-01)
+        ✔ so damage LAYERS instead of being redistributed @done(26-08-01)
+      ✔ Both combat screens: tactical (FA_GORE, auto off FA_HP) and the D&D panel (ROOMS.mhp_now) @done(26-08-01)
+      ✔ Oldschool passes 0 -- 2d6 slay-or-not has no monster HP, so there is nothing to ramp @done(26-08-01)
+      ✔ Gore draws BEFORE the dead-dim, so a corpse's wounds dim with the body @done(26-08-01)
+      ✔ Verify: `dungeon.run fightshot pixel 6` -- its four HP tiers ARE the ramp, and level 6 @done(26-08-01)
+        ✔ fields two undead beside a troll, so both gore colours are in one shot @done(26-08-01)
     ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character) @low
 
 Big UI Tweaks:

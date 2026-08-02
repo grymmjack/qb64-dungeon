@@ -295,19 +295,49 @@ END SUB
 ' (rows ~9-22), the banner (rows 21-30), the D&D combat panel (rows 39-49) and the
 ' HUD (row 50), so it stays painted through a whole fight in BOTH combat modes.
 ' Either art form; each half is skipped silently if its sprite is absent.
-SUB DrawCombatArt (nm AS STRING, sec AS INTEGER)
+' `wound` is 0..1 -- how far this monster is from death, for the gore overlay. Pass 0 in
+' Oldschool mode, which has no monster HP at all (a 2d6 roll either slays it or does not),
+' so there is nothing to ramp and a splattered portrait would be a lie.
+SUB DrawCombatArt (nm AS STRING, sec AS INTEGER, wound AS SINGLE)
     DIM mp AS STRING, lp AS STRING
     ' no artstyle gate -- see PopArt
     mp = MonsterSprite$(nm)
     lp = LocationSprite$(sec)
-    IF LEN(mp) > 0 THEN CombatArtBox mp, 1, 18, 4, 12, "-= " + _TRIM$(nm) + " =-", REDU
+    IF LEN(mp) > 0 THEN
+        CombatArtBox mp, 1, 18, 4, 12, "-= " + _TRIM$(nm) + " =-", REDU
+        IF wound > 0 THEN GoreSplat 1 * CW, 4 * CH, 18 * CW, 12 * CH, wound, GoreColor~&(nm), NameSeed&(nm)
+    END IF
     IF LEN(lp) > 0 THEN CombatArtBox lp, SW - 19, 18, 4, 12, RoomShortName$(sec), CYANU
 END SUB
 
+' Stable per-monster splatter seed, so a given monster's wounds stay put frame to frame
+' AND two different monsters do not wear the same pattern.
+FUNCTION NameSeed& (nm AS STRING)
+    DIM i AS INTEGER, h AS LONG, t AS STRING
+    t = _TRIM$(nm)
+    h = 5381
+    FOR i = 1 TO LEN(t)
+        h = (h * 33 + ASC(t, i)) MOD 65521
+    NEXT i
+    NameSeed& = h
+END FUNCTION
+
 ' Back-compat shim: old call sites that only had a monster name.
 SUB DrawMonsterArt (nm AS STRING)
-    DrawCombatArt nm, 0
+    DrawCombatArt nm, 0, 0
 END SUB
+
+' What a creature bleeds. Undead have no blood, so their wounds read as spreading
+' BLACK rot instead of red -- which also stops a skeleton looking like it has a
+' circulatory system. Anything else bleeds. Returning 0 would mean "never splatter";
+' nothing does that today, but the engine honours it (FA_GORE = 0).
+FUNCTION GoreColor~& (nm AS STRING)
+    IF MonsterCat$(nm) = "undead" THEN
+        GoreColor~& = _RGB32(20, 16, 22)          ' near-black; still reads on a lit sprite
+    ELSE
+        GoreColor~& = _RGB32(150, 12, 12)         ' blood
+    END IF
+END FUNCTION
 
 ' Path to a curio's event sprite (assets/pixel-art/events). The curio `kind`
 ' maps to a prop image; "" if there's no art for it.

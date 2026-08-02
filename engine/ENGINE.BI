@@ -191,6 +191,9 @@ DIM SHARED FA_VAL(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
 DIM SHARED FA_SLAB(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
 DIM SHARED FA_SVAL(0 TO FIGHT_MAXFOE, 1 TO FIGHT_STATROWS) AS STRING
 DIM SHARED FA_FUSE(0 TO FIGHT_MAXFOE) AS SINGLE       ' 0..1 fill of that actor's gauge bar
+' Gore colour for this actor's portrait, 0 = never splatter (the engine has no idea which
+' creatures bleed, or what colour -- the GAME sets it via FightSetGore; see GoreColor~&).
+DIM SHARED FA_GORE(0 TO FIGHT_MAXFOE) AS _UNSIGNED LONG
 DIM SHARED FA_TARGET AS INTEGER                       ' which foe slot is selected (0 = none)
 DIM SHARED FIGHT_ROUND AS INTEGER, FIGHT_INIT AS STRING
 DIM SHARED FIGHT_BANNER AS STRING

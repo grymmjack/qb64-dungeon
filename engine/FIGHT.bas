@@ -55,6 +55,7 @@ SUB FightReset
         FA_NAME(a) = "": FA_SUB(a) = "": FA_ART(a) = ""
         FA_HP(a) = 0: FA_MAXHP(a) = 0: FA_FUSE(a) = 0
         FA_ART2(a) = ""
+        FA_GORE(a) = 0                  ' no wounds until the game says what this one bleeds
         FOR r = 1 TO FIGHT_STATROWS
             FA_LAB(a, r) = "": FA_VAL(a, r) = ""
             FA_SLAB(a, r) = "": FA_SVAL(a, r) = ""
@@ -80,6 +81,12 @@ END SUB
 SUB FightSetArtFallback (a AS INTEGER, path AS STRING)
     IF a < 0 OR a > FIGHT_MAXFOE THEN EXIT SUB
     FA_ART2(a) = path
+END SUB
+
+' What colour this actor bleeds. 0 (the default) means no gore overlay at all.
+SUB FightSetGore (a AS INTEGER, kol AS _UNSIGNED LONG)
+    IF a < 0 OR a > FIGHT_MAXFOE THEN EXIT SUB
+    FA_GORE(a) = kol
 END SUB
 
 ' One of the three generic stat rows (DUNGEON! uses MELEE / RANGED / ARMOR).
@@ -375,6 +382,15 @@ SUB FightDrawActor (a AS INTEGER)
         ELSE
             LINE (px, py)-(px + pxw - 1, py + pxh - 1), BOXBG, BF          ' placeholder: no art yet
         END IF
+        ' Wounds, then the dim -- so a corpse's gore dims along with the rest of it rather
+        ' than sitting bright on top of a greyed-out body.
+        IF FA_GORE(a) <> 0 AND img < -1 THEN
+            IF FA_MAXHP(a) > 0 THEN
+                frac = FA_HP(a) / FA_MAXHP(a)
+                IF FA_ALIVE(a) = 0 THEN frac = 0        ' dead is maximum gore, whatever the HP says
+                GoreSplat px, py, pxw, pxh, 1 - frac, FA_GORE(a), FightGoreSeed&(a)
+            END IF
+        END IF
         ' A dead actor is dimmed rather than removed, so the column keeps its place and the
         ' player can still read what they killed.
         IF FA_ALIVE(a) = 0 THEN FightDimBox px, py, pxw, pxh
@@ -401,6 +417,19 @@ SUB FightDrawActor (a AS INTEGER)
 
     IF FA_FUSE(a) > 0 THEN FightBar FaRgn$(a, "gauge"), FA_FUSE(a), FightFuseColor~&(FA_FUSE(a))
 END SUB
+
+' Key an actor's splatter pattern to WHO it is, not to its slot: two goblins side by side
+' should not be wearing identical wounds, and a given goblin's wounds must not rearrange
+' themselves if the slots are ever reordered mid-fight.
+FUNCTION FightGoreSeed& (a AS INTEGER)
+    DIM i AS INTEGER, h AS LONG, nm AS STRING
+    nm = _TRIM$(FA_NAME(a))
+    h = 5381 + a * 131
+    FOR i = 1 TO LEN(nm)
+        h = (h * 33 + ASC(nm, i)) MOD 65521
+    NEXT i
+    FightGoreSeed& = h
+END FUNCTION
 
 ' Darken a box by drawing scanlines through it. Every other row rather than a translucent
 ' overlay, because a semi-transparent _COPYIMAGE(,33) tile renders INVISIBLE on some GL

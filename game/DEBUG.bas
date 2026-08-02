@@ -417,7 +417,13 @@ SUB DumpFightShot
     DevPackOverride
 
     FightReset
+    ' `fightshot [level]` -- the monsters differ per level, and so does what they are made of:
+    ' only a level with UNDEAD on it can show the black-gore path at all (GoreColor~&).
     lvl = 5
+    FOR i = 1 TO _COMMANDCOUNT
+        IF VAL(COMMAND$(i)) >= 1 AND VAL(COMMAND$(i)) <= 9 THEN lvl = VAL(COMMAND$(i))
+    NEXT i
+    PRINT PipeCol$("  level -> |15" + LTRIM$(STR$(lvl)) + "|07")
 
     '--- the player (slot 0) -------------------------------------------------
     nm = _TRIM$(CLASSES(player_class).name)
@@ -449,6 +455,7 @@ SUB DumpFightShot
         IF LEN(nm) = 0 THEN nm = "MONSTER" + LTRIM$(STR$(a))
         FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), hp(a), mx(a)
         FightSetArtFallback a, MonsterSprite$(nm)
+        FightSetGore a, GoreColor~&(nm)          ' the four HP tiers above double as the gore ramp
         FightSetStat a, 1, "MELEE:", "+" + LTRIM$(STR$(2 + a))
         FightSetStat a, 2, "RANGED:", "-"
         FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + a))
@@ -567,6 +574,14 @@ SUB DevPackOverride
     DIM i AS INTEGER, arg AS STRING
     FOR i = 1 TO _COMMANDCOUNT
         arg = _TRIM$(COMMAND$(i))
+        ' A STYLE override as well as a pack one. Without this every art dev-mode could only
+        ' ever shoot whatever style the player's saved settings happen to be in -- so ANSI-only
+        ' settings made it impossible to verify any pixel-art change, and vice versa.
+        SELECT CASE LCASE$(arg)
+            CASE "pixel", "png": opt_artstyle = 1: PRINT PipeCol$("  art style -> |15pixel|07 (this run only)")
+            CASE "ansi": opt_artstyle = 0: PRINT PipeCol$("  art style -> |15ANSI|07 (this run only)")
+            CASE "hybrid": opt_artstyle = 2: PRINT PipeCol$("  art style -> |15hybrid|07 (this run only)")
+        END SELECT
         IF LEN(arg) > 0 THEN
             IF _DIREXISTS("assets/ansi-art/" + arg) THEN
                 opt_ansipack = arg

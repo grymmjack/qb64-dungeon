@@ -93,6 +93,7 @@ SUB SeedFightFromRoom (rm AS INTEGER, extra AS INTEGER)
     FightSetStat 1, 1, "MELEE:", SgnStr$(lvl + slot)
     FightSetStat 1, 3, "ARMOR:", "AC" + LTRIM$(STR$(ROOMS(rm).mac))
     FightSetArtFallback 1, MonsterSprite$(nm)
+    FightSetGore 1, GoreColor~&(nm)
     FuseArmFoe 1, FightFoeTier%(slot), lvl
     IF ROOMS(rm).is_boss THEN FightSetStatus 1, 3, "EFFECT:", "BOSS"
 
@@ -108,6 +109,7 @@ SUB SeedFightFromRoom (rm AS INTEGER, extra AS INTEGER)
         FightSetStat a, 1, "MELEE:", SgnStr$(lvl + slot)
         FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + slot))
         FightSetArtFallback a, MonsterSprite$(nm)
+        FightSetGore a, GoreColor~&(nm)
         FuseArmFoe a, FightFoeTier%(slot), lvl
     NEXT a
 
@@ -185,6 +187,7 @@ SUB SeedFight (lvl AS INTEGER, nfoes AS INTEGER)
         ' MonsterSprite$ knows the category subfolders (monsters/beasts/...) and the mimic
         ' event-prop fallback -- knowledge the engine deliberately does not have.
         FightSetArtFallback a, MonsterSprite$(nm)
+        FightSetGore a, GoreColor~&(nm)
         FuseArmFoe a, FightFoeTier%(slot), lvl
     NEXT a
 

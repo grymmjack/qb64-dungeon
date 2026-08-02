@@ -305,7 +305,8 @@ FUNCTION DoCombat% (rm AS INTEGER)
         Banner "THE GODS FAVOUR THE DESPERATE!", "Fortune lowers the roll you need by " + _TRIM$(STR$(god_favor)) + " this fight.   [ press any key ]"
         WaitKey
     END IF
-    DrawCombatArt mon, sec                          ' pixel-art: monster (left) + location (right); persists behind the centre banner/dice
+    DrawCombatArt mon, sec, 0                       ' pixel-art: monster (left) + location (right); persists behind the centre banner/dice
+'                                                    gore ramp is 0 here: Oldschool has no monster HP to ramp against
     Banner lead + whatguards, p2 + HealSuffix$
 
     DO
@@ -767,7 +768,10 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
         PrintCentered by + 9, sph
     END IF
     UIFontOff                                   ' restore the grid font before the pixel-art + present
-    DrawCombatArt mon, ROOMS(rm).sec            ' pixel-art: monster (left) + location (right) framed above the panel
+    DIM gwound AS SINGLE
+    IF ROOMS(rm).mhp > 0 THEN gwound = 1 - ROOMS(rm).mhp_now / ROOMS(rm).mhp
+    IF gwound < 0 THEN gwound = 0
+    DrawCombatArt mon, ROOMS(rm).sec, gwound    ' pixel-art: monster (left) + location (right) framed above the panel
     Present
 END SUB
 
