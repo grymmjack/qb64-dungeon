@@ -1574,18 +1574,53 @@ FUNCTION RollAbility% ()
                 RollAbility = ShowRollTextEx(4, 6, TRUE, 0, "4d6 drop lowest")   ' same, on the font d6
             END IF
         CASE STAT_3D6RR
-            ' A d6 that re-rolls 1s and 2s until neither shows is exactly a uniform pick from
-            ' 3..6 -- which is a d4 shifted up by 2. So the SCORE is 3d4+6 (9..18), and rolling it
-            ' that way needs no per-die re-roll support in any of the four dice renderers.
-            ' The dice shown are d4s, which is honest: they are the distribution being rolled.
             IF opt_realdice THEN
                 RollAbility = PromptRoll(3, 6, 0, "roll 3d6, RE-ROLL any 1s and 2s, enter total")
             ELSE
-                RollAbility = GameRoll(3, 4, 6, "3d6 re-roll 1s & 2s")
+                RollAbility = Roll3d6RerollLow%
             END IF
         CASE ELSE
             RollAbility = GameRoll(3, 6, 0, "ability score")
     END SELECT
+END FUNCTION
+
+' 3d6, re-rolling any die that comes up 1 or 2, until none do.
+'
+' Rolled the way the rule READS: three d6 on the table, then only the offending dice thrown again.
+' The first version quietly substituted 3d4+6 -- mathematically identical (a d6 that re-rolls 1s
+' and 2s forever IS a uniform 3..6, which is a d4+2) and visibly wrong: you sat watching three d4s
+' and never saw the mechanic you chose. The distribution was never the point; the re-roll is.
+'
+' Reads the individual dice back through DIE_FACE (PublishFaces), which every renderer fills. If a
+' renderer published nothing -- or fewer faces than asked for -- the first throw's total is taken
+' as-is rather than inventing dice, so a future renderer that forgets to publish degrades to a
+' plain 3d6 instead of returning nonsense.
+'
+' Capped at RR_MAX_PASSES: the loop terminates with probability 1, but "probability 1" is not a
+' guarantee you want inside a game loop with no way out.
+FUNCTION Roll3d6RerollLow% ()
+    CONST RR_MAX_PASSES = 16
+    DIM v(1 TO 3) AS INTEGER, idx(1 TO 3) AS INTEGER
+    DIM i AS INTEGER, nlow AS INTEGER, pass AS INTEGER, t AS INTEGER, thrown AS INTEGER, cap AS STRING
+    thrown = AnimatedRoll%(3, 6, 0, "3d6 -- re-roll 1s & 2s")
+    IF DIE_FACE_N < 3 THEN Roll3d6RerollLow% = thrown: EXIT FUNCTION   ' renderer published nothing
+    FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
+    DO
+        nlow = 0
+        FOR i = 1 TO 3
+            IF v(i) <= 2 THEN nlow = nlow + 1: idx(nlow) = i
+        NEXT i
+        IF nlow = 0 THEN EXIT DO
+        pass = pass + 1
+        IF pass > RR_MAX_PASSES THEN EXIT DO
+        IF nlow = 1 THEN cap = "re-rolling 1 low die" ELSE cap = "re-rolling " + _TRIM$(STR$(nlow)) + " low dice"
+        thrown = AnimatedRoll%(nlow, 6, 0, cap)
+        IF DIE_FACE_N < nlow THEN EXIT DO         ' same guard: keep what we have rather than guess
+        FOR i = 1 TO nlow: v(idx(i)) = DieFace%(i): NEXT i
+    LOOP
+    t = 0
+    FOR i = 1 TO 3: t = t + v(i): NEXT i
+    Roll3d6RerollLow% = t
 END FUNCTION
 
 ' Roll one ability score with NO dice animation and no waiting -- the [Shift-R] fast re-roll.
@@ -1603,7 +1638,12 @@ FUNCTION RollAbilityFast% ()
             RollAbilityFast% = t - lo
         CASE STAT_3D6RR
             t = 0
-            FOR j = 1 TO 3: t = t + 2 + RollDie(4): NEXT j     ' uniform 3..6 per die -- see RollAbility%
+            FOR j = 1 TO 3                                    ' same rule as Roll3d6RerollLow%,
+                DO                                            ' just without the animation
+                    v = RollDie(6)
+                LOOP WHILE v <= 2
+                t = t + v
+            NEXT j
             RollAbilityFast% = t
         CASE ELSE
             t = 0

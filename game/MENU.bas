@@ -128,17 +128,22 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
     ' WHAT THE ABILITY DOES, on the rolling screen too. The point-buy and assign editors have
     ' always shown this (DrawFlexStats), but rolling straight 3d6 / 4d6-drop-low is where a
     ' player is LEAST able to act on the information and MOST likely to want it -- you are
-    ' watching a number land on a stat you may not know the use of. The panel tracks the ability
-    ' being rolled next, and after the last roll it holds on the one just filled in.
+    ' watching a number land on a stat you may not know the use of.
+    '
+    ' It tracks the HIGHLIGHTED row -- the score just rolled -- not the one queued next. Keyed to
+    ' the next one, the panel described INT while STR sat highlighted in red, which reads as the
+    ' panel being wrong rather than as being one ahead.
+    '
+    ' Drawn on the LEFT, clear of everything: the scores run down the centre and the dice tray
+    ' owns the bottom third (DICE3D_YOFF pushes it to ~row 26), so the first position tried put
+    ' the text underneath the tray with only its last two lines poking out.
     DIM helpstat AS INTEGER
-    IF done THEN
-        helpstat = 6
-    ELSEIF rolled < 6 THEN
-        helpstat = rolled + 1                     ' the one about to be rolled
-    ELSE
-        helpstat = 6
-    END IF
-    DrawStatHelp helpstat, 42, 31, 48
+    helpstat = rolled                             ' the row currently highlighted
+    IF helpstat < 1 THEN helpstat = 1             ' nothing rolled yet -> STR, the one coming up
+    ' Width 48, not 38: DrawStatHelp truncates to wid-4, and stats.txt authors its lines to 44
+    ' characters -- at 38 every longer line lost its last words ("barter: what you pay and what
+    ' you"). Still ends at column 51, clear of the centred score column.
+    IF NOT done THEN DrawStatHelp helpstat, 3, 11, 48
     IF done THEN
         COLOR GREENU, BLACK
         PrintCentered 24, "HIT POINTS  " + _TRIM$(STR$(player_maxhp))

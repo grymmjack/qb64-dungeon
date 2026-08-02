@@ -804,6 +804,15 @@ SUB DumpCreatorShot (statsel AS INTEGER)
     DrawFlexStats 1, sc(), statsel, 0, 2, "12 points left to spend"
     _SAVEIMAGE "creatorshot.png", CANVAS
     PRINT PipeCol$("  wrote |14creatorshot.png|07  (cursor on " + StatName$(statsel) + ")")
+    ' The ROLL screen too. It is a different renderer (DrawCharGen, not DrawFlexStats) and had no
+    ' shot at all, which is how its 'what it does' panel shipped drawn UNDERNEATH the dice tray
+    ' with two lines poking out. Shot mid-roll, with `statsel` scores filled in, because that is
+    ' the state where the panel, the highlighted row and the tray all compete for the screen.
+    DICE3D_YOFF = 14                                 ' the offset the real roll screen uses
+    DrawCharGen 1, sc(), statsel, 0
+    _SAVEIMAGE "creatorshot-roll.png", CANVAS
+    DICE3D_YOFF = 0
+    PRINT PipeCol$("  wrote |14creatorshot-roll.png|07  (" + _TRIM$(STR$(statsel)) + " of 6 rolled)")
 END SUB
 
 

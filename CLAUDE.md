@@ -85,6 +85,12 @@ after any structural change. It runs, in order:
   error, the screen looks normal, one row is missing. That is exactly how three rows vanished when
   the id space outgrew `SL_COL`/`SL_ROW`/`SORD`'s hardcoded 64 (now sized from `SETOPT_MAX`).
   Retired ids are listed in `SetIdRetired%` so a genuine loss still fails.
+- **`dungeon.run statroll [n]`** — samples every ability-roll METHOD and checks its true range,
+  plus that the animated path and the no-animation `[Shift-R]` twin are the SAME distribution. A
+  method is two claims — how it LOOKS and what it PRODUCES — and "3d6 re-roll 1s & 2s" once
+  shipped as `3d4+6`: identical maths (a d6 re-rolling 1s and 2s *is* a uniform 3–6), visibly the
+  wrong dice on screen, and nothing in the gate could tell. `creatorshot` now shoots the ROLL
+  screen (`creatorshot-roll.png`) as well as the point-buy editor, which is the other half.
 - **`dungeon.run ruleslint`** — the rules screen's GENERATED sections (the live "your game, right
   now" table and the ability reference built from `stats.txt`) exist in no file on disk, so nothing
   else can see them. An empty ability section — what a missing/renamed `stats.txt` looks like from

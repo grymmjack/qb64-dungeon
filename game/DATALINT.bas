@@ -2027,3 +2027,67 @@ FUNCTION MarkdownToConsole$ (md AS STRING)
     LOOP
     MarkdownToConsole$ = acc
 END FUNCTION
+
+
+' ============================================================================
+'  `dungeon.run statroll [n]` -- sample every ability-roll METHOD and check its shape.
+'
+'  Added after "3d6 re-roll 1s & 2s" shipped as 3d4+6: mathematically identical, visibly wrong,
+'  and nothing could tell. A method is two claims -- how it LOOKS and what it PRODUCES -- and this
+'  checks the second, which is the half a screenshot cannot show.
+'
+'  Runs the REAL functions (RollAbility% and its no-animation twin RollAbilityFast%) with the dice
+'  display forced off, so the animated path is exercised at full speed. Verifies each method's
+'  true range and that the two paths agree -- a fast re-roll that quietly rolls a DIFFERENT
+'  distribution from the animated one would be invisible in play and unfair on purpose.
+' ============================================================================
+SUB StatRollCheck (samples AS INTEGER)
+    DIM m AS INTEGER, i AS INTEGER, v AS INTEGER, n AS INTEGER, bad AS INTEGER
+    DIM lo AS INTEGER, hi AS INTEGER, tot AS LONG, flo AS INTEGER, fhi AS INTEGER, ftot AS LONG
+    DIM explo AS INTEGER, exphi AS INTEGER, nm AS STRING
+    _DEST _CONSOLE
+    n = samples: IF n < 200 THEN n = 2000
+    PRINT PipeCol$("|15statroll|07 -- ability-roll methods, " + _TRIM$(STR$(n)) + " samples each")
+    opt_showdice = FALSE                          ' no animation: the roll logic still runs in full
+    opt_dice3d = FALSE
+    opt_realdice = FALSE                          ' never prompt for a typed result
+    FOR m = STAT_3D6 TO STAT_3D6RR
+        opt_statmethod = m
+        SELECT CASE m
+            CASE STAT_4D6DL: explo = 3: exphi = 18: nm = "4d6 drop-low"
+            CASE STAT_3D6RR: explo = 9: exphi = 18: nm = "3d6 re-roll 1s & 2s"
+            CASE ELSE: explo = 3: exphi = 18: nm = "straight 3d6"
+        END SELECT
+        lo = 999: hi = -999: tot = 0
+        flo = 999: fhi = -999: ftot = 0
+        FOR i = 1 TO n
+            v = RollAbility%
+            IF v < lo THEN lo = v
+            IF v > hi THEN hi = v
+            tot = tot + v
+            v = RollAbilityFast%
+            IF v < flo THEN flo = v
+            IF v > fhi THEN fhi = v
+            ftot = ftot + v
+        NEXT i
+        PRINT PipeCol$("  |14" + PadR$(nm, 22) + "|07 animated " + _TRIM$(STR$(lo)) + ".." + _TRIM$(STR$(hi)) + _
+              "  mean " + _TRIM$(STR$(INT(tot * 10 / n) / 10)) + _
+              "   |08fast " + _TRIM$(STR$(flo)) + ".." + _TRIM$(STR$(fhi)) + _
+              "  mean " + _TRIM$(STR$(INT(ftot * 10 / n) / 10)) + "|07")
+        ' Range: a sample can miss an extreme, so only an OUT-OF-RANGE value is an error.
+        IF lo < explo OR hi > exphi OR flo < explo OR fhi > exphi THEN
+            PRINT PipeCol$("     |12BAD|07 outside the method's possible range " + _TRIM$(STR$(explo)) + ".." + _TRIM$(STR$(exphi)))
+            bad = bad + 1
+        END IF
+        ' The two paths must be the same distribution. 0.5 of a point is far outside sampling
+        ' noise at these counts and far inside any real difference (3d4+6 vs 3d6-reroll differ by
+        ' nothing; 3d6 vs 4d6-drop-low differ by ~1.8).
+        IF ABS(tot / n - ftot / n) > 0.5 THEN
+            PRINT PipeCol$("     |12BAD|07 animated and fast paths disagree -- different distributions")
+            bad = bad + 1
+        END IF
+    NEXT m
+    IF bad > 0 THEN SYSTEM 1
+    PRINT PipeCol$("  |10ok |07  every method is in range and its fast path matches")
+    SYSTEM
+END SUB

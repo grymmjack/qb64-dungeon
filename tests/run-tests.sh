@@ -137,6 +137,22 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # Ability-roll methods. A method is two claims -- how it LOOKS and what it PRODUCES -- and
+    # "3d6 re-roll 1s & 2s" once shipped as 3d4+6: identical maths, visibly the wrong dice, and
+    # nothing could tell. This checks the half a screenshot cannot.
+    echo "-- ability-roll methods (dungeon.run statroll) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 120 "statroll" ./dungeon.run statroll 4000 nocolor; then sr="$DEVRUN_OUT"
+            grep -E 'animated .*fast' <<<"$sr" | sed 's/^/  /'
+        else
+            sr="$DEVRUN_OUT"
+            grep -E 'BAD' <<<"$sr" | head -4 | sed 's/^/    /'
+            (( fail++ )); failed+=("statroll")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # SETTINGS layout. An option id that BuildSetLayout never places simply does not draw --
     # no error, the screen looks normal, one row is just missing. That is how the per-category
     # audio-format rows vanished when the id space outgrew the SL_* arrays' hardcoded bounds.

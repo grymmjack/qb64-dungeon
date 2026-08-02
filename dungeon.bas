@@ -61,6 +61,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10ruleslint|07    print the GENERATED rules sections (your-game + what each ability does)")
+    PRINT PipeCol$("  |10statroll|07 |14[n]|07  sample each ability-roll method; check range + that the fast path matches")
     PRINT PipeCol$("  |10balancedump|07 |14[--includestats]|07  monster curve + player ascension, with hits-to-die vs hits-to-kill")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
@@ -422,6 +423,9 @@ IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 
 '--- dev: `dungeon.run datalint` validates the loaded content tables and exits ---
 IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
+
+'--- dev: `dungeon.run statroll [n]` samples every ability-roll method and checks its shape ---
+IF INSTR(UCASE$(COMMAND$), "STATROLL") > 0 THEN StatRollCheck VAL(NthField$(COMMAND$, " ", 2))
 
 '--- dev: `dungeon.run ruleslint` prints the GENERATED half of the rules screen and exits ---
 ' The rules screen is assembled at display time from live settings + assets/data/stats.txt, so
