@@ -9,7 +9,7 @@
 # geometry driven by the SETTINGS "Dice Round" value, and the face atlas is baked from the
 # chosen dice set and numeral font. A .blend committed today is a snapshot of one combination;
 # this rebuilds from whatever `diceobj` last exported, so the render always matches the game.
-import bpy, os, math, glob
+import bpy, os, math, glob, mathutils
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OBJDIR = os.path.join(os.path.dirname(HERE), "diceobj")
@@ -99,6 +99,30 @@ for i, obj_path in enumerate(dice):
         for poly in m.data.polygons:
             poly.use_smooth = False
         placed.append(m)
+
+# --- settle every die: flat on a face, then down onto the floor ----------------------------
+#
+# A die that has stopped rolling rests on a FACE. Posing one by angle alone almost never does --
+# it balances on a point or an edge, which still reads as wrong even once the height is right.
+#
+# The rotation applied is the MINIMAL one: whichever face is already nearest to facing down gets
+# laid flat, so the die keeps the orientation it was posed with -- its yaw, and which numbers
+# face the camera -- and only stops leaning. That is also what settling physically does: a die
+# tips onto the face it was already closest to.
+bpy.context.view_layer.update()
+dg = bpy.context.evaluated_depsgraph_get()
+DOWN = mathutils.Vector((0, 0, -1))
+for m in placed:
+    ev = m.evaluated_get(dg)
+    rot = m.matrix_world.to_quaternion()
+    best, bestdot = None, -2.0
+    for poly in ev.data.polygons:                # normals are LOCAL: rotate before comparing
+        n = (rot @ poly.normal).normalized()
+        if n.dot(DOWN) > bestdot:
+            bestdot, best = n.dot(DOWN), n
+    if best is not None:
+        m.rotation_euler = (best.rotation_difference(DOWN) @ rot).to_euler()
+bpy.context.view_layer.update()                  # the drop below must see the NEW rotations
 
 # --- sit every die on the floor -----------------------------------------------------------
 #
