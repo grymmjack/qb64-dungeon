@@ -284,7 +284,7 @@ END FUNCTION
 
 SUB RollCharacter (pc AS INTEGER)
     DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER, usedpoint AS INTEGER
-    DIM kr AS STRING, fastroll AS INTEGER, j AS INTEGER
+    DIM kr AS STRING, fastroll AS INTEGER, j AS INTEGER, hpd AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
     IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
     DICE3D_YOFF = 14                                ' drop the 3D dice tray below the stat sheet so the scores stay visible
@@ -339,9 +339,21 @@ SUB RollCharacter (pc AS INTEGER)
                 IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
             END IF
         END IF
+        ' HIT POINTS follow the same re-roll rule as the abilities. They are three dice on the
+        ' class hit die, rolled by the same character-generation method -- a player who chose
+        ' "re-roll 1s" and then watched their HP land on three 1s would rightly ask what the
+        ' setting was for. The floor is clamped against the hit die inside RollRerollLow%, so a
+        ' d6 class is safe from a rule written with d6 abilities in mind.
         IF fastroll THEN
             hproll = 0
-            FOR j = 1 TO 3: hproll = hproll + RollDie(CLASSES(pc).hitdie): NEXT j
+            FOR j = 1 TO 3
+                DO
+                    hpd = RollDie(CLASSES(pc).hitdie)
+                LOOP WHILE hpd <= RerollFloor% AND RerollFloor% < CLASSES(pc).hitdie
+                hproll = hproll + hpd
+            NEXT j
+        ELSEIF RerollFloor% > 0 AND NOT opt_realdice THEN
+            hproll = RollRerollLow%(3, CLASSES(pc).hitdie, RerollFloor%, "HIT POINTS -- re-roll " + RerollWord$)
         ELSE
             hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
         END IF
@@ -830,11 +842,7 @@ SUB RunSettings
                     IF opt_flexstats < 0 THEN opt_flexstats = 2
                     IF opt_flexstats > 2 THEN opt_flexstats = 0
                     Sfx "select"
-                CASE 17
-                    opt_statmethod = opt_statmethod + delta
-                    IF opt_statmethod < STAT_3D6 THEN opt_statmethod = STAT_3D6RR
-                    IF opt_statmethod > STAT_3D6RR THEN opt_statmethod = STAT_3D6
-                    Sfx "select"
+                CASE 17: CycleStatMethod delta: Sfx "select"
                 CASE 41
                     opt_solomode = opt_solomode + delta
                     IF opt_solomode < 0 THEN opt_solomode = 3
@@ -911,9 +919,7 @@ SUB RunSettings
                 CASE 16
                     num_players = num_players + 1: IF num_players > 4 THEN num_players = 1
                     IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
-                CASE 17
-                    opt_statmethod = opt_statmethod + 1
-                    IF opt_statmethod > STAT_3D6RR THEN opt_statmethod = STAT_3D6
+                CASE 17: CycleStatMethod 1
                 CASE 18
                     opt_fullscreen = NOT opt_fullscreen
                     ApplyDisplay

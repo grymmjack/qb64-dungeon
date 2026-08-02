@@ -1619,6 +1619,39 @@ END FUNCTION
 
 ' Roll one ability score by the Stat-Roll METHOD: straight 3d6, 4d6-drop-lowest, or 3d6
 ' re-rolling 1s and 2s. Respects Real Dice + Show Dice.
+' Faces at or below this are thrown again (0 = the method does not re-roll).
+FUNCTION RerollFloor% ()
+    SELECT CASE opt_statmethod
+        CASE STAT_3D6RR1: RerollFloor% = 1
+        CASE STAT_3D6RR2: RerollFloor% = 2
+        CASE ELSE: RerollFloor% = 0
+    END SELECT
+END FUNCTION
+
+' Build the SETTINGS presentation order once. Kept apart from the ids so the row can read
+' sensibly (plain, heroic, then the two re-rolls, gentlest first) without the stored numbers
+' having to agree with that ordering.
+SUB InitStatMethods
+    STATORD(1) = STAT_3D6
+    STATORD(2) = STAT_4D6DL
+    STATORD(3) = STAT_3D6RR1
+    STATORD(4) = STAT_3D6RR2
+END SUB
+
+' Step the Stat Roll row by delta, through STATORD rather than through the raw ids.
+SUB CycleStatMethod (delta AS INTEGER)
+    DIM i AS INTEGER, at AS INTEGER
+    IF STATORD(1) = 0 AND STATORD(4) = 0 THEN InitStatMethods   ' first use (also covers a fresh run)
+    at = 1
+    FOR i = 1 TO STATMETHOD_N
+        IF STATORD(i) = opt_statmethod THEN at = i
+    NEXT i
+    at = at + delta
+    IF at < 1 THEN at = STATMETHOD_N
+    IF at > STATMETHOD_N THEN at = 1
+    opt_statmethod = STATORD(at)
+END SUB
+
 FUNCTION RollAbility% ()
     SELECT CASE opt_statmethod
         CASE STAT_4D6DL
@@ -1631,69 +1664,74 @@ FUNCTION RollAbility% ()
             ELSE
                 RollAbility = ShowRollTextEx(4, 6, TRUE, 0, "4d6 drop lowest")   ' same, on the font d6
             END IF
-        CASE STAT_3D6RR
+        CASE STAT_3D6RR1, STAT_3D6RR2
             IF opt_realdice THEN
-                RollAbility = PromptRoll(3, 6, 0, "roll 3d6, RE-ROLL any 1s and 2s, enter total")
+                RollAbility = PromptRoll(3, 6, 0, "roll 3d6, RE-ROLL any " + RerollWord$ + ", enter total")
             ELSE
-                RollAbility = Roll3d6RerollLow%
+                RollAbility = RollRerollLow%(3, 6, RerollFloor%, "3d6 -- re-roll " + RerollWord$)
             END IF
         CASE ELSE
             RollAbility = GameRoll(3, 6, 0, "ability score")
     END SELECT
 END FUNCTION
 
-' 3d6, re-rolling any die that comes up 1 or 2, until none do.
+' Roll n dice of `sides`, throwing again any die at or below `floorv`, until none are, and return
+' the total. floorv = 0 is a plain roll.
 '
-' Rolled the way the rule READS, and now SHOWN that way too: three d6 stay on the table for every
-' pass, the ones that are keeping their number lie still, and only the 1s and 2s are picked up and
-' thrown again (RollHoldSet -> the renderers' held-dice path).
+' Rolled the way the rule READS, and SHOWN that way: all n dice stay on the table for every pass,
+' the ones keeping their number lie still, and only the low ones are picked up and thrown again
+' (RollHoldSet -> the renderers' held-dice path), all inside ONE tray (RollSeqBegin/End).
 '
 ' Two earlier versions got this wrong in instructive ways. The first substituted 3d4+6 --
 ' mathematically exact (a d6 re-rolling 1s and 2s forever IS a uniform 3..6, i.e. a d4+2) and
 ' visibly nonsense: you watched three d4s and never saw the mechanic. The second rolled the low
-' dice alone in a fresh tray, which is the right maths and still the wrong picture -- the kept
-' dice vanished, so what was on screen stopped matching the rule.
+' dice alone in a fresh tray: right maths, still the wrong picture, because the kept dice vanished.
 '
 ' Reads the dice apart through DIE_FACE (PublishFaces), which every renderer fills. If a renderer
-' published nothing -- or fewer faces than asked for -- the throw's total is taken as-is rather
-' than inventing dice, so a future renderer that forgets to publish degrades to a plain 3d6
-' instead of returning nonsense.
+' publishes nothing -- or fewer faces than asked for -- the throw total is taken as-is rather than
+' inventing dice, so a renderer that forgets to publish degrades to a plain roll.
 '
-' Capped at RR_MAX_PASSES: the loop terminates with probability 1, but "probability 1" is not a
-' guarantee worth having inside a game loop with no way out.
-FUNCTION Roll3d6RerollLow% ()
+' floorv is clamped below `sides`: a floor at or above the die would re-roll every possible face
+' and never terminate. Also capped at RR_MAX_PASSES -- the loop ends with probability 1, which is
+' not a guarantee worth having inside a game loop with no way out.
+FUNCTION RollRerollLow% (n AS INTEGER, sides AS INTEGER, floorv AS INTEGER, caption AS STRING)
     CONST RR_MAX_PASSES = 16
-    DIM v(1 TO 3) AS INTEGER
-    DIM i AS INTEGER, nlow AS INTEGER, pass AS INTEGER, t AS INTEGER, thrown AS INTEGER, cap AS STRING
+    DIM v(1 TO 12) AS INTEGER
+    DIM i AS INTEGER, nlow AS INTEGER, pass AS INTEGER, t AS INTEGER, thrown AS INTEGER
+    DIM fl AS INTEGER, cap AS STRING
+    fl = floorv
+    IF fl >= sides THEN fl = sides - 1            ' or every face is a re-roll and it never ends
+    IF n < 1 THEN n = 1
+    IF n > 12 THEN n = 12
     RollHoldClear
     RollSeqBegin                                  ' every pass below shares ONE tray
-    thrown = AnimatedRoll%(3, 6, 0, "3d6 -- re-roll 1s & 2s")
-    IF DIE_FACE_N < 3 THEN RollSeqEnd: Roll3d6RerollLow% = thrown: EXIT FUNCTION   ' renderer published nothing
-    FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
+    thrown = AnimatedRoll%(n, sides, 0, caption)
+    IF DIE_FACE_N < n OR fl < 1 THEN RollSeqEnd: RollRerollLow% = thrown: EXIT FUNCTION
+    FOR i = 1 TO n: v(i) = DieFace%(i): NEXT i
     DO
         nlow = 0
-        FOR i = 1 TO 3
-            IF v(i) <= 2 THEN nlow = nlow + 1
+        FOR i = 1 TO n
+            IF v(i) <= fl THEN nlow = nlow + 1
         NEXT i
         IF nlow = 0 THEN EXIT DO
         pass = pass + 1
         IF pass > RR_MAX_PASSES THEN EXIT DO
-        ' Pin every die that is KEEPING its number; the rest are thrown again. The roll is still
-        ' a full 3d6 -- that is what keeps all three on the table and in their seats.
+        ' Pin every die KEEPING its number; the rest are thrown again. The roll is still the full
+        ' set -- that is what keeps them all on the table and in their seats.
         RollHoldClear
-        FOR i = 1 TO 3
-            IF v(i) > 2 THEN RollHoldSet i, v(i)
+        FOR i = 1 TO n
+            IF v(i) > fl THEN RollHoldSet i, v(i)
         NEXT i
         IF nlow = 1 THEN cap = "re-rolling 1 low die" ELSE cap = "re-rolling " + _TRIM$(STR$(nlow)) + " low dice"
-        thrown = AnimatedRoll%(3, 6, 0, cap)
-        IF DIE_FACE_N < 3 THEN EXIT DO            ' same guard: keep what we have rather than guess
-        FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
+        thrown = AnimatedRoll%(n, sides, 0, cap)
+        IF DIE_FACE_N < n THEN EXIT DO            ' keep what we have rather than guess
+        FOR i = 1 TO n: v(i) = DieFace%(i): NEXT i
     LOOP
     RollHoldClear
-    RollSeqEnd                                    ' one tray for the whole sequence -- take it down now
+    RollSeqEnd                                    ' one tray for the whole sequence -- take it down
     t = 0
-    FOR i = 1 TO 3: t = t + v(i): NEXT i
-    Roll3d6RerollLow% = t
+    FOR i = 1 TO n: t = t + v(i): NEXT i
+    RollRerollLow% = t
 END FUNCTION
 
 ' Roll one ability score with NO dice animation and no waiting -- the [Shift-R] fast re-roll.
@@ -1709,12 +1747,12 @@ FUNCTION RollAbilityFast% ()
                 IF v < lo THEN lo = v
             NEXT j
             RollAbilityFast% = t - lo
-        CASE STAT_3D6RR
+        CASE STAT_3D6RR1, STAT_3D6RR2
             t = 0
-            FOR j = 1 TO 3                                    ' same rule as Roll3d6RerollLow%,
+            FOR j = 1 TO 3                                    ' same rule as RollRerollLow%,
                 DO                                            ' just without the animation
                     v = RollDie(6)
-                LOOP WHILE v <= 2
+                LOOP WHILE v <= RerollFloor%
                 t = t + v
             NEXT j
             RollAbilityFast% = t
@@ -1729,9 +1767,16 @@ END FUNCTION
 FUNCTION StatMethodName$ ()
     SELECT CASE opt_statmethod
         CASE STAT_4D6DL: StatMethodName$ = "4d6 drop-low"
-        CASE STAT_3D6RR: StatMethodName$ = "3d6 re-roll 1s & 2s"
+        CASE STAT_3D6RR1: StatMethodName$ = "3d6 re-roll 1s"
+        CASE STAT_3D6RR2: StatMethodName$ = "3d6 re-roll 1s & 2s"
         CASE ELSE: StatMethodName$ = "straight 3d6"
     END SELECT
+END FUNCTION
+
+' "1s" / "1s and 2s" -- the phrase the roll captions and the Real Dice prompt share, so the
+' player is told the same rule wherever it is stated.
+FUNCTION RerollWord$ ()
+    IF RerollFloor% >= 2 THEN RerollWord$ = "1s and 2s" ELSE RerollWord$ = "1s"
 END FUNCTION
 
 

@@ -2042,7 +2042,7 @@ END FUNCTION
 '  distribution from the animated one would be invisible in play and unfair on purpose.
 ' ============================================================================
 SUB StatRollCheck (samples AS INTEGER)
-    DIM m AS INTEGER, i AS INTEGER, v AS INTEGER, n AS INTEGER, bad AS INTEGER
+    DIM m AS INTEGER, mi AS INTEGER, i AS INTEGER, v AS INTEGER, n AS INTEGER, bad AS INTEGER
     DIM lo AS INTEGER, hi AS INTEGER, tot AS LONG, flo AS INTEGER, fhi AS INTEGER, ftot AS LONG
     DIM explo AS INTEGER, exphi AS INTEGER, nm AS STRING
     _DEST _CONSOLE
@@ -2051,11 +2051,14 @@ SUB StatRollCheck (samples AS INTEGER)
     opt_showdice = FALSE                          ' no animation: the roll logic still runs in full
     opt_dice3d = FALSE
     opt_realdice = FALSE                          ' never prompt for a typed result
-    FOR m = STAT_3D6 TO STAT_3D6RR
+    InitStatMethods
+    FOR mi = 1 TO STATMETHOD_N
+        m = STATORD(mi)                           ' walk the row's own order, not raw ids
         opt_statmethod = m
         SELECT CASE m
             CASE STAT_4D6DL: explo = 3: exphi = 18: nm = "4d6 drop-low"
-            CASE STAT_3D6RR: explo = 9: exphi = 18: nm = "3d6 re-roll 1s & 2s"
+            CASE STAT_3D6RR1: explo = 6: exphi = 18: nm = "3d6 re-roll 1s"
+            CASE STAT_3D6RR2: explo = 9: exphi = 18: nm = "3d6 re-roll 1s & 2s"
             CASE ELSE: explo = 3: exphi = 18: nm = "straight 3d6"
         END SELECT
         lo = 999: hi = -999: tot = 0
@@ -2086,7 +2089,7 @@ SUB StatRollCheck (samples AS INTEGER)
             PRINT PipeCol$("     |12BAD|07 animated and fast paths disagree -- different distributions")
             bad = bad + 1
         END IF
-    NEXT m
+    NEXT mi
     IF bad > 0 THEN SYSTEM 1
     PRINT PipeCol$("  |10ok |07  every method is in range and its fast path matches")
     SYSTEM

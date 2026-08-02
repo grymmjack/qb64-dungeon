@@ -445,13 +445,22 @@ DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the 
 ' the wrong shape, so it is now an enum; LoadSettings still reads the old `heroicstats` key and
 ' migrates it, so an existing dungeon-settings.dat keeps the method its owner chose.
 '
-' STAT_3D6RR re-rolls 1s and 2s UNTIL NONE REMAIN, so each die is uniform on 3..6 and a score
-' runs 9..18. (The other reading -- re-roll each low die exactly once -- gives a different curve;
-' this is the generous one, which is the point of the method.)
+' The re-roll methods throw the low dice again UNTIL NONE REMAIN, so each die is uniform over the
+' faces above the floor: re-rolling 1s gives 2..6 per die (score 6..18), re-rolling 1s and 2s
+' gives 3..6 (score 9..18). (The other reading -- re-roll each low die exactly once -- gives a
+' different curve; this is the generous one, which is the point of the method.)
+'
+' The IDS ARE STABLE, not ordered: 2 has always meant "1s and 2s" and settings files already say
+' so, so the later-added "1s only" took the next free number rather than renumbering and silently
+' changing what someone had chosen. STATORD below is what the SETTINGS row cycles through, and
+' that IS in reading order -- the two concerns are separate and only one of them is persisted.
 CONST STAT_3D6 = 0
 CONST STAT_4D6DL = 1
-CONST STAT_3D6RR = 2
+CONST STAT_3D6RR2 = 2              ' re-roll 1s AND 2s
+CONST STAT_3D6RR1 = 3              ' re-roll 1s only
+CONST STATMETHOD_N = 4
 DIM SHARED opt_statmethod AS INTEGER
+DIM SHARED STATORD(1 TO STATMETHOD_N) AS INTEGER   ' the ids in the order the row presents them
 DIM SHARED opt_fov AS INTEGER         ' TRUE: line-of-sight fog-of-war (explore the map)
 ' ---- dice look & feel (all persisted; see DiceColors / DrawFontDie) ----
 DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/Blood/Emerald/Sapphire/Gold/Amethyst)

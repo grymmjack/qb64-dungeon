@@ -99,6 +99,12 @@ CONST DICE3D_HW_PXPERUNIT = 103.0
 ' How far the INVISIBLE physics box sits inside the drawn tray, in WINDOW pixels per side.
 ' Purely feel: bigger keeps the dice further from the painted border.
 CONST DICE3D_BOX_INSET = 50
+' EXTRA inset on the BOTTOM edge only. The running total is printed in its own lane immediately
+' under the tray, and a die is drawn centred on its physics position -- so one resting on the box
+' floor still extends below it and clipped the top of that text. Raising the floor keeps the dice
+' clear of the lane without shrinking the tray they are drawn in. Window pixels, like the inset
+' above, so it means the same amount of screen at any scale.
+CONST DICE3D_BOX_INSET_BOT = 32
 
 ' droplow > 0 rolls N dice but keeps the top (N - droplow) -- e.g. Show3DRoll(4,6,0,1,..)
 ' is the classic 4d6-drop-lowest ability roll. The DICE3D module owns the mechanic: we
@@ -198,11 +204,15 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     '
     ' Floored so the box can never collapse: it must stay wide enough for the dice to have
     ' somewhere to go, or they pile up in the middle with nothing to bounce off.
-    DIM inset AS INTEGER, minw AS INTEGER, minh AS INTEGER
+    DIM inset AS INTEGER, botinset AS INTEGER, minw AS INTEGER, minh AS INTEGER
     inset = DICE3D_BOX_INSET / PresentScale!
+    botinset = DICE3D_BOX_INSET_BOT / PresentScale!
     minw = cfg.DIE_SIZE * 4: minh = cfg.DIE_SIZE * 3
     cfg.BOX_W = tw - inset * 2: IF cfg.BOX_W < minw THEN cfg.BOX_W = minw
-    cfg.BOX_H = th - inset * 2: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
+    ' The extra bottom inset comes off the HEIGHT only -- BOX_Y is unchanged, so the floor rises
+    ' and the ceiling stays where it was. Applied before the minimum-height floor, or a small
+    ' tray would silently give the space back.
+    cfg.BOX_H = th - inset * 2 - botinset: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
     ' WHERE the box sits. The hardware path ignores these -- it places dice in GL space via
     ' DICE3D_HW_CX/CY -- so they were simply never set here, and the SOFTWARE renderer (which
     ' blits its box buffer to BOX_X/BOX_Y) drew the dice at a stale rect, nowhere near the tray.
@@ -229,7 +239,11 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     DICE3D_HW_PXK = pxk
     DICE3D_HW_S = cfg.DIE_SIZE * pxk               ' render the die at its physics footprint
     DICE3D_HW_CX = GlX!(SW * CW * 0.5)             ' tray centred horizontally on the CANVAS
-    DICE3D_HW_CY = GlY!(ty + th * 0.5)             ' ...and on the tray row
+    ' Centre the GL dice on the PHYSICS BOX, not the tray. The two were identical while the box
+    ' was inset evenly, so this read as "the tray row" and worked -- but the bottom inset moves
+    ' the box centre up, and anchoring to the tray would leave the hardware dice sitting lower
+    ' than the floor they are actually bouncing on.
+    DICE3D_HW_CY = GlY!(cfg.BOX_Y + cfg.BOX_H * 0.5)
     DICE3D_UPRIGHT = -1                            ' show each die's result upright + readable
 
     ' Sound: a throw rattle now, then per-bounce BEEPS + a settle BOOP straight from the
