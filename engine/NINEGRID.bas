@@ -54,7 +54,19 @@ FUNCTION NineGridLoad& (path AS STRING)
     _DEST img
     _FONT CH                                    ' the UI cell, so the blit is 1:1 with the grid
     CLS , BLACK
-    ANSI_Print (MaskNormalize$(raw))            ' same CR/LF + sticky-SGR repair the masks need
+    ' Render the art RAW -- do NOT put it through MaskNormalize$.
+    '
+    ' Normalisation injects ESC[0m before every SGR run so each cell is self-contained. That is
+    ' exactly right for a MASK, where a cell must sample as precisely its painted colour and a
+    ' sticky attribute bleeding forward is corruption. It is exactly WRONG for decorative art,
+    ' which is authored assuming attributes persist: this frame sets ESC[1m (bold) as its own
+    ' run and lets later ESC[31m inherit it to mean BRIGHT red. Reset before each run and the
+    ' bold is gone -- the frame rendered dark red and grey instead of bright red and white.
+    '
+    ' Only the SAUCE is trimmed, because that genuinely is not art (see the CHR$(26) note in
+    ' framegen: without this the renderer draws "!!IBM VGA" across the frame).
+    IF INSTR(raw, CHR$(26)) > 0 THEN raw = LEFT$(raw, INSTR(raw, CHR$(26)) - 1)
+    ANSI_Print (raw)
     _DEST prevdest
     IF NG_N < NG_MAX THEN
         NG_N = NG_N + 1
@@ -82,6 +94,21 @@ SUB NineGridTile (img AS LONG, tw AS INTEGER, th AS INTEGER, sc AS INTEGER, sr A
         LOOP
         oy = oy + ph
     LOOP
+END SUB
+
+' Where the CONTENT goes -- the blue middle of the 9-grid, in CHARACTER cells.
+'
+' Every caller needs this and none of them should compute it: the inset is the CORNER size, so
+' a frame with chunkier corners pushes its text further in automatically, and a caller that
+' hardcoded "+1" would silently overlap the new art. Ask, do not assume.
+'
+' Returns the inner rect through icol/irow/icols/irows. irows/icols come back 0 if the box is
+' too small to have an interior at all.
+SUB NineGridInner (tw AS INTEGER, th AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, icol AS INTEGER, irow AS INTEGER, icols AS INTEGER, irows AS INTEGER)
+    icol = col + tw: irow = row + th
+    icols = cols - 2 * tw: irows = rows - 2 * th
+    IF icols < 0 THEN icols = 0
+    IF irows < 0 THEN irows = 0
 END SUB
 
 ' Draw a framed box at character coordinates (col,row) spanning cols x rows cells.
