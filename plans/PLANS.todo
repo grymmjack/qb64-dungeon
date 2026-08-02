@@ -53,9 +53,20 @@ Small UI Tweaks:
         ✔ ones (WIS/CHA) can be checked -- those are the rows most likely to look wrong @done(26-08-01)
       ✔ flip a 0 to a 1 in stats.txt as each mechanic lands; no code change needed @done(26-08-01)
 
-    ☐ Initiative modifier is the users level / 2. 
-      ☐ I don't want to use DEX for this because the more seasoned a player is the more ready they would be
-      ☐ D20 for initiative
+    ✔ Initiative modifier is the users level / 2.  @done(26-08-01)
+      ✔ NOT DEX -- reflexes are what DEX already buys (missile accuracy, flourish timing); @done(26-08-01)
+        ✔ readiness is EXPERIENCE, and level is the one axis every class shares @done(26-08-01)
+      ✔ D20 for initiative; integer halving so the bonus steps at even levels (a legible climb) @done(26-08-01)
+      ✔ Ties go to the player -- someone must win them, and the alternative is a free opening @done(26-08-01)
+        ✔ strike handed over on a coin flip the player never sees rolled @done(26-08-01)
+      ✔ D&D screen: losing costs ONE free strike, not the whole first round (a lost roll that @done(26-08-01)
+        ✔ cost a full turn would swing a fight harder than any weapon in the game) @done(26-08-01)
+      ✔ Implemented as a flag through the existing `acted` gate, not a second copy of the @done(26-08-01)
+        ✔ monster's turn -- that block owns the death/revive path and must not be duplicated @done(26-08-01)
+      ✔ Tactical screen has no turns, so initiative shifts where the FUSES start (FuseNudge, @done(26-08-01)
+        ✔ +/-25% of each foe's OWN duration so fast and slow foes feel the same head start) @done(26-08-01)
+      ✔ Skipped entirely when AMBUSHED -- rolling to see who noticed first would contradict @done(26-08-01)
+        ✔ the word already on screen @done(26-08-01)
     ✔ When monsters do max damage and the player has a CON bonus, a gesture to "endure damage" @done(26-08-01)
       ✔ Can 1/2 the damage if successful (CRIT zone braces; anything else takes it whole) @done(26-08-01)
       ✔ offered ONLY with a CON bonus -- a frail character never sees the prompt, and that @done(26-08-01)
@@ -267,13 +278,20 @@ Game Tweaks:
         ✔ you are exactly the ones that leave you too weak for the next, and a player who @done(26-08-01)
         ✔ scrapes through at 8 HP otherwise has no good options @done(26-08-01)
       ✔ both thresholds are tuning.txt knobs (CLOSECALL_ROUNDS / CLOSECALL_HP) @done(26-08-01)
-    ☐ Add auto-combat game options
-      ☐ Auto-combat: ON/OFF
-        ☐ Auto-combat simply simulates the player actually playing the combat sequence
-        ☐ Add setting: Proceed Delay: 
-          ☐ 1s
-          ☐ 2s
-          ☐ 3s
+    ✔ Add auto-combat game options @done(26-08-01)
+      ✔ SETTINGS "Auto-Combat" ON/OFF + "Proceed Delay" 1/2/3 sec @done(26-08-01)
+      ✔ It really does play the sequence: it synthesises the attack key on a timer, so the fight @done(26-08-01)
+        ✔ runs through the SAME code a player drives -- not a separate resolver that could drift @done(26-08-01)
+      ✔ A real keypress is read FIRST and always wins, so ESC still flees and the player can @done(26-08-01)
+        ✔ take the fight back mid-round @done(26-08-01)
+      ✔ REFUSES to engage under Real Dice: nothing can auto-roll physical dice, and silently @done(26-08-01)
+        ✔ typing numbers on the player's behalf would be worse than not offering it @done(26-08-01)
+      ✔ SUPPRESSES gestures while driving (GesturesLive%): a gauge tests the player's timing and @done(26-08-01)
+        ✔ an auto-player has none -- left on, every gesture runs its fuse out to a certain MISS @done(26-08-01)
+      ✔ WaitKey auto-advance is a GENERIC engine flag (ui_autoadvance), not a combat concept -- @done(26-08-01)
+        ✔ an attract mode or a capture wants the same thing and should not know what combat is @done(26-08-01)
+      ✔ Cleared at DoCombat's single exit: DoCombatDnD has several EXIT SUBs and a leaked @done(26-08-01)
+        ✔ auto-advance would leave the WHOLE GAME skipping its own prompts after the fight @done(26-08-01)
           ☐ None      
         ☐ Add setting: Attempt to flee?
           ☐ At <50% HP

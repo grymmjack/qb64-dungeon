@@ -551,6 +551,13 @@ DIM SHARED DEATH_STONE_W AS INTEGER, DEATH_STONE_H AS INTEGER
 DIM SHARED death_skipped AS INTEGER    ' latched: one keypress skips the WHOLE death sequence
 DIM SHARED g_saved AS INTEGER          ' times a SECOND WIND pulled you back from a downing blow
 CONST STATROW_N = 24                    ' rows in the run scorecard (StatRowLabel$/StatRowValue$)
+' AUTO-COMBAT: the game plays the fight for you, one action every opt_autodelay seconds.
+' `autocombat_run` is the RUNTIME flag (the option is the player's preference; the flag is
+' whether it is actually driving right now), so combat can switch it off for a fight without
+' rewriting the setting -- see AutoCombatLive%.
+DIM SHARED opt_autocombat AS INTEGER
+DIM SHARED opt_autodelay AS INTEGER    ' 1, 2 or 3 seconds between auto actions
+DIM SHARED autocombat_run AS INTEGER
 DIM SHARED opt_statsoverlay AS INTEGER
 DIM SHARED g_rooms_cleared AS INTEGER   ' rooms whose monster you killed (NOT chamber spawns)
 DIM SHARED g_chambers_cleared AS INTEGER

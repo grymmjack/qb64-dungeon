@@ -344,9 +344,18 @@ END SUB
 
 
 SUB WaitKey
-    DIM k AS STRING
+    DIM k AS STRING, t0 AS SINGLE
     _KEYCLEAR              ' drain buffered keys
-    DO: _LIMIT 60: AudioTick: k = INKEY$: Present: LOOP UNTIL k <> ""   ' Present handles resize
+    t0 = TIMER
+    DO
+        _LIMIT 60: AudioTick: k = INKEY$: Present   ' Present handles resize
+        ' Unattended advance. WaitKey is used for the moments too important to auto-skip during
+        ' NORMAL play (a death, a level-up), which is exactly why the timeout is opt-in state
+        ' rather than a global pacing setting -- nothing changes unless something asked for it.
+        IF ui_autoadvance > 0 THEN
+            IF TIMER - t0 >= ui_autoadvance OR TIMER - t0 < 0 THEN EXIT DO
+        END IF
+    LOOP UNTIL k <> ""
     FlashPrompt
 END SUB
 

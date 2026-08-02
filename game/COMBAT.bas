@@ -266,6 +266,10 @@ FUNCTION DoCombat% (rm AS INTEGER)
         combat_active = -1                          ' keep the combat panel constant through rolls/banners
         DoCombatDnD rm
         combat_active = 0                           ' (cleared here so ALL of DoCombatDnD's exits are covered)
+        ' Same reason, and it matters MORE here: DoCombatDnD has several EXIT SUBs (slain, fled,
+        ' downed), and a leaked ui_autoadvance would leave the WHOLE GAME skipping its own
+        ' prompts long after the fight ended.
+        autocombat_run = 0: ui_autoadvance = 0
         EndCue                                       ' return from combat music to the level track (no-op if none)
         cursor_erase: cursor_draw: Present
         EXIT FUNCTION
@@ -396,10 +400,72 @@ END FUNCTION
 '  until the monster drops (win + treasure) or the player is downed (lose gold,
 '  dragged back to START and revived). ESC flees; wounds persist if you return.
 ' ===========================================================================
+' ============================================================================
+'  INITIATIVE -- d20 + (character level \ 2), and deliberately NOT DEX.
+'
+'  Rick's call, and it is a real design position rather than a shortcut: "the more seasoned a
+'  player is the more ready they would be". Reflexes are what DEX already buys (missile accuracy,
+'  flourish timing); readiness is EXPERIENCE -- knowing a fight is starting before it starts.
+'  Tying it to level also means initiative improves along the one axis every class shares.
+'
+'  Integer halving is intentional: the bonus steps at even levels (1-2 -> +0, 3-4 -> +1, ...),
+'  so it is a slow, legible climb rather than a number that drifts every level.
+' ============================================================================
+' ============================================================================
+'  AUTO-COMBAT -- the game plays the fight, one action every opt_autodelay seconds.
+'
+'  Two things it must NOT do, and both are refusals rather than adaptations:
+'
+'  REAL DICE. The player is holding physical dice; nothing can auto-roll them. Auto-combat
+'  simply does not engage, rather than silently typing numbers on their behalf.
+'
+'  GESTURES. A gauge is a test of the player's timing, and an auto-player has no timing to
+'  test -- left on, every gesture would run its fuse to zero and score a guaranteed MISS, which
+'  is strictly worse than not offering it. So gestures are suppressed while it drives, and the
+'  fight resolves on the dice alone.
+' ============================================================================
+FUNCTION AutoCombatLive% ()
+    AutoCombatLive% = 0
+    IF NOT opt_autocombat THEN EXIT FUNCTION
+    IF opt_realdice THEN EXIT FUNCTION
+    AutoCombatLive% = -1
+END FUNCTION
+
+FUNCTION AutoDelaySecs! ()
+    DIM d AS INTEGER
+    d = opt_autodelay
+    IF d < 1 THEN d = 1
+    IF d > 3 THEN d = 3
+    AutoDelaySecs! = d
+END FUNCTION
+
+' Are ACTION GESTURES actually running right now? Every `IF opt_gestures` in combat asks this
+' instead, so auto-combat cannot hand the player a gauge nobody is there to play.
+FUNCTION GesturesLive% ()
+    IF opt_gestures AND autocombat_run = 0 THEN GesturesLive% = -1
+END FUNCTION
+
+FUNCTION InitiativeMod% ()
+    InitiativeMod% = char_level \ 2
+END FUNCTION
+
+' TRUE if the player acts first. The monster's bonus is its depth-scaled to-hit, halved -- so a
+' level 9 horror is genuinely quicker off the mark than a level 1 rat, without a second table.
+FUNCTION WinsInitiative% (montohit AS INTEGER)
+    DIM pr AS INTEGER, mr AS INTEGER
+    pr = GameRoll(1, 20, InitiativeMod%, "INITIATIVE")
+    mr = RollDie(20) + montohit \ 2
+    ' Ties go to the player. Someone has to win them, and the alternative is handing a free
+    ' opening strike to the monster on a coin flip the player never sees rolled.
+    WinsInitiative% = (pr >= mr)
+END FUNCTION
+
 SUB DoCombatDnD (rm AS INTEGER)
     DIM k AS STRING, mon AS STRING, lead AS STRING, mhs AS STRING, cdf AS STRING
     DIM AS INTEGER sec, lvl, mtohit, atk, dmg, rounds, matk, mdmg, thb, isboss
     DIM AS INTEGER tot_dealt, tot_taken, wander, vanished, god_favor, acted, did_attack, saved
+    DIM init_free AS INTEGER                     ' monster won initiative -> one unanswered strike
+    DIM auto_t0 AS SINGLE                        ' when the auto-player last acted
     DIM spell_elem AS STRING, spell_dcnt AS INTEGER   ' Wizard cast: element + damage-dice count
     DIM lost AS LONG
     wander = (rm > ROOM_N)                       ' TRUE for a wandering-monster scratch slot
@@ -449,6 +515,29 @@ SUB DoCombatDnD (rm AS INTEGER)
         Banner "THE GODS FAVOUR THE DESPERATE!", "Fortune guides your hand: +" + _TRIM$(STR$(god_favor)) + " to every strike this fight.   [ press any key ]"
         WaitKey
     END IF
+    autocombat_run = AutoCombatLive%
+    IF autocombat_run THEN ui_autoadvance = AutoDelaySecs!   ' so WaitKey prompts advance too
+    auto_t0 = TIMER
+    ' INITIATIVE. Losing it costs one free strike, not the whole first round -- a lost roll that
+    ' cost a full turn would swing a fight harder than any weapon in the game.
+    '
+    ' Skipped when AMBUSHED: they already chose the moment, and rolling to see who noticed first
+    ' would contradict the word on screen.
+    DrawCombatArt mon, sec, 0
+    IF NOT door_ambush THEN
+        IF WinsInitiative%(mtohit) THEN
+            Banner "You have the INITIATIVE!", "d20 + " + _TRIM$(STR$(InitiativeMod%)) + " (level " + _TRIM$(STR$(char_level)) + ") -- you move first.   [ press any key ]"
+            CombatPause
+        ELSE
+            Banner lead + " moves first!", "It was ready before you were -- it gets one free strike.   [ press any key ]"
+            CombatPause
+            ' The monster's whole turn already hangs off `acted`, so a free strike is a flag,
+            ' not a second copy of that code: enter the loop as though the player had acted
+            ' without attacking, and the existing block does the rest (including the death path).
+            init_free = -1
+        END IF
+        dirty = -1
+    END IF
     DO
         _LIMIT 60
         AudioTick                            ' keep combat narration fade + music crossfade ramping while idle
@@ -457,7 +546,13 @@ SUB DoCombatDnD (rm AS INTEGER)
         IF dirty THEN cursor_erase: cursor_draw: dirty = 0
         DrawHUD                              ' row-50 stats + the panel (via combat_active hook); the board redraw above wipes the HUD line otherwise
         k = INKEY$
+        ' AUTO-COMBAT drives by synthesising the attack key. A REAL keypress is read first and
+        ' always wins, so ESC still flees and the player can take the fight back at any moment.
+        IF autocombat_run AND LEN(k) = 0 THEN
+            IF TIMER - auto_t0 >= AutoDelaySecs! OR TIMER - auto_t0 < 0 THEN k = " ": auto_t0 = TIMER
+        END IF
         acted = 0: did_attack = 0
+        IF init_free THEN acted = -1: init_free = 0   ' it got the jump on you -- it swings, unanswered
         IF k = CHR$(27) THEN                     ' attempt to flee
             ' AMBUSHED: they chose the moment, so there is no slipping away from it. The flee
             ' key still does something -- it tells you WHY it did nothing, which is better than
@@ -586,7 +681,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     ' ...and a chance to make it a real critical. No flourish follows a
                     ' CONFIRMED crit -- only a natural 20 earns that -- or max damage would be
                     ' strictly better than a nat 20, which is backwards.
-                    IF opt_gestures THEN
+                    IF GesturesLive% THEN
                         DIM cdmg AS INTEGER
                         cdmg = ConfirmCrit%(mon, dmg, sec, SkillTier%)
                         IF cdmg > dmg THEN
@@ -661,7 +756,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ' MAX on the monster's die, and you have the constitution to take it: brace.
                 ' Nested IFs -- QB64's AND evaluates both sides, and this one has a side effect.
                 IF last_raw = 6 THEN
-                    IF opt_gestures THEN
+                    IF GesturesLive% THEN
                         IF AbilMod(player_con) > 0 THEN mdmg = EndureDamage%(mon, mdmg, lvl, SkillTier%)
                     END IF
                 END IF
@@ -688,7 +783,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ' Action Gestures: one clutch attempt to rise. Nail the crit zone and you
                 ' claw back with 1d6 HP in place -- keep your gold, no life spent, fight on.
                 saved = 0
-                IF opt_gestures THEN saved = SecondWind%(mon, sec, SkillTier%)
+                IF GesturesLive% THEN saved = SecondWind%(mon, sec, SkillTier%)
                 IF saved THEN
                     RecordSaved
                     dirty = -1                    ' rose where you stand; the fight continues

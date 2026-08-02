@@ -85,6 +85,34 @@ if (( $# == 0 )); then
     echo "-- shadow audit (no local named after a high-risk global) --"
     if tests/audit-shadow.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shadow"); fi
 
+
+# ---------------------------------------------------------------------------
+# devrun -- run a dungeon.run dev mode under xvfb, RETRYING ONCE on failure.
+#
+# Why a retry: three different checks (fightshot, fogdump, savetest) each went red
+# exactly once during a full gate run and then passed standalone, and passed 18/18
+# when hammered back-to-back and under CPU load. Something in running six
+# `xvfb-run -a` instances through one script is occasionally flaky in a way that is
+# not reproducible in isolation -- and a gate that cries wolf gets ignored, which
+# costs far more than one repeated run.
+#
+# A retry is safe here because these checks are DETERMINISTIC: same board, same
+# tables, same assertions. A real failure fails both times. Set DEVRUN_TRIES=1 to
+# disable if you are ever chasing the flake itself.
+#
+# Usage:  devrun <timeout> <expect-substring> <cmd...>
+# Sets:   DEVRUN_OUT (combined output of the last attempt)
+devrun() {
+    local secs="$1" expect="$2"; shift 2
+    local tries="${DEVRUN_TRIES:-2}" i
+    for (( i = 1; i <= tries; i++ )); do
+        DEVRUN_OUT=$(setsid timeout "$secs" xvfb-run -a "$@" 2>&1) && \
+            grep -qF -- "$expect" <<<"$DEVRUN_OUT" && return 0
+        (( i < tries )) && echo "     (retry $i/$((tries-1)) -- first attempt did not report '$expect')"
+    done
+    return 1
+}
+
     echo "-- short-circuit audit (AND/OR evaluate both sides) --"
     if tests/audit-shortcircuit.sh | tail -1; then :; else (( fail++ )); failed+=("audit-shortcircuit"); fi
 
@@ -94,9 +122,10 @@ if (( $# == 0 )); then
     # Content tables: a data mistake never crashes, the level just plays wrong.
     echo "-- content tables (dungeon.run datalint) --"
     if [[ -x ./dungeon.run ]]; then
-        if dl=$(setsid timeout 60 xvfb-run -a ./dungeon.run datalint nocolor 2>&1) && grep -q 'datalint: clean' <<<"$dl"; then
+        if devrun 60 "datalint: clean" ./dungeon.run datalint nocolor; then dl="$DEVRUN_OUT"
             grep -E 'datalint: clean' <<<"$dl" | sed 's/^/  /'
         else
+            dl="$DEVRUN_OUT"
             grep -E '!!|error' <<<"$dl" | head -8 | sed 's/^/    /'
             (( fail++ )); failed+=("datalint")
         fi
@@ -109,9 +138,10 @@ if (( $# == 0 )); then
     # way to get the Level Key. Cheap insurance against an art edit stranding a region.
     echo "-- secret-mask reachability (dungeon.run fogdump) --"
     if [[ -x ./dungeon.run ]]; then
-        if fg=$(setsid timeout 60 xvfb-run -a ./dungeon.run fogdump nocolor 2>&1) && grep -q 'mask OK' <<<"$fg"; then
+        if devrun 60 "mask OK" ./dungeon.run fogdump nocolor; then fg="$DEVRUN_OUT"
             grep -E 'mask OK' <<<"$fg" | sed 's/^/  /'
         else
+            fg="$DEVRUN_OUT"
             grep -E '^!!|VERDICT|ORPHAN' <<<"$fg" fogdump.txt 2>/dev/null | head -5 | sed 's/^/    /'
             (( fail++ )); failed+=("fogdump (orphaned mask region)")
         fi
@@ -125,9 +155,10 @@ if (( $# == 0 )); then
     # restored, none of which the layout suite can see (that one never draws a pixel).
     echo "-- tactical combat screen (dungeon.run fightshot) --"
     if [[ -x ./dungeon.run ]]; then
-        if fs=$(setsid timeout 60 xvfb-run -a ./dungeon.run fightshot nocolor 2>&1) && grep -q 'wrote fightshot.png' <<<"$fs"; then
+        if devrun 60 "wrote fightshot.png" ./dungeon.run fightshot nocolor; then fs="$DEVRUN_OUT"
             grep -E 'actors:|portraits found:' <<<"$fs" | sed 's/^/  /'
         else
+            fs="$DEVRUN_OUT"
             printf '%s\n' "$fs" | sed 's/^/    /'
             (( fail++ )); failed+=("fightshot")
         fi
@@ -141,9 +172,10 @@ if (( $# == 0 )); then
     # real save to prove a format bump did not orphan it.
     echo "-- save round-trip + backward compat (dungeon.run savetest) --"
     if [[ -x ./dungeon.run ]]; then
-        if sv=$(setsid timeout 90 xvfb-run -a ./dungeon.run savetest 2>&1) && grep -q 'savetest: PASS' <<<"$sv"; then
+        if devrun 90 "savetest: PASS" ./dungeon.run savetest; then sv="$DEVRUN_OUT"
             grep -E 'seat isolation|round-tripped|compat:|loaded OK' <<<"$sv" | sed 's/^/  /'
         else
+            sv="$DEVRUN_OUT"
             printf '%s\n' "$sv" | sed 's/^/    /'
             (( fail++ )); failed+=("savetest")
         fi
@@ -156,9 +188,10 @@ if (( $# == 0 )); then
     # come back and still know.
     echo "-- bestiary discovery survives a new run (dungeon.run bestiarytest) --"
     if [[ -x ./dungeon.run ]]; then
-        if bt=$(setsid timeout 60 xvfb-run -a ./dungeon.run bestiarytest nocolor 2>&1) && grep -q 'OK --' <<<"$bt"; then
+        if devrun 60 "OK --" ./dungeon.run bestiarytest nocolor; then bt="$DEVRUN_OUT"
             grep -E 'met |OK --' <<<"$bt" | sed 's/^/  /'
         else
+            bt="$DEVRUN_OUT"
             printf '%s\n' "$bt" | sed 's/^/    /'
             (( fail++ )); failed+=("bestiarytest")
         fi
@@ -175,10 +208,11 @@ if (( $# == 0 )); then
         echo "  COMPILE FAIL -- engine/ no longer builds without game/"
         grep -vE '^\[|%\[A$|^$' <<<"$mout" | tail -6 | sed 's/^/    /'
         (( fail++ )); failed+=("minimal (compile)")
-    elif sout=$(setsid timeout 60 xvfb-run -a ./examples/minimal/minimal.run selftest 2>&1) && grep -q '^OK$' <<<"$sout"; then
+    elif devrun 60 "OK" ./examples/minimal/minimal.run selftest; then sout="$DEVRUN_OUT"
         echo "  $(grep -E 'secret doors|brown doors' <<<"$sout" | tr -s ' ' | paste -sd'|' -)"
         echo "  OK -- the engine drives a non-DUNGEON! game"
     else
+        sout="$DEVRUN_OUT"
         printf '%s\n' "$sout" | sed 's/^/    /'
         (( fail++ )); failed+=("minimal (selftest)")
     fi

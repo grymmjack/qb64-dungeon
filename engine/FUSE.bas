@@ -84,6 +84,17 @@ SUB FuseArmFoe (a AS INTEGER, tier AS INTEGER, depth AS INTEGER)
     FuseArm a, FuseDur!(tier, depth)
 END SUB
 
+' Nudge a slot's fuse clock. Positive = the fuse is further along (it acts SOONER); negative =
+' it has ground to make up. Clamped so a nudge can never fire a fuse outright or push it below
+' zero -- initiative should shade who moves first, not decide the fight before it starts.
+SUB FuseNudge (a AS INTEGER, secs AS SINGLE)
+    IF a < 0 OR a > FIGHT_MAXFOE THEN EXIT SUB
+    FF_T(a) = FF_T(a) + secs
+    IF FF_T(a) < 0 THEN FF_T(a) = 0
+    IF FF_T(a) > FF_DUR(a) * 0.9 THEN FF_T(a) = FF_DUR(a) * 0.9
+    IF FF_DUR(a) > 0 THEN FA_FUSE(a) = FF_T(a) / FF_DUR(a)
+END SUB
+
 ' Stop a slot's fuse and discard any pending attack. Used when a foe dies or is staggered.
 SUB FuseDisarm (a AS INTEGER)
     IF a < 0 OR a > FIGHT_MAXFOE THEN EXIT SUB

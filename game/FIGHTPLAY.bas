@@ -113,6 +113,11 @@ SUB SeedFightFromRoom (rm AS INTEGER, extra AS INTEGER)
         FuseArmFoe a, FightFoeTier%(slot), lvl
     NEXT a
 
+    ' INITIATIVE, the tactical form. There are no turns here -- everything runs on fuses -- so
+    ' winning it means every foe starts its first fuse BEHIND, and losing means they start ahead.
+    ' Same d20 + level\2 roll as the D&D screen (WinsInitiative%), so the two combat modes agree
+    ' about what initiative is and what buys it.
+    ApplyFightInitiative lvl
     FA_TARGET = TargetFirst%
     FIGHT_ROUND = 1
     FuseSyncInitiative
@@ -191,6 +196,11 @@ SUB SeedFight (lvl AS INTEGER, nfoes AS INTEGER)
         FuseArmFoe a, FightFoeTier%(slot), lvl
     NEXT a
 
+    ' INITIATIVE, the tactical form. There are no turns here -- everything runs on fuses -- so
+    ' winning it means every foe starts its first fuse BEHIND, and losing means they start ahead.
+    ' Same d20 + level\2 roll as the D&D screen (WinsInitiative%), so the two combat modes agree
+    ' about what initiative is and what buys it.
+    ApplyFightInitiative lvl
     FA_TARGET = TargetFirst%
     FIGHT_ROUND = 1
     FuseSyncInitiative
@@ -714,3 +724,29 @@ FUNCTION RunFightLoop% (lvl AS INTEGER)
     FightFreeTiles                      ' drop the portrait cache; the next fight re-renders
     RunFightLoop% = outcome
 END FUNCTION
+
+
+' Apply the initiative roll to a tactical fight.
+'
+' The tactical screen has no turn order to win -- every actor runs a continuous fuse -- so
+' initiative shifts WHERE THOSE FUSES START. Win and every foe begins a fraction behind; lose
+' and they begin ahead, which on the fastest foe is the difference between reacting and being
+' hit before the screen settles.
+'
+' Deliberately a fraction of each foe's OWN duration rather than a flat number of seconds: a
+' fast level-9 horror and a slow level-1 rat should both feel the same proportional head start.
+SUB ApplyFightInitiative (lvl AS INTEGER)
+    DIM a AS INTEGER, won AS INTEGER, nudge AS SINGLE
+    won = WinsInitiative%(MonsterToHit%(lvl, MK_ROOM))
+    FOR a = 1 TO FIGHT_MAXFOE
+        IF FA_USED(a) AND FA_ALIVE(a) THEN
+            IF won THEN nudge = -FuseDur!(FightFoeTier%(1), lvl) * 0.25 ELSE nudge = FuseDur!(FightFoeTier%(1), lvl) * 0.25
+            FuseNudge a, nudge
+        END IF
+    NEXT a
+    IF won THEN
+        FightLog "You have the INITIATIVE -- they are slow to react.", "!"
+    ELSE
+        FightLog "They move first -- you are on the back foot.", "!"
+    END IF
+END SUB

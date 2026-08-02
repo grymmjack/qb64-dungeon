@@ -406,6 +406,11 @@ DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 
 '    2 Hold, Shake & Spin   as above, and how LONG you held sets how hard they spin
 ' Purely presentational -- the faces are rolled before the animation starts in every style,
 ' so shaking longer cannot change what you rolled. That is deliberate: the shake is theatre.
+' Seconds after which a "press any key" prompt advances BY ITSELF. 0 = wait for a real key.
+' Deliberately generic and engine-side: the game sets it while auto-combat runs, but an attract
+' mode, a demo or a headless capture all want exactly the same thing, and none of them should
+' have to know what combat is.
+DIM SHARED ui_autoadvance AS SINGLE
 DIM SHARED opt_rollstyle AS INTEGER
 CONST SHAKE_ARM_SEC = 2.5              ' if nobody grabs SPACE within this, throw anyway
 CONST SHAKE_MAX_SEC = 8.0              ' a stuck key must never hang the roll
