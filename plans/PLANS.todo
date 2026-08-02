@@ -37,6 +37,18 @@ Big UI Tweaks:
       ✔ PopArt (the treasure/curio popup) frames its SETTLED panel only: the scale-in redraws @done(26-08-02)
         ✔ eight times in a fifth of a second, and a tiled frame at eight sizes reads as flicker @done(26-08-02)
       ✔ Character sheet framed too (grown outward; its body is laid out against fixed columns) @done(26-08-02)
+      ☐ REMAINING unframed panels -- surveyed 26-08-02, NOT done, and here is why: @low
+        ☐ Of 131 raw `LINE ... BF` fills across engine/ + game/, 21 are real BOXBG panels with
+        ☐ no framing call near them. 10 of those are non-panels by design (HP bars, the die-cell
+        ☐ backgrounds inside the roll tray, RevealMath's row clear, the fight-art placeholder).
+        ☐ The 11 that ARE player-facing modal panels:
+        ☐   ShowRules (CHRONICLE) . ShowLordDetail + ShowLordSheet (LORDS)
+        ☐   SelectClass . ScryView . ShowKeys . LevelUpMaxedReward . LevelUpStatPaint (MENU)
+        ☐   PromptRoll . ScrollTextVO (UI) . ScrollTextArtKey (SPRITES)
+        ☐ BLOCKED ON VERIFICATION, not on effort: no dev mode renders any of them, and only 2 of
+        ☐ the 8 screen-sized ones block in the shared WaitKey, so there is no single hook that
+        ☐ could shoot them all the way `roll_shot` shoots every dice style. Framing them blind
+        ☐ is how the last two layout regressions happened. Do the capture first, then the frames.
       ☐ Perfect Battles (player killed monsters without getting touched)
 
 Huge UI Efforts:
