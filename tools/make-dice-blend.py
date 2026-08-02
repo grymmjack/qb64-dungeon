@@ -18,6 +18,28 @@ OUT = os.path.join(OBJDIR, "qb64-dungeon-dice.blend")
 # --- empty the default scene (cube, light, camera) --------------------------------------
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
+# The GAME's viewing angle, per die, read from the dice set rather than guessed.
+#
+# In game the die is posed with its result face readable and the CAMERA tilted by CAM_TILT --
+# 21.5 degrees for most dice, but 85 for the d4, which is a TOP-READ tetra (its value sits on
+# the hidden base and repeats at the apex, so it is viewed almost from above). Here the camera
+# is fixed and the die is rotated instead, which is the same relationship seen from the other
+# side.
+def game_tilts(setfile):
+    tilts, cur = {}, None
+    if not os.path.exists(setfile):
+        return tilts
+    for line in open(setfile):
+        line = line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            cur = line[1:-1].lower()
+        elif line.upper().startswith("CAM_TILT=") and cur:
+            try:
+                tilts[cur] = float(line.split("=", 1)[1])
+            except ValueError:
+                pass
+    return tilts
+
 def import_obj(path):
     # Blender 4.x renamed the operator; support both so this is not version-locked.
     if hasattr(bpy.ops.wm, "obj_import"):
@@ -52,6 +74,8 @@ if not dice:
 # Framing. The row is len(dice) * SPACING wide, and the camera has to see all of it -- the
 # first version used a 65mm lens 14 units back, which framed three of the six.
 SPACING = 2.4
+TILTS = game_tilts(os.path.join(os.path.dirname(HERE), "assets", "data", "default",
+                                "dicesets", "06-amethyst.txt"))
 placed = []
 for i, obj_path in enumerate(dice):
     base = os.path.splitext(os.path.basename(obj_path))[0]
@@ -61,7 +85,11 @@ for i, obj_path in enumerate(dice):
         m.name = base
         # A row along X, evenly spaced, all sitting on Z=0 so the floor plane works.
         m.location = (i * SPACING - (len(dice) - 1) * SPACING * 0.5, 0, 1)
-        m.rotation_euler = (0, 0, math.radians(20))
+        # Rx by the game's own CAM_TILT for this die, then a small Y spin so the row does not
+        # read as six identical silhouettes. The d4 comes out near-flat because that is exactly
+        # how the game shows it.
+        tilt = TILTS.get(base, 21.5)
+        m.rotation_euler = (math.radians(tilt), 0, math.radians(-18 + i * 7))
         if os.path.exists(atlas):
             mat = make_material(base + "_mat", atlas)
             m.data.materials.clear()

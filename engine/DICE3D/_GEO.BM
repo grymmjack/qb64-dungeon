@@ -17,6 +17,7 @@ $INCLUDEONCE
 
 CONST DICE3D_TILE = 128
 CONST DICE3D_MARGIN = 12
+CONST DICE3D_D10_WAIST = 0.78 '    d10 squatness: 0.5 = equilateral spike, higher = fatter
 CONST DICE3D_BEVEL_SEG = 5 '        bevel arc segments per edge (more = smoother round)
 
 ''
@@ -66,7 +67,13 @@ SUB dice3d_verts (sides AS INTEGER)
             DIM AS SINGLE aa, a1, a2
             DIM AS INTEGER ii, ipn, idx
             DIM AS DICE3D_VEC3 pp(0 TO 4), qq(0 TO 4)
-            aa = 0.5 '                    half-height for an equilateral antiprism
+            ' WAIST. This is the half-height of the antiprism the trapezohedron is the dual of,
+            ' and it sets how SQUAT the d10 is: the apexes land at +/-1/aa while the equatorial
+            ' ring stays at radius ~1. At the equilateral 0.5 the die is 4 units tall against 2
+            ' wide -- a 2:1 spike, much thinner than a real d10, which is closer to 1.3:1.
+            ' Raising it pulls the points in and fattens the middle. The dual construction still
+            ' guarantees planar kite faces at any value, so this only changes proportion.
+            aa = DICE3D_D10_WAIST
             FOR ii = 0 TO 4
                 a1 = (72 * ii) * DICE3D_DEG2RAD: a2 = (72 * ii + 36) * DICE3D_DEG2RAD
                 pp(ii).X = COS(a1): pp(ii).Y = SIN(a1): pp(ii).Z = aa
