@@ -66,10 +66,10 @@ d4lean.png
 gaugeshot.png
 summaryshot.png
 deathshot.png
-# diceobj/ IS tracked: the exported meshes, their atlases, the face-value sidecars and the
-# .blend are the source for promo/2D art, and Rick hand-edits the .blend. Only the throwaway
-# render output is ignored.
-diceobj/testrender_*.png
+# diceobj/ IS tracked -- ALL of it, renders included. The exported meshes, their atlases, the
+# face-value sidecars, the .blend Rick hand-edits, and the rendered PNGs are the source for
+# promo and 2D art. The render is the thing you actually reach for; ignoring it meant the one
+# useful artefact was the one you could not check out.
 summaryshot-overlay.png
 gaugeshot-timed.png
 sectorauto.png
