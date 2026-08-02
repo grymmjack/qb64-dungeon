@@ -295,6 +295,13 @@ FUNCTION dice3d_py! (idx AS INTEGER)
 END FUNCTION
 
 ''
+' The collision radius the last roll used, in box pixels. Lets a caller check that dice actually
+' ended up apart -- "it rolled through the other one" is a distance, and distances can be measured.
+FUNCTION dice3d_radius! (cfg AS DICE3D_CONFIG)
+    dice3d_radius! = cfg.DIE_SIZE * DICE3D_RADIUS_K
+END FUNCTION
+
+''
 ' Pin die `idx` (1-based) at `val` for the NEXT dice3d_roll: it keeps the seat and face it had
 ' last roll, sits out the physics, and is not re-read. Cleared automatically by that roll.
 SUB dice3d_hold (idx AS INTEGER, face AS INTEGER)   ' `face`, not `val` -- VAL is reserved
@@ -354,6 +361,51 @@ SUB dice3d_apply_holds (cfg AS DICE3D_CONFIG)
     NEXT i
 END SUB
 
+''
+' Give every FREE die a start position clear of the pinned ones.
+'
+' dice3d_throw scatters dice at random, which is right when the tray is empty and wrong when part
+' of it is already occupied: a die dropped straight onto a held one can end up WEDGED between two
+' pinned neighbours with nowhere to go. The tray is barely taller than a single die, so dice cannot
+' slip past each other vertically -- separation is effectively one-dimensional, and a die boxed in
+' on both sides stays boxed in however long it is relaxed.
+'
+' You would not drop a die onto one already lying on the table, so neither does this: it samples
+' candidate spots and keeps whichever is furthest from every held die. Sampling rather than solving
+' because "furthest from the occupied spots" is all that is needed, and the throw is still random.
+SUB dice3d_place_free (cfg AS DICE3D_CONFIG)
+    CONST TRIES = 24
+    DIM AS INTEGER i, j, lo, hi, t, anyheld
+    DIM AS SINGLE r, cx, best, bestx, dmin, dx, dy, d
+    IF DICE3D_HOLD_ON = 0 THEN EXIT SUB
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    FOR i = lo TO hi
+        IF DICE3D_DICE(i).HELD THEN anyheld = -1
+    NEXT
+    IF anyheld = 0 THEN EXIT SUB
+    r = cfg.DIE_SIZE * DICE3D_RADIUS_K
+    FOR i = lo TO hi
+        IF DICE3D_DICE(i).HELD = 0 THEN
+            best = -1: bestx = DICE3D_DICE(i).PX
+            FOR t = 1 TO TRIES
+                cx = r + RND * (cfg.BOX_W - 2 * r)
+                dmin = 1E+09
+                FOR j = lo TO hi
+                    IF DICE3D_DICE(j).HELD THEN
+                        dx = cx - DICE3D_DICE(j).PX
+                        dy = DICE3D_DICE(i).PY - DICE3D_DICE(j).PY
+                        d = SQR(dx * dx + dy * dy)
+                        IF d < dmin THEN dmin = d
+                    END IF
+                NEXT j
+                IF dmin > best THEN best = dmin: bestx = cx
+                IF best >= 2 * r THEN EXIT FOR       ' already clear of everything -- good enough
+            NEXT t
+            DICE3D_DICE(i).PX = bestx
+        END IF
+    NEXT i
+END SUB
+
 SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
     DIM spec AS DICE3D_SPEC
     DIM AS INTEGER cnt, sides, i
@@ -386,6 +438,7 @@ SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
         dice3d_throw DICE3D_DICE(i), cfg, r
     NEXT
     dice3d_apply_holds cfg           ' pinned dice keep their seat + face and sit out the physics
+    dice3d_place_free cfg            ' ...and the dice being thrown do not start on top of them
 
     dice3d_run_loop cfg
     dice3d_apply_drops cfg, spec

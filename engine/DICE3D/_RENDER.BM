@@ -14,6 +14,38 @@ $INCLUDEONCE
 ' Hardware present: render every die via 3D _MAPTRIANGLE onto the OpenGL layer (native
 ' resolution, hardware-filtered = smooth), over whatever the caller drew on the software
 ' screen. The atlas is copied to a hardware image once (DICE3D_HWATLAS), reused each frame.
+''
+' Painter order for the DICE THEMSELVES, far -> near, into ord(). n = how many.
+'
+' Each die already painter-sorts its own triangles, and convexity makes that correct WITHIN a die
+' -- but nothing ordered one die against another, so they were drawn in array order and a later
+' die always covered an earlier one whichever was actually nearer. A die rolling past a resting
+' one therefore appeared to pass straight THROUGH it. Most visible on a partial re-roll, where the
+' die being thrown is index 2 and the dice it rolls between are 1 and 3.
+'
+' Positions map 1:1 to the top-down box and PZ only lifts a die up-screen, so ground distance from
+' the camera is PY: smaller = further away = drawn first. Insertion sort -- this is a handful of
+' dice, every frame, and the array is nearly sorted between frames.
+SUB dice3d_depth_order
+    DIM AS INTEGER i, j, lo, hi, k, n
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    n = hi - lo + 1
+    IF n < 1 THEN DICE3D_ORD_N = 0: EXIT SUB
+    IF UBOUND(DICE3D_ORD) < n THEN REDIM DICE3D_ORD(1 TO n) AS INTEGER
+    FOR i = 1 TO n: DICE3D_ORD(i) = lo + i - 1: NEXT
+    FOR i = 2 TO n
+        k = DICE3D_ORD(i)
+        j = i - 1
+        DO WHILE j >= 1
+            IF DICE3D_DICE(DICE3D_ORD(j)).PY <= DICE3D_DICE(k).PY THEN EXIT DO
+            DICE3D_ORD(j + 1) = DICE3D_ORD(j)
+            j = j - 1
+        LOOP
+        DICE3D_ORD(j + 1) = k
+    NEXT
+    DICE3D_ORD_N = n
+END SUB
+
 SUB dice3d_present_hw (cfg AS DICE3D_CONFIG)
     DIM AS INTEGER i, lo, hi
     lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
@@ -28,8 +60,9 @@ SUB dice3d_present_hw (cfg AS DICE3D_CONFIG)
     ' the header and the caption are all drawn to CANVAS, which only reaches the screen through
     ' the host's present step. The dice rolled on a black screen.
     PresentNoFlip
-    FOR i = lo TO hi
-        dice3d_render_die_hw DICE3D_DICE(i), cfg
+    dice3d_depth_order                            ' far -> near, so dice occlude each other properly
+    FOR i = 1 TO DICE3D_ORD_N
+        dice3d_render_die_hw DICE3D_DICE(DICE3D_ORD(i)), cfg
     NEXT
     _DISPLAY
 END SUB
@@ -288,8 +321,9 @@ SUB dice3d_present (cfg AS DICE3D_CONFIG)
     ELSE
         CLS , _RGBA32(0, 0, 0, 0)
     END IF
-    FOR i = LBOUND(DICE3D_DICE) TO UBOUND(DICE3D_DICE)
-        dice3d_render_die DICE3D_DICE(i), cfg
+    dice3d_depth_order                            ' far -> near (see dice3d_depth_order)
+    FOR i = 1 TO DICE3D_ORD_N
+        dice3d_render_die DICE3D_DICE(DICE3D_ORD(i)), cfg
     NEXT
     IF cfg.BOX_SHOW_OUTLINE THEN LINE (0, 0)-(cfg.BOX_W - 1, cfg.BOX_H - 1), cfg.BOX_OUTLINE_KOLOR, B
     _DEST od

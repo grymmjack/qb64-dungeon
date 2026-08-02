@@ -14,6 +14,11 @@ CONST DICE3D_REST_ENERGY = 9.0# '        spin energy (deg/frame)^2 sum threshold
 CONST DICE3D_REST_LINSPD2 = 0.6# '       linear speed^2 threshold (px/frame)^2
 CONST DICE3D_DWELL = 6 '                 frames a die must stay slow before settling
 CONST DICE3D_RADIUS_K = 1.30# '          collision radius = DIE_SIZE * this
+' Relaxation iterations per frame. 6 was not enough: the tray is barely taller than one die, so
+' dice cannot pass each other vertically and separation is effectively 1-D -- an out-of-order pair
+' has to be walked past each other a step at a time. 24 converges; it is a handful of dice and
+' after the first pass there is normally nothing left to do.
+CONST DICE3D_SEP_PASSES = 24
 
 ''
 ' -------------------------------------------------------------------------
@@ -213,11 +218,17 @@ SUB dice3d_spin_kick (di AS DICE3D_DIE, mag AS SINGLE)
 END SUB
 
 SUB dice3d_separate (cfg AS DICE3D_CONFIG)
-    DIM AS INTEGER i, j, lo, hi
+    DIM AS INTEGER i, j, lo, hi, pass
     DIM AS SINGLE r, dx, dy, d, ov, nx, ny
     DIM AS SINGLE rvx, rvy, vn, e, jimp
     lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
     r = cfg.DIE_SIZE * DICE3D_RADIUS_K
+    ' RELAXATION, not one pass. Resolving a pair moves a die that may then overlap a third, and
+    ' the wall clamp at the end can push it straight back into the one it was just freed from --
+    ' which is how a die ended up settled INSIDE a held one against the edge of a tight box. A few
+    ' iterations converge on an arrangement that satisfies everything at once. Cheap: a handful of
+    ' dice, and after the first pass there is usually nothing left to do.
+    FOR pass = 1 TO DICE3D_SEP_PASSES
     FOR i = lo TO hi - 1
         FOR j = i + 1 TO hi
             dx = DICE3D_DICE(j).PX - DICE3D_DICE(i).PX
@@ -296,4 +307,5 @@ SUB dice3d_separate (cfg AS DICE3D_CONFIG)
             IF DICE3D_DICE(i).PY > cfg.BOX_H - r THEN DICE3D_DICE(i).PY = cfg.BOX_H - r
         END IF
     NEXT
+    NEXT pass
 END SUB

@@ -727,6 +727,8 @@ SUB DumpRollShot
     NEXT i
 
     HeldRerollCheck                                  ' a pinned die must keep its face, every style
+    _DEST _CONSOLE                                   ' it ends in RollSeqEnd -> Present, which leaves
+    '                                                  _DEST on CANVAS; the summary below is console
     IF rollshot_facebad THEN
         PRINT PipeCol$("|12rollshot: a dice style published per-die faces that disagree with its own total|07")
         bad = bad + 1
@@ -1377,6 +1379,9 @@ SUB HeldRerollCheck
         END SELECT
         cursor_erase: cursor_draw: Present
         RollHoldClear
+        ' Inside a SEQUENCE, exactly as a real multi-pass re-roll runs -- the shared tray is where
+        ' a leftover die would show, and a check that skipped it could not see the bug it is for.
+        RollSeqBegin
         thrown = AnimatedRoll(3, 6, 0, "3d6")
         _DEST _CONSOLE                               ' a roll leaves _DEST on CANVAS -- PRINT would
         IF DIE_FACE_N < 3 THEN                       ' otherwise land on the game screen, invisibly
@@ -1402,6 +1407,22 @@ SUB HeldRerollCheck
             ' A held die must keep its SEAT as well as its face -- "it does not budge" is half
             ' the request and the half that cannot be checked by reading a number off the tray.
             IF style = 3 THEN
+                ' Did the re-rolled die end up INSIDE a held one? Overlap is what "it rolls
+                ' through it" means, and it is a distance -- so measure it rather than squint.
+                ' Threshold is the dice's OWN footprint, not the collision radius. That radius is
+                ' DIE_SIZE * 1.30 -- a deliberate cushion -- so dice stop well before they touch,
+                ' and testing against the cushion failed on a 2px shortfall where nothing visibly
+                ' overlapped at all. "It rolls through it" means the SHAPES intersect.
+                DIM AS SINGLE d12, d32, rr
+                rr = 2 * 28                            ' 2 x DIE_SIZE: actual contact
+                d12 = SQR((dice3d_px!(2) - dice3d_px!(1)) ^ 2 + (dice3d_py!(2) - dice3d_py!(1)) ^ 2)
+                d32 = SQR((dice3d_px!(2) - dice3d_px!(3)) ^ 2 + (dice3d_py!(2) - dice3d_py!(3)) ^ 2)
+                PRINT PipeCol$("       |08gap to held dice: " + _TRIM$(STR$(INT(d12))) + " and " + _
+                      _TRIM$(STR$(INT(d32))) + "  (need " + _TRIM$(STR$(INT(rr))) + ")|07")
+                IF d12 < rr - 1 OR d32 < rr - 1 THEN
+                    PRINT PipeCol$("  |12BAD|07  3D -- the re-rolled die is OVERLAPPING a held die")
+                    bad = bad + 1
+                END IF
                 IF ABS(dice3d_px!(1) - px1) > 0.5 OR ABS(dice3d_py!(1) - py1) > 0.5 OR _
                    ABS(dice3d_px!(3) - px3) > 0.5 OR ABS(dice3d_py!(3) - py3) > 0.5 THEN
                     PRINT PipeCol$("  |12BAD|07  3D -- a held die MOVED: (" + _
@@ -1415,6 +1436,7 @@ SUB HeldRerollCheck
                 END IF
             END IF
         END IF
+        RollSeqEnd
         RollHoldClear
     NEXT style
     IF bad > 0 THEN rollshot_facebad = -1

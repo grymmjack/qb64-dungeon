@@ -763,7 +763,17 @@ character `Q` printed in the d20 font:
   no velocity change at all, so a die *slid* off its neighbour. It now applies an equal-mass
   impulse along the contact normal plus a spin kick, with a held die treated as **infinite mass**
   — it absorbs nothing and gives the whole rebound back, which is what "it does not budge" has to
-  mean physically as well as positionally.
+  mean physically as well as positionally. Separation also **relaxes** (`DICE3D_SEP_PASSES`): the
+  tray is barely taller than one die, so dice cannot slip past each other vertically and
+  separation is effectively 1-D — one pass leaves an out-of-order pair overlapping. And
+  `dice3d_place_free` gives a die being re-thrown a start position clear of the pinned ones,
+  because a die dropped onto a held neighbour can end up **wedged** between two of them with
+  nowhere to go.
+- **Dice are painter-sorted against EACH OTHER** (`dice3d_depth_order`), not just internally. Each
+  die already sorted its own triangles — correct within a convex die — but nothing ordered die
+  against die, so they drew in array order and a later die always covered an earlier one whichever
+  was actually nearer. A die rolling past a resting one appeared to pass straight **through** it.
+  Depth is `PY` (positions map 1:1 to the top-down box; `PZ` only lifts a die up-screen).
 - **3D dice top-light** (the DICE3D `LIGHT_*` config fields): a view-space Lambert directional
   light shades each face by `ambient + (1-ambient)*max(0, N·L)` so top-facing surfaces catch
   light and the dice read as solid 3D (and the **d4's apex** — its read point — is lit, which the

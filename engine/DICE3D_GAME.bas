@@ -209,16 +209,21 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     botinset = DICE3D_BOX_INSET_BOT / PresentScale!
     minw = cfg.DIE_SIZE * 4: minh = cfg.DIE_SIZE * 3
     cfg.BOX_W = tw - inset * 2: IF cfg.BOX_W < minw THEN cfg.BOX_W = minw
-    ' The extra bottom inset comes off the HEIGHT only -- BOX_Y is unchanged, so the floor rises
-    ' and the ceiling stays where it was. Applied before the minimum-height floor, or a small
-    ' tray would silently give the space back.
     cfg.BOX_H = th - inset * 2 - botinset: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
     ' WHERE the box sits. The hardware path ignores these -- it places dice in GL space via
     ' DICE3D_HW_CX/CY -- so they were simply never set here, and the SOFTWARE renderer (which
     ' blits its box buffer to BOX_X/BOX_Y) drew the dice at a stale rect, nowhere near the tray.
     ' Invisible in play, since play is always hardware; `rollshot` is what made it visible.
     cfg.BOX_X = tx + inset
-    cfg.BOX_Y = ty + inset
+    ' ANCHOR THE BOX TO THE TRAY'S BOTTOM, not its top. The minimum-height clamp above regularly
+    ' wins -- minh is 3 x DIE_SIZE (84px) against a 132px tray, so at most window scales the
+    ' requested height is already below it -- and with the box hung from the TOP that clamp put
+    ' the floor at or past the tray's bottom edge. Dice resting on it then spilled into the
+    ' running-total lane printed underneath, and the bottom inset intended to prevent exactly
+    ' that was silently given straight back. Hanging the box from the bottom instead means the
+    ' floor is botinset above the tray edge whatever the clamp decides.
+    cfg.BOX_Y = ty + th - botinset - cfg.BOX_H
+    IF cfg.BOX_Y < ty THEN cfg.BOX_Y = ty          ' never above the tray itself
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
     IF hbw > SW * CW - 20 THEN hbw = SW * CW - 20

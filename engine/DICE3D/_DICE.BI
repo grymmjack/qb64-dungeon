@@ -79,6 +79,12 @@ DIM SHARED DICE3D_HOLD_V(1 TO DICE3D_HOLD_MAX) AS INTEGER '  per index: pinned v
 REDIM SHARED DICE3D_PREV(0) AS DICE3D_DIE '  the previous roll's dice, for seats + poses
 DIM SHARED DICE3D_PREV_N AS INTEGER
 
+'--- painter order for the dice themselves (see dice3d_depth_order) ---------------
+' SHARED rather than a local in the renderer: arrays here are dynamic, so a DIM inside a SUB that
+' runs every frame is a Duplicate definition on the second call.
+REDIM SHARED DICE3D_ORD(0) AS INTEGER
+DIM SHARED DICE3D_ORD_N AS INTEGER
+
 '--- Current mesh (shared by all dice of one type in a single roll) ------------
 DIM SHARED DICE3D_NV AS INTEGER '         unique vertex count
 REDIM SHARED DICE3D_MV(0) AS DICE3D_VEC3 ' model-space vertices (unit-ish)
