@@ -83,19 +83,32 @@ END SUB
 
 ' Simple name entry for a hot-seat player.
 FUNCTION PromptName$ (prompt AS STRING)
+    PromptName$ = PromptNameSeed$(prompt, "")
+END FUNCTION
+
+' As PromptName$, but the field starts holding `seed` -- so RENAMING is editing what you already
+' have rather than retyping it from an empty box. [ESC] abandons the edit and keeps the seed,
+' which only means anything when there IS one; from an empty field it behaves as before.
+FUNCTION PromptNameSeed$ (prompt AS STRING, seed AS STRING)
     DIM nm AS STRING, k AS STRING, chcode AS INTEGER
-    nm = ""
+    nm = _TRIM$(seed)
     DO
         _LIMIT 60
         _DEST CANVAS: _FONT CH: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 18, prompt
         COLOR GREENU, BLACK: PrintCentered 22, "> " + nm + "_"
-        COLOR CYANU, BLACK: PrintCentered 26, "[ENTER] confirm"
+        IF LEN(_TRIM$(seed)) > 0 THEN
+            COLOR CYANU, BLACK: PrintCentered 26, "[ENTER] confirm    [BACKSPACE] edit    [ESC] keep " + CHR$(34) + _TRIM$(seed) + CHR$(34)
+        ELSE
+            COLOR CYANU, BLACK: PrintCentered 26, "[ENTER] confirm"
+        END IF
         Present
         k = INKEY$
         IF k <> "" THEN
             IF k = CHR$(13) THEN
                 EXIT DO
+            ELSEIF k = CHR$(27) AND LEN(_TRIM$(seed)) > 0 THEN
+                PromptNameSeed$ = _TRIM$(seed): EXIT FUNCTION      ' abandoned -- keep the old name
             ELSEIF k = CHR$(8) THEN
                 IF LEN(nm) > 0 THEN nm = LEFT$(nm, LEN(nm) - 1)
             ELSEIF LEN(k) = 1 THEN
@@ -104,9 +117,17 @@ FUNCTION PromptName$ (prompt AS STRING)
             END IF
         END IF
     LOOP
+    IF _TRIM$(nm) = "" THEN nm = _TRIM$(seed)
     IF _TRIM$(nm) = "" THEN nm = "PLAYER"
-    PromptName$ = nm
+    PromptNameSeed$ = nm
 END FUNCTION
+
+' [E] in the character creator: type a name instead of cycling random ones. The creator could
+' only ever re-roll a RANDOM name ([N]), so a player who wanted their own had no way to enter it.
+SUB RenameChampion
+    player_name = PromptNameSeed$("NAME YOUR CHAMPION", player_name)
+    Sfx "select"
+END SUB
 
 
 ' Build every player. Solo reuses the character already set from the menu;

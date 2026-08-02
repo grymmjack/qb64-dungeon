@@ -78,7 +78,7 @@ SUB Dump_Game
     ConHead "-- RULES IN FORCE --"
     ConRow "combat", RulesWord$(opt_oldschool, "OLDSCHOOL 2d6-vs-target", "D&D (HP/AC, multi-round)")
     ConRow "movement", RulesWord$(opt_boardgame, "BOARDGAME (roll then step)", "FREE MOVE")
-    ConRow "stat roll", RulesWord$(opt_heroicstats, "4d6 drop lowest", "straight 3d6")
+    ConRow "stat roll", StatMethodName$
     ConRow "flex stats", _TRIM$(STR$(opt_flexstats)) + "  (0 rolled order / 1 assign / 2 point buy)"
     ConRow "real dice", ConOnOff$(opt_realdice) + "   game does the math: " + ConOnOff$(opt_dicemath)
     ConRow "line of sight", ConOnOff$(opt_fov) + "   forced here: " + ConOnOff$(fov_forced)

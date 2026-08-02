@@ -125,21 +125,35 @@ SUB DrawCharGen (pc AS INTEGER, sc() AS INTEGER, rolled AS INTEGER, done AS INTE
         END IF
         PrintCentered y, "   " + row + "   "
     NEXT i
+    ' WHAT THE ABILITY DOES, on the rolling screen too. The point-buy and assign editors have
+    ' always shown this (DrawFlexStats), but rolling straight 3d6 / 4d6-drop-low is where a
+    ' player is LEAST able to act on the information and MOST likely to want it -- you are
+    ' watching a number land on a stat you may not know the use of. The panel tracks the ability
+    ' being rolled next, and after the last roll it holds on the one just filled in.
+    DIM helpstat AS INTEGER
+    IF done THEN
+        helpstat = 6
+    ELSEIF rolled < 6 THEN
+        helpstat = rolled + 1                     ' the one about to be rolled
+    ELSE
+        helpstat = 6
+    END IF
+    DrawStatHelp helpstat, 42, 31, 48
     IF done THEN
         COLOR GREENU, BLACK
         PrintCentered 24, "HIT POINTS  " + _TRIM$(STR$(player_maxhp))
         COLOR CYANU, BLACK
         PrintCentered 26, "AC " + _TRIM$(STR$(player_ac)) + "     To-Hit " + ModStr$(player_tohit) + "     Damage 1d" + _TRIM$(STR$(player_dmgdie)) + " " + ModStr$(player_dmgbonus)
         COLOR GREY, BLACK: PrintCentered 28, CombatDerivation$(pc)   ' where those bonuses come from
-        fp = "[R] re-roll     [N] new name     "
-        IF opt_flexstats = 1 THEN fp = fp + "[C] assign scores     "   ' rearrange the rolled scores
-        fp = fp + "[ENTER] keep     [ESC] back"
+        fp = "[R] re-roll   [Shift-R] fast   [E] rename   [N] random name   "
+        IF opt_flexstats = 1 THEN fp = fp + "[C] assign scores   "   ' rearrange the rolled scores
+        fp = fp + "[ENTER] keep   [ESC] back"
         COLOR YELLOWU, BLACK: PrintCentered 44, fp
     ELSE
         COLOR CYANU, BLACK
         IF rolled < 6 THEN
-            fp = "[ press a key ] roll " + nm(rolled + 1) + "      [A] auto-roll the rest      [N] new name      [ESC] back"
-            IF rolled = 0 AND opt_flexstats = 2 THEN fp = "[P] point distribution      " + fp   ' build stats instead of rolling
+            fp = "[ press a key ] roll " + nm(rolled + 1) + "   [A] auto-roll rest   [E] rename   [N] random name   [ESC] back"
+            IF rolled = 0 AND opt_flexstats = 2 THEN fp = "[P] point distribution   " + fp   ' build stats instead of rolling
             PrintCentered 44, fp
         ELSE
             PrintCentered 44, "[ press a key ] roll your HIT POINTS      [A] auto      [ESC] back"
@@ -265,19 +279,28 @@ END FUNCTION
 
 SUB RollCharacter (pc AS INTEGER)
     DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER, usedpoint AS INTEGER
+    DIM kr AS STRING, fastroll AS INTEGER, j AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
     IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
     DICE3D_YOFF = 14                                ' drop the 3D dice tray below the stat sheet so the scores stay visible
     stay_auto = FALSE                               ' once [A] is pressed it stays on through every re-roll
+    fastroll = FALSE                                ' [Shift-R] -- churn re-rolls with no dice animation at all
     DO
         auto = stay_auto
         usedpoint = FALSE
+        IF fastroll THEN
+            ' FAST RE-ROLL: fill all six straight off the RNG and show the finished sheet. Somebody
+            ' re-rolling until they like the spread should not have to sit through six dice
+            ' animations per attempt -- that is the whole request, so it skips the loop entirely.
+            FOR i = 1 TO 6: sc(i) = RollAbilityFast%: NEXT i
+        ELSE
         FOR i = 1 TO 6
             DrawCharGen pc, sc(), i - 1, 0             ' show sheet + the prompt to roll this ability
             IF NOT auto THEN                           ' the player presses a key to roll each stat...
                 DO
                     _LIMIT 60: k = UCASE$(INKEY$): Present
                     IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), i - 1, 0: k = ""
+                    IF k = "E" THEN RenameChampion: DrawCharGen pc, sc(), i - 1, 0: k = ""
                     IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB   ' one ESC aborts back to the menu
                     IF i = 1 AND opt_flexstats = 2 AND k = "P" THEN   ' point distribution instead of rolling
                         IF PointBuyStats%(pc, sc()) THEN
@@ -292,22 +315,31 @@ SUB RollCharacter (pc AS INTEGER)
                 IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB  ' ESC bails out mid auto-roll too
             END IF
             IF usedpoint THEN EXIT FOR                 ' point-buy set all six -- skip the dice
-            sc(i) = RollAbility                        ' 3d6 or 4d6-drop-low per the Stat-Roll setting
+            sc(i) = RollAbility                        ' per the Stat-Roll METHOD (RollAbility%)
         NEXT i
+        END IF
         player_str = sc(1): player_int = sc(2): player_wis = sc(3)
         player_dex = sc(4): player_con = sc(5): player_cha = sc(6)
         ' hit points: three hit dice + 3x the CON modifier (a level-ish start), min 3
-        DrawCharGen pc, sc(), 6, 0
-        IF NOT auto THEN
-            DO
-                _LIMIT 60: k = UCASE$(INKEY$): Present
-                IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, 0: k = ""
-                IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
-            LOOP UNTIL k <> ""
-        ELSE
-            IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
+        IF NOT fastroll THEN
+            DrawCharGen pc, sc(), 6, 0
+            IF NOT auto THEN
+                DO
+                    _LIMIT 60: k = UCASE$(INKEY$): Present
+                    IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, 0: k = ""
+                    IF k = "E" THEN RenameChampion: DrawCharGen pc, sc(), 6, 0: k = ""
+                    IF k = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
+                LOOP UNTIL k <> ""
+            ELSE
+                IF INKEY$ = CHR$(27) THEN DICE3D_YOFF = 0: EXIT SUB
+            END IF
         END IF
-        hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
+        IF fastroll THEN
+            hproll = 0
+            FOR j = 1 TO 3: hproll = hproll + RollDie(CLASSES(pc).hitdie): NEXT j
+        ELSE
+            hproll = GameRoll(3, CLASSES(pc).hitdie, 0, "HIT POINTS")
+        END IF
         player_maxhp = hproll + 3 * AbilMod(player_con)
         IF player_maxhp < 3 THEN player_maxhp = 3
         hp_start_amount = player_maxhp                 ' what the entrance will restore, for the whole run
@@ -316,9 +348,16 @@ SUB RollCharacter (pc AS INTEGER)
         player_hp = player_maxhp
         DeriveFromStats pc                             ' to-hit / AC / damage from the ability scores
         DrawCharGen pc, sc(), 6, -1                    ' final sheet + reroll/name/keep prompt
+        fastroll = FALSE                               ' each re-roll opts in again
         DO
-            _LIMIT 60: k = UCASE$(INKEY$): Present
+            _LIMIT 60
+            ' RAW key first, then the uppercased copy. [Shift-R] and [R] are the same letter to
+            ' UCASE$, so telling them apart means reading what INKEY$ actually returned. (CapsLock
+            ' therefore reads as Shift here -- an acceptable trade for one dev-comfort key.)
+            kr = INKEY$: k = UCASE$(kr): Present
+            IF kr = "R" THEN fastroll = -1             ' Shift-R: re-roll with no dice animation
             IF k = "N" THEN player_name = RandomHeroName$: DrawCharGen pc, sc(), 6, -1: k = ""
+            IF k = "E" THEN RenameChampion: DrawCharGen pc, sc(), 6, -1: k = ""
             IF k = "C" AND opt_flexstats = 1 THEN         ' rearrange the rolled scores
                 IF AssignStats%(pc, sc()) THEN
                     player_str = sc(1): player_int = sc(2): player_wis = sc(3)
@@ -780,6 +819,11 @@ SUB RunSettings
                     IF opt_flexstats < 0 THEN opt_flexstats = 2
                     IF opt_flexstats > 2 THEN opt_flexstats = 0
                     Sfx "select"
+                CASE 17
+                    opt_statmethod = opt_statmethod + delta
+                    IF opt_statmethod < STAT_3D6 THEN opt_statmethod = STAT_3D6RR
+                    IF opt_statmethod > STAT_3D6RR THEN opt_statmethod = STAT_3D6
+                    Sfx "select"
                 CASE 41
                     opt_solomode = opt_solomode + delta
                     IF opt_solomode < 0 THEN opt_solomode = 3
@@ -848,7 +892,9 @@ SUB RunSettings
                 CASE 16
                     num_players = num_players + 1: IF num_players > 4 THEN num_players = 1
                     IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
-                CASE 17: opt_heroicstats = NOT opt_heroicstats
+                CASE 17
+                    opt_statmethod = opt_statmethod + 1
+                    IF opt_statmethod > STAT_3D6RR THEN opt_statmethod = STAT_3D6
                 CASE 18
                     opt_fullscreen = NOT opt_fullscreen
                     ApplyDisplay
@@ -1014,7 +1060,7 @@ SUB RunSettings
                     IF num_players > 1 THEN vtxt = _TRIM$(STR$(num_players)) + "  (hot-seat)" ELSE vtxt = "1  (solo)"
                 CASE 17
                     lbl = "Stat Roll"
-                    IF opt_heroicstats THEN vtxt = "4d6 drop-low" ELSE vtxt = "straight 3d6"
+                    vtxt = StatMethodName$
                 CASE 18: lbl = "Full Screen": vtxt = OnOff$(opt_fullscreen)
                 CASE 19
                     ' Named for what it ACTUALLY does, which differs by display mode:

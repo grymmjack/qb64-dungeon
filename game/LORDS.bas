@@ -426,7 +426,7 @@ SUB SaveSettings
     PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
     PRINT #f, "tactical " + _TRIM$(STR$(opt_tactical))
     PRINT #f, "audiopref " + _TRIM$(STR$(opt_audiopref))
-    PRINT #f, "heroicstats " + _TRIM$(STR$(opt_heroicstats))
+    PRINT #f, "statmethod " + _TRIM$(STR$(opt_statmethod))
     PRINT #f, "flexstats " + _TRIM$(STR$(opt_flexstats))
     PRINT #f, "boardgame " + _TRIM$(STR$(opt_boardgame))
     PRINT #f, "movedice " + _TRIM$(STR$(opt_movedice))
@@ -504,7 +504,12 @@ SUB LoadSettings
                 CASE "oldschool": opt_oldschool = v
                 CASE "tactical": opt_tactical = v
                 CASE "audiopref": opt_audiopref = v
-                CASE "heroicstats": opt_heroicstats = v
+                CASE "statmethod": opt_statmethod = v
+                ' MIGRATION: the method used to be the boolean `heroicstats` (-1 = 4d6-drop-low).
+                ' Read it so an existing settings file keeps the method its owner chose; the file
+                ' is rewritten with `statmethod` on the next save, and this arm then never fires.
+                CASE "heroicstats"
+                    IF v THEN opt_statmethod = STAT_4D6DL ELSE opt_statmethod = STAT_3D6
                 CASE "flexstats": opt_flexstats = v
                 CASE "boardgame": opt_boardgame = v
                 CASE "movedice": opt_movedice = v

@@ -379,7 +379,18 @@ DIM SHARED opt_voice AS INTEGER                                    ' typewriter 
 DIM SHARED opt_musicvol AS INTEGER, opt_sfxvol AS INTEGER, opt_voicevol AS INTEGER  ' 0..10 volume sliders
 DIM SHARED opt_realdice AS INTEGER    ' player rolls their own physical dice and types the result
 DIM SHARED opt_dicemath AS INTEGER    ' TRUE: player adds modifiers; FALSE: the game adds them
-DIM SHARED opt_heroicstats AS INTEGER ' TRUE: roll abilities 4d6-drop-lowest; FALSE: straight 3d6
+' --- ABILITY-ROLL METHOD (SETTINGS "Stat Roll") ---------------------------------
+' Was the boolean opt_heroicstats (TRUE = 4d6-drop-lowest). A third method made a two-state flag
+' the wrong shape, so it is now an enum; LoadSettings still reads the old `heroicstats` key and
+' migrates it, so an existing dungeon-settings.dat keeps the method its owner chose.
+'
+' STAT_3D6RR re-rolls 1s and 2s UNTIL NONE REMAIN, so each die is uniform on 3..6 and a score
+' runs 9..18. (The other reading -- re-roll each low die exactly once -- gives a different curve;
+' this is the generous one, which is the point of the method.)
+CONST STAT_3D6 = 0
+CONST STAT_4D6DL = 1
+CONST STAT_3D6RR = 2
+DIM SHARED opt_statmethod AS INTEGER
 DIM SHARED opt_fov AS INTEGER         ' TRUE: line-of-sight fog-of-war (explore the map)
 ' ---- dice look & feel (all persisted; see DiceColors / DrawFontDie) ----
 DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/Blood/Emerald/Sapphire/Gold/Amethyst)

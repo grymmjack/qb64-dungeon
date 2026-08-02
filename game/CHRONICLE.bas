@@ -678,7 +678,7 @@ FUNCTION RulesConfigBlock$ ()
     END IF
     IF opt_fov THEN s = s + "| Field of View | on -- line of sight only |" + nl ELSE s = s + "| Field of View | off -- whole map visible |" + nl
     IF NOT opt_oldschool THEN
-        IF opt_heroicstats THEN cb = "4d6 drop-lowest" ELSE cb = "straight 3d6"
+        cb = StatMethodName$
         IF opt_flexstats = 1 THEN
             cb = cb + " + assign where you want"
         ELSEIF opt_flexstats = 2 THEN

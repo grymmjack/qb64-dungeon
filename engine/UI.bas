@@ -1539,22 +1539,66 @@ FUNCTION ShowRollValue% (total AS INTEGER, hi AS INTEGER, caption AS STRING)
 END FUNCTION
 
 
-' Roll one ability score, honouring the Stat-Roll setting: straight 3d6, or
-' 4d6-drop-lowest (the heroic method).  Respects Real Dice + Show Dice.
+' Roll one ability score by the Stat-Roll METHOD: straight 3d6, 4d6-drop-lowest, or 3d6
+' re-rolling 1s and 2s. Respects Real Dice + Show Dice.
 FUNCTION RollAbility% ()
-    IF opt_heroicstats THEN
-        IF opt_realdice THEN
-            RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
-        ELSEIF opt_dice3d AND dice3d_ready THEN
-            RollAbility = Show3DRoll(4, 6, 0, 1, "4d6 drop lowest")   ' 3D: roll four, drop lowest (API's dl1)
-        ELSEIF opt_d6pips THEN
-            RollAbility = RollPips(4, TRUE, 0, "roll 4d6, drop lowest")   ' four pip dice, lowest discarded
-        ELSE
-            RollAbility = ShowRollTextEx(4, 6, TRUE, 0, "4d6 drop lowest")   ' same, on the font d6
-        END IF
-    ELSE
-        RollAbility = GameRoll(3, 6, 0, "ability score")
-    END IF
+    SELECT CASE opt_statmethod
+        CASE STAT_4D6DL
+            IF opt_realdice THEN
+                RollAbility = PromptRoll(3, 6, 0, "roll 4d6, DROP lowest, enter top 3")
+            ELSEIF opt_dice3d AND dice3d_ready THEN
+                RollAbility = Show3DRoll(4, 6, 0, 1, "4d6 drop lowest")   ' 3D: roll four, drop lowest (API's dl1)
+            ELSEIF opt_d6pips THEN
+                RollAbility = RollPips(4, TRUE, 0, "roll 4d6, drop lowest")   ' four pip dice, lowest discarded
+            ELSE
+                RollAbility = ShowRollTextEx(4, 6, TRUE, 0, "4d6 drop lowest")   ' same, on the font d6
+            END IF
+        CASE STAT_3D6RR
+            ' A d6 that re-rolls 1s and 2s until neither shows is exactly a uniform pick from
+            ' 3..6 -- which is a d4 shifted up by 2. So the SCORE is 3d4+6 (9..18), and rolling it
+            ' that way needs no per-die re-roll support in any of the four dice renderers.
+            ' The dice shown are d4s, which is honest: they are the distribution being rolled.
+            IF opt_realdice THEN
+                RollAbility = PromptRoll(3, 6, 0, "roll 3d6, RE-ROLL any 1s and 2s, enter total")
+            ELSE
+                RollAbility = GameRoll(3, 4, 6, "3d6 re-roll 1s & 2s")
+            END IF
+        CASE ELSE
+            RollAbility = GameRoll(3, 6, 0, "ability score")
+    END SELECT
+END FUNCTION
+
+' Roll one ability score with NO dice animation and no waiting -- the [Shift-R] fast re-roll.
+' Same distributions as RollAbility%, straight off the RNG: a player who wants to churn re-rolls
+' until they like the spread should not have to sit through six dice animations each time.
+FUNCTION RollAbilityFast% ()
+    DIM j AS INTEGER, t AS INTEGER, v AS INTEGER, lo AS INTEGER
+    SELECT CASE opt_statmethod
+        CASE STAT_4D6DL
+            t = 0: lo = 7
+            FOR j = 1 TO 4
+                v = RollDie(6): t = t + v
+                IF v < lo THEN lo = v
+            NEXT j
+            RollAbilityFast% = t - lo
+        CASE STAT_3D6RR
+            t = 0
+            FOR j = 1 TO 3: t = t + 2 + RollDie(4): NEXT j     ' uniform 3..6 per die -- see RollAbility%
+            RollAbilityFast% = t
+        CASE ELSE
+            t = 0
+            FOR j = 1 TO 3: t = t + RollDie(6): NEXT j
+            RollAbilityFast% = t
+    END SELECT
+END FUNCTION
+
+' Human-readable name of the current ability-roll method (SETTINGS row + the rules screen).
+FUNCTION StatMethodName$ ()
+    SELECT CASE opt_statmethod
+        CASE STAT_4D6DL: StatMethodName$ = "4d6 drop-low"
+        CASE STAT_3D6RR: StatMethodName$ = "3d6 re-roll 1s & 2s"
+        CASE ELSE: StatMethodName$ = "straight 3d6"
+    END SELECT
 END FUNCTION
 
 

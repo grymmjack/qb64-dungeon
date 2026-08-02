@@ -163,7 +163,7 @@ opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + doe
 opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
 opt_tactical = FALSE                          ' default off: the TACTICAL fight screen (1-vs-4, fuses + gestures)
 opt_audiopref = AUDIOPREF_AUTO                ' which container wins when an asset ships in several (SETTINGS)
-opt_heroicstats = TRUE                        ' default: 4d6-drop-lowest ability rolls (off = straight 3d6)
+opt_statmethod = STAT_4D6DL                   ' default ability-roll method (see RollAbility%)
 opt_flexstats = 2                             ' character build: 0 OFF (rolled) / 1 Assign roll / 2 Point distribution
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 opt_movedice = TRUE                           ' default boardgame move: roll 1d6 (FALSE = DUNGEON! "up to 5, your choice")
