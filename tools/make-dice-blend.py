@@ -100,6 +100,20 @@ for i, obj_path in enumerate(dice):
             poly.use_smooth = False
         placed.append(m)
 
+# --- sit every die on the floor -----------------------------------------------------------
+#
+# From the die's real VERTICES, not object.bound_box. bound_box is the LOCAL axis-aligned box,
+# so rotating its eight corners gives that box's AABB -- which sticks out past the mesh at any
+# angle that is not axis-aligned and lifts the die into the air by the overshoot. For a d20
+# turned 25 degrees that error is a third of a unit, which is exactly what "floating" looks
+# like. Vertices are exact at any rotation.
+bpy.context.view_layer.update()
+dg = bpy.context.evaluated_depsgraph_get()
+for m in placed:
+    ev = m.evaluated_get(dg)
+    mw = m.matrix_world
+    m.location.z -= min((mw @ v.co)[2] for v in ev.data.vertices)
+
 # --- floor ------------------------------------------------------------------------------
 bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, 0))
 floor = bpy.context.active_object
