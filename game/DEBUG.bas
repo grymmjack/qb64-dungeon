@@ -726,6 +726,7 @@ SUB DumpRollShot
         END IF
     NEXT i
 
+    HeldRerollCheck                                  ' a pinned die must keep its face, every style
     IF rollshot_facebad THEN
         PRINT PipeCol$("|12rollshot: a dice style published per-die faces that disagree with its own total|07")
         bad = bad + 1
@@ -1351,4 +1352,53 @@ SUB DumpBannerShot
     _DEST _CONSOLE
     PRINT PipeCol$("  prompt row: |14" + LTRIM$(STR$(bnr_l2row)))
     PRINT PipeCol$("  wrote |14bannershot.png|07 and |14bannershot-wide.png")
+END SUB
+
+
+' Does a HELD die actually keep its face across a partial re-roll, in every dice style?
+'
+' "3d6, re-roll 1s & 2s" leaves the kept dice on the table (RollHoldSet). If a renderer ignores
+' the hold, the picture is wrong AND the value is wrong -- it silently re-rolls a die the player
+' was told they were keeping. Nothing on screen would look broken; the number would just be a
+' different number. So assert it rather than eyeball it, for all three renderers.
+'
+' Also writes rollshot-held.png from the 3D path: the tray should show THREE dice, not one.
+SUB HeldRerollCheck
+    DIM AS INTEGER i, style, thrown, keep1, keep3, bad
+    DIM nm AS STRING
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15held dice|07 -- a pinned die keeps its face across a re-roll")
+    FOR style = 1 TO 3
+        SELECT CASE style
+            CASE 1: opt_dice3d = 0: opt_d6pips = -1: nm = "pips"
+            CASE 2: opt_dice3d = 0: opt_d6pips = 0: nm = "font"
+            CASE ELSE: opt_dice3d = -1: opt_d6pips = 0: nm = "3D"
+        END SELECT
+        cursor_erase: cursor_draw: Present
+        RollHoldClear
+        thrown = AnimatedRoll(3, 6, 0, "3d6")
+        _DEST _CONSOLE                               ' a roll leaves _DEST on CANVAS -- PRINT would
+        IF DIE_FACE_N < 3 THEN                       ' otherwise land on the game screen, invisibly
+            PRINT PipeCol$("  |12BAD|07  " + nm + " published " + _TRIM$(STR$(DIE_FACE_N)) + " faces, expected 3")
+            bad = bad + 1
+        ELSE
+            keep1 = DieFace%(1): keep3 = DieFace%(3)
+            RollHoldSet 1, keep1
+            RollHoldSet 3, keep3
+            IF style = 3 THEN roll_shot = "rollshot-held.png"
+            thrown = AnimatedRoll(3, 6, 0, "re-rolling the middle die")
+            roll_shot = ""
+            _DEST _CONSOLE
+            IF DieFace%(1) <> keep1 OR DieFace%(3) <> keep3 THEN
+                PRINT PipeCol$("  |12BAD|07  " + nm + " -- held " + _TRIM$(STR$(keep1)) + "/" + _TRIM$(STR$(keep3)) + _
+                      " came back " + _TRIM$(STR$(DieFace%(1))) + "/" + _TRIM$(STR$(DieFace%(3))))
+                bad = bad + 1
+            ELSE
+                PRINT PipeCol$("  |10ok |07  " + PadR$(nm, 6) + "held " + _TRIM$(STR$(keep1)) + " and " + _TRIM$(STR$(keep3)) + _
+                      ", middle die re-rolled to " + _TRIM$(STR$(DieFace%(2))))
+            END IF
+        END IF
+        RollHoldClear
+    NEXT style
+    IF bad > 0 THEN rollshot_facebad = -1
 END SUB

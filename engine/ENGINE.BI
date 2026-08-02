@@ -327,6 +327,22 @@ DIM SHARED die_a AS INTEGER, die_b AS INTEGER    ' last dice shown by RollDiceSh
 ' DIE_FACE_N = 0 means the last roll published nothing (Real Dice: the player rolled physically,
 ' so there are no faces to read).
 DIM SHARED DIE_FACE(1 TO 12) AS INTEGER, DIE_FACE_N AS INTEGER
+
+' --- HELD DICE: a PARTIAL re-roll ------------------------------------------------
+' The counterpart to DIE_FACE. That one reads the dice apart; this one re-throws only some of
+' them, leaving the rest lying where they are, showing what they showed.
+'
+' It exists because "3d6, re-roll 1s and 2s" is a rule about INDIVIDUAL dice, and rolling only
+' the chosen dice in a fresh tray shows the wrong thing: the kept dice vanish and the player can
+' no longer see the rule being applied. On a table you pick up the dice you are re-throwing and
+' leave the others.
+'
+' Set holds, then roll the FULL set as normal -- the held indices simply do not tumble:
+'     RollHoldClear : RollHoldSet 1, 4 : RollHoldSet 3, 6 : v = AnimatedRoll%(3, 6, 0, "...")
+' Consumed and cleared by that roll. A renderer with no hold support ignores them and re-rolls
+' everything, which is wrong-looking but never wrong-VALUED -- the caller reads DIE_FACE either way.
+DIM SHARED ROLLHOLD(1 TO 12) AS INTEGER          ' per die index: pinned face (0 = free to roll)
+DIM SHARED ROLLHOLD_ON AS INTEGER                ' any holds pending
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
 ' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to
 ' the number tumbler). Each glyph IS a die face: 'A'+n draws the solid variant,

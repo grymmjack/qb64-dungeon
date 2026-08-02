@@ -1,3 +1,26 @@
 Vendored snapshot of DICE3D (3D polyhedral dice) by Rick Christy.
 Source: /home/grymmjack/git/qb64/qb64/GRAPHICS/3D/DICE3D
 Do not add to QB64_GJ_LIB until kinks are worked out here; then swap the include path.
+
+THIS COPY IS THE WORKING ONE. The module is being refined here, in the game that
+actually exercises it, and the source tree above is a MIRROR -- it had drifted well
+behind (no d4 top-read fix, no LIGHT_* defaults, no FACE_ROOM, no force_soft) until
+the held-dice work synced every _*.BI / _*.BM back over it. Sync forward, not back.
+
+Local changes on top of the original, newest first:
+
+  * HELD DICE (dice3d_hold / dice3d_hold_clear, DICE3D_DIE.HELD, DICE3D_PREV).
+    A die can be pinned for the next roll: it keeps the seat and face it had, sits
+    out the physics, and is not re-read. That is what a PARTIAL re-roll looks like
+    on a table -- you pick up the dice you are re-throwing and leave the rest.
+  * d4 top-read showcase pose (a tetrahedron's value is on its hidden base).
+  * LIGHT_* directional-light defaults, seeded so sets predating the keys still light.
+  * DICE3D_FACE_ROOM: per-face numeral room, so a digit reads the same size on every die.
+  * dice3d_force_soft: force the software renderer, so a headless capture can see a roll.
+
+KNOWN BLOCKER FOR PUBLISHING (pre-dates the above):
+  _RENDER.BM:30 calls PresentNoFlip, which is the HOST's (engine/UI.bas), not the
+  module's. The hardware path needs the host to lay its canvas down before the GL
+  triangles and to flip afterwards. That one call is why the module is not standalone
+  -- the source tree's own DICE3D-TEST.BAS will not compile against this copy. Factor
+  it into a callback (a DICE3D_PRESENT_HOOK the host assigns) before publishing.

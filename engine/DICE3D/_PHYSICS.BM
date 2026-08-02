@@ -211,10 +211,23 @@ SUB dice3d_separate (cfg AS DICE3D_CONFIG)
             IF d < 2 * r AND d > 0.0001 THEN
                 ov = (2 * r - d) / 2
                 nx = dx / d: ny = dy / d
-                DICE3D_DICE(i).PX = DICE3D_DICE(i).PX - nx * ov
-                DICE3D_DICE(i).PY = DICE3D_DICE(i).PY - ny * ov
-                DICE3D_DICE(j).PX = DICE3D_DICE(j).PX + nx * ov
-                DICE3D_DICE(j).PY = DICE3D_DICE(j).PY + ny * ov
+                ' A HELD die is immovable -- pinning it and then letting a neighbour shove it out
+                ' of its seat would defeat the point. When one side is pinned the other takes the
+                ' WHOLE overlap, so they still end up exactly touching rather than half-resolved.
+                IF DICE3D_DICE(i).HELD AND DICE3D_DICE(j).HELD THEN
+                    ' both pinned: they were already apart last roll, nothing to resolve
+                ELSEIF DICE3D_DICE(i).HELD THEN
+                    DICE3D_DICE(j).PX = DICE3D_DICE(j).PX + nx * ov * 2
+                    DICE3D_DICE(j).PY = DICE3D_DICE(j).PY + ny * ov * 2
+                ELSEIF DICE3D_DICE(j).HELD THEN
+                    DICE3D_DICE(i).PX = DICE3D_DICE(i).PX - nx * ov * 2
+                    DICE3D_DICE(i).PY = DICE3D_DICE(i).PY - ny * ov * 2
+                ELSE
+                    DICE3D_DICE(i).PX = DICE3D_DICE(i).PX - nx * ov
+                    DICE3D_DICE(i).PY = DICE3D_DICE(i).PY - ny * ov
+                    DICE3D_DICE(j).PX = DICE3D_DICE(j).PX + nx * ov
+                    DICE3D_DICE(j).PY = DICE3D_DICE(j).PY + ny * ov
+                END IF
             END IF
         NEXT
     NEXT

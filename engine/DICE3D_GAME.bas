@@ -273,6 +273,16 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     IF droplow > 0 THEN notation = notation + "dl" + _TRIM$(STR$(droplow))   ' e.g. 4d6dl1
+    ' HELD DICE (see ROLLHOLD in ENGINE.BI): pass the pins through so a partial re-roll leaves the
+    ' kept dice lying where they are instead of clearing the tray. The module ignores a hold whose
+    ' index the PREVIOUS roll had no die for, so this is safe to set unconditionally.
+    DIM hi2 AS INTEGER
+    dice3d_hold_clear
+    IF ROLLHOLD_ON THEN
+        FOR hi2 = 1 TO n
+            IF RollHeld%(hi2) > 0 THEN dice3d_hold hi2, RollHeld%(hi2)
+        NEXT hi2
+    END IF
     dice3d_roll notation, cfg, r()                 ' animates on the GL layer, returns settled
     IF SfxHandle("dice_settle") = 0 THEN Sfx "diceland"
 

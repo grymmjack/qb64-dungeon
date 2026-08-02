@@ -744,6 +744,16 @@ character `Q` printed in the d20 font:
   (the one place the three `_FULLSCREEN` sites route through): on = `_FULLSCREEN _SQUAREPIXELS,
   _SMOOTH` (bilinear — soft, and it makes the tumbling dice shimmer); off = `_FULLSCREEN
   _SQUAREPIXELS` (crisp pixel-doubling, which suits the ANSI/text art and kills the shimmer).
+- **HELD DICE — a PARTIAL re-roll** (`RollHoldSet`/`RollHoldClear`/`RollHeld%` in `engine/UI.bas`,
+  `dice3d_hold` in the DICE3D module). A die can be pinned for the next roll: it keeps the seat
+  and the face it had, sits out the physics, and is not re-read; the rest of the tray tumbles
+  around it. All three renderers honour it (pips, font polyhedra, 3D), and `AnimatedRoll%` clears
+  the pins afterwards so a renderer that ignores them cannot leave them armed. This is what makes
+  "3d6, **re-roll 1s and 2s**" (`Roll3d6RerollLow%`, the `STAT_3D6RR` method) look like the rule
+  it is: three dice stay on the table and only the low ones are thrown again. It shipped twice
+  wrong first — as `3d4+6` (exact maths, nonsense picture) and then as a fresh tray holding only
+  the low dice (right maths, the kept dice vanish) — so `rollshot` now asserts that a pinned die
+  comes back with the face it was pinned to, in every style.
 - **3D dice top-light** (the DICE3D `LIGHT_*` config fields): a view-space Lambert directional
   light shades each face by `ambient + (1-ambient)*max(0, N·L)` so top-facing surfaces catch
   light and the dice read as solid 3D (and the **d4's apex** — its read point — is lit, which the

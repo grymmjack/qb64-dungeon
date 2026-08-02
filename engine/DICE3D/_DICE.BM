@@ -105,7 +105,12 @@ SUB dice3d_run_loop (cfg AS DICE3D_CONFIG)
     ' dice3d_qrandom gives a UNIFORM start orientation (measured d20 mean ~10.5, each face
     ' ~5%). The showcase then turns that SAME face upright/readable -- it does NOT change the
     ' value, so the die shows what it landed on (no post-settle number swap or re-pose).
-    FOR i = lo TO hi: dice3d_read_value DICE3D_DICE(i): NEXT '   guarantee values (also covers a timeout)
+    ' A HELD die's value is pinned, not landed -- re-reading it from the orientation would derive
+    ' the number back from the pose we just set, which is at best a no-op and for a top-read d4
+    ' is simply wrong.
+    FOR i = lo TO hi
+        IF DICE3D_DICE(i).HELD = 0 THEN dice3d_read_value DICE3D_DICE(i)
+    NEXT '   guarantee values (also covers a timeout)
     IF DICE3D_UPRIGHT THEN dice3d_showcase cfg '  turn each settled face upright + readable
 END SUB
 
@@ -272,6 +277,66 @@ END SUB
 ' Roll dice: build mesh + atlas, animate the tumble/settle in the box, hand
 ' control back. results() is REDIM'd to (1 TO count) and filled with each die's
 ' value; DICE3D_LAST_TOTAL holds the kept sum + flat modifier.
+''
+' Pin die `idx` (1-based) at `val` for the NEXT dice3d_roll: it keeps the seat and face it had
+' last roll, sits out the physics, and is not re-read. Cleared automatically by that roll.
+SUB dice3d_hold (idx AS INTEGER, face AS INTEGER)   ' `face`, not `val` -- VAL is reserved
+    IF idx < 1 OR idx > DICE3D_HOLD_MAX THEN EXIT SUB
+    IF face < 1 THEN EXIT SUB
+    DICE3D_HOLD_V(idx) = face
+    DICE3D_HOLD_ON = -1
+END SUB
+
+''
+' Drop every pending hold.
+SUB dice3d_hold_clear
+    DIM i AS INTEGER
+    FOR i = 1 TO DICE3D_HOLD_MAX: DICE3D_HOLD_V(i) = 0: NEXT i
+    DICE3D_HOLD_ON = 0
+END SUB
+
+''
+' Seat the pinned dice: previous position, value's face pose, no velocity, already SETTLED (which
+' is what makes dice3d_step skip them -- it exits on SETTLED before touching anything).
+' Called from dice3d_roll after the mesh is built, so DICE3D_VAL2FACE / DICE3D_FACE_Q are valid.
+SUB dice3d_apply_holds (cfg AS DICE3D_CONFIG)
+    DIM AS INTEGER i, v, f, lo, hi
+    DIM axisX AS DICE3D_VEC3, rxt AS DICE3D_QUAT
+    DIM lean AS SINGLE
+    IF DICE3D_HOLD_ON = 0 THEN EXIT SUB
+    lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
+    ' the same apex-up construction dice3d_showcase uses for a tetrahedron (a d4 is TOP-read:
+    ' its value sits on the hidden base), so a held d4 shows the number it is pinned to.
+    lean = cfg.D4_LEAN: IF lean = 0 THEN lean = 20
+    axisX.X = 1: axisX.Y = 0: axisX.Z = 0
+    dice3d_qaxisangle axisX, (90 + cfg.CAM_TILT + lean) * 0.0174532925, rxt
+    FOR i = lo TO hi
+        v = 0
+        IF i + 1 >= 1 AND i + 1 <= DICE3D_HOLD_MAX THEN v = DICE3D_HOLD_V(i + 1)
+        IF v > 0 AND i <= DICE3D_PREV_N - 1 THEN
+            DICE3D_DICE(i).VALUE = v
+            DICE3D_DICE(i).HELD = -1
+            DICE3D_DICE(i).SETTLED = -1
+            DICE3D_DICE(i).SETTLING = 0
+            DICE3D_DICE(i).VX = 0: DICE3D_DICE(i).VY = 0: DICE3D_DICE(i).VZ = 0
+            DICE3D_DICE(i).WX = 0: DICE3D_DICE(i).WY = 0: DICE3D_DICE(i).WZ = 0
+            DICE3D_DICE(i).PX = DICE3D_PREV(i).PX '  exactly where it was lying
+            DICE3D_DICE(i).PY = DICE3D_PREV(i).PY
+            DICE3D_DICE(i).PZ = DICE3D_PREV(i).PZ
+            IF v >= LBOUND(DICE3D_VAL2FACE) AND v <= UBOUND(DICE3D_VAL2FACE) THEN
+                f = DICE3D_VAL2FACE(v)
+                IF f >= 0 AND f < DICE3D_NF THEN
+                    IF DICE3D_DICE(i).SIDES = 4 THEN
+                        dice3d_qmul rxt, DICE3D_FACE_Q(f), DICE3D_DICE(i).Q
+                    ELSE
+                        DICE3D_DICE(i).Q = DICE3D_FACE_Q(f)
+                    END IF
+                END IF
+            END IF
+        END IF
+    NEXT i
+END SUB
+
 SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
     DIM spec AS DICE3D_SPEC
     DIM AS INTEGER cnt, sides, i
@@ -303,6 +368,7 @@ SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
         DICE3D_DICE(i).ATLAS = atlas
         dice3d_throw DICE3D_DICE(i), cfg, r
     NEXT
+    dice3d_apply_holds cfg           ' pinned dice keep their seat + face and sit out the physics
 
     dice3d_run_loop cfg
     dice3d_apply_drops cfg, spec
@@ -318,6 +384,12 @@ SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
         DICE3D_LAST_VALUE(i + 1) = DICE3D_DICE(i).VALUE
         DICE3D_LAST_DROPPED(i + 1) = DICE3D_DICE(i).DROPPED
     NEXT
+
+    '--- remember this roll's dice, so the NEXT one can pin any of them in place ---
+    DICE3D_PREV_N = cnt
+    REDIM DICE3D_PREV(0 TO cnt - 1) AS DICE3D_DIE
+    FOR i = 0 TO cnt - 1: DICE3D_PREV(i) = DICE3D_DICE(i): NEXT
+    dice3d_hold_clear                             ' holds are consumed by the roll they were set for
 
     _FREEIMAGE atlas
     _FREEIMAGE DICE3D_BOXBUF: DICE3D_BOXBUF = 0   ' zero it: a stale handle is not detectable, and

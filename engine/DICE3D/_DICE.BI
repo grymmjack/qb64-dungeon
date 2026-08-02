@@ -53,11 +53,31 @@ TYPE DICE3D_DIE
     BODY_KOLOR AS _UNSIGNED LONG '       per-die body override (percentile hi/lo)
     ATLAS AS LONG '                      baked face texture handle
     OFFSET AS INTEGER '                  atlas tile row offset (for shared atlases)
+    HELD AS INTEGER '                    pinned by dice3d_hold: keeps its seat + face, no physics
 END TYPE
 
 '--- Engine globals ------------------------------------------------------------
 DIM SHARED DICE3D_BOXBUF AS LONG '        off-screen 32-bit box compositing buffer
 REDIM SHARED DICE3D_DICE(0) AS DICE3D_DIE
+
+'--- HELD DICE -----------------------------------------------------------------
+' A die can be PINNED for the next roll: it keeps the seat and the face it had, sits out the
+' physics, and is not re-read. The rest of the tray tumbles around it.
+'
+' This is what a partial re-roll actually looks like on a table -- you pick up the dice you are
+' re-throwing and leave the others where they lie. Rolling only the chosen dice in a fresh tray
+' is a different picture: the kept dice vanish, and what the player sees stops matching the rule
+' they chose ("re-roll the 1s and 2s" became "here are two dice, no idea why").
+'
+' Contract: call dice3d_hold BEFORE dice3d_roll, once per pinned die, 1-based to match the
+' results() array. Holds are consumed by that roll and cleared. A hold is honoured only if the
+' PREVIOUS roll had a die at that index to inherit a position from -- otherwise there is no
+' "in place" to hold, and it simply rolls.
+CONST DICE3D_HOLD_MAX = 16
+DIM SHARED DICE3D_HOLD_ON AS INTEGER '    any holds pending for the next roll
+DIM SHARED DICE3D_HOLD_V(1 TO DICE3D_HOLD_MAX) AS INTEGER '  per index: pinned value (0 = free)
+REDIM SHARED DICE3D_PREV(0) AS DICE3D_DIE '  the previous roll's dice, for seats + poses
+DIM SHARED DICE3D_PREV_N AS INTEGER
 
 '--- Current mesh (shared by all dice of one type in a single roll) ------------
 DIM SHARED DICE3D_NV AS INTEGER '         unique vertex count

@@ -1023,7 +1023,11 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
     diceW = n * sz + (n - 1) * gap
 
     tot = 0
-    FOR j = 1 TO n: v(j) = RollDie(6): tot = tot + v(j): NEXT j
+    FOR j = 1 TO n
+        v(j) = RollHeld%(j)                        ' pinned by RollHoldSet? keep its face...
+        IF v(j) = 0 THEN v(j) = RollDie(6)         ' ...otherwise throw it
+        tot = tot + v(j)
+    NEXT j
     drop = 0
     IF droplow AND n > 1 THEN
         lo = v(1): drop = 1
@@ -1058,9 +1062,17 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
         DIM leftw AS INTEGER, rightw AS INTEGER, floory AS INTEGER
         leftw = x1 + 2 * CW: rightw = x2 - 2 * CW: floory = by
         FOR j = 1 TO n
-            px(j) = leftw + RND * (rightw - leftw - sz)
-            py(j) = ytop + 2 * CH + RND * CH
-            vx(j) = (RND - 0.5) * 11: vy(j) = RND * 2
+            IF RollHeld%(j) > 0 THEN
+                ' A HELD die never leaves the table: seat it in its final row slot from frame one,
+                ' with no velocity. The tumble loop skips it, so it simply lies there showing its
+                ' face while the others fall around it.
+                px(j) = bx + (j - 1) * (sz + gap): py(j) = by
+                vx(j) = 0: vy(j) = 0
+            ELSE
+                px(j) = leftw + RND * (rightw - leftw - sz)
+                py(j) = ytop + 2 * CH + RND * CH
+                vx(j) = (RND - 0.5) * 11: vy(j) = RND * 2
+            END IF
         NEXT j
 
         DiceTiming frames, rate, settle, hold
@@ -1075,7 +1087,9 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
                 FOR j = 1 TO n: sxp(j) = px(j): syp(j) = py(j): NEXT j
             END IF
             FOR j = 1 TO n
-                IF f < settle THEN
+                IF RollHeld%(j) > 0 THEN
+                    DrawDie px(j), py(j), sz, v(j)   ' pinned: no physics, no tumble, real face
+                ELSEIF f < settle THEN
                     vy(j) = vy(j) + 0.7
                     px(j) = px(j) + vx(j): py(j) = py(j) + vy(j)
                     IF px(j) < leftw THEN px(j) = leftw: vx(j) = -vx(j) * 0.6
@@ -1137,6 +1151,26 @@ SUB PublishFaces (v() AS INTEGER, n AS INTEGER)
     NEXT i
 END SUB
 
+' Pin die `i` at face `f` for the next animated roll -- see ROLLHOLD in ENGINE.BI.
+SUB RollHoldSet (i AS INTEGER, f AS INTEGER)
+    IF i < 1 OR i > UBOUND(ROLLHOLD) THEN EXIT SUB
+    IF f < 1 THEN EXIT SUB
+    ROLLHOLD(i) = f: ROLLHOLD_ON = -1
+END SUB
+
+SUB RollHoldClear
+    DIM i AS INTEGER
+    FOR i = 1 TO UBOUND(ROLLHOLD): ROLLHOLD(i) = 0: NEXT i
+    ROLLHOLD_ON = 0
+END SUB
+
+' The face die `i` is pinned at, or 0 if it rolls freely.
+FUNCTION RollHeld% (i AS INTEGER)
+    RollHeld% = 0
+    IF ROLLHOLD_ON = 0 THEN EXIT FUNCTION
+    IF i >= 1 AND i <= UBOUND(ROLLHOLD) THEN RollHeld% = ROLLHOLD(i)
+END FUNCTION
+
 ' Face of die `i` from the last animated roll, or 0 if it published none (Real Dice).
 FUNCTION DieFace% (i AS INTEGER)
     DieFace% = 0
@@ -1174,6 +1208,9 @@ FUNCTION AnimatedRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what A
     ELSE
         AnimatedRoll% = ShowRollText(n, sides, bonus, what)   ' polyhedra from the DPoly die fonts
     END IF
+    ' Holds are consumed by the roll they were set for, and cleared HERE rather than in each
+    ' renderer -- so a renderer that ignores them cannot leave them armed for the next roll.
+    RollHoldClear
 END FUNCTION
 
 
@@ -1410,7 +1447,11 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
     DIM hdr AS STRING, textw AS INTEGER, contentw AS INTEGER, boxw AS INTEGER, cx AS INTEGER, rln AS STRING
     IF n > 12 THEN n = 12
     total = 0
-    FOR i = 1 TO n: v(i) = RollDie(sides): total = total + v(i): NEXT i
+    FOR i = 1 TO n
+        v(i) = RollHeld%(i)                        ' pinned by RollHoldSet? keep its face...
+        IF v(i) = 0 THEN v(i) = RollDie(sides)     ' ...otherwise throw it
+        total = total + v(i)
+    NEXT i
     drop = 0
     IF droplow AND n > 1 THEN
         lo = v(1): drop = 1
@@ -1586,38 +1627,51 @@ END FUNCTION
 
 ' 3d6, re-rolling any die that comes up 1 or 2, until none do.
 '
-' Rolled the way the rule READS: three d6 on the table, then only the offending dice thrown again.
-' The first version quietly substituted 3d4+6 -- mathematically identical (a d6 that re-rolls 1s
-' and 2s forever IS a uniform 3..6, which is a d4+2) and visibly wrong: you sat watching three d4s
-' and never saw the mechanic you chose. The distribution was never the point; the re-roll is.
+' Rolled the way the rule READS, and now SHOWN that way too: three d6 stay on the table for every
+' pass, the ones that are keeping their number lie still, and only the 1s and 2s are picked up and
+' thrown again (RollHoldSet -> the renderers' held-dice path).
 '
-' Reads the individual dice back through DIE_FACE (PublishFaces), which every renderer fills. If a
-' renderer published nothing -- or fewer faces than asked for -- the first throw's total is taken
-' as-is rather than inventing dice, so a future renderer that forgets to publish degrades to a
-' plain 3d6 instead of returning nonsense.
+' Two earlier versions got this wrong in instructive ways. The first substituted 3d4+6 --
+' mathematically exact (a d6 re-rolling 1s and 2s forever IS a uniform 3..6, i.e. a d4+2) and
+' visibly nonsense: you watched three d4s and never saw the mechanic. The second rolled the low
+' dice alone in a fresh tray, which is the right maths and still the wrong picture -- the kept
+' dice vanished, so what was on screen stopped matching the rule.
+'
+' Reads the dice apart through DIE_FACE (PublishFaces), which every renderer fills. If a renderer
+' published nothing -- or fewer faces than asked for -- the throw's total is taken as-is rather
+' than inventing dice, so a future renderer that forgets to publish degrades to a plain 3d6
+' instead of returning nonsense.
 '
 ' Capped at RR_MAX_PASSES: the loop terminates with probability 1, but "probability 1" is not a
-' guarantee you want inside a game loop with no way out.
+' guarantee worth having inside a game loop with no way out.
 FUNCTION Roll3d6RerollLow% ()
     CONST RR_MAX_PASSES = 16
-    DIM v(1 TO 3) AS INTEGER, idx(1 TO 3) AS INTEGER
+    DIM v(1 TO 3) AS INTEGER
     DIM i AS INTEGER, nlow AS INTEGER, pass AS INTEGER, t AS INTEGER, thrown AS INTEGER, cap AS STRING
+    RollHoldClear
     thrown = AnimatedRoll%(3, 6, 0, "3d6 -- re-roll 1s & 2s")
     IF DIE_FACE_N < 3 THEN Roll3d6RerollLow% = thrown: EXIT FUNCTION   ' renderer published nothing
     FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
     DO
         nlow = 0
         FOR i = 1 TO 3
-            IF v(i) <= 2 THEN nlow = nlow + 1: idx(nlow) = i
+            IF v(i) <= 2 THEN nlow = nlow + 1
         NEXT i
         IF nlow = 0 THEN EXIT DO
         pass = pass + 1
         IF pass > RR_MAX_PASSES THEN EXIT DO
+        ' Pin every die that is KEEPING its number; the rest are thrown again. The roll is still
+        ' a full 3d6 -- that is what keeps all three on the table and in their seats.
+        RollHoldClear
+        FOR i = 1 TO 3
+            IF v(i) > 2 THEN RollHoldSet i, v(i)
+        NEXT i
         IF nlow = 1 THEN cap = "re-rolling 1 low die" ELSE cap = "re-rolling " + _TRIM$(STR$(nlow)) + " low dice"
-        thrown = AnimatedRoll%(nlow, 6, 0, cap)
-        IF DIE_FACE_N < nlow THEN EXIT DO         ' same guard: keep what we have rather than guess
-        FOR i = 1 TO nlow: v(idx(i)) = DieFace%(i): NEXT i
+        thrown = AnimatedRoll%(3, 6, 0, cap)
+        IF DIE_FACE_N < 3 THEN EXIT DO            ' same guard: keep what we have rather than guess
+        FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
     LOOP
+    RollHoldClear
     t = 0
     FOR i = 1 TO 3: t = t + v(i): NEXT i
     Roll3d6RerollLow% = t
