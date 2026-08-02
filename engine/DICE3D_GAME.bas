@@ -247,6 +247,19 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     DICE3D_ATLAS_DIE = 96                           ' bake a hi-res atlas so the numerals stay sharp
     SetDiceFont cfg                                 ' apply the chosen dice numeral font
 
+    ' PHOTOGRAPH THE SCREEN FIRST. The roll draws a tray over whatever is up and has to take it
+    ' away again afterwards -- and it used to do that by repainting the BOARD (cursor_erase /
+    ' cursor_draw), which assumes a board is what is underneath. It is not, during character
+    ' creation: the cleanup painted the dungeon's room labels and the play HUD straight over the
+    ' creator, which is the "decoration layer flashes while rolling" report. Auto-roll made it
+    ' constant, because each stat's roll cleaned up into the next one's box.
+    '
+    ' Restoring the actual pixels is both simpler and screen-agnostic -- the same argument as the
+    ' dev console's snapshot. It also subsumes what cursor_draw was for: the player token is
+    ' already in the photograph.
+    DIM rollsnap AS LONG
+    rollsnap = _COPYIMAGE(CANVAS, 32)
+
     ' Draw the framed royal-purple header (caption-width) + the roomy tray on CANVAS (crisp).
     _DEST CANVAS: _FONT CH
     LINE (hbx, (9 + DICE3D_YOFF) * CH)-(hbx + hbw, (12 + DICE3D_YOFF) * CH), boxviolet, BF
@@ -348,11 +361,12 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     RollShotSave                                    ' dev: capture the settled frame (rollshot)
     IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
     DICE3D_HW = 0
-    cursor_erase: cursor_draw                       ' wipe the dice box off the board so the combat
+    _PUTIMAGE , rollsnap, CANVAS                    ' put back EXACTLY what the tray covered
+    _FREEIMAGE rollsnap
     ' NOTE: on its OWN line. `Game_RenderHUD: Present` parses the name as a LABEL, not a
     ' call, whenever that SUB is not defined -- it compiles clean and silently does nothing.
-    Game_RenderHUD                                   ' game hook #5: restore the HUD layer
-    Present                                         ' panel / "you still face..." prompt shows clean next
+    Game_RenderHUD                                   ' game hook #5: refresh the live HUD readouts
+    Present                                         ' (gold/HP/steps may have changed during the roll)
     Show3DRoll = sum3d
 END FUNCTION
 

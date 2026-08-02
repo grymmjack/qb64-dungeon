@@ -692,7 +692,9 @@ DO
             r = RunMenu
             IF r = MENU_ENTER THEN game_state = ST_PLAY ELSE game_state = ST_QUIT
         CASE ST_PLAY
+            hud_live = TRUE                      ' the board is the screen -> DrawHUD may paint
             o = PlayGame
+            hud_live = FALSE                     ' ...and is not, once we are back in the menus
             StopLevelMusic                       ' silence the in-game track before the menu music resumes
             SELECT CASE o
                 CASE OUT_WIN: game_state = ST_WIN

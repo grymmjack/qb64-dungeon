@@ -1693,6 +1693,7 @@ END FUNCTION
 
 SUB DrawHUD
     DIM sec AS INTEGER, lbl AS STRING, hud AS STRING
+    IF NOT hud_live THEN EXIT SUB                  ' no board on screen -> no HUD to draw (see hud_live)
     _DEST CANVAS
     DIM keytag AS STRING
     sec = PlayerLevel%

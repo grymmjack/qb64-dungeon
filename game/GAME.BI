@@ -594,6 +594,12 @@ DIM SHARED ADIST(0 TO 131, 0 TO 60) AS INTEGER
 DIM SHARED opt_autocombat AS INTEGER
 DIM SHARED opt_autodelay AS INTEGER    ' 1, 2 or 3 seconds between auto actions
 DIM SHARED autocombat_run AS INTEGER
+' Is the BOARD the screen right now? The play HUD is a strip along row 50 of the dungeon view,
+' and DrawHUD used to paint it whenever anything asked -- including from inside the 3D dice roller,
+' which runs during CHARACTER CREATION. That stamped "L0 HP 24/24 GOLD 0/0 ... MAIN GALLERY"
+' across the creator. The engine cannot know whether a board is up; the game can, so the guard
+' lives at the bottom of DrawHUD rather than at each of its 54 call sites.
+DIM SHARED hud_live AS INTEGER
 DIM SHARED opt_statsoverlay AS INTEGER
 ' Which view that overlay box shows: 0 = RUN STATS (the original), 1 = BEARINGS (what is playing
 ' and being drawn, plus where you are). [TAB] shows/hides the box; [Shift-TAB] swaps the view.

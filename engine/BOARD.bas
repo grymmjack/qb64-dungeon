@@ -601,6 +601,7 @@ END SUB
 
 
 SUB StartBoard
+    Game_BoardShown                  ' the board is now the screen (the game may enable its HUD)
     BuildBoardImages                 ' pristine display board + the collision board behind it
     InitFog                          ' build the fogged CANVAS_COPY + CANVAS (secret areas sealed)
     c.cursor_color = _RGB32(&HFF, &H00, &H00, &HAA)

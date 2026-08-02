@@ -89,3 +89,8 @@ END SUB
 FUNCTION Game_DevDump% (topic AS STRING)
     Game_DevDump% = 0                            ' this game claims no topics
 END FUNCTION
+
+' The engine has stood the board up. This game draws no HUD, so there is nothing to enable --
+' but the hook must exist: an undefined Game_* called as a statement parses as a LABEL.
+SUB Game_BoardShown
+END SUB

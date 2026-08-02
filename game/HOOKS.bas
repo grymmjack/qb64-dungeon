@@ -256,3 +256,10 @@ END FUNCTION
 SUB Game_RenderHUD
     DrawHUD
 END SUB
+
+' The engine has just stood the board up (StartBoard) -- so the board IS the screen, and this
+' game's HUD strip belongs on it. Dev modes that build a board without entering the play state
+' reach here too, which is what keeps their screenshots complete.
+SUB Game_BoardShown
+    hud_live = TRUE
+END SUB
