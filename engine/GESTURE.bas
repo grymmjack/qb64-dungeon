@@ -177,6 +177,9 @@ SUB DrawGaugeDiceStrip (k AS GAUGEK, entry AS STRING, msg AS STRING)
     gx = (bx + 6) * CW: gw = (bw - 12) * CW
     sy = (by + 15) * CH: striph = CH - 2                     ' just under the bar (bar ends at by+14)
     _DEST CANVAS
+    ' This draws AFTER DrawGaugeEx has restored the fill mode, so it has to opt in again or its
+    ' four text lines stamp dark cells across the panel art the gauge is sitting on.
+    IF UiFramed%(UIF_GAUGE) THEN _PRINTMODE _KEEPBACKGROUND
     FOR f = 1 TO 20
         x1 = gx + INT(((f - 1) / 20) * gw)
         x2 = gx + INT((f / 20) * gw) - 2
@@ -200,6 +203,7 @@ SUB DrawGaugeDiceStrip (k AS GAUGEK, entry AS STRING, msg AS STRING)
     ELSE
         COLOR BOXBG, BOXBG: PrintCentered by + 21, SPACE$(44)
     END IF
+    _PRINTMODE _FILLBACKGROUND
 END SUB
 
 ' "CRIT 10-11   HIT 8-13   else MISS" -- built by WALKING the faces rather than by inverting
@@ -269,8 +273,18 @@ SUB DrawGaugeEx (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUG
     DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG
     bx = 18: bw = 96: by = 16: bh = 22
     _DEST CANVAS
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    ' Grown outward, like every other retrofitted panel: the gauge's whole body (the fuse bar,
+    ' the zone bar, the legend, the prompt) is laid out against `by + N` and must not move.
+    DIM gfx AS INTEGER, gfy AS INTEGER, gfw AS INTEGER, gfh AS INTEGER, gframed AS INTEGER
+    IF UiFramed%(UIF_GAUGE) THEN
+        FrameOutset UIF_GAUGE, bx, by, bw, bh, gfx, gfy, gfw, gfh
+        IF gfx >= 0 AND gfy >= 0 AND gfx + gfw <= SW AND gfy + gfh <= SH THEN gframed = UiPanel%(UIF_GAUGE, gfx, gfy, gfw, gfh)
+    END IF
+    IF NOT gframed THEN
+        LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
+        LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    END IF
+    IF gframed THEN _PRINTMODE _KEEPBACKGROUND
     COLOR YELLOWU, BOXBG: PrintCentered by + 2, "-=  " + title + "  =-"
     ' fuse countdown
     IF showfuse THEN
@@ -294,6 +308,7 @@ SUB DrawGaugeEx (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUG
     IF swMode THEN leg = "purple = SECOND WIND" ELSE leg = "purple (centre) = +2 dice     green = +1 die     dark = +0"
     COLOR GREY, BOXBG: PrintCentered by + 16, leg
     COLOR CYANU, BOXBG: PrintCentered by + 18, prompt
+    _PRINTMODE _FILLBACKGROUND                   ' the strip/lock overlays draw after this
 END SUB
 
 ' Overlay a coloured band at the locked position during the result freeze.

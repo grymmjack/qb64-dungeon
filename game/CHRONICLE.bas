@@ -316,6 +316,23 @@ SUB ChroniclePanel (x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER, 
     COLOR YELLOWU, BOXBG: PrintCentered y1 + 1, "-=  " + title + "  =-"
 END SUB
 
+' A full-screen list panel: frame it by growing outward, and leave the caller's own layout
+' untouched. Returns FALSE when there is no art or no room, so the caller keeps its LINE box.
+'
+' These are redrawn EVERY keypress as the lightbar moves, so the frame is redrawn with them --
+' cheap, because NineGridLoad& caches the rendered art and the tiling is _PUTIMAGE calls.
+FUNCTION ListPanel% (frame AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, edge AS _UNSIGNED LONG)
+    DIM i AS INTEGER, fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER
+    i = FrameIdx%(frame): IF i = 0 THEN EXIT FUNCTION
+    fx = col + 1 - UIFRAME_TW(i): fy = row + 1 - UIFRAME_TH(i)
+    fw = cols - 2 + 2 * UIFRAME_TW(i): fh = rows - 2 + 2 * UIFRAME_TH(i)
+    IF fx < 0 OR fy < 0 OR fx + fw > SW OR fy + fh > SH THEN EXIT FUNCTION
+    DIM ok AS INTEGER
+    ok = FrameBox%(frame, fx, fy, fw, fh)        ' a local, not the return slot: QB64 reads a bare
+    ListPanel% = ok                              ' `ListPanel%` in an expression as a recursive CALL
+    IF ok THEN chron_framed = -1: _PRINTMODE _KEEPBACKGROUND
+END FUNCTION
+
 SUB ChronicleClose
     _PRINTMODE _FILLBACKGROUND                   ' paired with ChroniclePanel -- see the note there
     chron_framed = 0
@@ -487,8 +504,11 @@ SUB ShowBestiary
     PlayCue "bestiary", -1                              ' bestiary music (restored to the level track on exit)
     sel = 1
     DO
-        _DEST CANVAS: LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
-        LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), CYANU, B
+        _DEST CANVAS
+        IF ListPanel%("bestiary", 4, 3, 124, 44, CYANU) = 0 THEN
+            LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
+            LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), CYANU, B
+        END IF
         COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  B E S T I A R Y  =-"
         '--- list ---
         ' Undiscovered monsters still take a ROW -- seeing how much is left to find is half the
@@ -585,8 +605,11 @@ SUB ShowTreasury
     PlayCue "treasury", -1                              ' treasury music (restored to the level track on exit)
     sel = 1
     DO
-        _DEST CANVAS: LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
-        LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), YELLOWU, B
+        _DEST CANVAS
+        IF ListPanel%("treasury", 4, 3, 124, 44, YELLOWU) = 0 THEN
+            LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
+            LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), YELLOWU, B
+        END IF
         COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  T R E A S U R Y  =-"
         '--- list (left) ---
         FOR i = 1 TO TRE_STAT_N
