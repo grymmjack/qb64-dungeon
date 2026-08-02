@@ -1022,3 +1022,91 @@ SUB DumpDiceObj
     NEXT si
     PRINT PipeCol$("  wrote |14" + odir + "/|07 -- import the .obj; the .mtl and atlas sit beside it")
 END SUB
+
+
+' `dungeon.run framegen` -- WRITE the engine GDK's sample 9-grid frame.
+'
+' The frame is just a BOX drawn at (3 x NG_TILEW) x (3 x NG_TILEH) characters -- 12x6 with the
+' shipped tiles. There is no special format to learn: open it in an ANSI editor, redraw the box,
+' and every panel drawn with NineGridBox% changes. That is the point of shipping it as ART.
+'
+' Generated rather than hand-authored so the FIRST one is guaranteed correct: exact width, no
+' stray line breaks (pure auto-wrap, as the board masks use), self-contained SGR per run, a
+' CHR$(26) EOF before the SAUCE, and TFlags=&H13 so an editor honours the bright colours.
+SUB DumpFrameGen
+    DIM path AS STRING, o AS STRING, r AS INTEGER, ccol AS INTEGER, fh AS INTEGER
+    DIM w AS INTEGER, h AS INTEGER, ch2 AS INTEGER
+    DIM lineK AS STRING, cornK AS STRING
+    _DEST _CONSOLE
+    w = NG_TILEW * 3: h = NG_TILEH * 3
+    path = "assets/ansi-art/default/frames/gdk-panel.ans"
+    IF _DIREXISTS("assets/ansi-art/default/frames") = 0 THEN MKDIR "assets/ansi-art/default/frames"
+    lineK = CHR$(27) + "[0;1;36m"                ' bright cyan: the rails
+    cornK = CHR$(27) + "[0;1;33m"                ' bright yellow corners, so the 3x3 slicing is
+    '                                              VISIBLE in the sample rather than merely implied
+    o = ""
+    FOR r = 0 TO h - 1
+        FOR ccol = 0 TO w - 1
+            ch2 = 32
+            IF r = 0 OR r = h - 1 THEN ch2 = 205
+            IF ccol = 0 OR ccol = w - 1 THEN ch2 = 186
+            IF r = 0 AND ccol = 0 THEN ch2 = 201
+            IF r = 0 AND ccol = w - 1 THEN ch2 = 187
+            IF r = h - 1 AND ccol = 0 THEN ch2 = 200
+            IF r = h - 1 AND ccol = w - 1 THEN ch2 = 188
+            IF ch2 = 201 OR ch2 = 187 OR ch2 = 200 OR ch2 = 188 THEN
+                o = o + cornK + CHR$(ch2)
+            ELSEIF ch2 = 32 THEN
+                o = o + CHR$(27) + "[0m" + " "
+            ELSE
+                o = o + lineK + CHR$(ch2)
+            END IF
+        NEXT ccol
+    NEXT r
+    o = o + CHR$(27) + "[0m"
+    ' CHR$(26) is the DOS EOF that separates ART from SAUCE. Without it the renderer walks
+    ' straight into the metadata and DRAWS it -- the frame came out as "!!IBM VGA 260802".
+    o = o + CHR$(26) + SauceRecord$("DUNGEON! GDK 9-grid panel frame", w, h, LEN(o))
+    fh = FREEFILE
+    OPEN path FOR OUTPUT AS #fh: CLOSE #fh       ' truncate
+    OPEN path FOR BINARY AS #fh
+    PUT #fh, 1, o
+    CLOSE #fh
+    PRINT PipeCol$("|15framegen|07 -- wrote the GDK sample frame")
+    PRINT PipeCol$("  |14" + path + "|07   " + LTRIM$(STR$(w)) + "x" + LTRIM$(STR$(h)) + " chars, tiles " + LTRIM$(STR$(NG_TILEW)) + "x" + LTRIM$(STR$(NG_TILEH)))
+    PRINT PipeCol$("  It is just a BOX. Redraw it at that size in any ANSI editor and every")
+    PRINT PipeCol$("  panel drawn with NineGridBox% changes with it.")
+END SUB
+
+
+' `dungeon.run frameshot` -- render the GDK frame at several sizes to prove the tiling.
+'
+' Sizes that do NOT divide evenly by the tile, on purpose: even division is the case that always
+' works, so a shot of only that proves nothing about the clipping.
+SUB DumpFrameShot
+    DIM p AS STRING, ok AS INTEGER
+    _DEST _CONSOLE
+    p = AnsiFile$("frames/gdk-panel.ans")
+    IF LEN(p) = 0 THEN
+        PRINT PipeCol$("|12  no frame art|07 -- run |15dungeon.run framegen|07 first")
+        SYSTEM 1
+    END IF
+    PRINT PipeCol$("|15frameshot|07 -- " + p)
+    _DEST CANVAS: _FONT CH: CLS , BLACK
+    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 2, 2, 40, 8)
+    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 46, 2, 23, 8)      ' not a multiple of the tile
+    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 72, 2, 8, 4)       ' minimum: corners only
+    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 2, 12, 100, 14)
+    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 2, 28, 17, 19)     ' odd in both axes
+    ok = NineGridBox%(p, NG_TILEW, NG_TILEH, 22, 28, 108, 7)
+    COLOR YELLOWU, BLACK
+    _PRINTSTRING (6 * CW, 5 * CH), "40 x 8  (even)"
+    _PRINTSTRING (50 * CW, 5 * CH), "23 x 8  (odd)"
+    _PRINTSTRING (74 * CW, 4 * CH), "8x4 min"
+    _PRINTSTRING (6 * CW, 18 * CH), "100 x 14 -- a wide panel; the rails tile and clip"
+    _PRINTSTRING (6 * CW, 36 * CH), "17 x 19"
+    _PRINTSTRING (26 * CW, 31 * CH), "108 x 7"
+    _SAVEIMAGE "frameshot.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  wrote |14frameshot.png|07 (6 boxes, sizes chosen to NOT divide evenly)")
+END SUB
