@@ -81,18 +81,14 @@ END FUNCTION
 
 ' Highest-quality file for bpath name b within one directory (worst->best ladder), "" if none.
 FUNCTION ResolveMusicIn$ (dir AS STRING, b AS STRING)
-    DIM exts(1 TO 10) AS STRING, i AS INTEGER, chosen AS STRING, p AS STRING
-    exts(1) = ".mid": exts(2) = ".rad": exts(3) = ".s3m": exts(4) = ".mod": exts(5) = ".xm"
-    exts(6) = ".it"
-    ' Tracker modules always outrank the sampled containers -- they are a different kind of asset,
-    ' not a container choice. The four sampled slots follow the player's preference.
-    FOR i = 1 TO AUDIOPREF_N: exts(6 + i) = AudioExt$(i): NEXT i
+    DIM exts(1 TO 12) AS STRING, nex AS INTEGER, i AS INTEGER, chosen AS STRING, p AS STRING
+    AudioLadder AUDCAT_MUSIC, exts(), nex     ' Music Format first, then trackers, then the global order
     chosen = ""
-    ' EXIT FOR on the FIRST hit -- the array order is a PREFERENCE order (trackers, then
-    ' ogg | mp3 | flac | wav). Without the early exit `chosen` was overwritten on every match, so
-    ' the LAST extension present won: a stray .wav silently beat a hand-authored .rad tracker
-    ' module, and .ogg could never win against anything later in the list.
-    FOR i = 1 TO 10
+    ' EXIT FOR on the FIRST hit -- the array order IS the preference order. Without the early exit
+    ' `chosen` was overwritten on every match, so the LAST extension present won: a stray .wav
+    ' silently beat a hand-authored .rad tracker module, and .ogg could never win against anything
+    ' later in the list.
+    FOR i = 1 TO nex
         p = dir + b + exts(i)
         IF _FILEEXISTS(p) THEN chosen = p: EXIT FOR
     NEXT
@@ -434,6 +430,117 @@ END SUB
 ' All three resolvers (OpenSfx&, FirstAudioFile$, ResolveMusicIn$) go through here, so a pack
 ' behaves identically whichever kind of asset it ships, and the preference cannot drift between
 ' sfx, music and narration.
+' ----------------------------------------------------------------------------
+'  EXTENSION LADDERS -- "which file wins when the same asset exists several ways".
+'
+'  One ladder builder for all three categories, so music, sfx and narration can never drift
+'  into resolving differently. The order is always:
+'
+'      1. the category's EXPLICIT choice, if it has one   (SETTINGS "Music/SFX/Voice Format")
+'      2. the INHERITED order                             (SETTINGS "Audio Format")
+'
+'  -- override then inherit, never override INSTEAD of inherit. Choosing FLAC for music does not
+'  silence a pack that only ships .ogg; it means "the FLAC when there is one". A hard filter
+'  would make a partial pack go quiet with nothing on screen saying why.
+' ----------------------------------------------------------------------------
+
+' The explicit format chosen for a category (FMT_INHERIT when it just follows the global order).
+FUNCTION CatFormat% (cat AS INTEGER)
+    SELECT CASE cat
+        CASE AUDCAT_MUSIC: CatFormat% = opt_fmt_music
+        CASE AUDCAT_SFX: CatFormat% = opt_fmt_sfx
+        CASE AUDCAT_NARR: CatFormat% = opt_fmt_narr
+        CASE ELSE: CatFormat% = FMT_INHERIT
+    END SELECT
+END FUNCTION
+
+' The sampled-container extension for a concrete FMT_* id, or "" for the non-container ones.
+FUNCTION FmtExt$ (f AS INTEGER)
+    SELECT CASE f
+        CASE FMT_OGG: FmtExt$ = ".ogg"
+        CASE FMT_MP3: FmtExt$ = ".mp3"
+        CASE FMT_FLAC: FmtExt$ = ".flac"
+        CASE FMT_WAV: FmtExt$ = ".wav"
+        CASE ELSE: FmtExt$ = ""
+    END SELECT
+END FUNCTION
+
+' Build category `cat`'s extension ladder into ex(), n = how many. Duplicates are skipped, so a
+' promoted extension does not get probed twice.
+'
+' MUSIC keeps trackers ahead of the sampled containers by default -- a .rad is a different KIND
+' of asset, not a container choice -- unless the player has explicitly asked for a sampled format,
+' in which case that is what "I want the ogg" has to mean.
+'
+' SFX set to FMT_BEEP returns an EMPTY ladder: no file can be found, so every effect falls through
+' to its hand-tuned Tone fallback. That is the honest way to express "I want the beeper" -- the
+' fallbacks already exist and are tuned, so there is nothing to build.
+SUB AudioLadder (cat AS INTEGER, ex() AS STRING, n AS INTEGER)
+    DIM f AS INTEGER, i AS INTEGER, e AS STRING
+    DIM trk(1 TO 6) AS STRING
+    trk(1) = ".mid": trk(2) = ".rad": trk(3) = ".s3m": trk(4) = ".mod": trk(5) = ".xm": trk(6) = ".it"
+    n = 0
+    f = CatFormat%(cat)
+    IF cat = AUDCAT_SFX AND f = FMT_BEEP THEN EXIT SUB      ' beeper: resolve nothing on purpose
+    ' 1. the explicit choice first
+    IF f = FMT_TRACKER AND cat = AUDCAT_MUSIC THEN
+        FOR i = 1 TO 6: LadderAdd ex(), n, trk(i): NEXT i
+    ELSE
+        e = FmtExt$(f)
+        IF LEN(e) > 0 THEN LadderAdd ex(), n, e
+    END IF
+    ' 2. then the inherited order
+    IF cat = AUDCAT_MUSIC THEN
+        FOR i = 1 TO 6: LadderAdd ex(), n, trk(i): NEXT i
+    END IF
+    FOR i = 1 TO AUDIOPREF_N: LadderAdd ex(), n, AudioExt$(i): NEXT i
+END SUB
+
+' Append `e` to the ladder unless it is already on it.
+SUB LadderAdd (ex() AS STRING, n AS INTEGER, e AS STRING)
+    DIM i AS INTEGER
+    IF LEN(e) = 0 THEN EXIT SUB
+    FOR i = 1 TO n
+        IF ex(i) = e THEN EXIT SUB
+    NEXT i
+    IF n >= UBOUND(ex) THEN EXIT SUB
+    n = n + 1: ex(n) = e
+END SUB
+
+' Human-readable name of a format choice, for the SETTINGS rows and `dump audio`.
+FUNCTION FmtName$ (f AS INTEGER)
+    SELECT CASE f
+        CASE FMT_OGG: FmtName$ = "OGG first"
+        CASE FMT_MP3: FmtName$ = "MP3 first"
+        CASE FMT_FLAC: FmtName$ = "FLAC first"
+        CASE FMT_WAV: FmtName$ = "WAV first"
+        CASE FMT_TRACKER: FmtName$ = "tracker first (rad/mod/xm/it)"
+        CASE FMT_BEEP: FmtName$ = "PC speaker beeper"
+        CASE ELSE: FmtName$ = "inherit (Audio Format)"
+    END SELECT
+END FUNCTION
+
+' Step a category's format choice by delta, skipping the options that category has no use for:
+' only MUSIC can prefer trackers, only SFX has a beeper to fall back to.
+SUB CycleCatFormat (cat AS INTEGER, delta AS INTEGER)
+    DIM f AS INTEGER, guard AS INTEGER
+    f = CatFormat%(cat)
+    DO
+        guard = guard + 1
+        f = f + delta
+        IF f < FMT_INHERIT THEN f = FMT_BEEP
+        IF f > FMT_BEEP THEN f = FMT_INHERIT
+        IF f = FMT_TRACKER AND cat <> AUDCAT_MUSIC THEN _CONTINUE
+        IF f = FMT_BEEP AND cat <> AUDCAT_SFX THEN _CONTINUE
+        EXIT DO
+    LOOP UNTIL guard > 16
+    SELECT CASE cat
+        CASE AUDCAT_MUSIC: opt_fmt_music = f
+        CASE AUDCAT_SFX: opt_fmt_sfx = f
+        CASE AUDCAT_NARR: opt_fmt_narr = f
+    END SELECT
+END SUB
+
 FUNCTION AudioExt$ (n AS INTEGER)
     DIM bas(1 TO 4) AS STRING, ord(1 TO 4) AS STRING, i AS INTEGER, k AS INTEGER, pref AS INTEGER   ' `bas` -- BASE is reserved
     bas(1) = ".ogg": bas(2) = ".mp3": bas(3) = ".flac": bas(4) = ".wav"
@@ -483,9 +590,12 @@ FUNCTION OpenSfxP& (bpath AS STRING, outpath AS STRING)
     ' _SNDOPEN is miniaudio-backed, so all four decode natively. NOTE the consequence of an order:
     ' if two formats of the same sound both exist, the EARLIER one wins and the other is silently
     ' never played -- so after converting a pack, delete the old files or the switch does nothing.
-    DIM ax AS INTEGER, px AS STRING
-    FOR ax = 1 TO AUDIOPREF_N
-        px = bpath + AudioExt$(ax)
+    DIM ax AS INTEGER, px AS STRING, exts(1 TO 12) AS STRING, nex AS INTEGER
+    ' SFX Format first, then the global order. An empty ladder means the player asked for the
+    ' PC-speaker beeper, so nothing is opened and Sfx falls through to its hand-tuned Tone.
+    AudioLadder AUDCAT_SFX, exts(), nex
+    FOR ax = 1 TO nex
+        px = bpath + exts(ax)
         IF _FILEEXISTS(px) THEN h = _SNDOPEN(px)
         IF h > 0 THEN outpath = px: EXIT FOR
     NEXT ax
@@ -644,10 +754,12 @@ END SUB
 
 ' Path of the first existing <base>.<ext> (ogg/mp3/wav/flac), or "" if none.
 FUNCTION FirstAudioFile$ (bpath AS STRING)
-    ' Player-preferred order, shared with OpenSfx& and ResolveMusicIn$ via AudioExt$.
-    DIM ax AS INTEGER, px AS STRING
-    FOR ax = 1 TO AUDIOPREF_N
-        px = bpath + AudioExt$(ax)
+    ' Narration: Voice Format first, then the global order (AudioLadder shares the rule with
+    ' OpenSfx& and ResolveMusicIn$, so the three cannot drift).
+    DIM ax AS INTEGER, px AS STRING, exts(1 TO 12) AS STRING, nex AS INTEGER
+    AudioLadder AUDCAT_NARR, exts(), nex
+    FOR ax = 1 TO nex
+        px = bpath + exts(ax)
         IF _FILEEXISTS(px) THEN FirstAudioFile$ = px: EXIT FUNCTION
     NEXT ax
     FirstAudioFile$ = ""

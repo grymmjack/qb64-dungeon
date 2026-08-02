@@ -122,6 +122,31 @@ CONST AUDIOPREF_AUTO = 0
 CONST AUDIOPREF_N = 4
 DIM SHARED opt_audiopref AS INTEGER
 
+' --- PER-CATEGORY FORMAT OVERRIDE ----------------------------------------------
+' opt_audiopref above is the INHERITED order every category follows by default. These three
+' override it for one category at a time, and the model is deliberately override-then-inherit,
+' NOT a hard filter:
+'
+'     the explicit choice is tried FIRST; if it yields nothing, the inherited ladder runs.
+'
+' So picking FLAC for music does not silence a pack that only ships .ogg -- it means "give me the
+' FLAC when there is one". A hard filter would make a partial pack go quiet with nothing on
+' screen explaining why, which is the same trap the pack fallback already avoids per-file.
+'
+' FMT_OGG..FMT_WAV deliberately share AUDIOPREF's 1..4 numbering, so the two settings cannot
+' disagree about what "2" means.
+CONST FMT_INHERIT = 0
+CONST FMT_OGG = 1
+CONST FMT_MP3 = 2
+CONST FMT_FLAC = 3
+CONST FMT_WAV = 4
+CONST FMT_TRACKER = 5              ' .mid/.rad/.s3m/.mod/.xm/.it -- MUSIC only (a different kind of asset)
+CONST FMT_BEEP = 6                 ' SFX only: skip files entirely and use the hand-tuned Tone fallbacks
+CONST AUDCAT_MUSIC = 1
+CONST AUDCAT_SFX = 2
+CONST AUDCAT_NARR = 3
+DIM SHARED opt_fmt_music AS INTEGER, opt_fmt_sfx AS INTEGER, opt_fmt_narr AS INTEGER
+
 ' --- TACTICAL COMBAT tuning (assets/data/tuning.txt) ---------------------------
 ' Stored as INTEGERS because that is what LoadTuning reads -- so sub-second values are in
 ' MILLISECONDS and percentages are whole percents.

@@ -150,6 +150,7 @@ SUB Dump_Music
     ConHead "-- MUSIC --"
     ConRow "enabled", ConOnOff$(opt_music) + "   vol " + _TRIM$(STR$(opt_musicvol)) + "/10"
     ConRow "pack", PackOrDefault$(opt_musicpack)
+    ConRow "format pref", FmtName$(opt_fmt_music) + "   inherited: " + AudioPrefName$(opt_audiopref)
     ConRow "level context", _TRIM$(STR$(music_level)) + "  (0 = menu / not in a delve)"
     ConRow "playlist entry", QuotedOr$(music_curfile, "(none)")
     ConRowPath "resolved file", music_path, "(silence)"
@@ -181,7 +182,7 @@ SUB Dump_Sfx
     ConHead "-- SOUND EFFECTS --"
     ConRow "enabled", ConOnOff$(opt_sfx) + "   vol " + _TRIM$(STR$(opt_sfxvol)) + "/10"
     ConRow "pack", PackOrDefault$(opt_sfxpack)
-    ConRow "format pref", AudioPrefName$(opt_audiopref)
+    ConRow "format pref", FmtName$(opt_fmt_sfx) + "   inherited: " + AudioPrefName$(opt_audiopref)
     beeps = 0
     FOR i = 1 TO SFX_N
         IF LEN(SFX_PATH(i)) = 0 THEN beeps = beeps + 1
@@ -214,6 +215,7 @@ SUB Dump_Narration
     ConRow "enabled", ConOnOff$(opt_narration) + "   voice vol " + _TRIM$(STR$(opt_voicevol)) + "/10"
     ConRow "pack", PackOrDefault$(opt_narrationpack)
     ConRow "frequency", _TRIM$(STR$(opt_narrfreq))
+    ConRow "format pref", FmtName$(opt_fmt_narr) + "   inherited: " + AudioPrefName$(opt_audiopref)
     ConRow "current key", QuotedOr$(narr_key, "(none)")
     ConRowPath "resolved file", narr_path, "(none)"
     ConRow "playing", ConOnOff$(NarrIsPlaying%) + "   started " + AgeText$(narr_at)

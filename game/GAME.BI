@@ -635,12 +635,21 @@ DIM SHARED SL_MAXROW AS INTEGER
 ' Per-column bottoms. SL_MAXROW alone is the bottom of the LONGEST column, and hanging the
 ' dice previews off that pushes them far below the short columns they actually sit under.
 DIM SHARED SL_COLBOT(1 TO 4) AS INTEGER
-DIM SHARED SL_COL(1 TO 64) AS INTEGER            ' per option id: which column (1..NSCOL)
-DIM SHARED SL_ROW(1 TO 64) AS INTEGER            ' per option id: screen row
+' Sized by ONE constant, not by three hand-kept 64s. NSET (in RunSettings) grew past 64 when the
+' per-category audio-format rows landed, and the ids that overflowed these arrays simply did not
+' draw -- the row was silently missing from SETTINGS, with the whole screen otherwise fine. Raise
+' SETOPT_MAX, never the literals; SetLayRow now refuses an id above it rather than scribbling.
+CONST SETOPT_MAX = 128
+' How many settings options exist. Lives here rather than inside RunSettings so the layout check
+' (SettingsLayoutCheck, run by `dungeon.run settingsshot`) can see it: an option counted here but
+' never given a SetLayRow draws nowhere, silently. Raise it when adding a row.
+CONST NSET = 66
+DIM SHARED SL_COL(1 TO SETOPT_MAX) AS INTEGER    ' per option id: which column (1..NSCOL)
+DIM SHARED SL_ROW(1 TO SETOPT_MAX) AS INTEGER    ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count
 DIM SHARED SLH_COL(1 TO 24) AS INTEGER, SLH_ROW(1 TO 24) AS INTEGER
 DIM SHARED SLH_TXT(1 TO 24) AS STRING
-DIM SHARED SORD(1 TO 64) AS INTEGER              ' option ids in reading order (col1 top-down, col2, col3) for up/down nav
+DIM SHARED SORD(1 TO SETOPT_MAX) AS INTEGER      ' option ids in reading order (col1 top-down, col2, col3) for up/down nav
 DIM SHARED SORD_N AS INTEGER
 
 

@@ -601,6 +601,11 @@ END SUB
 ' Place option id at column c's current pen row; advance the pen. Also append to the
 ' reading-order list SORD (calls run col1 top-down, then col2, then col3) for up/down nav.
 SUB SetLayRow (col AS INTEGER, id AS INTEGER, prow() AS INTEGER)
+    ' Guard rather than scribble. An id past SETOPT_MAX used to run off the end of SL_COL/SL_ROW,
+    ' and because the fatal handler RESUME NEXTs while a window is up, the symptom was not an
+    ' error -- it was a settings row that quietly failed to appear.
+    IF id < 1 OR id > SETOPT_MAX THEN EXIT SUB
+    IF SORD_N >= SETOPT_MAX THEN EXIT SUB
     SL_COL(id) = col: SL_ROW(id) = prow(col)
     prow(col) = prow(col) + 1
     SORD_N = SORD_N + 1: SORD(SORD_N) = id
@@ -632,7 +637,8 @@ SUB BuildSetLayout
     SetLayRow 1, 1, prow(): SetLayRow 1, 2, prow(): SetLayRow 1, 3, prow(): SetLayRow 1, 4, prow()
     SetLayRow 1, 5, prow(): SetLayRow 1, 6, prow(): SetLayRow 1, 48, prow()
     SetLayRow 1, 45, prow(): SetLayRow 1, 47, prow(): SetLayRow 1, 43, prow(): SetLayRow 1, 44, prow()
-    SetLayRow 1, 53, prow()                          ' Audio Format -- belongs with the packs
+    SetLayRow 1, 53, prow()                          ' Audio Format -- the INHERITED order...
+    SetLayRow 1, 64, prow(): SetLayRow 1, 65, prow(): SetLayRow 1, 66, prow()   ' ...and the per-category overrides
     ' Column 2 -- DICE, then MONSTER DICE
     SetLayHdr 2, "DICE", prow()
     SetLayRow 2, 7, prow(): SetLayRow 2, 30, prow(): SetLayRow 2, 10, prow(): SetLayRow 2, 11, prow()
@@ -711,7 +717,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 63                              ' raise when adding a settings row, or it lays out blank
+    ' NSET now lives in game/GAME.BI beside SETOPT_MAX -- see the note there.
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -851,6 +857,9 @@ SUB RunSettings
                     IF opt_narrfreq < NARR_FLAVOR THEN opt_narrfreq = NARR_COMBAT
                     IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
                     Sfx "select"
+                CASE 64: CycleCatFormat AUDCAT_MUSIC, delta: music_curfile = "": Sfx "select"
+                CASE 65: CycleCatFormat AUDCAT_SFX, delta: ReloadSfxPack: Sfx "select"
+                CASE 66: CycleCatFormat AUDCAT_NARR, delta: Sfx "select"
                 CASE 63
                     opt_luckfuse = opt_luckfuse + delta
                     IF opt_luckfuse < 0 THEN opt_luckfuse = LUCKFUSE_MAX
@@ -951,6 +960,9 @@ SUB RunSettings
                 CASE 63
                     opt_luckfuse = opt_luckfuse + 1
                     IF opt_luckfuse > LUCKFUSE_MAX THEN opt_luckfuse = 0
+                CASE 64: CycleCatFormat AUDCAT_MUSIC, 1: music_curfile = ""   ' re-resolve the current track
+                CASE 65: CycleCatFormat AUDCAT_SFX, 1: ReloadSfxPack
+                CASE 66: CycleCatFormat AUDCAT_NARR, 1
                 CASE 55: opt_startheal = NOT opt_startheal
                 CASE 56: opt_rest = NOT opt_rest
                 CASE 36: opt_gestures = NOT opt_gestures
@@ -1150,6 +1162,15 @@ SUB RunSettings
                 CASE 54
                     lbl = "Luck Re-rolls"
                     IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 64
+                    lbl = "  Music Format"
+                    vtxt = FmtName$(opt_fmt_music)
+                CASE 65
+                    lbl = "  SFX Format"
+                    vtxt = FmtName$(opt_fmt_sfx)
+                CASE 66
+                    lbl = "  Voice Format"
+                    vtxt = FmtName$(opt_fmt_narr)
                 CASE 63
                     lbl = "Luck Prompt Time"
                     IF opt_luckfuse <= 0 THEN
@@ -1279,6 +1300,7 @@ SUB RunSettings
             _SAVEIMAGE "settings-shot.png", CANVAS
             Present
             _SAVEIMAGE "settings-window.png", 0
+            SettingsLayoutCheck                                     ' every option id actually placed?
             SYSTEM                                                  ' exits BEFORE any SaveSettings
         END IF
     LOOP
@@ -2221,4 +2243,44 @@ SUB DelaySkippable (secs AS SINGLE)
         IF DeathSkip% THEN EXIT SUB
         _LIMIT 60
     LOOP UNTIL TIMER - t0 >= secs OR TIMER - t0 < 0
+END SUB
+
+
+' Does every settings option actually have a place on the screen?
+'
+' BuildSetLayout assigns ids to columns by hand, and an id that is never assigned -- or one past
+' the SL_* array bounds -- simply does not draw. There is no error: the screen looks completely
+' normal, just missing a row, and you only notice if you go looking for that one setting. That is
+' exactly how the three per-category audio-format rows vanished when NSET grew past the arrays'
+' hardcoded 64. Run from `dungeon.run settingsshot`, so the gate sees it.
+' Option ids that intentionally do not exist. The id space is not contiguous -- a setting that
+' was removed leaves its number behind rather than renumbering everything after it, which would
+' silently rewrite the meaning of every saved layout position and every CASE arm below it.
+'
+' Keeping the retired ones listed HERE, rather than loosening the check to "gaps are fine", is
+' what keeps the check sharp: a genuinely lost row still fails. When you retire an id, add it.
+FUNCTION SetIdRetired% (i AS INTEGER)
+    SELECT CASE i
+        CASE 57, 58: SetIdRetired% = -1      ' removed options; no label, no value, no CASE arm
+        CASE ELSE: SetIdRetired% = 0
+    END SELECT
+END FUNCTION
+
+SUB SettingsLayoutCheck
+    DIM i AS INTEGER, missing AS INTEGER, lst AS STRING
+    _DEST _CONSOLE
+    FOR i = 1 TO NSET
+        IF SL_ROW(i) = 0 AND NOT SetIdRetired%(i) THEN
+            missing = missing + 1
+            IF LEN(lst) > 0 THEN lst = lst + " "
+            lst = lst + _TRIM$(STR$(i))
+        END IF
+    NEXT i
+    PRINT PipeCol$("settingsshot: " + _TRIM$(STR$(SORD_N)) + " option row(s) laid out, max id " + _TRIM$(STR$(NSET)))
+    IF missing > 0 THEN
+        PRINT PipeCol$("|12BAD|07  " + _TRIM$(STR$(missing)) + " option id(s) never placed by BuildSetLayout: " + lst)
+        PRINT PipeCol$("     they exist in the SELECT CASE blocks but draw nowhere -- add a SetLayRow, or raise SETOPT_MAX")
+        SYSTEM 1
+    END IF
+    PRINT PipeCol$("  |10ok |07  every option id has a column and a row")
 END SUB

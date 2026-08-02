@@ -137,6 +137,22 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # SETTINGS layout. An option id that BuildSetLayout never places simply does not draw --
+    # no error, the screen looks normal, one row is just missing. That is how the per-category
+    # audio-format rows vanished when the id space outgrew the SL_* arrays' hardcoded bounds.
+    echo "-- settings layout (dungeon.run settingsshot) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 60 "settingsshot" ./dungeon.run settingsshot nocolor; then sl="$DEVRUN_OUT"
+            grep -E 'option row' <<<"$sl" | sed 's/^/  /'
+        else
+            sl="$DEVRUN_OUT"
+            grep -E 'BAD|never placed' <<<"$sl" | head -4 | sed 's/^/    /'
+            (( fail++ )); failed+=("settingsshot")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # The rules screen's GENERATED sections. Most of what a player reads there is assembled at
     # display time from live settings + stats.txt, so no file on disk contains it and nothing else
     # in the gate can see it. An empty ability section is what a missing stats.txt looks like.
