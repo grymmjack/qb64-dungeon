@@ -1151,6 +1151,23 @@ SUB PublishFaces (v() AS INTEGER, n AS INTEGER)
     NEXT i
 END SUB
 
+' Begin a multi-pass roll: every roll until RollSeqEnd shares ONE tray, so the box does not
+' blink out and rebuild between passes. See rollseq_on in ENGINE.BI.
+SUB RollSeqBegin
+    rollseq_on = -1
+END SUB
+
+' End it, putting back the screen the tray was covering.
+SUB RollSeqEnd
+    rollseq_on = 0
+    IF rollseq_snap <> 0 THEN
+        _DEST CANVAS
+        _PUTIMAGE , rollseq_snap, CANVAS
+        _FREEIMAGE rollseq_snap: rollseq_snap = 0
+        Present
+    END IF
+END SUB
+
 ' Pin die `i` at face `f` for the next animated roll -- see ROLLHOLD in ENGINE.BI.
 SUB RollHoldSet (i AS INTEGER, f AS INTEGER)
     IF i < 1 OR i > UBOUND(ROLLHOLD) THEN EXIT SUB
@@ -1649,8 +1666,9 @@ FUNCTION Roll3d6RerollLow% ()
     DIM v(1 TO 3) AS INTEGER
     DIM i AS INTEGER, nlow AS INTEGER, pass AS INTEGER, t AS INTEGER, thrown AS INTEGER, cap AS STRING
     RollHoldClear
+    RollSeqBegin                                  ' every pass below shares ONE tray
     thrown = AnimatedRoll%(3, 6, 0, "3d6 -- re-roll 1s & 2s")
-    IF DIE_FACE_N < 3 THEN Roll3d6RerollLow% = thrown: EXIT FUNCTION   ' renderer published nothing
+    IF DIE_FACE_N < 3 THEN RollSeqEnd: Roll3d6RerollLow% = thrown: EXIT FUNCTION   ' renderer published nothing
     FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
     DO
         nlow = 0
@@ -1672,6 +1690,7 @@ FUNCTION Roll3d6RerollLow% ()
         FOR i = 1 TO 3: v(i) = DieFace%(i): NEXT i
     LOOP
     RollHoldClear
+    RollSeqEnd                                    ' one tray for the whole sequence -- take it down now
     t = 0
     FOR i = 1 TO 3: t = t + v(i): NEXT i
     Roll3d6RerollLow% = t

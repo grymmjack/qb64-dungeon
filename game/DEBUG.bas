@@ -1365,6 +1365,7 @@ END SUB
 ' Also writes rollshot-held.png from the 3D path: the tray should show THREE dice, not one.
 SUB HeldRerollCheck
     DIM AS INTEGER i, style, thrown, keep1, keep3, bad
+    DIM AS SINGLE px1, py1, px3, py3
     DIM nm AS STRING
     _DEST _CONSOLE
     PRINT PipeCol$("|15held dice|07 -- a pinned die keeps its face across a re-roll")
@@ -1383,6 +1384,7 @@ SUB HeldRerollCheck
             bad = bad + 1
         ELSE
             keep1 = DieFace%(1): keep3 = DieFace%(3)
+            IF style = 3 THEN px1 = dice3d_px!(1): py1 = dice3d_py!(1): px3 = dice3d_px!(3): py3 = dice3d_py!(3)
             RollHoldSet 1, keep1
             RollHoldSet 3, keep3
             IF style = 3 THEN roll_shot = "rollshot-held.png"
@@ -1396,6 +1398,21 @@ SUB HeldRerollCheck
             ELSE
                 PRINT PipeCol$("  |10ok |07  " + PadR$(nm, 6) + "held " + _TRIM$(STR$(keep1)) + " and " + _TRIM$(STR$(keep3)) + _
                       ", middle die re-rolled to " + _TRIM$(STR$(DieFace%(2))))
+            END IF
+            ' A held die must keep its SEAT as well as its face -- "it does not budge" is half
+            ' the request and the half that cannot be checked by reading a number off the tray.
+            IF style = 3 THEN
+                IF ABS(dice3d_px!(1) - px1) > 0.5 OR ABS(dice3d_py!(1) - py1) > 0.5 OR _
+                   ABS(dice3d_px!(3) - px3) > 0.5 OR ABS(dice3d_py!(3) - py3) > 0.5 THEN
+                    PRINT PipeCol$("  |12BAD|07  3D -- a held die MOVED: (" + _
+                          _TRIM$(STR$(INT(px1))) + "," + _TRIM$(STR$(INT(py1))) + ")->(" + _
+                          _TRIM$(STR$(INT(dice3d_px!(1)))) + "," + _TRIM$(STR$(INT(dice3d_py!(1)))) + ")  (" + _
+                          _TRIM$(STR$(INT(px3))) + "," + _TRIM$(STR$(INT(py3))) + ")->(" + _
+                          _TRIM$(STR$(INT(dice3d_px!(3)))) + "," + _TRIM$(STR$(INT(dice3d_py!(3)))) + ")")
+                    bad = bad + 1
+                ELSE
+                    PRINT PipeCol$("  |10ok |07  3D    held dice kept their seats exactly")
+                END IF
             END IF
         END IF
         RollHoldClear

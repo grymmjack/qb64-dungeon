@@ -753,7 +753,17 @@ character `Q` printed in the d20 font:
   it is: three dice stay on the table and only the low ones are thrown again. It shipped twice
   wrong first — as `3d4+6` (exact maths, nonsense picture) and then as a fresh tray holding only
   the low dice (right maths, the kept dice vanish) — so `rollshot` now asserts that a pinned die
-  comes back with the face it was pinned to, in every style.
+  comes back with the face it was pinned to **and on the same seat**, in every style.
+  A multi-pass roll must also be wrapped in **`RollSeqBegin`/`RollSeqEnd`**: each pass is its own
+  call into the roller, and each call photographs the screen, draws its tray and puts the
+  photograph BACK — so the tray and every die on it vanished between passes and were rebuilt.
+  Even with the seats pinned, a box blinking out and back reads as the dice being thrown around.
+  Inside a sequence the snapshot is taken once and restored once, so only the dice change.
+  **Contact response**: `dice3d_separate` used to resolve overlaps by teleporting dice apart with
+  no velocity change at all, so a die *slid* off its neighbour. It now applies an equal-mass
+  impulse along the contact normal plus a spin kick, with a held die treated as **infinite mass**
+  — it absorbs nothing and gives the whole rebound back, which is what "it does not budge" has to
+  mean physically as well as positionally.
 - **3D dice top-light** (the DICE3D `LIGHT_*` config fields): a view-space Lambert directional
   light shades each face by `ambient + (1-ambient)*max(0, N·L)` so top-facing surfaces catch
   light and the dice read as solid 3D (and the **d4's apex** — its read point — is lit, which the

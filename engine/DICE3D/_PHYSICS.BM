@@ -198,9 +198,24 @@ END SUB
 ''
 ' Push overlapping dice apart (top-down circle separation) and keep everyone
 ' inside the walls. Cheap O(n^2) - fine for a handful of dice.
+''
+' Nudge a die's tumble after a knock. A collision that changes only the path, never the spin,
+' reads as a slide -- the die keeps rotating exactly as it was while its direction jumps.
+' Skipped once a die has settled, so a late touch cannot restart a finished roll.
+SUB dice3d_spin_kick (di AS DICE3D_DIE, mag AS SINGLE)
+    DIM k AS SINGLE
+    IF di.SETTLED THEN EXIT SUB
+    k = mag * 0.6
+    IF k > 14 THEN k = 14
+    di.WX = di.WX + (RND - 0.5) * 2 * k
+    di.WY = di.WY + (RND - 0.5) * 2 * k
+    di.WZ = di.WZ + (RND - 0.5) * 2 * k
+END SUB
+
 SUB dice3d_separate (cfg AS DICE3D_CONFIG)
     DIM AS INTEGER i, j, lo, hi
     DIM AS SINGLE r, dx, dy, d, ov, nx, ny
+    DIM AS SINGLE rvx, rvy, vn, e, jimp
     lo = LBOUND(DICE3D_DICE): hi = UBOUND(DICE3D_DICE)
     r = cfg.DIE_SIZE * DICE3D_RADIUS_K
     FOR i = lo TO hi - 1
@@ -228,14 +243,57 @@ SUB dice3d_separate (cfg AS DICE3D_CONFIG)
                     DICE3D_DICE(j).PX = DICE3D_DICE(j).PX + nx * ov
                     DICE3D_DICE(j).PY = DICE3D_DICE(j).PY + ny * ov
                 END IF
+
+                '--- CONTACT RESPONSE ------------------------------------------------------
+                ' The overlap fix above only teleports dice apart. Nothing reflected, so a die
+                ' SLID off its neighbour with its velocity unchanged and simply carried on. That
+                ' is most obvious against a HELD die, which is precisely the thing you expect to
+                ' knock against and rebound from.
+                '
+                ' Standard equal-mass impulse along the contact normal, with a held die treated
+                ' as INFINITE mass -- it absorbs nothing and takes all of the rebound out of the
+                ' other die, which is what "it does not budge" has to mean physically as well as
+                ' positionally. Applied only while closing (vn < 0), or a pair resting in contact
+                ' would be re-impulsed every frame and buzz.
+                rvx = DICE3D_DICE(j).VX - DICE3D_DICE(i).VX
+                rvy = DICE3D_DICE(j).VY - DICE3D_DICE(i).VY
+                vn = rvx * nx + rvy * ny
+                IF vn < 0 THEN
+                    e = cfg.RESTITUTION
+                    IF e <= 0 THEN e = 0.5
+                    IF DICE3D_DICE(i).HELD AND DICE3D_DICE(j).HELD THEN
+                        ' two pinned dice: neither may move, so there is no impulse to share
+                    ELSEIF DICE3D_DICE(i).HELD THEN
+                        jimp = -(1 + e) * vn
+                        DICE3D_DICE(j).VX = DICE3D_DICE(j).VX + jimp * nx
+                        DICE3D_DICE(j).VY = DICE3D_DICE(j).VY + jimp * ny
+                        dice3d_spin_kick DICE3D_DICE(j), jimp
+                    ELSEIF DICE3D_DICE(j).HELD THEN
+                        jimp = -(1 + e) * vn
+                        DICE3D_DICE(i).VX = DICE3D_DICE(i).VX - jimp * nx
+                        DICE3D_DICE(i).VY = DICE3D_DICE(i).VY - jimp * ny
+                        dice3d_spin_kick DICE3D_DICE(i), jimp
+                    ELSE
+                        jimp = -(1 + e) * vn / 2
+                        DICE3D_DICE(i).VX = DICE3D_DICE(i).VX - jimp * nx
+                        DICE3D_DICE(i).VY = DICE3D_DICE(i).VY - jimp * ny
+                        DICE3D_DICE(j).VX = DICE3D_DICE(j).VX + jimp * nx
+                        DICE3D_DICE(j).VY = DICE3D_DICE(j).VY + jimp * ny
+                        dice3d_spin_kick DICE3D_DICE(i), jimp
+                        dice3d_spin_kick DICE3D_DICE(j), jimp
+                    END IF
+                END IF
             END IF
         NEXT
     NEXT
-    '--- re-clamp inside the box after any pushes ---
+    '--- re-clamp inside the box after any pushes (a HELD die is exempt: it is already exactly
+    '    where it was left, and clamping is the last remaining way it could drift) ---
     FOR i = lo TO hi
-        IF DICE3D_DICE(i).PX < r THEN DICE3D_DICE(i).PX = r
-        IF DICE3D_DICE(i).PX > cfg.BOX_W - r THEN DICE3D_DICE(i).PX = cfg.BOX_W - r
-        IF DICE3D_DICE(i).PY < r THEN DICE3D_DICE(i).PY = r
-        IF DICE3D_DICE(i).PY > cfg.BOX_H - r THEN DICE3D_DICE(i).PY = cfg.BOX_H - r
+        IF DICE3D_DICE(i).HELD = 0 THEN
+            IF DICE3D_DICE(i).PX < r THEN DICE3D_DICE(i).PX = r
+            IF DICE3D_DICE(i).PX > cfg.BOX_W - r THEN DICE3D_DICE(i).PX = cfg.BOX_W - r
+            IF DICE3D_DICE(i).PY < r THEN DICE3D_DICE(i).PY = r
+            IF DICE3D_DICE(i).PY > cfg.BOX_H - r THEN DICE3D_DICE(i).PY = cfg.BOX_H - r
+        END IF
     NEXT
 END SUB

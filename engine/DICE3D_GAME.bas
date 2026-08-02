@@ -257,8 +257,15 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' Restoring the actual pixels is both simpler and screen-agnostic -- the same argument as the
     ' dev console's snapshot. It also subsumes what cursor_draw was for: the player token is
     ' already in the photograph.
+    ' In a ROLL SEQUENCE the snapshot is taken once and held by RollSeqEnd, so the tray survives
+    ' between passes instead of being wiped and rebuilt (see rollseq_on). rollsnap stays 0 then,
+    ' which is what tells the tail below to leave the tray standing.
     DIM rollsnap AS LONG
-    rollsnap = _COPYIMAGE(CANVAS, 32)
+    IF rollseq_on THEN
+        IF rollseq_snap = 0 THEN rollseq_snap = _COPYIMAGE(CANVAS, 32)
+    ELSE
+        rollsnap = _COPYIMAGE(CANVAS, 32)
+    END IF
 
     ' Draw the framed royal-purple header (caption-width) + the roomy tray on CANVAS (crisp).
     _DEST CANVAS: _FONT CH
@@ -371,8 +378,10 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     RollShotSave                                    ' dev: capture the settled frame (rollshot)
     IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
     DICE3D_HW = 0
-    _PUTIMAGE , rollsnap, CANVAS                    ' put back EXACTLY what the tray covered
-    _FREEIMAGE rollsnap
+    IF rollsnap <> 0 THEN                           ' put back EXACTLY what the tray covered
+        _PUTIMAGE , rollsnap, CANVAS                ' (a sequence keeps its tray until RollSeqEnd)
+        _FREEIMAGE rollsnap
+    END IF
     ' NOTE: on its OWN line. `Game_RenderHUD: Present` parses the name as a LABEL, not a
     ' call, whenever that SUB is not defined -- it compiles clean and silently does nothing.
     Game_RenderHUD                                   ' game hook #5: refresh the live HUD readouts

@@ -278,6 +278,23 @@ END SUB
 ' control back. results() is REDIM'd to (1 TO count) and filled with each die's
 ' value; DICE3D_LAST_TOTAL holds the kept sum + flat modifier.
 ''
+' Where die `idx` (1-based) came to rest, in BOX pixels. Lets a caller verify that a held die
+' really did keep its seat -- "it looks like it moved" is not something to settle by eye.
+FUNCTION dice3d_px! (idx AS INTEGER)
+    dice3d_px! = 0
+    IF idx >= 1 AND idx <= DICE3D_LAST_COUNT THEN
+        IF idx - 1 <= UBOUND(DICE3D_DICE) THEN dice3d_px! = DICE3D_DICE(idx - 1).PX
+    END IF
+END FUNCTION
+
+FUNCTION dice3d_py! (idx AS INTEGER)
+    dice3d_py! = 0
+    IF idx >= 1 AND idx <= DICE3D_LAST_COUNT THEN
+        IF idx - 1 <= UBOUND(DICE3D_DICE) THEN dice3d_py! = DICE3D_DICE(idx - 1).PY
+    END IF
+END FUNCTION
+
+''
 ' Pin die `idx` (1-based) at `val` for the NEXT dice3d_roll: it keeps the seat and face it had
 ' last roll, sits out the physics, and is not re-read. Cleared automatically by that roll.
 SUB dice3d_hold (idx AS INTEGER, face AS INTEGER)   ' `face`, not `val` -- VAL is reserved

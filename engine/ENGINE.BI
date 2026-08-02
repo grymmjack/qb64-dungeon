@@ -343,6 +343,18 @@ DIM SHARED DIE_FACE(1 TO 12) AS INTEGER, DIE_FACE_N AS INTEGER
 ' everything, which is wrong-looking but never wrong-VALUED -- the caller reads DIE_FACE either way.
 DIM SHARED ROLLHOLD(1 TO 12) AS INTEGER          ' per die index: pinned face (0 = free to roll)
 DIM SHARED ROLLHOLD_ON AS INTEGER                ' any holds pending
+
+' --- ROLL SEQUENCE: several passes sharing ONE tray -------------------------------
+' A multi-pass roll (3d6 re-rolling its 1s and 2s) is several calls into the roller, and each
+' call used to photograph the screen, draw its tray, and put the photograph BACK -- so the tray
+' and every die on it vanished between passes and were rebuilt from nothing. Even with the held
+' dice pinned to the same seats, the box blinking out and back reads as the dice being thrown
+' around: what you see is not "one die was picked up", it is "everything went away and returned".
+'
+' Between RollSeqBegin and RollSeqEnd the snapshot is taken ONCE and restored ONCE, so the tray
+' stays put for the whole sequence and only the dice inside it change.
+DIM SHARED rollseq_on AS INTEGER                 ' -1 while consecutive rolls share a tray
+DIM SHARED rollseq_snap AS LONG                  ' the screen underneath that shared tray
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
 ' Loaded from assets/fonts/dpoly by InitDice; 0 = failed to load (falls back to
 ' the number tumbler). Each glyph IS a die face: 'A'+n draws the solid variant,
