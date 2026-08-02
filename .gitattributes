@@ -2,9 +2,20 @@
 # out with LFs.
 * text=auto eol=lf
 
-# Except these files will always be checked out with CRLFs (regardless of the
-# OS they were checked out on).
-**/*.ans text eol=crlf
+# ANSI art is BINARY, not text that happens to use CRLF.
+#
+# It was `text eol=crlf` -- store LF, hand out CRLF. That round-trips for real text and CORRUPTS
+# these: a .ans ends with a 128-byte binary SAUCE record, and any 0x0A inside it is
+# indistinguishable from a line ending once git has normalised the file. On checkout git turns
+# every LF into CRLF, inserting a CR into the middle of the metadata and shifting every byte
+# after it. Measured: 20 of 40 sampled files check out at a DIFFERENT SIZE than they were
+# committed at, and 153 of 200 tracked .ans hold a bare LF this rule corrupts.
+#
+# `-text` means git stores and returns the exact bytes. The art still USES CRLF row endings --
+# unchanged, still required -- it just is not git's job to manufacture them.
+**/*.ans -text
+**/*.icy -text
+**/*.xb  -text
 
 # Override GitHub language detection
 *.bas linguist-language=qb64
