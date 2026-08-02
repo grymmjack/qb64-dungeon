@@ -99,10 +99,104 @@ FUNCTION ResolveMusicIn$ (dir AS STRING, b AS STRING)
     ResolveMusicIn$ = chosen
 END FUNCTION
 
+' ----------------------------------------------------------------------------
+'  SOUND GRAVEYARD -- deferred _SNDCLOSE.
+'
+'  THE RULE: no code in this project calls _SNDCLOSE. It calls RetireSound.
+'
+'  _SNDOPEN hangs a node on miniaudio's mixing graph; a device thread walks that graph on every
+'  buffer callback, and _SNDCLOSE frees the node out from under it. Free one the mixer is mid-read
+'  of and the heap is corrupt -- which is what killed a session at the SETTINGS Music Pack row:
+'  13 packs, one _SNDCLOSE + _SNDOPEN per keypress at key-repeat rate, every one of them landing
+'  well inside the 2.5s crossfade while the outgoing track was still audible. The abort surfaced
+'  as `double free or corruption (fasttop)` behind a GLX BadAccess (the render thread simply drew
+'  the next bad pointer). Same class as the SYSTEM-teardown race documented in OpenSfx&.
+'
+'  So: silence it, stop it, park it, and free it LATER from AudioTick, once the mixer has provably
+'  moved on. Silencing first also means the deferral is inaudible -- a retired sound is already
+'  gone as far as the player is concerned.
+' ----------------------------------------------------------------------------
+
+' Park handle h for a later _SNDCLOSE. Silences and stops it NOW so the deferral costs nothing
+' audible. Safe to call with 0 / an already-retired handle. Caller must still zero its own variable.
+SUB RetireSound (h AS LONG)
+    DIM i AS INTEGER, slot AS INTEGER
+    IF h <= 0 THEN EXIT SUB
+    FOR i = 1 TO RETIRE_N                       ' already parked -> don't queue it twice (a double
+        IF RETIRE_HND(i) = h THEN EXIT SUB      ' free of our own making would defeat the point)
+    NEXT i
+    _SNDVOL h, 0                                 ' inaudible from this instant...
+    _SNDSTOP h                                   ' ...and off the transport; only the FREE is deferred
+    slot = 0
+    FOR i = 1 TO RETIRE_N
+        IF RETIRE_HND(i) = 0 THEN slot = i: EXIT FOR
+    NEXT i
+    IF slot = 0 THEN
+        IF RETIRE_N < SND_RETIRE_MAX THEN
+            RETIRE_N = RETIRE_N + 1: slot = RETIRE_N
+        ELSE
+            ' Queue full: the oldest entry has waited longest, so it is the safest to free right
+            ' now. A full queue means something is retiring faster than ReapSounds drains it.
+            slot = 1
+            FOR i = 2 TO RETIRE_N
+                IF RETIRE_AT(i) < RETIRE_AT(slot) THEN slot = i
+            NEXT i
+            _SNDCLOSE RETIRE_HND(slot)
+        END IF
+    END IF
+    RETIRE_HND(slot) = h
+    RETIRE_AT(slot) = TIMER
+END SUB
+
+' TRUE when a sound parked `age` seconds ago is safe to actually _SNDCLOSE.
+'
+' TWO conditions, because neither alone is enough:
+'   * AGE. RetireSound already silenced and stopped it, so the only question left is whether the
+'     device thread has finished the buffer it was mid-way through. SND_RETIRE_SEC is generous
+'     next to a buffer period measured in milliseconds.
+'   * NOT PLAYING. Asks the runtime rather than trusting the clock. On its own this is nearly
+'     worthless -- _SNDPLAYING goes false the instant _SNDSTOP lands, which is the immediate-close
+'     behaviour that crashed -- but ANDed with the age it is a real second opinion.
+' And a HARD CAP, because the pair can deadlock: a _SNDLOOP'd track whose _SNDPLAYING never
+' settles false would sit in the queue forever, and with a dozen music packs that is a lot of
+' decoded audio pinned. Past SND_RETIRE_CAP_SEC the wait has done its job -- free it regardless.
+FUNCTION SoundRetireReady% (h AS LONG, age AS DOUBLE)
+    SoundRetireReady% = FALSE
+    IF age < SND_RETIRE_SEC THEN EXIT FUNCTION          ' too fresh -- the mixer may still be in it
+    IF age >= SND_RETIRE_CAP_SEC THEN SoundRetireReady% = TRUE: EXIT FUNCTION   ' waited long enough, no excuses
+    IF NOT _SNDPLAYING(h) THEN SoundRetireReady% = TRUE
+END FUNCTION
+
+' Free every parked sound whose wait is up. Called once per frame from AudioTick.
+SUB ReapSounds
+    DIM i AS INTEGER, age AS DOUBLE, t AS DOUBLE
+    t = TIMER
+    FOR i = 1 TO RETIRE_N
+        IF RETIRE_HND(i) > 0 THEN
+            age = t - RETIRE_AT(i)
+            IF age < 0 THEN age = SND_RETIRE_SEC     ' TIMER wrapped past midnight -> treat as due
+            IF SoundRetireReady%(RETIRE_HND(i), age) THEN
+                _SNDCLOSE RETIRE_HND(i)
+                RETIRE_HND(i) = 0
+            END IF
+        END IF
+    NEXT i
+END SUB
+
+' Free every parked sound immediately, regardless of age. ONLY for a deliberate teardown where
+' the mixer is known to be idle -- never from the frame loop.
+SUB ReapSoundsNow
+    DIM i AS INTEGER
+    FOR i = 1 TO RETIRE_N
+        IF RETIRE_HND(i) > 0 THEN _SNDCLOSE RETIRE_HND(i): RETIRE_HND(i) = 0
+    NEXT i
+    RETIRE_N = 0
+END SUB
+
 ' Stop and release the in-game track (called when a run ends, before the menu music).
 SUB StopLevelMusic
-    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle
-    IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
+    RetireSound music_handle
+    RetireSound music_fadeout
     music_handle = 0: music_fadeout = 0: music_fading = 0
     music_level = 0: music_curfile = ""
 END SUB
@@ -114,7 +208,7 @@ END SUB
 ' this SUB only sets it up and returns immediately, so the game never blocks on a transition.
 SUB BeginTrack (path AS STRING, doloop AS INTEGER)
     IF audio_muted THEN EXIT SUB                    ' dev/headless: no mixing-graph nodes (see OpenSfx&)
-    IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout   ' retire the last fade-out track
+    RetireSound music_fadeout                       ' retire the last fade-out track (deferred close)
     music_fadeout = music_handle                    ' the current track (if any) becomes the fade-OUT track
     music_handle = 0
     IF LEN(path) > 0 THEN
@@ -166,6 +260,7 @@ SUB AudioTick
     DIM tv AS SINGLE, el AS DOUBLE, frac AS SINGLE
     DIM npos AS DOUBLE, g AS SINGLE, g2 AS SINGLE
     DIM voicing AS INTEGER, dtarget AS SINGLE
+    ReapSounds                                          ' free anything parked long enough (see RetireSound)
     ' --- MUSIC CHANNEL mixdown: player slider x channel gain x duck x crossfade fraction ---
     ' crossfade fraction (1 when not fading); completing a fade drops the outgoing track
     frac = 1
@@ -175,7 +270,7 @@ SUB AudioTick
         frac = el / MUSIC_FADE_SEC
         IF frac >= 1 THEN
             frac = 1
-            IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
+            RetireSound music_fadeout
             music_fadeout = 0
             music_fading = 0
         END IF
@@ -386,7 +481,10 @@ END FUNCTION
 SUB FreeSfxFiles
     DIM i AS INTEGER
     FOR i = 1 TO SFX_N
-        IF SFX_HND(i) > 0 THEN _SNDCLOSE SFX_HND(i)
+        ' Deferred: Sfx plays these through _SNDPLAYCOPY, so a copy of the cue the player JUST
+        ' triggered (every pack cycle ends in Sfx "select") can still be live on the mixer when the
+        ' next keypress reloads the pack. Closing the source under it is the same race as the music.
+        RetireSound SFX_HND(i)
         SFX_HND(i) = 0: SFX_NAME(i) = ""
     NEXT i
     SFX_N = 0
@@ -513,8 +611,11 @@ SUB CycleMusicPack (delta AS INTEGER)
     IF idx > MUSICPACK_N THEN idx = 1
     opt_musicpack = MUSICPACKS(idx)
     LoadPlaylist                                         ' the new pack may bring its own playlist.txt
-    music_curfile = ""                                   ' force PlayLevelMusic to re-resolve
-    IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level
+    music_curfile = ""                                   ' force a re-resolve against the new pack
+    ' Switch the AUDIBLE track too, or the row is a silent preference: in a delve that is the level
+    ' track, but SETTINGS is reached from the title screen far more often, where music_level is 0 --
+    ' and the old code only handled 1-9, so cycling packs from the menu changed nothing you could hear.
+    IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level ELSE PlayMenuMusic
     Sfx "select"
 END SUB
 
@@ -550,7 +651,7 @@ END FUNCTION
 
 ' Stop and release the current narration line.
 SUB NarrateStop
-    IF narr_handle > 0 THEN _SNDSTOP narr_handle: _SNDCLOSE narr_handle: narr_handle = 0
+    RetireSound narr_handle: narr_handle = 0
 END SUB
 
 ' Speak the narration line for a string key (interrupts any line already speaking).

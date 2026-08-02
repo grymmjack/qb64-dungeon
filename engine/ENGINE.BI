@@ -539,6 +539,19 @@ DIM SHARED music_handle AS LONG                  ' currently-looping menu/level 
 DIM SHARED music_fadeout AS LONG                 ' the PREVIOUS track, crossfading out under a transition (0 = none)
 DIM SHARED music_fade_start AS DOUBLE            ' TIMER when the current crossfade began
 DIM SHARED music_fading AS INTEGER               ' -1 while a crossfade ramp is in progress
+' --- sound GRAVEYARD: deferred _SNDCLOSE (see RetireSound / ReapSounds in MUSIC.bas).
+'     _SNDOPEN adds a node to miniaudio's mixing graph that a DEVICE THREAD walks every buffer
+'     callback; _SNDCLOSE frees that node from the game thread. Freeing one the mixer is mid-read
+'     of is a heap double-free -- it aborted a real session with `double free or corruption
+'     (fasttop)` while the player walked the SETTINGS Music Pack row (13 packs, one open+close per
+'     keypress, well inside the 2.5s crossfade). Nothing closes a sound directly any more: it is
+'     silenced, stopped, and parked here, and ReapSounds (from AudioTick) frees it a beat later. ---
+CONST SND_RETIRE_SEC = .5                        ' seconds a retired sound waits before it MAY be freed
+CONST SND_RETIRE_CAP_SEC = 5                     ' ...and past this it is freed regardless (see SoundRetireReady%)
+CONST SND_RETIRE_MAX = 80                      ' queue depth: the 48 SFX slots + music + narration + slack
+DIM SHARED RETIRE_HND(1 TO SND_RETIRE_MAX) AS LONG   ' parked handles awaiting _SNDCLOSE (0 = free slot)
+DIM SHARED RETIRE_AT(1 TO SND_RETIRE_MAX) AS DOUBLE  ' TIMER when each was parked
+DIM SHARED RETIRE_N AS INTEGER                   ' high-water mark of slots in use
 ' --- audio MIXER: dedicated channels (music / voice / sfx), each auto-mixed by QB64.
 '     Final volume per channel = player slider x channel gain x (duck / fade / envelope). ---
 CONST CH_MUSIC = 0, CH_VOICE = 1, CH_SFX = 2     ' channel ids for ChannelGain

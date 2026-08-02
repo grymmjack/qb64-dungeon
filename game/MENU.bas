@@ -403,8 +403,8 @@ SUB ShowIntro
         Present
     LOOP UNTIL k <> "" OR frames >= 150          ' auto-advance to the menu after ~5s idle
     FadeOut                                      ' fade to black before the menu
-    IF mus > 0 THEN _SNDSTOP mus: _SNDCLOSE mus
-    IF splash > 0 THEN _SNDSTOP splash: _SNDCLOSE splash
+    RetireSound mus
+    RetireSound splash
 END SUB
 
 
@@ -469,7 +469,7 @@ FUNCTION RunMenu%
                 IF opt_music THEN
                     IF music_handle > 0 THEN _SNDVOL music_handle, opt_musicvol / 10 ELSE PlayMenuMusic
                 ELSEIF music_handle > 0 THEN
-                    _SNDSTOP music_handle: _SNDCLOSE music_handle: music_handle = 0
+                    RetireSound music_handle: music_handle = 0
                 END IF
             ELSEIF sel = 6 THEN
                 result = MENU_FLEE: EXIT DO
@@ -518,8 +518,8 @@ FUNCTION RunMenu%
     LOOP
     IF result = MENU_ENTER THEN BloodDrip ELSE FadeOut     ' blood-drip descent into the dungeon; plain fade otherwise
 
-    IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle   ' stop the menu theme; PlayGame starts the level track
-    IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout ' and any half-finished crossfade tail
+    RetireSound music_handle                    ' stop the menu theme; PlayGame starts the level track
+    RetireSound music_fadeout                   ' and any half-finished crossfade tail
     music_handle = 0: music_fadeout = 0: music_fading = 0
     _FREEIMAGE iLogo: _FREEIMAGE iLeft: _FREEIMAGE iRight: _FREEIMAGE iBlock
     RunMenu = result
@@ -664,8 +664,8 @@ SUB ApplyMusicToggle
         music_curfile = ""                          ' force an actual (re)start rather than the same-file skip
         IF music_level >= 1 AND music_level <= 9 THEN PlayLevelMusic music_level ELSE PlayMenuMusic
     ELSE
-        IF music_handle > 0 THEN _SNDSTOP music_handle: _SNDCLOSE music_handle
-        IF music_fadeout > 0 THEN _SNDSTOP music_fadeout: _SNDCLOSE music_fadeout
+        RetireSound music_handle
+        RetireSound music_fadeout
         music_handle = 0: music_fadeout = 0: music_fading = 0
         music_curfile = ""                          ' but leave music_level intact so re-enabling knows the context
     END IF
