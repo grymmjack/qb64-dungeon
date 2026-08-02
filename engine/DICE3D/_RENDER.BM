@@ -22,6 +22,12 @@ SUB dice3d_present_hw (cfg AS DICE3D_CONFIG)
             IF DICE3D_DICE(lo).ATLAS <> 0 THEN DICE3D_HWATLAS = _COPYIMAGE(DICE3D_DICE(lo).ATLAS, 33)
         END IF
     END IF
+    ' Lay the host's canvas down FIRST, then draw the dice over it, then flip once.
+    '
+    ' Without this the GL triangles land on a window that has nothing else on it -- the tray,
+    ' the header and the caption are all drawn to CANVAS, which only reaches the screen through
+    ' the host's present step. The dice rolled on a black screen.
+    PresentNoFlip
     FOR i = lo TO hi
         dice3d_render_die_hw DICE3D_DICE(i), cfg
     NEXT

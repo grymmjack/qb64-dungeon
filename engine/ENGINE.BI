@@ -455,6 +455,7 @@ CONST NG_TILEH = 2
 ' HARD MUTE for headless/dev runs: those still reach the real audio device under xvfb, so a
 ' full test pass is minutes of beeps at whoever is sitting there. Checked at the two sound
 ' primitives everything funnels through, so nothing can leak past by another route.
+DIM SHARED pres_noflip AS INTEGER      ' Present: blit the canvas but leave the flip to the caller
 DIM SHARED audio_muted AS INTEGER
 DIM SHARED ui_autoadvance AS SINGLE
 DIM SHARED gauge_quality AS SINGLE     ' 0..1 closeness to dead-centre on the last gesture lock

@@ -566,7 +566,20 @@ SUB Present
         _PUTIMAGE (ox, oy)-(ox + dw - 1, oy + dh - 1), CANVAS, 0
     END IF
     _DEST olddest
-    _DISPLAY
+    IF NOT pres_noflip THEN _DISPLAY
+END SUB
+
+' Put the canvas on screen WITHOUT flipping, so a caller can draw ON TOP and flip itself.
+'
+' The hardware dice need exactly this. They draw GL triangles straight to screen 0 and call
+' _DISPLAY themselves -- which was fine when the game did SCREEN CANVAS and the canvas WAS the
+' window. Once the present step became a BLIT into a separate window surface, anything that
+' flips without going through Present shows the window with no canvas on it: the dice appeared
+' correctly over a black screen, with their tray, header and caption missing entirely.
+SUB PresentNoFlip
+    pres_noflip = -1
+    Present
+    pres_noflip = 0
 END SUB
 
 
