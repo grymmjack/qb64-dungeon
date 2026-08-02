@@ -66,7 +66,10 @@ d4lean.png
 gaugeshot.png
 summaryshot.png
 deathshot.png
-diceobj/
+# diceobj/ IS tracked: the exported meshes, their atlases, the face-value sidecars and the
+# .blend are the source for promo/2D art, and Rick hand-edits the .blend. Only the throwaway
+# render output is ignored.
+diceobj/testrender_*.png
 summaryshot-overlay.png
 gaugeshot-timed.png
 sectorauto.png
@@ -79,3 +82,9 @@ tests/tmp/
 # separability-proof binary (examples/minimal)
 examples/*/*.run
 examples/*/*.exe
+bannershot.png
+bannershot-wide.png
+frameshot.png
+panelshot.png
+statshot.png
+creatorshot.png

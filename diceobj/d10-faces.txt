@@ -1,0 +1,11 @@
+# face_index value   (10 faces; atlas row N == face N)
+0 0
+1 1
+2 2
+3 3
+4 4
+5 6
+6 5
+7 8
+8 9
+9 7
