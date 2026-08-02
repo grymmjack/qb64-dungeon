@@ -982,8 +982,29 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     DIM AS INTEGER bx, by, bw, bh
     bx = 16: by = 39: bw = 100: bh = 10
     _DEST CANVAS
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    ' FRAME THE PANEL BY GROWING IT OUTWARD, not by moving its contents inward.
+    '
+    ' The body is nine rows of layout (by + 1 .. by + 9) inside a ten-row box -- it was written
+    ' against a one-cell border. This frame's border is 4 columns and 2 ROWS, which would leave
+    ' six rows for nine rows of content: reflowing it would mean re-deriving every coordinate in
+    ' this SUB and getting all of them right for no visible gain.
+    '
+    ' So the CONTENT RECT stays exactly where it has always been and the frame is drawn around
+    ' it, offset by the border thickness. Every `bx + N` / `by + N` below is untouched and still
+    ' correct. The panel grows up and out into empty screen (rows 38-49; the banner ends at 30
+    ' and the HUD is row 50), which costs nothing.
+    DIM fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER, framed AS INTEGER
+    IF LEN(UI_FRAME_PATH) > 0 THEN
+        fx = bx + 1 - UI_FRAME_TW: fy = by + 1 - UI_FRAME_TH
+        fw = bw - 2 + 2 * UI_FRAME_TW: fh = bh - 2 + 2 * UI_FRAME_TH
+        IF fx >= 0 AND fy >= 0 AND fx + fw <= SW AND fy + fh <= SH THEN framed = UiPanel%(fx, fy, fw, fh)
+    END IF
+    IF NOT framed THEN
+        LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
+        LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), REDU, B
+    END IF
+    ' Over art, text must not stamp its own background -- same rule as the banner.
+    IF framed THEN _PRINTMODE _KEEPBACKGROUND
     ' WHO you are and WHAT you are swinging, bookending the panel. Drawn BEFORE the text so a
     ' long line overlaps the art rather than the art punching a hole through the words -- and
     ' both are silently skipped when the selected art style has nothing for them.
@@ -1020,6 +1041,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     DIM gwound AS SINGLE
     IF ROOMS(rm).mhp > 0 THEN gwound = 1 - ROOMS(rm).mhp_now / ROOMS(rm).mhp
     IF gwound < 0 THEN gwound = 0
+    _PRINTMODE _FILLBACKGROUND                  ' restore before anything else draws
     DrawCombatArt mon, ROOMS(rm).sec, gwound    ' pixel-art: monster (left) + location (right) framed above the panel
     PanelShudder bx, by, bw, bh                 ' near-death tremor, applied to the FINISHED panel
     Present
