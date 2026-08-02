@@ -314,3 +314,58 @@ SUB LoadChamberEvents
         END IF
     NEXT i
 END SUB
+
+
+' ============================================================================
+'  UI FRAMES -- the 9-grid panel frames, from assets/data/<pack>/ui-frames.txt.
+'
+'  The registry is GAME-side on purpose: engine/NINEGRID.bas does the drawing and knows nothing
+'  about where frames are listed or what they are called. A different game on this engine ships
+'  its own table and its own art, and the slicing code is untouched.
+' ============================================================================
+SUB LoadUIFrames
+    DIM i AS INTEGER, nm AS STRING
+    UIFRAME_N = 0
+    ReadDataFile "assets/data/ui-frames.txt"
+    FOR i = 1 TO DLINE_N
+        nm = DField$(DLINE(i), 1)
+        IF LCASE$(nm) <> "name" AND LEN(nm) > 0 THEN     ' skip the header row
+            IF UIFRAME_N < UBOUND(UIFRAME_NAME) THEN
+                UIFRAME_N = UIFRAME_N + 1
+                UIFRAME_NAME(UIFRAME_N) = nm
+                UIFRAME_FILE(UIFRAME_N) = DField$(DLINE(i), 2)
+                UIFRAME_TW(UIFRAME_N) = VAL(DField$(DLINE(i), 3))
+                UIFRAME_TH(UIFRAME_N) = VAL(DField$(DLINE(i), 4))
+                IF UIFRAME_TW(UIFRAME_N) < 1 THEN UIFRAME_TW(UIFRAME_N) = 1
+                IF UIFRAME_TH(UIFRAME_N) < 1 THEN UIFRAME_TH(UIFRAME_N) = 1
+            END IF
+        END IF
+    NEXT i
+END SUB
+
+FUNCTION FrameIdx% (nm AS STRING)
+    DIM i AS INTEGER
+    FOR i = 1 TO UIFRAME_N
+        IF LCASE$(_TRIM$(UIFRAME_NAME(i))) = LCASE$(_TRIM$(nm)) THEN FrameIdx% = i: EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
+' Draw a registered frame. FALSE if the name is unknown or its art is missing, so every caller
+' can fall back to a plain LINE box and the game never depends on the art existing.
+FUNCTION FrameBox% (nm AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
+    DIM i AS INTEGER, p AS STRING
+    i = FrameIdx%(nm): IF i = 0 THEN EXIT FUNCTION
+    p = AnsiFile$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT FUNCTION
+    FrameBox% = NineGridBox%(p, UIFRAME_TW(i), UIFRAME_TH(i), col, row, cols, rows)
+END FUNCTION
+
+' The content rect of a registered frame -- where text may safely go.
+SUB FrameInner (nm AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, icol AS INTEGER, irow AS INTEGER, icols AS INTEGER, irows AS INTEGER)
+    DIM i AS INTEGER
+    i = FrameIdx%(nm)
+    IF i = 0 THEN                                  ' unknown frame: a 1-cell inset is the safe guess
+        icol = col + 1: irow = row + 1: icols = cols - 2: irows = rows - 2
+        EXIT SUB
+    END IF
+    NineGridInner UIFRAME_TW(i), UIFRAME_TH(i), col, row, cols, rows, icol, irow, icols, irows
+END SUB

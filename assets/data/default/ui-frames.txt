@@ -1,0 +1,27 @@
+# ui-frames.txt -- the 9-grid UI frames this game can draw with.
+#
+# FORMAT:  name | file | tilew | tileh
+#   name    what code asks for -- FrameBox%("panel", ...)
+#   file    under assets/ansi-art/<pack>/ ; resolved through the ANSI art pack like any sprite
+#   tilew   CORNER width  in character cells
+#   tileh   CORNER height in character cells
+#
+# The art is a box authored at (3 x tilew) by (3 x tileh) characters. The engine slices it into
+# a 3x3 grid: the four corners are drawn as-is, the top/bottom and left/right EDGES tile to
+# fill, and the CENTRE tiles to fill the content area. So the corner size IS the border
+# thickness, and it is also the inset of the content rect (see NineGridInner).
+#
+#   +--------+------------+--------+
+#   |   TL   |  T (tiles) |   TR   |   <- tileh rows tall
+#   +--------+------------+--------+
+#   |   L    |  CONTENT   |   R    |   <- fills
+#   |(tiles) |  (tiles)   |(tiles) |
+#   +--------+------------+--------+
+#   |   BL   |  B (tiles) |   BR   |   <- tileh rows tall
+#   +--------+------------+--------+
+#     tilew                  tilew
+#
+# Draw a new frame at its 3x tile size, drop it in assets/ansi-art/<pack>/frames/, add a line
+# here, and it is available to every panel -- no code change.
+name  | file                    | tilew | tileh
+panel | frames/gdk-panel.ans    | 4     | 2

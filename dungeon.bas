@@ -212,6 +212,7 @@ LoadArtPrompts                   ' authored art direction merged into imagemanif
 InitDice
 InitJuice                        ' build the screen-shake buffer + the near-death blood-grime pattern
 LoadUIFonts                      ' per-region TTF UI fonts (assets/data/ui-fonts.txt)
+LoadUIFrames                     ' 9-grid panel frames (assets/data/ui-frames.txt)
 InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
 InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
 LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)

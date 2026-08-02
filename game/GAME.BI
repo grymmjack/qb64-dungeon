@@ -565,6 +565,11 @@ CONST AUTOMOVE_STEP_SEC = 0.14         ' one auto step per this many seconds -- 
 ' Pixel nudge applied to the MONSTER portrait inside its frame (MonsterLunge).
 DIM SHARED PANEL_BUF AS LONG           ' scratch for the near-death panel tremor (PanelShudder)
 DIM SHARED combat_lunge_x AS INTEGER, combat_lunge_y AS INTEGER
+' --- 9-grid UI frame registry (assets/data/<pack>/ui-frames.txt, see LoadUIFrames) ---
+CONST UIFRAME_MAX = 16
+DIM SHARED UIFRAME_NAME(1 TO UIFRAME_MAX) AS STRING, UIFRAME_FILE(1 TO UIFRAME_MAX) AS STRING
+DIM SHARED UIFRAME_TW(1 TO UIFRAME_MAX) AS INTEGER, UIFRAME_TH(1 TO UIFRAME_MAX) AS INTEGER
+DIM SHARED UIFRAME_N AS INTEGER
 DIM SHARED opt_automove AS INTEGER
 DIM SHARED automove_run AS INTEGER
 DIM SHARED automove_t0 AS SINGLE
