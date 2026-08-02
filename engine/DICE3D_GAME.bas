@@ -143,7 +143,10 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     ' Hardware (OpenGL) present: native-resolution, hardware-filtered = genuinely smooth,
     ' independent of the software-canvas fullscreen scaling.
-    pxk = 1.0 / DICE3D_HW_PXPERUNIT
+    ' Scaled by the CURRENT present scale, so the dice spread matches the tray drawn on the
+    ' canvas at whatever size the window is. Without this they roll at 1:1 spread inside a tray
+    ' that fullscreen has stretched -- "dice are back in the box but not all in the box".
+    pxk = PresentScale! / DICE3D_HW_PXPERUNIT
     DICE3D_HW = -1
     DICE3D_HWATLAS = 0
     DICE3D_HW_Z = DICE3D_HW_ZBASE
@@ -310,21 +313,32 @@ END SUB
 ' So: give the caller a centre to aim at, and place the two previews symmetrically and CLOSE to
 ' the middle. Near the centre the drift is small; symmetric means whatever is left of it is the
 ' same for both. Smaller dice, too -- 30px rather than 42 -- so the pair fits in the strip.
-SUB DrawDice3DPreviewAt (ccol AS INTEGER, lbl AS STRING, growy AS INTEGER, atlas AS LONG, setcfg AS DICE3D_CONFIG)
-    DIM AS INTEGER gx, gy, scx, scy
+' THE CAPTION ONLY -- goes on the CANVAS, so it must be drawn in the canvas pass.
+SUB DrawDice3DPreviewLabel (ccol AS INTEGER, lbl AS STRING, growy AS INTEGER)
+    DIM gx AS INTEGER
+    gx = ccol * CW - (LEN(lbl) * CW) \ 2
+    IF gx < 0 THEN gx = 0
+    _DEST CANVAS: _FONT CH
+    COLOR GREY, BLACK: _PRINTSTRING (gx, (growy - 3) * CH), lbl
+END SUB
+
+' THE DIE ONLY -- goes on the GL layer, i.e. straight to the WINDOW.
+'
+' It must therefore be drawn AFTER the canvas has been put on screen and BEFORE the flip, or
+' the present blits the canvas straight over it. That is why this is split from its caption:
+' the two halves belong to different passes. Drawn in one call, the previews were invisible --
+' the dice were rendered and then immediately painted over.
+SUB DrawDice3DPreviewDie (ccol AS INTEGER, growy AS INTEGER, atlas AS LONG, setcfg AS DICE3D_CONFIG)
+    DIM AS INTEGER gy, scx, scy
     DIM cfg AS DICE3D_CONFIG, pxk AS SINGLE
     gy = growy * CH
     scx = ccol * CW: scy = gy + 46                  ' screen centre of this preview
-    gx = scx - (LEN(lbl) * CW) \ 2                  ' caption centred under the die
-    IF gx < 0 THEN gx = 0
-    _DEST CANVAS: _FONT CH
-    COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
     IF atlas = 0 THEN EXIT SUB
     IF UBOUND(DICE3D_DICE) < LBOUND(DICE3D_DICE) THEN EXIT SUB
     cfg = setcfg
     ApplyDiceLight cfg                              ' preview reflects the SETTINGS "Dice Light" level
     cfg.BOX_W = 110: cfg.BOX_H = 110: cfg.DIE_SIZE = 30
-    pxk = 1.0 / DICE3D_HW_PXPERUNIT
+    pxk = PresentScale! / DICE3D_HW_PXPERUNIT
     DICE3D_HWATLAS = atlas
     DICE3D_HW_Z = DICE3D_HW_ZBASE: DICE3D_HW_PXK = pxk
     DICE3D_HW_S = cfg.DIE_SIZE * pxk

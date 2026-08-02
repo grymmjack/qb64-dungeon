@@ -1183,17 +1183,26 @@ SUB RunSettings
             nextSetRow:
         NEXT i
         ' live dice previews in the free strip BELOW the columns (repositioned to row 31)
-        IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
-            ' Symmetric about the screen centre (column 66) and close to it -- see the note on
-            ' DrawDice3DPreviewAt: the GL layer's placement error grows with distance from centre.
-            DrawDice3DPreviewAt 52, "your 3D dice", DicePreviewRow%, PREV3D_P, DSET3D(dice3d_set_index%(20))
-            DrawDice3DPreviewAt 80, "monster 3D dice", DicePreviewRow%, PREV3D_M, MSET3D(dice3d_set_index%(20))
+        IF opt_dice3d THEN                                      ' 3D dice: live hardware previews
+            ' Captions only here -- they are CANVAS. The dice themselves are GL and have to go
+            ' on AFTER the canvas reaches the screen; see below.
+            DrawDice3DPreviewLabel 52, "your 3D dice", DicePreviewRow%
+            DrawDice3DPreviewLabel 80, "monster 3D dice", DicePreviewRow%
         ELSE                                                    ' font dice: the live 2x3 sample grid
             DrawDicePreview 4, " your dice", DicePreviewRow%
             PushMonsterDice: DrawDicePreview 46, " monster dice", DicePreviewRow%: PopMonsterDice
         END IF
         COLOR CYANU, BLACK: PrintCentered 50, "up/down move    left/right adjust    TAB/shift-TAB column    ENTER cycle    ESC back"
-        Present
+        IF opt_dice3d THEN
+            ' Canvas down, dice over it, one flip. Calling plain Present here would blit the
+            ' canvas straight over the GL dice -- which is exactly why they were invisible.
+            PresentNoFlip
+            DrawDice3DPreviewDie 52, DicePreviewRow%, PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewDie 80, DicePreviewRow%, PREV3D_M, MSET3D(dice3d_set_index%(20))
+            _DISPLAY
+        ELSE
+            Present
+        END IF
         IF settingsshot_on THEN
             ' Two shots: the CANVAS (what the game composed) and SCREEN 0 (what the player
             ' actually sees after Present scales it into the window). They differ the moment

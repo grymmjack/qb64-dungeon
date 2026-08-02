@@ -495,6 +495,10 @@ SUB Present
         END IF
     END IF
     ox = (sw0 - dw) \ 2: oy = (sh0 - dh) \ 2
+    ' Publish how far the canvas was scaled to reach the window. The GL layer draws in WINDOW
+    ' pixels and cannot see this, so anything composited over the canvas has to be told -- see
+    ' PresentScale!.
+    IF SW * CW > 0 THEN pres_scale = dw / (SW * CW)
     _DEST 0
     ' Repaint the letterbox bars only when the geometry CHANGES. A full CLS every frame at
     ' 4K is real work for pixels that never change.
@@ -576,6 +580,19 @@ END SUB
 ' window. Once the present step became a BLIT into a separate window surface, anything that
 ' flips without going through Present shows the window with no canvas on it: the dice appeared
 ' correctly over a black screen, with their tray, header and caption missing entirely.
+' How many WINDOW pixels one CANVAS pixel currently occupies.
+'
+' The GL dice are positioned with a constant calibrated for a 1056x816 canvas presented 1:1.
+' In fullscreen the canvas is scaled up, but the GL projection is not -- so the dice keep their
+' original spread while the tray drawn on the canvas grows around them, and they stop matching
+' the box they are supposed to be rolling in.
+'
+' 1 until the first present, so anything that asks before a frame has been shown gets the
+' unscaled answer rather than zero.
+FUNCTION PresentScale! ()
+    IF pres_scale <= 0 THEN PresentScale! = 1! ELSE PresentScale! = pres_scale
+END FUNCTION
+
 SUB PresentNoFlip
     pres_noflip = -1
     Present
