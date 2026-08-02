@@ -143,10 +143,13 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     ' Hardware (OpenGL) present: native-resolution, hardware-filtered = genuinely smooth,
     ' independent of the software-canvas fullscreen scaling.
-    ' Scaled by the CURRENT present scale, so the dice spread matches the tray drawn on the
-    ' canvas at whatever size the window is. Without this they roll at 1:1 spread inside a tray
-    ' that fullscreen has stretched -- "dice are back in the box but not all in the box".
-    pxk = PresentScale! / DICE3D_HW_PXPERUNIT
+    ' NOT scaled by PresentScale!. Tried that; the dice came out enormous.
+    '
+    ' The GL projection is already WINDOW-RELATIVE -- a model unit covers a fixed fraction of the
+    ' window, so it grows with the window on its own. Multiplying by the present scale on top of
+    ' that scales everything twice, and at 3840x2160 (scale 2.65) the d20s filled the corners of
+    ' the screen. DICE3D_HW_PXPERUNIT already carries the whole conversion.
+    pxk = 1.0 / DICE3D_HW_PXPERUNIT
     DICE3D_HW = -1
     DICE3D_HWATLAS = 0
     DICE3D_HW_Z = DICE3D_HW_ZBASE
@@ -338,7 +341,7 @@ SUB DrawDice3DPreviewDie (ccol AS INTEGER, growy AS INTEGER, atlas AS LONG, setc
     cfg = setcfg
     ApplyDiceLight cfg                              ' preview reflects the SETTINGS "Dice Light" level
     cfg.BOX_W = 110: cfg.BOX_H = 110: cfg.DIE_SIZE = 30
-    pxk = PresentScale! / DICE3D_HW_PXPERUNIT
+    pxk = 1.0 / DICE3D_HW_PXPERUNIT
     DICE3D_HWATLAS = atlas
     DICE3D_HW_Z = DICE3D_HW_ZBASE: DICE3D_HW_PXK = pxk
     DICE3D_HW_S = cfg.DIE_SIZE * pxk
