@@ -94,4 +94,5 @@ END SUB
 '$INCLUDE:'TESTLIB.bas'
 '$INCLUDE:'../engine/TEXT.bas'
 '$INCLUDE:'../engine/ansi/ANSIPrint.bas'
+'$INCLUDE:'../engine/NINEGRID.bas'   ' CombatArtBox draws its box through the 9-grid frame slots
 '$INCLUDE:'../engine/ARTPACK.bas'
