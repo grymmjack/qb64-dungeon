@@ -453,7 +453,7 @@ SUB DumpFightShot
     FOR a = 1 TO 4
         nm = _TRIM$(MON_NAME(lvl, ((a - 1) MOD 3) + 1))
         IF LEN(nm) = 0 THEN nm = "MONSTER" + LTRIM$(STR$(a))
-        FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), hp(a), mx(a)
+        FightSetActor a, nm, "", MonsterArtBase$(nm), hp(a), mx(a)
         FightSetArtFallback a, MonsterSprite$(nm)
         FightSetGore a, GoreColor~&(nm)          ' the four HP tiers above double as the gore ramp
         FightSetStat a, 1, "MELEE:", "+" + LTRIM$(STR$(2 + a))

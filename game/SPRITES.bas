@@ -102,6 +102,19 @@ FUNCTION MonsterSprite$ (nm AS STRING)
     IF LEN(p) > 0 THEN MonsterSprite$ = p
 END FUNCTION
 
+' The art path fragment the TACTICAL fight screen resolves fight-sized art from, e.g.
+' "monsters/beasts/werewolf". NOT a filename -- FightPortrait& appends .ans/.png and tries
+' the strategic-combat/ folders through the pack layers.
+'
+' The category subfolder is the whole point. `"monsters/" + SpriteBase$(nm)` looks right and
+' is wrong: every fight-sized monster sprite on disk lives under a CATEGORY, so that path
+' matched nothing and all 20 of them were dead weight -- pixel style silently fell back to
+' stretched general art, and ANSI style (which has no such fallback, by design) showed
+' "[ no art ]" for every monster in the game. Same mistake the manifest made; see MonsterCat$.
+FUNCTION MonsterArtBase$ (nm AS STRING)
+    MonsterArtBase$ = "monsters/" + MonsterCat$(nm) + "/" + SpriteBase$(nm)
+END FUNCTION
+
 ' TRUE if this curio kind turns into a FIGHT when opened, so it needs REVEAL art of its own
 ' on top of the disguise CurioSprite$ returns.
 '

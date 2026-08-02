@@ -88,7 +88,7 @@ SUB SeedFightFromRoom (rm AS INTEGER, extra AS INTEGER)
     slot = ROOMS(rm).mslot
     IF slot < 1 THEN slot = 1
     IF slot > 3 THEN slot = 3
-    FightSetActor 1, nm, "", "monsters/" + SpriteBase$(nm), mhp, ROOMS(rm).mhp
+    FightSetActor 1, nm, "", MonsterArtBase$(nm), mhp, ROOMS(rm).mhp
     IF ROOMS(rm).mhp <= 0 THEN FA_MAXHP(1) = mhp  ' keep the bar sane when HP was never rolled
     FightSetStat 1, 1, "MELEE:", SgnStr$(lvl + slot)
     FightSetStat 1, 3, "ARMOR:", "AC" + LTRIM$(STR$(ROOMS(rm).mac))
@@ -105,7 +105,7 @@ SUB SeedFightFromRoom (rm AS INTEGER, extra AS INTEGER)
         nm = _TRIM$(MON_NAME(lvl, slot))
         IF LEN(nm) = 0 THEN nm = "SOMETHING"
         mhp = 5 + lvl * 2 + slot * 2
-        FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), mhp, mhp
+        FightSetActor a, nm, "", MonsterArtBase$(nm), mhp, mhp
         FightSetStat a, 1, "MELEE:", SgnStr$(lvl + slot)
         FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + slot))
         FightSetArtFallback a, MonsterSprite$(nm)
@@ -180,7 +180,7 @@ SUB SeedFight (lvl AS INTEGER, nfoes AS INTEGER)
         ' Provisional HP curve -- deeper and nastier hits harder. Real encounters will carry
         ' this from the room's ROOMS().mhp once the fight is wired into the board.
         mhp = 5 + lvl * 2 + slot * 2
-        FightSetActor a, nm, "", "monsters/" + SpriteBase$(nm), mhp, mhp
+        FightSetActor a, nm, "", MonsterArtBase$(nm), mhp, mhp
         FightSetStat a, 1, "MELEE:", SgnStr$(lvl + slot)
         FightSetStat a, 3, "ARMOR:", "AC" + LTRIM$(STR$(6 + slot))
         FightSetStatus a, 2, "STANCE:", "CIRCLING"
