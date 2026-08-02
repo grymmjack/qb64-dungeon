@@ -30,9 +30,18 @@ PACK="${2:?usage: $0 <sfx|music|narration> <pack> [name ...]}"
 shift 2 || true
 WANT=("$@")
 
-# titan removed from the default pool: it draws enough power to trouble the UPS.
-# Add it back explicitly with BOXES=... if that changes.
-BOXES="${BOXES:-local,mac,rtx}"
+# FARM = rtx ONLY. grymmjack asked for this twice; recording why so it stops
+# drifting back:
+#   local  the RX 6600 takes ~13 MINUTES per clip where rtx takes ~5s, and dynamic
+#          dispatch makes the whole queue wait on it -- one job blocked the pipeline
+#          for 13:43 while rtx sat idle at 0 running / 0 pending. It is also HIS
+#          workstation; occupying that GPU is not free to him.
+#   mac    has stable_audio_3_small_music/_sfx but NOT stable_audio_3_medium, and
+#          only medium works (gotcha 12), so every job routed there fails by
+#          construction -- 3 failures per pack before the breaker drops it.
+# CPU engines (--chip/--opl/--chipfx/--blip/--narrate) are unaffected: they run
+# in-process and never touch this pool.
+BOXES="${BOXES:-rtx}"
 # FORMAT is the delivery format for EVERY section. FLAC by default: it is
 # lossless, so nothing the engines produce is smeared, and it still lands close to
 # OGG on size for this material. OGG=1 remains for a lossy build.
