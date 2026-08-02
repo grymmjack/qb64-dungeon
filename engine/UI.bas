@@ -648,6 +648,21 @@ END SUB
 '
 ' Note it does NOT restore _PRINTMODE: the tray is redrawn every animation frame and the text on
 ' it is drawn immediately after, so the caller's own loop owns the restore.
+' DEV hook: save the SETTLED roll frame if `dungeon.run rollshot` armed roll_shot, then disarm
+' so one armed shot captures exactly one roll. Called from each of the three dice paths (pips /
+' font polyhedra / 3D) at the moment the dice have landed and the sum is on screen.
+'
+' It saves CANVAS, not the window -- so it sees whatever the roll drew ON the canvas. That is a
+' real limitation worth knowing: the 3D dice's HARDWARE path draws to the WINDOW after Present,
+' so it is invisible here. `rollshot` forces DICE3D_HW = 0 (the software renderer, which draws to
+' the canvas) for exactly this reason. See the hardware-GL note in DICE3D/_RENDER.BM.
+SUB RollShotSave
+    IF LEN(roll_shot) = 0 THEN EXIT SUB
+    _SAVEIMAGE roll_shot, CANVAS
+    roll_shot = ""
+END SUB
+
+
 FUNCTION RollTray% (px1 AS INTEGER, py1 AS INTEGER, px2 AS INTEGER, py2 AS INTEGER)
     DIM c1 AS INTEGER, r1 AS INTEGER, cw2 AS INTEGER, rh AS INTEGER
     DIM fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER, ok AS INTEGER
@@ -1087,6 +1102,7 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
             Present
         END IF
         RevealMath x1 \ CW, x2 \ CW, ybot \ CH - 1, tot, bonus, n, drop > 0   ' slow, tense math reveal
+        RollShotSave                 ' dev: capture the settled frame (rollshot)
         _DELAY hold                  ' hold so the settled dice are readable
     END IF
 
@@ -1482,6 +1498,7 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
     ELSE
         RevealMath x1 \ CW, x2 \ CW, y2 \ CH - 1, total, bonus, n, drop > 0   ' slow, tense math reveal
     END IF
+    RollShotSave                                  ' dev: capture the settled frame (rollshot)
     _DELAY hold
     ShowRollTextEx = total
 END FUNCTION

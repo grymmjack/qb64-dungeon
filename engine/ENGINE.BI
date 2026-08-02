@@ -460,6 +460,10 @@ DIM SHARED pres_ox AS LONG, pres_oy AS LONG, pres_dw AS LONG, pres_dh AS LONG   
 DIM SHARED pres_noflip AS INTEGER      ' Present: blit the canvas but leave the flip to the caller
 DIM SHARED audio_muted AS INTEGER
 DIM SHARED ui_autoadvance AS SINGLE
+' DEV: when non-empty, the next dice roll saves its SETTLED frame to this file and clears the
+' flag. Set by `dungeon.run rollshot`. It captures the real roll functions at the exact moment
+' the player reads them -- dice landed, sum revealed -- which is the frame a layout bug shows in.
+DIM SHARED roll_shot AS STRING
 DIM SHARED gauge_quality AS SINGLE     ' 0..1 closeness to dead-centre on the last gesture lock
 DIM SHARED opt_juice AS INTEGER        ' SETTINGS "Screen Effects": hit-shake, blood/poison splatter, near-death vignette
 DIM SHARED FX_BUF AS LONG              ' offscreen snapshot buffer for the screen-shake blit

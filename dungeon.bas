@@ -356,6 +356,17 @@ IF INSTR(UCASE$(COMMAND$), "AUTOMOVETEST") > 0 THEN
     SYSTEM
 END IF
 
+'--- dev: `dungeon.run rollshot` shoots every dice style at its settled frame ---
+' Needs the real board underneath (that is the check), so it takes the full board build.
+IF INSTR(UCASE$(COMMAND$), "ROLLSHOT") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    Game_PopulateBoard
+    RandomizeRooms
+    DumpRollShot
+    SYSTEM
+END IF
+
 '--- dev: `dungeon.run panelshot [class]` renders the D&D combat panel -> panelshot.png ---
 IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN
     DIM psArg AS INTEGER, psPc AS INTEGER
@@ -717,6 +728,10 @@ DungeonFatal:
     PRINT ""
     PRINT "!! QB64 RUNTIME ERROR " + LTRIM$(STR$(ERR)) + " at line " + LTRIM$(STR$(_ERRORLINE))
     PRINT "!! " + _ERRORMESSAGE$
+    ' _ERRORLINE alone is nearly useless here: dungeon.bas is a thin assembly of ~40 included
+    ' modules, so a line number with no file could be in any of them. _INCLERRORFILE$ names the
+    ' include the error actually happened in (empty when it was dungeon.bas itself).
+    IF LEN(_INCLERRORFILE$) > 0 THEN PRINT "!! in " + _INCLERRORFILE$ + ":" + LTRIM$(STR$(_INCLERRORLINE))
     ' What happens next depends on WHO is watching, and the two answers are opposites:
     '
     '   a DEV MODE / headless run has no player -- a script wants a clean, greppable failure and

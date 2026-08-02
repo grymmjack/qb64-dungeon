@@ -596,6 +596,111 @@ SUB DevPackOverride
 END SUB
 
 
+' What fraction of `path`'s pixels are not pure black, 0..1 -- sampled on a coarse grid so a
+' 1056x816 shot costs a few thousand POINTs, not a million.
+'
+' This is the whole point of rollshot being a CHECK and not just a screenshot. The dice-box
+' regression did not look like a crash or a bad number: the dice animated correctly on a
+' completely black screen, because the GL layer flipped the window without the canvas under it.
+' A frame like that is ~10% non-black (the tray and its caption); a healthy one is ~95% (the
+' whole dungeon board). No human has to look at a PNG to tell those apart.
+FUNCTION FrameInkFrac! (path AS STRING)
+    DIM img AS LONG, od AS LONG, osrc AS LONG
+    DIM AS INTEGER iw, ih, px, py, stp
+    DIM AS LONG lit, seen
+    FrameInkFrac! = 0
+    IF NOT _FILEEXISTS(path) THEN EXIT FUNCTION
+    img = _LOADIMAGE(path, 32)
+    IF img >= -1 THEN EXIT FUNCTION                  ' _LOADIMAGE failure is >= -1, not 0
+    iw = _WIDTH(img): ih = _HEIGHT(img)
+    osrc = _SOURCE: _SOURCE img
+    stp = 8
+    FOR py = 0 TO ih - 1 STEP stp
+        FOR px = 0 TO iw - 1 STEP stp
+            seen = seen + 1
+            IF POINT(px, py) <> BLACK THEN lit = lit + 1
+        NEXT px
+    NEXT py
+    _SOURCE osrc
+    _FREEIMAGE img
+    IF seen > 0 THEN FrameInkFrac! = lit / seen
+END FUNCTION
+
+
+' `dungeon.run rollshot` -- capture every DICE STYLE mid-roll, at the settled frame.
+'
+' Until this existed there was NO headless way to see a dice roll, so the dice-box regression
+' (dice animating on a black screen) could only be found by playing the game and could only be
+' verified by someone taking a photo of their monitor. Now the gate sees it.
+'
+' It drives the REAL roll functions (AnimatedRoll -> RollPips / ShowRollTextEx / Show3DRoll) over
+' the REAL board, so tray placement, the board behind it, the caption and the sum are all shot
+' exactly as the player gets them. Two things make that capturable:
+'   * roll_shot   -- armed here, saved by RollShotSave at the settle frame, then self-disarming.
+'   * dice3d_force_soft -- the 3D dice's hardware path draws to the WINDOW after the canvas blit,
+'     where _SAVEIMAGE CANVAS cannot reach it. The software renderer composites into the canvas.
+'     So the 3D shots prove LAYOUT (tray, board, sum) but are not a shot of the GL rasteriser.
+SUB DumpRollShot
+    DIM AS INTEGER i, bad, r
+    DIM nm AS STRING, f AS SINGLE
+    CONST NSHOT = 5
+    DIM AS STRING shotName(1 TO NSHOT), shotWhat(1 TO NSHOT)
+    DIM AS INTEGER shotN(1 TO NSHOT), shotSides(1 TO NSHOT), shotBonus(1 TO NSHOT)
+    DIM AS INTEGER shot3d(1 TO NSHOT), shotPips(1 TO NSHOT)
+
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15rollshot|07 -- every dice style, captured at the settled frame")
+    DevPackOverride
+
+    '            file                 caption          n  sides bonus  3d  pips
+    shotName(1) = "rollshot-pips": shotWhat(1) = "movement"
+    shotN(1) = 2: shotSides(1) = 6: shotBonus(1) = 0: shot3d(1) = 0: shotPips(1) = -1
+    shotName(2) = "rollshot-d6font": shotWhat(2) = "movement"
+    shotN(2) = 2: shotSides(2) = 6: shotBonus(2) = 0: shot3d(2) = 0: shotPips(2) = 0
+    shotName(3) = "rollshot-d20": shotWhat(3) = "to hit"
+    shotN(3) = 1: shotSides(3) = 20: shotBonus(3) = 5: shot3d(3) = 0: shotPips(3) = 0
+    shotName(4) = "rollshot-3d-d6": shotWhat(4) = "movement"
+    shotN(4) = 2: shotSides(4) = 6: shotBonus(4) = 0: shot3d(4) = -1: shotPips(4) = -1
+    shotName(5) = "rollshot-3d-d20": shotWhat(5) = "to hit"
+    shotN(5) = 1: shotSides(5) = 20: shotBonus(5) = 5: shot3d(5) = -1: shotPips(5) = 0
+
+    opt_realdice = FALSE                             ' never prompt for a typed result
+    opt_dicespeed = 3                                ' Instant: the settled frame is all we shoot
+    dice3d_force_soft = -1                           ' 3D onto the CANVAS, where _SAVEIMAGE can see it
+    StartBoard                                       ' a real dungeon under the tray -- that is the check
+
+    bad = 0
+    FOR i = 1 TO NSHOT
+        cursor_erase: cursor_draw                    ' fresh board per shot -- the roll boxes do not
+        Present                                      ' clean themselves up between back-to-back rolls,
+        opt_dice3d = shot3d(i): opt_d6pips = shotPips(i)   ' and a stale tray in the frame reads as a bug
+        nm = shotName(i) + ".png"
+        roll_shot = nm
+        r = AnimatedRoll(shotN(i), shotSides(i), shotBonus(i), shotWhat(i))
+        _DEST _CONSOLE
+        IF LEN(roll_shot) > 0 THEN                   ' still armed = nothing ever reached RollShotSave
+            roll_shot = ""
+            PRINT PipeCol$("  |12BAD|07  " + shotName(i) + " -- the roll never reached a settle frame")
+            bad = bad + 1
+        ELSE
+            f = FrameInkFrac!(nm)
+            IF f < 0.3 THEN
+                PRINT PipeCol$("  |12BAD|07  " + nm + " -- " + _TRIM$(STR$(INT(f * 100))) + "% non-black: the roll drew on a BLANK screen, not the board")
+                bad = bad + 1
+            ELSE
+                PRINT PipeCol$("  |10ok |07  " + nm + "  rolled " + _TRIM$(STR$(r)) + ", " + _TRIM$(STR$(INT(f * 100))) + "% non-black")
+            END IF
+        END IF
+    NEXT i
+
+    IF bad > 0 THEN
+        PRINT PipeCol$("|12rollshot: " + _TRIM$(STR$(bad)) + " of " + _TRIM$(STR$(NSHOT)) + " dice style(s) did not render over the board|07")
+        SYSTEM 1
+    END IF
+    PRINT PipeCol$("  all |14" + _TRIM$(STR$(NSHOT)) + "|07 dice styles rendered over the board")
+END SUB
+
+
 ' `dungeon.run panelshot [class]` -- render the D&D COMBAT PANEL to panelshot.png.
 '
 ' Same reasoning as charsheet: the panel only misbehaves when it is FULL, and now it also

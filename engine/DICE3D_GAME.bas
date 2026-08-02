@@ -203,6 +203,12 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     minw = cfg.DIE_SIZE * 4: minh = cfg.DIE_SIZE * 3
     cfg.BOX_W = tw - inset * 2: IF cfg.BOX_W < minw THEN cfg.BOX_W = minw
     cfg.BOX_H = th - inset * 2: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
+    ' WHERE the box sits. The hardware path ignores these -- it places dice in GL space via
+    ' DICE3D_HW_CX/CY -- so they were simply never set here, and the SOFTWARE renderer (which
+    ' blits its box buffer to BOX_X/BOX_Y) drew the dice at a stale rect, nowhere near the tray.
+    ' Invisible in play, since play is always hardware; `rollshot` is what made it visible.
+    cfg.BOX_X = tx + inset
+    cfg.BOX_Y = ty + inset
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
     IF hbw > SW * CW - 20 THEN hbw = SW * CW - 20
@@ -217,7 +223,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' that scales everything twice, and at 3840x2160 (scale 2.65) the d20s filled the corners of
     ' the screen. DICE3D_HW_PXPERUNIT already carries the whole conversion.
     pxk = GlUnitsPerCanvasPx!                       ' canvas px -> GL units, letterbox-aware
-    DICE3D_HW = -1
+    IF dice3d_force_soft THEN DICE3D_HW = 0 ELSE DICE3D_HW = -1   ' dev: rollshot needs the capturable software path
     DICE3D_HWATLAS = 0
     DICE3D_HW_Z = DICE3D_HW_ZBASE
     DICE3D_HW_PXK = pxk
@@ -309,14 +315,14 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
         _DEST CANVAS: _FONT CH
         LINE (tx + CW, rrow * CH)-(tx + tw - CW, (rrow + 2) * CH), boxviolet, BF   ' clear row (text re-centres each beat)
         COLOR WHITE, boxviolet: PrintCentered rrow, beat(bi)
-        dice3d_present_hw cfg
+        dice3d_repost cfg
         IF opt_sfx THEN
             IF bi = nb THEN SfxOr "dice-math-2", 1100, 0.15 ELSE SfxOr "dice-math-1", 440 + bi * 120, 0.06  ' summing: ticks then total
         END IF
         IF NOT skip THEN
             FOR j = 1 TO 18                                                       ' ~0.3s of suspense per beat
                 _LIMIT 60
-                dice3d_present_hw cfg
+                dice3d_repost cfg
                 IF INKEY$ <> "" THEN skip = -1: EXIT FOR
             NEXT j
         END IF
@@ -326,11 +332,12 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     _KEYCLEAR
     FOR hf = 1 TO 70
         _LIMIT 60
-        dice3d_present_hw cfg
+        dice3d_repost cfg
         IF INKEY$ <> "" THEN EXIT FOR
     NEXT hf
     _KEYCLEAR
 
+    RollShotSave                                    ' dev: capture the settled frame (rollshot)
     IF DICE3D_HWATLAS <> 0 THEN _FREEIMAGE DICE3D_HWATLAS: DICE3D_HWATLAS = 0
     DICE3D_HW = 0
     cursor_erase: cursor_draw                       ' wipe the dice box off the board so the combat
@@ -416,4 +423,19 @@ SUB DrawDice3DPreviewDie (ccol AS INTEGER, growy AS INTEGER, atlas AS LONG, setc
     DICE3D_HW_CY = GlY!(scy)
     DICE3D_DICE(0).PX = cfg.BOX_W * 0.5: DICE3D_DICE(0).PY = cfg.BOX_H * 0.5: DICE3D_DICE(0).PZ = 0
     dice3d_render_die_hw DICE3D_DICE(0), cfg
+END SUB
+
+
+' Re-present the dice during Show3DRoll's SUM REVEAL -- i.e. after dice3d_roll has returned.
+'
+' The hardware path must redraw every frame: its triangles go straight to the window, so anything
+' not re-issued vanishes on the next flip. The SOFTWARE path is the opposite -- it composited the
+' settled dice INTO the canvas, where they persist, and re-presenting would read the per-die atlas
+' and box buffer that dice3d_roll already freed (Invalid handle, _RENDER.BM's _MAPTRIANGLE).
+'
+' So: redraw on hardware, leave the canvas alone on software. Only `rollshot` takes the software
+' branch here, but the asymmetry is a property of the two renderers, not of the dev mode.
+SUB dice3d_repost (cfg AS DICE3D_CONFIG)
+    IF dice3d_force_soft THEN EXIT SUB
+    dice3d_present cfg
 END SUB

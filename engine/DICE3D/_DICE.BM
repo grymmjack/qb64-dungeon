@@ -320,7 +320,8 @@ SUB dice3d_roll (notation AS STRING, cfg AS DICE3D_CONFIG, results() AS INTEGER)
     NEXT
 
     _FREEIMAGE atlas
-    _FREEIMAGE DICE3D_BOXBUF
+    _FREEIMAGE DICE3D_BOXBUF: DICE3D_BOXBUF = 0   ' zero it: a stale handle is not detectable, and
+    ' dice3d_present's SOFTWARE branch reads this buffer on every reveal frame AFTER the roll ends.
 END SUB
 
 ''
@@ -338,7 +339,8 @@ SUB dice3d_repose (cfg AS DICE3D_CONFIG)
     FOR i = lo TO hi: DICE3D_DICE(i).ATLAS = atlas: NEXT
     dice3d_present cfg
     _FREEIMAGE atlas
-    _FREEIMAGE DICE3D_BOXBUF
+    _FREEIMAGE DICE3D_BOXBUF: DICE3D_BOXBUF = 0   ' zero it: a stale handle is not detectable, and
+    ' dice3d_present's SOFTWARE branch reads this buffer on every reveal frame AFTER the roll ends.
 END SUB
 
 ''
@@ -387,5 +389,6 @@ SUB dice3d_roll_pct (cnt AS INTEGER, cfg AS DICE3D_CONFIG, results() AS INTEGER)
     NEXT
 
     _FREEIMAGE atlasHi: _FREEIMAGE atlasLo
-    _FREEIMAGE DICE3D_BOXBUF
+    _FREEIMAGE DICE3D_BOXBUF: DICE3D_BOXBUF = 0   ' zero it: a stale handle is not detectable, and
+    ' dice3d_present's SOFTWARE branch reads this buffer on every reveal frame AFTER the roll ends.
 END SUB

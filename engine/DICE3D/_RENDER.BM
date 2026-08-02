@@ -271,8 +271,16 @@ END SUB
 ' then blit the buffer over the caller's screen and present.
 SUB dice3d_present (cfg AS DICE3D_CONFIG)
     DIM AS LONG od
-    DIM AS INTEGER i
+    DIM AS INTEGER i, ownbuf
     IF DICE3D_HW THEN dice3d_present_hw cfg: EXIT SUB   ' hardware / OpenGL path (native-res, smooth)
+    ' The roll subs own DICE3D_BOXBUF and free it when they finish -- but a caller may keep
+    ' presenting AFTER the roll (Show3DRoll re-renders through its whole sum-reveal and hold).
+    ' The hardware path never touches this buffer, so that only ever broke on software: an
+    ' Invalid handle mid-roll. Borrow one for the frame when there is none, and give it back.
+    IF DICE3D_BOXBUF = 0 THEN
+        DICE3D_BOXBUF = _NEWIMAGE(cfg.BOX_W, cfg.BOX_H, 32)
+        ownbuf = -1
+    END IF
     od = _DEST
     _DEST DICE3D_BOXBUF
     IF cfg.BOX_SHOW_BACK THEN
@@ -306,4 +314,5 @@ SUB dice3d_present (cfg AS DICE3D_CONFIG)
             _SAVEIMAGE DICE3D_SHOT_DIR + "/f" + RIGHT$("0000" + LTRIM$(STR$(DICE3D_FRAME)), 4) + ".png", DICE3D_BOXBUF
         END IF
     END IF
+    IF ownbuf THEN _FREEIMAGE DICE3D_BOXBUF: DICE3D_BOXBUF = 0   ' borrowed for this frame only
 END SUB

@@ -112,6 +112,11 @@ DIM SHARED DICE3D_UPRIGHT AS INTEGER
 '    the software screen, sets these params + a hardware-copy atlas, then rolls. 0 = the
 '    software box-buffer renderer. present() branches on this.
 DIM SHARED DICE3D_HW AS INTEGER
+' DEV: force the SOFTWARE renderer even where the game would pick hardware. The GL layer draws
+' to the WINDOW, after the canvas blit, so _SAVEIMAGE CANVAS cannot see it -- a headless capture
+' of a 3D roll would show an empty tray. The software renderer composites into the canvas, so it
+' is the only path a dev-mode screenshot can prove. Set by `dungeon.run rollshot`; never in play.
+DIM SHARED dice3d_force_soft AS INTEGER
 DIM SHARED DICE3D_HWATLAS AS LONG   ' hardware (_COPYIMAGE ,33) atlas; built lazily, freed by the caller
 DIM SHARED DICE3D_HL AS LONG        ' hardware white sheen tile for the read-face highlight (built lazily)
 DIM SHARED DICE3D_HL_SW AS LONG     ' software white sheen tile (software render path)

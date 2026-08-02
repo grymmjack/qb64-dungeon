@@ -202,6 +202,22 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # Dice rolls: the one part of the UI that had NO headless check at all, which is why the
+    # regression where dice animated on a totally black screen could only be caught by playing
+    # the game and could only be reported with a photo of a monitor. rollshot drives the real
+    # roll functions over the real board and asserts each settled frame is mostly NOT black.
+    echo "-- dice styles render over the board (dungeon.run rollshot) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 120 "dice styles rendered over the board" ./dungeon.run rollshot nocolor; then
+            grep -E '^  (ok|BAD)' <<<"$DEVRUN_OUT" | sed 's/^/  /'
+        else
+            grep -E 'BAD|never reached|did not render' <<<"$DEVRUN_OUT" | head -6 | sed 's/^/    /'
+            (( fail++ )); failed+=("rollshot")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     echo "-- bestiary discovery survives a new run (dungeon.run bestiarytest) --"
     if [[ -x ./dungeon.run ]]; then
         if devrun 60 "OK --" ./dungeon.run bestiarytest nocolor; then bt="$DEVRUN_OUT"
