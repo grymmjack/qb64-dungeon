@@ -100,6 +100,70 @@ for i, obj_path in enumerate(dice):
             poly.use_smooth = False
         placed.append(m)
 
+# --- size them like a real dice set --------------------------------------------------------
+#
+# The meshes all come out of the exporter at unit circumradius, which is NOT how a physical set
+# looks: a dodecahedron at unit circumradius reads BIGGER than an icosahedron, because its faces
+# are broader and it fills more of its own sphere. In a real set the d20 is the largest piece and
+# the d4 the smallest.
+#
+# These are display scales, applied per die, purely so the row reads as a set.
+# Everything stays at the exporter's own scale EXCEPT the d12. At unit circumradius a
+# dodecahedron reads bigger than an icosahedron -- broad pentagons fill more of the sphere than
+# narrow triangles -- so the d12 out-bulked the d20, which no real set does. Only that one is
+# corrected; the rest were already right.
+SET_SCALE = {"d12": 0.90}
+for m in placed:
+    k = SET_SCALE.get(m.name, 1.0)
+    m.scale = (k, k, k)
+bpy.context.view_layer.update()
+
+# --- turn each die so its HIGHEST value reads --------------------------------------------
+#
+# A face carries no number in the geometry -- the numerals are in the atlas -- so the exporter
+# writes dN-faces.txt, one value per face in face order. A polygon's face index comes back from
+# its UV: the atlas stacks one tile per face, so V position IS the face index.
+#
+# The d4 is the exception, and deliberately: it is a TOP-READ tetra whose result sits on the
+# HIDDEN BASE and repeats at the apex. So its value face goes DOWN, exactly as the game poses
+# it. Every other die puts its value face UP and lands on the face opposite.
+UP = mathutils.Vector((0, 0, 1))
+for m in placed:
+    vals = {}
+    fpath = os.path.join(OBJDIR, m.name + "-faces.txt")
+    if os.path.exists(fpath):
+        for line in open(fpath):
+            line = line.strip()
+            if line and not line.startswith("#"):
+                a_, b_ = line.split()
+                vals[int(a_)] = int(b_)
+    if not vals:
+        continue
+    nf = len(vals)
+    # The face to put up. Highest number, EXCEPT the d10: DICE3D numbers it 0-9 on the
+    # percentile convention, and the "0" face IS the ten -- the game remaps it on read. So the
+    # top-value face there is the 0, not the 9, exactly as on a physical d10.
+    if m.name == "d10" and 0 in vals.values():
+        want = [f for f in vals if vals[f] == 0][0]
+    else:
+        want = max(vals, key=lambda f: vals[f])
+    ev = m.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    uv = ev.data.uv_layers.active
+    biggest = max(p.area for p in ev.data.polygons)
+    target = None
+    for poly in ev.data.polygons:
+        if poly.area <= biggest * 0.25:           # skip bevel slivers
+            continue
+        v = sum(uv.data[li].uv[1] for li in poly.loop_indices) / poly.loop_total
+        if int((1.0 - v) * nf) == want:           # atlas row -> face index
+            target = (m.matrix_world.to_quaternion() @ poly.normal).normalized()
+            break
+    if target is None:
+        continue
+    goal = mathutils.Vector((0, 0, -1)) if m.name == "d4" else UP
+    m.rotation_euler = (target.rotation_difference(goal) @ m.matrix_world.to_quaternion()).to_euler()
+bpy.context.view_layer.update()
+
 # --- settle every die: flat on a face, then down onto the floor ----------------------------
 #
 # A die that has stopped rolling rests on a FACE. Posing one by angle alone almost never does --
@@ -115,8 +179,13 @@ DOWN = mathutils.Vector((0, 0, -1))
 for m in placed:
     ev = m.evaluated_get(dg)
     rot = m.matrix_world.to_quaternion()
+    # ONLY REAL FACES -- the mesh is bevelled, and a narrow bevel strip is often "nearer to
+    # down" than any true face. Laying one flat IS resting on an edge, which is what left the
+    # d8 and d10 on their points. A bevel poly is a sliver next to a face, so area separates them.
+    biggest = max(p.area for p in ev.data.polygons)
     best, bestdot = None, -2.0
     for poly in ev.data.polygons:                # normals are LOCAL: rotate before comparing
+        if poly.area <= biggest * 0.25: continue
         n = (rot @ poly.normal).normalized()
         if n.dot(DOWN) > bestdot:
             bestdot, best = n.dot(DOWN), n
@@ -172,7 +241,9 @@ cam_data.lens = 50
 cam = bpy.data.objects.new("camera", cam_data)
 # Pulled back far enough for the whole row plus margin: at 50mm the horizontal field is about
 # 40 degrees, so the visible width is roughly 0.73 * distance.
-cam.location = (0, -(len(dice) * SPACING) / 0.62, 6.5)
+# Higher and tilted down, so the TOP faces -- the ones showing each die's value -- are readable
+# rather than edge-on. Pulled back a little further to keep the whole row in frame from up here.
+cam.location = (0, -(len(dice) * SPACING) / 0.60, 11.0)
 bpy.context.collection.objects.link(cam)
 c = cam.constraints.new("TRACK_TO")
 c.target = placed[len(placed) // 2]

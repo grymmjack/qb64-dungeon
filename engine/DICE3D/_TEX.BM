@@ -313,7 +313,19 @@ FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mo
             ' Size EVERY numeral to the two-digit height (the 0.72 that keeps "20"
             ' inside the face), so a single "3" no longer towers over "20" -- the
             ' player asked for 1- and 2-digit faces to read at the same size.
-            hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.72)
+            ' Scaled by the ROOM this face shape gives (DICE3D_FACE_ROOM = inradius/maxab),
+            ' normalised to the triangle's 0.5 -- so triangular faces are unchanged and the
+            ' broader squares and pentagons get a proportionally larger numeral. Without it the
+            ' numeral was a fixed fraction of the TILE, so the same digit read large on a d20
+            ' and small on a d6 or d12.
+            DIM AS SINGLE room
+            room = 1!
+            IF f <= UBOUND(DICE3D_FACE_ROOM) THEN
+                IF DICE3D_FACE_ROOM(f) > 0 THEN room = DICE3D_FACE_ROOM(f) / 0.5
+            END IF
+            IF room < 1! THEN room = 1!             ' never SHRINK below the triangle baseline
+            IF room > 1.7 THEN room = 1.7           ' and never let a broad face swallow its edge
+            hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.72 * room)
             dice3d_stamp_num img, DICE3D_TILE \ 2, ty + DICE3D_TILE \ 2, lab, hh, cfg.NUM_KOLOR, cfg.FONT_HANDLE
         END IF
         '--- bake the darker brightness columns: copy the finished bright tile (column 0) out to

@@ -980,6 +980,18 @@ SUB DumpDiceObj
         png = odir + "/" + bnm + "-atlas.png"
         _SAVEIMAGE png, atlas
 
+        ' FACE VALUES, one per line, in face order. A renderer cannot work out which face carries
+        ' which number from geometry alone -- the numerals live in the atlas -- but the atlas rows
+        ' ARE face order, so face index n is at V row n. Writing the values out lets a tool find
+        ' "the face showing 20" and turn it upward.
+        fh = FREEFILE
+        OPEN odir + "/" + bnm + "-faces.txt" FOR OUTPUT AS #fh
+        PRINT #fh, "# face_index value   (" + LTRIM$(STR$(DICE3D_NF)) + " faces; atlas row N == face N)"
+        FOR f = 0 TO DICE3D_NF - 1
+            PRINT #fh, LTRIM$(STR$(f)) + " " + LTRIM$(STR$(DICE3D_FACE_VAL(f)))
+        NEXT f
+        CLOSE #fh
+
         fh = FREEFILE
         OPEN mtl FOR OUTPUT AS #fh
         PRINT #fh, "newmtl " + bnm

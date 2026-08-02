@@ -218,6 +218,7 @@ SUB dice3d_build (sides AS INTEGER)
     REDIM DICE3D_FACE_Q(0 TO nf - 1) AS DICE3D_QUAT
     REDIM DICE3D_FACE_N(0 TO nf - 1) AS DICE3D_VEC3
     REDIM DICE3D_FACE_VAL(0 TO nf - 1) AS INTEGER
+    REDIM DICE3D_FACE_ROOM(0 TO nf - 1) AS SINGLE
     REDIM DICE3D_FACE_LABEL(0 TO nf - 1) AS STRING
     REDIM DICE3D_VAL2FACE(0 TO sides) AS INTEGER
     REDIM DICE3D_FVN(0 TO nf - 1) AS INTEGER
@@ -302,6 +303,29 @@ SUB dice3d_build (sides AS INTEGER)
             ux(p) = DICE3D_TILE / 2 + uu(p) * sc
             uy(p) = f * DICE3D_TILE + DICE3D_TILE / 2 - vv(p) * sc
         NEXT
+        '--- how much ROOM this face shape actually gives a numeral -------------------------
+        '
+        ' The face is fitted to the tile by its WIDEST extent (maxab), but a numeral is limited
+        ' by the NARROWEST -- the inradius, centre to nearest edge. Those differ hugely by shape:
+        ' a triangle's inradius is half its circumradius, a square's is 0.71 of it, a pentagon's
+        ' 0.81. With a numeral drawn at a fixed fraction of the TILE, the same number therefore
+        ' looked large on the d20's triangles and small on the d6's squares and the d12's
+        ' pentagons -- which is exactly what Rick saw.
+        '
+        ' Store inradius/maxab per face so the atlas can scale each numeral to the room it has.
+        DIM AS SINGLE inr, ex, ey, elen, edist
+        inr = 1E+09
+        FOR p = 0 TO s - 1
+            ex = uu((p + 1) MOD s) - uu(p): ey = vv((p + 1) MOD s) - vv(p)
+            elen = SQR(ex * ex + ey * ey)
+            IF elen > 0.000001 THEN
+                ' distance from the face centre (the origin here) to this edge's LINE
+                edist = ABS(ex * (0 - vv(p)) - ey * (0 - uu(p))) / elen
+                IF edist < inr THEN inr = edist
+            END IF
+        NEXT
+        IF inr > 1E+08 THEN inr = maxab              ' degenerate: fall back to no correction
+        DICE3D_FACE_ROOM(f) = inr / maxab
         bodyU(f) = DICE3D_TILE * 0.13: bodyV(f) = f * DICE3D_TILE + DICE3D_TILE * 0.13 '  body-colour texel
 
         IF bev THEN

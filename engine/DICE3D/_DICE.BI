@@ -75,6 +75,10 @@ DIM SHARED DICE3D_NF AS INTEGER '         face count (= sides)
 REDIM SHARED DICE3D_FACE_Q(0) AS DICE3D_QUAT '  "this face at camera" pose
 REDIM SHARED DICE3D_FACE_N(0) AS DICE3D_VEC3 '  outward face normal (model space)
 REDIM SHARED DICE3D_FACE_VAL(0) AS INTEGER '    numeric value on each face
+' inradius/maxab per face: how much room the SHAPE gives a numeral once fitted to its tile.
+' ~0.5 for a triangle, ~0.71 a square, ~0.81 a pentagon. The atlas scales numerals by it so
+' the same digit reads the same size on every die (see dice3d_make_atlas).
+REDIM SHARED DICE3D_FACE_ROOM(0) AS SINGLE
 REDIM SHARED DICE3D_FACE_LABEL(0) AS STRING '   text stamped on each face
 REDIM SHARED DICE3D_VAL2FACE(0) AS INTEGER '    value -> face index
 REDIM SHARED DICE3D_CORNERVAL(0, 2) AS INTEGER '  D4 top-read: value at each triangle corner

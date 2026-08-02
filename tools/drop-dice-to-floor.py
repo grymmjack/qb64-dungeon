@@ -18,21 +18,28 @@ import bpy
 from mathutils import Vector
 
 DOWN = Vector((0, 0, -1))
+# A real face is a large fraction of the biggest face; a bevel strip is a sliver.
+FACE_MIN_AREA = 0.25
 
 def settle(o, dg):
     ev = o.evaluated_get(dg)
     mw = o.matrix_world
     rot = mw.to_quaternion()
-    # The face already most nearly downward. Normals are local, so rotate them first.
+    # ONLY REAL FACES. The mesh is bevelled, so most polygons are narrow strips along the edges
+    # -- and one of those is often "nearer to down" than any true face. Laying a bevel strip flat
+    # IS resting on an edge, which is what left the d8 and d10 standing on their points.
+    # A bevel poly is a fraction of a face's area, so the largest area sets a clean threshold.
+    biggest = max(p.area for p in ev.data.polygons)
+    faces = [p for p in ev.data.polygons if p.area > biggest * FACE_MIN_AREA]
     best, bestdot = None, -2.0
-    for poly in ev.data.polygons:
-        n = (rot @ poly.normal).normalized()
+    for poly in faces:
+        n = (rot @ poly.normal).normalized()     # normals are LOCAL -- rotate before comparing
         d = n.dot(DOWN)
         if d > bestdot:
             bestdot, best = d, n
     if best is None:
         return
-    # Turn that face to point straight down, and fold it into the existing rotation.
+    # Turn that face to point straight down, folded into the rotation it already has.
     o.rotation_euler = (best.rotation_difference(DOWN) @ rot).to_euler()
 
 def drop(o, dg):
