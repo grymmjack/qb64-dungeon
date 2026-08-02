@@ -378,10 +378,20 @@ DIM SHARED fx_critkill AS INTEGER                                           ' TR
 ' luck_left is what remains this run. Offered on COMBAT rolls and SAVING THROWS only -- the
 ' places a bad number actually hurts -- and NOT on searches, movement or loot rolls.
 '
-' The prompt is a FUSE, not a menu: it appears for LUCK_FUSE_SEC and then decides for you, so
-' spending luck never stops the fight to ask permission. Deliberately a code constant and not a
-' setting -- the tension IS the timer, and a player who could set it to 30s would remove it.
-CONST LUCK_FUSE_SEC = 2.0
+' The prompt WAS an unconditional fuse: it appeared for a fixed 2s and then decided for you, on
+' the argument that the tension IS the timer. That is a fine default and a bad mandate -- being
+' hurried into a decision you did not ask for is exactly the complaint -- so the duration is now
+' a setting, INCLUDING zero:
+'
+'   0 = no timer. The prompt waits for an answer ([R] spends, [SPACE] declines). The offer is
+'       still made at the same moment, right after the roll and before it resolves, because that
+'       is the only point at which a re-roll can mean anything.
+'   1 / 2 seconds = the original fuse, at the player's chosen pressure.
+'
+' Capped at 2 deliberately: a 30-second "fuse" is not a fuse, and if you want no pressure the
+' honest way to say so is 0, which stops pretending to be a timer at all.
+CONST LUCKFUSE_MAX = 2
+DIM SHARED opt_luckfuse AS INTEGER        ' SETTINGS: seconds on the luck prompt (0 = untimed)
 DIM SHARED luck_left AS INTEGER, luck_max AS INTEGER
 DIM SHARED opt_luck AS INTEGER            ' SETTINGS toggle: luck re-rolls on/off
 DIM SHARED opt_startheal AS INTEGER       ' SETTINGS: does returning to the entrance heal you?

@@ -648,7 +648,7 @@ SUB BuildSetLayout
     SetLayRow 3, 14, prow(): SetLayRow 3, 52, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow()
     SetLayRow 3, 17, prow(): SetLayRow 3, 60, prow(): SetLayRow 3, 61, prow(): SetLayRow 3, 62, prow()
     SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
-    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow(): SetLayRow 3, 55, prow(): SetLayRow 3, 56, prow()
+    SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow(): SetLayRow 3, 63, prow(): SetLayRow 3, 55, prow(): SetLayRow 3, 56, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
     SetLayRow 3, 59, prow()                          ' Stats Overlay -- a DISPLAY choice, not a rule
@@ -711,7 +711,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 62                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 63                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -851,6 +851,11 @@ SUB RunSettings
                     IF opt_narrfreq < NARR_FLAVOR THEN opt_narrfreq = NARR_COMBAT
                     IF opt_narrfreq > NARR_COMBAT THEN opt_narrfreq = NARR_FLAVOR
                     Sfx "select"
+                CASE 63
+                    opt_luckfuse = opt_luckfuse + delta
+                    IF opt_luckfuse < 0 THEN opt_luckfuse = LUCKFUSE_MAX
+                    IF opt_luckfuse > LUCKFUSE_MAX THEN opt_luckfuse = 0
+                    Sfx "select"
                 CASE 48: opt_duckamt = Clamp10(opt_duckamt + delta): Sfx "select"   ' music-under-voice ducking depth
                 CASE 49: CycleAnsiPack delta                                        ' ANSI-art pack (board + masks + menu)
                 CASE 51: CycleDataPack delta                                        ' DATA pack -- whole game (monsters/tuning/flavor); applies on restart
@@ -943,6 +948,9 @@ SUB RunSettings
                     ' path every subject resolves to -- keeping it would show the old form
                     FreeAnsiSprites
                 CASE 54: opt_luck = NOT opt_luck
+                CASE 63
+                    opt_luckfuse = opt_luckfuse + 1
+                    IF opt_luckfuse > LUCKFUSE_MAX THEN opt_luckfuse = 0
                 CASE 55: opt_startheal = NOT opt_startheal
                 CASE 56: opt_rest = NOT opt_rest
                 CASE 36: opt_gestures = NOT opt_gestures
@@ -1142,6 +1150,13 @@ SUB RunSettings
                 CASE 54
                     lbl = "Luck Re-rolls"
                     IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 63
+                    lbl = "Luck Prompt Time"
+                    IF opt_luckfuse <= 0 THEN
+                        vtxt = "off (waits for you)"
+                    ELSE
+                        vtxt = _TRIM$(STR$(opt_luckfuse)) + "s fuse"
+                    END IF
                 CASE 55
                     lbl = "Rest at Entrance"
                     IF opt_startheal THEN vtxt = "on (heals + rests)" ELSE vtxt = "off"
@@ -1151,6 +1166,13 @@ SUB RunSettings
                 CASE 54
                     lbl = "Luck Re-rolls"
                     IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 63
+                    lbl = "Luck Prompt Time"
+                    IF opt_luckfuse <= 0 THEN
+                        vtxt = "off (waits for you)"
+                    ELSE
+                        vtxt = _TRIM$(STR$(opt_luckfuse)) + "s fuse"
+                    END IF
                 CASE 55
                     lbl = "Rest at Entrance"
                     IF opt_startheal THEN vtxt = "on (heals + rests)" ELSE vtxt = "off"

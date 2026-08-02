@@ -45,6 +45,16 @@ FUNCTION HealSuffix$
     IF n > 0 THEN HealSuffix$ = "   [H] HEAL (" + _TRIM$(STR$(n)) + ")" ELSE HealSuffix$ = ""
 END FUNCTION
 
+' The '[R] re-roll (n/max)' tail for the combat action bar. Shown whenever luck COULD be spent,
+' so the option is visible on the panel you are already reading rather than only announcing
+' itself in a prompt that interrupts you -- and the count answers "how many do I have left?"
+' without opening the character sheet mid-fight.
+FUNCTION LuckSuffix$ ()
+    LuckSuffix$ = ""
+    IF NOT LuckAvailable% THEN EXIT FUNCTION
+    LuckSuffix$ = "    [R] re-roll (" + _TRIM$(STR$(luck_left)) + "/" + _TRIM$(STR$(luck_max)) + ")"
+END FUNCTION
+
 
 ' Gods' favour: a fallen adventurer on their LAST life, come back to reclaim spoils
 ' they never recovered, may (50%) be blessed -- tipping every combat die by +1 per
@@ -1024,9 +1034,9 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
     PrintCentered by + 5, class_name + " (you)   " + HpBar$(player_hp, player_maxhp, 22) + "  " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP   AC " + _TRIM$(STR$(PlayerAC%))
     COLOR CYANU, BOXBG
     IF item_potion_small > 0 OR item_potion_large > 0 THEN
-        PrintCentered by + 8, "[SPACE] attack    [H] potion (" + _TRIM$(STR$(item_potion_small + item_potion_large)) + ")    [ESC] flee"
+        PrintCentered by + 8, "[SPACE] attack    [H] potion (" + _TRIM$(STR$(item_potion_small + item_potion_large)) + ")" + LuckSuffix$ + "    [ESC] flee"
     ELSE
-        PrintCentered by + 8, "[SPACE] attack       [ESC] flee"
+        PrintCentered by + 8, "[SPACE] attack" + LuckSuffix$ + "       [ESC] flee"
     END IF
     IF IsWizard% AND (spell_fire > 0 OR spell_bolt > 0) THEN   ' Wizard-only cast options
         DIM sph AS STRING
@@ -1604,15 +1614,20 @@ FUNCTION LuckPrompt% (total AS INTEGER, raw AS INTEGER, sides AS INTEGER)
     _PUTIMAGE (0, 0), CANVAS, saveimg
     t0 = TIMER
     DO
-        el = TIMER - t0
-        IF el < 0 THEN el = el + 86400#             ' TIMER wraps at midnight
-        frac = 1 - (el / LUCK_FUSE_SEC)
-        IF frac <= 0 THEN EXIT DO
+        IF opt_luckfuse <= 0 THEN
+            frac = -1                               ' untimed: DrawLuckPrompt hides the bar entirely
+        ELSE
+            el = TIMER - t0
+            IF el < 0 THEN el = el + 86400#         ' TIMER wraps at midnight
+            frac = 1 - (el / opt_luckfuse)
+            IF frac <= 0 THEN EXIT DO
+        END IF
         DrawLuckPrompt total, raw, sides, frac
         Present
-        k = UCASE$(INKEY$)
+        AudioTick                                   ' this loop can hold the screen indefinitely when
+        k = UCASE$(INKEY$)                          ' untimed -- the music must not freeze under it
         IF k = "R" THEN LuckPrompt% = -1: EXIT DO
-        IF k = CHR$(27) OR k = " " THEN EXIT DO     ' decline early rather than wait it out
+        IF k = CHR$(27) OR k = " " OR k = CHR$(13) THEN EXIT DO   ' decline
         _LIMIT 60
     LOOP
     _PUTIMAGE (0, 0), saveimg, CANVAS
@@ -1629,12 +1644,19 @@ SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS 
     lbl = _TRIM$(STR$(luck_left)) + "/" + _TRIM$(STR$(luck_max)) + "   Use Luck [R]e-Roll?"
     COLOR YELLOWU, BOXBG: PrintCentered by + 1, lbl
     COLOR GREY, BOXBG: PrintCentered by + 2, "you rolled " + _TRIM$(STR$(raw)) + " of " + _TRIM$(STR$(sides)) + "  (total " + _TRIM$(STR$(total)) + ")"
-    ' the fuse: same colours and the same "turns red near the end" cue as the gesture gauge,
-    ' so the two prompts read as one language rather than two unrelated widgets
-    fx = (bx + 3) * CW: fw = (bw - 6) * CW
-    LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
-    IF frac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
-    LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
+    IF frac < 0 THEN
+        ' UNTIMED: no bar to draw, so SAY what the keys are. A prompt with no countdown and no
+        ' stated way out reads as a hang -- the bar was doing that job implicitly.
+        COLOR CYANU, BOXBG: PrintCentered by + 3, "[R] re-roll      [SPACE] continue"
+    ELSE
+        ' the fuse: same colours and the same "turns red near the end" cue as the gesture gauge,
+        ' so the two prompts read as one language rather than two unrelated widgets
+        fx = (bx + 3) * CW: fw = (bw - 6) * CW
+        LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
+        IF frac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
+        LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
+        COLOR GREY, BOXBG: PrintCentered by + 4, "[R] re-roll      [SPACE] continue"
+    END IF
     _PRINTMODE _FILLBACKGROUND
 END SUB
 
