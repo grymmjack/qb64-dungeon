@@ -162,7 +162,6 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     IF opt_sfx THEN DICE3D_SND_VOL = opt_sfxvol / 10 ELSE DICE3D_SND_VOL = 0
     DICE3D_ATLAS_DIE = 96                           ' bake a hi-res atlas so the numerals stay sharp
     SetDiceFont cfg                                 ' apply the chosen dice numeral font
-    Sfx "diceroll"
 
     ' Draw the framed royal-purple header (caption-width) + the roomy tray on CANVAS (crisp).
     _DEST CANVAS: _FONT CH
@@ -172,6 +171,21 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     LINE (tx, ty)-(tx + tw, ty + th), boxedge, B
     COLOR YELLOWU, boxviolet: PrintCentered 10 + DICE3D_YOFF, hdr
     Present
+
+    ' Roll style "hold & shake": the dice have not been thrown yet, so the shake happens
+    ' over the empty tray -- they are still in your hand. Style 2 spends the hold on THROW
+    ' strength as well as spin, which is the 3D analogue of the 2D winding-up spin.
+    IF opt_rollstyle > 0 THEN
+        DIM boost AS SINGLE
+        ShakeWait (ty + th) \ CH + 1
+        boost = ShakeSpinBoost!
+        cfg.SPIN_STRENGTH = cfg.SPIN_STRENGTH * boost
+        cfg.THROW_STRENGTH = cfg.THROW_STRENGTH * boost
+        IF cfg.SPIN_STRENGTH > 60 THEN cfg.SPIN_STRENGTH = 60      ' past this it reads as noise
+        IF cfg.THROW_STRENGTH > 34 THEN cfg.THROW_STRENGTH = 34    ' and this just pins them to a wall
+    END IF
+
+    Sfx "diceroll"                                  ' AFTER any shake -- the rattle is the throw
 
     notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
     IF droplow > 0 THEN notation = notation + "dl" + _TRIM$(STR$(droplow))   ' e.g. 4d6dl1

@@ -93,17 +93,25 @@ Small UI Tweaks:
     ☐ Closer to death make the combat UI move and shake around subtle, as if it's in shock (like graywood UI is the character) @low
 
 Big UI Tweaks:
-    ☐ New Dice option: Roll style: @high
-      ☐ Hold and shake:
-        ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
-      ☐ Hold and shake and spin:
-        ☐ When rolling dice, hold space to keep rolling/shaking/spinning the dice, then let go of space to throw the dice
-        ☐ Use gesture to spin the dice and change it's spin amount - just a fun thing
-    ☐ New Dice option: Box shake: @high
-      ☐ When rolling, draw a fuse (quick one) to allow the dice to be juggled around and shaken in the box, to adjust a bad roll.
-      ☐ Except for nat 1s and fumbles, this will be a fun way to play real dice on a computer
-      ☐ While it's technically cheaty, it could be fun.
-      ☐ You can only shake the box one time per roll
+    ✔ New Dice option: Roll style: @high @done(26-08-01)
+      ✔ SETTINGS "Roll Style": throw (default) / hold [SPACE] to shake / hold to shake + spin @done(26-08-01)
+      ✔ The 2D renderers just REPLAY their pre-settle frame while held (one line each); the 3D @done(26-08-01)
+        ✔ path has no frame loop, so it shakes over the EMPTY tray -- the dice are still in hand @done(26-08-01)
+      ✔ Style 2 turns hold time into spin (2D) and into throw strength as well (3D) @done(26-08-01)
+      ✔ Unattended rolls auto-throw after SHAKE_ARM_SEC, so it can never wait on a key @done(26-08-01)
+    ✔ New Dice option: Box shake: @high @done(26-08-01)
+    ☐ Export the 3D dice meshes as Wavefront OBJ so they can be rendered in Blender @low
+      ☐ Wanted for 2D art: render the game's ACTUAL dice for menus/promo instead of redrawing them
+      ☐ Cheap -- DICE3D_MV already holds the verts and DICE3D_MF the faces, so this is a
+        ☐ writer, not a conversion: `dungeon.run diceobj [set]` -> one .obj + .mtl per die
+      ☐ The face NUMERALS are an atlas, not geometry, so also dump the atlas PNG + per-face UVs
+        ☐ (dice3d_make_atlas already computes them) or the meshes import blank
+      ☐ Include the BEVEL geometry -- opt_diceround changes the mesh, so export at a stated value
+      ✔ Offered from GameRoll -- the single funnel -- so all three renderers inherit it @done(26-08-01)
+      ✔ 1.2s fuse, same widget language as the luck fuse and the gesture gauge @done(26-08-01)
+      ✔ Never offered on a natural 1 or 20 on a single d20: the face IS the outcome, and @done(26-08-01)
+        ✔ re-rolling it would quietly delete crits and fumbles from the game @done(26-08-01)
+      ✔ One re-shake per roll, enforced by the loop counter in GameRoll @done(26-08-01)
     ✔ Add ansi-art into the game where currently only pixel-art exists @done(26-08-01)
       ✔ ROOT CAUSE: it was never an ART gap. The manifest was ALREADY 84 pixel + 84 ansi in @done(26-08-01)
         ✔ parity with 0 missing -- every .ans was on disk. SPRITES.bas simply had three literal @done(26-08-01)

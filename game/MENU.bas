@@ -585,7 +585,8 @@ SUB BuildSetLayout
     ' Column 2 -- DICE, then MONSTER DICE
     SetLayHdr 2, "DICE", prow()
     SetLayRow 2, 7, prow(): SetLayRow 2, 30, prow(): SetLayRow 2, 10, prow(): SetLayRow 2, 11, prow()
-    SetLayRow 2, 12, prow(): SetLayRow 2, 13, prow(): SetLayRow 2, 38, prow(): SetLayRow 2, 39, prow()
+    SetLayRow 2, 12, prow(): SetLayRow 2, 13, prow(): SetLayRow 2, 57, prow(): SetLayRow 2, 58, prow()
+    SetLayRow 2, 38, prow(): SetLayRow 2, 39, prow()
     SetLayRow 2, 31, prow(): SetLayRow 2, 33, prow(): SetLayRow 2, 8, prow(): SetLayRow 2, 9, prow()
     SetLayRow 2, 36, prow()                          ' Action Gestures: a timing-bar mechanic, and
 '                                                     column 3 ran into the 3D dice preview strip
@@ -653,7 +654,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 56                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 58                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -687,6 +688,11 @@ SUB RunSettings
                     opt_dicespeed = opt_dicespeed + delta
                     IF opt_dicespeed < 0 THEN opt_dicespeed = 3
                     IF opt_dicespeed > 3 THEN opt_dicespeed = 0
+                    Sfx "select"
+                CASE 57
+                    opt_rollstyle = opt_rollstyle + delta
+                    IF opt_rollstyle < 0 THEN opt_rollstyle = 2
+                    IF opt_rollstyle > 2 THEN opt_rollstyle = 0
                     Sfx "select"
                 CASE 16
                     num_players = num_players + delta
@@ -805,6 +811,10 @@ SUB RunSettings
                 CASE 13
                     opt_dicespeed = opt_dicespeed + 1
                     IF opt_dicespeed > 3 THEN opt_dicespeed = 0
+                CASE 57
+                    opt_rollstyle = opt_rollstyle + 1
+                    IF opt_rollstyle > 2 THEN opt_rollstyle = 0
+                CASE 58: opt_boxshake = NOT opt_boxshake
                 CASE 14: opt_oldschool = NOT opt_oldschool
                 CASE 52: opt_tactical = NOT opt_tactical
                 CASE 53
@@ -937,6 +947,16 @@ SUB RunSettings
                         CASE 3: vtxt = "instant"
                         CASE ELSE: vtxt = "normal"
                     END SELECT
+                CASE 57
+                    lbl = "  Roll Style": slider = TRUE
+                    SELECT CASE opt_rollstyle
+                        CASE 1: vtxt = "hold [SPACE] to shake"
+                        CASE 2: vtxt = "hold to shake + spin"
+                        CASE ELSE: vtxt = "throw"
+                    END SELECT
+                CASE 58
+                    lbl = "  Box Shake"
+                    IF opt_boxshake THEN vtxt = "ON (one re-shake)" ELSE vtxt = "off"
                 CASE 14
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
