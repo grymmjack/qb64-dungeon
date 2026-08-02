@@ -410,6 +410,16 @@ DIM SHARED DICE3D_YOFF AS INTEGER      ' rows to shift the 3D dice tray down (0 
 ' Deliberately generic and engine-side: the game sets it while auto-combat runs, but an attract
 ' mode, a demo or a headless capture all want exactly the same thing, and none of them should
 ' have to know what combat is.
+' --- NINE-GRID UI FRAMES (engine GDK, see engine/NINEGRID.bas) ---
+' Cache of frame ANSIs rendered at the UI cell. Small on purpose: a game has a handful of
+' frame styles, not hundreds.
+CONST NG_MAX = 12
+DIM SHARED NG_PATH(1 TO NG_MAX) AS STRING
+DIM SHARED NG_IMG(1 TO NG_MAX) AS LONG
+DIM SHARED NG_N AS INTEGER
+' The shipped frame's tile size, in CHARACTER cells -- the authored art is 3x these.
+CONST NG_TILEW = 4
+CONST NG_TILEH = 2
 DIM SHARED ui_autoadvance AS SINGLE
 DIM SHARED opt_rollstyle AS INTEGER
 CONST SHAKE_ARM_SEC = 2.5              ' if nobody grabs SPACE within this, throw anyway
