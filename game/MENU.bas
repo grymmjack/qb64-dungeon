@@ -571,6 +571,18 @@ END SUB
 ' row, grouped by category with a header before each group. The per-option label/value logic
 ' (the SELECT CASE i blocks) is unchanged -- this only decides WHERE each row draws + how the
 ' cursor moves. Rebuilt each time SETTINGS opens (cheap).
+' The row the dice previews start on.
+'
+' From the bottom of columns 1 and 2 ONLY -- the two the previews sit under. Using the LONGEST
+' column (3: RULES + DISPLAY & ART) pushed them to the floor of the screen and kept pushing as
+' options were added, which is what "the dice are too far down" was.
+FUNCTION DicePreviewRow% ()
+    DIM b AS INTEGER
+    b = SL_COLBOT(1)
+    IF SL_COLBOT(2) > b THEN b = SL_COLBOT(2)
+    DicePreviewRow% = b + 3
+END FUNCTION
+
 SUB BuildSetLayout
     DIM prow(1 TO NSCOL) AS INTEGER, col AS INTEGER
     SL_COLX(1) = 1: SL_COLX(2) = 45: SL_COLX(3) = 89
@@ -606,6 +618,7 @@ SUB BuildSetLayout
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
     SL_MAXROW = 0
     FOR col = 1 TO NSCOL
+        SL_COLBOT(col) = prow(col)
         IF prow(col) > SL_MAXROW THEN SL_MAXROW = prow(col)
     NEXT col
 END SUB
@@ -1183,11 +1196,11 @@ SUB RunSettings
         NEXT i
         ' live dice previews in the free strip BELOW the columns (repositioned to row 31)
         IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
-            DrawDice3DPreviewAt 100, " your 3D dice", SL_MAXROW + 3, PREV3D_P, DSET3D(dice3d_set_index%(20))
-            DrawDice3DPreviewAt 4, " monster 3D dice", SL_MAXROW + 3, PREV3D_M, MSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 4, " your 3D dice", DicePreviewRow%, PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 46, " monster 3D dice", DicePreviewRow%, PREV3D_M, MSET3D(dice3d_set_index%(20))
         ELSE                                                    ' font dice: the live 2x3 sample grid
-            DrawDicePreview 100, " your dice", SL_MAXROW + 3
-            PushMonsterDice: DrawDicePreview 4, " monster dice", SL_MAXROW + 3: PopMonsterDice
+            DrawDicePreview 4, " your dice", DicePreviewRow%
+            PushMonsterDice: DrawDicePreview 46, " monster dice", DicePreviewRow%: PopMonsterDice
         END IF
         COLOR CYANU, BLACK: PrintCentered 50, "up/down move    left/right adjust    TAB/shift-TAB column    ENTER cycle    ESC back"
         Present
