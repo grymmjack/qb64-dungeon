@@ -323,8 +323,14 @@ FUNCTION dice3d_make_atlas& (cfg AS DICE3D_CONFIG, bodyKol AS _UNSIGNED LONG, mo
             IF f <= UBOUND(DICE3D_FACE_ROOM) THEN
                 IF DICE3D_FACE_ROOM(f) > 0 THEN room = DICE3D_FACE_ROOM(f) / 0.5
             END IF
+            ' Apply only PART of the correction. The full inradius ratio is 1.41x on a square
+            ' and 1.62x on a pentagon, and at full strength the d6 read a little large and the
+            ' d12 far too large -- because the 0.72 tile baseline was already generous for a
+            ' triangle, whose corners are empty anyway. A third of the difference lands the
+            ' broader faces just above the triangles, which is what "the same size" looks like.
+            room = 1! + (room - 1!) * DICE3D_NUM_ROOMK
             IF room < 1! THEN room = 1!             ' never SHRINK below the triangle baseline
-            IF room > 1.7 THEN room = 1.7           ' and never let a broad face swallow its edge
+            IF room > 1.25 THEN room = 1.25         ' and never let a broad face swallow its edge
             hh = INT(DICE3D_TILE * cfg.NUM_SCALE * 0.72 * room)
             dice3d_stamp_num img, DICE3D_TILE \ 2, ty + DICE3D_TILE \ 2, lab, hh, cfg.NUM_KOLOR, cfg.FONT_HANDLE
         END IF

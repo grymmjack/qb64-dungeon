@@ -17,6 +17,8 @@ $INCLUDEONCE
 
 CONST DICE3D_TILE = 128
 CONST DICE3D_MARGIN = 12
+CONST DICE3D_NUM_ROOMK = 0.18 '    how much of the per-face numeral correction to apply
+'                                  (1.0 = full inradius ratio, which overshoots badly)
 CONST DICE3D_D10_WAIST = 0.78 '    d10 squatness: 0.5 = equilateral spike, higher = fatter
 CONST DICE3D_BEVEL_SEG = 5 '        bevel arc segments per edge (more = smoother round)
 
