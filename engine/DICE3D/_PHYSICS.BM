@@ -171,7 +171,7 @@ SUB dice3d_showcase (cfg AS DICE3D_CONFIG)
     ' still reads as solid because the three visible faces are foreshortened differently.
     DIM lean AS SINGLE
     lean = cfg.D4_LEAN
-    IF lean = 0 THEN lean = 8                    ' unset (an old set file): tip AWAY, not toward
+    IF lean = 0 THEN lean = 20                    ' unset (an old set file): tip AWAY, not toward
     axisX.X = 1: axisX.Y = 0: axisX.Z = 0
     dice3d_qaxisangle axisX, (90 + cfg.CAM_TILT + lean) * 0.0174532925, rxt
     REDIM AS DICE3D_QUAT sq(lo TO hi)

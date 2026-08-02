@@ -96,6 +96,9 @@ CONST DICE3D_SS = 2          ' (settings preview only) supersample the static pr
 ' from DIE_SIZE so a die renders at exactly its physics footprint.
 CONST DICE3D_HW_ZBASE = -5.0
 CONST DICE3D_HW_PXPERUNIT = 103.0
+' How far the INVISIBLE physics box sits inside the drawn tray, in WINDOW pixels per side.
+' Purely feel: bigger keeps the dice further from the painted border.
+CONST DICE3D_BOX_INSET = 50
 
 ' droplow > 0 rolls N dice but keeps the top (N - droplow) -- e.g. Show3DRoll(4,6,0,1,..)
 ' is the classic 4d6-drop-lowest ability roll. The DICE3D module owns the mechanic: we
@@ -166,7 +169,21 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     th = 132
     tx = (SW * CW - tw) \ 2
     ty = (12 + DICE3D_YOFF) * CH                    ' DICE3D_YOFF shifts the whole tray down (char-gen clears the stat sheet)
-    cfg.BOX_W = tw: cfg.BOX_H = th                 ' physics tray (box pixels == screen pixels)
+    ' PHYSICS BOX, inset from the DRAWN tray. The dice bounce off the box; the tray is only a
+    ' picture. Insetting the box keeps the dice off the painted edge -- they used to settle
+    ' half-over the border because the two were the same rectangle.
+    '
+    ' The inset is given in WINDOW pixels because that is what you actually see, and converted to
+    ' canvas pixels here: at fullscreen the canvas is scaled up, so a fixed canvas inset would
+    ' look bigger the larger the window got.
+    '
+    ' Floored so the box can never collapse: it must stay wide enough for the dice to have
+    ' somewhere to go, or they pile up in the middle with nothing to bounce off.
+    DIM inset AS INTEGER, minw AS INTEGER, minh AS INTEGER
+    inset = DICE3D_BOX_INSET / PresentScale!
+    minw = cfg.DIE_SIZE * 4: minh = cfg.DIE_SIZE * 3
+    cfg.BOX_W = tw - inset * 2: IF cfg.BOX_W < minw THEN cfg.BOX_W = minw
+    cfg.BOX_H = th - inset * 2: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
     IF hbw > SW * CW - 20 THEN hbw = SW * CW - 20
