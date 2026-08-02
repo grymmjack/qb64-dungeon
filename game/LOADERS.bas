@@ -338,6 +338,7 @@ SUB LoadUIFrames
                 UIFRAME_TH(UIFRAME_N) = VAL(DField$(DLINE(i), 4))
                 IF UIFRAME_TW(UIFRAME_N) < 1 THEN UIFRAME_TW(UIFRAME_N) = 1
                 IF UIFRAME_TH(UIFRAME_N) < 1 THEN UIFRAME_TH(UIFRAME_N) = 1
+                UIFRAME_FILL(UIFRAME_N) = FillMode%(DField$(DLINE(i), 5))
             END IF
         END IF
     NEXT i
@@ -360,7 +361,18 @@ SUB PublishUIFrame (slot AS INTEGER, nm AS STRING)
     i = FrameIdx%(nm): IF i = 0 THEN EXIT SUB
     p = FrameArt$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT SUB
     UI_FRAME_PATH(slot) = p: UI_FRAME_TW(slot) = UIFRAME_TW(i): UI_FRAME_TH(slot) = UIFRAME_TH(i)
+    UI_FRAME_FILL(slot) = UIFRAME_FILL(i)
 END SUB
+
+' `fill` column -> NGF_*. Defaults to BOXBG, which is what makes a frame safe to use straight
+' from an artist's mock-up: whatever colour sits in the middle of the art stays out of the game.
+FUNCTION FillMode% (s AS STRING)
+    SELECT CASE LCASE$(_TRIM$(s))
+        CASE "tile", "art": FillMode% = NGF_TILE
+        CASE "none", "clear": FillMode% = NGF_NONE
+        CASE ELSE: FillMode% = NGF_BOXBG
+    END SELECT
+END FUNCTION
 
 FUNCTION FrameIdx% (nm AS STRING)
     DIM i AS INTEGER
@@ -383,7 +395,7 @@ FUNCTION FrameBox% (nm AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGE
     DIM i AS INTEGER, p AS STRING
     i = FrameIdx%(nm): IF i = 0 THEN EXIT FUNCTION
     p = FrameArt$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT FUNCTION
-    FrameBox% = NineGridBox%(p, UIFRAME_TW(i), UIFRAME_TH(i), col, row, cols, rows)
+    FrameBox% = NineGridBox%(p, UIFRAME_TW(i), UIFRAME_TH(i), col, row, cols, rows, UIFRAME_FILL(i))
 END FUNCTION
 
 ' The content rect of a registered frame -- where text may safely go.

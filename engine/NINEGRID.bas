@@ -134,7 +134,7 @@ END FUNCTION
 FUNCTION UiPanel% (slot AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
     DIM s AS INTEGER
     s = UiSlot%(slot): IF s < 0 THEN EXIT FUNCTION
-    UiPanel% = NineGridBox%(UI_FRAME_PATH(s), UI_FRAME_TW(s), UI_FRAME_TH(s), col, row, cols, rows)
+    UiPanel% = NineGridBox%(UI_FRAME_PATH(s), UI_FRAME_TW(s), UI_FRAME_TH(s), col, row, cols, rows, UI_FRAME_FILL(s))
 END FUNCTION
 
 ' The content rect for the current frame -- or a 1-cell inset when there is no frame, which is
@@ -159,7 +159,13 @@ END SUB
 SUB UiPanelWipe (slot AS INTEGER, px AS INTEGER, py AS INTEGER, pw AS INTEGER, ph AS INTEGER)
     DIM s AS INTEGER
     s = UiSlot%(slot): IF s < 0 THEN EXIT SUB
-    NineGridTile NineGridLoad&(UI_FRAME_PATH(s)), UI_FRAME_TW(s), UI_FRAME_TH(s), 1, 1, px, py, pw, ph
+    ' Must match what the panel was FILLED with, or wiping a strip leaves a patch that does not
+    ' belong to the panel it sits in.
+    IF UI_FRAME_FILL(s) = NGF_TILE THEN
+        NineGridTile NineGridLoad&(UI_FRAME_PATH(s)), UI_FRAME_TW(s), UI_FRAME_TH(s), 1, 1, px, py, pw, ph
+    ELSEIF UI_FRAME_FILL(s) = NGF_BOXBG THEN
+        LINE (px, py)-(px + pw, py + ph), BOXBG, BF
+    END IF
 END SUB
 
 ' Grow a box so its CONTENT rect lands exactly where a one-cell-bordered box used to put it.
@@ -179,6 +185,22 @@ SUB FrameOutset (slot AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGE
     fcols = cols - 2 + 2 * UI_FRAME_TW(s): frows = rows - 2 + 2 * UI_FRAME_TH(s)
 END SUB
 
+' A small modal prompt panel (the luck fuse, the box-shake fuse). Grown outward like the rest,
+' and it draws the LINE box itself when there is no art or no room -- so a caller is one IF, and
+' the fallback cannot be forgotten at one of the two call sites.
+FUNCTION PromptPanel% (col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, edge AS _UNSIGNED LONG)
+    DIM fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER, ok AS INTEGER
+    IF UiFramed%(UIF_PROMPT) THEN
+        FrameOutset UIF_PROMPT, col, row, cols, rows, fx, fy, fw, fh
+        IF fx >= 0 AND fy >= 0 AND fx + fw <= SW AND fy + fh <= SH THEN ok = UiPanel%(UIF_PROMPT, fx, fy, fw, fh)
+    END IF
+    IF ok = 0 THEN
+        LINE (col * CW, row * CH)-((col + cols) * CW, (row + rows) * CH), BOXBG, BF
+        LINE (col * CW, row * CH)-((col + cols) * CW, (row + rows) * CH), edge, B
+    END IF
+    PromptPanel% = ok
+END FUNCTION
+
 ' Where the CONTENT goes -- the blue middle of the 9-grid, in CHARACTER cells.
 '
 ' Every caller needs this and none of them should compute it: the inset is the CORNER size, so
@@ -196,7 +218,7 @@ END SUB
 
 ' Draw a framed box at character coordinates (col,row) spanning cols x rows cells.
 ' TRUE if it drew; FALSE if the frame art is missing, so a caller can fall back to LINE boxes.
-FUNCTION NineGridBox% (path AS STRING, tw AS INTEGER, th AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
+FUNCTION NineGridBox% (path AS STRING, tw AS INTEGER, th AS INTEGER, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, fmode AS INTEGER)
     DIM img AS LONG, x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER
     DIM cw2 AS INTEGER, ch2 AS INTEGER, midw AS INTEGER, midh AS INTEGER
     NineGridBox% = 0
@@ -208,7 +230,14 @@ FUNCTION NineGridBox% (path AS STRING, tw AS INTEGER, th AS INTEGER, col AS INTE
     cw2 = tw * CW: ch2 = th * CH
     midw = w - 2 * cw2: midh = h - 2 * ch2
     _DEST CANVAS
-    NineGridTile img, tw, th, 1, 1, x + cw2, y + ch2, midw, midh      ' centre first, under everything
+    ' The CONTENT fill, first, under everything. Not always the art's centre tile: a frame is
+    ' often drawn with a MARKER colour in the middle to show where content goes, and painting
+    ' that would put the marker on screen.
+    SELECT CASE fmode
+        CASE NGF_TILE: NineGridTile img, tw, th, 1, 1, x + cw2, y + ch2, midw, midh
+        CASE NGF_NONE: ' leave it -- whatever is behind the panel shows through
+        CASE ELSE: LINE (x + cw2, y + ch2)-(x + cw2 + midw, y + ch2 + midh), BOXBG, BF
+    END SELECT
     NineGridTile img, tw, th, 1, 0, x + cw2, y, midw, ch2             ' top
     NineGridTile img, tw, th, 1, 2, x + cw2, y + h - ch2, midw, ch2   ' bottom
     NineGridTile img, tw, th, 0, 1, x, y + ch2, cw2, midh             ' left

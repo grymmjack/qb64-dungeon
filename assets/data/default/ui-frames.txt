@@ -26,18 +26,24 @@
 # frames/combat.png in Pixel mode. A .png frame must be authored at the SAME on-screen size:
 # (3 x tilew x 8) by (3 x tileh x 16) pixels. Ship either, or both.
 #
+# fill = what goes in the CONTENT area:
+#   boxbg  the game's flat panel colour (DEFAULT). Use this while the middle of your art is a
+#          mock-up colour marking where content goes -- the marker never reaches the screen.
+#   tile   the art's own centre tile, for a textured panel (stone, parchment, iron plate).
+#   none   nothing; whatever is behind the panel shows through.
+#
 # EVERY CONTEXT HAS ITS OWN FILE so they can diverge artistically -- heavy iron around combat, a
 # lighter scroll for the banner -- with no code change. `dungeon.run framegen` seeds any missing
 # one with a copy of the base panel and NEVER overwrites art that already exists.
-name       | file                    | tilew | tileh
-panel      | frames/gdk-panel        | 4     | 2
-banner     | frames/banner           | 4     | 2
-roll       | frames/roll             | 4     | 2
-gauge      | frames/gauge            | 4     | 2
-prompt     | frames/prompt           | 4     | 2
-summary    | frames/summary          | 4     | 2
-eventlog   | frames/eventlog         | 4     | 2
-bestiary   | frames/bestiary         | 4     | 2
-treasury   | frames/treasury         | 4     | 2
-gamemenu   | frames/gamemenu         | 4     | 2
-charsheet  | frames/charsheet        | 4     | 2
+name       | file                    | tilew | tileh | fill
+panel      | frames/gdk-panel        | 4     | 2     | boxbg
+banner     | frames/banner           | 4     | 2     | boxbg
+roll       | frames/roll             | 4     | 2     | boxbg
+gauge      | frames/gauge            | 4     | 2     | boxbg
+prompt     | frames/prompt           | 4     | 2     | boxbg
+summary    | frames/summary          | 4     | 2     | boxbg
+eventlog   | frames/eventlog         | 4     | 2     | boxbg
+bestiary   | frames/bestiary         | 4     | 2     | boxbg
+treasury   | frames/treasury         | 4     | 2     | boxbg
+gamemenu   | frames/gamemenu         | 4     | 2     | boxbg
+charsheet  | frames/charsheet        | 4     | 2     | boxbg

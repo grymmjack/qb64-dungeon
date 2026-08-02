@@ -612,6 +612,27 @@ END SUB
 ' fixed beat (a held key can't blow through, which is what made combat feel too
 ' fast); Wait-for-key falls back to WaitKey. Keys pressed during a timed pause are
 ' drained afterwards so they don't spill into the next prompt or trigger a round.
+' The dice tray, framed. Takes PIXEL bounds because both roll renderers work in pixels (the
+' dice bounce off the walls), and converts to cells for the 9-grid.
+'
+' Note it does NOT restore _PRINTMODE: the tray is redrawn every animation frame and the text on
+' it is drawn immediately after, so the caller's own loop owns the restore.
+FUNCTION RollTray% (px1 AS INTEGER, py1 AS INTEGER, px2 AS INTEGER, py2 AS INTEGER)
+    DIM c1 AS INTEGER, r1 AS INTEGER, cw2 AS INTEGER, rh AS INTEGER
+    DIM fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER, ok AS INTEGER
+    c1 = px1 \ CW: r1 = py1 \ CH
+    cw2 = (px2 - px1) \ CW: rh = (py2 - py1) \ CH
+    IF UiFramed%(UIF_ROLL) THEN
+        FrameOutset UIF_ROLL, c1, r1, cw2, rh, fx, fy, fw, fh
+        IF fx >= 0 AND fy >= 0 AND fx + fw <= SW AND fy + fh <= SH THEN ok = UiPanel%(UIF_ROLL, fx, fy, fw, fh)
+    END IF
+    IF ok = 0 THEN
+        LINE (px1, py1)-(px2, py2), BOXBG, BF
+        LINE (px1, py1)-(px2, py2), REDU, B
+    END IF
+    RollTray% = ok
+END FUNCTION
+
 SUB CombatPause
     DIM f AS INTEGER, maxf AS INTEGER
     ' NOTE: do NOT drain the buffer up front -- a key you pressed while the dice
@@ -990,8 +1011,7 @@ FUNCTION RollPips% (n AS INTEGER, droplow AS INTEGER, bonus AS INTEGER, caption 
         ShakeReset
         FOR f = 1 TO frames
             _DEST CANVAS
-            LINE (x1, ytop)-(x2, ybot), BOXBG, BF
-            LINE (x1, ytop)-(x2, ybot), REDU, B
+            IF RollTray%(x1, ytop, x2, ybot) THEN _PRINTMODE _KEEPBACKGROUND
             IF LEN(hdr) > 0 THEN
                 _FONT CH
                 COLOR CYANU, BOXBG: PrintCentered ytop \ CH + 1, hdr
@@ -1357,14 +1377,14 @@ SUB DrawBoxShakePrompt (raw AS INTEGER, sides AS INTEGER, frac AS SINGLE)
     bx = 40: bw = 52: by = 32: bh = 5
     _DEST CANVAS
     _FONT CH
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), CYANU, B
+    IF PromptPanel%(bx, by, bw, bh, CYANU) THEN _PRINTMODE _KEEPBACKGROUND
     COLOR CYANU, BOXBG: PrintCentered by + 1, "Shake the box?  [B]"
     COLOR GREY, BOXBG: PrintCentered by + 2, "you rolled " + _TRIM$(STR$(raw)) + " of " + _TRIM$(STR$(sides))
     fx = (bx + 3) * CW: fw = (bw - 6) * CW
     LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
     IF frac > 0.35 THEN fcol = _RGB32(70, 150, 170) ELSE fcol = _RGB32(220, 60, 50)
     LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
+    _PRINTMODE _FILLBACKGROUND
 END SUB
 
 
@@ -1539,8 +1559,9 @@ FUNCTION ShowRollTextEx% (n AS INTEGER, sides AS INTEGER, droplow AS INTEGER, bo
     ShakeReset
     FOR f = 1 TO frames
         _DEST CANVAS
-        LINE (x1, y1)-(x2, y2), BOXBG, BF
-        LINE (x1, y1)-(x2, y2), REDU, B
+        ' The dice tray is drawn from PIXEL coords (the dice bounce in pixels), so the frame is
+        ' asked for in cells derived from them. Falls back to the LINE box as everywhere else.
+        IF RollTray%(x1, y1, x2, y2) THEN _PRINTMODE _KEEPBACKGROUND
         _FONT CH
         COLOR CYANU, BOXBG: PrintCentered y1 \ CH + 1, hdr
         IF f = settle THEN

@@ -427,6 +427,15 @@ CONST BNR_ROWS = 9
 '
 ' The GAME fills the slots (PublishUIFrames). An empty slot falls back to slot 0, and an empty
 ' slot 0 falls back to the plain LINE box every panel drew before frames existed.
+' What fills a frame's CONTENT area -- the middle of the 9-grid.
+'   NGF_TILE   the art's own centre tile. For a textured panel (stone, parchment).
+'   NGF_BOXBG  the game's flat panel colour. The safe default: readable, and it means the
+'              centre of the art can be anything (a measurement marker, a mock-up colour)
+'              without that leaking onto the screen.
+'   NGF_NONE   nothing -- whatever is behind the panel shows through.
+CONST NGF_TILE = 0
+CONST NGF_BOXBG = 1
+CONST NGF_NONE = 2
 CONST UIF_PANEL = 0                    ' the generic fallback
 CONST UIF_BANNER = 1                   ' the message bar
 CONST UIF_ROLL = 2                     ' the dice roll box
@@ -435,6 +444,7 @@ CONST UIF_PROMPT = 4                   ' modal fuse prompts (luck, box shake)
 CONST UIF_SLOTS = 5
 DIM SHARED UI_FRAME_PATH(0 TO UIF_SLOTS - 1) AS STRING
 DIM SHARED UI_FRAME_TW(0 TO UIF_SLOTS - 1) AS INTEGER, UI_FRAME_TH(0 TO UIF_SLOTS - 1) AS INTEGER
+DIM SHARED UI_FRAME_FILL(0 TO UIF_SLOTS - 1) AS INTEGER
 CONST NG_MAX = 12
 DIM SHARED NG_PATH(1 TO NG_MAX) AS STRING
 DIM SHARED NG_IMG(1 TO NG_MAX) AS LONG

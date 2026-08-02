@@ -1625,8 +1625,7 @@ SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS 
     DIM fx AS INTEGER, fw AS INTEGER, fcol AS _UNSIGNED LONG, lbl AS STRING
     bx = 40: bw = 52: by = 32: bh = 5
     _DEST CANVAS
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), BOXBG, BF
-    LINE (bx * CW, by * CH)-((bx + bw) * CW, (by + bh) * CH), YELLOWU, B
+    IF PromptPanel%(bx, by, bw, bh, YELLOWU) THEN _PRINTMODE _KEEPBACKGROUND
     lbl = _TRIM$(STR$(luck_left)) + "/" + _TRIM$(STR$(luck_max)) + "   Use Luck [R]e-Roll?"
     COLOR YELLOWU, BOXBG: PrintCentered by + 1, lbl
     COLOR GREY, BOXBG: PrintCentered by + 2, "you rolled " + _TRIM$(STR$(raw)) + " of " + _TRIM$(STR$(sides)) + "  (total " + _TRIM$(STR$(total)) + ")"
@@ -1636,6 +1635,7 @@ SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS 
     LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
     IF frac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
     LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
+    _PRINTMODE _FILLBACKGROUND
 END SUB
 
 
