@@ -75,7 +75,7 @@ SUB ReviveOrForfeit (rm AS INTEGER)
     END IF
     BloodDrip                                      ' the red death wipe -> black
     c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
-    player_hp = player_maxhp                        ' revived, made whole again, at the entrance
+    HealPlayer player_maxhp                         ' revived, made whole again, at the entrance
     start_heal_locked = TRUE                        ' the resurrection IS the heal -- don't re-grant it on the next step
     cursor_erase: cursor_draw: FadeInCurrent        ' the dungeon fades back in at START
     Sfx "levelup"
@@ -215,6 +215,7 @@ SUB WizardCastOldschool (rm AS INTEGER, elem AS STRING)
     DIM sec AS INTEGER, mon AS STRING
     sec = ROOMS(rm).sec: mon = _TRIM$(ROOMS(rm).monster)
     IF elem = "fire" THEN spell_fire = spell_fire - 1 ELSE spell_bolt = spell_bolt - 1
+    RecordItemUsed elem + " spell"
     Sfx SpellSfx$(elem)
     IF MonsterImmune%(mon, elem) THEN
         Banner "You hurl a " + SpellLabel$(elem) + "!", "The " + mon + " is IMMUNE to " + elem + " -- the spell fizzles!   [ press any key ]"
@@ -507,7 +508,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
-                tot_dealt = tot_dealt + dmg
+                tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"
                 DrawCombatPanel rm, mon, lead     ' drain the HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.6, 0
@@ -539,7 +540,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 END IF
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
-                tot_dealt = tot_dealt + dmg
+                tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 ' A crit that FINISHES the monster earns the killcrit aftermath text rather than
                 ' the quiet death line. Read here, consumed by ClaimTreasure.
                 IF ROOMS(rm).mhp_now <= 0 THEN fx_critkill = TRUE
@@ -573,7 +574,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF dmg < 1 THEN dmg = 1
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
-                tot_dealt = tot_dealt + dmg
+                tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
                 Sfx "hit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
@@ -592,7 +593,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                             ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - (cdmg - dmg)
                             IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                             IF ROOMS(rm).mhp_now <= 0 THEN fx_critkill = TRUE
-                            tot_dealt = tot_dealt + (cdmg - dmg)
+                            tot_dealt = tot_dealt + (cdmg - dmg): RecordDamage (cdmg - dmg)
                             RecordCrit mon, cdmg
                             DrawCombatPanel rm, mon, lead
                             IF opt_juice THEN CritBoom cdmg
@@ -1152,7 +1153,7 @@ SUB GrantLevelClear (lvl AS INTEGER)
         hpgain = GameRoll(1, CLASSES(player_class).hitdie, AbilMod(player_con), "LEVEL UP! roll your hit die")
         IF hpgain < 1 THEN hpgain = 1
         player_maxhp = player_maxhp + hpgain
-        player_hp = player_maxhp                    ' fully restored on level-up
+        HealPlayer player_maxhp                     ' fully restored on level-up
         Sfx "key"
         DIM lusay AS STRING
         lusay = LevelUpSaying$
@@ -1216,8 +1217,7 @@ SUB UsePotion (silentIfNone AS INTEGER)
         heal = GameRoll(1, POTION_LARGE_DIE, POTION_LARGE_BONUS, "LARGE HEALING POTION")
     END IF
     IF heal < 1 THEN heal = 1
-    player_hp = player_hp + heal
-    IF player_hp > player_maxhp THEN player_hp = player_maxhp
+    HealPlayer heal
     Sfx "treasure"
     Banner "You quaff the potion and recover " + _TRIM$(STR$(heal)) + " HP.", "Now at " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + " HP.   [ press any key ]"
     CombatPause
@@ -1434,7 +1434,20 @@ FUNCTION FlourishReady%
 END FUNCTION
 
 ' Spend one, floored at zero.
+' The one place the player's HP goes UP. Five call sites each did the add and the clamp by
+' hand, which is how "damage healed" would have quietly missed whichever one was added next.
+' Records the ACTUAL gain, not the amount offered -- healing 6 at 2 HP from a max of 5 is 3.
+SUB HealPlayer (amt AS INTEGER)
+    DIM before AS INTEGER
+    IF amt <= 0 THEN EXIT SUB
+    before = player_hp
+    player_hp = player_hp + amt
+    IF player_hp > player_maxhp THEN player_hp = player_maxhp
+    RecordHealed player_hp - before
+END SUB
+
 SUB FlourishSpend
+    RecordFlourish
     flourish_left = flourish_left - 1
     IF flourish_left < 0 THEN flourish_left = 0
 END SUB

@@ -443,6 +443,7 @@ SUB SaveSettings
     PRINT #f, "d6pips " + _TRIM$(STR$(opt_d6pips))
     PRINT #f, "dicespeed " + _TRIM$(STR$(opt_dicespeed))
     PRINT #f, "rollstyle " + _TRIM$(STR$(opt_rollstyle))
+    PRINT #f, "statsoverlay " + _TRIM$(STR$(opt_statsoverlay))
     PRINT #f, "boxshake " + _TRIM$(STR$(opt_boxshake))
     PRINT #f, "dicelight " + _TRIM$(STR$(opt_dicelight))
     PRINT #f, "diceround " + _TRIM$(STR$(opt_diceround))
@@ -519,6 +520,7 @@ SUB LoadSettings
                 CASE "d6pips": opt_d6pips = v
                 CASE "dicespeed": opt_dicespeed = v
                 CASE "rollstyle": opt_rollstyle = v
+                CASE "statsoverlay": opt_statsoverlay = v
                 CASE "boxshake": opt_boxshake = v
                 CASE "dicelight": opt_dicelight = v
                 CASE "diceround": opt_diceround = v

@@ -60,8 +60,7 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
             IF player_hp >= 1 AND player_hp < (player_maxhp * 3) \ 4 THEN
                 DIM healed AS INTEGER
                 healed = player_hp
-                player_hp = player_hp + hp_start_amount
-                IF player_hp > player_maxhp THEN player_hp = player_maxhp
+                HealPlayer hp_start_amount
                 healed = player_hp - healed        ' what the rest ACTUALLY restored, after the cap
                 start_heals = start_heals + 1
                 start_heal_locked = TRUE           ' one heal per trip out; leaving clears it

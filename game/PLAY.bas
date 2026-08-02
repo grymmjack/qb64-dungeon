@@ -544,6 +544,7 @@ SUB ChamberEncounter (cid AS INTEGER)
     IF NOT ROOMS(w).malive THEN CHM_DEAD(cid) = CHM_DEAD(cid) + 1   ' slain -> one more grave (up to 3)
     ROOMS(w).is_chamber = FALSE
     IF CHM_DEAD(cid) >= 3 THEN
+        RecordChamberCleared
         Sfx "levelup"
         Banner "The " + _TRIM$(CHM_NAME(cid)) + " is cleared!", "Three graves mark your victory here.   [ press any key ]"
         WaitKey
@@ -851,8 +852,7 @@ SUB DoRest
         ' corridor would turn a set-piece fight into an accident -- it simply cannot happen.
         WanderEncounter
     ELSE
-        player_hp = player_hp + 1
-        IF player_hp > player_maxhp THEN player_hp = player_maxhp
+        HealPlayer 1
         Sfx "levelup"
         g_rests = g_rests + 1
     END IF

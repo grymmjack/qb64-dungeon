@@ -533,6 +533,22 @@ DIM SHARED g_crits AS INTEGER, g_fumbles AS INTEGER, g_wander_enc AS INTEGER, g_
 ' by RecordCrit). Drives the post-fight healing-potion reward -- see CritPotionReward.
 DIM SHARED combat_crits AS INTEGER
 DIM SHARED g_gold_found AS LONG, g_secret_tries AS INTEGER
+' -- the rest of the run scorecard (Game Summary + the death screen) --
+' NOT here: turns taken and distance travelled. `turn_num` and `moves_made` already carry both,
+' are already reset per run, and are already in the save -- so a g_turns/g_distance pair would
+' have been a second source of truth that silently disagreed after any load.
+' SETTINGS "Stats Overlay" -- the live run scorecard on the board, toggled in-game with TAB
+' (the scoreboard key, which is what a stats overlay IS). TAB used to be "where am I?"; that
+' moved to [L]ocate rather than inventing a third key for the thing people already reach for.
+CONST STATROW_N = 24                    ' rows in the run scorecard (StatRowLabel$/StatRowValue$)
+DIM SHARED opt_statsoverlay AS INTEGER
+DIM SHARED g_rooms_cleared AS INTEGER   ' rooms whose monster you killed (NOT chamber spawns)
+DIM SHARED g_chambers_cleared AS INTEGER
+DIM SHARED g_max_level AS INTEGER       ' deepest level actually stood on
+DIM SHARED g_items_used AS INTEGER      ' potions drunk, scrolls cast, teleports spent
+DIM SHARED g_flourishes AS INTEGER      ' gestures landed (hit or crit zone)
+DIM SHARED g_dmg_dealt AS LONG, g_dmg_healed AS LONG
+DIM SHARED g_streak AS INTEGER, g_streak_best AS INTEGER   ' consecutive kills; broken by death or flight
 CONST MAXEVLOG = 600
 REDIM SHARED EVLOG(1 TO MAXEVLOG) AS STRING
 DIM SHARED EVLOG_N AS INTEGER
@@ -556,6 +572,10 @@ DIM SHARED TRE_STAT_N AS INTEGER
 '     plus the category header list. Filled by BuildSetLayout each time SETTINGS opens. ---
 CONST NSCOL = 3                                  ' number of option columns
 DIM SHARED SL_COLX(1 TO NSCOL) AS INTEGER        ' left cell-column x of each option column
+' The first free row BELOW the longest settings column. The dice previews sit under the list,
+' and the list grows -- hardcoding their row meant adding one option silently drew the preview
+' caption through the last row of column 3. Derived in BuildSetLayout so it self-adjusts.
+DIM SHARED SL_MAXROW AS INTEGER
 DIM SHARED SL_COL(1 TO 64) AS INTEGER            ' per option id: which column (1..NSCOL)
 DIM SHARED SL_ROW(1 TO 64) AS INTEGER            ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count

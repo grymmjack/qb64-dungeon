@@ -86,12 +86,11 @@ SUB DoCrit (rm AS INTEGER, mon AS STRING, weap AS STRING, dmg AS INTEGER)
     SELECT CASE CRITFX(i).kind
         CASE 1                                     ' heroic heal
             amt = RollDie(CRITFX(i).die): IF amt < 1 THEN amt = 1
-            player_hp = player_hp + amt
-            IF player_hp > player_maxhp THEN player_hp = player_maxhp
+            HealPlayer amt
             Banner "You feel overwhelming courage and pride!", "You heal " + _TRIM$(STR$(amt)) + " HP  (now " + _TRIM$(STR$(player_hp)) + "/" + _TRIM$(STR$(player_maxhp)) + ").   [ press any key ]"
         CASE 2                                     ' savage extra damage
             amt = RollDie(CRITFX(i).die): IF amt < 1 THEN amt = 1
-            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - amt
+            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - amt: RecordDamage amt
             IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
             Banner "You press the advantage!", "A savage follow-through rends the " + mon + " for " + _TRIM$(STR$(amt)) + " more!   [ press any key ]"
         CASE ELSE                                  ' pure flourish
@@ -146,7 +145,7 @@ SUB DoMonsterFumble (rm AS INTEGER, mon AS STRING)
         CASE 3, 6                                  ' self-damage (3 = roll the die, 6 = exact)
             IF MFUMBLE(i).kind = 6 THEN amt = MFUMBLE(i).die ELSE amt = RollDie(MFUMBLE(i).die)
             IF amt < 1 THEN amt = 1
-            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - amt
+            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - amt: RecordDamage amt
             IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
             Banner "The " + mon + " wounds ITSELF!", "It takes " + _TRIM$(STR$(amt)) + " damage.   [ press any key ]"
         CASE ELSE                                  ' lose the turn

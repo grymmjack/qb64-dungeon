@@ -148,24 +148,24 @@ Big UI Tweaks:
       ✔ TEST-ARTPACK now covers all THREE styles (25 assertions, was 19) @done(26-08-01)
     ☐ Create combat bars and message bar ANSI boxes using 9 grid (corners, center, and sides) pattern @low
     ☐ Create item display frames for monsters, curios, and locations @low
-    ☐ Add stats box (resets per game) - also tracked in game summary and stats log: @high
-      ☐ Time elapsed
-      ☐ Turns taken
-      ☐ Distance Traveled
-      ☐ Rooms Explored
-      ☐ Rooms Cleared
-      ☐ Chambers Cleared
-      ☐ Max Level Reached
-      ☐ Items Found
-      ☐ Items Used
-      ☐ Crits
-      ☐ Flourishes
-      ☐ Fumbles
-      ☐ Damage Dealt
-      ☐ Damage Healed
-      ☐ Deaths
-      ☐ Kills
-      ☐ Consecutive Kills
+    ✔ Add stats box (resets per game) - also tracked in game summary and stats log: @high @done(26-08-01)
+      ✔ All 18 asked for, plus 6 the Game Summary already had -- 24 rows @done(26-08-01)
+      ✔ ONE list (StatRowLabel$/StatRowValue$), THREE consumers: the Game Summary panel, the @done(26-08-01)
+        ✔ [TAB] overlay and (next) the death screen. Three hand-kept copies is how the overlay @done(26-08-01)
+        ✔ ends up disagreeing with the summary and adding a stat becomes three edits @done(26-08-01)
+      ✔ Turns/Distance are turn_num/moves_made -- ALREADY per-run and ALREADY in the save, so @done(26-08-01)
+        ✔ new g_turns/g_distance would have been a second source of truth that disagreed on load @done(26-08-01)
+      ✔ HealPlayer is now the ONE place HP goes up (5 sites each did the add + clamp by hand); @done(26-08-01)
+        ✔ it records the ACTUAL gain, so healing 6 at 2/5 HP counts as 3, not 6 @done(26-08-01)
+      ✔ Damage hooks the same seam as tot_dealt, so run and fight totals cannot disagree @done(26-08-01)
+      ✔ Rooms cleared excludes chamber spawns and wanderers (a chamber clears on its 3rd kill) @done(26-08-01)
+      ✔ Streak breaks on death AND on fleeing @done(26-08-01)
+      ✔ SETTINGS "Stats Overlay" + [TAB] in game (the scoreboard key); [L]ocate took over "where @done(26-08-01)
+        ✔ am I", which TAB used to do @done(26-08-01)
+      ✔ Drawn at the end of DrawHUD -- every repaint ends there, so it cannot be forgotten @done(26-08-01)
+      ✔ Verify: `dungeon.run summaryshot` (NEW) renders BOTH, seeded with wide distinct numbers @done(26-08-01)
+      ✔ SETTINGS dice previews now derive their row from SL_MAXROW: adding this option drew the @done(26-08-01)
+        ✔ preview caption straight through column 3's last row, and would again on the next one @done(26-08-01)
       ☐ Perfect Battles (player killed monsters without getting touched)
 
 Huge UI Efforts:

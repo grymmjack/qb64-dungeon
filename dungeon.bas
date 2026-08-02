@@ -49,6 +49,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10panelshot|07 |14[class]|07  render the D&D combat panel (portrait + weapon) -> panelshot.png")
     PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
     PRINT PipeCol$("  |10gaugeshot|07 |14[depth] [hp]|07  render the action-gesture gauge, timed AND real-dice -> |14gaugeshot*.png|07")
+    PRINT PipeCol$("  |10summaryshot|07   render the run scorecard: Game Summary panel + the [TAB] overlay")
     PRINT PipeCol$("  |10fight|07 |14[lvl] [foes] [pack]|07  PLAY a tactical fight now (interactive; default level 5, 4 foes)")
     PRINT PipeCol$("                |08fightshot/fight also accept an art-pack NAME to preview it (settings untouched)")
     PRINT PipeCol$("  |10savetest|07     round-trip a synthetic 4-player save (checks the positional stream); scratch file only")
@@ -309,6 +310,9 @@ IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
 
 '--- dev: `dungeon.run gaugeshot [depth] [hp]` renders the action-gesture gauge, BOTH forms ---
 IF INSTR(UCASE$(COMMAND$), "GAUGESHOT") > 0 THEN DumpGaugeShot: SYSTEM
+
+'--- dev: `dungeon.run summaryshot` renders the run scorecard (panel + TAB overlay) ---
+IF INSTR(UCASE$(COMMAND$), "SUMMARYSHOT") > 0 THEN DumpSummaryShot: SYSTEM
 
 '--- dev: `dungeon.run panelshot [class]` renders the D&D combat panel -> panelshot.png ---
 IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN
@@ -814,7 +818,12 @@ FUNCTION PlayGame%
         IF k = "P" THEN PauseGame: idle_ticks = 0
         IF k = "G" THEN SaveAndToast: idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
         IF k = "?" OR k = "/" THEN ShowKeys
-        IF k = CHR$(9) THEN FindPlayerFlash: idle_ticks = 0   ' [TAB] -- where am I?
+        IF k = CHR$(9) THEN                                   ' [TAB] -- the scoreboard, as in any shooter
+            opt_statsoverlay = NOT opt_statsoverlay
+            Sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
+            idle_ticks = 0
+        END IF
+        IF k = "L" THEN FindPlayerFlash: idle_ticks = 0        ' [L] -- locate me (was TAB)
         IF k = "R" THEN DoRest: idle_ticks = 0                ' [R] -- rest a point, and roll for company
         IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
         IF k = "~" OR k = "`" THEN
@@ -825,6 +834,7 @@ FUNCTION PlayGame%
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1
+            RecordItemUsed "teleport scroll"
             Sfx "teleport"
             PopArt "Teleport Scroll", "TELEPORT SCROLL"       ' show the scroll art as you use it
             Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"

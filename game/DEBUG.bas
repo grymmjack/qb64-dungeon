@@ -716,3 +716,51 @@ SUB DumpGaugeShot
     PRINT PipeCol$("  ranges: |14" + GaugeRangeText$(k))
     PRINT PipeCol$("  wrote |14gaugeshot.png")
 END SUB
+
+
+' `dungeon.run summaryshot` -- the run scorecard, both ways it is shown.
+'
+' Seeds every counter with a DIFFERENT, wide number on purpose. Equal or small values would
+' hide exactly the failures worth catching: a column that does not line up, a label clipped by
+' its value, or a value printed past the panel edge. The two shots must agree row for row --
+' they read the same StatRowLabel$/StatRowValue$ list, and this is what proves it.
+SUB DumpSummaryShot
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15summaryshot|07 -- the run scorecard, panel + [TAB] overlay")
+    ChronicleReset
+    game_start = TIMER - 754                       ' 12m 34s in
+    player_name = "GRYMMJACK": class_name = "SUPERHERO"
+    char_level = 7: char_xp = 12480: gold = 18350: target_gold = 20000
+    turn_num = 214: moves_made = 1387
+    g_rooms_explored = 48: g_rooms_cleared = 31: g_chambers_cleared = 4
+    g_max_level = 9: g_treasures_found = 26: g_gold_found = 18350
+    g_items_looted = 7: g_items_used = 19: g_secrets_found = 5
+    g_monsters_slain = 63: g_streak_best = 11
+    g_crits = 14: g_flourishes = 22: g_fumbles = 6
+    g_dmg_dealt = 1042: g_dmg_healed = 318
+    g_wander_enc = 9: g_levels_completed = 8
+    start_heals = 3: g_rests = 41: g_run_deaths = 2
+
+    _DEST CANVAS: CLS , BLACK
+    ChroniclePanel 14, 3, 118, 40, "G A M E   S U M M A R Y"
+    COLOR WHITE, BOXBG: PrintCentered 6, _TRIM$(player_name) + "  the  " + _TRIM$(class_name)
+    COLOR GREY, BOXBG: PrintCentered 8, "Level " + EvNum$(char_level) + "    XP " + EvNum$(char_xp) + "    Gold " + EvNum$(gold) + " / " + EvNum$(target_gold)
+    DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, per AS INTEGER, lx AS INTEGER
+    per = (STATROW_N + 1) \ 2
+    FOR i = 1 TO STATROW_N
+        IF i <= per THEN col = 0 ELSE col = 1
+        y = 11 + ((i - 1) MOD per) * 2
+        lx = 18 + col * 50
+        COLOR CYANU, BOXBG: _PRINTSTRING (lx * CW, y * CH), PadR$(StatRowLabel$(i), 22)
+        COLOR WHITE, BOXBG: _PRINTSTRING ((lx + 23) * CW, y * CH), StatRowValue$(i)
+    NEXT i
+    _SAVEIMAGE "summaryshot.png", CANVAS
+
+    _DEST CANVAS: CLS , _RGB32(&H10, &H14, &H10)   ' a dim "board" behind it, so the panel reads
+    opt_statsoverlay = -1
+    DrawStatsOverlay
+    _SAVEIMAGE "summaryshot-overlay.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  " + LTRIM$(STR$(STATROW_N)) + " stat rows")
+    PRINT PipeCol$("  wrote |14summaryshot.png|07 and |14summaryshot-overlay.png")
+END SUB

@@ -202,8 +202,7 @@ END FUNCTION
 FUNCTION CurioHeal% (amt AS INTEGER)
     DIM before AS INTEGER
     before = player_hp
-    player_hp = player_hp + amt
-    IF player_hp > player_maxhp THEN player_hp = player_maxhp
+    HealPlayer amt
     CurioHeal% = player_hp - before
 END FUNCTION
 

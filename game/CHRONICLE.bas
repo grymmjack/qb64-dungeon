@@ -18,6 +18,9 @@ SUB ChronicleReset
     g_items_looted = 0: g_levels_completed = 0: g_secrets_found = 0
     g_crits = 0: g_fumbles = 0: g_wander_enc = 0: g_run_deaths = 0
     g_gold_found = 0: EVLOG_N = 0
+    g_rooms_cleared = 0: g_chambers_cleared = 0
+    g_max_level = 0: g_items_used = 0: g_flourishes = 0
+    g_dmg_dealt = 0: g_dmg_healed = 0: g_streak = 0: g_streak_best = 0
     BEAST_N = 0
     FOR i = 1 TO MAXBEAST
         BEAST_NAME(i) = "": BEAST_ENC(i) = 0: BEAST_SLAIN(i) = 0: BEAST_FLED(i) = 0
@@ -133,6 +136,14 @@ SUB RecordKill (lv AS INTEGER, rm AS INTEGER, mon AS STRING, rounds AS INTEGER, 
     i = BeastIdx%(mon)
     IF i > 0 THEN BEAST_SLAIN(i) = BEAST_SLAIN(i) + 1: DiscoverBeast i
     g_monsters_slain = g_monsters_slain + 1
+    ' A room is CLEARED by killing the monster that lived in it. Chamber spawns and wandering
+    ' monsters both come through here too and must not count: a chamber is cleared by its third
+    ' kill (RecordChamberCleared), and a wanderer never belonged to a room at all.
+    IF rm >= 1 AND rm <= ROOM_N THEN
+        IF ROOMS(rm).is_chamber = 0 THEN g_rooms_cleared = g_rooms_cleared + 1
+    END IF
+    g_streak = g_streak + 1
+    IF g_streak > g_streak_best THEN g_streak_best = g_streak
     s = _TRIM$(player_name) + " entered L" + EvNum$(lv) + "/R" + EvNum$(rm) + ", slew " + _TRIM$(mon) + " after " + EvNum$(rounds) + " round"
     IF rounds <> 1 THEN s = s + "s"
     IF gp > 0 THEN s = s + " -- found " + EvNum$(gp) + " GP"
@@ -140,12 +151,44 @@ SUB RecordKill (lv AS INTEGER, rm AS INTEGER, mon AS STRING, rounds AS INTEGER, 
     LogEvent s
 END SUB
 
+' -- scorecard hooks. Each is one line at its call site, so the counter cannot drift from the
+'    event it counts, and a new call site is a one-liner rather than a bookkeeping puzzle. --
+
+SUB RecordDepth (lv AS INTEGER)
+    IF lv > g_max_level THEN g_max_level = lv
+END SUB
+
+SUB RecordItemUsed (nm AS STRING)
+    g_items_used = g_items_used + 1
+    LogEvent _TRIM$(player_name) + " used " + _TRIM$(nm) + "."
+END SUB
+
+SUB RecordFlourish
+    g_flourishes = g_flourishes + 1
+END SUB
+
+SUB RecordDamage (dmg AS INTEGER)
+    IF dmg > 0 THEN g_dmg_dealt = g_dmg_dealt + dmg
+END SUB
+
+SUB RecordHealed (hp AS INTEGER)
+    IF hp > 0 THEN g_dmg_healed = g_dmg_healed + hp
+END SUB
+
+SUB RecordChamberCleared
+    g_chambers_cleared = g_chambers_cleared + 1
+END SUB
+
+' Fleeing breaks the streak. It is not a defeat, but it is not a kill either, and a "consecutive
+' kills" number that survives running away would measure nothing.
 SUB RecordFled (mon AS STRING)
+    g_streak = 0
     DIM i AS INTEGER: i = BeastIdx%(mon): IF i > 0 THEN BEAST_FLED(i) = BEAST_FLED(i) + 1
     LogEvent _TRIM$(player_name) + " fled from " + _TRIM$(mon)
 END SUB
 
 SUB RecordDeath (lv AS INTEGER, rm AS INTEGER, mon AS STRING, rounds AS INTEGER, goldlost AS LONG)
+    g_streak = 0
     DIM i AS INTEGER, s AS STRING
     i = BeastIdx%(mon): IF i > 0 THEN BEAST_KILLEDBY(i) = BEAST_KILLEDBY(i) + 1
     g_run_deaths = g_run_deaths + 1
@@ -250,34 +293,125 @@ SUB ChronicleClose
 END SUB
 
 ' GAME SUMMARY -- the run at a glance.
-SUB ShowGameSummary
-    DIM y AS INTEGER, el AS LONG, tmr AS STRING
+' How long this run has lasted, as "12m 04s". game_start is set when the run begins and the
+' clock is wall time, so a paused game keeps counting -- which is the honest reading of
+' "time played" for a game with no pause-the-world mechanic.
+FUNCTION RunTime$ ()
+    DIM el AS LONG
+    el = TIMER - game_start: IF el < 0 THEN el = el + 86400   ' TIMER wraps at midnight
+    RunTime$ = EvNum$(el \ 60) + "m " + EvNum$(el MOD 60) + "s"
+END FUNCTION
+
+FUNCTION RunMinutes& ()
+    DIM el AS LONG
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
-    tmr = EvNum$(el \ 60) + "m " + EvNum$(el MOD 60) + "s"
-    ChroniclePanel 20, 5, 112, 45, "G A M E   S U M M A R Y"
-    y = 9
-    COLOR WHITE, BOXBG: PrintCentered y, _TRIM$(player_name) + "  the  " + _TRIM$(class_name)
-    y = y + 2: COLOR GREY, BOXBG: PrintCentered y, "Level " + EvNum$(char_level) + "    XP " + EvNum$(char_xp) + "    Gold " + EvNum$(gold) + " / " + EvNum$(target_gold)
-    y = y + 3
-    SumRow y, "Rooms explored", g_rooms_explored: y = y + 2
-    SumRow y, "Monsters slain", g_monsters_slain: y = y + 2
-    SumRow y, "Treasures found", g_treasures_found: y = y + 2
-    SumRow y, "Gold recovered", g_gold_found: y = y + 2
-    SumRow y, "Magic items looted", g_items_looted: y = y + 2
-    SumRow y, "Secret doors found", g_secrets_found: y = y + 2
-    SumRow y, "Levels completed", g_levels_completed: y = y + 2
-    SumRow y, "Wandering ambushes", g_wander_enc: y = y + 2
-    SumRow y, "Critical hits / fumbles", g_crits: COLOR WHITE, BOXBG: _PRINTSTRING (70 * CW, y * CH), EvNum$(g_crits) + "  /  " + EvNum$(g_fumbles): y = y + 2
-    SumRow y, "Deaths this run", g_run_deaths: y = y + 2
-    SumRow y, "Trips home to heal", start_heals: y = y + 2
-    SumRow y, "HP rested back", g_rests: y = y + 2
-    COLOR CYANU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$("Time played", 26): COLOR WHITE, BOXBG: _PRINTSTRING (70 * CW, y * CH), tmr
-    COLOR YELLOWU, BOXBG: PrintCentered 43, "[ press any key ]"
+    RunMinutes& = el \ 60
+END FUNCTION
+
+' THE RUN SCORECARD -- ONE list, three consumers.
+'
+' The Game Summary, the TAB overlay and the death screen all show these numbers, and all three
+' read them from here by index rather than each writing its own list. That is the whole point:
+' three hand-maintained copies is how the overlay ends up saying something the summary does not,
+' and adding a stat becomes three edits with two of them forgotten.
+'
+' `i` is 1..STATROW_N. Returns "" past the end.
+FUNCTION StatRowLabel$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: StatRowLabel$ = "Time elapsed"
+        CASE 2: StatRowLabel$ = "Turns taken"
+        CASE 3: StatRowLabel$ = "Distance travelled"
+        CASE 4: StatRowLabel$ = "Rooms explored"
+        CASE 5: StatRowLabel$ = "Rooms cleared"
+        CASE 6: StatRowLabel$ = "Chambers cleared"
+        CASE 7: StatRowLabel$ = "Deepest level"
+        CASE 8: StatRowLabel$ = "Treasures found"
+        CASE 9: StatRowLabel$ = "Gold recovered"
+        CASE 10: StatRowLabel$ = "Magic items looted"
+        CASE 11: StatRowLabel$ = "Items used"
+        CASE 12: StatRowLabel$ = "Secret doors found"
+        CASE 13: StatRowLabel$ = "Kills"
+        CASE 14: StatRowLabel$ = "Best kill streak"
+        CASE 15: StatRowLabel$ = "Critical hits"
+        CASE 16: StatRowLabel$ = "Flourishes"
+        CASE 17: StatRowLabel$ = "Fumbles"
+        CASE 18: StatRowLabel$ = "Damage dealt"
+        CASE 19: StatRowLabel$ = "Damage healed"
+        CASE 20: StatRowLabel$ = "Wandering ambushes"
+        CASE 21: StatRowLabel$ = "Levels completed"
+        CASE 22: StatRowLabel$ = "Trips home to heal"
+        CASE 23: StatRowLabel$ = "HP rested back"
+        CASE 24: StatRowLabel$ = "Deaths this run"
+    END SELECT
+END FUNCTION
+
+FUNCTION StatRowValue$ (i AS INTEGER)
+    SELECT CASE i
+        CASE 1: StatRowValue$ = RunTime$
+        CASE 2: StatRowValue$ = EvNum$(turn_num)
+        CASE 3: StatRowValue$ = EvNum$(moves_made)
+        CASE 4: StatRowValue$ = EvNum$(g_rooms_explored)
+        CASE 5: StatRowValue$ = EvNum$(g_rooms_cleared)
+        CASE 6: StatRowValue$ = EvNum$(g_chambers_cleared)
+        CASE 7: StatRowValue$ = EvNum$(g_max_level)
+        CASE 8: StatRowValue$ = EvNum$(g_treasures_found)
+        CASE 9: StatRowValue$ = EvNum$(g_gold_found)
+        CASE 10: StatRowValue$ = EvNum$(g_items_looted)
+        CASE 11: StatRowValue$ = EvNum$(g_items_used)
+        CASE 12: StatRowValue$ = EvNum$(g_secrets_found)
+        CASE 13: StatRowValue$ = EvNum$(g_monsters_slain)
+        CASE 14: StatRowValue$ = EvNum$(g_streak_best)
+        CASE 15: StatRowValue$ = EvNum$(g_crits)
+        CASE 16: StatRowValue$ = EvNum$(g_flourishes)
+        CASE 17: StatRowValue$ = EvNum$(g_fumbles)
+        CASE 18: StatRowValue$ = EvNum$(g_dmg_dealt)
+        CASE 19: StatRowValue$ = EvNum$(g_dmg_healed)
+        CASE 20: StatRowValue$ = EvNum$(g_wander_enc)
+        CASE 21: StatRowValue$ = EvNum$(g_levels_completed)
+        CASE 22: StatRowValue$ = EvNum$(start_heals)
+        CASE 23: StatRowValue$ = EvNum$(g_rests)
+        CASE 24: StatRowValue$ = EvNum$(g_run_deaths)
+    END SELECT
+END FUNCTION
+
+SUB ShowGameSummary
+    DIM i AS INTEGER, y AS INTEGER, col AS INTEGER, per AS INTEGER, lx AS INTEGER
+    ChroniclePanel 14, 3, 118, 40, "G A M E   S U M M A R Y"
+    COLOR WHITE, BOXBG: PrintCentered 6, _TRIM$(player_name) + "  the  " + _TRIM$(class_name)
+    COLOR GREY, BOXBG: PrintCentered 8, "Level " + EvNum$(char_level) + "    XP " + EvNum$(char_xp) + "    Gold " + EvNum$(gold) + " / " + EvNum$(target_gold)
+    ' TWO COLUMNS. At 24 stats a single column at the old 2-row spacing needs 48 rows and the
+    ' panel has 40 -- the list simply outgrew the layout it was written for.
+    per = (STATROW_N + 1) \ 2
+    FOR i = 1 TO STATROW_N
+        IF i <= per THEN col = 0 ELSE col = 1
+        y = 11 + ((i - 1) MOD per) * 2
+        lx = 18 + col * 50
+        COLOR CYANU, BOXBG: _PRINTSTRING (lx * CW, y * CH), PadR$(StatRowLabel$(i), 22)
+        COLOR WHITE, BOXBG: _PRINTSTRING ((lx + 23) * CW, y * CH), StatRowValue$(i)
+    NEXT i
+    COLOR YELLOWU, BOXBG: PrintCentered 38, "[ press any key ]"
     Present: WaitKey: ChronicleClose
 END SUB
-SUB SumRow (y AS INTEGER, lbl AS STRING, v AS LONG)
-    COLOR CYANU, BOXBG: _PRINTSTRING (30 * CW, y * CH), PadR$(lbl, 26)
-    COLOR WHITE, BOXBG: _PRINTSTRING (70 * CW, y * CH), EvNum$(v)
+
+' The live TAB overlay: the same rows, one column, down the right of the board.
+' Deliberately terse and unframed-looking (a dim panel, no heading art) -- it is meant to be
+' glanced at mid-run and dismissed, not read.
+SUB DrawStatsOverlay
+    DIM i AS INTEGER, x AS INTEGER, y AS INTEGER
+    IF NOT opt_statsoverlay THEN EXIT SUB
+    x = 96
+    _DEST CANVAS
+    ' Rows run 4..3+STATROW_N and a row drawn at y occupies y..y+1, so the frame closes TWO
+    ' rows past the last origin -- otherwise the final stat sits outside its own box.
+    LINE (x * CW - 4, 1 * CH)-((x + 35) * CW, (5 + STATROW_N) * CH), _RGBA32(0, 0, 0, 215), BF
+    LINE (x * CW - 4, 1 * CH)-((x + 35) * CW, (5 + STATROW_N) * CH), CYANU, B
+    _FONT CH
+    COLOR YELLOWU, BLACK: _PRINTSTRING (x * CW, 2 * CH), "-= RUN STATS =-   [TAB]"
+    FOR i = 1 TO STATROW_N
+        y = 3 + i
+        COLOR GREY, BLACK: _PRINTSTRING (x * CW, y * CH), PadR$(StatRowLabel$(i), 21)
+        COLOR WHITE, BLACK: _PRINTSTRING ((x + 22) * CW, y * CH), StatRowValue$(i)
+    NEXT i
 END SUB
 
 ' EVENT LOG -- newest last; scroll with the arrows / PgUp-PgDn, ESC to leave.

@@ -600,9 +600,14 @@ SUB BuildSetLayout
     SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow(): SetLayRow 3, 55, prow(): SetLayRow 3, 56, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
+    SetLayRow 3, 59, prow()                          ' Stats Overlay -- a DISPLAY choice, not a rule
     SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow()
     prow(3) = prow(3) + 1
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
+    SL_MAXROW = 0
+    FOR col = 1 TO NSCOL
+        IF prow(col) > SL_MAXROW THEN SL_MAXROW = prow(col)
+    NEXT col
 END SUB
 
 ' Move option `cur` up (W / up-arrow) or down (S / down-arrow) through the reading-order
@@ -654,7 +659,7 @@ SUB ApplyMusicToggle
 END SUB
 
 SUB RunSettings
-    CONST NSET = 58                              ' raise when adding a settings row, or it lays out blank
+    CONST NSET = 59                              ' raise when adding a settings row, or it lays out blank
     DIM sel AS INTEGER, k AS STRING, i AS INTEGER, y AS INTEGER, vtxt AS STRING, lbl AS STRING
     DIM slider AS INTEGER, delta AS INTEGER
     DIM hh AS INTEGER, dsh AS INTEGER, cx0 AS INTEGER       ' columnar render scratch
@@ -815,6 +820,7 @@ SUB RunSettings
                     opt_rollstyle = opt_rollstyle + 1
                     IF opt_rollstyle > 2 THEN opt_rollstyle = 0
                 CASE 58: opt_boxshake = NOT opt_boxshake
+                CASE 59: opt_statsoverlay = NOT opt_statsoverlay
                 CASE 14: opt_oldschool = NOT opt_oldschool
                 CASE 52: opt_tactical = NOT opt_tactical
                 CASE 53
@@ -957,6 +963,9 @@ SUB RunSettings
                 CASE 58
                     lbl = "  Box Shake"
                     IF opt_boxshake THEN vtxt = "ON (one re-shake)" ELSE vtxt = "off"
+                CASE 59
+                    lbl = "Stats Overlay"
+                    IF opt_statsoverlay THEN vtxt = "ON ([TAB] in game)" ELSE vtxt = "off ([TAB] shows it)"
                 CASE 14
                     lbl = "Oldschool"
                     IF opt_oldschool THEN vtxt = "Dungeon! 2d6" ELSE vtxt = "D&D d20/HP"
@@ -1149,11 +1158,11 @@ SUB RunSettings
         NEXT i
         ' live dice previews in the free strip BELOW the columns (repositioned to row 31)
         IF opt_dice3d THEN                                      ' 3D dice: live hardware previews of each set
-            DrawDice3DPreviewAt 100, " your 3D dice", PREV3D_P, DSET3D(dice3d_set_index%(20))
-            DrawDice3DPreviewAt 4, " monster 3D dice", PREV3D_M, MSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 100, " your 3D dice", SL_MAXROW + 3, PREV3D_P, DSET3D(dice3d_set_index%(20))
+            DrawDice3DPreviewAt 4, " monster 3D dice", SL_MAXROW + 3, PREV3D_M, MSET3D(dice3d_set_index%(20))
         ELSE                                                    ' font dice: the live 2x3 sample grid
-            DrawDicePreview 100, " your dice"
-            PushMonsterDice: DrawDicePreview 4, " monster dice": PopMonsterDice
+            DrawDicePreview 100, " your dice", SL_MAXROW + 3
+            PushMonsterDice: DrawDicePreview 4, " monster dice", SL_MAXROW + 3: PopMonsterDice
         END IF
         COLOR CYANU, BLACK: PrintCentered 50, "up/down move    left/right adjust    TAB/shift-TAB column    ENTER cycle    ESC back"
         Present
@@ -1178,7 +1187,7 @@ END SUB
 ' Draw the live 2x3 sample grid using the CURRENT dice config, at cell-column
 ' `gxc`, headed by `lbl`. Called twice from SETTINGS: player dice (right) and --
 ' with the monster config swapped in -- monster dice (left).
-SUB DrawDicePreview (gxc AS INTEGER, lbl AS STRING)
+SUB DrawDicePreview (gxc AS INTEGER, lbl AS STRING, growy AS INTEGER)
     DIM SD(1 TO 6) AS INTEGER, FV(1 TO 6) AS INTEGER
     DIM idx AS INTEGER, col AS INTEGER, rr AS INTEGER, px AS INTEGER, py AS INTEGER
     DIM gx AS INTEGER, gy AS INTEGER, cellw AS INTEGER, cellh AS INTEGER
@@ -1189,7 +1198,7 @@ SUB DrawDicePreview (gxc AS INTEGER, lbl AS STRING)
     SD(5) = 4: FV(5) = 4
     SD(6) = 6: FV(6) = 6
     cellw = 84: cellh = 92
-    gx = gxc * CW: gy = 31 * CH                     ' bottom strip, below the columnar SETTINGS list
+    gx = gxc * CW: gy = growy * CH                  ' strip below the columnar list (see SL_MAXROW)
     _DEST CANVAS
     COLOR GREY, BLACK: _PRINTSTRING (gx, gy - 3 * CH), lbl
     FOR idx = 1 TO 6
@@ -1582,6 +1591,10 @@ SUB DrawHUD
     ' In combat the panel draws its own near-death vignette (+ Present); on the board
     ' there's no panel, so draw the wounds overlay here. (Avoids a double-darken.)
     IF combat_active THEN DrawCombatPanel combat_rm, combat_mon, combat_lead   ' wounds now drawn in cursor_erase, under everything
+    ' The TAB scorecard goes on LAST so nothing paints over it -- and it is drawn here rather
+    ' than in the play loop because every repaint in the game ends with a DrawHUD, so this is
+    ' the one place that cannot be forgotten.
+    DrawStatsOverlay
 END SUB
 
 
