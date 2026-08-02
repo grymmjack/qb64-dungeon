@@ -112,7 +112,9 @@ for i, obj_path in enumerate(dice):
 # dodecahedron reads bigger than an icosahedron -- broad pentagons fill more of the sphere than
 # narrow triangles -- so the d12 out-bulked the d20, which no real set does. Only that one is
 # corrected; the rest were already right.
-SET_SCALE = {"d12": 0.90}
+# Mirrors DieSetScale! in engine/DICE3D_GAME.bas -- the same correction the GAME applies, so a
+# render and a roll show the same set. Change one, change the other.
+SET_SCALE = {"d12": 0.90, "d10": 0.96, "d6": 0.94}
 for m in placed:
     k = SET_SCALE.get(m.name, 1.0)
     m.scale = (k, k, k)

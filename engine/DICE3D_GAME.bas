@@ -135,6 +135,17 @@ FUNCTION GlY! (cy AS SINGLE)
     GlY! = -(pres_oy + cy * pres_scale - wh * 0.5) / (DICE3D_HW_PXPERUNIT * ww / (SW * CW))
 END FUNCTION
 
+' Relative size of each die within a matched set. 1.0 is the baseline (triangular faces --
+' d4/d8/d20 already agree with each other); the broader-faced solids come down to match.
+FUNCTION DieSetScale! (sides AS INTEGER)
+    SELECT CASE sides
+        CASE 12: DieSetScale! = 0.90     ' pentagons fill the sphere hardest -- it out-bulked the d20
+        CASE 10: DieSetScale! = 0.96     ' kites, between a pentagon and a triangle
+        CASE 6: DieSetScale! = 0.94      ' squares
+        CASE ELSE: DieSetScale! = 1!     ' triangular faces: the baseline
+    END SELECT
+END FUNCTION
+
 FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow AS INTEGER, what AS STRING)
     DIM cfg AS DICE3D_CONFIG, idx AS INTEGER, notation AS STRING, hdr AS STRING
     DIM AS INTEGER tw, th, tx, ty, hf, hbw, hbx
@@ -157,7 +168,15 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     DIM boxviolet AS _UNSIGNED LONG, boxedge AS _UNSIGNED LONG
     boxviolet = _RGB32(&H34, &H22, &H7A)           ' plush violet-blue royal purple
     boxedge = _RGB32(&H8A, &H6C, &HF2)             ' lighter violet border
-    cfg.DIE_SIZE = 28                              ' die radius in box/screen px (small)
+    ' Die radius in box/screen px, SHAPE-CORRECTED.
+    '
+    ' Every mesh is built at unit circumradius, so a flat 28 makes them all the same SPHERE --
+    ' not the same die. A dodecahedron's broad pentagons fill far more of that sphere than an
+    ' icosahedron's narrow triangles, so at equal radius the d12 reads BIGGER than the d20,
+    ' which no physical set does. The same correction the Blender set-render needed.
+    '
+    ' Applied per die type so a d12 roll and a d20 roll look like pieces from one set.
+    cfg.DIE_SIZE = 28 * DieSetScale!(sides)
     ' A lively roll, not a frantic one and not a dead drop: 30 (module default) felt
     ' frantic, 7 barely tumbled ("just drops and bounces once"). ~15 spin + a real
     ' horizontal throw makes the dice skitter and wall-bounce like a genuine roll.
