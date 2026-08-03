@@ -84,6 +84,43 @@ FUNCTION ArtLooksPlaceholder% (path AS STRING)
     ArtLooksPlaceholder% = verdict
 END FUNCTION
 
+' Is this .ans file BLANK -- a canvas with nothing drawn on it?
+'
+' The ANSI counterpart of a placeholder PNG, and it hides even better: treasures/huge-ruby.ans is
+' 864 bytes of pure CRLF with a valid SAUCE record, so it is a well-formed file of the right size
+' that renders absolutely nothing. Every existence check passes and the audit reports it done.
+'
+' Strips the escape sequences and asks whether ANY printable glyph survives. Blanks are the only
+' thing this catches: real ANSI art can legitimately be tiny (the 6x3 board markers run to a dozen
+' glyphs, and items/sword.ans is small because a sword is mostly empty space), so counting glyphs
+' against a threshold would fail those. Zero is not a threshold -- it is an empty file.
+FUNCTION AnsiIsBlank% (path AS STRING)
+    DIM raw AS STRING, i AS LONG, b AS INTEGER, ink AS LONG, esc AS INTEGER
+    AnsiIsBlank% = 0
+    IF LCASE$(RIGHT$(path, 4)) <> ".ans" THEN EXIT FUNCTION
+    IF NOT _FILEEXISTS(path) THEN EXIT FUNCTION
+    raw = _READFILE$(path)
+    IF LEN(raw) = 0 THEN AnsiIsBlank% = -1: EXIT FUNCTION
+    FOR i = 1 TO LEN(raw)
+        b = ASC(raw, i)
+        IF b = 26 THEN EXIT FOR                      ' 0x1A: EOF marker, SAUCE follows
+        IF esc = 2 THEN
+            ' inside the CSI parameter run: it ends at the first byte in 64..126 (the final letter)
+            IF b >= 64 AND b <= 126 THEN esc = 0
+        ELSEIF esc = 1 THEN
+            ' the '[' straight after ESC. It is ITSELF in 64..126, so a single-state parser ends
+            ' the sequence here and then counts the parameters ("0m") as drawn glyphs -- which is
+            ' why a file holding nothing but ESC[0m and CRLFs did not read as blank.
+            IF b = 91 THEN esc = 2 ELSE esc = 0
+        ELSEIF b = 27 THEN
+            esc = 1
+        ELSEIF b <> 32 AND b <> 13 AND b <> 10 AND b <> 0 THEN
+            ink = ink + 1
+        END IF
+    NEXT i
+    IF ink = 0 THEN AnsiIsBlank% = -1
+END FUNCTION
+
 ' Blit a sprite scaled to fit inside a px box, centred, aspect preserved.
 ' Returns TRUE if something was drawn (i.e. the sprite exists).
 FUNCTION DrawSpriteFit% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER)

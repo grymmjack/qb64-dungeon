@@ -343,7 +343,8 @@ FUNCTION RealAssetAt% (full AS STRING)
     ' ...and the record's backstop. The list was emptied once by someone who believed the art was
     ' finished, and three stand-ins then audited as done for good. Counting colours needs no list.
     IF ArtLooksPlaceholder%(full) THEN EXIT FUNCTION
-    RealAssetAt% = -1
+    IF AnsiIsBlank%(full) THEN EXIT FUNCTION            ' ...and the ANSI equivalent: a canvas with
+    RealAssetAt% = -1                                   ' nothing drawn on it, SAUCE record and all
 END FUNCTION
 
 ' Is this path one the placeholder tool wrote?

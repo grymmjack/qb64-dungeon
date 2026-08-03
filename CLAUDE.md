@@ -605,6 +605,14 @@ Environment specifics that dictate this approach:
   colours) while the sparsest real art here uses 23, so the `ART_PLACEHOLDER_COLORS = 8` threshold
   sits in a wide gap rather than between two close numbers. `RealAssetAt%` consults both, so
   **`dungeon.run imagemanifest audit`** lists a placeholder as still-to-make.
+  **ANSI has the same hole and hides better**: `AnsiIsBlank%` catches a canvas with nothing drawn
+  on it — `treasures/huge-ruby.ans` was 864 bytes of pure CRLF *with a valid SAUCE record*, a
+  well-formed file of the right size that renders nothing. Zero glyphs is the test, not a
+  threshold: real ANSI art is legitimately tiny sometimes (the 6×3 board markers are a dozen
+  glyphs; `items/sword.ans` is small because a sword is mostly empty space). **Gotcha:** a CSI
+  sequence is `ESC` `[` params final-letter, and `[` is itself in the 64–126 "final byte" range —
+  a one-state parser ends the sequence on it and then counts the parameters (`0m`) as drawn
+  glyphs, so a file holding nothing but `ESC[0m` and CRLFs reads as full of art.
 
 [assets/README.md](assets/README.md) is the player/modder-facing map of every editable
 asset (data tables, flavor prose, music playlist, sound effects) with formats and the
