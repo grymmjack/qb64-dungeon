@@ -353,6 +353,13 @@ DIM SHARED ROLLHOLD_ON AS INTEGER                ' any holds pending
 '
 ' Between RollSeqBegin and RollSeqEnd the snapshot is taken ONCE and restored ONCE, so the tray
 ' stays put for the whole sequence and only the dice inside it change.
+' Where the last roll's dice could reach, and where its running-total lane starts (canvas px).
+' The lane is printed immediately under the tray and a die is drawn centred on its position, so a
+' die resting on the box floor hangs BELOW it -- the two are one bad constant away from colliding,
+' and the collision is text with dice drawn over it. Published so a dev check can assert the gap
+' instead of it being re-discovered by eye every time the tray or the die size moves.
+DIM SHARED roll_floor_y AS INTEGER               ' lowest pixel a settled die can occupy
+DIM SHARED roll_sum_y AS INTEGER                 ' top of the running-total lane
 DIM SHARED rollseq_on AS INTEGER                 ' -1 while consecutive rolls share a tray
 DIM SHARED rollseq_snap AS LONG                  ' the screen underneath that shared tray
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.
@@ -461,6 +468,13 @@ CONST STAT_3D6RR1 = 3              ' re-roll 1s only
 CONST STATMETHOD_N = 4
 DIM SHARED opt_statmethod AS INTEGER
 DIM SHARED STATORD(1 TO STATMETHOD_N) AS INTEGER   ' the ids in the order the row presents them
+
+' How many CHANCES a low die gets before it has to keep what it rolled. 0 = unlimited (throw it
+' again until it is not low, which is what makes the method's floor exact: 6..18 for "re-roll 1s",
+' 9..18 for "1s and 2s"). A finite limit is a different, meaner game -- a die that keeps coming up
+' 1 eventually stands -- so the score can fall back to the plain 3d6 range, by design.
+CONST REROLL_TRIES_MAX = 3                       ' beyond this the row reads "unlimited"
+DIM SHARED opt_rerolltries AS INTEGER
 DIM SHARED opt_fov AS INTEGER         ' TRUE: line-of-sight fog-of-war (explore the map)
 ' ---- dice look & feel (all persisted; see DiceColors / DrawFontDie) ----
 DIM SHARED opt_dicecolor AS INTEGER   ' 0..5 index into the dice palette (Bone/Blood/Emerald/Sapphire/Gold/Amethyst)

@@ -749,7 +749,7 @@ character `Q` printed in the d20 font:
   and the face it had, sits out the physics, and is not re-read; the rest of the tray tumbles
   around it. All three renderers honour it (pips, font polyhedra, 3D), and `AnimatedRoll%` clears
   the pins afterwards so a renderer that ignores them cannot leave them armed. This is what makes
-  "3d6, **re-roll 1s**" / "**re-roll 1s and 2s**" (`RollRerollLow%`, the `STAT_3D6RR1`/`STAT_3D6RR2` methods, which HIT POINTS follow too) look like the rule
+  "3d6, **re-roll 1s**" / "**re-roll 1s and 2s**" (`RollRerollLow%`, the `STAT_3D6RR1`/`STAT_3D6RR2` methods, which HIT POINTS follow too, capped by SETTINGS **Re-roll Tries**) look like the rule
   it is: three dice stay on the table and only the low ones are thrown again. It shipped twice
   wrong first — as `3d4+6` (exact maths, nonsense picture) and then as a fresh tray holding only
   the low dice (right maths, the kept dice vanish) — so `rollshot` now asserts that a pinned die

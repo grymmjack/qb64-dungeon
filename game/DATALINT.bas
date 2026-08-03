@@ -2051,6 +2051,8 @@ SUB StatRollCheck (samples AS INTEGER)
     opt_showdice = FALSE                          ' no animation: the roll logic still runs in full
     opt_dice3d = FALSE
     opt_realdice = FALSE                          ' never prompt for a typed result
+    opt_rerolltries = 0                           ' each method's stated range assumes UNLIMITED
+    '                                               chances; the capped case is checked after
     InitStatMethods
     FOR mi = 1 TO STATMETHOD_N
         m = STATORD(mi)                           ' walk the row's own order, not raw ids
@@ -2090,6 +2092,22 @@ SUB StatRollCheck (samples AS INTEGER)
             bad = bad + 1
         END IF
     NEXT mi
+    ' A CAPPED run is a different game: a die that keeps coming up low eventually stands, so the
+    ' score can fall back into the plain 3d6 range. Check it stays THERE -- a cap that let a score
+    ' out of 3..18, or that hung, would be a real bug.
+    opt_statmethod = STAT_3D6RR2: opt_rerolltries = 1
+    lo = 999: hi = -999
+    FOR i = 1 TO n
+        v = RollAbility%
+        IF v < lo THEN lo = v
+        IF v > hi THEN hi = v
+    NEXT i
+    PRINT PipeCol$("  |14" + PadR$("re-roll, 1 try", 22) + "|07 " + _TRIM$(STR$(lo)) + ".." + _TRIM$(STR$(hi)) + "   |08(capped: may keep a low die)|07")
+    IF lo < 3 OR hi > 18 THEN
+        PRINT PipeCol$("     |12BAD|07 a capped re-roll left the plain 3d6 range")
+        bad = bad + 1
+    END IF
+    opt_rerolltries = 0
     IF bad > 0 THEN SYSTEM 1
     PRINT PipeCol$("  |10ok |07  every method is in range and its fast path matches")
     SYSTEM

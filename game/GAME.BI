@@ -649,7 +649,7 @@ CONST SETOPT_MAX = 128
 ' How many settings options exist. Lives here rather than inside RunSettings so the layout check
 ' (SettingsLayoutCheck, run by `dungeon.run settingsshot`) can see it: an option counted here but
 ' never given a SetLayRow draws nowhere, silently. Raise it when adding a row.
-CONST NSET = 66
+CONST NSET = 67
 DIM SHARED SL_COL(1 TO SETOPT_MAX) AS INTEGER    ' per option id: which column (1..NSCOL)
 DIM SHARED SL_ROW(1 TO SETOPT_MAX) AS INTEGER    ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count
@@ -682,6 +682,11 @@ DIM SHARED player_str AS INTEGER, player_int AS INTEGER, player_wis AS INTEGER
 DIM SHARED player_dex AS INTEGER, player_con AS INTEGER, player_cha AS INTEGER
 DIM SHARED player_tohit AS INTEGER, player_ac AS INTEGER    ' final to-hit / AC after ability mods
 DIM SHARED game_start AS DOUBLE                   ' TIMER at play start (elapsed-time display)
+' How long a champion's name may be. Matches PLAYER.name's STRING * 40 -- the storage has always
+' allowed it and RandomHeroName$ already produces up to 36 ("Sir Lancelittle the Perpetually
+' Lost"), but the TYPING prompt stopped at 14, so you could be handed a name you were not allowed
+' to type. The two now agree.
+CONST NAME_MAX = 40
 DIM SHARED player_name AS STRING                  ' champion name (Legendary Lords / save)
 DIM SHARED dbg_on AS INTEGER, moves_made AS INTEGER   ' [~] debug overlay + move counter
 ' Scratch marks for Dump_Monster's nearest-first walk (game/DUMP.bas). Its own array on purpose:

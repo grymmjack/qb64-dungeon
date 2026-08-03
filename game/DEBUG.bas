@@ -1423,6 +1423,16 @@ SUB HeldRerollCheck
                     PRINT PipeCol$("  |12BAD|07  3D -- the re-rolled die is OVERLAPPING a held die")
                     bad = bad + 1
                 END IF
+                ' The dice must not be able to reach the running-total lane. Checked rather than
+                ' eyeballed: the tray height, the die size and the inset all feed it, so any one of
+                ' them moving can put dice back over the text.
+                IF roll_floor_y > roll_sum_y THEN
+                    PRINT PipeCol$("  |12BAD|07  3D -- dice can reach the total lane (floor " + _
+                          _TRIM$(STR$(roll_floor_y)) + " vs lane " + _TRIM$(STR$(roll_sum_y)) + ")")
+                    bad = bad + 1
+                ELSE
+                    PRINT PipeCol$("  |10ok |07  3D    total lane clear by " + _TRIM$(STR$(roll_sum_y - roll_floor_y)) + "px")
+                END IF
                 IF ABS(dice3d_px!(1) - px1) > 0.5 OR ABS(dice3d_py!(1) - py1) > 0.5 OR _
                    ABS(dice3d_px!(3) - px3) > 0.5 OR ABS(dice3d_py!(3) - py3) > 0.5 THEN
                     PRINT PipeCol$("  |12BAD|07  3D -- a held die MOVED: (" + _

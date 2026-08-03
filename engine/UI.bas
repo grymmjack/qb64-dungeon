@@ -1619,6 +1619,26 @@ END FUNCTION
 
 ' Roll one ability score by the Stat-Roll METHOD: straight 3d6, 4d6-drop-lowest, or 3d6
 ' re-rolling 1s and 2s. Respects Real Dice + Show Dice.
+' Chances a low die gets, as an actual loop bound. The setting's 0 means "unlimited", which in a
+' game loop has to become a real number -- RR_PASS_CAP. It terminates with probability 1, but
+' "probability 1" is not a guarantee worth having with no way out.
+CONST RR_PASS_CAP = 16
+FUNCTION RerollTries% ()
+    IF opt_rerolltries >= 1 AND opt_rerolltries <= REROLL_TRIES_MAX THEN
+        RerollTries% = opt_rerolltries
+    ELSE
+        RerollTries% = RR_PASS_CAP
+    END IF
+END FUNCTION
+
+FUNCTION RerollTriesName$ ()
+    IF opt_rerolltries >= 1 AND opt_rerolltries <= REROLL_TRIES_MAX THEN
+        RerollTriesName$ = _TRIM$(STR$(opt_rerolltries)) + " per die"
+    ELSE
+        RerollTriesName$ = "unlimited"
+    END IF
+END FUNCTION
+
 ' Faces at or below this are thrown again (0 = the method does not re-roll).
 FUNCTION RerollFloor% ()
     SELECT CASE opt_statmethod
@@ -1695,7 +1715,6 @@ END FUNCTION
 ' and never terminate. Also capped at RR_MAX_PASSES -- the loop ends with probability 1, which is
 ' not a guarantee worth having inside a game loop with no way out.
 FUNCTION RollRerollLow% (n AS INTEGER, sides AS INTEGER, floorv AS INTEGER, caption AS STRING)
-    CONST RR_MAX_PASSES = 16
     DIM v(1 TO 12) AS INTEGER
     DIM i AS INTEGER, nlow AS INTEGER, pass AS INTEGER, t AS INTEGER, thrown AS INTEGER
     DIM fl AS INTEGER, cap AS STRING
@@ -1715,7 +1734,9 @@ FUNCTION RollRerollLow% (n AS INTEGER, sides AS INTEGER, floorv AS INTEGER, capt
         NEXT i
         IF nlow = 0 THEN EXIT DO
         pass = pass + 1
-        IF pass > RR_MAX_PASSES THEN EXIT DO
+        ' One PASS re-throws every die still low, so after N passes each die has had at most N
+        ' chances -- which is what the setting promises, per die rather than per roll.
+        IF pass > RerollTries% THEN EXIT DO
         ' Pin every die KEEPING its number; the rest are thrown again. The roll is still the full
         ' set -- that is what keeps them all on the table and in their seats.
         RollHoldClear
@@ -1738,7 +1759,7 @@ END FUNCTION
 ' Same distributions as RollAbility%, straight off the RNG: a player who wants to churn re-rolls
 ' until they like the spread should not have to sit through six dice animations each time.
 FUNCTION RollAbilityFast% ()
-    DIM j AS INTEGER, t AS INTEGER, v AS INTEGER, lo AS INTEGER
+    DIM j AS INTEGER, t AS INTEGER, v AS INTEGER, lo AS INTEGER, tries AS INTEGER
     SELECT CASE opt_statmethod
         CASE STAT_4D6DL
             t = 0: lo = 7
@@ -1750,9 +1771,11 @@ FUNCTION RollAbilityFast% ()
         CASE STAT_3D6RR1, STAT_3D6RR2
             t = 0
             FOR j = 1 TO 3                                    ' same rule as RollRerollLow%,
-                DO                                            ' just without the animation
-                    v = RollDie(6)
-                LOOP WHILE v <= RerollFloor%
+                v = RollDie(6)                                ' just without the animation
+                tries = 0
+                DO WHILE v <= RerollFloor% _ANDALSO tries < RerollTries%
+                    v = RollDie(6): tries = tries + 1
+                LOOP
                 t = t + v
             NEXT j
             RollAbilityFast% = t

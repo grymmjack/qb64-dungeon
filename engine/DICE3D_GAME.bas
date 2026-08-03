@@ -206,7 +206,15 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' somewhere to go, or they pile up in the middle with nothing to bounce off.
     DIM inset AS INTEGER, botinset AS INTEGER, minw AS INTEGER, minh AS INTEGER
     inset = DICE3D_BOX_INSET / PresentScale!
-    botinset = DICE3D_BOX_INSET_BOT / PresentScale!
+    ' The floor has to clear the running-total lane by the DIE'S OWN HEIGHT, not by a flat number.
+    ' A die is drawn centred on its physics position, so one resting on the floor extends roughly a
+    ' collision radius BELOW it -- and the lane is printed immediately under the tray. A fixed 32px
+    ' was simply less than a die is tall, so the dice still crossed into the text. Taking the die
+    ' size into account means the clearance holds for any die size or window scale.
+    ' via the accessor, not DICE3D_RADIUS_K -- that CONST lives in _PHYSICS.BM, which the roll-up
+    ' includes AFTER this file, so naming it here is 'Variable not defined'. A FUNCTION resolves
+    ' globally whatever the include order.
+    botinset = dice3d_radius!(cfg) + DICE3D_BOX_INSET_BOT / PresentScale!
     minw = cfg.DIE_SIZE * 4: minh = cfg.DIE_SIZE * 3
     cfg.BOX_W = tw - inset * 2: IF cfg.BOX_W < minw THEN cfg.BOX_W = minw
     cfg.BOX_H = th - inset * 2 - botinset: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
@@ -224,6 +232,9 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' floor is botinset above the tray edge whatever the clamp decides.
     cfg.BOX_Y = ty + th - botinset - cfg.BOX_H
     IF cfg.BOX_Y < ty THEN cfg.BOX_Y = ty          ' never above the tray itself
+    ' What the dice can reach vs where the total is printed -- see roll_floor_y in ENGINE.BI.
+    roll_floor_y = cfg.BOX_Y + cfg.BOX_H + dice3d_radius!(cfg)
+    roll_sum_y = ((ty + th) \ CH) * CH
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
     IF hbw > SW * CW - 20 THEN hbw = SW * CW - 20

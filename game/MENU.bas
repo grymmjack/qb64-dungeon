@@ -284,7 +284,7 @@ END FUNCTION
 
 SUB RollCharacter (pc AS INTEGER)
     DIM sc(1 TO 6) AS INTEGER, i AS INTEGER, hproll AS INTEGER, atkmod AS INTEGER, k AS STRING, auto AS INTEGER, stay_auto AS INTEGER, usedpoint AS INTEGER
-    DIM kr AS STRING, fastroll AS INTEGER, j AS INTEGER, hpd AS INTEGER
+    DIM kr AS STRING, fastroll AS INTEGER, j AS INTEGER, hpd AS INTEGER, hptr AS INTEGER
     IF _TRIM$(player_name) = "" THEN player_name = RandomHeroName$   ' a colourful default to start
     IF opt_oldschool THEN RollCharacterClassic pc: EXIT SUB          ' Dungeon! board game: you PICK a class, no rolled stats
     DICE3D_YOFF = 14                                ' drop the 3D dice tray below the stat sheet so the scores stay visible
@@ -347,9 +347,11 @@ SUB RollCharacter (pc AS INTEGER)
         IF fastroll THEN
             hproll = 0
             FOR j = 1 TO 3
-                DO
-                    hpd = RollDie(CLASSES(pc).hitdie)
-                LOOP WHILE hpd <= RerollFloor% AND RerollFloor% < CLASSES(pc).hitdie
+                hpd = RollDie(CLASSES(pc).hitdie)
+                hptr = 0
+                DO WHILE hpd <= RerollFloor% _ANDALSO RerollFloor% < CLASSES(pc).hitdie _ANDALSO hptr < RerollTries%
+                    hpd = RollDie(CLASSES(pc).hitdie): hptr = hptr + 1
+                LOOP
                 hproll = hproll + hpd
             NEXT j
         ELSEIF RerollFloor% > 0 AND NOT opt_realdice THEN
@@ -669,7 +671,7 @@ SUB BuildSetLayout
     ' Column 3 -- RULES, then DISPLAY & ART, then Back
     SetLayHdr 3, "RULES", prow()
     SetLayRow 3, 14, prow(): SetLayRow 3, 52, prow(): SetLayRow 3, 15, prow(): SetLayRow 3, 16, prow()
-    SetLayRow 3, 17, prow(): SetLayRow 3, 60, prow(): SetLayRow 3, 61, prow(): SetLayRow 3, 62, prow()
+    SetLayRow 3, 17, prow(): SetLayRow 3, 67, prow(): SetLayRow 3, 60, prow(): SetLayRow 3, 61, prow(): SetLayRow 3, 62, prow()
     SetLayRow 3, 34, prow(): SetLayRow 3, 25, prow(): SetLayRow 3, 24, prow(): SetLayRow 3, 22, prow()
     SetLayRow 3, 23, prow(): SetLayRow 3, 41, prow(): SetLayRow 3, 42, prow(): SetLayRow 3, 54, prow(): SetLayRow 3, 63, prow(): SetLayRow 3, 55, prow(): SetLayRow 3, 56, prow()
     SetLayHdr 3, "DISPLAY & ART", prow()
@@ -843,6 +845,11 @@ SUB RunSettings
                     IF opt_flexstats > 2 THEN opt_flexstats = 0
                     Sfx "select"
                 CASE 17: CycleStatMethod delta: Sfx "select"
+                CASE 67
+                    opt_rerolltries = opt_rerolltries + delta
+                    IF opt_rerolltries < 0 THEN opt_rerolltries = REROLL_TRIES_MAX
+                    IF opt_rerolltries > REROLL_TRIES_MAX THEN opt_rerolltries = 0
+                    Sfx "select"
                 CASE 41
                     opt_solomode = opt_solomode + delta
                     IF opt_solomode < 0 THEN opt_solomode = 3
@@ -920,6 +927,9 @@ SUB RunSettings
                     num_players = num_players + 1: IF num_players > 4 THEN num_players = 1
                     IF num_players > 1 THEN opt_boardgame = TRUE ELSE opt_boardgame = FALSE
                 CASE 17: CycleStatMethod 1
+                CASE 67
+                    opt_rerolltries = opt_rerolltries + 1
+                    IF opt_rerolltries > REROLL_TRIES_MAX THEN opt_rerolltries = 0
                 CASE 18
                     opt_fullscreen = NOT opt_fullscreen
                     ApplyDisplay
@@ -1173,6 +1183,9 @@ SUB RunSettings
                 CASE 54
                     lbl = "Luck Re-rolls"
                     IF opt_luck THEN vtxt = "on (CHA buys re-rolls)" ELSE vtxt = "off"
+                CASE 67
+                    lbl = "  Re-roll Tries"
+                    vtxt = RerollTriesName$
                 CASE 64
                     lbl = "  Music Format"
                     vtxt = FmtName$(opt_fmt_music)

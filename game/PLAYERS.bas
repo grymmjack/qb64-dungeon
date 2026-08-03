@@ -102,6 +102,7 @@ FUNCTION PromptNameSeed$ (prompt AS STRING, seed AS STRING)
         ELSE
             COLOR CYANU, BLACK: PrintCentered 26, "[ENTER] confirm"
         END IF
+        COLOR GREY, BLACK: PrintCentered 24, _TRIM$(STR$(NAME_MAX - LEN(nm))) + " characters left
         Present
         k = INKEY$
         IF k <> "" THEN
@@ -113,7 +114,10 @@ FUNCTION PromptNameSeed$ (prompt AS STRING, seed AS STRING)
                 IF LEN(nm) > 0 THEN nm = LEFT$(nm, LEN(nm) - 1)
             ELSEIF LEN(k) = 1 THEN
                 chcode = ASC(k)
-                IF chcode >= 32 AND chcode <= 126 AND LEN(nm) < 14 THEN nm = nm + k
+                ' NAME_MAX, not 14 -- see the note there. `|` is excluded because it is the field
+                ' separator in dungeon-lords.dat, and a name containing one would split its own
+                ' record in half.
+                IF chcode >= 32 AND chcode <= 126 AND chcode <> 124 AND LEN(nm) < NAME_MAX THEN nm = nm + k
             END IF
         END IF
     LOOP
