@@ -234,6 +234,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB ScrSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG
     _DEST _CONSOLE
     PRINT "SCRAMBLE selftest"

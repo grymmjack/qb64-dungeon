@@ -287,6 +287,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB LockSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM AS SINGLE worst, best, budget, think
     DIM AS INTEGER dumb
     _DEST _CONSOLE

@@ -228,6 +228,7 @@ END FUNCTION
 '--- selftest ----------------------------------------------------------------
 
 SUB MonkeySelfTest
+    MgQuiet                              ' a selftest is never listened to
     _DEST _CONSOLE
     PRINT "MONKEYSEE selftest"
 

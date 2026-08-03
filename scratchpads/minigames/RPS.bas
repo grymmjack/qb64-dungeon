@@ -167,6 +167,7 @@ SUB DrawRps (you AS INTEGER, them AS INTEGER, ws AS INTEGER, ls AS INTEGER, thro
 END SUB
 
 SUB RpsSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM t AS INTEGER, rate AS DOUBLE, blind AS DOUBLE
     _DEST _CONSOLE
     PRINT "RPS selftest"

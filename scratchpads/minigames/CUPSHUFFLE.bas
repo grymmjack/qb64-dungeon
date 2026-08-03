@@ -249,6 +249,7 @@ END FUNCTION
 '--- selftest ----------------------------------------------------------------
 
 SUB CupSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG, n AS LONG, bad AS LONG
     DIM AS INTEGER lo, hi, c
     DIM hits(1 TO MAXCUPS) AS LONG

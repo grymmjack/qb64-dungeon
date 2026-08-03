@@ -275,6 +275,7 @@ SUB Ok (label AS STRING, cond AS INTEGER)
 END SUB
 
 SUB GambleSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG, n AS LONG, net AS LONG, tgt AS INTEGER
     DIM ret AS SINGLE, best AS SINGLE, bestt AS INTEGER
     _DEST _CONSOLE

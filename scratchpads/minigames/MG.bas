@@ -3,7 +3,17 @@
 ' ============================================================================
 
 ' Set up the screen and the palette. Every prototype calls this first.
+'
+' It also decides, centrally, whether this run is allowed to make a noise:
+' ANY command-line argument means a tool mode -- selftest, shot, trace, whatever
+' gets added later -- and a tool mode is silent. Only a bare `./X.run` is play.
+'
+' This lives here rather than in each prototype because the per-file version is
+' a line you have to remember to write, and it is invisible when you forget: the
+' logic all passes, the picture is fine, and the only symptom is that the machine
+' shrieks at whoever ran the gate. Defaulting to silence makes forgetting safe.
 SUB MgInit
+    IF LEN(_TRIM$(COMMAND$)) > 0 THEN MG_QUIET = TRUE
     SW = 132: SH = 51: CW = 8: CH = 16
     C_BG = _RGB32(10, 8, 12)
     C_TITLE = _RGB32(&HFF, &HE0, &H50)
@@ -108,9 +118,57 @@ END FUNCTION
 ' Every tone in a prototype goes through here. The PC speaker ignores every mute
 ' flag the game has, so the ONLY thing standing between a headless selftest and
 ' an unwanted chirp is this one gate -- which is why no prototype calls SOUND.
+' The ONLY place SOUND is called. Three gates, and the third is the important one.
+'
+' QB64's SOUND does not play a tone, it APPENDS one to a queue and returns
+' immediately. Ask for more than real time can play and the queue grows without
+' bound -- the sound carries on long after whatever caused it, ignores every
+' later attempt to stop, and outlives the screen it belonged to. That is not a
+' loud game, it is a game that will not shut up, and no amount of "be careful at
+' the call site" fixes it, because the call site is a physics loop that has no
+' idea how fast it is running.
+'
+' So: track how much audio has been handed to the queue and how much wall time
+' has passed to drain it. If the queue is already ahead of real time by more than
+' MG_QMAX seconds, drop the request on the floor. Dropping a clack is invisible;
+' a runaway queue is the only thing here a user cannot escape from.
 SUB MgBeep (freq AS SINGLE, dur AS SINGLE)
-    IF MG_QUIET THEN EXIT SUB
+    DIM now AS DOUBLE, drained AS SINGLE
+    IF MG_QUIET THEN EXIT SUB                 ' any argument = a tool mode
+    IF MG_SILENT > 0 THEN EXIT SUB            ' inside an unwatched simulation
+
+    now = TIMER
+    IF MG_QLAST > 0 THEN
+        drained = now - MG_QLAST
+        IF drained < 0 THEN drained = 0       ' midnight; see MgElapsed
+        MG_QDEPTH = MG_QDEPTH - drained
+        IF MG_QDEPTH < 0 THEN MG_QDEPTH = 0
+    END IF
+    MG_QLAST = now
+    IF MG_QDEPTH > MG_QMAX THEN EXIT SUB
+
+    MG_QDEPTH = MG_QDEPTH + dur / 18!         ' SOUND's duration unit is 1/18s
     SOUND freq, dur
+END SUB
+
+' Silence a stretch of code that RUNS THE GAME WITHOUT ANYONE WATCHING -- a
+' physics simulation used to measure a distribution, a strategy replay, anything
+' that drives the real model at a thousand times normal speed.
+'
+' This is not the same problem as the tool-mode mute above, and the difference
+' matters: PLINKO measures its own board by running ten thousand real drops at
+' STARTUP, in every mode including play. Each drop hits studs, each hit asks for
+' a sound, and QB64 QUEUES sound rather than dropping it -- so a perfectly normal
+' launch enqueued about a hundred thousand beeps and then played them, one after
+' another, over the top of the game. Nested, so a caller inside a caller cannot
+' un-mute the outer one on its way out.
+SUB MgQuiet
+    MG_SILENT = MG_SILENT + 1
+END SUB
+
+SUB MgLoud
+    MG_SILENT = MG_SILENT - 1
+    IF MG_SILENT < 0 THEN MG_SILENT = 0
 END SUB
 
 '--- selftest ----------------------------------------------------------------

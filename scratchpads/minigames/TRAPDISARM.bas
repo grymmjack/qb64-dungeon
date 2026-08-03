@@ -356,6 +356,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB TrapSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG, gens AS LONG
     DIM AS INTEGER minn, maxn, bad
     _DEST _CONSOLE

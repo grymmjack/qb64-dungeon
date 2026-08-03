@@ -31,6 +31,16 @@ DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 '    is sitting there. Prototypes route tones through MgBeep, which obeys this. ---
 DIM SHARED MG_QUIET AS INTEGER
 
+'--- nesting counter for MgQuiet/MgLoud: silences the model being RUN rather than
+'    played. See the note on MgQuiet in MG.bas. ---
+DIM SHARED MG_SILENT AS INTEGER
+
+'--- SOUND is a QUEUE, not a speaker. These bound how far ahead of real time that
+'    queue is allowed to get; see MgBeep. ---
+CONST MG_QMAX = 0.35            ' seconds of un-played audio tolerated
+DIM SHARED MG_QDEPTH AS SINGLE
+DIM SHARED MG_QLAST AS DOUBLE
+
 '--- the palette these prototypes speak in. Mirrors the game's theme keys so the
 '    move into the real UI is a rename, not a re-design. ---
 DIM SHARED AS _UNSIGNED LONG C_TITLE, C_TEXT, C_DIM, C_GOOD, C_WARN, C_BAD, C_COOL, C_BG

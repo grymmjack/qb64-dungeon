@@ -198,6 +198,7 @@ END SUB
 ' ----------------------------------------------------------------------------
 
 SUB CrapsSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG, n AS LONG, w AS LONG, p AS DOUBLE, sim AS DOUBLE, edge AS DOUBLE
     _DEST _CONSOLE
     PRINT "CRAPS selftest"

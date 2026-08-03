@@ -273,6 +273,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB RuneSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG, deals AS LONG
     DIM AS INTEGER wt, wd, ct, cd, ft, fd, maxperf, minperf, worstdmg
     DIM AS LONG pclear, cclear, fclear, pdmg, cdmg, fdmg

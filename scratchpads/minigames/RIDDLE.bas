@@ -343,6 +343,7 @@ SUB Ok (label AS STRING, cond AS INTEGER)
 END SUB
 
 SUB RiddleSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS INTEGER, dup AS INTEGER, j AS INTEGER
     _DEST _CONSOLE
     PRINT "RIDDLE selftest"

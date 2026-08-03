@@ -553,6 +553,7 @@ SUB Ok (label AS STRING, cond AS INTEGER)
 END SUB
 
 SUB MazeSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS INTEGER, n AS INTEGER, bad AS INTEGER, minlen AS INTEGER, maxlen AS INTEGER
     DIM cells AS INTEGER, unreach AS INTEGER, L AS INTEGER, trivial AS INTEGER
     _DEST _CONSOLE

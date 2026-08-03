@@ -238,6 +238,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB WhackSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG
     DIM AS INTEGER allsc, persc, slopsc, worstall, bestall
     DIM AS LONG bad

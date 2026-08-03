@@ -229,6 +229,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB WheelSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS LONG, spins AS LONG
     DIM AS LONG bad
     DIM AS DOUBLE worstgap

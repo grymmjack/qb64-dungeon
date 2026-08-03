@@ -308,6 +308,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB JackSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM AS DOUBLE ebasic, emimic, estand
     _DEST _CONSOLE
     PRINT "BLACKJACK selftest"

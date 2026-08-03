@@ -111,6 +111,7 @@ SUB DrawSpirit (shown AS INTEGER, used AS INTEGER, budget AS INTEGER, hint AS ST
 END SUB
 
 SUB GuessSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM s AS INTEGER, worst AS INTEGER, g AS INTEGER, bad AS INTEGER
     _DEST _CONSOLE
     PRINT "GUESS selftest"

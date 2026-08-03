@@ -283,6 +283,7 @@ SUB Ok (label AS STRING, cond AS INTEGER)
 END SUB
 
 SUB DodgeSelfTest
+    MgQuiet                              ' a selftest is never listened to
     DIM d AS INTEGER, s AS INTEGER, good AS INTEGER, i AS INTEGER
     _DEST _CONSOLE
     PRINT "DODGE selftest"

@@ -203,6 +203,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB NameSelfTest
+    MgQuiet                              ' a selftest is never listened to
     _DEST _CONSOLE
     PRINT "TRUENAME selftest"
 
