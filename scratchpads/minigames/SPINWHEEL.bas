@@ -31,7 +31,7 @@
 '$INCLUDE:'MG.bi'
 
 CONST WEDGES = 10
-CONST FRICTION = 62!            ' degrees per second per second
+CONST FRICTION = 184!           ' degrees per second per second -- how fast it gives up
 CONST FULL_TURN = 360!
 CONST BALK_AT = 360!            ' fewer degrees than this and the wheel has BALKED
 
@@ -41,8 +41,8 @@ CONST CRANK_GRACE = 0.45        ' seconds after a stroke before it starts bleedi
 CONST CRANK_DECAY = 14!         ' charge lost per second AFTER the grace window
 CONST CRANK_MAX = 100!
 CONST MIN_RELEASE = 6!          ' below this the handle simply does not move -- see PlayWheel
-CONST TRAVEL_PER_CHARGE = 26!   ' degrees of travel bought per point of charge
-CONST TRAVEL_SLOP = 900!        ' random degrees ON TOP -- this is the anti-aim term
+CONST MAXTRAVEL = 9000!         ' degrees a full crank is worth -- twenty-five turns
+CONST TRAVEL_SLOP = 420!        ' random degrees ON TOP -- this is the anti-aim term
 
 DIM SHARED WNAME(1 TO WEDGES) AS STRING
 DIM SHARED WTELL(1 TO WEDGES) AS STRING
@@ -151,12 +151,25 @@ END FUNCTION
 ' the number that makes the wheel unaimable, and it is sized against the WIDTH OF
 ' THE NARROWEST WEDGE rather than picked because it felt about right.
 FUNCTION TravelFor! (charge AS SINGLE)
-    TravelFor! = charge * TRAVEL_PER_CHARGE + RND * TRAVEL_SLOP
+    TravelFor! = AimedTravel!(charge) + RND * TRAVEL_SLOP
 END FUNCTION
 
 ' The part of the travel a player can actually aim with -- no randomness.
+'
+' SQUARE, not linear, and that is the whole feel of the thing. A linear crank
+' made a weak pull spin nearly as far as a hard one, because the random slop was
+' a big share of a small number and the wheel had no sense of mass at all. On a
+' square curve, doubling your effort quadruples the spin: the first few strokes
+' barely move it, and past halfway it really goes. That is what "heavy" means in
+' a number.
+'
+' It also puts the balk threshold somewhere meaningful. Linear, with a slop wide
+' enough to stop aiming, the wheel either always balked or never could.
 FUNCTION AimedTravel! (charge AS SINGLE)
-    AimedTravel! = charge * TRAVEL_PER_CHARGE
+    DIM f AS SINGLE
+    f = charge / CRANK_MAX
+    IF f < 0! THEN f = 0!
+    AimedTravel! = f * f * MAXTRAVEL
 END FUNCTION
 
 ' A wheel that does not complete one full revolution has BALKED.
@@ -188,7 +201,18 @@ END FUNCTION
 ' by accident -- the consequence is for people who try it, not for people who
 ' misjudged an invisible threshold.
 FUNCTION SafeCharge! ()
-    SafeCharge! = BALK_AT / TRAVEL_PER_CHARGE
+    SafeCharge! = CRANK_MAX * SQR(BALK_AT / MAXTRAVEL)
+END FUNCTION
+
+' How long a spin of `travel` degrees lasts, from the same friction the animation
+' uses. Shown to the player as turns, because "how far will this go" is the
+' question the crank is actually asking and there is no reason to hide it.
+FUNCTION SpinSeconds! (travel AS SINGLE)
+    SpinSeconds! = SQR(2! * travel / FRICTION)
+END FUNCTION
+
+FUNCTION SpinTurns! (charge AS SINGLE)
+    SpinTurns! = AimedTravel!(charge) / FULL_TURN
 END FUNCTION
 
 '--- play --------------------------------------------------------------------
@@ -338,6 +362,11 @@ SUB DrawWheel (msg AS STRING)
     END IF
     MgText barx, 36, "[" + STRING$(INT(g_charge / 2!), "=") + STRING$(50 - INT(g_charge / 2!), ".") + "]"
     MgText barx + 54, 36, _TRIM$(STR$(INT(g_charge)))
+    IF g_charge >= MIN_RELEASE THEN
+        MgText barx + 8, 35, "about " + _TRIM$(STR$(INT(SpinTurns!(g_charge) * 10) / 10)) + " turns, " + _TRIM$(STR$(INT(SpinSeconds!(AimedTravel!(g_charge)) * 10) / 10)) + "s of spin"
+    ELSE
+        MgText barx + 8, 35, "it has not moved yet"
+    END IF
     COLOR C_BAD, 0: MgText barx + 1 + INT(MIN_RELEASE / 2!), 37, "!"
     COLOR C_GOOD, 0: MgText barx + 1 + INT(SafeCharge! / 2!), 37, "^"
     COLOR C_DIM, 0
@@ -394,6 +423,15 @@ SUB WheelSelfTest
     Ok "...and doing nothing is never a spin", MIN_RELEASE < SafeCharge!
     Ok "the weakest release that IS allowed can still balk", CanBalkAt%(MIN_RELEASE)
     Ok "and a crank past the marked line never balks", NeverBalksAt%(SafeCharge! + 1!)
+
+    MgSection "the wheel has WEIGHT -- strength is calibrated to the spin"
+    PRINT USING "       a bare release spins #.# turns; a full crank spins ###.# turns"; SpinTurns!(MIN_RELEASE); SpinTurns!(CRANK_MAX)
+    PRINT USING "       ...lasting #.#s and ##.#s"; SpinSeconds!(AimedTravel!(SafeCharge!)); SpinSeconds!(AimedTravel!(CRANK_MAX))
+    Ok "a full crank spins vastly further than a weak one", SpinTurns!(CRANK_MAX) > SpinTurns!(SafeCharge!) * 15!
+    Ok "twice the effort is worth MORE than twice the spin -- that is the weight", AimedTravel!(60!) > AimedTravel!(30!) * 3!
+    Ok "the first strokes barely move it", SpinTurns!(CRANK_GAIN) < 0.5
+    Ok "a full spin is long enough to watch and short enough to sit through", SpinSeconds!(AimedTravel!(CRANK_MAX)) > 6! _ANDALSO SpinSeconds!(AimedTravel!(CRANK_MAX)) < 14!
+    Ok "even the shortest legal spin is watchable", SpinSeconds!(BALK_AT) > 1.5
 
     MgSection "the crank is usable by a human hand"
     PRINT USING "       cranking at 5 strokes a second reaches full in #.#s"; TimeToFull!(5!)
