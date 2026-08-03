@@ -160,6 +160,15 @@ time than the fuse has.
 That made `TRAP_DESTROYS` a dead constant, and it has been removed rather than
 left sitting there labelled as an open decision.
 
+**The fuse never stops.** Nothing in the play loop blocks: messages carry an
+expiry and the shuffle is a frame counter, so the clock is pure wall time from
+the moment it was armed. The first version paused to show each message and then
+pushed the fuse origin forward to hand those seconds back — two faults wearing
+one coat, because a fuse you can watch stop is not a fuse, and every pause is a
+place someone has to remember to discount. There is nothing left to discount.
+(The only blocking waits are the three terminal screens — opened, destroyed,
+already-known — where no fuse is running.)
+
 **A wrong clasp never touches the fuse.** It does not reset it and it is not
 fined — the clock simply keeps counting, which is what a burning fuse does. That
 makes the LENGTH the only thing between a patient guesser and a free chest,

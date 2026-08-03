@@ -97,6 +97,14 @@ DIM SHARED AS INTEGER g_armed, g_wrongs
 DIM SHARED AS SINGLE g_left
 DIM SHARED g_fuse0 AS DOUBLE
 
+'--- presentation state. NOTHING here blocks: a message has an expiry and the
+'    shuffle has a frame counter, so the play loop never stops turning and the
+'    fuse never stops burning. ---
+DIM SHARED g_tumble AS INTEGER
+DIM SHARED TUMBHUE(1 TO CLASPS) AS INTEGER
+DIM SHARED g_msg AS STRING
+DIM SHARED g_msguntil AS DOUBLE
+
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal
 MgInit
@@ -284,6 +292,7 @@ SUB ChestSetup (lv AS INTEGER)
     g_level = lv: g_step = 1: g_sel = 1
     g_blown = FALSE: g_opened = FALSE
     g_armed = FALSE: g_wrongs = 0: g_left = FUSE_SECS
+    g_tumble = 0: g_msg = "": g_msguntil = 0
     FOR i = 1 TO CLASPS: CLASPOPEN(i) = FALSE: NEXT i
     ' a fresh chest is dealt, not shuffled -- there is nothing to move yet
     FOR i = 1 TO CLASPS: CLASPHUE(i) = i: NEXT i
@@ -372,37 +381,61 @@ FUNCTION TryClasp% (c AS INTEGER)
     END IF
 END FUNCTION
 
-' Show the clasps tumbling. Purely presentational -- it does not touch the deal --
-' but it is what lets the re-deal stay uniform: without it, the one time in six
-' that a uniform shuffle lands back where it started reads as a bug.
-SUB ShuffleAnim
-    DIM f AS INTEGER, i AS INTEGER, j AS INTEGER, t AS INTEGER
-    DIM keep(1 TO CLASPS) AS INTEGER, ord(1 TO CLASPS) AS INTEGER
-    FOR i = 1 TO CLASPS: keep(i) = CLASPHUE(i): NEXT i
-    FOR f = 1 TO 7
-        FOR i = 1 TO CLASPS: ord(i) = i: NEXT i
-        FOR i = CLASPS TO 2 STEP -1
-            j = MgRoll%(i): t = ord(i): ord(i) = ord(j): ord(j) = t
-        NEXT i
-        FOR i = 1 TO CLASPS: CLASPHUE(i) = keep(ord(i)): NEXT i
+' Start the clasps tumbling. Purely presentational -- it does not touch the deal,
+' and crucially it does NOT block.
+'
+' The blocking version froze the loop for half a second per shuffle and then had
+' to hand those seconds back to the fuse to stay fair. Two wrongs: a fuse you can
+' see stop is not a fuse, and every pause was a place the discounting had to be
+' remembered. Now it is a frame counter the play loop ticks, the fuse burns
+' straight through it, and there is nothing to discount.
+SUB ShuffleAnimStart
+    g_tumble = 26
+    TumbleScramble
+END SUB
+
+' A display-only permutation of the real colours. The model is already dealt; this
+' is what the player sees while the clasps are in the air.
+SUB TumbleScramble
+    DIM i AS INTEGER, j AS INTEGER, t AS INTEGER
+    DIM ord(1 TO CLASPS) AS INTEGER
+    FOR i = 1 TO CLASPS: ord(i) = i: NEXT i
+    FOR i = CLASPS TO 2 STEP -1
+        j = MgRoll%(i): t = ord(i): ord(i) = ord(j): ord(j) = t
+    NEXT i
+    FOR i = 1 TO CLASPS: TUMBHUE(i) = CLASPHUE(ord(i)): NEXT i
+END SUB
+
+' Advance the tumble by one frame. Called from the play loop, never from a delay.
+SUB TumbleTick
+    IF g_tumble <= 0 THEN EXIT SUB
+    g_tumble = g_tumble - 1
+    IF g_tumble MOD 4 = 0 THEN
+        TumbleScramble
         ChestSfx "chest.shuffle"
-        DrawChest "..."
-        _DELAY 0.07
-    NEXT f
-    FOR i = 1 TO CLASPS: CLASPHUE(i) = keep(i): NEXT i
+    END IF
 END SUB
 
 SUB FuseReset
     g_fuse0 = TIMER: g_left = FUSE_SECS
 END SUB
 
-' A scripted pause -- a clasp clicking, the shuffle -- must not burn the fuse.
-' The player is not deciding anything during those, and charging for the game's
-' own animations is the same bug LOCKPICK had.
-SUB ChestPause (secs AS SINGLE)
-    _DELAY secs
-    g_fuse0 = g_fuse0 + secs
+' Say something for a while WITHOUT stopping. The old version called _DELAY and
+' then pushed the fuse origin forward to compensate, which is two bugs wearing
+' one coat: a fuse that visibly stops is not a fuse, and every pause becomes a
+' place someone has to remember to discount.
+SUB SayFor (t AS STRING, secs AS SINGLE)
+    g_msg = t
+    g_msguntil = TIMER + secs
 END SUB
+
+FUNCTION CurrentMsg$ (idle AS STRING)
+    IF LEN(g_msg) > 0 _ANDALSO TIMER < g_msguntil THEN
+        CurrentMsg$ = g_msg
+    ELSE
+        CurrentMsg$ = idle
+    END IF
+END FUNCTION
 
 SUB FuseTick
     IF NOT g_armed THEN g_left = FUSE_SECS: EXIT SUB
@@ -443,8 +476,14 @@ FUNCTION PlayChest% (lv AS INTEGER)
     END IF
 
     msg = "three clasps, one order -- choose the first"
+    g_msg = "": g_msguntil = 0
+    ' NOTHING inside this loop blocks. Messages have an expiry, the shuffle has a
+    ' frame counter, and the fuse is pure wall time since it was armed. The only
+    ' _DELAY calls left in the file are the three TERMINAL screens -- opened,
+    ' destroyed, and already-known -- where there is no fuse left to hold up.
     DO
         FuseTick
+        TumbleTick
         IF g_armed _ANDALSO g_left <= 0! THEN
             g_blown = TRUE
             ChestSfx "chest.trap"
@@ -452,39 +491,44 @@ FUNCTION PlayChest% (lv AS INTEGER)
             _DELAY 2.4
             PlayChest% = MG_LOST: EXIT FUNCTION
         END IF
-        DrawChest msg
+        DrawChest CurrentMsg$(msg)
+
         k = INKEY$: u = UCASE$(k)
         IF k = CHR$(27) THEN PlayChest% = MG_LEFT: EXIT FUNCTION
-        IF u = "A" OR k = CHR$(0) + "K" THEN g_sel = WrapSel%(g_sel - 1): ChestSfx "chest.pick"
-        IF u = "D" OR k = CHR$(0) + "M" THEN g_sel = WrapSel%(g_sel + 1): ChestSfx "chest.pick"
-        IF k = " " OR k = CHR$(13) THEN
-            IF NOT CLASPOPEN(g_sel) THEN
-                IF TryClasp%(g_sel) THEN
-                    IF g_opened THEN
-                        ChestSfx "chest.open"
-                        DrawChest "the lid gives. the chest is yours -- and so is this level's order"
-                        _DELAY 2.4
-                        PlayChest% = MG_WON: EXIT FUNCTION
-                    END IF
-                    ChestSfx "chest.correct"
-                    IF g_armed THEN
-                        DrawChest "it gives -- the fuse winds back, but it is still burning"
+
+        ' input is ignored while the clasps are in the air -- you cannot grab one
+        ' that is moving -- but the fuse does NOT stop for it
+        IF g_tumble <= 0 THEN
+            IF u = "A" OR k = CHR$(0) + "K" THEN g_sel = WrapSel%(g_sel - 1): ChestSfx "chest.pick"
+            IF u = "D" OR k = CHR$(0) + "M" THEN g_sel = WrapSel%(g_sel + 1): ChestSfx "chest.pick"
+            IF k = " " OR k = CHR$(13) THEN
+                IF NOT CLASPOPEN(g_sel) THEN
+                    IF TryClasp%(g_sel) THEN
+                        IF g_opened THEN
+                            ChestSfx "chest.open"
+                            DrawChest "the lid gives. the chest is yours -- and so is this level's order"
+                            _DELAY 2.4
+                            PlayChest% = MG_WON: EXIT FUNCTION
+                        END IF
+                        ChestSfx "chest.correct"
+                        ShuffleAnimStart
+                        IF g_armed THEN
+                            SayFor "it gives -- the fuse winds back, but it is still burning", 1.6
+                        ELSE
+                            SayFor "it gives -- and they all move", 1.4
+                        END IF
+                        msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS))
+                        IF g_armed THEN msg = msg + " -- and it is ticking"
                     ELSE
-                        DrawChest "it gives -- and they all move"
+                        ChestSfx "chest.wrong"
+                        ShuffleAnimStart
+                        IF g_wrongs = 1 THEN
+                            SayFor "something inside starts TICKING -- finish it, QUICKLY", 1.6
+                        ELSE
+                            SayFor "wrong again -- and it is still counting", 1.2
+                        END IF
+                        msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS)) + " -- and it is ticking"
                     END IF
-                    ChestPause 0.6
-                    ShuffleAnim
-                    g_fuse0 = g_fuse0 + 0.5!      ' the tumble is not thinking time
-                    msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS))
-                ELSE
-                    ChestSfx "chest.wrong"
-                    IF g_wrongs = 1 THEN
-                        DrawChest "something inside starts TICKING -- finish it, quickly"
-                    ELSE
-                        DrawChest "wrong again -- and it is still counting"
-                    END IF
-                    ChestPause 1.1
-                    msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS)) + " -- and it is ticking"
                 END IF
             END IF
         END IF
@@ -505,7 +549,7 @@ END FUNCTION
 '============================================================================
 
 SUB DrawChest (msg AS STRING)
-    DIM i AS INTEGER
+    DIM i AS INTEGER, hu AS INTEGER
     DIM AS INTEGER x, y, w, h, ox, oy
     DIM od AS LONG
     DIM s AS STRING
@@ -531,18 +575,19 @@ SUB DrawChest (msg AS STRING)
     FOR i = 1 TO CLASPS
         x = ox + (i - 1) * (w \ CLASPS) + (w \ CLASPS - 10 * CW) \ 2
         y = oy + CH
-        IF CLASPOPEN(i) THEN
-            LINE (x, y)-(x + 10 * CW, y + 3 * CH), HUECOL(CLASPHUE(i)), B
-            COLOR HUECOL(CLASPHUE(i)), 0
-            _PRINTSTRING (x + CW, y + CH), LEFT$(HUENAME(CLASPHUE(i)) + "        ", 8)
+        IF g_tumble > 0 THEN hu = TUMBHUE(i) ELSE hu = CLASPHUE(i)
+        IF CLASPOPEN(i) _ANDALSO g_tumble <= 0 THEN
+            LINE (x, y)-(x + 10 * CW, y + 3 * CH), HUECOL(hu), B
+            COLOR HUECOL(hu), 0
+            _PRINTSTRING (x + CW, y + CH), LEFT$(HUENAME(hu) + "        ", 8)
             COLOR C_DIM, 0
             _PRINTSTRING (x + 2 * CW, y + 2 * CH), "-open-"
         ELSE
-            LINE (x, y)-(x + 10 * CW, y + 3 * CH), HUECOL(CLASPHUE(i)), BF
+            LINE (x, y)-(x + 10 * CW, y + 3 * CH), HUECOL(hu), BF
             COLOR _RGB32(20, 18, 24), 0
-            _PRINTSTRING (x + CW, y + CH), LEFT$(HUENAME(CLASPHUE(i)) + "        ", 8)
+            _PRINTSTRING (x + CW, y + CH), LEFT$(HUENAME(hu) + "        ", 8)
         END IF
-        IF i = g_sel _ANDALSO NOT g_opened _ANDALSO NOT g_blown THEN
+        IF i = g_sel _ANDALSO NOT g_opened _ANDALSO NOT g_blown _ANDALSO g_tumble <= 0 THEN
             COLOR C_COOL, 0
             _PRINTSTRING (x - 2 * CW, y + CH), ">"
             _PRINTSTRING (x + 10 * CW + CW, y + CH), "<"
@@ -636,7 +681,8 @@ SUB ChestSelfTest
     Ok "...but does not disarm it -- it keeps burning", CorrectDoesNotDisarm%
     Ok "after a mistake you still get one pick -- so knowing the answer saves you", HUMAN_PICK <= FUSE_SECS
     Ok "...but not two, so you cannot try every colour in turn", 2! * HUMAN_PICK > FUSE_SECS
-    Ok "a scripted pause is not charged against the fuse", ChestPauseIsFree%
+    Ok "NOTHING pauses or discounts the fuse -- it is pure wall time", FuseIsContinuous%
+    Ok "the shuffle animation ends by itself, it does not trap you", TumbleEndsItself%
 
     MgSection "what the fuse costs the level code -- measured, not hoped"
     PRINT USING "       a patient guesser opens #.### of chests (no fuse at all: 1.000; no mercy: 0.167)"; FusedGuesserRate#
@@ -1025,16 +1071,33 @@ FUNCTION CorrectDoesNotDisarm% ()
     CorrectDoesNotDisarm% = g_armed
 END FUNCTION
 
-FUNCTION ChestPauseIsFree% ()
-    DIM AS SINGLE before, after
+' The old code paused to show a message and then pushed the fuse origin forward
+' to hand those seconds back. Both halves are gone: nothing blocks, so nothing
+' needs discounting, and the fuse is exactly wall time since it was armed.
+'
+' Checked by driving the presentation -- a message and a whole shuffle animation --
+' and requiring the fuse origin not to move a nanosecond.
+FUNCTION FuseIsContinuous% ()
+    DIM i AS INTEGER
+    DIM t0 AS DOUBLE
     RANDOMIZE 148
     ChestRollCodes
     ChestSetup 4
     g_armed = TRUE: FuseReset
-    FuseTick: before = g_left
-    ChestPause 0.35!
-    FuseTick: after = g_left
-    ChestPauseIsFree% = (ABS(before - after) < 0.08!)
+    t0 = g_fuse0
+    SayFor "anything at all", 3!
+    ShuffleAnimStart
+    FOR i = 1 TO 60: TumbleTick: NEXT i
+    FuseIsContinuous% = (g_fuse0 = t0 _ANDALSO g_tumble = 0)
+END FUNCTION
+
+' ...and the tumble has to actually finish on its own, or the player is locked
+' out of a chest that is still counting down.
+FUNCTION TumbleEndsItself% ()
+    DIM i AS INTEGER
+    ShuffleAnimStart
+    FOR i = 1 TO 200: TumbleTick: NEXT i
+    TumbleEndsItself% = (g_tumble = 0)
 END FUNCTION
 
 FUNCTION NothingKnownAtStart% ()
