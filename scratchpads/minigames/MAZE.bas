@@ -547,7 +547,7 @@ END SUB
 '  SELFTEST
 ' ----------------------------------------------------------------------------
 
-SUB Ok (label AS STRING, cond AS INTEGER)
+SUB MgOk (label AS STRING, cond AS INTEGER)
     T_RUN = T_RUN + 1
     IF cond THEN PRINT "  ok   "; label ELSE PRINT "  FAIL "; label: T_BAD = T_BAD + 1
 END SUB
@@ -577,39 +577,39 @@ SUB MazeSelfTest
         IF L > 0 AND L < minlen THEN minlen = L
         IF L > maxlen THEN maxlen = L
     NEXT i
-    Ok "every maze is solvable (BFS finds the sigil)", bad = 0
-    Ok "every cell is reachable -- no carved-off islands", unreach = 0
-    Ok "never starts ON the sigil (no instant win)", trivial = 0
+    MgOk "every maze is solvable (BFS finds the sigil)", bad = 0
+    MgOk "every cell is reachable -- no carved-off islands", unreach = 0
+    MgOk "never starts ON the sigil (no instant win)", trivial = 0
     ' A random edge cell can land two steps from the centre on a small maze -- a
     ' "puzzle" solved by pressing a direction twice. PickStart exists to stop that,
     ' and this is the assertion that holds it to it.
-    Ok "never a trivial walk-in (>= 4 steps, always)", minlen >= 4
-    Ok "starts on an EDGE cell", StartIsEdge%
+    MgOk "never a trivial walk-in (>= 4 steps, always)", minlen >= 4
+    MgOk "starts on an EDGE cell", StartIsEdge%
     ' Braiding only removes walls, so it cannot disconnect anything -- but that is an
     ' argument, and the reachability check above is the evidence. This measures that it
     ' actually DID something: a braid that silently no-ops leaves the maze as twisty as
     ' before while the constant claims otherwise.
     RANDOMIZE 3: MazeGen WARD_W, WARD_H
-    Ok "braiding leaves far fewer dead ends than a perfect maze", DeadEnds% < (WARD_W * WARD_H) / 4
-    Ok "the ward is small enough to read at a glance", WARD_W * WARD_H <= 80
+    MgOk "braiding leaves far fewer dead ends than a perfect maze", DeadEnds% < (WARD_W * WARD_H) / 4
+    MgOk "the ward is small enough to read at a glance", WARD_W * WARD_H <= 80
     PRINT "       shortest solution seen"; minlen; " longest"; maxlen
 
     PRINT
     PRINT " walls are shared, not duplicated"
     RANDOMIZE 42: MazeGen 11, 11
-    Ok "if A opens east, B opens west (all pairs)", WallsAgree%
-    Ok "the outer border is sealed", BorderSealed%
+    MgOk "if A opens east, B opens west (all pairs)", WallsAgree%
+    MgOk "the outer border is sealed", BorderSealed%
 
     PRINT
     PRINT " movement respects walls"
-    Ok "cannot step through a standing wall", CannotPhase%
-    Ok "cannot step off the board", OffBoardBlocked%
+    MgOk "cannot step through a standing wall", CannotPhase%
+    MgOk "cannot step off the board", OffBoardBlocked%
 
     PRINT
     PRINT " fuse from WIS and the maze's own solution"
-    Ok "scales with the SOLUTION, not the size", MazeFuse!(20, 10) > MazeFuse!(5, 10)
-    Ok "WIS adds time", MazeFuse!(10, 18) > MazeFuse!(10, 10)
-    Ok "low WIS never drops below the floor", MazeFuse!(1, 3) >= 6
+    MgOk "scales with the SOLUTION, not the size", MazeFuse!(20, 10) > MazeFuse!(5, 10)
+    MgOk "WIS adds time", MazeFuse!(10, 18) > MazeFuse!(10, 10)
+    MgOk "low WIS never drops below the floor", MazeFuse!(1, 3) >= 6
 
     PRINT
     PRINT USING "  ### assertion(s), ### failed"; T_RUN; T_BAD

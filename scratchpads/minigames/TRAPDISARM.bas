@@ -364,8 +364,8 @@ SUB TrapSelfTest
     gens = 1500
 
     MgSection "the permutation table is the whole space"
-    Ok "all 120 orderings, no duplicates", g_permn = PERMS _ANDALSO PermsDistinct%
-    Ok "every wire appears once in every ordering", PermsAreOrderings%
+    MgOk "all 120 orderings, no duplicates", g_permn = PERMS _ANDALSO PermsDistinct%
+    MgOk "every wire appears once in every ordering", PermsAreOrderings%
 
     MgSection "EVERY puzzle has exactly one answer -- the only thing that makes it fair"
     RANDOMIZE 61
@@ -375,8 +375,8 @@ SUB TrapSelfTest
         IF SolutionCount% <> 1 THEN bad = bad + 1
     NEXT i
     PRINT USING "       ####  puzzles generated, #### with more or fewer than one answer"; gens; bad
-    Ok "no puzzle is ambiguous, over 1500 generations", bad = 0
-    Ok "and the one answer is the order that was dealt", AnswerIsTheSolution%
+    MgOk "no puzzle is ambiguous, over 1500 generations", bad = 0
+    MgOk "and the one answer is the order that was dealt", AnswerIsTheSolution%
 
     MgSection "every note is load-bearing"
     RANDOMIZE 62
@@ -385,7 +385,7 @@ SUB TrapSelfTest
         TrapSetup 10
         IF NOT EveryNoteMatters% THEN bad = bad + 1
     NEXT i
-    Ok "dropping ANY single note makes the answer ambiguous", bad = 0
+    MgOk "dropping ANY single note makes the answer ambiguous", bad = 0
 
     MgSection "the plate is readable"
     RANDOMIZE 63
@@ -396,16 +396,16 @@ SUB TrapSelfTest
         IF g_notes > maxn THEN maxn = g_notes
     NEXT i
     PRINT USING "       notes on the plate: ## to ##"; minn; maxn
-    Ok "never so few that it is guesswork", minn >= 3
-    Ok "never so many that it does not fit the plate", maxn <= 12
+    MgOk "never so few that it is guesswork", minn >= 3
+    MgOk "never so many that it does not fit the plate", maxn <= 12
 
     MgSection "INT reads the plate, it does not move the wires"
-    Ok "a dull character gets the bare minimum", BonusNotes%(8) = 0
-    Ok "a clever one gets extra notes", BonusNotes%(18) > 0
-    Ok "extra notes are capped", BonusNotes%(30) <= 3
-    Ok "more INT never means FEWER notes", NotesRiseWithInt%
-    Ok "every extra note is TRUE of the same unchanged order", BonusNotesAreTrue%
-    Ok "...so the answer is still unique with them on", StillUniqueWithBonus%
+    MgOk "a dull character gets the bare minimum", BonusNotes%(8) = 0
+    MgOk "a clever one gets extra notes", BonusNotes%(18) > 0
+    MgOk "extra notes are capped", BonusNotes%(30) <= 3
+    MgOk "more INT never means FEWER notes", NotesRiseWithInt%
+    MgOk "every extra note is TRUE of the same unchanged order", BonusNotesAreTrue%
+    MgOk "...so the answer is still unique with them on", StillUniqueWithBonus%
 
     MgDone
 END SUB

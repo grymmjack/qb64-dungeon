@@ -441,9 +441,9 @@ SUB WheelSelfTest
     spins = 60000
 
     MgSection "the rim is a rim"
-    Ok "the wedges tile the whole circle with no gap and no overlap", RimIsClosed%
-    Ok "every degree lands on exactly one wedge", EveryDegreeMapped%
-    Ok "the mapping wraps -- 360 is 0, -10 is 350", WrapWorks%
+    MgOk "the wedges tile the whole circle with no gap and no overlap", RimIsClosed%
+    MgOk "every degree lands on exactly one wedge", EveryDegreeMapped%
+    MgOk "the mapping wraps -- 360 is 0, -10 is 350", WrapWorks%
 
     MgSection "the wheel does not lie: the result is READ, not chosen"
     RANDOMIZE 101
@@ -452,64 +452,64 @@ SUB WheelSelfTest
         IF NOT SpinAgreesWithRim% THEN bad = bad + 1
     NEXT i
     PRINT USING "       ##### spins, ##### where the announced result was not under the pointer"; spins; bad
-    Ok "the announced result is always the wedge under the pointer", bad = 0
+    MgOk "the announced result is always the wedge under the pointer", bad = 0
 
     MgSection "the wedge announced is the wedge DRAWN under the pointer"
-    Ok "at rest, the pointer reads the same wedge the rim draws there", PointerMatchesDrawnRim%
+    MgOk "at rest, the pointer reads the same wedge the rim draws there", PointerMatchesDrawnRim%
 
     MgSection "the odds are the widths, and nothing else"
     worstgap = WidthGap#(spins)
     PRINT USING "       worst wedge is off its advertised share by #.#### "; worstgap
-    Ok "every wedge comes up as often as its width says", worstgap < 0.01
-    Ok "the rarest wedge is genuinely rare, not merely thin", RareIsRare%
+    MgOk "every wedge comes up as often as its width says", worstgap < 0.01
+    MgOk "the rarest wedge is genuinely rare, not merely thin", RareIsRare%
 
     MgSection "it settles, it does not cut"
-    Ok "the wheel always slows down and stops", DecelIsMonotonic%
+    MgOk "the wheel always slows down and stops", DecelIsMonotonic%
 
     MgSection "the CRANK: strength is yours, the landing is not"
-    Ok "cranking harder always means a longer spin", CrankIsMonotonic%
-    Ok "a full crank always clears a full turn by a mile", AimedTravel!(CRANK_MAX) > FULL_TURN * 5!
+    MgOk "cranking harder always means a longer spin", CrankIsMonotonic%
+    MgOk "a full crank always clears a full turn by a mile", AimedTravel!(CRANK_MAX) > FULL_TURN * 5!
     PRINT USING "       the handle moves at ##; a spin is certain from ## up; a full crank is ###"; MIN_RELEASE; SafeCharge!; CRANK_MAX
-    Ok "the balk threshold is reachable but not easy to hit by accident", SafeCharge! > 5! _ANDALSO SafeCharge! < CRANK_MAX * 0.35
-    Ok "a cold wheel cannot be released at all", MIN_RELEASE > 0!
-    Ok "...and doing nothing is never a spin", MIN_RELEASE < SafeCharge!
-    Ok "the weakest release that IS allowed can still balk", CanBalkAt%(MIN_RELEASE)
-    Ok "and a crank past the marked line never balks", NeverBalksAt%(SafeCharge! + 1!)
+    MgOk "the balk threshold is reachable but not easy to hit by accident", SafeCharge! > 5! _ANDALSO SafeCharge! < CRANK_MAX * 0.35
+    MgOk "a cold wheel cannot be released at all", MIN_RELEASE > 0!
+    MgOk "...and doing nothing is never a spin", MIN_RELEASE < SafeCharge!
+    MgOk "the weakest release that IS allowed can still balk", CanBalkAt%(MIN_RELEASE)
+    MgOk "and a crank past the marked line never balks", NeverBalksAt%(SafeCharge! + 1!)
 
     MgSection "the wheel has WEIGHT -- strength is calibrated to the spin"
     PRINT USING "       a bare release spins #.# turns; a full crank spins ###.# turns"; SpinTurns!(MIN_RELEASE); SpinTurns!(CRANK_MAX)
     PRINT USING "       ...lasting #.#s and ##.#s"; SpinSeconds!(AimedTravel!(SafeCharge!)); SpinSeconds!(AimedTravel!(CRANK_MAX))
-    Ok "a full crank spins vastly further than a weak one", SpinTurns!(CRANK_MAX) > SpinTurns!(SafeCharge!) * 8!
+    MgOk "a full crank spins vastly further than a weak one", SpinTurns!(CRANK_MAX) > SpinTurns!(SafeCharge!) * 8!
     PRINT USING "       release speed: #.## turns a second at the balk line, #.## at a full crank"; PeakSpeed!(SafeCharge!) / 360!; PeakSpeed!(CRANK_MAX) / 360!
-    Ok "a full crank LEAVES YOUR HAND far faster -- momentum you can see", PeakSpeed!(CRANK_MAX) > PeakSpeed!(SafeCharge!) * 3!
-    Ok "...and not so fast that it is a blur nobody can follow", PeakSpeed!(CRANK_MAX) < 1100!
-    Ok "the animation substeps, so fast spins still tick every wedge", SUBSTEP * 1100! < NarrowestWedge!
-    Ok "twice the effort is worth MORE than twice the spin -- that is the weight", AimedTravel!(60!) > AimedTravel!(30!) * 3!
-    Ok "the first strokes barely move it", SpinTurns!(CRANK_GAIN) < 0.5
-    Ok "a full spin is long enough to watch and short enough to sit through", SpinSeconds!(AimedTravel!(CRANK_MAX)) > 6! _ANDALSO SpinSeconds!(AimedTravel!(CRANK_MAX)) < 14!
-    Ok "even the shortest legal spin is watchable", SpinSeconds!(BALK_AT) > 1.5
+    MgOk "a full crank LEAVES YOUR HAND far faster -- momentum you can see", PeakSpeed!(CRANK_MAX) > PeakSpeed!(SafeCharge!) * 3!
+    MgOk "...and not so fast that it is a blur nobody can follow", PeakSpeed!(CRANK_MAX) < 1100!
+    MgOk "the animation substeps, so fast spins still tick every wedge", SUBSTEP * 1100! < NarrowestWedge!
+    MgOk "twice the effort is worth MORE than twice the spin -- that is the weight", AimedTravel!(60!) > AimedTravel!(30!) * 3!
+    MgOk "the first strokes barely move it", SpinTurns!(CRANK_GAIN) < 0.5
+    MgOk "a full spin is long enough to watch and short enough to sit through", SpinSeconds!(AimedTravel!(CRANK_MAX)) > 6! _ANDALSO SpinSeconds!(AimedTravel!(CRANK_MAX)) < 14!
+    MgOk "even the shortest legal spin is watchable", SpinSeconds!(BALK_AT) > 1.5
 
     MgSection "the crank is usable by a human hand"
     PRINT USING "       cranking at 5 strokes a second reaches full in #.#s"; TimeToFull!(5!)
-    Ok "a human cranking rate reaches a full charge", TimeToFull!(5!) < 4!
-    Ok "a slow, deliberate crank still gets there", TimeToFull!(2.5) < 12!
+    MgOk "a human cranking rate reaches a full charge", TimeToFull!(5!) < 4!
+    MgOk "a slow, deliberate crank still gets there", TimeToFull!(2.5) < 12!
     PRINT USING "       after a stroke, a charge of ## survives #.##s of not cranking"; SafeCharge!; HoldTime!(SafeCharge!)
-    Ok "letting go to press SPACE does not disarm the wheel", HoldTime!(SafeCharge!) > 0.9
-    Ok "...even from the weakest legal charge", HoldTime!(MIN_RELEASE) > CRANK_GRACE
-    Ok "but standing there does eventually bleed it away", ChargeAfter!(CRANK_MAX, 30!) = 0!
+    MgOk "letting go to press SPACE does not disarm the wheel", HoldTime!(SafeCharge!) > 0.9
+    MgOk "...even from the weakest legal charge", HoldTime!(MIN_RELEASE) > CRANK_GRACE
+    MgOk "but standing there does eventually bleed it away", ChargeAfter!(CRANK_MAX, 30!) = 0!
 
     MgSection "NO crank setting aims the wheel -- the whole reason the slop exists"
     PRINT USING "       narrowest wedge is ##.# degrees; the random part of a spin spans ####"; NarrowestWedge!; TRAVEL_SLOP
-    Ok "the unaimable part of a spin is wider than the whole rim", TRAVEL_SLOP > 360!
-    Ok "every crank strength lands fairly, checked across the whole range", AimingIsImpossible%
+    MgOk "the unaimable part of a spin is wider than the whole rim", TRAVEL_SLOP > 360!
+    MgOk "every crank strength lands fairly, checked across the whole range", AimingIsImpossible%
 
     MgSection "and balking is punished rather than rewarded"
-    Ok "a spin under one full turn is a balk", IsBalk%(FULL_TURN - 1!) _ANDALSO NOT IsBalk%(FULL_TURN + 1!)
-    Ok "a balked wheel finishes the spin ITSELF, so nudging selects nothing", BalkNeverHelps%
+    MgOk "a spin under one full turn is a balk", IsBalk%(FULL_TURN - 1!) _ANDALSO NOT IsBalk%(FULL_TURN + 1!)
+    MgOk "a balked wheel finishes the spin ITSELF, so nudging selects nothing", BalkNeverHelps%
 
     MgSection "and what it does to you is survivable"
-    Ok "no single wedge can kill outright", NoInstantDeath%
-    Ok "there is more good on the rim than harm", MoreGoodThanBad%
+    MgOk "no single wedge can kill outright", NoInstantDeath%
+    MgOk "there is more good on the rim than harm", MoreGoodThanBad%
 
     MgDone
 END SUB

@@ -30,6 +30,7 @@
 '    ./GAMBLE.run            play it
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST GB_BANKED = 1
 CONST GB_BUST = 2
@@ -38,10 +39,12 @@ CONST GB_LEFT = 3
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 MgInit
+opt_dice3d = TRUE: opt_d6pips = TRUE
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN GambleSelfTest
 
 MgScreen
+MgDiceInit                     ' after the window: the 3D layer needs GL
 
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawTable 190, 26, 4, 5, 2, 13, "the bones are warm -- roll again, or take it?"
@@ -289,17 +292,17 @@ SUB GambleSelfTest
     PRINT
 
     PRINT " exact odds"
-    Ok "bust chance is 11/36", ABS(BustChance! - 11! / 36!) < 0.0001
-    Ok "a safe roll averages 8", ABS(SafeGain! - 8!) < 0.0001
-    Ok "break-even pot is ~18", INT(BreakEvenPot!) = 18
+    MgOk "bust chance is 11/36", ABS(BustChance! - 11! / 36!) < 0.0001
+    MgOk "a safe roll averages 8", ABS(SafeGain! - 8!) < 0.0001
+    MgOk "break-even pot is ~18", INT(BreakEvenPot!) = 18
 
     PRINT
     PRINT " house cut"
     rake_pct = HOUSE_PCT
-    Ok "takes its stated percentage", HouseCut&(100) = HOUSE_PCT
-    Ok "floors rather than rounds up", HouseCut&(7) = 1
-    Ok "a tiny pot is not taxed to nothing", HouseCut&(3) = 0
-    Ok "never exceeds the pot", HouseCut&(7) < 7
+    MgOk "takes its stated percentage", HouseCut&(100) = HOUSE_PCT
+    MgOk "floors rather than rounds up", HouseCut&(7) = 1
+    MgOk "a tiny pot is not taxed to nothing", HouseCut&(3) = 0
+    MgOk "never exceeds the pot", HouseCut&(7) < 7
 
     PRINT
     PRINT " Monte Carlo -- the REAL dice, at the shipped rake of"; HOUSE_PCT; "%"
@@ -336,18 +339,18 @@ SUB GambleSelfTest
     ' The band is deliberately generous -- this asserts "a fair-ish table", not a
     ' tuning to the decimal. Both bounds have been crossed for real during this
     ' prototype: -85 with no house match, +17 with a 10% rake.
-    Ok "not a gold printer (best line < +8 per 100)", best < 8!
-    Ok "not a robbery (best line > -15 per 100)", best > -15!
-    Ok "skill matters: the best line beats the worst", BestBeatsWorst%(n)
+    MgOk "not a gold printer (best line < +8 per 100)", best < 8!
+    MgOk "not a robbery (best line > -15 per 100)", best > -15!
+    MgOk "skill matters: the best line beats the worst", BestBeatsWorst%(n)
 
     PRINT
     PRINT " WIS reads the table, it does not bend it"
     ' 11, not 12: AbilMod is INT((score-10)/2), so 12 already gives +1. The first
     ' version of this assertion was wrong about the game, not the other way round.
-    Ok "WIS 11 gets no reading", ReadsTheOdds%(11) = FALSE
-    Ok "WIS 12 already reads (mod +1)", ReadsTheOdds%(12)
-    Ok "WIS 13 reads the odds", ReadsTheOdds%(13)
-    Ok "the odds themselves do not depend on WIS", BreakEvenPot! = BreakEvenPot!
+    MgOk "WIS 11 gets no reading", ReadsTheOdds%(11) = FALSE
+    MgOk "WIS 12 already reads (mod +1)", ReadsTheOdds%(12)
+    MgOk "WIS 13 reads the odds", ReadsTheOdds%(13)
+    MgOk "the odds themselves do not depend on WIS", BreakEvenPot! = BreakEvenPot!
 
     PRINT
     PRINT USING "  ### assertion(s), ### failed"; T_RUN; T_BAD
@@ -389,3 +392,4 @@ FUNCTION BestBeatsWorst% (n AS LONG)
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

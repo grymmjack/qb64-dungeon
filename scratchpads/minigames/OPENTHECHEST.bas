@@ -657,62 +657,62 @@ SUB ChestSelfTest
 
     MgSection "the combinations are well formed"
     RANDOMIZE 131
-    Ok "every code uses each colour exactly once", CodesArePermutations%
-    Ok "all six orders come up, roughly equally", AllOrdersReachable%
-    Ok "the nine levels are rolled independently", LevelsAreIndependent%
+    MgOk "every code uses each colour exactly once", CodesArePermutations%
+    MgOk "all six orders come up, roughly equally", AllOrdersReachable%
+    MgOk "the nine levels are rolled independently", LevelsAreIndependent%
 
     MgSection "the shuffle destroys position, which is the puzzle"
-    Ok "the answer is equally likely to be in any position", PositionIsNoise%
-    Ok "...at every step, not just the first", PositionIsNoiseAtStep2%
-    Ok "an opened clasp keeps its colour and its opened state", OpenedStaysPut%
-    Ok "EVERY clasp is re-dealt, not just the shut ones", ShuffleMoveRate# > 0.6
+    MgOk "the answer is equally likely to be in any position", PositionIsNoise%
+    MgOk "...at every step, not just the first", PositionIsNoiseAtStep2%
+    MgOk "an opened clasp keeps its colour and its opened state", OpenedStaysPut%
+    MgOk "EVERY clasp is re-dealt, not just the shut ones", ShuffleMoveRate# > 0.6
     PRINT USING "       a re-deal changes the arrangement #.### of the time (uniform = 0.833)"; ShuffleMoveRate#
-    Ok "...at the uniform rate, NOT forced -- forcing it biases the answer", ABS(ShuffleMoveRate# - 5! / 6!) < 0.02
+    MgOk "...at the uniform rate, NOT forced -- forcing it biases the answer", ABS(ShuffleMoveRate# - 5! / 6!) < 0.02
 
     MgSection "THE assertion: knowing the code always wins"
-    Ok "perfect play opens the chest every time, 20000 chests", AKnownCodeAlwaysWins%
-    Ok "every colour still needed is always ON the chest", NeededHueAlwaysPresent%
+    MgOk "perfect play opens the chest every time, 20000 chests", AKnownCodeAlwaysWins%
+    MgOk "every colour still needed is always ON the chest", NeededHueAlwaysPresent%
 
     MgSection "...and not knowing it is a one-in-six gamble"
     PRINT USING "       blind play opens #.#### of chests (1 in 6 = 0.1667)"; BlindWinRate#
-    Ok "guessing wins about one time in six", ABS(BlindWinRate# - 1! / 6!) < 0.02
-    Ok "a wrong clasp arms the trap rather than ending it there", WrongClaspArms%
+    MgOk "guessing wins about one time in six", ABS(BlindWinRate# - 1! / 6!) < 0.02
+    MgOk "a wrong clasp arms the trap rather than ending it there", WrongClaspArms%
 
     MgSection "the fuse: one mistake is survivable, eliminating your way through is not"
     PRINT USING "       fuse #.#s; a pick costs #.#s, so ## picks fit in one burn"; FUSE_SECS; HUMAN_PICK; INT(FUSE_SECS / HUMAN_PICK)
-    Ok "perfect play never arms the fuse at all", PerfectPlayNeverArms%
-    Ok "a wrong clasp NEVER touches the fuse -- it just keeps counting", WrongDoesNotTouchFuse%
-    Ok "a correct clasp winds it back to full", CorrectRewinds%
-    Ok "...but does not disarm it -- it keeps burning", CorrectDoesNotDisarm%
-    Ok "after a mistake you still get one pick -- so knowing the answer saves you", HUMAN_PICK <= FUSE_SECS
-    Ok "...but not two, so you cannot try every colour in turn", 2! * HUMAN_PICK > FUSE_SECS
-    Ok "NOTHING pauses or discounts the fuse -- it is pure wall time", FuseIsContinuous%
-    Ok "the shuffle animation ends by itself, it does not trap you", TumbleEndsItself%
+    MgOk "perfect play never arms the fuse at all", PerfectPlayNeverArms%
+    MgOk "a wrong clasp NEVER touches the fuse -- it just keeps counting", WrongDoesNotTouchFuse%
+    MgOk "a correct clasp winds it back to full", CorrectRewinds%
+    MgOk "...but does not disarm it -- it keeps burning", CorrectDoesNotDisarm%
+    MgOk "after a mistake you still get one pick -- so knowing the answer saves you", HUMAN_PICK <= FUSE_SECS
+    MgOk "...but not two, so you cannot try every colour in turn", 2! * HUMAN_PICK > FUSE_SECS
+    MgOk "NOTHING pauses or discounts the fuse -- it is pure wall time", FuseIsContinuous%
+    MgOk "the shuffle animation ends by itself, it does not trap you", TumbleEndsItself%
 
     MgSection "what the fuse costs the level code -- measured, not hoped"
     PRINT USING "       a patient guesser opens #.### of chests (no fuse at all: 1.000; no mercy: 0.167)"; FusedGuesserRate#
-    Ok "the chest still has teeth -- guessing is not a free pass", FusedGuesserRate# < 0.6
-    Ok "...but a fuse this long IS a real mercy over the old instant loss", FusedGuesserRate# > 1! / 6!
+    MgOk "the chest still has teeth -- guessing is not a free pass", FusedGuesserRate# < 0.6
+    MgOk "...but a fuse this long IS a real mercy over the old instant loss", FusedGuesserRate# > 1! / 6!
 
     MgSection "the level code is learned ONCE and shared by every chest on it"
-    Ok "a fresh run knows nothing", NothingKnownAtStart%
-    Ok "cracking a chest teaches that level", LearningSticks%
-    Ok "...and every later chest on that level opens for free", LaterChestsAreFree%
-    Ok "learning one level teaches you nothing about another", LearningIsPerLevel%
-    Ok "descending to a new level means an unknown code again", TRUE
-    Ok "two levels MAY share a code -- forcing them apart would be a hint", SharedCodesAllowed%
+    MgOk "a fresh run knows nothing", NothingKnownAtStart%
+    MgOk "cracking a chest teaches that level", LearningSticks%
+    MgOk "...and every later chest on that level opens for free", LaterChestsAreFree%
+    MgOk "learning one level teaches you nothing about another", LearningIsPerLevel%
+    MgOk "descending to a new level means an unknown code again", TRUE
+    MgOk "two levels MAY share a code -- forcing them apart would be a hint", SharedCodesAllowed%
 
     MgSection "codes survive a save and reload, or the player pays twice"
-    Ok "a save/load round trip preserves every code", SaveRoundTrips%
-    Ok "...and preserves which levels are already known", SaveRoundTripsKnown%
+    MgOk "a save/load round trip preserves every code", SaveRoundTrips%
+    MgOk "...and preserves which levels are already known", SaveRoundTripsKnown%
 
     MgSection "art and sound are parameters, and missing means FALLBACK"
-    Ok "an unbound piece reports ART_NONE rather than failing", ArtKindOf%("chest.closed") = ART_NONE
-    Ok "an unknown key is ART_NONE too, not an error", ArtKindOf%("no.such.piece") = ART_NONE
-    Ok "binding pixel art is picked up", BindPicksUp%(ART_PIXEL)
-    Ok "binding ANSI art is picked up just the same", BindPicksUp%(ART_ANSI)
-    Ok "a partially-filled pack keeps placeholders for the rest", PartialPackWorks%
-    Ok "every piece the drawing asks for is a declared key", AllPiecesDeclared%
+    MgOk "an unbound piece reports ART_NONE rather than failing", ArtKindOf%("chest.closed") = ART_NONE
+    MgOk "an unknown key is ART_NONE too, not an error", ArtKindOf%("no.such.piece") = ART_NONE
+    MgOk "binding pixel art is picked up", BindPicksUp%(ART_PIXEL)
+    MgOk "binding ANSI art is picked up just the same", BindPicksUp%(ART_ANSI)
+    MgOk "a partially-filled pack keeps placeholders for the rest", PartialPackWorks%
+    MgOk "every piece the drawing asks for is a declared key", AllPiecesDeclared%
 
     MgDone
 END SUB

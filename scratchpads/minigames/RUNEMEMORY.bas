@@ -290,9 +290,9 @@ SUB RuneSelfTest
         RuneSetup 6, 4, 2, 10, 12
         IF NOT DeckWellFormed% THEN ok1 = FALSE
     NEXT i
-    Ok "every rune appears exactly twice, over 200 deals", ok1
-    Ok "an odd slab loses its odd stone rather than dealing an unmatchable one", OddSlabIsEven%
-    Ok "the cursed count is exactly what was asked for", PainTilesCorrect%
+    MgOk "every rune appears exactly twice, over 200 deals", ok1
+    MgOk "an odd slab loses its odd stone rather than dealing an unmatchable one", OddSlabIsEven%
+    MgOk "the cursed count is exactly what was asked for", PainTilesCorrect%
 
     MgSection "perfect play always clears inside the budget -- the fairness floor"
     RANDOMIZE 4
@@ -307,9 +307,9 @@ SUB RuneSelfTest
         pdmg = pdmg + wd
     NEXT i
     PRINT USING "       perfect play: ### to ### turns, budget ###"; minperf; maxperf; g_budget
-    Ok "perfect play clears EVERY deal inside the budget", pclear = deals
-    Ok "the budget is not padded -- the worst case is close under it", g_budget - maxperf <= 4
-    Ok "and it leaves room to be human once", g_budget - maxperf >= 1
+    MgOk "perfect play clears EVERY deal inside the budget", pclear = deals
+    MgOk "the budget is not padded -- the worst case is close under it", g_budget - maxperf <= 4
+    MgOk "and it leaves room to be human once", g_budget - maxperf >= 1
 
     MgSection "...but the budget is not a gift: careless play mostly fails"
     RANDOMIZE 5
@@ -321,7 +321,7 @@ SUB RuneSelfTest
         cdmg = cdmg + cd
     NEXT i
     PRINT USING "       memoryless play clears #.### of deals"; cclear / deals
-    Ok "a player with no memory usually runs out of turns", cclear / deals < 0.35
+    MgOk "a player with no memory usually runs out of turns", cclear / deals < 0.35
 
     MgSection "a short memory lands in between -- the budget grades, it does not gate"
     RANDOMIZE 9
@@ -333,21 +333,21 @@ SUB RuneSelfTest
         fdmg = fdmg + fd
     NEXT i
     PRINT USING "       a six-stone memory clears #.### of deals"; fclear / deals
-    Ok "remembering only the last six stones is better than nothing", fclear / deals > cclear / deals
-    Ok "...and still worse than remembering everything", fclear / deals < 1
+    MgOk "remembering only the last six stones is better than nothing", fclear / deals > cclear / deals
+    MgOk "...and still worse than remembering everything", fclear / deals < 1
 
     MgSection "the pain runes tax forgetting, which is the point of them"
     PRINT USING "       damage: perfect ##.##  short memory ##.##  none ###.##  (floor is ##)"; pdmg / deals; fdmg / deals; cdmg / deals; g_painpairs * 2
-    Ok "perfect play never dips below the unavoidable floor", pdmg / deals >= g_painpairs * 2
-    Ok "forgetting costs real hit points", cdmg / deals > pdmg / deals + 1
-    Ok "and it costs them in proportion to how much you forget", fdmg / deals > pdmg / deals _ANDALSO fdmg / deals < cdmg / deals
-    Ok "a good player survives the slab with hit points left over", pdmg / deals <= g_hpmax * 0.6
-    Ok "and perfect play NEVER dies on the default slab", worstdmg < g_hpmax
+    MgOk "perfect play never dips below the unavoidable floor", pdmg / deals >= g_painpairs * 2
+    MgOk "forgetting costs real hit points", cdmg / deals > pdmg / deals + 1
+    MgOk "and it costs them in proportion to how much you forget", fdmg / deals > pdmg / deals _ANDALSO fdmg / deals < cdmg / deals
+    MgOk "a good player survives the slab with hit points left over", pdmg / deals <= g_hpmax * 0.6
+    MgOk "and perfect play NEVER dies on the default slab", worstdmg < g_hpmax
     PRINT USING "       worst damage seen under perfect play: ##  of ## HP"; worstdmg; g_hpmax
-    Ok "the floor is genuinely unavoidable -- clearing means turning every stone", FloorIsForced%
+    MgOk "the floor is genuinely unavoidable -- clearing means turning every stone", FloorIsForced%
 
     MgSection "the risk is priceable -- a player can stop"
-    Ok "leaving early keeps what is already matched, so stopping is a real option", TRUE
+    MgOk "leaving early keeps what is already matched, so stopping is a real option", TRUE
 
     MgDone
 END SUB

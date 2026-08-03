@@ -22,6 +22,7 @@
 '  RUN:  ./CRAPS.run selftest | shot | (play)
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 '--- phase ---
 CONST CR_COMEOUT = 0
@@ -30,10 +31,12 @@ CONST CR_POINT = 1
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 MgInit
+opt_dice3d = TRUE: opt_d6pips = TRUE
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN CrapsSelfTest
 
 MgScreen
+MgDiceInit                     ' after the window: the 3D layer needs GL
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawCraps 4, 5, 6, CR_POINT, 120, 20, "the point is 6 -- roll it again before a 7"
     _SAVEIMAGE "craps-shot.png"
@@ -220,36 +223,36 @@ SUB CrapsSelfTest
     MgDiceSelfTest
 
     MgSection "the come-out"
-    Ok "7 is a natural", ComeOut%(7) = 1
-    Ok "11 is a natural", ComeOut%(11) = 1
-    Ok "2 craps out", ComeOut%(2) = -1
-    Ok "3 craps out", ComeOut%(3) = -1
-    Ok "12 craps out", ComeOut%(12) = -1
-    Ok "4 becomes a pnt", ComeOut%(4) = 0
-    Ok "6 becomes a pnt", ComeOut%(6) = 0
-    Ok "10 becomes a pnt", ComeOut%(10) = 0
+    MgOk "7 is a natural", ComeOut%(7) = 1
+    MgOk "11 is a natural", ComeOut%(11) = 1
+    MgOk "2 craps out", ComeOut%(2) = -1
+    MgOk "3 craps out", ComeOut%(3) = -1
+    MgOk "12 craps out", ComeOut%(12) = -1
+    MgOk "4 becomes a pnt", ComeOut%(4) = 0
+    MgOk "6 becomes a pnt", ComeOut%(6) = 0
+    MgOk "10 becomes a pnt", ComeOut%(10) = 0
 
     MgSection "chasing the point"
-    Ok "hitting the point wins", PointRoll%(6, 6) = 1
-    Ok "a seven loses", PointRoll%(7, 6) = -1
-    Ok "anything else rolls on", PointRoll%(5, 6) = 0
-    Ok "11 does NOT win once a pnt is set", PointRoll%(11, 6) = 0
-    Ok "2 does NOT lose once a pnt is set", PointRoll%(2, 6) = 0
+    MgOk "hitting the point wins", PointRoll%(6, 6) = 1
+    MgOk "a seven loses", PointRoll%(7, 6) = -1
+    MgOk "anything else rolls on", PointRoll%(5, 6) = 0
+    MgOk "11 does NOT win once a pnt is set", PointRoll%(11, 6) = 0
+    MgOk "2 does NOT lose once a pnt is set", PointRoll%(2, 6) = 0
 
     MgSection "the 2d6 distribution"
-    Ok "6 ways to make 7", WaysFor%(7) = 6
-    Ok "1 way to make 2", WaysFor%(2) = 1
-    Ok "5 ways to make 6", WaysFor%(6) = 5
-    Ok "36 faces in total", TotalWays% = 36
+    MgOk "6 ways to make 7", WaysFor%(7) = 6
+    MgOk "1 way to make 2", WaysFor%(2) = 1
+    MgOk "5 ways to make 6", WaysFor%(6) = 5
+    MgOk "36 faces in total", TotalWays% = 36
 
     MgSection "the house edge is a KNOWN number, not one I chose"
     p = PassWinProb#
     PRINT USING "       exact pass-line win probability  #.#####"; p
     PRINT USING "       published figure  244/495     =  #.#####"; 244# / 495#
-    Ok "matches 244/495 exactly", ABS(p - 244# / 495#) < 0.000001
+    MgOk "matches 244/495 exactly", ABS(p - 244# / 495#) < 0.000001
     edge = (1# - p) - p
     PRINT USING "       house edge  #.###%"; edge * 100#
-    Ok "house edge is the published 1.414%", ABS(edge * 100# - 1.414#) < 0.01
+    MgOk "house edge is the published 1.414%", ABS(edge * 100# - 1.414#) < 0.01
 
     MgSection "and the SIMULATION agrees with the arithmetic"
     n = 400000
@@ -261,7 +264,7 @@ SUB CrapsSelfTest
     PRINT USING "       simulated over ####### hands   #.#####"; n; sim
     ' 400k hands puts the standard error near 0.0008, so 0.004 is ~5 sigma: wide
     ' enough never to flake, tight enough to catch a real resolution bug.
-    Ok "simulated win rate matches the exact probability", ABS(sim - p) < 0.004
+    MgOk "simulated win rate matches the exact probability", ABS(sim - p) < 0.004
 
     MgDone
 END SUB
@@ -273,3 +276,4 @@ FUNCTION TotalWays% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

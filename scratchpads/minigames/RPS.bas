@@ -173,30 +173,30 @@ SUB RpsSelfTest
     PRINT "RPS selftest"
 
     MgSection "the hands resolve correctly"
-    Ok "rock beats scissors", Beats%(H_ROCK, H_SCISSORS) = 1
-    Ok "paper beats rock", Beats%(H_PAPER, H_ROCK) = 1
-    Ok "scissors beats paper", Beats%(H_SCISSORS, H_PAPER) = 1
-    Ok "scissors loses to rock", Beats%(H_SCISSORS, H_ROCK) = -1
-    Ok "same hand draws", Beats%(H_ROCK, H_ROCK) = 0
-    Ok "WhatBeats is consistent with Beats", AllCountersWin%
+    MgOk "rock beats scissors", Beats%(H_ROCK, H_SCISSORS) = 1
+    MgOk "paper beats rock", Beats%(H_PAPER, H_ROCK) = 1
+    MgOk "scissors beats paper", Beats%(H_SCISSORS, H_PAPER) = 1
+    MgOk "scissors loses to rock", Beats%(H_SCISSORS, H_ROCK) = -1
+    MgOk "same hand draws", Beats%(H_ROCK, H_ROCK) = 0
+    MgOk "WhatBeats is consistent with Beats", AllCountersWin%
 
     MgSection "reading the tell is worth something -- against every habit"
     FOR t = 0 TO TELLS - 1
         rate = ExploitRate#(t, 60000)
         PRINT USING "       tell # : counter-play wins #.### of decided throws"; t; rate
-        Ok "tell " + _TRIM$(STR$(t)) + " is exploitable above chance", rate > 0.6
+        MgOk "tell " + _TRIM$(STR$(t)) + " is exploitable above chance", rate > 0.6
     NEXT t
 
     MgSection "...but a spotted tell is not a certainty"
     FOR t = 0 TO TELLS - 1
         rate = ExploitRate#(t, 60000)
-        Ok "tell " + _TRIM$(STR$(t)) + " still loses sometimes", rate < 0.97
+        MgOk "tell " + _TRIM$(STR$(t)) + " still loses sometimes", rate < 0.97
     NEXT t
 
     MgSection "blind play is a coin flip, as it should be"
     blind = BlindRate#(60000)
     PRINT USING "       random play wins #.### of decided throws"; blind
-    Ok "random play is near even", ABS(blind - 0.5) < 0.05
+    MgOk "random play is near even", ABS(blind - 0.5) < 0.05
 
     MgDone
 END SUB

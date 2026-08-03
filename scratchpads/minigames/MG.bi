@@ -41,34 +41,6 @@ CONST MG_QMAX = 0.35            ' seconds of un-played audio tolerated
 DIM SHARED MG_QDEPTH AS SINGLE
 DIM SHARED MG_QLAST AS DOUBLE
 
-'============================================================================
-'  THE DICE CONTRACT
-'
-'  These are named EXACTLY as engine/UI.bas names them -- GameRoll%, PromptRoll%,
-'  PublishFaces, DieFace%, RollSeqBegin/End, opt_realdice, opt_dicemath -- so
-'  integration is DELETING this shim, not rewriting every call site. A prototype
-'  that rolls a die the player can see calls GameRoll% and nothing else.
-'
-'  MgRoll% is still the right tool for randomness that is NOT a die: a shuffle, a
-'  spawn position, a peg bounce, a simulated opponent. The line between them is
-'  the whole point -- see audit-dice.sh.
-'============================================================================
-CONST MG_MAXDICE = 16
-
-'--- the two SETTINGS this honours. Same names as ENGINE.BI. ---
-DIM SHARED opt_realdice AS INTEGER   ' the player rolls physical dice and types the result
-DIM SHARED opt_dicemath AS INTEGER   ' ...and adds the modifier themselves
-
-'--- the faces of the last animated roll. EMPTY under Real Dice: the player
-'    rolled real dice and the game never saw them. See the note on GameRoll%. ---
-DIM SHARED DIE_FACE(1 TO MG_MAXDICE) AS INTEGER
-DIM SHARED DIE_FACE_N AS INTEGER
-DIM SHARED rollseq_on AS INTEGER
-
-'--- selftest only: pretend the player typed this, so the Real Dice path can be
-'    driven headlessly instead of blocking on a keyboard nobody is at. ---
-DIM SHARED MG_FAKEROLL AS INTEGER
-
 '--- the palette these prototypes speak in. Mirrors the game's theme keys so the
 '    move into the real UI is a rename, not a re-design. ---
 DIM SHARED AS _UNSIGNED LONG C_TITLE, C_TEXT, C_DIM, C_GOOD, C_WARN, C_BAD, C_COOL, C_BG

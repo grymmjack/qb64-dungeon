@@ -333,7 +333,7 @@ END SUB
 
 DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
-SUB Ok (label AS STRING, cond AS INTEGER)
+SUB MgOk (label AS STRING, cond AS INTEGER)
     T_RUN = T_RUN + 1
     IF cond THEN
         PRINT "  ok   "; label
@@ -354,53 +354,53 @@ SUB RiddleSelfTest
     PRINT
 
     PRINT " data"
-    Ok "riddles loaded", RID_N > 0
-    Ok "every riddle has an answer AND text", AllRiddlesPopulated%
-    Ok "no duplicate answers", NoDuplicateAnswers%
-    Ok "every riddle fits the panel (<200 chars)", AllRiddlesFit%
+    MgOk "riddles loaded", RID_N > 0
+    MgOk "every riddle has an answer AND text", AllRiddlesPopulated%
+    MgOk "no duplicate answers", NoDuplicateAnswers%
+    MgOk "every riddle fits the panel (<200 chars)", AllRiddlesFit%
 
     PRINT
     PRINT " matcher -- the forms a player actually types"
-    Ok "exact", RiddleMatch%("shadow", "shadow")
-    Ok "case", RiddleMatch%("SHADOW", "shadow")
-    Ok "leading article 'a'", RiddleMatch%("a shadow", "shadow")
-    Ok "leading article 'the'", RiddleMatch%("the shadow", "shadow")
-    Ok "leading article 'an'", RiddleMatch%("an echo", "echo")
-    Ok "trailing punctuation", RiddleMatch%("shadow.", "shadow")
-    Ok "surrounding spaces", RiddleMatch%("   shadow  ", "shadow")
-    Ok "plural given, singular wanted", RiddleMatch%("shadows", "shadow")
-    Ok "singular given, plural wanted", RiddleMatch%("bone", "bones")
-    Ok "two words keep both", RiddleMatch%("your name", "your name")
-    Ok "alternate answer accepted", RiddleMatch%("torch", "candle/torch")
-    Ok "first alternate accepted", RiddleMatch%("candle", "candle/torch")
+    MgOk "exact", RiddleMatch%("shadow", "shadow")
+    MgOk "case", RiddleMatch%("SHADOW", "shadow")
+    MgOk "leading article 'a'", RiddleMatch%("a shadow", "shadow")
+    MgOk "leading article 'the'", RiddleMatch%("the shadow", "shadow")
+    MgOk "leading article 'an'", RiddleMatch%("an echo", "echo")
+    MgOk "trailing punctuation", RiddleMatch%("shadow.", "shadow")
+    MgOk "surrounding spaces", RiddleMatch%("   shadow  ", "shadow")
+    MgOk "plural given, singular wanted", RiddleMatch%("shadows", "shadow")
+    MgOk "singular given, plural wanted", RiddleMatch%("bone", "bones")
+    MgOk "two words keep both", RiddleMatch%("your name", "your name")
+    MgOk "alternate answer accepted", RiddleMatch%("torch", "candle/torch")
+    MgOk "first alternate accepted", RiddleMatch%("candle", "candle/torch")
 
     PRINT
     PRINT " matcher -- must NOT be fooled"
-    Ok "empty guess rejected", RiddleMatch%("", "shadow") = FALSE
-    Ok "spaces-only guess rejected", RiddleMatch%("   ", "shadow") = FALSE
-    Ok "wrong word rejected", RiddleMatch%("light", "shadow") = FALSE
-    Ok "substring is not a match", RiddleMatch%("shad", "shadow") = FALSE
-    Ok "superstring is not a match", RiddleMatch%("shadowy", "shadow") = FALSE
+    MgOk "empty guess rejected", RiddleMatch%("", "shadow") = FALSE
+    MgOk "spaces-only guess rejected", RiddleMatch%("   ", "shadow") = FALSE
+    MgOk "wrong word rejected", RiddleMatch%("light", "shadow") = FALSE
+    MgOk "substring is not a match", RiddleMatch%("shad", "shadow") = FALSE
+    MgOk "superstring is not a match", RiddleMatch%("shadowy", "shadow") = FALSE
     ' 'a' as a whole answer must survive the article strip
-    Ok "short word not eaten by article strip", RiddleNorm$("ash") = "ash"
+    MgOk "short word not eaten by article strip", RiddleNorm$("ash") = "ash"
 
     PRINT
     PRINT " tries from WIS"
-    Ok "WIS 10 -> 2 tries", RiddleTries%(10) = 2
-    Ok "WIS 18 -> 6 clamped to 5", RiddleTries%(18) = 5
-    Ok "WIS 3 -> floor of 1, never 0", RiddleTries%(3) = 1
+    MgOk "WIS 10 -> 2 tries", RiddleTries%(10) = 2
+    MgOk "WIS 18 -> 6 clamped to 5", RiddleTries%(18) = 5
+    MgOk "WIS 3 -> floor of 1, never 0", RiddleTries%(3) = 1
 
     PRINT
     PRINT " hint masking"
-    Ok "keeps first letter", LEFT$(RiddleHint$("shadow"), 1) = "s"
-    Ok "masks the rest", RiddleHint$("shadow") = "s_____"
-    Ok "preserves word count", RiddleHint$("your name") = "y___ n___"
-    Ok "hints from the first alternate only", RiddleHint$("candle/torch") = "c_____"
-    Ok "hint is never the answer", RiddleHint$("shadow") <> "shadow"
+    MgOk "keeps first letter", LEFT$(RiddleHint$("shadow"), 1) = "s"
+    MgOk "masks the rest", RiddleHint$("shadow") = "s_____"
+    MgOk "preserves word count", RiddleHint$("your name") = "y___ n___"
+    MgOk "hints from the first alternate only", RiddleHint$("candle/torch") = "c_____"
+    MgOk "hint is never the answer", RiddleHint$("shadow") <> "shadow"
 
     PRINT
     PRINT " every shipped riddle is solvable by its own answer"
-    Ok "answer matches itself, all rows", AllAnswersSelfMatch%
+    MgOk "answer matches itself, all rows", AllAnswersSelfMatch%
 
     PRINT
     PRINT USING "  ### assertion(s), ### failed"; T_RUN; T_BAD

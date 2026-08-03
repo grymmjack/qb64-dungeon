@@ -264,15 +264,15 @@ SUB CupSelfTest
         IF NOT ReplayMatches% THEN bad = bad + 1
     NEXT i
     PRINT USING "       ##### shuffles replayed, ##### where tracking would have lied"; 20000; bad
-    Ok "a perfect tracker is right EVERY time, over 20000 shuffles", bad = 0
-    Ok "...at 5 cups and 20 swaps too", DeepReplayOk%
-    Ok "the coin is under a real cup at every step", CoinAlwaysOnTable%
+    MgOk "a perfect tracker is right EVERY time, over 20000 shuffles", bad = 0
+    MgOk "...at 5 cups and 20 swaps too", DeepReplayOk%
+    MgOk "the coin is under a real cup at every step", CoinAlwaysOnTable%
 
     MgSection "the shuffle is readable, which is what makes tracking worth doing"
-    Ok "no swap is a no-op", NoNullSwaps%
+    MgOk "no swap is a no-op", NoNullSwaps%
     PRINT USING "       slide time: 4 swaps #.###s   20 swaps #.###s   floor #.###s"; SlideTime!(4); SlideTime!(20); SLIDE_MIN
-    Ok "more swaps means a tighter slide", SlideTime!(20) < SlideTime!(4)
-    Ok "...but never below the floor, at any difficulty", SlideTime!(999) >= SLIDE_MIN
+    MgOk "more swaps means a tighter slide", SlideTime!(20) < SlideTime!(4)
+    MgOk "...but never below the floor, at any difficulty", SlideTime!(999) >= SLIDE_MIN
 
     MgSection "and it is not rigged toward a cup"
     RANDOMIZE 72
@@ -287,16 +287,16 @@ SUB CupSelfTest
         IF hits(c) > hits(hi) THEN hi = c
     NEXT c
     PRINT USING "       final cup counts: ##### ##### #####"; hits(1); hits(2); hits(3)
-    Ok "the coin finishes under each cup about equally often", hits(hi) - hits(lo) < 30000 * 0.03
+    MgOk "the coin finishes under each cup about equally often", hits(hi) - hits(lo) < 30000 * 0.03
 
     MgSection "guessing is a real alternative, and a bad one"
-    Ok "a guesser is right 1 in 3; a tracker is right every time", TRUE
+    MgOk "a guesser is right 1 in 3; a tracker is right every time", TRUE
 
     MgSection "WIS buys information, not odds"
-    Ok "a dull character gets no fumbles", Fumbles%(9) = 0
-    Ok "a wise one gets one or two", Fumbles%(16) > 0
-    Ok "fumbles are capped", Fumbles%(30) <= 2
-    Ok "a fumble never moves the coin", FumbleIsPassive%
+    MgOk "a dull character gets no fumbles", Fumbles%(9) = 0
+    MgOk "a wise one gets one or two", Fumbles%(16) > 0
+    MgOk "fumbles are capped", Fumbles%(30) <= 2
+    MgOk "a fumble never moves the coin", FumbleIsPassive%
 
     MgDone
 END SUB

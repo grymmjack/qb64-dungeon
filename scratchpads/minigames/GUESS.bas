@@ -117,15 +117,15 @@ SUB GuessSelfTest
     PRINT "GUESS selftest"
 
     MgSection "the worst case, computed by halving not by logarithm"
-    Ok "1 number needs 0 guesses", WorstCaseGuesses%(1) = 0
-    Ok "2 needs 1", WorstCaseGuesses%(2) = 1
-    Ok "4 needs 2 (an exact power of two)", WorstCaseGuesses%(4) = 2
-    Ok "100 needs 7", WorstCaseGuesses%(100) = 7
-    Ok "128 needs 7, not 8", WorstCaseGuesses%(128) = 7
+    MgOk "1 number needs 0 guesses", WorstCaseGuesses%(1) = 0
+    MgOk "2 needs 1", WorstCaseGuesses%(2) = 1
+    MgOk "4 needs 2 (an exact power of two)", WorstCaseGuesses%(4) = 2
+    MgOk "100 needs 7", WorstCaseGuesses%(100) = 7
+    MgOk "128 needs 7, not 8", WorstCaseGuesses%(128) = 7
 
     MgSection "the budget is winnable by good play -- the whole fairness question"
-    Ok "a dull hero still gets the solvable minimum", GuessBudget%(3) = WorstCaseGuesses%(GRANGE)
-    Ok "INT buys slack on top", GuessBudget%(18) > GuessBudget%(10)
+    MgOk "a dull hero still gets the solvable minimum", GuessBudget%(3) = WorstCaseGuesses%(GRANGE)
+    MgOk "INT buys slack on top", GuessBudget%(18) > GuessBudget%(10)
     ' Play binary search against EVERY possible secret. If one needs more guesses
     ' than the budget allows, the game is unwinnable for that secret and no amount
     ' of skill helps -- the exact failure a player would call cheating.
@@ -135,10 +135,10 @@ SUB GuessSelfTest
         IF g > worst THEN worst = g
     NEXT s
     PRINT "       worst secret needs"; worst; "guesses; budget at INT 10 is"; GuessBudget%(10)
-    Ok "perfect play beats EVERY secret in range", worst <= GuessBudget%(10)
+    MgOk "perfect play beats EVERY secret in range", worst <= GuessBudget%(10)
 
     MgSection "the hint narrows the range honestly"
-    Ok "range starts as the whole span", RangeAfter%(50, 1, 100) > 0
+    MgOk "range starts as the whole span", RangeAfter%(50, 1, 100) > 0
     MgDone
 END SUB
 

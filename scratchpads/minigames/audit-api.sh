@@ -26,7 +26,8 @@ fail=0
 
 echo "== 1. every prototype has an API doc =="
 for f in *.bas; do
-    [ "$f" = "MG.bas" ] && continue
+    # harness includes, not prototypes -- they have no selftest and no API doc
+    case "$f" in MG.bas|MGDICE.bas) continue ;; esac
     name="${f%.bas}"
     if [ ! -f "$name-API.md" ]; then
         echo "  BAD -- $f has no $name-API.md"

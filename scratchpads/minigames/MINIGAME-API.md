@@ -228,12 +228,34 @@ under Real Dice it would try to prompt.
 needs an inline `' not a die:` waiver saying why. That forces a decision at each
 site rather than a policy nobody re-reads.
 
-### What is not shimmed
+### The look — REAL 3D dice, from the game's own module
 
-The look — pip dice vs polyhedra, dice colour, finish, speed, 3D, the light — is
-entirely a SETTINGS concern inside `AnimatedRoll%`, and the prototypes do not
-reimplement it. They draw their own dice; the engine's renderer replaces that
-wholesale on integration and every call site is already correct.
+`AnimatedRoll%` is the one seam between a mini-game and how dice look, and the
+prototypes now link **`engine/DICE3D` itself** rather than approximating it, so a
+prototype shows what the game will show:
+
+```basic
+notation = "2d6"
+dice3d_roll notation, DICE_CFG, r()      ' animates, returns settled faces
+```
+
+It lives in `MGDICE.bi` / `MGDICE.bas`, included only by prototypes that roll
+dice — the same split the game uses between `engine/UI.bas` (the contract) and
+`engine/DICE3D_GAME.bas` (the presentation over the vendored module).
+
+DICE3D turned out to have exactly **one** dependency on its host, `PresentNoFlip`,
+which lays the host's canvas down before the GL triangles go over it. The
+prototypes draw straight to the display page, so the stub is a no-op — but it is
+the one place to fix the day a prototype grows a separate canvas.
+
+Two things to know:
+
+- **the 3D layer is skipped when `MG_QUIET` is set**, i.e. in `selftest` and
+  `shot`. It draws on the GL layer, which needs a window, and a headless run has
+  no business animating anything.
+- **`_SAVEIMAGE` cannot capture it.** The hardware `_MAPTRIANGLE` layer is not in
+  the software page, so a `shot` will never show the 3D dice however it is
+  arranged. Verifying them means running the game.
 
 ## 9. The frame chokepoint — `Present`
 

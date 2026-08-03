@@ -600,19 +600,19 @@ SUB PlinkoSelfTest
     PRINT "PLINKO selftest  (physics measured, not derived)"
 
     MgSection "the coin always finishes, in a real slot"
-    Ok "every drop lands, from every placement", AlwaysLands%
-    Ok "the coin never escapes the case", NeverEscapes%
-    Ok "it actually bounces off things on the way down", ActuallyBounces%
+    MgOk "every drop lands, from every placement", AlwaysLands%
+    MgOk "the coin never escapes the case", NeverEscapes%
+    MgOk "it actually bounces off things on the way down", ActuallyBounces%
 
     MgSection "the measured distribution is stable enough to price"
-    Ok "two independent measurements agree", MeasurementIsStable%
-    Ok "every slot is reachable -- no painted-on lie", AllSlotsReachable%
+    MgOk "two independent measurements agree", MeasurementIsStable%
+    MgOk "every slot is reachable -- no painted-on lie", AllSlotsReachable%
     PRINT "       marginal landing chance per slot:"
     s_PrintDist
 
     MgSection "placing the coin MATTERS -- otherwise it is a fake decision"
-    Ok "the far-left and far-right placements land differently", PlacementMatters%
-    Ok "...and the difference is large, not a rounding artefact", PlacementSpread# > 0.15
+    MgOk "the far-left and far-right placements land differently", PlacementMatters%
+    MgOk "...and the difference is large, not a rounding artefact", PlacementSpread# > 0.15
     PRINT USING "       biggest shift in landing chance across placements: #.###"; PlacementSpread#
 
     MgSection "...but it cannot beat the shrine, from ANY placement"
@@ -622,17 +622,17 @@ SUB PlinkoSelfTest
         IF worst = 0 OR ev < worst THEN worst = ev
     NEXT d
     PRINT USING "       return by placement: worst ###.#%  best ###.#%  (advertised ###.#%)"; worst * 100; topev * 100; 100 - SHRINE_CUT
-    Ok "no placement returns more than the advertised edge", topev <= (1 - SHRINE_CUT / 100!) + 0.0001
-    Ok "the BEST placement hits it exactly -- so skill is worth the maximum", ABS(topev - (1 - SHRINE_CUT / 100!)) < 0.0001
-    Ok "a careless placement really is worse", worst < topev - 0.02
+    MgOk "no placement returns more than the advertised edge", topev <= (1 - SHRINE_CUT / 100!) + 0.0001
+    MgOk "the BEST placement hits it exactly -- so skill is worth the maximum", ABS(topev - (1 - SHRINE_CUT / 100!)) < 0.0001
+    MgOk "a careless placement really is worse", worst < topev - 0.02
 
     MgSection "risk buys variance, never expectation"
-    Ok "all three curves keep the same house edge", EdgeSameAcrossRisk%
-    Ok "reckless has a far wider spread of payouts", SpreadOf#(RISK_HIGH) > SpreadOf#(RISK_LOW) * 3
+    MgOk "all three curves keep the same house edge", EdgeSameAcrossRisk%
+    MgOk "reckless has a far wider spread of payouts", SpreadOf#(RISK_HIGH) > SpreadOf#(RISK_LOW) * 3
     PRINT USING "       payout spread: steady #.##   even #.##   reckless #.##"; SpreadOf#(RISK_LOW); SpreadOf#(RISK_MED); SpreadOf#(RISK_HIGH)
 
     MgSection "and the shrine really does keep its cut, when actually played"
-    Ok "ten thousand real drops return close to the advertised figure", RealisedReturnOk%
+    MgOk "ten thousand real drops return close to the advertised figure", RealisedReturnOk%
 
     MgLoud
     MgDone

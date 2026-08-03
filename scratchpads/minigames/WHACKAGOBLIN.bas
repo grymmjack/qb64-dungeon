@@ -252,11 +252,11 @@ SUB WhackSelfTest
         WhackSetup 10
         IF NOT NoDoubleOccupancy% THEN bad = bad + 1
     NEXT i
-    Ok "no hole ever holds two things at once", bad = 0
-    Ok "every target is reachable within human reaction time", UpTime!(3) > REACTION
+    MgOk "no hole ever holds two things at once", bad = 0
+    MgOk "every target is reachable within human reaction time", UpTime!(3) > REACTION
     PRINT USING "       target is up #.##s at DEX 3, #.##s at DEX 18; reaction budget #.##s"; UpTime!(3); UpTime!(18); REACTION
-    Ok "the floor holds even for the clumsiest character", UpTime!(1) >= UP_FLOOR
-    Ok "DEX buys thinking time", UpTime!(18) > UpTime!(6)
+    MgOk "the floor holds even for the clumsiest character", UpTime!(1) >= UP_FLOOR
+    MgOk "DEX buys thinking time", UpTime!(18) > UpTime!(6)
 
     MgSection "whacking everything MUST lose -- or the choosing is decorative"
     RANDOMIZE 82
@@ -268,7 +268,7 @@ SUB WhackSelfTest
         IF allsc > bestall THEN bestall = allsc
     NEXT i
     PRINT USING "       hit-everything scores ### to ###; target is ###"; worstall; bestall; TARGET
-    Ok "a player who swings at everything never reaches the target", bestall < TARGET
+    MgOk "a player who swings at everything never reaches the target", bestall < TARGET
 
     MgSection "...and choosing well MUST win, or it is not winnable"
     RANDOMIZE 83
@@ -277,7 +277,7 @@ SUB WhackSelfTest
         WhackSetup 10
         IF ScorePerfect% < TARGET THEN bad = bad + 1
     NEXT i
-    Ok "perfect discrimination clears the target on every round", bad = 0
+    MgOk "perfect discrimination clears the target on every round", bad = 0
 
     MgSection "and a good-but-human player wins too"
     RANDOMIZE 84
@@ -287,11 +287,11 @@ SUB WhackSelfTest
         IF ScoreSloppy% < TARGET THEN bad = bad + 1
     NEXT i
     PRINT USING "       missing 1 goblin in 6 and mis-hitting 1 decoy in 10 fails ####/3000 rounds"; bad
-    Ok "a player who is mostly right still gets there", bad < 3000 * 0.25
+    MgOk "a player who is mostly right still gets there", bad < 3000 * 0.25
 
     MgSection "the mix is honest"
-    Ok "only the goblin is a legal target", IsFoe%(K_GOBLIN) _ANDALSO NOT IsFoe%(K_PUP) _ANDALSO NOT IsFoe%(K_MIMIC) _ANDALSO NOT IsFoe%(K_MULE)
-    Ok "decoys are common enough to matter, rare enough to be a game", DecoyRateSane%
+    MgOk "only the goblin is a legal target", IsFoe%(K_GOBLIN) _ANDALSO NOT IsFoe%(K_PUP) _ANDALSO NOT IsFoe%(K_MIMIC) _ANDALSO NOT IsFoe%(K_MULE)
+    MgOk "decoys are common enough to matter, rare enough to be a game", DecoyRateSane%
 
     MgDone
 END SUB

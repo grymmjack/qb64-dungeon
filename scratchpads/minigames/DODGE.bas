@@ -277,7 +277,7 @@ END SUB
 '  SELFTEST
 ' ----------------------------------------------------------------------------
 
-SUB Ok (label AS STRING, cond AS INTEGER)
+SUB MgOk (label AS STRING, cond AS INTEGER)
     T_RUN = T_RUN + 1
     IF cond THEN PRINT "  ok   "; label ELSE PRINT "  FAIL "; label: T_BAD = T_BAD + 1
 END SUB
@@ -294,14 +294,14 @@ SUB DodgeSelfTest
     PRINT
 
     PRINT " the rule: step ACROSS the arrow, never along it"
-    Ok "from west  -> north dodges", DodgeCorrect%(D_W, D_N)
-    Ok "from west  -> south dodges", DodgeCorrect%(D_W, D_S)
-    Ok "from west  -> east does NOT", DodgeCorrect%(D_W, D_E) = FALSE
-    Ok "from west  -> west does NOT", DodgeCorrect%(D_W, D_W) = FALSE
-    Ok "from north -> east dodges", DodgeCorrect%(D_N, D_E)
-    Ok "from north -> west dodges", DodgeCorrect%(D_N, D_W)
-    Ok "from north -> south does NOT", DodgeCorrect%(D_N, D_S) = FALSE
-    Ok "from south -> north does NOT", DodgeCorrect%(D_S, D_N) = FALSE
+    MgOk "from west  -> north dodges", DodgeCorrect%(D_W, D_N)
+    MgOk "from west  -> south dodges", DodgeCorrect%(D_W, D_S)
+    MgOk "from west  -> east does NOT", DodgeCorrect%(D_W, D_E) = FALSE
+    MgOk "from west  -> west does NOT", DodgeCorrect%(D_W, D_W) = FALSE
+    MgOk "from north -> east dodges", DodgeCorrect%(D_N, D_E)
+    MgOk "from north -> west dodges", DodgeCorrect%(D_N, D_W)
+    MgOk "from north -> south does NOT", DodgeCorrect%(D_N, D_S) = FALSE
+    MgOk "from south -> north does NOT", DodgeCorrect%(D_S, D_N) = FALSE
 
     PRINT
     PRINT " every source has EXACTLY two answers (so panic-mashing is a coin flip, not a win)"
@@ -313,23 +313,23 @@ SUB DodgeSelfTest
         NEXT i
         IF s <> 2 THEN good = FALSE
     NEXT d
-    Ok "2 of 4 keys correct, from every source", good
-    Ok "garbage input is never a dodge", DodgeCorrect%(D_W, 0) = FALSE
-    Ok "out-of-range input is never a dodge", DodgeCorrect%(D_W, 99) = FALSE
-    Ok "a bad SOURCE never auto-passes", DodgeCorrect%(0, D_N) = FALSE
+    MgOk "2 of 4 keys correct, from every source", good
+    MgOk "garbage input is never a dodge", DodgeCorrect%(D_W, 0) = FALSE
+    MgOk "out-of-range input is never a dodge", DodgeCorrect%(D_W, 99) = FALSE
+    MgOk "a bad SOURCE never auto-passes", DodgeCorrect%(0, D_N) = FALSE
 
     PRINT
     PRINT " the window"
-    Ok "wave 2 is tighter than wave 1", DodgeWindow!(10, 2) < DodgeWindow!(10, 1)
-    Ok "DEX widens it", DodgeWindow!(18, 3) > DodgeWindow!(10, 3)
-    Ok "never below the floor, however deep", DodgeWindow!(3, 20) >= 0.42
-    Ok "first arrow is generous enough to teach the rule", DodgeWindow!(10, 1) >= 1.0
+    MgOk "wave 2 is tighter than wave 1", DodgeWindow!(10, 2) < DodgeWindow!(10, 1)
+    MgOk "DEX widens it", DodgeWindow!(18, 3) > DodgeWindow!(10, 3)
+    MgOk "never below the floor, however deep", DodgeWindow!(3, 20) >= 0.42
+    MgOk "first arrow is generous enough to teach the rule", DodgeWindow!(10, 1) >= 1.0
 
     PRINT
     PRINT " volley size by depth"
-    Ok "shallow corridors are short", VolleySize%(1) = 2
-    Ok "deeper is longer", VolleySize%(9) > VolleySize%(1)
-    Ok "capped so it never outstays its welcome", VolleySize%(99) = 6
+    MgOk "shallow corridors are short", VolleySize%(1) = 2
+    MgOk "deeper is longer", VolleySize%(9) > VolleySize%(1)
+    MgOk "capped so it never outstays its welcome", VolleySize%(99) = 6
 
     PRINT
     PRINT USING "  ### assertion(s), ### failed"; T_RUN; T_BAD

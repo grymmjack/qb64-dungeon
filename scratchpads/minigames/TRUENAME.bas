@@ -208,30 +208,30 @@ SUB NameSelfTest
     PRINT "TRUENAME selftest"
 
     MgSection "the roster is sound"
-    Ok "every entry has a name and a clue", RosterFilled%
-    Ok "no two entries share a name", NamesUnique%
-    Ok "no two names collide once normalised", KeysUnique%
-    Ok "every answer is visible on screen", TRUE
+    MgOk "every entry has a name and a clue", RosterFilled%
+    MgOk "no two entries share a name", NamesUnique%
+    MgOk "no two names collide once normalised", KeysUnique%
+    MgOk "every answer is visible on screen", TRUE
 
     MgSection "matching judges knowledge, not keyboarding"
-    Ok "case does not matter", NameMatches%("goblin", "GOBLIN")
-    Ok "spacing does not matter", NameMatches%("gelatinouscube", "GELATINOUS CUBE")
-    Ok "extra spaces do not matter", NameMatches%("  RUST   MONSTER ", "RUST MONSTER")
-    Ok "punctuation does not matter", NameMatches%("owl-bear", "OWLBEAR")
-    Ok "a wrong answer is still wrong", NOT NameMatches%("GOBLIN", "GHOUL")
-    Ok "a near miss is still wrong -- it is a name, not a guess", NOT NameMatches%("SKELETN", "SKELETON")
-    Ok "an empty answer is never right", NOT NameMatches%("", "LICH")
-    Ok "whitespace alone is never right", NOT NameMatches%("   ", "LICH")
+    MgOk "case does not matter", NameMatches%("goblin", "GOBLIN")
+    MgOk "spacing does not matter", NameMatches%("gelatinouscube", "GELATINOUS CUBE")
+    MgOk "extra spaces do not matter", NameMatches%("  RUST   MONSTER ", "RUST MONSTER")
+    MgOk "punctuation does not matter", NameMatches%("owl-bear", "OWLBEAR")
+    MgOk "a wrong answer is still wrong", NOT NameMatches%("GOBLIN", "GHOUL")
+    MgOk "a near miss is still wrong -- it is a name, not a guess", NOT NameMatches%("SKELETN", "SKELETON")
+    MgOk "an empty answer is never right", NOT NameMatches%("", "LICH")
+    MgOk "whitespace alone is never right", NOT NameMatches%("   ", "LICH")
 
     MgSection "NOBODY loses this for typing slowly -- the whole point"
     PRINT USING "       fuse ##.##s; longest name is ## characters, typed at #.# a second"; NameFuse!; LongestName%; SLOW_CPS
-    Ok "the fuse fits the longest name at a one-finger pace", NameFuse! >= LongestName% / SLOW_CPS
-    Ok "...with reading time on top of that, not inside it", NameFuse! >= LongestName% / SLOW_CPS + READ_TIME - 0.001
-    Ok "every single name fits, not just the average one", EveryNameFits%
+    MgOk "the fuse fits the longest name at a one-finger pace", NameFuse! >= LongestName% / SLOW_CPS
+    MgOk "...with reading time on top of that, not inside it", NameFuse! >= LongestName% / SLOW_CPS + READ_TIME - 0.001
+    MgOk "every single name fits, not just the average one", EveryNameFits%
 
     MgSection "WIS reads, it does not answer"
-    Ok "the hint gives one letter, never the word", TRUE
-    Ok "a dull character gets no hints", MgAbilMod%(9) <= 0
+    MgOk "the hint gives one letter, never the word", TRUE
+    MgOk "a dull character gets no hints", MgAbilMod%(9) <= 0
 
     MgDone
 END SUB

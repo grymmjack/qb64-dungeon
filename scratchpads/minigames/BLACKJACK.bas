@@ -314,35 +314,35 @@ SUB JackSelfTest
     PRINT "BLACKJACK selftest"
 
     MgSection "the deck is a deck"
-    Ok "52 cards, four of every rank", ShoeWellFormed%
-    Ok "shuffling does not lose or duplicate a card", ShuffleKeepsDeck%
-    Ok "cards are dealt without replacement", NoReplacement%
+    MgOk "52 cards, four of every rank", ShoeWellFormed%
+    MgOk "shuffling does not lose or duplicate a card", ShuffleKeepsDeck%
+    MgOk "cards are dealt without replacement", NoReplacement%
 
     MgSection "hand values, including the thing that quietly breaks strategy"
-    Ok "A + 6 is a SOFT 17", SoftCheck%(1, 6, 17, TRUE)
-    Ok "A + 6 + 10 is a HARD 17", SoftCheck3%(1, 6, 10, 17, FALSE)
-    Ok "A + A is a soft 12", SoftCheck%(1, 1, 12, TRUE)
+    MgOk "A + 6 is a SOFT 17", SoftCheck%(1, 6, 17, TRUE)
+    MgOk "A + 6 + 10 is a HARD 17", SoftCheck3%(1, 6, 10, 17, FALSE)
+    MgOk "A + A is a soft 12", SoftCheck%(1, 1, 12, TRUE)
     ' A+A+9 is SOFT 21, not hard -- one ace is still up at eleven and could be
     ' dropped to eleven total. Asserting it hard was my error, not the code's.
-    Ok "A + A + 9 is a SOFT 21", SoftCheck3%(1, 1, 9, 21, TRUE)
-    Ok "A + 10 + 10 is a HARD 21 -- the ace had to come down", SoftCheck3%(1, 10, 10, 21, FALSE)
-    Ok "court cards are ten", SoftCheck%(12, 13, 20, FALSE)
-    Ok "a natural is exactly two cards", NaturalIsTwoCards%
-    Ok "no hand ever values above 21 with an ace it could drop", NeverSillyBust%
+    MgOk "A + A + 9 is a SOFT 21", SoftCheck3%(1, 1, 9, 21, TRUE)
+    MgOk "A + 10 + 10 is a HARD 21 -- the ace had to come down", SoftCheck3%(1, 10, 10, 21, FALSE)
+    MgOk "court cards are ten", SoftCheck%(12, 13, 20, FALSE)
+    MgOk "a natural is exactly two cards", NaturalIsTwoCards%
+    MgOk "no hand ever values above 21 with an ace it could drop", NeverSillyBust%
 
     MgSection "the strategy table is advice worth following"
     RANDOMIZE 91: ebasic = EdgeOf#(1, 300000)
     RANDOMIZE 92: emimic = EdgeOf#(2, 300000)
     RANDOMIZE 93: estand = EdgeOf#(3, 300000)
     PRINT USING "       per 100 staked:  basic strategy ###.## , mimic the dealer ###.## , always stand ###.##"; ebasic * 100; emimic * 100; estand * 100
-    Ok "basic strategy loses slowly", ebasic > -0.03
-    Ok "the house still has an edge -- this is a casino, not a gift", ebasic < 0.005
-    Ok "mimicking the dealer costs several times more", emimic < ebasic - 0.02
-    Ok "never busting is worse still", estand < emimic
+    MgOk "basic strategy loses slowly", ebasic > -0.03
+    MgOk "the house still has an edge -- this is a casino, not a gift", ebasic < 0.005
+    MgOk "mimicking the dealer costs several times more", emimic < ebasic - 0.02
+    MgOk "never busting is worse still", estand < emimic
 
     MgSection "the payout is the one advertised"
-    Ok "a natural pays three to two", BJ_PAY = 1.5
-    Ok "a natural beats a made 21", NaturalBeatsMade21%
+    MgOk "a natural pays three to two", BJ_PAY = 1.5
+    MgOk "a natural beats a made 21", NaturalBeatsMade21%
 
     MgDone
 END SUB

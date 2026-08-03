@@ -27,7 +27,8 @@ fail=0
 echo "== 1. every die-shaped raw roll is waived in place =="
 bad=0
 for f in *.bas; do
-    [ "$f" = "MG.bas" ] && continue
+    # harness includes, not prototypes -- they have no selftest and no API doc
+    case "$f" in MG.bas|MGDICE.bas) continue ;; esac
     while IFS= read -r line; do
         [ -z "$line" ] && continue
         # a waiver is an inline `' not a die:` comment on the SAME line
@@ -46,10 +47,10 @@ echo "== 2. the dice contract mirrors the engine, name for name =="
 miss=""
 for want in "FUNCTION GameRoll%" "FUNCTION PromptRoll%" "FUNCTION AnimatedRoll%" \
             "SUB PublishFaces" "FUNCTION DieFace%" "SUB RollSeqBegin" "SUB RollSeqEnd"; do
-    grep -q "^$want" MG.bas || miss="$miss ${want##* }"
+    grep -q "^$want" MGDICE.bas || miss="$miss ${want##* }"
 done
 for want in "opt_realdice" "opt_dicemath" "DIE_FACE_N"; do
-    grep -q "$want" MG.bi || miss="$miss $want"
+    grep -q "$want" MGDICE.bi || miss="$miss $want"
 done
 if [ -n "$miss" ]; then
     echo "  BAD -- the shim no longer matches engine/UI.bas:$miss"
@@ -61,7 +62,7 @@ fi
 
 echo
 echo "== 3. Real Dice publishes no faces =="
-if grep -A12 '^FUNCTION GameRoll%' MG.bas | grep -q 'DIE_FACE_N = 0'; then
+if grep -A12 '^FUNCTION GameRoll%' MGDICE.bas | grep -q 'DIE_FACE_N = 0'; then
     echo "  ok -- the real-dice path clears the face table rather than leaving stale values"
 else
     echo "  BAD -- GameRoll% no longer clears DIE_FACE_N on the Real Dice path"
@@ -71,13 +72,29 @@ fi
 echo
 echo "== 4. every dice game exercises the contract in its selftest =="
 dbad=0
-for f in $(grep -lE '(^|[^A-Za-z_])GameRoll%\(' *.bas 2>/dev/null | grep -v '^MG\.bas$'); do
+for f in $(grep -lE '(^|[^A-Za-z_])GameRoll%\(' *.bas 2>/dev/null | grep -vE '^MG(DICE)?\.bas$'); do
     if ! grep -q 'MgDiceSelfTest' "$f"; then
         echo "  BAD -- $f rolls dice but never runs MgDiceSelfTest"
         dbad=1; fail=1
     fi
 done
 [ $dbad -eq 0 ] && echo "  ok -- every prototype that rolls dice asserts the contract"
+
+echo
+echo "== 5. the 3D dice are the GAME's module, not a copy =="
+if grep -q "INCLUDE:'../../engine/DICE3D/_ALL.BM'" MGDICE.bas &&
+   grep -q "INCLUDE:'../../engine/DICE3D/_ALL.BI'" MGDICE.bi; then
+    echo "  ok -- MGDICE pulls in engine/DICE3D directly, so a prototype shows what the game will"
+else
+    echo "  BAD -- MGDICE no longer links the game's own DICE3D module"
+    fail=1
+fi
+if grep -q '^SUB PresentNoFlip' MGDICE.bas; then
+    echo "  ok -- DICE3D's one host dependency is stubbed"
+else
+    echo "  BAD -- PresentNoFlip stub is gone; DICE3D will not link"
+    fail=1
+fi
 
 echo
 if [ $fail -eq 0 ]; then echo "audit-dice: ALL GREEN"; else echo "audit-dice: PROBLEMS"; fi

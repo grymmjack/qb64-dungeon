@@ -24,7 +24,7 @@ fail=0
 echo "== 1. nobody calls SOUND / BEEP / PLAY directly =="
 # MG.bas is the ONE place SOUND is allowed -- it is the thing being funnelled to.
 hits=$(grep -nE '(^|[^A-Za-z_])(SOUND|BEEP|PLAY)[ (]' *.bas \
-       | grep -v '^MG\.bas:' \
+       | grep -vE '^MG(DICE)?\.bas:' \
        | grep -vE ':[0-9]+:[[:space:]]*'"'"'' \
        | grep -viE 'MgBeep|PlayJack|PlayLock|PlayScr|PlayName|PlayWheel|PlayCups|PlayWhack|PlayMonkey|PlayRps|PlaySlab|PlayPlinko|PlayGame|PlayMaze|PlayDodge|PlayGamble|PlayCraps|PlayGuess|PlayTrap|PlayRiddle' )
 if [ -n "$hits" ]; then
@@ -59,7 +59,8 @@ echo "== 4. every selftest silences itself explicitly, belt AND braces =="
 missing=""
 mute=""
 for f in *.bas; do
-    [ "$f" = "MG.bas" ] && continue
+    # harness includes, not prototypes -- they have no selftest and no API doc
+    case "$f" in MG.bas|MGDICE.bas) continue ;; esac
     sub=$(grep -oE '^SUB [A-Za-z]*SelfTest[[:space:]]*$' "$f" | head -1)
     [ -z "$sub" ] && continue
     # a prototype that predates MG.bi cannot call MgQuiet -- so instead it must be
@@ -94,7 +95,8 @@ echo "== 4b. a harness call must actually RESOLVE =="
 # prototypes predate MG.bi and had a MgQuiet line that had never once executed.
 resolve=0
 for f in *.bas; do
-    [ "$f" = "MG.bas" ] && continue
+    # harness includes, not prototypes -- they have no selftest and no API doc
+    case "$f" in MG.bas|MGDICE.bas) continue ;; esac
     uses=$(grep -cE '^[[:space:]]*(MgQuiet|MgLoud|MgBeep|MgDiceSelfTest)' "$f")
     [ "$uses" -eq 0 ] && continue
     if ! grep -q "INCLUDE:'MG.bas'" "$f"; then

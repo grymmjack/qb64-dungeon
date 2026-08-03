@@ -294,13 +294,13 @@ SUB LockSelfTest
     PRINT "LOCKPICK selftest"
 
     MgSection "the dial is a ring, and the feel is honest"
-    Ok "0 and 23 are one notch apart", Ring%(0, NOTCHES - 1) = 1
-    Ok "the far side is half a turn away", Ring%(0, NOTCHES \ 2) = NOTCHES \ 2
-    Ok "distance is symmetric", RingSymmetric%
-    Ok "only the exact notch reads GIVING", Band%(0) = B_GIVING _ANDALSO Band%(1) <> B_GIVING
-    Ok "the bands never go backwards as you get further", BandsMonotonic%
-    Ok "the direction hint is only offered inside CLOSE range", HintOnlyWhenClose%
-    Ok "...and when offered, it points the SHORT way round", HintPointsShortWay%
+    MgOk "0 and 23 are one notch apart", Ring%(0, NOTCHES - 1) = 1
+    MgOk "the far side is half a turn away", Ring%(0, NOTCHES \ 2) = NOTCHES \ 2
+    MgOk "distance is symmetric", RingSymmetric%
+    MgOk "only the exact notch reads GIVING", Band%(0) = B_GIVING _ANDALSO Band%(1) <> B_GIVING
+    MgOk "the bands never go backwards as you get further", BandsMonotonic%
+    MgOk "the direction hint is only offered inside CLOSE range", HintOnlyWhenClose%
+    MgOk "...and when offered, it points the SHORT way round", HintPointsShortWay%
 
     MgSection "an efficient search always beats the fuse -- every start, every pin"
     worst = WorstSearchCost!
@@ -310,30 +310,30 @@ SUB LockSelfTest
     PRINT USING "       three pins cost ##.##s at worst, ##.##s at best; fuse ##.##s"; worst; best; budget
     PRINT USING "       plus ## decisions at #.#s of thinking each = ##.##s"; WorstMoveCount%; THINK_PER_MOVE; think
     PRINT USING "       so a good picker needs ##.##s of a ##.##s fuse"; worst + think; budget
-    Ok "the worst case for a good picker fits inside the fuse", worst < budget
-    Ok "checked EXHAUSTIVELY, not sampled", ExhaustiveCount& = NOTCHES * NOTCHES
+    MgOk "the worst case for a good picker fits inside the fuse", worst < budget
+    MgOk "checked EXHAUSTIVELY, not sampled", ExhaustiveCount& = NOTCHES * NOTCHES
 
     MgSection "...and it fits with REAL thinking time on top, now that the fuse burns by itself"
-    Ok "move cost plus a human's thinking time still fits", worst + think < budget
-    Ok "...with enough margin to be human once", budget - (worst + think) >= T_MISS
-    Ok "even the clumsiest character has room to think", WorstSearchCost! + think < LockFuse!(3)
-    Ok "a scripted pause is not charged as dithering", PausesAreFree%
+    MgOk "move cost plus a human's thinking time still fits", worst + think < budget
+    MgOk "...with enough margin to be human once", budget - (worst + think) >= T_MISS
+    MgOk "even the clumsiest character has room to think", WorstSearchCost! + think < LockFuse!(3)
+    MgOk "a scripted pause is not charged as dithering", PausesAreFree%
 
     MgSection "...but brute force does not, which is what makes it a search"
     dumb = TRUE
     IF SweepEveryNotchCost! + SweepMoveCount% * THINK_PER_MOVE < budget THEN dumb = FALSE
     PRINT USING "       walking the whole dial for each pin: ##.##s of moves + ###.##s of thinking"; SweepEveryNotchCost!; SweepMoveCount% * THINK_PER_MOVE
-    Ok "turning one notch at a time until it gives runs out the fuse", dumb
+    MgOk "turning one notch at a time until it gives runs out the fuse", dumb
     ' On move cost ALONE, so a player who mashes the key without thinking cannot
     ' beat it either. This is the assertion that broke when the fuse grew to 50s
     ' -- brute force suddenly fit, which would have made the whole search optional
     ' -- and T_FINE went from 0.35 to 0.75 to put it back.
-    Ok "...and it runs out on move cost ALONE, even for a player thinking instantly", SweepEveryNotchCost! > budget
+    MgOk "...and it runs out on move cost ALONE, even for a player thinking instantly", SweepEveryNotchCost! > budget
 
     MgSection "DEX buys time and nothing else"
-    Ok "a clumsy hand gets less fuse", LockFuse!(6) < LockFuse!(16)
-    Ok "even the clumsiest still gets a winnable fuse", WorstSearchCost! + WorstMoveCount% * THINK_PER_MOVE < LockFuse!(3)
-    Ok "DEX never moves a pin", PinsIgnoreDex%
+    MgOk "a clumsy hand gets less fuse", LockFuse!(6) < LockFuse!(16)
+    MgOk "even the clumsiest still gets a winnable fuse", WorstSearchCost! + WorstMoveCount% * THINK_PER_MOVE < LockFuse!(3)
+    MgOk "DEX never moves a pin", PinsIgnoreDex%
 
     MgDone
 END SUB

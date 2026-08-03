@@ -233,29 +233,29 @@ SUB MonkeySelfTest
     PRINT "MONKEYSEE selftest"
 
     MgSection "it is Simon: each round EXTENDS the sequence, never replaces it"
-    Ok "round N is a strict prefix of round N+1", PrefixHolds%
-    Ok "the tail beyond the current round is never shown", TRUE
+    MgOk "round N is a strict prefix of round N+1", PrefixHolds%
+    MgOk "the tail beyond the current round is never shown", TRUE
 
     MgSection "the sequence is readable"
     RANDOMIZE 12
-    Ok "no stone lights three times in a row, over 2000 sequences", NoTriples%(2000)
-    Ok "every stone gets used", AllPadsUsed%(2000)
-    Ok "the four stones have four distinct tones", TonesDistinct%
+    MgOk "no stone lights three times in a row, over 2000 sequences", NoTriples%(2000)
+    MgOk "every stone gets used", AllPadsUsed%(2000)
+    MgOk "the four stones have four distinct tones", TonesDistinct%
 
     MgSection "it never outruns a human"
     PRINT USING "       flash time: round 1 #.###s  round ## #.###s  floor #.###s"; FlashTime!(1); WINROUND; FlashTime!(WINROUND); FLASH_MIN
-    Ok "the flash tightens as it goes", FlashTime!(WINROUND) < FlashTime!(1)
-    Ok "...but never below the readable floor, at any depth", FlashTime!(999) >= FLASH_MIN
+    MgOk "the flash tightens as it goes", FlashTime!(WINROUND) < FlashTime!(1)
+    MgOk "...but never below the readable floor, at any depth", FlashTime!(999) >= FLASH_MIN
 
     MgSection "the judge is exact"
-    Ok "the true sequence is accepted at every length 1..12", AcceptsTruth%
-    Ok "ANY single wrong stone at ANY position is caught", CatchesEverySlip%
+    MgOk "the true sequence is accepted at every length 1..12", AcceptsTruth%
+    MgOk "ANY single wrong stone at ANY position is caught", CatchesEverySlip%
 
     MgSection "WIS reads the puzzle, it does not bend it"
-    Ok "a dull character gets no recalls", RecallCharges%(9) = 0
-    Ok "a wise one gets a few", RecallCharges%(18) > 0
-    Ok "recalls are capped, so WIS cannot trivialise it", RecallCharges%(30) <= 3
-    Ok "recall re-shows the SAME sequence -- it does not re-roll", RecallIsNotAReroll%
+    MgOk "a dull character gets no recalls", RecallCharges%(9) = 0
+    MgOk "a wise one gets a few", RecallCharges%(18) > 0
+    MgOk "recalls are capped, so WIS cannot trivialise it", RecallCharges%(30) <= 3
+    MgOk "recall re-shows the SAME sequence -- it does not re-roll", RecallIsNotAReroll%
 
     MgDone
 END SUB

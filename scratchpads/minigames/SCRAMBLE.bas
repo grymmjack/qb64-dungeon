@@ -240,31 +240,31 @@ SUB ScrSelfTest
     PRINT "SCRAMBLE selftest"
 
     MgSection "THE question: is the answer the only word that fits the letters"
-    Ok "no two words in the list are anagrams of each other", NoAnagramPairs%
-    Ok "no word appears twice", NoDuplicates%
-    Ok "every word is letters only, and long enough to scramble", WordsAreSane%
+    MgOk "no two words in the list are anagrams of each other", NoAnagramPairs%
+    MgOk "no word appears twice", NoDuplicates%
+    MgOk "every word is letters only, and long enough to scramble", WordsAreSane%
 
     MgSection "the scramble is a scramble"
     RANDOMIZE 111
-    Ok "it uses every letter and no others, over 20000 draws", PermutationAlways%
-    Ok "it is never just the word again", NeverTheWordItself%
-    Ok "it never accidentally spells a DIFFERENT word from the list", NeverAnotherWord%
-    Ok "it actually moves letters -- long words come out well shuffled", ActuallyShuffled%
+    MgOk "it uses every letter and no others, over 20000 draws", PermutationAlways%
+    MgOk "it is never just the word again", NeverTheWordItself%
+    MgOk "it never accidentally spells a DIFFERENT word from the list", NeverAnotherWord%
+    MgOk "it actually moves letters -- long words come out well shuffled", ActuallyShuffled%
 
     MgSection "the clock is not the opponent"
     PRINT USING "       longest word ## letters: ##.##s to think and type"; LongWordLen%; ScrFuse!(LongestWord$)
-    Ok "there is thinking time before typing time", THINK_TIME > 0
-    Ok "the fuse covers typing the longest word at a one-finger pace", ScrFuse!(LongestWord$) >= LongWordLen% / SLOW_CPS + THINK_TIME - 0.001
-    Ok "every word gets the same thinking time, long or short", ScrFuse!("CRYPT") - 5 / SLOW_CPS = ScrFuse!("SARCOPHAGUS") - 11 / SLOW_CPS
+    MgOk "there is thinking time before typing time", THINK_TIME > 0
+    MgOk "the fuse covers typing the longest word at a one-finger pace", ScrFuse!(LongestWord$) >= LongWordLen% / SLOW_CPS + THINK_TIME - 0.001
+    MgOk "every word gets the same thinking time, long or short", ScrFuse!("CRYPT") - 5 / SLOW_CPS = ScrFuse!("SARCOPHAGUS") - 11 / SLOW_CPS
 
     MgSection "answers are judged on the word, not the keyboard"
-    Ok "case does not matter", ScrKey$("portcullis") = "PORTCULLIS"
-    Ok "stray spaces do not matter", ScrKey$(" cry pt ") = "CRYPT"
-    Ok "a wrong word is still wrong", ScrKey$("CRYPTS") <> "CRYPT"
+    MgOk "case does not matter", ScrKey$("portcullis") = "PORTCULLIS"
+    MgOk "stray spaces do not matter", ScrKey$(" cry pt ") = "CRYPT"
+    MgOk "a wrong word is still wrong", ScrKey$("CRYPTS") <> "CRYPT"
 
     MgSection "INT reveals, it does not solve"
-    Ok "a reveal shows one letter in place", TRUE
-    Ok "a dull character gets none", MgAbilMod%(9) <= 0
+    MgOk "a reveal shows one letter in place", TRUE
+    MgOk "a dull character gets none", MgAbilMod%(9) <= 0
 
     MgDone
 END SUB
