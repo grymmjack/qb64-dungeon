@@ -31,14 +31,60 @@ xvfb-run -a ./RIDDLE.run shot
 
 ## The prototypes
 
-| file | PLANS.todo entry | mechanic | assertions |
-|---|---|---|---|
-| `RIDDLE.bas` | Magic mouths — save WIS | answer matching; WIS buys attempts, a save buys a hint | 31 |
-| `MAZE.bas` | Magic sirens — save WIS | trace a perfect maze to the sigil against a fuse; WIS adds time | 12 |
-| `DODGE.bas` | Arrow slits — gesture | step PERPENDICULAR to the arrow; DEX widens the window | 19 |
-| `GAMBLE.bas` | Tavern — gamble | push-your-luck 2d6; any ONE takes the pot; rake tuned by Monte Carlo | 14 |
+| file | where it fits | mechanic | stat | asserts |
+|---|---|---|---|---|
+| `RIDDLE.bas` | Magic mouths — save WIS | answer matching; WIS buys attempts, a save buys a hint | WIS | 31 |
+| `MAZE.bas` | Magic sirens — save WIS | trace a perfect maze to the sigil against a fuse | WIS | 14 |
+| `DODGE.bas` | Arrow slits — gesture | step PERPENDICULAR to the arrow; DEX widens the window | DEX | 19 |
+| `GAMBLE.bas` | Tavern — gamble | push-your-luck 2d6; any ONE takes the pot | WIS reads odds | 14 |
+| `CRAPS.bas` | Tavern | come-out, then chase the point; when to walk | — | 20 |
+| `PLINKO.bas` | Fortune shrine | which channel to drop from; risk-vs-reward slots | CHA nudges | 17 |
+| `GUESS.bas` | A bound spirit | binary search under a guess budget | INT buys guesses | 9 |
+| `RPS.bas` | A goblin duel | read the opponent's habit and exploit it | WIS spots the tell | 15 |
+| `RUNEMEMORY.bas` | A rune slab | concentration, W×H, turn budget, **pain runes cost 1 HP per reveal** | memory itself | 16 |
+| `MONKEYSEE.bas` | A shrine floor | Simon — the sequence EXTENDS, it never re-rolls | WIS buys recalls | 13 |
+| `LOCKPICK.bas` | Chests, doors | search a 24-notch dial by feel; the clock runs on MOVES | DEX buys fuse | 14 |
+| `TRAPDISARM.bas` | Trapped chests | deduce the one legal cut order from the notes | INT buys notes | 13 |
+| `CUPSHUFFLE.bas` | A street dealer | follow the coin; the game never palms it | WIS buys a fumble | 12 |
+| `WHACKAGOBLIN.bas` | A cellar | go/no-go — a third of what pops up must NOT be hit | DEX buys time | 9 |
+| `BLACKJACK.bas` | Tavern, higher stakes | basic strategy vs two wrong strategies | — | 17 |
+| `SPINWHEEL.bas` | A wall wheel | a ceremony, not a game: whatever it lands on happens | — | 11 |
+| `TRUENAME.bas` | A warded door | name the thing from its description | WIS buys a letter | 17 |
+| `SCRAMBLE.bas` | A carved door | unscramble the word; no anagram may be ambiguous | INT reveals letters | 15 |
+
+**Every fairness claim in that table is measured, not asserted by hand.** Where a game has
+odds they are simulated; where it generates a puzzle, solvability is checked on every
+generation; where it has a clock, the clock is derived from what a slow human can do.
+That is not ceremony — it caught a wrong turn budget in RUNEMEMORY (one turn under the
+true worst case), a target score in WHACKAGOBLIN that failed attentive players a third of
+the time, and two anagrams sitting eight entries apart in SCRAMBLE's word list.
 
 See [BOW-AND-MAGIC.md](BOW-AND-MAGIC.md) for why bow and magic are **not** here.
+
+## Error handling
+
+Every prototype arms `ON ERROR GOTO MgFatal` before anything can fail, for the same reason
+`dungeon.bas` does: an unhandled QB64 error opens a **modal dialog that waits for a click**,
+and under `xvfb` nobody can click it, so the process just hangs with no output saying why.
+The handler prints the error and line to stdout and exits non-zero.
+
+Audio goes through `MgBeep`, never `SOUND`. A raw `SOUND` ignores every mute flag that
+exists, so the one thing standing between a headless selftest and an unwanted chirp is that
+no prototype calls it directly. `selftest` and `shot` both set `MG_QUIET`.
+
+## QB64 traps these hit, in order
+
+Each of these cost a build. They are all in the project CLAUDE.md; they still land.
+
+| trap | what it looked like |
+|---|---|
+| `AND`/`OR` never short-circuit | `LOOP UNTIL i < 3 OR p = SEQ(i-1)` read `SEQ(0)` and died on the first stone. `_ORELSE` fixes it |
+| a FUNCTION's own name in its body is a **recursive call** | `IF LEN(x) > LongestName% THEN` blew the stack instantly |
+| reserved words everywhere | `WEND` (closes a WHILE) as an array name; `RND` as a loop variable |
+| a zero-arg FUNCTION takes **no parentheses** at the call site | `ReplayMatches%()` is a syntax error |
+| single-line `IF` has no `ELSE IF` chain | had to break soft-18 strategy into a block |
+| identifiers are case-insensitive | a local `ring` collides with `FUNCTION Ring%` |
+| `RANDOMIZE n` twice with the same `n` does **not** reset the stream | the "same seed, same deal" test compared two different deals and failed |
 
 ## Integration
 

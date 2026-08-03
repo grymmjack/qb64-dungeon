@@ -13,23 +13,38 @@ interesting but unproven · **[no]** considered and rejected, with the reason.
 
 ## Built
 
-| game | where | mechanic | stat |
+All eighteen have a `selftest` and a `shot`; see [README.md](README.md) for the full table
+and the assertion counts.
+
+| game | where | the decision | stat |
 |---|---|---|---|
 | **Riddle** | magic mouth | answer matching under a guess budget | WIS |
 | **Disarm maze** | magic siren | trace a perfect maze against a fuse | WIS |
 | **Arrow dodge** | arrow slits | step perpendicular to the shot | DEX |
 | **Knucklebones** | tavern | push-your-luck 2d6, any ONE takes the pot | WIS reads odds |
-
-## Building now
-
-| game | where | the decision | stat |
-|---|---|---|---|
 | **Craps** | tavern | come-out then chase the point; when to walk | — (pure odds) |
 | **Plinko** | fortune shrine | which channel to drop from; risk-vs-reward slots | CHA nudges |
 | **Guess the number** | a bound spirit | binary search under a guess budget | INT buys guesses |
 | **Rock paper scissors** | a goblin duel | read the opponent's TELL and exploit it | WIS spots the tell |
-| **Lockpick** | chests, doors | find the sweet angle before the pick snaps | DEX |
-| **Trap disarm** | trapped chests | cut wires in the right ORDER, deduced from clues | INT |
+| **Rune slab** | a cursed slab | concentration where forgetting costs HIT POINTS | memory |
+| **Monkey see** | a shrine floor | Simon; the sequence extends, it never re-rolls | WIS buys recalls |
+| **Lockpick** | chests, doors | search the dial by feel; the clock runs on moves | DEX buys fuse |
+| **Trap disarm** | trapped chests | cut wires in the ORDER the notes imply | INT buys notes |
+| **Cup shuffle** | a street dealer | follow the coin through an honest shuffle | WIS buys a fumble |
+| **Whack-a-goblin** | a cellar | go/no-go: a third of what pops up must not be hit | DEX buys time |
+| **Twenty-one** | tavern, high stakes | the only game here whose skill is a TABLE | — |
+| **Wheel of mystery** | a wall wheel | *(a ceremony, not a game -- see below)* | — |
+| **Speak its name** | a warded door | name the thing from its description | WIS buys a letter |
+| **Scattered word** | a carved door | unscramble it; the answer must be the ONLY fit | INT reveals letters |
+
+### The wheel is not a game, and says so
+
+**Wheel of mystery** fails house rule 1 outright: one input, no judgement, whatever it
+stops on happens. It is kept because it is the most theatrical way to deliver a random
+event, and it is *labelled* rather than dressed up as a decision. What it still has to
+prove is that it does not lie — the outcome is read off the angle it stopped at, never
+picked first and animated toward, and the wedge widths are the complete truth about the
+odds.
 
 ---
 
@@ -80,19 +95,29 @@ Cheap, calming, and a good pace-breaker between fights.
   Lovely idea, hard to make readable in text.
 - **Weigh the coins** — a balance puzzle to find the one counterfeit in N. Classic and
   clean, but it is a maths quiz and might read as homework.
-- **Card monte** — follow the cup. Trivial unless the shuffle is genuinely readable,
-  which is hard to convey at text-mode framerates.
+- ~~**Card monte**~~ — **built** as `CUPSHUFFLE.bas`. The "unless the shuffle is readable"
+  caveat turned out to be the entire design: no swap may be a no-op and the slide has a
+  hard floor, because a player who cannot follow correctly concludes tracking is pointless
+  and starts guessing, at which point it is a 1-in-3 coin flip wearing a hat.
 
 ## Rejected, and why
 
 - **Lockpick-as-QTE** — press the key when the bar is in the zone. That is the composure
   gauge with a lock drawn on it, and the design bible's rule applies: one engine wearing
   masks, not a second engine wearing the same mask. The built version is a *search* for
-  a hidden angle instead, which is a different verb.
+  a hidden angle instead, which is a different verb — and its clock runs on MOVES rather
+  than wall time, so there is no reflex component at all.
 - **Combat mini-games per weapon** — explicitly forbidden by PLANS.todo. See
   [BOW-AND-MAGIC.md](BOW-AND-MAGIC.md).
-- **Typing tests** — fast, cheap, and wrong for a game played with one hand on the
-  arrows. Also punishes the wrong skill.
+- **Typing tests** — a raw words-per-minute test is fast, cheap, and wrong for a game
+  played with one hand on the arrows, and it punishes the wrong skill.
+  **Corrected:** this rejected the right thing but was written too broadly, and
+  `TRUENAME.bas` / `SCRAMBLE.bas` are now built. The skill in those is *recall* and
+  *deduction*; typing is only how the answer is delivered. The line between the two is
+  enforced, not asserted: both clocks are derived from the longest possible answer at
+  **two characters a second** — a slow, one-finger, look-at-the-keyboard pace — with
+  thinking time added on top rather than folded in. Nobody may lose either game because of
+  how fast they type.
 - **Anything needing a mouse** — the dungeon is keyboard-first; the debug overlay is the
   only mouse surface and it is a dev tool.
 
@@ -104,8 +129,16 @@ Cheap, calming, and a good pace-breaker between fights.
 2. **Stats read, they do not cheat.** WIS shows you the odds; it does not bend them.
    A player who feels the game is fudging in their favour stops trusting a win.
 3. **Fairness is provable or it is not claimed.** Anything with odds gets a Monte Carlo
-   in its selftest; anything generated gets a solvability proof.
+   in its selftest; anything generated gets a solvability proof. This is not ceremony —
+   it has caught a turn budget one turn below the true worst case, a target score that
+   failed attentive players a third of the time, and two anagrams eight entries apart in
+   a word list. None of the three was visible by reading the code.
 4. **Failure costs something, and losing is survivable.** These sit inside a dungeon
    crawl, not instead of one.
 5. **Teach in the first ten seconds.** The first arrow is slow, the first riddle is
    easy, the first lock is loose.
+6. **Whoever the stat helps, it helps them SEE.** Every stat hook in the built set buys
+   information or time: a hint, a look, a fumble, a note, seconds on a fuse. None of them
+   moves a pin, re-deals a puzzle, or bends a roll — and several files assert exactly
+   that, because a player who suspects the game is fudging in their favour stops trusting
+   a win.
