@@ -31,9 +31,14 @@ xvfb-run -a ./RIDDLE.run shot
 
 ## The prototypes
 
-| file | PLANS.todo entry | mechanic |
-|---|---|---|
-| `RIDDLE.bas` | Magic mouths — save WIS | answer matching; WIS buys attempts, a save buys a hint |
+| file | PLANS.todo entry | mechanic | assertions |
+|---|---|---|---|
+| `RIDDLE.bas` | Magic mouths — save WIS | answer matching; WIS buys attempts, a save buys a hint | 31 |
+| `MAZE.bas` | Magic sirens — save WIS | trace a perfect maze to the sigil against a fuse; WIS adds time | 12 |
+| `DODGE.bas` | Arrow slits — gesture | step PERPENDICULAR to the arrow; DEX widens the window | 19 |
+| `GAMBLE.bas` | Tavern — gamble | push-your-luck 2d6; any ONE takes the pot; rake tuned by Monte Carlo | 14 |
+
+See [BOW-AND-MAGIC.md](BOW-AND-MAGIC.md) for why bow and magic are **not** here.
 
 ## Integration
 
