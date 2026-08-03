@@ -13,10 +13,10 @@
 ' Distinct board-token colour per player (semi-transparent).
 FUNCTION PlayerColor~& (p AS INTEGER)
     SELECT CASE p
-        CASE 1: PlayerColor = _RGB32(&HFF, &H30, &H30, &HDD)     ' red
-        CASE 2: PlayerColor = _RGB32(&H30, &HC0, &HFF, &HDD)     ' cyan
-        CASE 3: PlayerColor = _RGB32(&H50, &HFF, &H50, &HDD)     ' green
-        CASE ELSE: PlayerColor = _RGB32(&HFF, &HD0, &H30, &HDD)  ' gold
+        CASE 1: PlayerColor = ThmA~&("player.1", _RGB32(&HFF, &H30, &H30), &HDD)     ' red
+        CASE 2: PlayerColor = ThmA~&("player.2", _RGB32(&H30, &HC0, &HFF), &HDD)     ' cyan
+        CASE 3: PlayerColor = ThmA~&("player.3", _RGB32(&H50, &HFF, &H50), &HDD)     ' green
+        CASE ELSE: PlayerColor = ThmA~&("player.4", _RGB32(&HFF, &HD0, &H30), &HDD)  ' gold
     END SELECT
 END FUNCTION
 

@@ -37,18 +37,18 @@ END SUB
 ' Colour for a character given its block kind + style byte + whether it's the hovered link.
 FUNCTION MdColor~& (knd AS INTEGER, styb AS INTEGER, lnkb AS INTEGER, hovid AS INTEGER)
     IF lnkb > 0 THEN
-        IF lnkb = hovid THEN MdColor~& = _RGB32(255, 255, 130) ELSE MdColor~& = _RGB32(120, 200, 255)
+        IF lnkb = hovid THEN MdColor~& = Thm~&("md.link.hover", _RGB32(255, 255, 130)) ELSE MdColor~& = Thm~&("md.link", _RGB32(120, 200, 255))
         EXIT FUNCTION
     END IF
-    IF styb = 2 THEN MdColor~& = _RGB32(130, 235, 130): EXIT FUNCTION   ' `code`
-    IF styb = 3 THEN MdColor~& = _RGB32(90, 140, 180): EXIT FUNCTION    ' table borders/rules
-    IF styb = 1 THEN MdColor~& = _RGB32(255, 255, 255): EXIT FUNCTION   ' **bold**
+    IF styb = 2 THEN MdColor~& = Thm~&("md.code", _RGB32(130, 235, 130)): EXIT FUNCTION   ' `code`
+    IF styb = 3 THEN MdColor~& = Thm~&("md.rule", _RGB32(90, 140, 180)): EXIT FUNCTION    ' table borders/rules
+    IF styb = 1 THEN MdColor~& = Thm~&("md.bold", _RGB32(255, 255, 255)): EXIT FUNCTION   ' **bold**
     SELECT CASE knd
-        CASE 1: MdColor~& = _RGB32(255, 220, 80)      ' # heading
-        CASE 2: MdColor~& = _RGB32(120, 220, 255)     ' ## heading
-        CASE 3: MdColor~& = _RGB32(150, 235, 150)     ' ### heading
-        CASE 8: MdColor~& = _RGB32(170, 170, 190)     ' > quote
-        CASE ELSE: MdColor~& = _RGB32(210, 205, 190)  ' body
+        CASE 1: MdColor~& = Thm~&("md.h1", _RGB32(255, 220, 80))      ' # heading
+        CASE 2: MdColor~& = Thm~&("md.h2", _RGB32(120, 220, 255))     ' ## heading
+        CASE 3: MdColor~& = Thm~&("md.h3", _RGB32(150, 235, 150))     ' ### heading
+        CASE 8: MdColor~& = Thm~&("md.quote", _RGB32(170, 170, 190))     ' > quote
+        CASE ELSE: MdColor~& = Thm~&("md.body", _RGB32(210, 205, 190))  ' body
     END SELECT
 END FUNCTION
 
@@ -152,7 +152,7 @@ SUB MdHit (x1() AS INTEGER, x2() AS INTEGER, yr() AS INTEGER, uu() AS INTEGER, n
     IF nh >= UBOUND(x1) THEN EXIT SUB
     nh = nh + 1: x1(nh) = c1: x2(nh) = c2: yr(nh) = r: uu(nh) = uid
     DIM ul AS _UNSIGNED LONG
-    IF uid = hovid THEN ul = _RGB32(255, 255, 130) ELSE ul = _RGB32(120, 200, 255)
+    IF uid = hovid THEN ul = Thm~&("md.link.hover", _RGB32(255, 255, 130)) ELSE ul = Thm~&("md.link", _RGB32(120, 200, 255))
     LINE (c1 * CW, (r + 1) * CH - 2)-((c2 + 1) * CW - 1, (r + 1) * CH - 2), ul
 END SUB
 

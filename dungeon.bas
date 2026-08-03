@@ -104,6 +104,7 @@ BLACK = _RGB32(&H00, &H00, &H00)
 BROWN = _RGB32(&HAA, &H55, &H00)
 BRIGHT_BLUE = _RGB32(&H55, &H55, &HFF)
 ' UI palette
+LoadTheme                                     ' fill the theme table BEFORE anything asks Thm~& for a colour
 ' UI INK -- themeable (assets/data/theme/colors.txt). The four board colours above are NOT:
 ' they are collision values the art has to match. See the note on THM_KEY in ENGINE.BI.
 WHITE = Thm~&("ui.white", _RGB32(&HFF, &HFF, &HFF))

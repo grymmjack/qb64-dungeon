@@ -564,11 +564,11 @@ SUB FightDrawGauge (rgn AS STRING, k AS GAUGEK)
     IF LayHas%(rgn) = 0 THEN EXIT SUB
     px = LayPX%(rgn): py = LayPY%(rgn): wide = LayPW%(rgn): high = LayPH%(rgn)
     IF wide < 8 OR high < 2 THEN EXIT SUB
-    LINE (px, py)-(px + wide - 1, py + high - 1), _RGB32(&H33, &H3B, &H33), BF          ' miss
-    LINE (px + INT((k.zc - k.ehit) * wide), py)-(px + INT((k.zc + k.ehit) * wide), py + high - 1), _RGB32(&H2E, &HA0, &H55), BF
-    LINE (px + INT((k.zc - k.ecrit) * wide), py)-(px + INT((k.zc + k.ecrit) * wide), py + high - 1), _RGB32(&HA6, &H66, &HCE), BF
+    LINE (px, py)-(px + wide - 1, py + high - 1), Thm~&("gauge.zone.miss", _RGB32(&H33, &H3B, &H33)), BF          ' miss
+    LINE (px + INT((k.zc - k.ehit) * wide), py)-(px + INT((k.zc + k.ehit) * wide), py + high - 1), Thm~&("gauge.zone.hit", _RGB32(&H2E, &HA0, &H55)), BF
+    LINE (px + INT((k.zc - k.ecrit) * wide), py)-(px + INT((k.zc + k.ecrit) * wide), py + high - 1), Thm~&("gauge.zone.crit", _RGB32(&HA6, &H66, &HCE)), BF
     mxp = px + INT(k.p * wide)
-    LINE (mxp - 1, py - 2)-(mxp + 1, py + high + 1), _RGB32(&HF0, &HEC, &HD0), BF
+    LINE (mxp - 1, py - 2)-(mxp + 1, py + high + 1), Thm~&("gauge.marker", _RGB32(&HF0, &HEC, &HD0)), BF
     LINE (px, py)-(px + wide - 1, py + high - 1), GREY, B
 END SUB
 

@@ -314,6 +314,10 @@ FUNCTION ThemeReserved% (k AS STRING)
     END SELECT
 END FUNCTION
 
+' Load the theme table. Called ONCE, explicitly, from startup -- Thm~& does not lazy-load, so
+' that it stays a pure array lookup with no dependency on this file's data reader. Anything asking
+' for a colour before this runs simply gets its own fallback, which is the same answer it gets
+' when the file is absent.
 SUB LoadTheme
     DIM i AS INTEGER, k AS STRING, v AS STRING
     THM_N = 0
@@ -340,21 +344,6 @@ FUNCTION HexRGBA~& (h AS STRING)
     s = _TRIM$(h): IF LEFT$(s, 1) = "#" THEN s = MID$(s, 2)
     IF LEN(s) < 8 THEN HexRGBA~& = HexRGB~&(s): EXIT FUNCTION
     HexRGBA~& = _RGBA32(VAL("&H" + MID$(s, 1, 2)), VAL("&H" + MID$(s, 3, 2)), VAL("&H" + MID$(s, 5, 2)), VAL("&H" + MID$(s, 7, 2)))
-END FUNCTION
-
-' The themed colour for `key`, or `fallback` when the theme says nothing about it.
-FUNCTION Thm~& (nm AS STRING, fallback AS _UNSIGNED LONG)   ' `nm` -- KEY is reserved
-    DIM i AS INTEGER, k AS STRING
-    IF NOT theme_loaded THEN LoadTheme
-    k = LCASE$(_TRIM$(nm))
-    FOR i = 1 TO THM_N
-        IF THM_KEY(i) = k THEN
-            THM_HIT(i) = -1
-            Thm~& = THM_VAL(i)
-            EXIT FUNCTION
-        END IF
-    NEXT i
-    Thm~& = fallback
 END FUNCTION
 
 ' Field n (1-based) of a pipe-delimited line, trimmed. "" if there aren't that many.

@@ -376,9 +376,9 @@ END SUB
 ' nothing does that today, but the engine honours it (FA_GORE = 0).
 FUNCTION GoreColor~& (nm AS STRING)
     IF MonsterCat$(nm) = "undead" THEN
-        GoreColor~& = _RGB32(20, 16, 22)          ' near-black; still reads on a lit sprite
+        GoreColor~& = Thm~&("art.frame.bg", _RGB32(20, 16, 22))          ' near-black; still reads on a lit sprite
     ELSE
-        GoreColor~& = _RGB32(150, 12, 12)         ' blood
+        GoreColor~& = Thm~&("art.frame.edge", _RGB32(150, 12, 12))         ' blood
     END IF
 END FUNCTION
 

@@ -27,21 +27,120 @@
 #  the 3D sets carry their own materials in engine/DICE3D/diceset.txt.
 # ============================================================================
 
-# -- UI ink: the seven colours nearly every panel, label and prompt draws with
-ui.white     | FFFFFF
-ui.grey      | AAAAAA
-ui.red       | FF5555
-ui.green     | 55FF55
-ui.yellow    | FFFF55
-ui.cyan      | 55FFFF
-ui.panel.bg  | 200000
+# -- UI ink -- the colours nearly every panel, label and prompt draws with
+ui.cyan         | 55FFFF
+ui.fade         | 000000
+ui.flash        | FFFFFF
+ui.gore         | DA2424
+ui.gore.dark    | 900000
+ui.green        | 55FF55
+ui.grey         | AAAAAA
+ui.panel.bg     | 200000
+ui.red          | FF5555
+ui.scroll.thumb | 555555
+ui.scroll.track | 1E1E1E
+ui.white        | FFFFFF
+ui.yellow       | FFFF55
 
-# -- the dice tray (the roll box behind the dice, and its border)
+# -- Dice: the roll tray, and the hand-drawn pip die faces
 dice.tray.bg   | 34227A
 dice.tray.edge | 8A6CF2
+die.pip.dot    | 181010
+die.pip.edge   | 787870
+die.pip.face   | F0F0E6
 
-# -- timing bars: the composure gauge and the luck / attack fuses
-gauge.track  | 28282E
-fuse.track   | 28282E
-fuse.ok      | AA9646
-fuse.urgent  | DC3C32
+# -- Timing bars: the composure gauge, and the luck / attack fuses
+fuse.ok         | AA9646
+fuse.track      | 28282E
+fuse.urgent     | DC3C32
+gauge.marker    | F0ECD0
+gauge.tick.crit | FFD250
+gauge.tick.hit  | EBF0F5
+gauge.tick.miss | 70805C
+gauge.zone.crit | A666CE
+gauge.zone.hit  | 2EA055
+gauge.zone.miss | 333B33
+
+# -- Board overlays: tokens, room labels, headstones, the [L] locate flash
+board.body            | E03333
+board.grave           | C8C8C8
+board.grave.shade     | 303030
+board.label.bg        | 0000AA
+board.label.fg        | FF5555
+board.locate.ring     | FFE040
+board.locate.shroud   | 000000
+board.monster.bg      | 55FFFF
+board.monster.fg      | FF5555
+board.token.player.bg | 5555FF
+board.treasure        | 55FF55
+
+# -- Screen effects (JUICE): blood, poison, vignette, damage numbers
+juice.blood.drip         | 5F0608
+juice.blood.drop         | 8C0E10
+juice.blood.pool         | 6E080A
+juice.dmgnum             | FFCD2D
+juice.dmgnum.outline     | 190500
+juice.impact.flash       | FF781E
+juice.poison.branch      | 73CD50
+juice.poison.branch.dark | 469630
+juice.poison.branch.tip  | 78D255
+juice.poison.edge        | 2D8C23
+juice.poison.node        | 50AF37
+juice.poison.ooze        | 37962A
+juice.poison.ooze.tip    | 5FC346
+juice.poison.slime       | 46AF37
+juice.poison.slime.hi    | 82D75F
+juice.poison.vein        | 55B93C
+juice.poison.vein.dark   | 328226
+juice.poison.wash        | 237819
+juice.vignette           | 000000
+
+# -- The rules / markdown reader
+md.body       | D2CDBE
+md.bold       | FFFFFF
+md.code       | 82EB82
+md.h1         | FFDC50
+md.h2         | 78DCFF
+md.h3         | 96EB96
+md.link       | 78C8FF
+md.link.hover | FFFF82
+md.quote      | AAAABE
+md.rule       | 5A8CB4
+
+# -- Hot-seat player tokens
+player.1 | FF3030
+player.2 | 30C0FF
+player.3 | 50FF50
+player.4 | FFD030
+
+# -- Solo-challenge HUD
+solo.bar.bg   | 500000
+solo.bar.fill | D02020
+solo.bar.warn | FFF030
+solo.hunter   | FF5050
+solo.panel.bg | 140014
+solo.title    | FFE050
+
+# -- Combat panel
+combat.hpbar.edge  | 555555
+combat.hpbar.track | 888888
+combat.spell       | FF88FF
+
+# -- Char-gen, the roll-to-move prompt, popups
+hud.warn             | FFC040
+popup.shadow         | 100810
+rollprompt.bg.bright | 352200
+rollprompt.bg.dim    | 221600
+rollprompt.edge      | AA8800
+rollprompt.fg        | DDBB33
+
+# -- The Legendary Lords headstone screen
+grave.carve        | ECE8DC
+grave.carve.shadow | 1A1816
+grave.record       | A8A498
+grave.stone        | 4A4A52
+grave.stone.edge   | 6E6E78
+
+# -- Framed art boxes
+art.frame.bg   | 141016
+art.frame.edge | 960C0C

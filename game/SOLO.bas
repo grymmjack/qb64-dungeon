@@ -226,9 +226,9 @@ SUB DrawHunter
         DIM px AS INTEGER, py AS INTEGER
         _DEST CANVAS
         px = hunt_cx * CW: py = hunt_cy * CH
-        LINE (px, py)-(px + CW - 1, py + CH - 1), _RGB32(&H50, &H00, &H00), BF
-        LINE (px + 1, py + 1)-(px + CW - 2, py + CH - 2), _RGB32(&HD0, &H20, &H20), BF
-        COLOR _RGB32(&HFF, &HF0, &H30), _RGB32(&HD0, &H20, &H20)
+        LINE (px, py)-(px + CW - 1, py + CH - 1), Thm~&("solo.bar.bg", _RGB32(&H50, &H00, &H00)), BF
+        LINE (px + 1, py + 1)-(px + CW - 2, py + CH - 2), Thm~&("solo.bar.fill", _RGB32(&HD0, &H20, &H20)), BF
+        COLOR Thm~&("solo.bar.warn", _RGB32(&HFF, &HF0, &H30)), Thm~&("solo.bar.fill", _RGB32(&HD0, &H20, &H20))
         _PRINTSTRING (px, py), CHR$(21)             ' the section-sign monster glyph, in alarm red
         COLOR WHITE, BLACK
     END IF
@@ -239,13 +239,13 @@ SUB DrawSoloHUD
     IF NOT solo_on THEN EXIT SUB
     DIM s AS STRING, el AS LONG, remsec AS LONG, dcell AS INTEGER
     DIM fg AS _UNSIGNED LONG, bg AS _UNSIGNED LONG
-    fg = _RGB32(&HFF, &HE0, &H50): bg = _RGB32(&H14, &H00, &H14)
+    fg = Thm~&("solo.title", _RGB32(&HFF, &HE0, &H50)): bg = Thm~&("solo.panel.bg", _RGB32(&H14, &H00, &H14))
     SELECT CASE opt_solomode
         CASE SOLO_TIME
             el = TIMER - game_start: IF el < 0 THEN el = el + 86400
             remsec = opt_solomins * 60 - el: IF remsec < 0 THEN remsec = 0
             s = "SOLO * TIME LEFT " + _TRIM$(STR$(remsec \ 60)) + ":" + RIGHT$("0" + _TRIM$(STR$(remsec MOD 60)), 2)
-            IF remsec <= 60 THEN fg = _RGB32(&HFF, &H50, &H50)
+            IF remsec <= 60 THEN fg = Thm~&("solo.hunter", _RGB32(&HFF, &H50, &H50))
         CASE SOLO_ITEM
             IF solo_item_room > 0 THEN
                 s = "SOLO * SEEK: " + _TRIM$(solo_item_name) + " (" + Ordinal$(solo_item_lvl) + " lvl)   DEATHS " + _TRIM$(STR$(deaths(1))) + "/2"
@@ -256,7 +256,7 @@ SUB DrawSoloHUD
             IF hunt_on THEN
                 dcell = ABS(hunt_cx - c.x \ CW) + ABS(hunt_cy - c.y \ CH)
                 s = "SOLO * HUNTED BY " + hunt_mon + "  (" + _TRIM$(STR$(dcell)) + " cells away)"
-                IF dcell <= 4 THEN fg = _RGB32(&HFF, &H50, &H50)
+                IF dcell <= 4 THEN fg = Thm~&("solo.hunter", _RGB32(&HFF, &H50, &H50))
             ELSE
                 s = "SOLO * THE HUNT"
             END IF

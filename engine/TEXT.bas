@@ -110,3 +110,31 @@ FUNCTION PackIgnored% (dir AS STRING)
     PackIgnored% = _FILEEXISTS(d + PACK_IGNORE_FILE)
 END FUNCTION
 
+' The themed colour for `key`, or `fallback` when the theme says nothing about it.
+' PURE: reads the table LoadTheme filled and nothing else. It deliberately does not lazy-load --
+' that would tie every drawing module to the data reader, and the engine's modules are compiled IN
+' ISOLATION by their unit suites (see PackIgnored%, HexOf$). Before LoadTheme runs, THM_N is 0 and
+' every call returns its own fallback, which is exactly the no-theme-file answer.
+FUNCTION Thm~& (nm AS STRING, fallback AS _UNSIGNED LONG)   ' `nm` -- KEY is reserved
+    DIM i AS INTEGER, k AS STRING
+    k = LCASE$(_TRIM$(nm))
+    FOR i = 1 TO THM_N
+        IF THM_KEY(i) = k THEN
+            THM_HIT(i) = -1
+            Thm~& = THM_VAL(i)
+            EXIT FUNCTION
+        END IF
+    NEXT i
+    Thm~& = fallback
+END FUNCTION
+
+' As Thm~&, but the ALPHA comes from the caller rather than the theme.
+'
+' The screen effects compute their own transparency every frame -- blood fades with your wounds,
+' the poison wash pulses, the impact flash decays -- so only the RGB is a theme decision. Themeing
+' the whole packed colour would freeze the animation at whatever alpha the file happened to name.
+FUNCTION ThmA~& (nm AS STRING, fallback AS _UNSIGNED LONG, alpha AS INTEGER)
+    DIM kolor AS _UNSIGNED LONG
+    kolor = Thm~&(nm, fallback)
+    ThmA~& = _RGBA32(_RED32(kolor), _GREEN32(kolor), _BLUE32(kolor), alpha)
+END FUNCTION

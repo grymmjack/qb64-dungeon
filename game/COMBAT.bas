@@ -108,8 +108,8 @@ SUB ForfeitScreen
     ep = ForfeitEpitaph$
     _DEST CANVAS: _FONT CH
     COLOR GREY, BLACK: PrintCentered 22, ep
-    COLOR _RGB32(&H88, &H88, &H88), BLACK: PrintCentered 25, "Your tale ends here, in the dark."
-    COLOR _RGB32(&H55, &H55, &H55), BLACK: PrintCentered 28, "[ press any key ]"
+    COLOR Thm~&("combat.hpbar.track", _RGB32(&H88, &H88, &H88)), BLACK: PrintCentered 25, "Your tale ends here, in the dark."
+    COLOR Thm~&("combat.hpbar.edge", _RGB32(&H55, &H55, &H55)), BLACK: PrintCentered 28, "[ press any key ]"
     Present
     _KEYCLEAR
     DO: _LIMIT 30: kk = INKEY$: Present: LOOP UNTIL kk <> ""
@@ -1082,7 +1082,7 @@ SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)
         sph = "SPELLS:"
         IF spell_fire > 0 THEN sph = sph + "   [F] Fire Ball x" + _TRIM$(STR$(spell_fire))
         IF spell_bolt > 0 THEN sph = sph + "   [L] Lightning x" + _TRIM$(STR$(spell_bolt))
-        COLOR _RGB32(&HFF, &H88, &HFF), BOXBG
+        COLOR Thm~&("combat.spell", _RGB32(&HFF, &H88, &HFF)), BOXBG
         PrintCentered by + 9, sph
     END IF
     UIFontOff                                   ' restore the grid font before the pixel-art + present
@@ -1691,8 +1691,8 @@ SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS 
         ' the fuse: same colours and the same "turns red near the end" cue as the gesture gauge,
         ' so the two prompts read as one language rather than two unrelated widgets
         fx = (bx + 3) * CW: fw = (bw - 6) * CW
-        LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), Thm~&("fuse.track", _RGB32(40, 40, 46)), BF
-        IF frac > 0.35 THEN fcol = Thm~&("fuse.ok", _RGB32(170, 150, 70)) ELSE fcol = Thm~&("fuse.urgent", _RGB32(220, 60, 50))
+        LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), Thm~&("fuse.track", Thm~&("fuse.track", _RGB32(40, 40, 46))), BF
+        IF frac > 0.35 THEN fcol = Thm~&("fuse.ok", Thm~&("fuse.ok", _RGB32(170, 150, 70))) ELSE fcol = Thm~&("fuse.urgent", Thm~&("fuse.urgent", _RGB32(220, 60, 50)))
         LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
         COLOR GREY, BOXBG: PrintCentered by + 4, "[R] re-roll      [SPACE] continue"
     END IF

@@ -185,9 +185,9 @@ SUB DrawGaugeDiceStrip (k AS GAUGEK, entry AS STRING, msg AS STRING)
         x2 = gx + INT((f / 20) * gw) - 2
         zn = GaugeZoneAt%(k, GaugeDieP!(f, 20))
         SELECT CASE zn
-            CASE 2: kol = _RGB32(&HA6, &H66, &HCE)
-            CASE 1: kol = _RGB32(&H2E, &HA0, &H55)
-            CASE ELSE: kol = _RGB32(&H33, &H3B, &H33)
+            CASE 2: kol = Thm~&("gauge.zone.crit", _RGB32(&HA6, &H66, &HCE))
+            CASE 1: kol = Thm~&("gauge.zone.hit", _RGB32(&H2E, &HA0, &H55))
+            CASE ELSE: kol = Thm~&("gauge.zone.miss", _RGB32(&H33, &H3B, &H33))
         END SELECT
         LINE (x1, sy)-(x2, sy + striph), kol, BF
     NEXT f
@@ -289,19 +289,19 @@ SUB DrawGaugeEx (title AS STRING, prompt AS STRING, swMode AS INTEGER, k AS GAUG
     ' fuse countdown
     IF showfuse THEN
         fx = (bx + 6) * CW: fw = (bw - 12) * CW
-        LINE (fx, (by + 5) * CH)-(fx + fw, (by + 6) * CH - 4), _RGB32(40, 40, 46), BF
-        IF fuseFrac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
+        LINE (fx, (by + 5) * CH)-(fx + fw, (by + 6) * CH - 4), Thm~&("fuse.track", _RGB32(40, 40, 46)), BF
+        IF fuseFrac > 0.35 THEN fcol = Thm~&("fuse.ok", _RGB32(170, 150, 70)) ELSE fcol = Thm~&("fuse.urgent", _RGB32(220, 60, 50))
         LINE (fx, (by + 5) * CH)-(fx + INT(fw * fuseFrac), (by + 6) * CH - 4), fcol, BF
     END IF
     ' the gauge bar with layered zones, centred on the LIVE zone centre k.zc
     gx = (bx + 6) * CW: gw = (bw - 12) * CW: gy = (by + 11) * CH: gh = 3 * CH
-    LINE (gx, gy)-(gx + gw, gy + gh), _RGB32(&H33, &H3B, &H33), BF                                  ' dark = miss/fall
-    IF swMode = 0 THEN LINE (gx + INT((k.zc - k.ehit) * gw), gy)-(gx + INT((k.zc + k.ehit) * gw), gy + gh), _RGB32(&H2E, &HA0, &H55), BF   ' green = hit (crit flourish only)
-    LINE (gx + INT((k.zc - k.ecrit) * gw), gy)-(gx + INT((k.zc + k.ecrit) * gw), gy + gh), _RGB32(&HA6, &H66, &HCE), BF ' purple = crit / second wind
+    LINE (gx, gy)-(gx + gw, gy + gh), Thm~&("gauge.zone.miss", _RGB32(&H33, &H3B, &H33)), BF                                  ' dark = miss/fall
+    IF swMode = 0 THEN LINE (gx + INT((k.zc - k.ehit) * gw), gy)-(gx + INT((k.zc + k.ehit) * gw), gy + gh), Thm~&("gauge.zone.hit", _RGB32(&H2E, &HA0, &H55)), BF   ' green = hit (crit flourish only)
+    LINE (gx + INT((k.zc - k.ecrit) * gw), gy)-(gx + INT((k.zc + k.ecrit) * gw), gy + gh), Thm~&("gauge.zone.crit", _RGB32(&HA6, &H66, &HCE)), BF ' purple = crit / second wind
     ' the sweeping marker
     IF showmarker THEN
         mxp = gx + INT(k.p * gw)
-        LINE (mxp - 1, gy - 8)-(mxp + 2, gy + gh + 8), _RGB32(&HF0, &HEC, &HD0), BF
+        LINE (mxp - 1, gy - 8)-(mxp + 2, gy + gh + 8), Thm~&("gauge.marker", _RGB32(&HF0, &HEC, &HD0)), BF
     END IF
     DIM leg AS STRING
     ' The legend must state the SAME mapping CritFlourish% pays out (crit 2 / hit 1 / miss 0).
@@ -316,9 +316,9 @@ SUB DrawGaugeLock (p AS SINGLE, z AS INTEGER)
     DIM gx AS INTEGER, gw AS INTEGER, gy AS INTEGER, gh AS INTEGER, mxp AS INTEGER, col AS _UNSIGNED LONG
     gx = 24 * CW: gw = 84 * CW: gy = 27 * CH: gh = 3 * CH
     mxp = gx + INT(p * gw)
-    col = _RGB32(&H70, &H80, &H5C)
-    IF z = 2 THEN col = _RGB32(&HFF, &HD2, &H50)
-    IF z = 1 THEN col = _RGB32(&HEB, &HF0, &HF5)
+    col = Thm~&("gauge.tick.miss", _RGB32(&H70, &H80, &H5C))
+    IF z = 2 THEN col = Thm~&("gauge.tick.crit", _RGB32(&HFF, &HD2, &H50))
+    IF z = 1 THEN col = Thm~&("gauge.tick.hit", _RGB32(&HEB, &HF0, &HF5))
     LINE (mxp - 2, gy - 10)-(mxp + 3, gy + gh + 10), col, BF
 END SUB
 

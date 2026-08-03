@@ -22,7 +22,7 @@ SUB FadeInCurrent
     _DEST CANVAS
     FOR a = 255 TO 0 STEP -20
         _PUTIMAGE (0, 0), scene, CANVAS
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, a), BF
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("ui.fade", _RGB32(&H00, &H00, &H00), a), BF
         Present
         _LIMIT 60
     NEXT a
@@ -36,7 +36,7 @@ SUB FadeOut
     DIM i AS INTEGER
     _DEST CANVAS
     FOR i = 1 TO 14
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H2C), BF
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("ui.fade", _RGB32(&H00, &H00, &H00), &H2C), BF
         Present
         _LIMIT 60
     NEXT i
@@ -55,7 +55,7 @@ SUB FlashWhite (hold AS SINGLE)
     _DEST CANVAS
     FOR a = 0 TO 255 STEP 24                     ' up to white
         _PUTIMAGE (0, 0), scene, CANVAS
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&HFF, &HFF, &HFF, a), BF
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("ui.flash", _RGB32(&HFF, &HFF, &HFF), a), BF
         Present
         _LIMIT 60
     NEXT a
@@ -64,7 +64,7 @@ SUB FlashWhite (hold AS SINGLE)
     IF hold > 0 THEN _DELAY hold
     FOR a = 255 TO 0 STEP -24                    ' ...and back down to the scene
         _PUTIMAGE (0, 0), scene, CANVAS
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&HFF, &HFF, &HFF, a), BF
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("ui.flash", _RGB32(&HFF, &HFF, &HFF), a), BF
         Present
         _LIMIT 60
     NEXT a
@@ -81,7 +81,7 @@ SUB BloodDrip
     DIM strw AS INTEGER, ns AS INTEGER, i AS INTEGER, f AS INTEGER, px AS INTEGER, allfull AS INTEGER
     DIM slen(1 TO 220) AS INTEGER, sdelay(1 TO 220) AS INTEGER, ssp(1 TO 220) AS INTEGER
     DIM darkred AS _UNSIGNED LONG, brightred AS _UNSIGNED LONG
-    darkred = _RGB32(&H90, &H00, &H00): brightred = _RGB32(&HDA, &H24, &H24)
+    darkred = Thm~&("ui.gore.dark", _RGB32(&H90, &H00, &H00)): brightred = Thm~&("ui.gore", _RGB32(&HDA, &H24, &H24))
     strw = 8                                     ' strip width (tile the full width -- no gaps)
     ns = (SW * CW) \ strw + 1
     IF ns > 220 THEN ns = 220
@@ -117,7 +117,7 @@ SUB BloodDrip
     _DELAY 0.35                                          ' hold the blood-soaked screen a beat
     ' slow fade from red to black
     FOR f = 1 TO 48
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H0E), BF
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("ui.fade", _RGB32(&H00, &H00, &H00), &H0E), BF
         Present
         _LIMIT 60
     NEXT f
@@ -133,7 +133,7 @@ SUB DarknessFall
     DIM strw AS INTEGER, ns AS INTEGER, i AS INTEGER, f AS INTEGER, px AS INTEGER, allfull AS INTEGER
     DIM slen(1 TO 220) AS INTEGER, sdelay(1 TO 220) AS INTEGER, ssp(1 TO 220) AS INTEGER
     DIM darkgrey AS _UNSIGNED LONG, litegrey AS _UNSIGNED LONG
-    darkgrey = _RGB32(&H1E, &H1E, &H1E): litegrey = _RGB32(&H55, &H55, &H55)
+    darkgrey = Thm~&("ui.scroll.track", _RGB32(&H1E, &H1E, &H1E)): litegrey = Thm~&("ui.scroll.thumb", _RGB32(&H55, &H55, &H55))
     strw = 8
     ns = (SW * CW) \ strw + 1
     IF ns > 220 THEN ns = 220
@@ -168,7 +168,7 @@ SUB DarknessFall
     Present
     _DELAY 0.35                                            ' hold the ashen screen a beat
     FOR f = 1 TO 48                                        ' slow fade from grey to black
-        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(&H00, &H00, &H00, &H0E), BF
+        LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("ui.fade", _RGB32(&H00, &H00, &H00), &H0E), BF
         Present
         _LIMIT 60
     NEXT f
@@ -907,7 +907,7 @@ END SUB
 SUB DrawDie (px AS INTEGER, py AS INTEGER, sz AS INTEGER, pips AS INTEGER)
     DIM AS INTEGER x2, y2, r, cxl, cxm, cxr, cyt, cym, cyb
     DIM AS _UNSIGNED LONG face, edge, pipc
-    face = _RGB32(&HF0, &HF0, &HE6): edge = _RGB32(&H78, &H78, &H70): pipc = _RGB32(&H18, &H10, &H10)
+    face = Thm~&("die.pip.face", _RGB32(&HF0, &HF0, &HE6)): edge = Thm~&("die.pip.edge", _RGB32(&H78, &H78, &H70)): pipc = Thm~&("die.pip.dot", _RGB32(&H18, &H10, &H10))
     x2 = px + sz: y2 = py + sz
     LINE (px + 5, py + 5)-(x2 + 5, y2 + 5), _RGB32(&H00, &H00, &H00), BF   ' drop shadow
     LINE (px, py)-(x2, y2), face, BF

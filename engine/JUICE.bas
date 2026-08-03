@@ -137,36 +137,36 @@ SUB DrawPoison (intensity AS SINGLE)
     _DEST CANVAS
     '--- a faint overall sickly cast + a green rim fading inward ---
     aW = INT(20 * p * pulse)
-    IF aW > 0 THEN LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(35, 120, 25, aW), BF
+    IF aW > 0 THEN LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("juice.poison.wash", _RGB32(35, 120, 25), aW), BF
     FOR i = 0 TO 33 STEP 3
         aE = INT((95 * p * pulse) * (1 - i / 33))
-        IF aE > 0 THEN LINE (i, i)-(SW * CW - 1 - i, SH * CH - 1 - i), _RGB32(45, 140, 35, aE), B
+        IF aE > 0 THEN LINE (i, i)-(SW * CW - 1 - i, SH * CH - 1 - i), ThmA~&("juice.poison.edge", _RGB32(45, 140, 35), aE), B
     NEXT
     '--- the veins (trunks thicker + darker with a nodule at each tip; branches thin) ---
     aV = INT(195 * p * pulse)
     FOR i = 1 TO VEIN_N
         IF VEIN_GEN(i) = 0 THEN                         ' trunk: 3px, brighter, nodule at the tip
-            LINE (VEIN_X1(i), VEIN_Y1(i) - 1)-(VEIN_X2(i), VEIN_Y2(i) - 1), _RGB32(50, 130, 38, INT(aV * 0.7))
-            LINE (VEIN_X1(i), VEIN_Y1(i))-(VEIN_X2(i), VEIN_Y2(i)), _RGB32(85, 185, 60, aV)
-            LINE (VEIN_X1(i), VEIN_Y1(i) + 1)-(VEIN_X2(i), VEIN_Y2(i) + 1), _RGB32(50, 130, 38, aV)
-            FillDisc VEIN_X2(i), VEIN_Y2(i), 3, _RGB32(80, 175, 55, aV)
+            LINE (VEIN_X1(i), VEIN_Y1(i) - 1)-(VEIN_X2(i), VEIN_Y2(i) - 1), ThmA~&("juice.poison.vein.dark", _RGB32(50, 130, 38), INT(aV * 0.7))
+            LINE (VEIN_X1(i), VEIN_Y1(i))-(VEIN_X2(i), VEIN_Y2(i)), ThmA~&("juice.poison.vein", _RGB32(85, 185, 60), aV)
+            LINE (VEIN_X1(i), VEIN_Y1(i) + 1)-(VEIN_X2(i), VEIN_Y2(i) + 1), ThmA~&("juice.poison.vein.dark", _RGB32(50, 130, 38), aV)
+            FillDisc VEIN_X2(i), VEIN_Y2(i), 3, ThmA~&("juice.poison.node", _RGB32(80, 175, 55), aV)
         ELSE                                            ' branch: 2px, bright sickly green
-            LINE (VEIN_X1(i), VEIN_Y1(i))-(VEIN_X2(i), VEIN_Y2(i)), _RGB32(115, 205, 80, aV)
-            LINE (VEIN_X1(i), VEIN_Y1(i) + 1)-(VEIN_X2(i), VEIN_Y2(i) + 1), _RGB32(70, 150, 48, INT(aV * 0.7))
-            FillDisc VEIN_X2(i), VEIN_Y2(i), 2, _RGB32(120, 210, 85, INT(aV * 0.9))
+            LINE (VEIN_X1(i), VEIN_Y1(i))-(VEIN_X2(i), VEIN_Y2(i)), ThmA~&("juice.poison.branch", _RGB32(115, 205, 80), aV)
+            LINE (VEIN_X1(i), VEIN_Y1(i) + 1)-(VEIN_X2(i), VEIN_Y2(i) + 1), ThmA~&("juice.poison.branch.dark", _RGB32(70, 150, 48), INT(aV * 0.7))
+            FillDisc VEIN_X2(i), VEIN_Y2(i), 2, ThmA~&("juice.poison.branch.tip", _RGB32(120, 210, 85), INT(aV * 0.9))
         END IF
     NEXT
     '--- slime blobs with a brighter sheen on top (wet look) ---
     aSl = INT(150 * p * pulse)
     FOR i = 1 TO NSLIME
-        FillDisc SLIME_X(i), SLIME_Y(i), SLIME_R(i), _RGB32(70, 175, 55, aSl)
-        FillDisc SLIME_X(i), SLIME_Y(i) - SLIME_R(i) \ 3, SLIME_R(i) \ 2, _RGB32(130, 215, 95, INT(aSl * 0.65))
+        FillDisc SLIME_X(i), SLIME_Y(i), SLIME_R(i), ThmA~&("juice.poison.slime", _RGB32(70, 175, 55), aSl)
+        FillDisc SLIME_X(i), SLIME_Y(i) - SLIME_R(i) \ 3, SLIME_R(i) \ 2, ThmA~&("juice.poison.slime.hi", _RGB32(130, 215, 95), INT(aSl * 0.65))
     NEXT
     '--- ooze drips: a green streak with a fat droplet at the tip ---
     aO = INT(165 * p * pulse)
     FOR i = 1 TO NOOZE
-        LINE (OOZE_X(i) - OOZE_W(i) \ 2, 0)-(OOZE_X(i) + OOZE_W(i) \ 2, OOZE_LEN(i)), _RGB32(55, 150, 42, aO), BF
-        FillDisc OOZE_X(i), OOZE_LEN(i), OOZE_W(i) + 2, _RGB32(95, 195, 70, aO)
+        LINE (OOZE_X(i) - OOZE_W(i) \ 2, 0)-(OOZE_X(i) + OOZE_W(i) \ 2, OOZE_LEN(i)), ThmA~&("juice.poison.ooze", _RGB32(55, 150, 42), aO), BF
+        FillDisc OOZE_X(i), OOZE_LEN(i), OOZE_W(i) + 2, ThmA~&("juice.poison.ooze.tip", _RGB32(95, 195, 70), aO)
     NEXT
 END SUB
 
@@ -194,7 +194,7 @@ SUB InitVignette
                     aa = INT((tt ^ 1.6) * maxA) '   ^1.6 = soft gaussian-ish ramp
                     IF aa > 255 THEN aa = 255
                 END IF
-                _MEMPUT m, m.OFFSET + (y * vw + x) * 4, _RGBA32(0, 0, 0, aa) AS _UNSIGNED LONG
+                _MEMPUT m, m.OFFSET + (y * vw + x) * 4, ThmA~&("juice.vignette", _RGB32(0, 0, 0), aa) AS _UNSIGNED LONG
             NEXT
         NEXT
         _MEMFREE m
@@ -264,12 +264,12 @@ SUB DrawWounds
     a = INT(BLOOD_ALPHA_MAX * (opt_bloodstrength / 10) * wound * pulse)  ' SETTINGS "Blood" scales the grime (sits UNDER the text)
     IF a > 6 THEN
         FOR i = 1 TO NBLOOD
-            FillDisc BLOOD_X(i), BLOOD_Y(i), BLOOD_R(i), _RGB32(110, 8, 10, a)
+            FillDisc BLOOD_X(i), BLOOD_Y(i), BLOOD_R(i), ThmA~&("juice.blood.pool", _RGB32(110, 8, 10), a)
         NEXT
         '--- drips run down from the top edge: a dark streak with a brighter drop at the tip ---
         FOR i = 1 TO NDRIP
-            LINE (DRIP_X(i) - DRIP_W(i) \ 2, 0)-(DRIP_X(i) + DRIP_W(i) \ 2, DRIP_LEN(i)), _RGB32(95, 6, 8, a), BF
-            FillDisc DRIP_X(i), DRIP_LEN(i), DRIP_W(i) + 2, _RGB32(140, 14, 16, a)
+            LINE (DRIP_X(i) - DRIP_W(i) \ 2, 0)-(DRIP_X(i) + DRIP_W(i) \ 2, DRIP_LEN(i)), ThmA~&("juice.blood.drip", _RGB32(95, 6, 8), a), BF
+            FillDisc DRIP_X(i), DRIP_LEN(i), DRIP_W(i) + 2, ThmA~&("juice.blood.drop", _RGB32(140, 14, 16), a)
         NEXT
     END IF
 END SUB
@@ -292,10 +292,10 @@ SUB CritBoom (dmg AS INTEGER)
     _DEST numimg: CLS , _RGBA32(0, 0, 0, 0): _FONT CH
     FOR dy = -2 TO 2
         FOR dx = -2 TO 2
-            IF dx <> 0 OR dy <> 0 THEN COLOR _RGB32(25, 5, 0), _RGBA32(0, 0, 0, 0): _PRINTSTRING (4 + dx, 4 + dy), s
+            IF dx <> 0 OR dy <> 0 THEN COLOR Thm~&("juice.dmgnum.outline", _RGB32(25, 5, 0)), _RGBA32(0, 0, 0, 0): _PRINTSTRING (4 + dx, 4 + dy), s
         NEXT
     NEXT
-    COLOR _RGB32(255, 205, 45), _RGBA32(0, 0, 0, 0): _PRINTSTRING (4, 4), s
+    COLOR Thm~&("juice.dmgnum", _RGB32(255, 205, 45)), _RGBA32(0, 0, 0, 0): _PRINTSTRING (4, 4), s
     _DEST CANVAS
     _PUTIMAGE (0, 0), CANVAS, FX_BUF                    ' snapshot the drained-panel frame
     frames = 42: tImp = 0.4
@@ -320,7 +320,7 @@ SUB CritBoom (dmg AS INTEGER)
         _PUTIMAGE (ox, oy), FX_BUF, CANVAS                     ' the jittered board + panel
         IF settleT > 0 AND settleT < 0.35 THEN                 ' molten flash right at impact
             a = INT(150 * (1 - settleT / 0.35))
-            LINE (0, 0)-(SW * CW - 1, SH * CH - 1), _RGB32(255, 120, 30, a), BF
+            LINE (0, 0)-(SW * CW - 1, SH * CH - 1), ThmA~&("juice.impact.flash", _RGB32(255, 120, 30), a), BF
         END IF
         dw = INT(nw * sc): dh = INT(nh * sc)
         _PUTIMAGE (cxp - dw \ 2, INT(yNow) - dh \ 2)-(cxp + dw \ 2, INT(yNow) + dh \ 2), numimg, CANVAS

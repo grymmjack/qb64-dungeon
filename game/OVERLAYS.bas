@@ -46,7 +46,7 @@ SUB DrawPlayerTokens
             END IF
         NEXT p
     END IF
-    _FONT CH: COLOR WHITE, _RGB32(&H55, &H55, &HFF)
+    _FONT CH: COLOR WHITE, Thm~&("board.token.player.bg", _RGB32(&H55, &H55, &HFF))
     _PRINTSTRING (c.x, c.y), _TRIM$(STR$(cur_player))
 END SUB
 
@@ -95,7 +95,7 @@ END SUB
 SUB render_room_labels
     DIM AS _UNSIGNED LONG b, r
     DIM i AS INTEGER, fg AS _UNSIGNED LONG
-    b = _RGB32(&H00, &H00, &HAA): r = _RGB32(&HFF, &H55, &H55)
+    b = Thm~&("board.label.bg", _RGB32(&H00, &H00, &HAA)): r = Thm~&("board.label.fg", _RGB32(&HFF, &H55, &H55))
     _DEST CANVAS
     FOR i = 1 TO LBL_N
         IF LBL_T(i) = "START" THEN fg = r ELSE fg = b
@@ -109,7 +109,7 @@ END SUB
 SUB DrawTombstones
     DIM r AS INTEGER, px AS INTEGER, py AS INTEGER, gx AS INTEGER, gy AS INTEGER
     DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
-    grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
+    grave = Thm~&("board.grave", _RGB32(&HC8, &HC8, &HC8)): dark = Thm~&("board.grave.shade", _RGB32(&H30, &H30, &H30))
     _DEST CANVAS
     ' Headstones only. Loot markers (the fallen-body ☻ and the recoverable-$ glyph)
     ' are drawn by DrawEntities, which runs after this and matches the board legend.
@@ -132,7 +132,7 @@ END SUB
 SUB DrawChamberGraves
     DIM cid AS INTEGER, k AS INTEGER, gx AS INTEGER, gy AS INTEGER, px AS INTEGER, py AS INTEGER
     DIM grave AS _UNSIGNED LONG, dark AS _UNSIGNED LONG
-    grave = _RGB32(&HC8, &HC8, &HC8): dark = _RGB32(&H30, &H30, &H30)
+    grave = Thm~&("board.grave", _RGB32(&HC8, &HC8, &HC8)): dark = Thm~&("board.grave.shade", _RGB32(&H30, &H30, &H30))
     _DEST CANVAS
     FOR cid = 1 TO NCHAMBER
         IF CHM_DEAD(cid) > 0 AND CHAMBERAT(START_CX, START_CY) <> cid THEN
@@ -180,13 +180,13 @@ SUB DrawEntities
                 ' the monster that felled them is usually still alive -- so this must beat
                 ' the live-monster glyph, or a death room would just show its § again.
                 IF ROOMS(r).player_died AND HasDrop(r) THEN
-                    COLOR _RGB32(&HE0, &H33, &H33), BLACK                      ' ☻ a fallen adventurer's body, blood red -- loot on the ground
+                    COLOR Thm~&("board.body", _RGB32(&HE0, &H33, &H33)), BLACK                      ' ☻ a fallen adventurer's body, blood red -- loot on the ground
                     _PRINTSTRING (gx * CW, gy * CH), CHR$(2)
                 ELSEIF ROOMS(r).malive AND LEN(_TRIM$(ROOMS(r).monster)) > 0 THEN
-                    COLOR _RGB32(&HFF, &H55, &H55), _RGB32(&H55, &HFF, &HFF)   ' § monster: red on cyan
+                    COLOR Thm~&("board.monster.fg", _RGB32(&HFF, &H55, &H55)), Thm~&("board.monster.bg", _RGB32(&H55, &HFF, &HFF))   ' § monster: red on cyan
                     _PRINTSTRING (gx * CW, gy * CH), CHR$(21)
                 ELSEIF HasDrop(r) THEN
-                    COLOR _RGB32(&H55, &HFF, &H55), BLACK                      ' $ recoverable treasure (e.g. a curio left unopened): green
+                    COLOR Thm~&("board.treasure", _RGB32(&H55, &HFF, &H55)), BLACK                      ' $ recoverable treasure (e.g. a curio left unopened): green
                     _PRINTSTRING (gx * CW, gy * CH), "$"
                 END IF
             END IF
@@ -201,7 +201,7 @@ SUB DrawEntities
                 vis = TRUE
                 IF FovOn% THEN IF LOS_SEEN(gx, gy) = 0 THEN vis = FALSE
                 IF vis THEN
-                    COLOR _RGB32(&HE0, &H33, &H33), BLACK
+                    COLOR Thm~&("board.body", _RGB32(&HE0, &H33, &H33)), BLACK
                     _PRINTSTRING (gx * CW, gy * CH), CHR$(2)
                 END IF
             END IF
@@ -269,16 +269,16 @@ SUB FindPlayerFlash
             FOR y = 0 TO SH * CH - 1
                 dy = y - py
                 IF ABS(dy) >= hole THEN
-                    LINE (0, y)-(SW * CW - 1, y), _RGBA32(0, 0, 0, 170), BF
+                    LINE (0, y)-(SW * CW - 1, y), ThmA~&("board.locate.shroud", _RGB32(0, 0, 0), 170), BF
                 ELSE
                     half = INT(SQR(hole * hole - dy * dy))
-                    LINE (0, y)-(px - half, y), _RGBA32(0, 0, 0, 170), BF
-                    LINE (px + half, y)-(SW * CW - 1, y), _RGBA32(0, 0, 0, 170), BF
+                    LINE (0, y)-(px - half, y), ThmA~&("board.locate.shroud", _RGB32(0, 0, 0), 170), BF
+                    LINE (px + half, y)-(SW * CW - 1, y), ThmA~&("board.locate.shroud", _RGB32(0, 0, 0), 170), BF
                 END IF
             NEXT y
             r = hole - f * (CW \ 2)                 ' the ring itself pulses in and out
-            CIRCLE (px, py), r, _RGB32(&HFF, &HE0, &H40)
-            CIRCLE (px, py), r - 1, _RGB32(&HFF, &HE0, &H40)
+            CIRCLE (px, py), r, Thm~&("board.locate.ring", _RGB32(&HFF, &HE0, &H40))
+            CIRCLE (px, py), r - 1, Thm~&("board.locate.ring", _RGB32(&HFF, &HE0, &H40))
             Present
             _DELAY 0.09
         NEXT f

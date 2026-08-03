@@ -585,6 +585,17 @@ Environment specifics that dictate this approach:
   the game, it would stop doors being doors while everything still looked right. They belong to
   the ANSI-ART pack that ships the art they must match, and `ThemeReserved%` refuses `board.*` keys.
   Dice body/ink are excluded too — those are a player SETTING with its own palettes.
+  **`Thm~&` is a PURE lookup and lives in `engine/TEXT.bas`**, not with `LoadTheme` in `DATA.bas`.
+  It deliberately does not lazy-load: that would tie every drawing module to the data reader, and
+  engine modules are compiled IN ISOLATION by their unit suites (the same constraint that put
+  `PackIgnored%` and `HexOf$` there). `dungeon.bas` calls `LoadTheme` once, before the palette is
+  derived. Before that runs `THM_N` is 0 and every call returns its own fallback — the same answer
+  as a missing file. `ThmA~&(key, fallback, alpha)` is the variant for screen effects, whose
+  transparency is computed per frame: theming the packed colour would freeze the animation.
+  **94 colours converted** so far (UI ink, dice tray + pips, gauge/fuse, board overlays, all of
+  JUICE, the markdown reader, player tokens, solo HUD, combat panel, char-gen prompts, the Lords
+  headstone). Deliberately still raw: `DATALINT`/`DEBUG` (dev-mode lint output, not player-facing)
+  and `DATA.bas`'s SGR tables (art-coupled).
   **`dungeon.run themelint`** (gated) lists every key, proves the file is actually being read (it
   asks for a known key with a fallback the file could never return), and confirms the board names
   are still reserved — because a misspelt key does not fail, it silently keeps the built-in colour

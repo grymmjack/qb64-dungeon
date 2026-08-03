@@ -1020,7 +1020,7 @@ SUB RunSettings
         _DEST CANVAS: CLS , BLACK
         COLOR YELLOWU, BLACK: PrintCentered 0, "-=  S E T T I N G S  =-"
         FOR hh = 1 TO SLH_N                    ' category headers atop each group
-            COLOR _RGB32(&HFF, &HC0, &H40), BLACK
+            COLOR Thm~&("hud.warn", _RGB32(&HFF, &HC0, &H40)), BLACK
             dsh = 39 - LEN(SLH_TXT(hh)) - 3: IF dsh < 0 THEN dsh = 0
             _PRINTSTRING (SL_COLX(SLH_COL(hh)) * CW, SLH_ROW(hh) * CH), "- " + SLH_TXT(hh) + " " + STRING$(dsh, "-")
         NEXT hh
@@ -1442,7 +1442,7 @@ SUB ShowCharSheetPaint
         csp = ClassSprite$(player_class)
         IF LEN(csp) > 0 THEN
             IF _FILEEXISTS(csp) THEN
-                LINE (px1 * CW - 3, py1 * CH - 3)-(px2 * CW + 3, py2 * CH + 3), _RGB32(&H10, &H08, &H10), BF
+                LINE (px1 * CW - 3, py1 * CH - 3)-(px2 * CW + 3, py2 * CH + 3), Thm~&("popup.shadow", _RGB32(&H10, &H08, &H10)), BF
                 LINE (px1 * CW - 3, py1 * CH - 3)-(px2 * CW + 3, py2 * CH + 3), REDU, B
                 ddrew = DrawSpriteFit%(csp, px1 * CW, py1 * CH, (px2 - px1) * CW, (py2 - py1) * CH)
                 portrait = TRUE
@@ -1743,13 +1743,13 @@ SUB DrawHUD
         rp = "[ SPACE ]  ROLL THE DICE TO MOVE"
         bx1 = (SW - LEN(rp)) \ 2 - 2: bx2 = (SW + LEN(rp)) \ 2 + 2
         IF (INT(TIMER * 2) MOD 2) = 0 THEN                          ' gentle pulse for attention
-            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), _RGB32(&H35, &H22, &H00), BF
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), Thm~&("rollprompt.bg.bright", _RGB32(&H35, &H22, &H00)), BF
             LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), YELLOWU, B
-            COLOR YELLOWU, _RGB32(&H35, &H22, &H00)
+            COLOR YELLOWU, Thm~&("rollprompt.bg.bright", _RGB32(&H35, &H22, &H00))
         ELSE
-            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), _RGB32(&H22, &H16, &H00), BF
-            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), _RGB32(&HAA, &H88, &H00), B
-            COLOR _RGB32(&HDD, &HBB, &H33), _RGB32(&H22, &H16, &H00)
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), Thm~&("rollprompt.bg.dim", _RGB32(&H22, &H16, &H00)), BF
+            LINE (bx1 * CW, 2 * CH)-(bx2 * CW, 5 * CH), Thm~&("rollprompt.edge", _RGB32(&HAA, &H88, &H00)), B
+            COLOR Thm~&("rollprompt.fg", _RGB32(&HDD, &HBB, &H33)), Thm~&("rollprompt.bg.dim", _RGB32(&H22, &H16, &H00))
         END IF
         PrintCentered 3, rp
         COLOR YELLOWU, BLACK
@@ -2109,8 +2109,8 @@ SUB DeathStone (sy AS INTEGER, upto AS INTEGER)
         ' No art: draw a stone. The epitaph is the point of this screen and must never be
         ' floating on a black field because one asset is missing.
         sx = gx + 4 * CW: syy = sy + 2 * CH: stw = gw - 8 * CW: sth = gh - 2 * CH
-        LINE (sx, syy)-(sx + stw, syy + sth), _RGB32(&H4A, &H4A, &H52), BF
-        LINE (sx, syy)-(sx + stw, syy + sth), _RGB32(&H6E, &H6E, &H78), B
+        LINE (sx, syy)-(sx + stw, syy + sth), Thm~&("grave.stone", _RGB32(&H4A, &H4A, &H52)), BF
+        LINE (sx, syy)-(sx + stw, syy + sth), Thm~&("grave.stone.edge", _RGB32(&H6E, &H6E, &H78)), B
     END IF
     cxp = sx + stw \ 2
     _FONT CH
@@ -2120,14 +2120,14 @@ SUB DeathStone (sy AS INTEGER, upto AS INTEGER)
         IF LEN(ln) > 0 THEN
             IF i <= 2 THEN
                 ' carved INTO the stone, in its upper third
-                COLOR _RGB32(&H1A, &H18, &H16), 0
+                COLOR Thm~&("grave.carve.shadow", _RGB32(&H1A, &H18, &H16)), 0
                 ty = syy + sth \ 5 + (i - 1) * CH * 2
                 _PRINTSTRING (cxp - (LEN(ln) * CW) \ 2 + 1, ty + 1), ln      ' chiselled shadow
-                COLOR _RGB32(&HEC, &HE8, &HDC), 0
+                COLOR Thm~&("grave.carve", _RGB32(&HEC, &HE8, &HDC)), 0
                 _PRINTSTRING (cxp - (LEN(ln) * CW) \ 2, ty), ln
             ELSE
                 ' the record, on the ground below the stone
-                COLOR _RGB32(&HA8, &HA4, &H98), 0
+                COLOR Thm~&("grave.record", _RGB32(&HA8, &HA4, &H98)), 0
                 ty = syy + sth + (i - 3) * CH * 2
                 _PRINTSTRING (SW * CW \ 2 - (LEN(ln) * CW) \ 2, ty), ln
             END IF
