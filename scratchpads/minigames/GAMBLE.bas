@@ -44,6 +44,7 @@ SW = 132: SH = 51: CW = 8: CH = 16
 DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
 DIM cmd AS STRING
+ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN GambleSelfTest
 
@@ -73,6 +74,22 @@ SYSTEM
 ' 11 of 36 faces: 6 with the first die a 1, 6 with the second, minus the double
 ' counted (1,1). Written out rather than hardcoded as 0.3056 so it stays right if
 ' the die ever changes.
+
+'--- FATAL ERROR TRAP -------------------------------------------------------
+' Same reason dungeon.bas arms one: an unhandled QB64 error opens a MODAL dialog
+' and waits for a click. Under xvfb -- every selftest, every shot -- nobody can
+' click it, so the process just hangs with no clue why. These prototypes are dev
+' tools with no human watching, so there is no "let them keep playing" case: print
+' something greppable, exit non-zero, get out of the way.
+MgFatal:
+    _DEST _CONSOLE
+    PRINT
+    PRINT "!! QB64 RUNTIME ERROR"; ERR; "at line"; _ERRORLINE
+    PRINT "!! "; _ERRORMESSAGE$(ERR)
+    PRINT "!! aborting instead of opening a dialog nobody can click"
+    SYSTEM 1
+'----------------------------------------------------------------------------
+
 FUNCTION BustChance! ()
     BustChance! = (6! + 6! - 1!) / 36!
 END FUNCTION

@@ -28,6 +28,7 @@ CONST CR_COMEOUT = 0
 CONST CR_POINT = 1
 
 DIM cmd AS STRING
+ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 MgInit
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN CrapsSelfTest
@@ -50,6 +51,22 @@ _DEST _CONSOLE: PRINT "result ="; r; " purse ="; purse: SYSTEM
 ' ----------------------------------------------------------------------------
 
 ' Resolve a COME-OUT roll: 1 win, -1 lose, 0 = this total becomes the point.
+
+'--- FATAL ERROR TRAP -------------------------------------------------------
+' Same reason dungeon.bas arms one: an unhandled QB64 error opens a MODAL dialog
+' and waits for a click. Under xvfb -- every selftest, every shot -- nobody can
+' click it, so the process just hangs with no clue why. These prototypes are dev
+' tools with no human watching, so there is no "let them keep playing" case: print
+' something greppable, exit non-zero, get out of the way.
+MgFatal:
+    _DEST _CONSOLE
+    PRINT
+    PRINT "!! QB64 RUNTIME ERROR"; ERR; "at line"; _ERRORLINE
+    PRINT "!! "; _ERRORMESSAGE$(ERR)
+    PRINT "!! aborting instead of opening a dialog nobody can click"
+    SYSTEM 1
+'----------------------------------------------------------------------------
+
 FUNCTION ComeOut% (total AS INTEGER)
     SELECT CASE total
         CASE 7, 11: ComeOut% = 1                  ' a natural

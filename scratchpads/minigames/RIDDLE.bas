@@ -43,6 +43,7 @@ DIM SHARED AS INTEGER SW, SH, CW, CH
 SW = 132: SH = 51: CW = 8: CH = 16
 
 DIM cmd AS STRING
+ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 cmd = UCASE$(COMMAND$)
 
 LoadRiddles "data/riddles.txt"
@@ -73,6 +74,22 @@ SYSTEM
 ' ----------------------------------------------------------------------------
 '  DATA
 ' ----------------------------------------------------------------------------
+
+
+'--- FATAL ERROR TRAP -------------------------------------------------------
+' Same reason dungeon.bas arms one: an unhandled QB64 error opens a MODAL dialog
+' and waits for a click. Under xvfb -- every selftest, every shot -- nobody can
+' click it, so the process just hangs with no clue why. These prototypes are dev
+' tools with no human watching, so there is no "let them keep playing" case: print
+' something greppable, exit non-zero, get out of the way.
+MgFatal:
+    _DEST _CONSOLE
+    PRINT
+    PRINT "!! QB64 RUNTIME ERROR"; ERR; "at line"; _ERRORLINE
+    PRINT "!! "; _ERRORMESSAGE$(ERR)
+    PRINT "!! aborting instead of opening a dialog nobody can click"
+    SYSTEM 1
+'----------------------------------------------------------------------------
 
 SUB LoadRiddles (path AS STRING)
     DIM f AS INTEGER, ln AS STRING, bar AS INTEGER

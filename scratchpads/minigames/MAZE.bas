@@ -60,6 +60,7 @@ SW = 132: SH = 51: CW = 8: CH = 16
 DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
 DIM cmd AS STRING
+ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN MazeSelfTest
 
@@ -90,6 +91,22 @@ SYSTEM
 
 ' Carve a perfect maze of w x h cells. "Perfect" = exactly one path between any
 ' two cells: no loops, no isolated regions, so the sigil is always reachable.
+
+'--- FATAL ERROR TRAP -------------------------------------------------------
+' Same reason dungeon.bas arms one: an unhandled QB64 error opens a MODAL dialog
+' and waits for a click. Under xvfb -- every selftest, every shot -- nobody can
+' click it, so the process just hangs with no clue why. These prototypes are dev
+' tools with no human watching, so there is no "let them keep playing" case: print
+' something greppable, exit non-zero, get out of the way.
+MgFatal:
+    _DEST _CONSOLE
+    PRINT
+    PRINT "!! QB64 RUNTIME ERROR"; ERR; "at line"; _ERRORLINE
+    PRINT "!! "; _ERRORMESSAGE$(ERR)
+    PRINT "!! aborting instead of opening a dialog nobody can click"
+    SYSTEM 1
+'----------------------------------------------------------------------------
+
 SUB MazeGen (w AS INTEGER, h AS INTEGER)
     DIM x AS INTEGER, y AS INTEGER, i AS INTEGER
     DIM stackx(0 TO MZ_MAX * MZ_MAX) AS INTEGER, stacky(0 TO MZ_MAX * MZ_MAX) AS INTEGER

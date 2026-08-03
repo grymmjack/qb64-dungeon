@@ -49,6 +49,7 @@ SW = 132: SH = 51: CW = 8: CH = 16
 DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
 DIM cmd AS STRING
+ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN DodgeSelfTest
 
@@ -76,6 +77,22 @@ SYSTEM
 ' An arrow FROM `src` flies along that axis. Stepping along the same axis keeps
 ' you in the corridor it is travelling down; stepping across it does not. So a
 ' dodge is correct exactly when it is PERPENDICULAR to the arrow's axis.
+
+'--- FATAL ERROR TRAP -------------------------------------------------------
+' Same reason dungeon.bas arms one: an unhandled QB64 error opens a MODAL dialog
+' and waits for a click. Under xvfb -- every selftest, every shot -- nobody can
+' click it, so the process just hangs with no clue why. These prototypes are dev
+' tools with no human watching, so there is no "let them keep playing" case: print
+' something greppable, exit non-zero, get out of the way.
+MgFatal:
+    _DEST _CONSOLE
+    PRINT
+    PRINT "!! QB64 RUNTIME ERROR"; ERR; "at line"; _ERRORLINE
+    PRINT "!! "; _ERRORMESSAGE$(ERR)
+    PRINT "!! aborting instead of opening a dialog nobody can click"
+    SYSTEM 1
+'----------------------------------------------------------------------------
+
 FUNCTION DodgeCorrect% (src AS INTEGER, stepdir AS INTEGER)   ' `stepdir` -- STEP is reserved
     DodgeCorrect% = FALSE
     IF stepdir < D_N OR stepdir > D_W THEN EXIT FUNCTION   ' not a direction at all
