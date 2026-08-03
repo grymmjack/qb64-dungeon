@@ -51,7 +51,7 @@ xvfb-run -a ./RIDDLE.run shot
 | `SPINWHEEL.bas` | A wall wheel | CRANK it up/down; a heavy wheel with real momentum, and a price for teasing it | — | 34 |
 | `TRUENAME.bas` | A warded door | name the thing from its description | WIS buys a letter | 17 |
 | `SCRAMBLE.bas` | A carved door | unscramble the word; no anagram may be ambiguous | INT reveals letters | 15 |
-| `OPENTHECHEST.bas` | Any chest | three colour clasps, re-dealt every pick; a wrong one starts a fuse | — (level memory) | 32 |
+| `OPENTHECHEST.bas` | Any chest | three colour clasps, re-dealt every pick; a wrong one lights a fuse | — (level memory) | 35 |
 
 **Every fairness claim in that table is measured, not asserted by hand.** Where a game has
 odds they are simulated; where it generates a puzzle, solvability is checked on every

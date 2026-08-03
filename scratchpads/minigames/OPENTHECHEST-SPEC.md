@@ -160,16 +160,32 @@ time than the fuse has.
 That made `TRAP_DESTROYS` a dead constant, and it has been removed rather than
 left sitting there labelled as an open decision.
 
-Both halves are asserted against the same three numbers:
+**A wrong clasp never touches the fuse.** It does not reset it and it is not
+fined — the clock simply keeps counting, which is what a burning fuse does. That
+makes the LENGTH the only thing between a patient guesser and a free chest,
+because the colours are on screen: try one, try another, and the third is forced.
+
+So the fuse is derived from that, not chosen. The clock starts *on* the wrong
+pick that arms it, so what it buys you is how many **more** picks you get:
 
 | | |
 |---|---|
-| fuse | 12s |
+| fuse | 4.5s |
 | a pick (reading three colours and choosing) | 2.5s |
-| a further wrong clasp | −4s |
 
-`2.5 + 4 + 2.5 ≤ 12` — one blunder is recoverable at a human pace.
-`2 × (2.5 + 4) > 12` — brute force is not.
+`2.5 ≤ 4.5` — one more pick, so a single mistake is recoverable *if you then know
+the answer*.
+`2 × 2.5 > 4.5` — but not two, so you cannot try every colour in turn.
+
+The first cut sat at 6.5s, which buys **two** more picks — exactly enough to
+exhaust three colours by elimination. The simulated guesser opened **100%** of
+chests. That was not a bad test, it was a fuse long enough to make the puzzle
+free and the level code worthless alongside it.
+
+At 4.5s a patient guesser opens **0.500** of chests: real teeth, and still a
+genuine mercy next to the instant loss it replaced. That number is simulated
+against the real `TryClasp%` every run, because it is the number that decides
+whether learning a level's code is worth anything at all.
 
 ## Still open
 

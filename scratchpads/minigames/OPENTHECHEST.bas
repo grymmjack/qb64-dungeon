@@ -46,8 +46,27 @@ CONST LEVELS = 9
 CONST HUES = 3                  ' colours in play; a code is a permutation of them
 '--- the fuse. A wrong clasp no longer destroys the chest on the spot: it starts
 '    the mechanism ticking, and you can still save it. ---
-CONST FUSE_SECS = 12!           ' seconds on the clock once the trap is armed
-CONST WRONG_PENALTY = 4!        ' seconds a further wrong clasp costs
+' THE FUSE. Once a wrong clasp arms it, it burns. A further wrong clasp does not
+' reset it and does not cost extra -- it simply keeps counting, which is what a
+' burning fuse does.
+'
+' That makes the LENGTH the only thing standing between a patient guesser and a
+' free chest, because with three colours on screen a player can just eliminate:
+' try one, try another, and the third is forced. So the fuse is sized against
+' exactly that, and the number is derived, not chosen -- see the selftest.
+' 4.5, and the value is forced rather than chosen. The clock starts ON the wrong
+' pick that arms it, so what the fuse buys you is how many MORE picks you get:
+'
+'   HUMAN_PICK <= FUSE_SECS       -- one more pick, so a single mistake is
+'                                    recoverable if you then know the answer
+'   2 * HUMAN_PICK > FUSE_SECS    -- but not two, so you cannot simply try every
+'                                    colour in turn
+'
+' The first cut sat at 6.5s, which buys TWO more picks -- and two more picks is
+' exactly enough to exhaust three colours by elimination. The simulated guesser
+' opened 100% of chests. Not a bug in the test: the fuse was long enough to make
+' the puzzle free, and the level code worthless with it.
+CONST FUSE_SECS = 4.5           ' seconds on the clock once the trap is armed
 CONST HUMAN_PICK = 2.5          ' seconds to read three colours and choose one
 
 '--- art lookup: every piece by NAME, so the same game runs on placeholders,
@@ -344,11 +363,10 @@ FUNCTION TryClasp% (c AS INTEGER)
         IF NOT g_armed THEN
             g_armed = TRUE
             FuseReset
-        ELSE
-            ' already ticking: a further wrong clasp costs, it does not reset
-            g_left = g_left - WRONG_PENALTY
-            g_fuse0 = g_fuse0 + WRONG_PENALTY
         END IF
+        ' NOTE: a further wrong clasp does nothing to the fuse at all. It does not
+        ' reset it and it is not fined -- the fuse just keeps counting down, and
+        ' the cost of a bad guess is the seconds it took you to make it.
         ShuffleShut
         TryClasp% = FALSE
     END IF
@@ -463,7 +481,7 @@ FUNCTION PlayChest% (lv AS INTEGER)
                     IF g_wrongs = 1 THEN
                         DrawChest "something inside starts TICKING -- finish it, quickly"
                     ELSE
-                        DrawChest "wrong again -- " + _TRIM$(STR$(WRONG_PENALTY)) + " seconds gone"
+                        DrawChest "wrong again -- and it is still counting"
                     END IF
                     ChestPause 1.1
                     msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS)) + " -- and it is ticking"
@@ -610,14 +628,20 @@ SUB ChestSelfTest
     Ok "guessing wins about one time in six", ABS(BlindWinRate# - 1! / 6!) < 0.02
     Ok "a wrong clasp arms the trap rather than ending it there", WrongClaspArms%
 
-    MgSection "the fuse: a blunder is survivable, brute force is not"
-    PRINT USING "       fuse ##.#s; a pick costs #.#s of thinking; a further wrong clasp costs #.#s"; FUSE_SECS; HUMAN_PICK; WRONG_PENALTY
+    MgSection "the fuse: one mistake is survivable, eliminating your way through is not"
+    PRINT USING "       fuse #.#s; a pick costs #.#s, so ## picks fit in one burn"; FUSE_SECS; HUMAN_PICK; INT(FUSE_SECS / HUMAN_PICK)
     Ok "perfect play never arms the fuse at all", PerfectPlayNeverArms%
-    Ok "one blunder is recoverable at a human pace", HUMAN_PICK + WRONG_PENALTY + HUMAN_PICK <= FUSE_SECS
+    Ok "a wrong clasp NEVER touches the fuse -- it just keeps counting", WrongDoesNotTouchFuse%
     Ok "a correct clasp winds it back to full", CorrectRewinds%
     Ok "...but does not disarm it -- it keeps burning", CorrectDoesNotDisarm%
-    Ok "guessing every colour in turn runs the fuse out", 2! * (HUMAN_PICK + WRONG_PENALTY) > FUSE_SECS
+    Ok "after a mistake you still get one pick -- so knowing the answer saves you", HUMAN_PICK <= FUSE_SECS
+    Ok "...but not two, so you cannot try every colour in turn", 2! * HUMAN_PICK > FUSE_SECS
     Ok "a scripted pause is not charged against the fuse", ChestPauseIsFree%
+
+    MgSection "what the fuse costs the level code -- measured, not hoped"
+    PRINT USING "       a patient guesser opens #.### of chests (no fuse at all: 1.000; no mercy: 0.167)"; FusedGuesserRate#
+    Ok "the chest still has teeth -- guessing is not a free pass", FusedGuesserRate# < 0.6
+    Ok "...but a fuse this long IS a real mercy over the old instant loss", FusedGuesserRate# > 1! / 6!
 
     MgSection "the level code is learned ONCE and shared by every chest on it"
     Ok "a fresh run knows nothing", NothingKnownAtStart%
@@ -872,6 +896,89 @@ FUNCTION WrongClaspArms% ()
     WrongClaspArms% = (g_armed _ANDALSO NOT g_blown _ANDALSO NOT g_opened)
 END FUNCTION
 
+' The rule, checked directly: an armed fuse must be completely unaffected by a
+' wrong clasp. Not fined, not reset, not extended.
+FUNCTION WrongDoesNotTouchFuse% ()
+    DIM i AS INTEGER, c AS INTEGER, c2 AS INTEGER
+    DIM AS SINGLE a, b
+    RANDOMIZE 149
+    ChestRollCodes
+    ChestSetup 4
+    FOR i = 1 TO CLASPS
+        IF i <> CorrectClasp% THEN c = i
+    NEXT i
+    IF TryClasp%(c) THEN WrongDoesNotTouchFuse% = FALSE: EXIT FUNCTION   ' arms it
+    g_fuse0 = g_fuse0 - 3!                                              ' three seconds burnt
+    FuseTick: a = g_left
+    FOR i = 1 TO CLASPS
+        IF i <> CorrectClasp% _ANDALSO CLASPOPEN(i) = 0 THEN c2 = i
+    NEXT i
+    IF c2 = 0 THEN WrongDoesNotTouchFuse% = FALSE: EXIT FUNCTION
+    IF TryClasp%(c2) THEN WrongDoesNotTouchFuse% = FALSE: EXIT FUNCTION  ' wrong again
+    FuseTick: b = g_left
+    WrongDoesNotTouchFuse% = (ABS(a - b) < 0.1!)
+END FUNCTION
+
+' A patient guesser who ELIMINATES: they can see the colours, so a wrong pick
+' tells them which colour is not next, and the third is forced. The only thing
+' stopping them is how many picks fit inside one burn of the fuse.
+'
+' This is the number that decides whether learning a level's code is worth
+' anything, so it is simulated against the real TryClasp rather than argued about.
+FUNCTION FusedGuesserRate# ()
+    DIM i AS LONG, st AS INTEGER, c AS INTEGER, n AS INTEGER, pick AS INTEGER
+    DIM AS LONG won, runs
+    DIM AS SINGLE burn
+    DIM AS INTEGER armed, dead, right
+    DIM tried(1 TO HUES) AS INTEGER
+    RANDOMIZE 150
+    ChestRollCodes
+    FOR i = 1 TO 40000
+        ChestSetup 1 + (i MOD LEVELS)
+        burn = 0!: armed = FALSE: dead = FALSE
+        FOR st = 1 TO CLASPS
+            FOR n = 1 TO HUES: tried(n) = FALSE: NEXT n
+            DO
+                ' a pick costs time only once the fuse is actually burning
+                IF armed THEN
+                    burn = burn + HUMAN_PICK
+                    IF burn > FUSE_SECS THEN dead = TRUE: EXIT DO
+                END IF
+
+                ' choose uniformly among shut clasps whose colour is untried --
+                ' the colours are on screen, so elimination is free information
+                n = 0
+                FOR c = 1 TO CLASPS
+                    IF CLASPOPEN(c) = 0 _ANDALSO tried(CLASPHUE(c)) = 0 THEN n = n + 1
+                NEXT c
+                IF n = 0 THEN dead = TRUE: EXIT DO
+                pick = MgRoll%(n): n = 0
+                FOR c = 1 TO CLASPS
+                    IF CLASPOPEN(c) = 0 _ANDALSO tried(CLASPHUE(c)) = 0 THEN
+                        n = n + 1
+                        IF n = pick THEN EXIT FOR
+                    END IF
+                NEXT c
+
+                tried(CLASPHUE(c)) = TRUE
+                right = TryClasp%(c)
+                IF right THEN
+                    burn = 0!                  ' a correct clasp winds it back
+                    EXIT DO
+                END IF
+                IF NOT armed THEN
+                    armed = TRUE               ' the clock starts HERE, at zero
+                    burn = 0!
+                END IF
+            LOOP
+            IF dead THEN EXIT FOR
+        NEXT st
+        runs = runs + 1
+        IF g_opened _ANDALSO NOT dead THEN won = won + 1
+    NEXT i
+    FusedGuesserRate# = won / runs
+END FUNCTION
+
 FUNCTION PerfectPlayNeverArms% ()
     DIM i AS LONG, st AS INTEGER
     PerfectPlayNeverArms% = TRUE
@@ -895,9 +1002,11 @@ FUNCTION CorrectRewinds% ()
         IF i <> CorrectClasp% THEN c = i
     NEXT i
     IF TryClasp%(c) THEN CorrectRewinds% = FALSE: EXIT FUNCTION   ' arms it
-    g_fuse0 = g_fuse0 - 6!                                       ' six seconds burnt
+    ' two seconds burnt -- NOT six: the fuse is only 4.5s long now, and a test
+    ' that burns more than the whole fuse is testing an expired one
+    g_fuse0 = g_fuse0 - 2!
     FuseTick
-    IF g_left > FUSE_SECS - 5! THEN CorrectRewinds% = FALSE: EXIT FUNCTION
+    IF g_left > FUSE_SECS - 1.5! THEN CorrectRewinds% = FALSE: EXIT FUNCTION
     IF NOT TryClasp%(CorrectClasp%) THEN CorrectRewinds% = FALSE: EXIT FUNCTION
     FuseTick
     CorrectRewinds% = (g_left > FUSE_SECS - 0.5)
