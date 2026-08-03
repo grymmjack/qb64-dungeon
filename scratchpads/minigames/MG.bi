@@ -26,6 +26,11 @@ CONST MG_LEFT = 3
 '--- selftest counters ---
 DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
+'--- set by any headless mode (selftest, shot). The game learned this the hard
+'    way: a raw SOUND bypasses every mute flag, so a test run chirps at whoever
+'    is sitting there. Prototypes route tones through MgBeep, which obeys this. ---
+DIM SHARED MG_QUIET AS INTEGER
+
 '--- the palette these prototypes speak in. Mirrors the game's theme keys so the
 '    move into the real UI is a rename, not a re-design. ---
 DIM SHARED AS _UNSIGNED LONG C_TITLE, C_TEXT, C_DIM, C_GOOD, C_WARN, C_BAD, C_COOL, C_BG

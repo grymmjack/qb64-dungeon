@@ -96,6 +96,16 @@ FUNCTION MgElapsed! (t0 AS DOUBLE)
     MgElapsed! = e
 END FUNCTION
 
+'--- sound -------------------------------------------------------------------
+
+' Every tone in a prototype goes through here. The PC speaker ignores every mute
+' flag the game has, so the ONLY thing standing between a headless selftest and
+' an unwanted chirp is this one gate -- which is why no prototype calls SOUND.
+SUB MgBeep (freq AS SINGLE, dur AS SINGLE)
+    IF MG_QUIET THEN EXIT SUB
+    SOUND freq, dur
+END SUB
+
 '--- selftest ----------------------------------------------------------------
 
 SUB Ok (label AS STRING, cond AS INTEGER)
