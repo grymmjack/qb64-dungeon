@@ -70,6 +70,28 @@ named?* — so `shot` is not a nicety.
 
 See [BOW-AND-MAGIC.md](BOW-AND-MAGIC.md) for why bow and magic are **not** here.
 
+## Integration API
+
+Every prototype has a **`<GAME>-API.md`** stating exactly what it needs from
+`qb64-dungeon` — art keys, sound keys, theme keys, music cue, configuration
+(split into *tuning* a data pack may set and *structural* that is code), what it
+reads from the run, what it reports back, what must survive a save, and the
+invariants an integration must not break.
+
+They are all written against one shared contract: **[MINIGAME-API.md](MINIGAME-API.md)**.
+Read that once; the per-game files only cover what is different.
+
+The rule the contract turns on is that **`Play` returns an outcome and fills a
+result — it never touches the world.** A mini-game that adds gold or subtracts HP
+itself cannot be tested headlessly, cannot be replayed, and cannot be reused by
+`examples/minimal`. It reports; the caller applies.
+
+`./audit-api.sh` keeps those documents from rotting: every prototype has a doc,
+every doc has a prototype, and every constant a doc names in its Configuration
+section still exists in the source. It cannot check whether the prose is true —
+that is what each file's **Invariants** section is for, since every entry there
+names an assertion that already exists in the selftest.
+
 ## Error handling
 
 Every prototype arms `ON ERROR GOTO MgFatal` before anything can fail, for the same reason

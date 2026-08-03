@@ -66,7 +66,12 @@ CONST HUES = 3                  ' colours in play; a code is a permutation of th
 ' exactly enough to exhaust three colours by elimination. The simulated guesser
 ' opened 100% of chests. Not a bug in the test: the fuse was long enough to make
 ' the puzzle free, and the level code worthless with it.
-CONST FUSE_SECS = 4.5           ' seconds on the clock once the trap is armed
+'
+' At 3s both inequalities still hold, but the slack is half a second. HUMAN_PICK
+' is an ESTIMATE of how long a deliberate pick takes; if it is optimistic, this
+' fuse is not tense, it is unfair, and the honest fix is to raise the fuse rather
+' than to lower the estimate to fit. Play it before trusting it.
+CONST FUSE_SECS = 3!            ' seconds on the clock once the trap is armed
 CONST HUMAN_PICK = 2.5          ' seconds to read three colours and choose one
 
 '--- art lookup: every piece by NAME, so the same game runs on placeholders,
