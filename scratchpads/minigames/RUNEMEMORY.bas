@@ -36,6 +36,12 @@ DIM SHARED RUNENAME(1 TO RUNE_N) AS STRING
 DIM SHARED AS INTEGER g_cols, g_rows, g_tiles, g_pairs, g_painpairs
 DIM SHARED AS INTEGER g_turns, g_budget, g_hp, g_hpmax, g_matched, g_hurt
 
+' The SECOND stone of the current turn, held face-up for as long as the pair is
+' on the table. Without it, DrawSlab's "face up" test was `matched OR is-the-
+' first-pick`, so the second stone you turned drew as a ? the instant you turned
+' it -- you were being asked to match a card you were never shown.
+DIM SHARED g_up2 AS INTEGER
+
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal
 MgInit
@@ -52,7 +58,9 @@ IF INSTR(cmd, "SHOT") > 0 THEN
     SHOWN(3) = TRUE: SHOWN(14) = TRUE: SHOWN(7) = TRUE: SHOWN(20) = TRUE
     SEEN(1) = TRUE: SEEN(9) = TRUE: SEEN(11) = TRUE: SEEN(22) = TRUE
     g_matched = 2: g_turns = 5: g_hp = 9
-    DrawSlab 11, -1, "the stone is cold, and something under it moves"
+    ' mid-turn, BOTH stones up -- the state that used to hide the second one
+    g_up2 = 11
+    DrawSlab 11, 17, RUNENAME(TILE(17)) + "  and  " + RUNENAME(TILE(11))
     _SAVEIMAGE "runememory-shot.png"
     _DEST _CONSOLE: PRINT "wrote runememory-shot.png": SYSTEM
 END IF
@@ -164,19 +172,27 @@ FUNCTION PlaySlab% (cols AS INTEGER, rows AS INTEGER, painpairs AS INTEGER, hpma
                 SEEN(cur) = TRUE
                 IF first < 0 THEN
                     first = cur
-                    msg = RUNENAME(TILE(cur)) + PainTag$(cur) + " -- turn another"
+                    msg = RUNENAME(TILE(cur)) + PainTag$(cur) + " -- now turn another"
                 ELSE
                     g_turns = g_turns + 1
-                    DrawSlab cur, first, RUNENAME(TILE(cur)) + PainTag$(cur)
-                    _DELAY 0.9
+                    g_up2 = cur
+                    ' BOTH stones stay face-up while you read them. Long enough to
+                    ' actually take in a rune you have not seen before, since the
+                    ' whole game is built on having seen it.
+                    DrawSlab cur, first, RUNENAME(TILE(first)) + "  and  " + RUNENAME(TILE(cur)) + PainTag$(cur)
                     IF TILE(cur) = TILE(first) THEN
                         SHOWN(cur) = TRUE: SHOWN(first) = TRUE
                         g_matched = g_matched + 1
-                        msg = "a match -- the stones settle"
                         MgBeep 880, 2
+                        _DELAY 1!
+                        msg = "a match -- the stones settle"
                     ELSE
+                        _DELAY 1.6
+                        DrawSlab cur, first, "no match -- remember them"
+                        _DELAY 0.5
                         msg = "no match"
                     END IF
+                    g_up2 = 0
                     first = -1
                 END IF
                 IF g_hp <= 0 THEN PlaySlab% = MG_LOST: EXIT FUNCTION
@@ -222,7 +238,7 @@ SUB DrawSlab (cur AS INTEGER, first AS INTEGER, msg AS STRING)
     FOR i = 1 TO g_tiles
         c = (i - 1) MOD g_cols: r = (i - 1) \ g_cols
         x = ox + c * RM_TW: y = oy + r * RM_TH
-        up = (SHOWN(i) <> 0) OR (i = first)
+        up = (SHOWN(i) <> 0) _ORELSE (i = first) _ORELSE (i = g_up2)
         IF up THEN
             face = LEFT$(RUNENAME(TILE(i)), 6)
             IF IsPain%(i) THEN COLOR C_BAD, 0 ELSE COLOR C_GOOD, 0

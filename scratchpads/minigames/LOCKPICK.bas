@@ -20,10 +20,26 @@
 '  well always beat the fuse? That is proved EXHAUSTIVELY -- every start notch
 '  against every pin angle, not a sample -- rather than playtested.
 '
-'  The clock runs on ACTIONS, not on wall time -- every turn of the pick and
-'  every set spends a fixed slice of it, and standing still spends nothing. So
-'  there is no reflex component whatsoever: you can stare at the dial as long as
-'  you like. What you cannot do is waste moves.
+'  THE CLOCK DRAINS TWO WAYS, and that is deliberate. It runs down in real time
+'  like any fuse, AND every turn of the pick takes a fixed bite out of it on top.
+'  The first cut had only the second half -- standing still was free, so a patient
+'  player could sit and think forever and the "fuse" was really just a move
+'  budget wearing a bar.
+'
+'  Keeping BOTH is what makes the two mistakes distinct:
+'
+'    * dithering costs you real seconds
+'    * flailing costs you move-seconds, several at a time
+'
+'  ...so being quick does not save you from being wasteful, and being efficient
+'  does not save you from being slow. Neither alone is enough, which is the
+'  point.
+'
+'  It is still not a reflex game. The budget is derived, not felt: worst-case
+'  efficient play needs 10.35s of move cost and at most 24 decisions, and a
+'  decision is allowed THINK_PER_MOVE seconds of staring at the screen. The fuse
+'  has to cover the sum of those, and the selftest computes it rather than
+'  trusting that 50 seconds "feels about right".
 '
 '  DEX buys seconds on the fuse. It does not shorten the search, move the pin,
 '  or forgive a bad set.
@@ -36,10 +52,11 @@ CONST JUMP = 4                  ' the coarse step
 
 '--- what each move costs off the fuse. The whole balance lives in these four
 '    numbers, so they are named once and the proof reads them. ---
-CONST T_FINE = 0.35
+CONST T_FINE = 0.75             ' raised when the fuse grew: see the brute-force assertion
 CONST T_JUMP = 0.5
 CONST T_SET = 0.6
 CONST T_MISS = 1.5              ' a set on the wrong notch -- the pick slips
+CONST THINK_PER_MOVE = 1.2      ' real seconds a player is allowed to spend DECIDING each move
 
 '--- feel bands, by distance in notches ---
 CONST B_GIVING = 0
@@ -50,7 +67,8 @@ CONST B_DEAD = 3
 DIM SHARED PINAT(1 TO PINS) AS INTEGER
 DIM SHARED PINSET(1 TO PINS) AS INTEGER
 DIM SHARED AS INTEGER g_at, g_pin, g_slips
-DIM SHARED AS SINGLE g_fuse, g_left
+DIM SHARED AS SINGLE g_fuse, g_left, g_spent
+DIM SHARED g_t0 AS DOUBLE
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal
@@ -63,7 +81,8 @@ IF INSTR(cmd, "SHOT") > 0 THEN
     MG_QUIET = TRUE
     RANDOMIZE 31
     LockSetup 13
-    PINSET(1) = TRUE: g_pin = 2: g_at = 9: g_left = 11.4: g_slips = 1
+    PINSET(1) = TRUE: g_pin = 2: g_at = 9: g_slips = 1
+    g_spent = 14.25: g_t0 = TIMER - 12.4: FuseTick
     DrawLock "the pin shifts -- something is close"
     _SAVEIMAGE "lockpick-shot.png"
     _DEST _CONSOLE: PRINT "wrote lockpick-shot.png": SYSTEM
@@ -118,10 +137,15 @@ FUNCTION Hint$ (at AS INTEGER, target AS INTEGER)
 END FUNCTION
 
 ' Fuse seconds. DEX buys time -- the only thing it buys.
+'
+' 50 is not a feel number. It has to cover worst-case move cost (10.35s) PLUS a
+' human's thinking time for the worst-case number of decisions (24 x 1.2s), and
+' the selftest checks that sum rather than the constant. Move the costs or the
+' strategy and the assertion moves with them.
 FUNCTION LockFuse! (dex AS INTEGER)
     DIM f AS SINGLE
-    f = 20! + MgAbilMod%(dex) * 2!
-    IF f < 12! THEN f = 12!
+    f = 50! + MgAbilMod%(dex) * 2!
+    IF f < 44! THEN f = 44!
     LockFuse! = f
 END FUNCTION
 
@@ -134,18 +158,33 @@ SUB LockSetup (dex AS INTEGER)
     g_at = MgRoll%(NOTCHES) - 1
     g_pin = 1: g_slips = 0
     g_fuse = LockFuse!(dex): g_left = g_fuse
+    g_spent = 0!: g_t0 = TIMER
 END SUB
 
 '--- play --------------------------------------------------------------------
 
 FUNCTION PlayLock% (dex AS INTEGER)
     DIM k AS STRING, u AS STRING, msg AS STRING, d AS INTEGER
+    DIM lasttick AS INTEGER
     LockSetup dex
+    lasttick = 99
     DO
         d = Ring%(g_at, PINAT(g_pin))
         msg = BandText$(Band%(d)) + Hint$(g_at, PINAT(g_pin))
+        FuseTick
         DrawLock msg
-        IF g_left <= 0 THEN PlayLock% = MG_LOST: EXIT FUNCTION
+        IF g_left <= 0 THEN
+            DrawLock "the pick shears off in the lock"
+            MgBeep 90, 8
+            _DELAY 1.4
+            PlayLock% = MG_LOST: EXIT FUNCTION
+        END IF
+        ' the last five seconds tick, once a second -- a fuse you can only see is
+        ' a fuse you forget about while you are staring at the dial
+        IF g_left <= 5! _ANDALSO INT(g_left) <> lasttick THEN
+            lasttick = INT(g_left)
+            MgBeep 240, 1
+        END IF
         k = INKEY$: u = UCASE$(k)
         IF k = CHR$(27) THEN PlayLock% = MG_LEFT: EXIT FUNCTION
         IF u = "A" OR k = CHR$(0) + "K" THEN Turn -1, T_FINE
@@ -154,19 +193,19 @@ FUNCTION PlayLock% (dex AS INTEGER)
         IF u = "E" OR k = CHR$(0) + "P" THEN Turn JUMP, T_JUMP
         IF k = " " OR k = CHR$(13) THEN
             IF g_at = PINAT(g_pin) THEN
-                g_left = g_left - T_SET
+                g_spent = g_spent + T_SET
                 PINSET(g_pin) = TRUE
                 MgBeep 880, 2
                 g_pin = g_pin + 1
                 IF g_pin > PINS THEN PlayLock% = MG_WON: EXIT FUNCTION
                 DrawLock "the pin sets with a click"
-                _DELAY 0.6
+                Pause 0.6
             ELSE
-                g_left = g_left - T_MISS
+                g_spent = g_spent + T_MISS
                 g_slips = g_slips + 1
                 MgBeep 120, 4
                 DrawLock "the pick slips -- " + _TRIM$(STR$(T_MISS)) + "s gone"
-                _DELAY 0.5
+                Pause 0.5
             END IF
         END IF
         _LIMIT 60
@@ -175,8 +214,23 @@ END FUNCTION
 
 SUB Turn (by AS INTEGER, cost AS SINGLE)
     g_at = (g_at + by + NOTCHES * 2) MOD NOTCHES
-    g_left = g_left - cost
+    g_spent = g_spent + cost
     MgBeep 300 + g_at * 6, 0.6
+END SUB
+
+' What is left: the fuse, minus real seconds elapsed, minus what the moves cost.
+' Both drains are separately visible in `g_spent`, which is what lets the display
+' show a player WHY their time went.
+SUB FuseTick
+    g_left = g_fuse - MgElapsed!(g_t0) - g_spent
+END SUB
+
+' A scripted pause -- the click of a pin setting, the slip of the pick. The
+' player is not deciding anything during these, so the wall clock must not
+' charge for them, or the game punishes you for its own animations.
+SUB Pause (secs AS SINGLE)
+    _DELAY secs
+    g_t0 = g_t0 + secs
 END SUB
 
 '--- draw --------------------------------------------------------------------
@@ -222,8 +276,8 @@ SUB DrawLock (msg AS STRING)
     COLOR C_TEXT, 0: MgCenter 22, msg
     MgFuse 26, g_left / g_fuse, g_left
     COLOR C_DIM, 0
-    MgCenter 29, "the clock runs on MOVES, not on real time -- think as long as you like"
     MgCenter 28, "slips: " + _TRIM$(STR$(g_slips)) + "   -- a set on the wrong notch costs " + _TRIM$(STR$(T_MISS)) + "s"
+    MgCenter 29, "the fuse burns on its own AND every move takes a bite -- " + _TRIM$(STR$(INT(g_spent * 10) / 10)) + "s spent turning"
     COLOR C_GOOD, 0
     MgCenter 31, "[A]/[D] turn one notch   [Q]/[E] jump " + _TRIM$(STR$(JUMP)) + "   [SPACE] set   [ESC] give up"
     _DISPLAY
@@ -233,7 +287,7 @@ END SUB
 '--- selftest ----------------------------------------------------------------
 
 SUB LockSelfTest
-    DIM AS SINGLE worst, best, budget
+    DIM AS SINGLE worst, best, budget, think
     DIM AS INTEGER dumb
     _DEST _CONSOLE
     PRINT "LOCKPICK selftest"
@@ -251,20 +305,33 @@ SUB LockSelfTest
     worst = WorstSearchCost!
     best = BestSearchCost!
     budget = LockFuse!(10)
+    think = WorstMoveCount% * THINK_PER_MOVE
     PRINT USING "       three pins cost ##.##s at worst, ##.##s at best; fuse ##.##s"; worst; best; budget
+    PRINT USING "       plus ## decisions at #.#s of thinking each = ##.##s"; WorstMoveCount%; THINK_PER_MOVE; think
+    PRINT USING "       so a good picker needs ##.##s of a ##.##s fuse"; worst + think; budget
     Ok "the worst case for a good picker fits inside the fuse", worst < budget
-    Ok "...with enough margin to be human once", budget - worst >= T_MISS
     Ok "checked EXHAUSTIVELY, not sampled", ExhaustiveCount& = NOTCHES * NOTCHES
+
+    MgSection "...and it fits with REAL thinking time on top, now that the fuse burns by itself"
+    Ok "move cost plus a human's thinking time still fits", worst + think < budget
+    Ok "...with enough margin to be human once", budget - (worst + think) >= T_MISS
+    Ok "even the clumsiest character has room to think", WorstSearchCost! + think < LockFuse!(3)
+    Ok "a scripted pause is not charged as dithering", PausesAreFree%
 
     MgSection "...but brute force does not, which is what makes it a search"
     dumb = TRUE
-    IF SweepEveryNotchCost! < budget THEN dumb = FALSE
-    PRINT USING "       walking the whole dial for each pin: ##.##s"; SweepEveryNotchCost!
+    IF SweepEveryNotchCost! + SweepMoveCount% * THINK_PER_MOVE < budget THEN dumb = FALSE
+    PRINT USING "       walking the whole dial for each pin: ##.##s of moves + ###.##s of thinking"; SweepEveryNotchCost!; SweepMoveCount% * THINK_PER_MOVE
     Ok "turning one notch at a time until it gives runs out the fuse", dumb
+    ' On move cost ALONE, so a player who mashes the key without thinking cannot
+    ' beat it either. This is the assertion that broke when the fuse grew to 50s
+    ' -- brute force suddenly fit, which would have made the whole search optional
+    ' -- and T_FINE went from 0.35 to 0.75 to put it back.
+    Ok "...and it runs out on move cost ALONE, even for a player thinking instantly", SweepEveryNotchCost! > budget
 
     MgSection "DEX buys time and nothing else"
     Ok "a clumsy hand gets less fuse", LockFuse!(6) < LockFuse!(16)
-    Ok "even the clumsiest still gets a winnable fuse", WorstSearchCost! < LockFuse!(3)
+    Ok "even the clumsiest still gets a winnable fuse", WorstSearchCost! + WorstMoveCount% * THINK_PER_MOVE < LockFuse!(3)
     Ok "DEX never moves a pin", PinsIgnoreDex%
 
     MgDone
@@ -335,6 +402,52 @@ FUNCTION SearchCost! (start AS INTEGER, target AS INTEGER)
         c = c + T_FINE: guard = guard + 1
     LOOP
     SearchCost! = c + T_SET
+END FUNCTION
+
+' How many DECISIONS the worst case takes, as opposed to how many seconds of move
+' cost. These are different numbers and the fuse has to pay for both: a jump costs
+' 0.5s of pick-turning AND however long the player took to decide to jump.
+FUNCTION SearchMoves% (start AS INTEGER, target AS INTEGER)
+    DIM at AS INTEGER, guard AS INTEGER, n AS INTEGER
+    at = start
+    DO WHILE Band%(Ring%(at, target)) > B_CLOSE _ANDALSO guard < NOTCHES
+        at = (at + JUMP) MOD NOTCHES
+        n = n + 1: guard = guard + 1
+    LOOP
+    guard = 0
+    DO WHILE at <> target _ANDALSO guard < NOTCHES
+        IF INSTR(Hint$(at, target), "clockwise") > 0 THEN at = (at + 1) MOD NOTCHES ELSE at = (at - 1 + NOTCHES) MOD NOTCHES
+        n = n + 1: guard = guard + 1
+    LOOP
+    SearchMoves% = n + 1                 ' the set is a decision too
+END FUNCTION
+
+FUNCTION WorstMoveCount% ()
+    DIM a AS INTEGER, b AS INTEGER, n AS INTEGER, worstn AS INTEGER
+    FOR a = 0 TO NOTCHES - 1
+        FOR b = 0 TO NOTCHES - 1
+            n = SearchMoves%(a, b)
+            IF n > worstn THEN worstn = n
+        NEXT b
+    NEXT a
+    WorstMoveCount% = worstn * PINS
+END FUNCTION
+
+FUNCTION SweepMoveCount% ()
+    SweepMoveCount% = NOTCHES * PINS
+END FUNCTION
+
+' The scripted pauses -- a pin clicking home, the pick slipping -- push the clock
+' origin forward by exactly as long as they take, so the wall clock cannot charge
+' a player for the game's own animations.
+FUNCTION PausesAreFree% ()
+    DIM before AS SINGLE, after AS SINGLE
+    LockSetup 10
+    FuseTick: before = g_left
+    Pause 0.35!
+    FuseTick: after = g_left
+    PRINT USING "       across a 0.35s scripted pause the fuse moved #.####s"; ABS(before - after)
+    PausesAreFree% = (ABS(before - after) < 0.08!)
 END FUNCTION
 
 ' Worst case over EVERY start notch and EVERY pin angle. The dial is 24 notches,

@@ -89,10 +89,17 @@ FUNCTION MgAbilMod% (score AS INTEGER)
 END FUNCTION
 
 ' Seconds elapsed since `t0`, safe across midnight (TIMER wraps at 86400).
+'
+' A SMALL negative is not midnight. It is clock jitter, or -- the case that found
+' this -- a caller that pushed `t0` forward to discount a scripted pause and
+' overshot by a hundredth of a second because _DELAY does not sleep to the
+' microsecond. Treating that as a rollover reported 86399.98 seconds elapsed and
+' instantly emptied a fuse. Only a swing of more than half a day is a real wrap.
 FUNCTION MgElapsed! (t0 AS DOUBLE)
     DIM e AS SINGLE
     e = TIMER - t0
-    IF e < 0 THEN e = e + 86400!
+    IF e < -43200! THEN e = e + 86400!
+    IF e < 0! THEN e = 0!
     MgElapsed! = e
 END FUNCTION
 
