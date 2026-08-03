@@ -34,6 +34,13 @@ CONST TRUE = -1, FALSE = NOT TRUE
 '--- the lattice. Cells carry WALL BITS, so a wall is shared by both neighbours
 '    and cannot disagree with itself (the classic bug in wall-per-cell mazes). ---
 CONST MZ_MAX = 31                       ' odd sizes only: a carve grid needs a centre cell
+' Share of dead ends opened into loops. 0 = a perfect maze (every wrong turn is a
+' blind alley); higher = easier to read at a glance. See MazeBraid.
+CONST BRAID_PCT = 45
+' The ward the game actually shows. Deliberately small: this is a 20-second panic
+' under a fuse, not a puzzle to settle into, and a big lattice reads as work.
+CONST WARD_W = 9
+CONST WARD_H = 7
 CONST W_N = 1, W_E = 2, W_S = 4, W_W = 8
 CONST ALLWALLS = 15
 
@@ -60,7 +67,7 @@ SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)
 
 IF INSTR(cmd, "SHOT") > 0 THEN
     RANDOMIZE 7
-    MazeGen 15, 11
+    MazeGen WARD_W, WARD_H
     ' from the REAL start, not the centre -- shooting the player on top of the sigil
     ' hides the sigil and the frame proves nothing about it
     DrawMaze MZ_SX, MZ_SY, 6.4, "trace the ward to its heart", TRUE
@@ -71,7 +78,7 @@ IF INSTR(cmd, "SHOT") > 0 THEN
 END IF
 
 DIM outcome AS INTEGER
-outcome = PlayMaze(13, 9, 12)                       ' WIS 12 = no modifier
+outcome = PlayMaze(WARD_W, WARD_H, 12)                       ' WIS 12 = no modifier
 _DEST _CONSOLE
 PRINT "outcome ="; outcome
 SYSTEM
@@ -137,7 +144,53 @@ SUB MazeGen (w AS INTEGER, h AS INTEGER)
     ' The sigil sits at the centre; you enter from an edge cell. Both are just
     ' cells in the same spanning tree, so a path always exists.
     MZ_GX = w \ 2: MZ_GY = h \ 2
+    MazeBraid BRAID_PCT
     PickStart
+END SUB
+
+' BRAID: open a second exit from some share of the dead ends.
+'
+' A perfect maze is all dead ends -- every wrong turn is a blind alley you must walk
+' back out of, and under a fuse that is not tension, it is bookkeeping. Braiding
+' converts a share of them into loops, so a wrong turn usually rejoins the maze
+' instead of trapping you. The maze gets easier to READ without getting smaller.
+'
+' Solvability is unaffected by construction: braiding only ever REMOVES walls, and
+' removing a wall cannot disconnect anything. The BFS test still proves it.
+SUB MazeBraid (pct AS INTEGER)
+    DIM x AS INTEGER, y AS INTEGER, walls AS INTEGER, d AS INTEGER, i AS INTEGER
+    DIM cand(1 TO 4) AS INTEGER, nc AS INTEGER, nx AS INTEGER, ny AS INTEGER
+    IF pct <= 0 THEN EXIT SUB
+    FOR y = 0 TO MZ_H - 1
+        FOR x = 0 TO MZ_W - 1
+            ' a dead end has exactly three walls standing
+            walls = 0
+            IF (MZ(x, y) AND W_N) <> 0 THEN walls = walls + 1
+            IF (MZ(x, y) AND W_E) <> 0 THEN walls = walls + 1
+            IF (MZ(x, y) AND W_S) <> 0 THEN walls = walls + 1
+            IF (MZ(x, y) AND W_W) <> 0 THEN walls = walls + 1
+            IF walls = 3 AND INT(RND * 100) < pct THEN
+                ' collect walls that have a cell on the far side (never open the border)
+                nc = 0
+                IF (MZ(x, y) AND W_N) <> 0 AND y > 0 THEN nc = nc + 1: cand(nc) = W_N
+                IF (MZ(x, y) AND W_E) <> 0 AND x < MZ_W - 1 THEN nc = nc + 1: cand(nc) = W_E
+                IF (MZ(x, y) AND W_S) <> 0 AND y < MZ_H - 1 THEN nc = nc + 1: cand(nc) = W_S
+                IF (MZ(x, y) AND W_W) <> 0 AND x > 0 THEN nc = nc + 1: cand(nc) = W_W
+                IF nc > 0 THEN
+                    d = cand(INT(RND * nc) + 1)
+                    nx = x: ny = y
+                    SELECT CASE d
+                        CASE W_N: ny = y - 1
+                        CASE W_E: nx = x + 1
+                        CASE W_S: ny = y + 1
+                        CASE W_W: nx = x - 1
+                    END SELECT
+                    MZ(x, y) = MZ(x, y) AND (ALLWALLS - d)
+                    MZ(nx, ny) = MZ(nx, ny) AND (ALLWALLS - Opposite%(d))
+                END IF
+            END IF
+        NEXT x
+    NEXT y
 END SUB
 
 ' Choose the entry point: a random EDGE cell that is genuinely far from the sigil.
@@ -423,8 +476,14 @@ SUB DrawMaze (px AS INTEGER, py AS INTEGER, secs AS SINGLE, msg AS STRING, showp
     COLOR _RGB32(&HFF, &HE0, &H50), 0
     CenterText 3, "-=  A  M A G I C   S I R E N  =-"
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 5, msg
+    CenterText 6, msg
     DrawFuse secs, ox, gw
+    ' the number as well as the bar: a bar shows you are running out, a number tells
+    ' you whether it is worth trying the long way round
+    IF secs > 0 THEN
+        IF secs <= 3 THEN COLOR _RGB32(&HFF, &H60, &H50), 0 ELSE COLOR _RGB32(&HFF, &HD2, &H50), 0
+        CenterText 5, "the wail builds --" + STR$(INT(secs * 10) / 10) + "s"
+    END IF
     COLOR _RGB32(&H55, &HFF, &H55), 0
     CenterText oy + gh + 2, "[arrows/WASD] trace     [ESC] flee"
     _DISPLAY
@@ -504,6 +563,13 @@ SUB MazeSelfTest
     ' and this is the assertion that holds it to it.
     Ok "never a trivial walk-in (>= 4 steps, always)", minlen >= 4
     Ok "starts on an EDGE cell", StartIsEdge%
+    ' Braiding only removes walls, so it cannot disconnect anything -- but that is an
+    ' argument, and the reachability check above is the evidence. This measures that it
+    ' actually DID something: a braid that silently no-ops leaves the maze as twisty as
+    ' before while the constant claims otherwise.
+    RANDOMIZE 3: MazeGen WARD_W, WARD_H
+    Ok "braiding leaves far fewer dead ends than a perfect maze", DeadEnds% < (WARD_W * WARD_H) / 4
+    Ok "the ward is small enough to read at a glance", WARD_W * WARD_H <= 80
     PRINT "       shortest solution seen"; minlen; " longest"; maxlen
 
     PRINT
@@ -545,6 +611,23 @@ FUNCTION WallsAgree% ()
             IF ((MZ(x, y) AND W_S) = 0) <> ((MZ(x, y + 1) AND W_N) = 0) THEN WallsAgree% = FALSE
         NEXT x
     NEXT y
+END FUNCTION
+
+' How many dead ends the current maze has. A perfect maze of this size has plenty;
+' after braiding there should be very few.
+FUNCTION DeadEnds% ()
+    DIM x AS INTEGER, y AS INTEGER, walls AS INTEGER, n AS INTEGER
+    FOR y = 0 TO MZ_H - 1
+        FOR x = 0 TO MZ_W - 1
+            walls = 0
+            IF (MZ(x, y) AND W_N) <> 0 THEN walls = walls + 1
+            IF (MZ(x, y) AND W_E) <> 0 THEN walls = walls + 1
+            IF (MZ(x, y) AND W_S) <> 0 THEN walls = walls + 1
+            IF (MZ(x, y) AND W_W) <> 0 THEN walls = walls + 1
+            IF walls = 3 THEN n = n + 1
+        NEXT x
+    NEXT y
+    DeadEnds% = n
 END FUNCTION
 
 FUNCTION StartIsEdge% ()
