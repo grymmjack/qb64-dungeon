@@ -205,6 +205,9 @@ CONST CUT_OFF = 2         ' skip cut-scenes entirely
 '    most this many times instead of once per frame. ---
 CONST CUT_ALPHA_STEPS = 32
 
+'--- how long an unattended choice menu waits before taking option 1 ---
+CONST CUT_CHOICE_AUTOSEC = 4
+
 ' ============================================================================
 '  TYPES
 ' ============================================================================
@@ -396,6 +399,7 @@ DIM SHARED CUT_CHTARGET(0 TO CUT_MAXCHOICE) AS INTEGER
 DIM SHARED CUT_NCH AS INTEGER
 DIM SHARED CUT_CHSEL AS INTEGER
 DIM SHARED CUT_CHPROMPT AS STRING
+DIM SHARED CUT_CHT0 AS DOUBLE       ' when the menu opened, for the auto-pick
 
 '--- player-facing options (the host sets these) ---
 DIM SHARED CUT_MODE AS INTEGER          ' CUT_MANUAL / CUT_AUTO / CUT_OFF

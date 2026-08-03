@@ -372,15 +372,23 @@ END SUB
 ' ----------------------------------------------------------------------------
 SUB DoShot (target AS STRING, atT AS SINGLE, outp AS STRING)
     DIM r AS INTEGER, i AS INTEGER, steps AS LONG, dt AS DOUBLE
-    DIM o AS STRING
+    DIM o AS STRING, scr AS LONG
 
     o = outp
     IF LEN(o) = 0 THEN o = "cutscene-shot.png"
 
-    _DEST _CONSOLE
+    '--- HOLD ON TO THE SCREEN. Printing a status line means _DEST _CONSOLE,
+    '    and leaving it there points the whole renderer at the console: every
+    '    _PUTIMAGE then fails with "illegal function call" and the title card's
+    '    dashes come out in the terminal. Console printing has to be bracketed,
+    '    never left switched on. ---
+    scr = _DEST
+
     IF CutStart%(target) = 0 THEN
+        _DEST _CONSOLE
         PRINT "cannot compile " + target
         CutPrintDiags
+        _DEST scr
         EXIT SUB
     END IF
 
@@ -396,12 +404,15 @@ SUB DoShot (target AS STRING, atT AS SINGLE, outp AS STRING)
         CutShiftClocks -dt
     NEXT i
 
-    _SAVEIMAGE o, _DEST
+    _SAVEIMAGE o, scr
+
+    _DEST _CONSOLE
     PRINT "wrote " + o + "  (op " + LTRIM$(STR$(CUT_PC)) + "/" + LTRIM$(STR$(CUT_NOP)) + ", missing assets:" + STR$(CUT_MISSING) + ")"
     IF LEN(MOCK_LOG) > 0 THEN
         PRINT "-- scene did --"
         PRINT MOCK_LOG;
     END IF
+    _DEST scr
 END SUB
 
 ' ============================================================================

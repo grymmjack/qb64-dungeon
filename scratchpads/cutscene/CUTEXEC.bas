@@ -507,7 +507,13 @@ SUB CutWaitCheck
             END IF
 
         CASE WAIT_CHOICE
-            ' resolved by CutKeyFeed
+            '--- normally resolved by CutKeyFeed. In AUTO mode nobody is going
+            '    to press anything -- attract mode, a `shot`, an unattended
+            '    demo loop -- so the menu takes its first option rather than
+            '    parking the scene there forever. ---
+            IF CUT_MODE = CUT_AUTO THEN
+                IF CUT_NOW - CUT_CHT0 >= CUT_CHOICE_AUTOSEC THEN CutChoiceTake
+            END IF
     END SELECT
 END SUB
 
@@ -549,11 +555,22 @@ FUNCTION CutTick% ()
     CutTick% = CUT_RUNSTATE
 END FUNCTION
 
-'--- push every time origin forward, so a paused scene resumes exactly where
-'    it stood rather than jumping to where it would have been. ---
+'--- Shift every time origin.
+'
+'  POSITIVE dt pushes the origins forward, which FREEZES the scene: it is what
+'  a pause does, so nothing in flight snaps ahead when play resumes.
+'
+'  NEGATIVE dt pulls them back, which ADVANCES the scene by that much -- one
+'  mechanism, both directions. That is what `shot` uses to run a scene to a
+'  fixed simulated time without waiting for it, and what [->] scrubs with.
+'
+'  Guarding this on `dt <= 0` (as it first did) silently made every seek a
+'  no-op: `shot` stepped a real-time loop that advanced microseconds per
+'  iteration, so every screenshot came back on op 3 whatever time was asked
+'  for -- and looked plausible, because op 3 does draw something. ---
 SUB CutShiftClocks (dt AS DOUBLE)
     DIM i AS INTEGER
-    IF dt <= 0 THEN EXIT SUB
+    IF dt = 0 THEN EXIT SUB
     FOR i = 1 TO CUT_MAXTWEEN
         IF CUT_TWN(i).active THEN CUT_TWN(i).t0 = CUT_TWN(i).t0 + dt
     NEXT i
@@ -563,10 +580,12 @@ SUB CutShiftClocks (dt AS DOUBLE)
     FOR i = 1 TO CUT_MAXLAYER
         IF CUT_LAY(i).used THEN CUT_LAY(i).atime = CUT_LAY(i).atime + dt
     NEXT i
+    CUT_T0 = CUT_T0 + dt
     CUT_WAITT0 = CUT_WAITT0 + dt
     CUT_TXT0 = CUT_TXT0 + dt
     CUT_TXHOLDT0 = CUT_TXHOLDT0 + dt
     CUT_TRT0 = CUT_TRT0 + dt
+    CUT_CHT0 = CUT_CHT0 + dt
 END SUB
 
 ' ----------------------------------------------------------------------------

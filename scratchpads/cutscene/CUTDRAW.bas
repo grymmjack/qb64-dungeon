@@ -428,6 +428,7 @@ SUB CutChoiceBegin (p AS INTEGER)
     '--- step past the OP_OPTIONs: they are data for this op, not code ---
     CUT_PC = p + n + 1
     CUT_WAIT = WAIT_CHOICE
+    CUT_CHT0 = CUT_NOW
 END SUB
 
 SUB CutChoiceKey (k AS STRING)

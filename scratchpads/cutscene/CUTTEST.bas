@@ -78,6 +78,24 @@ SUB DoSelftest
     CutOk "  flag name", CutTok$(2) = "saw_omen"
     CutOk "  value", CutTok$(4) = "1"
 
+    '--- a RUN of comparison characters is ONE token. Splitting them singly
+    '    turned `==` into two `=`, and rejoining a condition for storage then
+    '    produced `class = = wizard`, which the evaluator refused -- so every
+    '    `if class == wizard` in every scene failed to compile. ---
+    CutTokenize "if class == wizard"
+    CutOk "'==' survives as one token", CUT_NTK = 4
+    CutOk "  operator is '=='", CutTok$(3) = "=="
+    CutTokenize "if gold >= 5000"
+    CutOk "'>=' survives as one token", CutTok$(3) = ">="
+    CutTokenize "if a <> b"
+    CutOk "'<>' survives as one token", CutTok$(3) = "<>"
+
+    '--- ...but `>` is also a comparison character, so the arrow needs its own
+    '    rule or every choice option would resolve to no label. ---
+    CutTokenize "option " + CHR$(34) + "Open it" + CHR$(34) + " -> open_it"
+    CutOk "'->' is NOT split by the comparison rule", CutTok$(3) = "->"
+    CutOk "  and the label survives", CutTok$(4) = "open_it"
+
     ' ------------------------------------------------------------------
     CutSect "easing"
 
@@ -284,6 +302,26 @@ SUB DoSelftest
     CutOk "time still moves forward across midnight", t2 > t1
     CutOk "  by the true elapsed gap (86399 -> 00:00:01 is 2s), not backwards a day", ABS((t2 - t1) - 2#) < 0.01
     CUT_CLKWRAP = 0
+
+    ' ------------------------------------------------------------------
+    CutSect "the clock shift is the seek mechanism"
+
+    '--- a NEGATIVE shift advances the scene. Guarding it on dt <= 0 made
+    '    every `shot` and every [->] scrub a silent no-op: the screenshot came
+    '    back on whatever op the scene was on a microsecond in, and looked
+    '    perfectly plausible. ---
+    CutOk "timed scene compiles", CutCompileText%("wait 2" + CHR$(10) + "set past_the_wait 1" + CHR$(10))
+    MOCK_N = 0
+    CutBegin
+    CUT_PC = 1
+    CutStep
+    CutOk "  the VM parks on the wait", CUT_WAIT = WAIT_TIME
+    CutShiftClocks -3#
+    CUT_NOW = CutClock#
+    CutWaitCheck
+    CutOk "  a negative shift elapses it", CUT_WAIT = WAIT_NONE
+    CutStep
+    CutOk "  and execution continues past it", Cut_State#("flag.past_the_wait") = 1
 
     ' ------------------------------------------------------------------
     CutSect "text wrap"

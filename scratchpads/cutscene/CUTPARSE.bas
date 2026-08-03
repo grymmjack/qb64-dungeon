@@ -147,12 +147,37 @@ SUB CutTokenize (rawln AS STRING)
             _CONTINUE
         END IF
 
-        '--- `=` is a separator that emits ITSELF, so `set x = 1` and
-        '    `set x=1` compile to the same three tokens. Only spelling one of
-        '    them would be a silent no-op for whichever the author typed. ---
-        IF c = 61 THEN
+        '--- Comparison characters separate, and emit THEMSELVES -- so
+        '    `set x = 1` and `set x=1` compile to the same three tokens.
+        '
+        '    The RUN matters: consuming them one at a time turned `==` into two
+        '    `=` tokens, and rejoining a condition for storage then produced
+        '    `class = = wizard`, which the evaluator rightly refused. Take the
+        '    whole run, so `==`, `>=`, `<=` and `<>` survive as one token. ---
+        '--- `->` first: `>` is a comparison character, so without this the
+        '    arrow in `option "Open it" -> open_it` would split into `-` and
+        '    `>` and the option would resolve to no label at all. ---
+        IF c = 45 THEN
+            IF i < LEN(ln) THEN
+                IF ASC(ln, i + 1) = 62 THEN
+                    IF LEN(cur) > 0 THEN CutPushTok cur, FALSE: cur = ""
+                    CutPushTok "->", FALSE
+                    i = i + 1
+                    _CONTINUE
+                END IF
+            END IF
+        END IF
+
+        IF CutIsCmpChar%(c) THEN
             IF LEN(cur) > 0 THEN CutPushTok cur, FALSE: cur = ""
-            CutPushTok "=", FALSE
+            DO WHILE i <= LEN(ln)
+                IF CutIsCmpChar%(ASC(ln, i)) = 0 THEN EXIT DO
+                cur = cur + CHR$(ASC(ln, i))
+                i = i + 1
+            LOOP
+            i = i - 1
+            CutPushTok cur, FALSE
+            cur = ""
             _CONTINUE
         END IF
 

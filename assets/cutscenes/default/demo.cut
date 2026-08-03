@@ -1,0 +1,99 @@
+' ============================================================================
+'  demo.cut -- the reference scene. Every feature the engine has, once.
+'
+'  Watch it:   cutplay.run assets/cutscenes/default/demo.cut
+'  Branches:   cutplay.run assets/cutscenes/default/demo.cut class=wizard gold=6000
+'  Lint it:    cutplay.run lint assets/cutscenes/default/demo.cut
+' ============================================================================
+
+scene demo
+
+' A stage BIGGER than the screen is what there is to pan around in. The screen
+' is 1056x816, so this is a 2x2 world.
+stage 2112x1632
+
+' ---------------------------------------------------------------- title card
+cam 0.5,0.5 zoom 1
+title "THE CRYPT OPENS" "a cut-scene engine demo" for 2.5
+fade to black over 0.6
+
+' ------------------------------------------------------------------ the room
+' Layers stack in the order they are first shown, so `bg` is the backdrop.
+' The room art is 192x192, so it is scaled up to fill the stage.
+show bg "rooms/the-crypt.png" scale 11 at 0.5,0.5
+cam 0.35,0.35 zoom 2.2
+fade from black over 1.2
+
+music "dungeon" fadein 3.0
+
+' A caption does NOT block -- it sits there while everything else continues.
+caption "LEVEL FIVE" at 66,4 anchor c color gold fade 0.8
+
+' ------------------------------------------------- async: two things at once
+' The pan is launched and returns immediately, so the dialogue types WHILE the
+' camera is still moving. Take the `async` off and the same line would hold
+' everything up for six seconds.
+async pan to 0.7,0.6 over 6.0 ease inout
+async zoom to 1.4 over 6.0 ease inout
+
+say "The air turns cold, and the stair behind you is gone."
+say "Something down here has been waiting a very long time."
+
+' Join the camera moves before the next beat.
+waitall
+
+' ------------------------------------------------------------ the thing here
+show mon "monsters/undead/skeleton.png" scale 5 at 0.72,0.62 fade 1.0
+sfx "monster-appear"
+shake 6 for 0.5
+
+portrait "monsters/undead/skeleton.png"
+say Skeleton: "You are late. The others came, and stayed."
+
+' ------------------------------------------------------ a conditional branch
+' State comes from the host. In the standalone player it comes from the
+' command line, so both arms can actually be watched.
+if class == wizard
+    say "Your staff hums, answering something in the dark."
+    set saw_omen = 1
+elseif gold >= 5000
+    say "Your purse is heavy enough to slow you down."
+else
+    say "You have nothing it wants. That is not comforting."
+end
+
+' ---------------------------------------------------------------- the choice
+choice "The bones have not moved. Yet."
+    option "Draw steel"       -> fight
+    option "Back away slowly" -> flee
+end
+
+' --------------------------------------------------------------------- arms
+label fight
+    flash white 0.12
+    sfx "sword-hit"
+    say "You swing first. It was always going to be first."
+    grant gold 250
+    set fought_the_bones = 1
+    jump ending
+
+label flee
+    say "You back into the dark, and the dark lets you."
+    set fled_the_bones = 1
+    jump ending
+
+' ------------------------------------------------------------------- ending
+label ending
+
+' Text-mode transitions -- these live in the ANSI idiom nothing else does.
+scatter over 1.2
+
+cleartext
+show bg "screens/you-win.png" scale 5 at 0.5,0.5
+hide mon
+cam 0.5,0.5 zoom 1
+
+crawl "and no one who went down" "ever came back up the stair" "except, this once, you" for 6.0
+
+musicstop fade 2.0
+iris in at 0.5,0.5 over 1.5
