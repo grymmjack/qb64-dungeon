@@ -360,6 +360,7 @@ DIM SHARED ROLLHOLD_ON AS INTEGER                ' any holds pending
 ' instead of it being re-discovered by eye every time the tray or the die size moves.
 DIM SHARED roll_floor_y AS INTEGER               ' lowest pixel a settled die can occupy
 DIM SHARED roll_sum_y AS INTEGER                 ' top of the running-total lane
+DIM SHARED roll_tray_bot AS INTEGER              ' bottom edge of the drawn tray rectangle
 DIM SHARED rollseq_on AS INTEGER                 ' -1 while consecutive rolls share a tray
 DIM SHARED rollseq_snap AS LONG                  ' the screen underneath that shared tray
 ' DPoly polyhedron die fonts, indexed BY SIDE COUNT: DFONT(20) is the d20 font.

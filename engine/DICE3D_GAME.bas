@@ -191,7 +191,14 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     cfg.RESTITUTION = 0.62                          ' a couple extra bounces before settling (0.55 default)
     tw = 150 + n * 84
     IF tw > SW * CW - 40 THEN tw = SW * CW - 40
+    ' SNAPPED TO A WHOLE NUMBER OF TEXT ROWS. The running total is printed in a lane below the
+    ' tray, and that lane can only start on a row boundary -- rrow = (ty + th) \ CH rounds DOWN.
+    ' With an arbitrary height the tray therefore ended a few pixels INSIDE its own total lane and
+    ' painted over the top of the text: at the character-generation offset, exactly 4px, which is
+    ' the sliver taken off the top of every digit. Snapping th down to a multiple of CH makes the
+    ' tray's bottom edge and the lane's top edge the same line.
     th = 132
+    th = (th \ CH) * CH
     tx = (SW * CW - tw) \ 2
     ty = (12 + DICE3D_YOFF) * CH                    ' DICE3D_YOFF shifts the whole tray down (char-gen clears the stat sheet)
     ' PHYSICS BOX, inset from the DRAWN tray. The dice bounce off the box; the tray is only a
@@ -235,6 +242,7 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' What the dice can reach vs where the total is printed -- see roll_floor_y in ENGINE.BI.
     roll_floor_y = cfg.BOX_Y + cfg.BOX_H + dice3d_radius!(cfg)
     roll_sum_y = ((ty + th) \ CH) * CH
+    roll_tray_bot = ty + th
     hbw = (LEN(hdr) + 4) * CW                      ' header box: caption width, its own
     IF hbw < tw THEN hbw = tw
     IF hbw > SW * CW - 20 THEN hbw = SW * CW - 20

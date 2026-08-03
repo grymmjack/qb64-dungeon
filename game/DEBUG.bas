@@ -1426,6 +1426,13 @@ SUB HeldRerollCheck
                 ' The dice must not be able to reach the running-total lane. Checked rather than
                 ' eyeballed: the tray height, the die size and the inset all feed it, so any one of
                 ' them moving can put dice back over the text.
+                ' The tray must also END at or above the lane, not inside it -- the tray is a
+                ' filled rectangle and the lane can only begin on a text row.
+                IF roll_tray_bot > roll_sum_y THEN
+                    PRINT PipeCol$("  |12BAD|07  3D -- the tray overlaps the total lane by " + _
+                          _TRIM$(STR$(roll_tray_bot - roll_sum_y)) + "px")
+                    bad = bad + 1
+                END IF
                 IF roll_floor_y > roll_sum_y THEN
                     PRINT PipeCol$("  |12BAD|07  3D -- dice can reach the total lane (floor " + _
                           _TRIM$(STR$(roll_floor_y)) + " vs lane " + _TRIM$(STR$(roll_sum_y)) + ")")
