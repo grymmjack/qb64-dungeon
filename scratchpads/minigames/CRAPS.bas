@@ -39,6 +39,15 @@ MgScreen
 MgDiceInit                     ' after the window: the 3D layer needs GL
 ' the tray is part of the LAYOUT -- reserved once, drawn every frame
 MgDiceTray 34 * CW, 11 * CH, 64 * CW, 8 * CH, "-=  the bones  =-"
+IF INSTR(cmd, "DICEDEMO") > 0 THEN
+    ' the live dice path -- see MgDiceSmoke. NEEDS A REAL GPU, not xvfb.
+    MG_FORCE3D = TRUE: MgDiceInit
+    _DEST _CONSOLE: PRINT "CRAPS dice smoke test  (needs a real display -- not xvfb)"
+    MgDiceSmoke 2, 6
+    MgDiceSmoke 2, 6
+    PRINT "  ALL GREEN"
+    SYSTEM
+END IF
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawCraps 4, 5, 6, CR_POINT, 120, 20, "the point is 6 -- roll it again before a 7"
     _SAVEIMAGE "craps-shot.png"

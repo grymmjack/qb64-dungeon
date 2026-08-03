@@ -68,7 +68,7 @@ SUB MgDiceInit
 
     ' the module draws on the GL layer, which does not exist without a window --
     ' and a headless run has no business animating anything
-    IF MG_QUIET THEN dice3d_ready = FALSE
+    IF MG_QUIET _ANDALSO NOT MG_FORCE3D THEN dice3d_ready = FALSE
 
     FOR i = 0 TO 6
         DSET3D(i).SOUND_ENABLED = 0   ' the prototype owns its noises, via MgBeep
@@ -99,12 +99,56 @@ END SUB
 ' So a prototype ends its draw routine with THIS instead of _DISPLAY: the screen
 ' it just drew is on the back buffer, the settled dice go over it, and the flip
 ' happens once. Call _DISPLAY as well and the dice flicker.
+' THE GUARD IS THE WHOLE THING. dice3d_roll frees the per-die atlas and the box
+' buffer when it finishes, and it does NOT zero the atlas handle -- so afterwards
+' DICE3D_DICE(i).ATLAS is a stale, non-zero, freed handle. Two ways that bites:
+'
+'   * the SOFTWARE path renders from those per-die atlases -> Invalid handle
+'   * the HARDWARE path is safe ONLY once DICE3D_HWATLAS exists; while it is
+'     still 0 it tries to build it by copying DICE3D_DICE(lo).ATLAS, i.e. the
+'     same freed handle -> Invalid handle
+'
+' My first guard tested dice3d_force_soft, which is a manual OVERRIDE, not the
+' dispatch. dice3d_present branches on DICE3D_HW. So on any machine where the
+' hardware layer was not active, this took the software path and died -- which is
+' exactly what "CRAPS is failing now, invalid handle" was.
+'
+' Repost only on hardware, and only once the hardware atlas is already built.
+' Anything else falls through to a plain flip and the dice simply are not held,
+' which is the old behaviour rather than a crash.
 SUB MgDicePresent
-    IF MGD_HELD _ANDALSO dice3d_ready _ANDALSO NOT dice3d_force_soft THEN
+    IF MGD_HELD _ANDALSO dice3d_ready _ANDALSO DICE3D_HW _ANDALSO DICE3D_HWATLAS <> 0 THEN
         dice3d_present MGD_CFG      ' issues the triangles AND flips
         EXIT SUB
     END IF
     _DISPLAY
+END SUB
+
+' Smoke-test the live dice path: roll, hold, and repost, exactly as play does.
+'
+' A selftest cannot reach any of this -- it runs with 3D disabled -- which is how
+' a repost reading handles that dice3d_roll had already freed got all the way to
+' somebody running the game. It asserts no picture, only that rolling and then
+' presenting for a hundred frames does not blow up.
+'
+' NEEDS A REAL GPU. Under Xvfb the hardware path dies on its first hardware
+' _COPYIMAGE, and forcing the software renderer instead hits a separate failure
+' inside the module that I have not isolated -- so this cannot run in the gate,
+' and saying so is better than a version that passes by not testing anything.
+' Run it on a machine with a display:  ./CRAPS.run dicedemo
+SUB MgDiceSmoke (n AS INTEGER, sides AS INTEGER)
+    DIM i AS INTEGER, t AS INTEGER
+    ' Headless has no real GL, so the hardware path dies on the first
+    ' _COPYIMAGE(,33). The game's rollshot has the same problem and the same
+    ' answer: force the software renderer, which draws where a capture can see it.
+    ' DICE3D_HW is the dispatch; dice3d_force_soft is only the intent.
+    t = GameRoll%(n, sides, 0, "smoke")
+    _DEST _CONSOLE
+    PRINT "  rolled"; n; "d"; sides; "="; t; "  held ="; MGD_HELD; "  hw ="; DICE3D_HW; "  hwatlas ="; DICE3D_HWATLAS
+    FOR i = 1 TO 100
+        MgDicePresent
+    NEXT i
+    PRINT "  100 reposts survived"
 END SUB
 
 ' Take the dice off the table -- between rounds, or when the screen moves on.

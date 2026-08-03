@@ -62,3 +62,9 @@ DIM SHARED rollseq_on AS INTEGER
 '--- selftest only: pretend the player typed this, so the Real Dice path can be
 '    driven headlessly instead of blocking on a keyboard nobody is at. ---
 DIM SHARED MG_FAKEROLL AS INTEGER
+
+'--- `dicedemo`: drive the REAL dice path in a tool mode. MgDiceInit normally
+'    disables 3D whenever MG_QUIET is set, which is right for a selftest and
+'    wrong for the one thing that needs testing -- the roll-and-repost path that
+'    a selftest can never reach. ---
+DIM SHARED MG_FORCE3D AS INTEGER
