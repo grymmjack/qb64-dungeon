@@ -33,14 +33,20 @@ and the assertion counts.
 | **Cup shuffle** | a street dealer | follow the coin through an honest shuffle | WIS buys a fumble |
 | **Whack-a-goblin** | a cellar | go/no-go: a third of what pops up must not be hit | DEX buys time |
 | **Twenty-one** | tavern, high stakes | the only game here whose skill is a TABLE | — |
-| **Wheel of mystery** | a wall wheel | *(a ceremony, not a game -- see below)* | — |
+| **Wheel of mystery** | a wall wheel | crank it up/down; too weak to go round has a price | — |
+| **The three clasps** | any chest | colour order, reshuffled each pick; ONE code per level | level memory |
 | **Speak its name** | a warded door | name the thing from its description | WIS buys a letter |
 | **Scattered word** | a carved door | unscramble it; the answer must be the ONLY fit | INT reveals letters |
 
-### The wheel is not a game, and says so
+### The wheel was not a game; the crank made it one
 
-**Wheel of mystery** fails house rule 1 outright: one input, no judgement, whatever it
-stops on happens. It is kept because it is the most theatrical way to deliver a random
+It started as a pure ceremony — one input, no judgement — and was labelled as such. Adding
+a **crank** (alternate up/down to build momentum) gave it a decision after all, but only
+because of the rule that came with it: a spin that does not complete a full revolution has
+BALKED, and is punished. Without that, the play is to nudge the wheel two wedges to the one
+you want, and every fairness guarantee is decoration because nobody ever really spins.
+
+What is still true of it: It is kept because it is the most theatrical way to deliver a random
 event, and it is *labelled* rather than dressed up as a decision. What it still has to
 prove is that it does not lie — the outcome is read off the angle it stopped at, never
 picked first and animated toward, and the wedge widths are the complete truth about the

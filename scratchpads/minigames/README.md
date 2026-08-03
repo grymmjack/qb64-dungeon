@@ -38,26 +38,35 @@ xvfb-run -a ./RIDDLE.run shot
 | `DODGE.bas` | Arrow slits — gesture | step PERPENDICULAR to the arrow; DEX widens the window | DEX | 19 |
 | `GAMBLE.bas` | Tavern — gamble | push-your-luck 2d6; any ONE takes the pot | WIS reads odds | 14 |
 | `CRAPS.bas` | Tavern | come-out, then chase the point; when to walk | — | 20 |
-| `PLINKO.bas` | Fortune shrine | which channel to drop from; risk-vs-reward slots | CHA nudges | 17 |
+| `PLINKO.bas` | Fortune shrine | real physics; place the coin on the lip, payouts MEASURED from the board | placement is skill | 13 |
 | `GUESS.bas` | A bound spirit | binary search under a guess budget | INT buys guesses | 9 |
 | `RPS.bas` | A goblin duel | read the opponent's habit and exploit it | WIS spots the tell | 15 |
 | `RUNEMEMORY.bas` | A rune slab | concentration, W×H, turn budget, **pain runes cost 1 HP per reveal** | memory itself | 16 |
 | `MONKEYSEE.bas` | A shrine floor | Simon — the sequence EXTENDS, it never re-rolls | WIS buys recalls | 13 |
-| `LOCKPICK.bas` | Chests, doors | search a 24-notch dial by feel; the clock runs on MOVES | DEX buys fuse | 14 |
+| `LOCKPICK.bas` | Chests, doors | search a 24-notch dial by feel, against a fuse that burns two ways | DEX buys fuse | 18 |
 | `TRAPDISARM.bas` | Trapped chests | deduce the one legal cut order from the notes | INT buys notes | 13 |
 | `CUPSHUFFLE.bas` | A street dealer | follow the coin; the game never palms it | WIS buys a fumble | 12 |
 | `WHACKAGOBLIN.bas` | A cellar | go/no-go — a third of what pops up must NOT be hit | DEX buys time | 9 |
 | `BLACKJACK.bas` | Tavern, higher stakes | basic strategy vs two wrong strategies | — | 17 |
-| `SPINWHEEL.bas` | A wall wheel | a ceremony, not a game: whatever it lands on happens | — | 11 |
+| `SPINWHEEL.bas` | A wall wheel | CRANK it up/down for strength; too weak to go round is punished | — | 26 |
 | `TRUENAME.bas` | A warded door | name the thing from its description | WIS buys a letter | 17 |
 | `SCRAMBLE.bas` | A carved door | unscramble the word; no anagram may be ambiguous | INT reveals letters | 15 |
+| `OPENTHECHEST.bas` | Any chest | three colour clasps; the shut ones shuffle after each correct pick | — (level memory) | 24 |
 
 **Every fairness claim in that table is measured, not asserted by hand.** Where a game has
 odds they are simulated; where it generates a puzzle, solvability is checked on every
 generation; where it has a clock, the clock is derived from what a slow human can do.
-That is not ceremony — it caught a wrong turn budget in RUNEMEMORY (one turn under the
-true worst case), a target score in WHACKAGOBLIN that failed attentive players a third of
-the time, and two anagrams sitting eight entries apart in SCRAMBLE's word list.
+That is not ceremony. It has caught: a turn budget in RUNEMEMORY one turn under the true
+worst case; a target score in WHACKAGOBLIN that failed attentive players a third of the
+time; two anagrams eight entries apart in SCRAMBLE's word list; a PLINKO coin pinned on a
+stud for three thousand frames while the board still produced a plausible distribution out
+of the survivors; and a SPINWHEEL crank that decayed faster than a hand could work it.
+
+**And one it could not catch**, which is the more useful lesson: SPINWHEEL passed 60,000
+spins of "the result is read, not chosen" while announcing a wedge two positions from the
+one under the pointer. The test replayed the same sign convention the bug lived in. It
+took a screenshot and a human-shaped question — *is the pointer on the wedge it just
+named?* — so `shot` is not a nicety.
 
 See [BOW-AND-MAGIC.md](BOW-AND-MAGIC.md) for why bow and magic are **not** here.
 
