@@ -1,8 +1,12 @@
 # OPENTHECHEST — spec
 
-Not built yet. Written down first because the interesting half is not the puzzle,
-it is the **level-scoped memory**, and that is an API decision that has to be
-right before any drawing happens.
+**Built** — `OPENTHECHEST.bas`, 32 assertions. This was written *before* the code,
+because the interesting half is not the puzzle, it is the **level-scoped memory**,
+and that is an API decision that had to be right before any drawing happened.
+
+Kept as the design record, and **updated where building it changed the design** —
+a spec that quietly disagrees with the code is worse than no spec, because both
+look authoritative.
 
 ## The chest
 
@@ -14,16 +18,27 @@ the drawing goes through one routine that can be swapped whole.
 
 ## The mechanic
 
-1. Three locks are shown. You choose which to open **first**.
-2. **Correct** → that lock stays open, and keeps its colour. The *remaining*
-   locks then **randomise their colours and positions**.
-3. **Wrong** → the trap fires. The chest and everything in it is destroyed.
+1. Three clasps are shown. You choose which to open **first**.
+2. **Correct** → that clasp stays open and keeps its colour, and **every** clasp
+   is re-dealt across the positions — the opened ones too.
+3. **Wrong** → the mechanism **arms**. See "the open question" below.
 4. Three correct choices in a row → the chest opens, no trap.
 
-The re-randomisation after each correct pick is the whole design: it means the
-answer cannot be a *position*. What you are remembering is an ordered sequence of
-**colours** — red, then green, then blue — and the board deliberately refuses to
-let you cache it as "left, middle, right".
+The re-deal after each pick is the whole design: it means the answer cannot be a
+*position*. What you are remembering is an ordered sequence of **colours** — and
+the chest deliberately refuses to let you cache it as "left, middle, right".
+
+> **Changed while building:** the first cut re-dealt only the clasps still *shut*,
+> which with three clasps means two, which is a coin flip — so half of all
+> shuffles changed nothing visible and the chest looked like it had ignored you.
+> Every clasp moves now.
+>
+> It is **not** forced to differ, though. Guaranteeing a change means excluding
+> the identity permutation, and that biases where the answer lands: measured
+> 40/20/40 against a uniform 33/33/33. Visible movement is a presentation
+> problem and is solved in presentation — the clasps visibly tumble, so the one
+> time in six that a uniform re-deal lands back where it started still reads as a
+> shuffle that happened.
 
 Blind odds are 1 in 6 (3 × 2 × 1), which is brutal, and is exactly why the next
 section exists.
@@ -84,12 +99,12 @@ the mini-game never names a file, a colour value, or a tone:
 ' one entry per drawable piece; kind = pixel art, ANSI art, or the built-in
 ' placeholder, resolved per piece so a half-finished art pack still runs
 CHEST_ART("chest.closed")     CHEST_ART("chest.open")   CHEST_ART("chest.blown")
-CHEST_ART("lock.closed")      CHEST_ART("lock.open")    CHEST_ART("lid")
+CHEST_ART("clasp.closed")     CHEST_ART("clasp.open")   CHEST_ART("lid")
 CHEST_ART("box")              CHEST_ART("cursor")
 
-' colours are NAMED, not hardcoded -- the three lock colours are content, and a
+' colours are NAMED, not hardcoded -- the three clasp colours are content, and a
 ' data pack may want different ones (or more than three)
-CHEST_HUE("lock.a") ... and so on, through the theme, with a fallback each
+CHEST_HUE("clasp.a") ... and so on, through the theme, with a fallback each
 
 ' every sound by name, through the game's Sfx dispatcher, so a pack can override
 ' any of them and the beeper fallback still covers a pack that ships none
@@ -107,8 +122,9 @@ elsewhere and both of which have bitten this project before:
   is `ArtLooksPlaceholder%` / `AnsiIsBlank%`, and it exists because a stand-in is
   a file and every "does it exist" check says yes
 
-The number of locks should come from the same table rather than being three
-forever — three is a tuning value, not an architecture.
+The number of clasps should come from the same table rather than being three
+forever — three is a tuning value, not an architecture. (Called *clasps* in the
+code: `LOCK` is a QB64 reserved word.)
 
 ## What the selftest will have to prove
 
@@ -122,8 +138,10 @@ forever — three is a tuning value, not an architecture.
   uninformative about the remaining answer
 - solving one chest on a level makes every later chest on that level free, and
   changes nothing about any other level
-- a wrong pick destroys the contents (the stake is real, or the guess is free
-  and there is no game)
+- a wrong pick has a real cost (or the guess is free and there is no game) —
+  which ended up being the fuse rather than instant destruction, below
+- the fuse: perfect play never arms it; a correct clasp winds it back but does
+  not disarm it; a scripted pause is never charged against it
 
 ## The open question, and how it got answered
 
