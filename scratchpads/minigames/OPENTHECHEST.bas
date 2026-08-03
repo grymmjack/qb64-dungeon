@@ -40,6 +40,7 @@
 '  fail, the level memory is worth nothing and the first chest was robbery.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST CLASPS = 3                ' NOT "LOCKS" -- LOCK is a QB64 reserved word
 CONST LEVELS = 9
@@ -626,7 +627,7 @@ SUB DrawChest (msg AS STRING)
     COLOR C_TEXT, 0: MgCenter 29, msg
     COLOR C_GOOD, 0
     MgCenter 32, "[LEFT]/[RIGHT] choose a clasp   [SPACE] open it   [ESC] back away"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -1226,3 +1227,4 @@ FUNCTION ArtIndexOf% (k AS STRING)
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

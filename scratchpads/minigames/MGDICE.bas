@@ -116,6 +116,22 @@ END SUB
 ' Repost only on hardware, and only once the hardware atlas is already built.
 ' Anything else falls through to a plain flip and the dice simply are not held,
 ' which is the old behaviour rather than a crash.
+' THE FRAME. Every prototype ends its draw routine with this and nothing else.
+'
+' It is one name so that integration is one substitution: in qb64-dungeon this
+' becomes `Present`, the game's single per-frame chokepoint -- the place the [`]
+' dev-console hotkey is polled and _RESIZE is handled. A mini-game that calls
+' _DISPLAY directly is a screen the console cannot open over and the window
+' cannot be resized on, and there are ~40 nested blocking loops in that game for
+' it to get that wrong in.
+'
+' It also happens to be where settled dice get re-issued, which is why it lives
+' in the dice layer rather than in MG.bas -- but the reason every prototype calls
+' it is the chokepoint, not the dice.
+SUB MgPresent
+    MgDicePresent
+END SUB
+
 SUB MgDicePresent
     IF MGD_HELD _ANDALSO dice3d_ready _ANDALSO DICE3D_HW _ANDALSO DICE3D_HWATLAS <> 0 THEN
         dice3d_present MGD_CFG      ' issues the triangles AND flips
@@ -263,6 +279,15 @@ FUNCTION AnimatedRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what A
         ' frame of the tumble -- without this the prototype's UI vanishes mid-roll
         IF MGD_SNAP <> 0 THEN _FREEIMAGE MGD_SNAP
         MGD_SNAP = _COPYIMAGE(0, 32)
+
+        ' WHICH RENDERER. The module does not decide this -- the HOST does, and
+        ' the prototypes never did, so DICE3D_HW sat at 0 and every roll went down
+        ' the software path. That path composites into the canvas and cannot be
+        ' re-posted afterwards (its atlases are freed on the way out), so the dice
+        ' appeared while rolling and vanished the moment they settled.
+        '
+        ' Same line the game uses in Show3DRoll.
+        IF dice3d_force_soft THEN DICE3D_HW = 0 ELSE DICE3D_HW = -1
 
         notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
         dice3d_roll notation, cfg, r()             ' animates, returns settled faces

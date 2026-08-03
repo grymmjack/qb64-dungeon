@@ -21,6 +21,7 @@
 '  decide. It never auto-hits and never changes what comes up.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST HOLES = 9
 CONST MAXPOP = 60
@@ -231,7 +232,7 @@ SUB DrawCellar (now AS SINGLE, msg AS STRING)
     MgFuse 33, 1! - now / g_len, g_len - now
     COLOR C_GOOD, 0
     MgCenter 36, "[1]-[9] swing at a hole      GOBLIN only -- a pup, a mimic or the mule costs you 2"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -357,3 +358,4 @@ FUNCTION DecoyRateSane% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

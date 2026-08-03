@@ -110,6 +110,22 @@ break for exactly the players who turned the setting on.
 `' not a die:` waiver saying why — a Monte Carlo is the common legitimate case,
 since it runs hundreds of thousands of times and must never be able to prompt.
 
+## One harness, one flip
+
+Every prototype now links the same two-part harness — `MG.bi`/`MG.bas` plus
+`MGDICE.bi`/`MGDICE.bas` — and ends its draw routine with **`MgPresent`**, never
+a raw `_DISPLAY`.
+
+That is the plug-n-play seam. In `qb64-dungeon` that one call becomes `Present`,
+the game's single per-frame chokepoint: the place the `` [`] `` dev console is
+polled and `_RESIZE` is handled. A mini-game that flips on its own is a screen
+the console cannot open over and the window cannot be resized on — and that game
+has ~40 nested blocking loops to get it wrong in.
+
+`audit-api.sh` enforces it: no prototype may call `_DISPLAY`, every one must call
+`MgPresent`, and every one must link the harness (or `MgPresent` compiles as a
+label and silently does nothing).
+
 ## Error handling
 
 Every prototype arms `ON ERROR GOTO MgFatal` before anything can fail, for the same reason

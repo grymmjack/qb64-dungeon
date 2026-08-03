@@ -29,6 +29,7 @@
 '  INT reveals a letter in its final position. It never shortens the word.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST WORDN = 24
 CONST WINSTREAK = 4
@@ -227,7 +228,7 @@ SUB DrawScr (msg AS STRING)
     MgFuse 29, g_left / g_fuse, g_left
     COLOR C_GOOD, 0
     MgCenter 33, "type it and press [ENTER]      [?] reveal the next letter      [ESC] leave"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -377,3 +378,4 @@ FUNCTION LongestWord$ ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

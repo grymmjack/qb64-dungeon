@@ -12,6 +12,7 @@
 '  playing binary search against all of them.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST GRANGE = 100
 
@@ -69,7 +70,7 @@ FUNCTION PlayGuess% (intel AS INTEGER)
     DO
         DrawSpirit -1, used, budget, hint, lo, hi
         COLOR C_TEXT, 0: MgCenter 26, "> " + entry + "_" + SPACE$(6)
-        _DISPLAY
+        MgPresent
         k = INKEY$
         IF LEN(k) = 1 THEN
             c = ASC(k)
@@ -160,3 +161,4 @@ FUNCTION RangeAfter% (g AS INTEGER, lo AS INTEGER, hi AS INTEGER)
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

@@ -22,6 +22,7 @@
 '  vocabulary quiz you cannot pass without the manual.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST ROSTER = 16
 CONST WINSTREAK = 5
@@ -196,7 +197,7 @@ SUB DrawName (msg AS STRING)
     MgCenter 32, "the clock is set from the longest name at two characters a second -- it is not a race"
     COLOR C_GOOD, 0
     MgCenter 35, "type it and press [ENTER]      [?] first letter      [ESC] back away"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -286,3 +287,4 @@ FUNCTION EveryNameFits% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

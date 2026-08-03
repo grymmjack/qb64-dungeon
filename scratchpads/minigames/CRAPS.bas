@@ -223,7 +223,7 @@ SUB DrawCraps (a AS INTEGER, b AS INTEGER, pnt AS INTEGER, phase AS INTEGER, pur
     COLOR C_WARN, 0: MgCenter 22, "purse " + _TRIM$(STR$(purse)) + "      staked " + _TRIM$(STR$(bet))
     COLOR C_TEXT, 0: MgCenter 24, msg
     COLOR C_GOOD, 0: MgCenter 27, "[SPACE] roll     [ESC] step away"
-    MgDicePresent            ' NOT _DISPLAY: the settled dice are re-issued over this
+    MgPresent                ' the one flip -- becomes Present on integration
 END SUB
 
 

@@ -30,10 +30,9 @@
 '    ./DODGE.run shot        one frame -> dodge-shot.png
 '    ./DODGE.run             play it
 ' ============================================================================
-$CONSOLE
-OPTION _EXPLICIT
+'$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
-CONST TRUE = -1, FALSE = NOT TRUE
 
 '--- directions. The arrow's FROM side; the player's step. ---
 CONST D_N = 1, D_E = 2, D_S = 3, D_W = 4
@@ -43,17 +42,16 @@ CONST DG_CLEAN = 1                       ' every arrow dodged
 CONST DG_HURT = 2                        ' took at least one
 CONST DG_FLED = 3
 
-DIM SHARED AS INTEGER SW, SH, CW, CH
-SW = 132: SH = 51: CW = 8: CH = 16
 
-DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
+MgInit
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN DodgeSelfTest
 
-SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)
+MgScreen
+MgDiceInit                     ' after the window: the 3D layer needs GL
 
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawSlit D_W, 0.62, 2, 4, 1, "step out of the line"
@@ -120,9 +118,6 @@ END FUNCTION
 '  TIMING -- a fuse, not a gauge
 ' ----------------------------------------------------------------------------
 
-FUNCTION AbilMod% (score AS INTEGER)
-    AbilMod% = INT((score - 10) / 2)
-END FUNCTION
 
 ' Seconds to answer arrow number `wave` (1-based) with this DEX.
 '
@@ -136,7 +131,7 @@ FUNCTION DodgeWindow! (dex AS INTEGER, wave AS INTEGER)
     CONST STEP_DOWN = 0.11
     CONST FLOOR_S = 0.42                  ' below this it is a coin flip, not a reflex
     DIM w AS SINGLE
-    w = WIN_BASE - (wave - 1) * STEP_DOWN + AbilMod%(dex) * 0.07
+    w = WIN_BASE - (wave - 1) * STEP_DOWN + MgAbilMod%(dex) * 0.07
     IF w < FLOOR_S THEN w = FLOOR_S
     DodgeWindow! = w
 END FUNCTION
@@ -151,10 +146,6 @@ FUNCTION VolleySize% (depth AS INTEGER)
     VolleySize% = n
 END FUNCTION
 
-FUNCTION RollDie% (sides AS INTEGER)
-    IF sides < 1 THEN sides = 1
-    RollDie% = INT(RND * sides) + 1
-END FUNCTION
 
 
 ' ----------------------------------------------------------------------------
@@ -166,7 +157,7 @@ FUNCTION PlayVolley% (n AS INTEGER, dex AS INTEGER, hits AS INTEGER)
     DIM k AS STRING, ext AS INTEGER, stepdir AS INTEGER, done AS INTEGER, msg AS STRING
     hits = 0
     FOR i = 1 TO n
-        src = RollDie%(4)
+        src = MgRoll%(4)          ' not a die: which of the four slits fires
         win = DodgeWindow!(dex, i)
         t0 = TIMER: done = FALSE: msg = "step out of the line"
         DO
@@ -216,9 +207,9 @@ SUB DrawSlit (src AS INTEGER, frac AS SINGLE, wave AS INTEGER, total AS INTEGER,
     dull = _RGB32(&H50, &H48, &H58)
     danger = _RGB32(&HE0, &H33, &H33)
     COLOR _RGB32(&HFF, &HE0, &H50), 0
-    CenterText 3, "-=  A R R O W   S L I T S  =-"
+    MgCenter 3, "-=  A R R O W   S L I T S  =-"
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 5, msg
+    MgCenter 5, msg
 
     cx = SW \ 2: cy = 22
     ' the corridor: four exits, the two SAFE ones lit
@@ -247,13 +238,13 @@ SUB DrawSlit (src AS INTEGER, frac AS SINGLE, wave AS INTEGER, total AS INTEGER,
         CASE D_S: _PRINTSTRING ((cx - 1) * CW, (cy + 4) * CH), "^"
     END SELECT
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 30, "arrow " + _TRIM$(STR$(wave)) + " of " + _TRIM$(STR$(total)) + "     hit " + _TRIM$(STR$(hits)) + " time(s)"
+    MgCenter 30, "arrow " + _TRIM$(STR$(wave)) + " of " + _TRIM$(STR$(total)) + "     hit " + _TRIM$(STR$(hits)) + " time(s)"
     COLOR _RGB32(&H55, &HFF, &HFF), 0
-    CenterText 32, "it comes from the " + DirName$(src) + " -- step ACROSS it"
+    MgCenter 32, "it comes from the " + DirName$(src) + " -- step ACROSS it"
     DrawFuse frac
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    CenterText 38, "[arrows/WASD] step     [ESC] back away"
-    _DISPLAY
+    MgCenter 38, "[arrows/WASD] step     [ESC] back away"
+    MgPresent
 END SUB
 
 ' The same draining bar as the luck fuse and the gesture gauge, so all three read
@@ -268,26 +259,15 @@ SUB DrawFuse (frac AS SINGLE)
     LINE (fx, fy)-(fx + INT(fw * f), fy + CH - 4), kol, BF
 END SUB
 
-SUB CenterText (row AS INTEGER, s AS STRING)
-    _PRINTSTRING (((SW - LEN(s)) \ 2) * CW, row * CH), s     ' parens: `*` binds tighter than `\`
-END SUB
 
 
 ' ----------------------------------------------------------------------------
 '  SELFTEST
 ' ----------------------------------------------------------------------------
 
-SUB MgOk (label AS STRING, cond AS INTEGER)
-    T_RUN = T_RUN + 1
-    IF cond THEN PRINT "  ok   "; label ELSE PRINT "  FAIL "; label: T_BAD = T_BAD + 1
-END SUB
 
 SUB DodgeSelfTest
-    ' NOTE: this prototype predates MG.bi and does not include the harness, so it
-    ' cannot call MgQuiet. It is silent because it makes no sound at all -- it has
-    ' no MgBeep and no SOUND. A MgQuiet line here would compile as a LABEL and do
-    ' nothing, which is exactly what was sitting here before audit-quiet learned to
-    ' check that the symbol RESOLVES rather than that the text is present.
+    MgQuiet                              ' a selftest is never listened to
     DIM d AS INTEGER, s AS INTEGER, good AS INTEGER, i AS INTEGER
     _DEST _CONSOLE
     PRINT "DODGE selftest"
@@ -337,3 +317,6 @@ SUB DodgeSelfTest
     PRINT "  ALL GREEN"
     SYSTEM
 END SUB
+
+'$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

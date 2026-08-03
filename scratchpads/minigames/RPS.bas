@@ -12,6 +12,7 @@
 '  would be as dull as the coin flip it replaced. Both halves are asserted.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST H_ROCK = 0, H_PAPER = 1, H_SCISSORS = 2
 '--- goblin habits ---
@@ -163,7 +164,7 @@ SUB DrawRps (you AS INTEGER, them AS INTEGER, ws AS INTEGER, ls AS INTEGER, thro
     END IF
     COLOR C_TEXT, 0: MgCenter 24, msg
     COLOR C_GOOD, 0: MgCenter 31, "[R]ock   [P]aper   [S]cissors      [ESC] walk away"
-    _DISPLAY
+    MgPresent
 END SUB
 
 SUB RpsSelfTest
@@ -246,3 +247,4 @@ FUNCTION BlindRate# (n AS LONG)
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

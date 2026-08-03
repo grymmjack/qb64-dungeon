@@ -314,7 +314,7 @@ SUB DrawTable (purse AS LONG, pot AS LONG, a AS INTEGER, b AS INTEGER, rolls AS 
     MgCenter 30, msg
     COLOR _RGB32(&H55, &HFF, &H55), 0
     MgCenter 33, "[R] roll again     [B] bank the pot     [ESC] take it and go"
-    MgDicePresent            ' NOT _DISPLAY: the settled dice are re-issued over this
+    MgPresent                ' the one flip -- becomes Present on integration
 END SUB
 
 

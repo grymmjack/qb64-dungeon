@@ -26,10 +26,9 @@
 '    ./MAZE.run shot         one frame -> maze-shot.png
 '    ./MAZE.run              play it
 ' ============================================================================
-$CONSOLE
-OPTION _EXPLICIT
+'$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
-CONST TRUE = -1, FALSE = NOT TRUE
 
 '--- the lattice. Cells carry WALL BITS, so a wall is shared by both neighbours
 '    and cannot disagree with itself (the classic bug in wall-per-cell mazes). ---
@@ -54,17 +53,16 @@ CONST MZ_DISARMED = 1
 CONST MZ_TOOSLOW = 2
 CONST MZ_FLED = 3
 
-DIM SHARED AS INTEGER SW, SH, CW, CH
-SW = 132: SH = 51: CW = 8: CH = 16
 
-DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
+MgInit
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN MazeSelfTest
 
-SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)
+MgScreen
+MgDiceInit                     ' after the window: the 3D layer needs GL
 
 IF INSTR(cmd, "SHOT") > 0 THEN
     RANDOMIZE 7
@@ -402,16 +400,13 @@ END FUNCTION
 '  RULES
 ' ----------------------------------------------------------------------------
 
-FUNCTION AbilMod% (score AS INTEGER)
-    AbilMod% = INT((score - 10) / 2)
-END FUNCTION
 
 ' Seconds on the fuse. Scaled to the maze's OWN shortest path, not to its size:
 ' a big maze with a short solution should not be more generous than a small maze
 ' with a winding one. Two seconds per required step, plus WIS.
 FUNCTION MazeFuse! (steps AS INTEGER, wis AS INTEGER)
     DIM s AS SINGLE
-    s = steps * 2.0 + AbilMod%(wis) * 2.0
+    s = steps * 2.0 + MgAbilMod%(wis) * 2.0
     IF s < 6 THEN s = 6                     ' never so short that reading the board loses
     MazeFuse! = s
 END FUNCTION
@@ -491,19 +486,19 @@ SUB DrawMaze (px AS INTEGER, py AS INTEGER, secs AS SINGLE, msg AS STRING, showp
     _PRINTSTRING ((ox + (px * 2 + 1) * 2) * CW, (oy + py * 2 + 1) * CH), "@"
     ' chrome
     COLOR _RGB32(&HFF, &HE0, &H50), 0
-    CenterText 3, "-=  A  M A G I C   S I R E N  =-"
+    MgCenter 3, "-=  A  M A G I C   S I R E N  =-"
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 6, msg
+    MgCenter 6, msg
     DrawFuse secs, ox, gw
     ' the number as well as the bar: a bar shows you are running out, a number tells
     ' you whether it is worth trying the long way round
     IF secs > 0 THEN
         IF secs <= 3 THEN COLOR _RGB32(&HFF, &H60, &H50), 0 ELSE COLOR _RGB32(&HFF, &HD2, &H50), 0
-        CenterText 5, "the wail builds --" + STR$(INT(secs * 10) / 10) + "s"
+        MgCenter 5, "the wail builds --" + STR$(INT(secs * 10) / 10) + "s"
     END IF
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    CenterText oy + gh + 2, "[arrows/WASD] trace     [ESC] flee"
-    _DISPLAY
+    MgCenter oy + gh + 2, "[arrows/WASD] trace     [ESC] flee"
+    MgPresent
 END SUB
 
 ' Is this character of the (2W+1)x(2H+1) grid a wall?
@@ -538,26 +533,15 @@ SUB DrawFuse (secs AS SINGLE, ox AS INTEGER, gw AS INTEGER)
     LINE (fx, fy)-(fx + INT(fw * frac), fy + CH - 4), kol, BF
 END SUB
 
-SUB CenterText (row AS INTEGER, s AS STRING)
-    _PRINTSTRING (((SW - LEN(s)) \ 2) * CW, row * CH), s     ' parens: `*` binds tighter than `\`
-END SUB
 
 
 ' ----------------------------------------------------------------------------
 '  SELFTEST
 ' ----------------------------------------------------------------------------
 
-SUB MgOk (label AS STRING, cond AS INTEGER)
-    T_RUN = T_RUN + 1
-    IF cond THEN PRINT "  ok   "; label ELSE PRINT "  FAIL "; label: T_BAD = T_BAD + 1
-END SUB
 
 SUB MazeSelfTest
-    ' NOTE: this prototype predates MG.bi and does not include the harness, so it
-    ' cannot call MgQuiet. It is silent because it makes no sound at all -- it has
-    ' no MgBeep and no SOUND. A MgQuiet line here would compile as a LABEL and do
-    ' nothing, which is exactly what was sitting here before audit-quiet learned to
-    ' check that the symbol RESOLVES rather than that the text is present.
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS INTEGER, n AS INTEGER, bad AS INTEGER, minlen AS INTEGER, maxlen AS INTEGER
     DIM cells AS INTEGER, unreach AS INTEGER, L AS INTEGER, trivial AS INTEGER
     _DEST _CONSOLE
@@ -688,3 +672,6 @@ FUNCTION OffBoardBlocked% ()
     IF CanStep%(MZ_W - 1, MZ_H - 1, W_S) THEN OffBoardBlocked% = FALSE
     IF CanStep%(-1, 0, W_E) THEN OffBoardBlocked% = FALSE
 END FUNCTION
+
+'$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

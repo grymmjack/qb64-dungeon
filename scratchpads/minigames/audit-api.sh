@@ -70,7 +70,27 @@ done
 [ $bad -eq 0 ] && echo "  ok -- every documented knob exists"
 
 echo
-echo "== 4. the shared contract is present =="
+echo "== 4. every prototype flips through the ONE chokepoint =="
+flip=0
+for f in *.bas; do
+    case "$f" in MG.bas|MGDICE.bas) continue ;; esac
+    if grep -vE "^[[:space:]]*'" "$f" | grep -qE '(^|[^A-Za-z_])_DISPLAY\b'; then
+        echo "  BAD -- $f calls _DISPLAY directly; it must end its frame with MgPresent"
+        flip=1; fail=1
+    fi
+    if ! grep -q 'MgPresent' "$f"; then
+        echo "  BAD -- $f never calls MgPresent, so it never flips through the chokepoint"
+        flip=1; fail=1
+    fi
+    if ! grep -q "INCLUDE:'MGDICE.bi'" "$f"; then
+        echo "  BAD -- $f does not link the harness (MGDICE), so MgPresent is a label"
+        flip=1; fail=1
+    fi
+done
+[ $flip -eq 0 ] && echo "  ok -- one flip, one name; becomes Present on integration"
+
+echo
+echo "== 5. the shared contract is present =="
 for want in "MG_CTX" "MG_RESULT" "Thm~&" "Say\$" "Sfx" "PlayCue" "GameRoll" "Present" "RetireSound"; do
     if ! grep -qF "$want" MINIGAME-API.md; then
         echo "  BAD -- MINIGAME-API.md no longer mentions $want"

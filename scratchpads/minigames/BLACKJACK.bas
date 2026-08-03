@@ -27,6 +27,7 @@
 '  them money and calls it advice.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST DECKN = 52
 CONST RESHUFFLE = 15            ' reshuffle below this many cards
@@ -301,7 +302,7 @@ SUB DrawTable (msg AS STRING)
     COLOR C_TEXT, 0: MgCenter 28, msg
     COLOR C_GOOD, 0
     MgCenter 32, "[H]it   [S]tand   [D]ouble (first two cards only)   [ESC] cash out"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -495,3 +496,4 @@ FUNCTION EdgeOf# (mode AS INTEGER, hands AS LONG)
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

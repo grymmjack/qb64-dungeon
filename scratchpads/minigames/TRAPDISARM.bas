@@ -23,6 +23,7 @@
 '  unchanged order. It is a stat reading the puzzle, not softening it.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST WIRES = 5
 CONST PERMS = 120
@@ -349,7 +350,7 @@ SUB DrawTrap (sel AS INTEGER, msg AS STRING)
     COLOR C_TEXT, 0: MgCenter 26, msg
     COLOR C_DIM, 0: MgCenter 28, "there is no timer -- the trap waits as long as you do"
     COLOR C_GOOD, 0: MgCenter 31, "[W]/[S] or [arrows] choose a wire   [SPACE] cut   [ESC] back away"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -499,3 +500,4 @@ FUNCTION StillUniqueWithBonus% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

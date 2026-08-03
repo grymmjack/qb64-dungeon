@@ -29,6 +29,7 @@
 '  answer reads as rigged even when it is not.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST WEDGES = 10
 CONST FRICTION = 112!           ' degrees per second per second -- how fast it gives up
@@ -425,7 +426,7 @@ SUB DrawWheel (msg AS STRING)
     MgText barx, 38, "  ! it will not move at all      ^ from here it always goes round"
 
     COLOR C_GOOD, 0: MgCenter 39, "[UP]/[DOWN] crank it      [SPACE] let go      [ESC] leave it alone"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -776,3 +777,4 @@ FUNCTION MoreGoodThanBad% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

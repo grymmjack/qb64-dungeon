@@ -20,6 +20,7 @@
 '  usually does not, and careless play bleeds measurably more.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST MAXTILES = 64
 CONST RM_TW = 12, RM_TH = 4        ' one stone's CELL -- the box is 10 wide, so 2 columns of gutter
@@ -267,7 +268,7 @@ SUB DrawSlab (cur AS INTEGER, first AS INTEGER, msg AS STRING)
     COLOR C_TEXT, 0: MgCenter y + 3, msg
     COLOR C_DIM, 0: MgCenter y + 5, "a face-up ? is a stone you have already turned -- remembering it is the whole game"
     COLOR C_GOOD, 0: MgCenter y + 7, "[arrows] move   [SPACE] turn   [ESC] walk away with what you have matched"
-    _DISPLAY
+    MgPresent
 END SUB
 
 '--- selftest ----------------------------------------------------------------
@@ -509,3 +510,4 @@ FUNCTION PickHidden% (avoid AS INTEGER)
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

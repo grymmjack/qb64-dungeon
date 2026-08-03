@@ -21,6 +21,7 @@
 '  get another look. A high-WIS character is not given a shorter sequence.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST MAXSEQ = 32
 CONST PADS = 4
@@ -217,7 +218,7 @@ SUB DrawShrine (done AS INTEGER, msg AS STRING)
     COLOR C_TEXT, 0: MgCenter 31, msg
     IF g_recall > 0 THEN COLOR C_GOOD, 0 ELSE COLOR C_DIM, 0
     MgCenter 34, "[1-4] or [arrows] strike a stone      [R]ecall x" + _TRIM$(STR$(g_recall)) + "      [ESC] leave"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -366,3 +367,4 @@ FUNCTION RecallIsNotAReroll% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

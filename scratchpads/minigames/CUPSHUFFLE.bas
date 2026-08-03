@@ -25,6 +25,7 @@
 '  the coin is under it. Information, not a better chance.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST MAXCUPS = 5
 CONST MAXSWAP = 40
@@ -232,7 +233,7 @@ SUB DrawCups (reveal AS INTEGER, swapping AS INTEGER, t AS SINGLE, msg AS STRING
     MgCenter 27, "dealer fumbles left: " + _TRIM$(STR$(g_fumbles))
     COLOR C_GOOD, 0
     MgCenter 31, "[1]-[" + _TRIM$(STR$(g_cups)) + "] name a cup      [ESC] walk"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -362,3 +363,4 @@ FUNCTION FumbleIsPassive% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

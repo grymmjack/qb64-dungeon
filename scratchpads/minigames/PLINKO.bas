@@ -49,6 +49,7 @@
 '  losing proposition, and it is asserted over EVERY placement, not sampled.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 '--- the board, in pixels ---
 CONST BW = 480, BH = 470                ' playfield size
@@ -582,7 +583,7 @@ SUB DrawShrine (frame AS INTEGER, msg AS STRING)
     COLOR C_TEXT, 0: MgCenter 38, msg
     COLOR C_GOOD, 0
     MgCenter 40, "[A]/[D] slide the coin   [SPACE] let go   [R] risk   [ESC] leave"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -801,3 +802,4 @@ FUNCTION RealisedReturnOk% ()
 END FUNCTION
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

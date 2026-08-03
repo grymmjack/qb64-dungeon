@@ -24,10 +24,9 @@
 '  matcher and the loader go to game/ as-is; the draw code becomes a Chronicle-
 '  style panel and the reward/penalty routes through CurioGain / RecordCurio.
 ' ============================================================================
-$CONSOLE
-OPTION _EXPLICIT
+'$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
-CONST TRUE = -1, FALSE = NOT TRUE
 CONST MAXRIDDLE = 200
 
 DIM SHARED RID_ANSWER(1 TO MAXRIDDLE) AS STRING
@@ -39,11 +38,10 @@ CONST RID_SOLVED = 1
 CONST RID_FAILED = 2
 CONST RID_FLED = 3
 
-DIM SHARED AS INTEGER SW, SH, CW, CH
-SW = 132: SH = 51: CW = 8: CH = 16
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
+MgInit
 cmd = UCASE$(COMMAND$)
 
 LoadRiddles "data/riddles.txt"
@@ -51,7 +49,8 @@ LoadRiddles "data/riddles.txt"
 IF INSTR(cmd, "SELFTEST") > 0 THEN RiddleSelfTest
 
 '--- interactive: a real screen ---
-SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)
+MgScreen
+MgDiceInit                     ' after the window: the 3D layer needs GL
 
 ' `shot` -- render one frame and save it. A mini-game that passes its logic tests and draws
 ' nothing is still broken, and only a picture catches that.
@@ -65,7 +64,7 @@ IF INSTR(cmd, "SHOT") > 0 THEN
 END IF
 
 DIM outcome AS INTEGER
-outcome = PlayRiddle(RollDie(RID_N), 12)          ' WIS 12 = no modifier
+outcome = PlayRiddle(MgRoll%(RID_N), 12)          ' WIS 12 = no modifier
 _DEST _CONSOLE
 PRINT "outcome ="; outcome
 SYSTEM
@@ -173,16 +172,13 @@ END FUNCTION
 '  RULES
 ' ----------------------------------------------------------------------------
 
-FUNCTION AbilMod% (score AS INTEGER)
-    AbilMod% = INT((score - 10) / 2)
-END FUNCTION
 
 ' How many guesses WIS buys. Floor of 1 -- a dull-witted hero still gets to try
 ' once, because a mini-game you cannot attempt is just a damage roll with extra
 ' steps.
 FUNCTION RiddleTries% (wis AS INTEGER)
     DIM t AS INTEGER
-    t = 2 + AbilMod%(wis)
+    t = 2 + MgAbilMod%(wis)
     IF t < 1 THEN t = 1
     IF t > 5 THEN t = 5
     RiddleTries% = t
@@ -210,10 +206,6 @@ FUNCTION RiddleHint$ (answer AS STRING)
     RiddleHint$ = o
 END FUNCTION
 
-FUNCTION RollDie% (sides AS INTEGER)
-    IF sides < 1 THEN sides = 1
-    RollDie% = INT(RND * sides) + 1
-END FUNCTION
 
 
 ' ----------------------------------------------------------------------------
@@ -246,7 +238,11 @@ FUNCTION PlayRiddle% (idx AS INTEGER, wis AS INTEGER)
                 END IF
                 ' the WIS save: on the LAST remaining try, a good save spends it on a hint
                 IF used = tries - 1 AND NOT hinted THEN
-                    IF RollDie%(20) + AbilMod%(wis) >= 11 THEN
+                    ' A SAVE IS A DIE THE PLAYER ROLLS. This was a raw MgRoll%(20)
+                    ' until audit-dice caught it -- which quietly opted every Real
+                    ' Dice player out of the setting they had turned on, for the
+                    ' one roll in this game that is a roll.
+                    IF GameRoll%(1, 20, MgAbilMod%(wis), "a WIS save") >= 11 THEN
                         hinted = TRUE
                         msg = "Something in you catches the shape of it."
                     ELSE
@@ -277,80 +273,45 @@ SUB DrawRiddle (idx AS INTEGER, left AS INTEGER, msg AS STRING, hinted AS INTEGE
     DIM y AS INTEGER
     CLS , _RGB32(10, 8, 14)
     COLOR _RGB32(&HFF, &HE0, &H50), 0
-    CenterText 6, "-=  A  M A G I C   M O U T H  =-"
+    MgCenter 6, "-=  A  M A G I C   M O U T H  =-"
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 8, "The wall opens an eyeless mouth and speaks."
+    MgCenter 8, "The wall opens an eyeless mouth and speaks."
     COLOR _RGB32(&HFF, &HFF, &HFF), 0
-    WrapText RID_TEXT(idx), 12, 90
+    MgWrap RID_TEXT(idx), 12, 90
     IF hinted THEN
         COLOR _RGB32(&H55, &HFF, &HFF), 0
-        CenterText 20, "it begins:   " + RiddleHint$(RID_ANSWER(idx))
+        MgCenter 20, "it begins:   " + RiddleHint$(RID_ANSWER(idx))
     END IF
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 24, msg
+    MgCenter 24, msg
     COLOR _RGB32(&HFF, &HC0, &H40), 0
-    CenterText 26, "guesses left: " + _TRIM$(STR$(left))
+    MgCenter 26, "guesses left: " + _TRIM$(STR$(left))
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    CenterText 34, "[ENTER] answer     [ESC] walk away"
+    MgCenter 34, "[ENTER] answer     [ESC] walk away"
 END SUB
 
 SUB DrawGuess (guess AS STRING)
     COLOR _RGB32(&HEC, &HE8, &HDC), 0
-    CenterText 30, "> " + guess + "_" + SPACE$(8)
-    _DISPLAY
+    MgCenter 30, "> " + guess + "_" + SPACE$(8)
+    MgPresent
 END SUB
 
-SUB CenterText (row AS INTEGER, s AS STRING)
-    ' PARENTHESISE THE DIVISION. In BASIC `*` binds tighter than `\`, so
-    '   (SW - LEN(s)) \ 2 * CW     is    (SW - LEN(s)) \ (2 * CW)
-    ' -- which for a 31-char line on a 132-col screen is 6 pixels, not 404. Every line
-    ' rendered flush against the left edge and still looked like plausible output.
-    _PRINTSTRING (((SW - LEN(s)) \ 2) * CW, row * CH), s
-END SUB
 
 ' Word-wrap `s` into centred lines of at most `w` chars, starting at `row`.
-SUB WrapText (s AS STRING, row AS INTEGER, w AS INTEGER)
-    DIM rest AS STRING, ln AS STRING, sp AS INTEGER, y AS INTEGER
-    rest = s: y = row
-    DO WHILE LEN(rest) > 0
-        IF LEN(rest) <= w THEN
-            CenterText y, rest: EXIT DO
-        END IF
-        sp = w
-        DO WHILE sp > 1 AND MID$(rest, sp, 1) <> " ": sp = sp - 1: LOOP
-        IF sp <= 1 THEN sp = w
-        ln = LEFT$(rest, sp - 1)
-        CenterText y, ln
-        rest = _TRIM$(MID$(rest, sp + 1))
-        y = y + 2
-    LOOP
-END SUB
 
 
 ' ----------------------------------------------------------------------------
 '  SELFTEST -- the matcher is the mechanic, so it gets the assertions
 ' ----------------------------------------------------------------------------
 
-DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
 
-SUB MgOk (label AS STRING, cond AS INTEGER)
-    T_RUN = T_RUN + 1
-    IF cond THEN
-        PRINT "  ok   "; label
-    ELSE
-        PRINT "  FAIL "; label: T_BAD = T_BAD + 1
-    END IF
-END SUB
 
 SUB RiddleSelfTest
-    ' NOTE: this prototype predates MG.bi and does not include the harness, so it
-    ' cannot call MgQuiet. It is silent because it makes no sound at all -- it has
-    ' no MgBeep and no SOUND. A MgQuiet line here would compile as a LABEL and do
-    ' nothing, which is exactly what was sitting here before audit-quiet learned to
-    ' check that the symbol RESOLVES rather than that the text is present.
+    MgQuiet                              ' a selftest is never listened to
     DIM i AS INTEGER, dup AS INTEGER, j AS INTEGER
     _DEST _CONSOLE
     PRINT "RIDDLE selftest"
+    MgDiceSelfTest
     PRINT
 
     PRINT " data"
@@ -449,3 +410,6 @@ FUNCTION AllAnswersSelfMatch%
         END IF
     NEXT i
 END FUNCTION
+
+'$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'

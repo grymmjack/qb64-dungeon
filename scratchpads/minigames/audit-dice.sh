@@ -37,7 +37,7 @@ for f in *.bas; do
             *) echo "  BAD -- $f: $(echo "$line" | sed 's/^[[:space:]]*//')"; bad=1; fail=1 ;;
         esac
     done <<EOF
-$(grep -nE 'MgRoll%\((4|6|8|10|12|20)\)' "$f" | grep -vE ':[0-9]+:[[:space:]]*'"'")
+$(grep -nE 'MgRoll%\((4|6|8|10|12|20)\)' "$f" | grep -vE '^[0-9]+:[[:space:]]*'"'")
 EOF
 done
 [ $bad -eq 0 ] && echo "  ok -- every raw die-shaped roll says why it is not a player's die"

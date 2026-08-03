@@ -45,6 +45,7 @@
 '  or forgive a bad set.
 ' ============================================================================
 '$INCLUDE:'MG.bi'
+'$INCLUDE:'MGDICE.bi'
 
 CONST NOTCHES = 24
 CONST PINS = 3
@@ -280,7 +281,7 @@ SUB DrawLock (msg AS STRING)
     MgCenter 29, "the fuse burns on its own AND every move takes a bite -- " + _TRIM$(STR$(INT(g_spent * 10) / 10)) + "s spent turning"
     COLOR C_GOOD, 0
     MgCenter 31, "[A]/[D] turn one notch   [Q]/[E] jump " + _TRIM$(STR$(JUMP)) + "   [SPACE] set   [ESC] give up"
-    _DISPLAY
+    MgPresent
     _DEST od
 END SUB
 
@@ -530,3 +531,4 @@ SUB PinSpread (dex AS INTEGER, mean AS SINGLE, rarest AS INTEGER)
 END SUB
 
 '$INCLUDE:'MG.bas'
+'$INCLUDE:'MGDICE.bas'
