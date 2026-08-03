@@ -1,0 +1,49 @@
+' ============================================================================
+'  win.cut -- you got out.
+'
+'  `noskip`: this is the one beat in a run that has to land. Everything else
+'  in the suite is skippable on purpose.
+' ============================================================================
+
+scene win
+noskip
+stage 2112x1632
+
+musicstop fade 1.0
+cam 0.5,0.5 zoom 2.4
+show bg "bg/cut-dawn.png" scale 8 at 0.5,0.5
+
+' Open on white and let the dawn resolve out of it -- the inverse of the
+' intro, which opened on black.
+flash white 1.8
+music "victory" fadein 1.0 once
+narrate "win.title"
+
+title "YOU LIVED" for 2.5
+
+' A long slow pull-back: the whole scene plays under it.
+async zoom to 1.0 over 14.0 ease inoutcubic
+
+say "The gate is behind you, and it stays behind you."
+
+if class == wizard
+    say "Thirty thousand in gold, and every spell spent but one."
+elseif class == superhero
+    say "Twenty thousand in gold. You could stop now. You will not."
+elseif class == elf
+    say "Ten thousand in gold, and four doors nobody else will ever find."
+else
+    say "Ten thousand in gold, and a sword that needs re-forging."
+end
+
+if deaths == 0
+    caption "UNTOUCHED" at 66,6 anchor c color gold fade 1.0
+    say "You went down nine levels and never once went down."
+end
+
+set won_the_game = 1
+
+crawl "and no one who went down" "ever came back up the stair" "except, this once, you" for 8.0
+
+waitall
+iris in at 0.5,0.5 over 2.0

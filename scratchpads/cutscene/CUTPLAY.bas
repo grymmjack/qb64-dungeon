@@ -202,6 +202,12 @@ SUB CutFindScenes (scn() AS STRING, n AS INTEGER)
         IF d <> "." THEN
             IF d <> ".." THEN
                 IF _DIREXISTS(root + d) THEN
+                    '--- _FILES$ hands back directories WITH a trailing
+                    '    slash, so joining one on produces `default//x.cut`.
+                    '    Harmless to open, but it is the path printed in every
+                    '    diagnostic, and a doubled slash reads as a bug in the
+                    '    scene rather than in the lister. ---
+                    IF RIGHT$(d, 1) = "/" THEN d = LEFT$(d, LEN(d) - 1)
                     IF np < 63 THEN np = np + 1: packs(np) = d
                 END IF
             END IF
