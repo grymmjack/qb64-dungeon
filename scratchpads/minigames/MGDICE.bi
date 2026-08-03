@@ -45,6 +45,12 @@ DIM SHARED TRAY_CAP AS STRING
 '    is whatever was last flipped, which is how a UI "disappears" mid-roll. ---
 DIM SHARED MGD_SNAP AS LONG
 
+'--- the settled dice. The hardware path draws its triangles STRAIGHT TO THE
+'    WINDOW, so anything not re-issued is gone on the next flip -- which is why
+'    dice vanish the instant a roll returns unless somebody keeps drawing them. ---
+DIM SHARED MGD_HELD AS INTEGER
+DIM SHARED MGD_CFG AS DICE3D_CONFIG
+
 CONST MG_MAXDICE = 16
 
 '--- faces of the last animated roll. EMPTY under Real Dice: the player rolled

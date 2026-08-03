@@ -89,6 +89,29 @@ SUB MgApplyDiceSettings (cfg AS DICE3D_CONFIG)
     IF opt_diceround > 0 THEN cfg.BEVEL = opt_diceround / 10
 END SUB
 
+' The prototype's flip, and the reason settled dice stay on the table.
+'
+' dice3d_roll animates and returns, and at that moment the dice exist only as GL
+' triangles already issued -- the hardware layer goes straight to the window, so
+' the very next _DISPLAY wipes them. The game has the same problem and solves it
+' the same way (dice3d_repost, called every frame of its sum reveal).
+'
+' So a prototype ends its draw routine with THIS instead of _DISPLAY: the screen
+' it just drew is on the back buffer, the settled dice go over it, and the flip
+' happens once. Call _DISPLAY as well and the dice flicker.
+SUB MgDicePresent
+    IF MGD_HELD _ANDALSO dice3d_ready _ANDALSO NOT dice3d_force_soft THEN
+        dice3d_present MGD_CFG      ' issues the triangles AND flips
+        EXIT SUB
+    END IF
+    _DISPLAY
+END SUB
+
+' Take the dice off the table -- between rounds, or when the screen moves on.
+SUB MgDiceClear
+    MGD_HELD = 0
+END SUB
+
 ' Reserve a region of the prototype's layout for the dice, ONCE. Everything else
 ' is laid out around it: the tray is furniture, not a popup that appears over the
 ' game and takes the screen away while it is up.
@@ -200,7 +223,10 @@ FUNCTION AnimatedRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what A
         notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
         dice3d_roll notation, cfg, r()             ' animates, returns settled faces
 
+        ' the snapshot's job is done: from here the dice are re-issued over
+        ' whatever the prototype draws, not over a photograph of the past
         IF MGD_SNAP <> 0 THEN _FREEIMAGE MGD_SNAP: MGD_SNAP = 0
+        MGD_CFG = cfg: MGD_HELD = -1        ' keep them on the table
         FOR i = 1 TO n
             v(i) = r(i): t = t + v(i)
         NEXT i

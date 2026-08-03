@@ -149,25 +149,65 @@ END FUNCTION
 ' Not a die the player rolls: this is the Monte Carlo, run hundreds of thousands
 ' of times with nobody watching. It must never route through GameRoll% and must
 ' never be able to prompt. See audit-dice.sh.
+' Both paths must hand back two REAL bones, or the bust rule reads a zero.
+SUB CheckBones
+    DIM i AS LONG, a AS INTEGER, b AS INTEGER
+    DIM AS INTEGER okrange, oksum, wasreal, wasmath
+
+    wasreal = opt_realdice: wasmath = opt_dicemath
+    MgSection "two bones, however they are rolled"
+
+    opt_realdice = FALSE
+    okrange = TRUE: oksum = TRUE
+    FOR i = 1 TO 20000
+        RollBones a, b
+        IF a < 1 OR a > 6 OR b < 1 OR b > 6 THEN okrange = FALSE
+        IF DIE_FACE_N <> 2 THEN oksum = FALSE
+    NEXT i
+    MgOk "animated: one throw of 2d6 gives two faces in range", okrange
+    MgOk "...and the renderer published BOTH, which is what makes it one throw", oksum
+
+    opt_realdice = TRUE: opt_dicemath = FALSE
+    MG_FAKEROLL = 4
+    RollBones a, b
+    MgOk "real dice: each bone is asked for separately", a = 4 _ANDALSO b = 4
+    MG_FAKEROLL = 0
+    opt_realdice = wasreal: opt_dicemath = wasmath
+END SUB
+
 FUNCTION SimDie% (nsides AS INTEGER)
     SimDie% = MgRoll%(nsides)              ' not a die: headless Monte Carlo
 END FUNCTION
 
-' The player's two knucklebones, rolled ONE AT A TIME on purpose.
+' The player's two knucklebones.
 '
 ' Knucklebones busts on any single 1, so the game has to know what EACH bone
-' showed -- and under Real Dice the player rolled physical bones on their table
-' and the game never sees the faces (DieFace% reports none, honestly). Rolling
-' 2d6 and reading DieFace% would work perfectly with animated dice and silently
-' break for every Real Dice player, which is the worst shape a bug can have.
+' showed -- and the right way to get that depends on who is rolling.
 '
-' So: two rolls, each returning its own bone. RollSeqBegin/End means the animated
-' path still shows one shared tray rather than blinking a box in and out.
+'   ANIMATED: roll 2d6 as ONE throw and read the faces back. The renderer scatters
+'   two dice across the tray and publishes both, which is what DieFace% is FOR.
+'
+'   REAL DICE: the player rolled physical bones on their own table and the game
+'   never sees the faces -- DieFace% reports none, honestly. So it has to ask for
+'   each bone separately. RollSeqBegin/End keeps that as one shared tray rather
+'   than a box blinking in and out between the two prompts.
+'
+' Rolling individually in BOTH cases was the first cut, and it looked wrong the
+' moment there were real dice on screen: a single die is placed at the centre of
+' the box, so two separate 1d6 throws put both bones in the same spot, one on top
+' of the other. Two dice in one throw get scattered and separated by the module,
+' because that is a job it already does.
 SUB RollBones (a AS INTEGER, b AS INTEGER)
-    RollSeqBegin
-    a = GameRoll%(1, 6, 0, "first bone")
-    b = GameRoll%(1, 6, 0, "second bone")
-    RollSeqEnd
+    DIM t AS INTEGER
+    IF opt_realdice THEN
+        RollSeqBegin
+        a = GameRoll%(1, 6, 0, "first bone")
+        b = GameRoll%(1, 6, 0, "second bone")
+        RollSeqEnd
+        EXIT SUB
+    END IF
+    t = GameRoll%(2, 6, 0, "the bones")
+    a = DieFace%(1): b = DieFace%(2)
 END SUB
 
 
@@ -274,7 +314,7 @@ SUB DrawTable (purse AS LONG, pot AS LONG, a AS INTEGER, b AS INTEGER, rolls AS 
     MgCenter 30, msg
     COLOR _RGB32(&H55, &HFF, &H55), 0
     MgCenter 33, "[R] roll again     [B] bank the pot     [ESC] take it and go"
-    _DISPLAY
+    MgDicePresent            ' NOT _DISPLAY: the settled dice are re-issued over this
 END SUB
 
 
@@ -294,6 +334,7 @@ SUB GambleSelfTest
     ' AFTER _DEST _CONSOLE: an Ok before that prints to the graphics page, and
     ' eight assertions ran invisibly the first time this was wired up.
     MgDiceSelfTest
+    CheckBones
     PRINT
 
     PRINT " exact odds"

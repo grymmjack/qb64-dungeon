@@ -61,7 +61,9 @@ mute=""
 for f in *.bas; do
     # harness includes, not prototypes -- they have no selftest and no API doc
     case "$f" in MG.bas|MGDICE.bas) continue ;; esac
-    sub=$(grep -oE '^SUB [A-Za-z]*SelfTest[[:space:]]*$' "$f" | head -1)
+    # the LAST match, not the first: a *SelfTest name means the entry point, and
+    # a helper that happened to be named one sent this rule at the wrong SUB
+    sub=$(grep -oE '^SUB [A-Za-z]*SelfTest[[:space:]]*$' "$f" | tail -1)
     [ -z "$sub" ] && continue
     # a prototype that predates MG.bi cannot call MgQuiet -- so instead it must be
     # provably incapable of making a sound at all

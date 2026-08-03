@@ -248,7 +248,19 @@ which lays the host's canvas down before the GL triangles go over it. The
 prototypes draw straight to the display page, so the stub is a no-op — but it is
 the one place to fix the day a prototype grows a separate canvas.
 
-Two things to know:
+Three things to know:
+
+- **settled dice must be RE-ISSUED every frame.** The hardware path draws its
+  triangles straight to the window, so anything not redrawn is gone on the next
+  flip — dice vanish the instant a roll returns. A prototype therefore ends its
+  draw routine with `MgDicePresent` instead of `_DISPLAY`, which lays the settled
+  dice over the screen it just drew and flips once. The game has the identical
+  problem and the identical answer (`dice3d_repost`).
+- **a mechanic that needs each face should still roll them TOGETHER** when the
+  renderer can show them. One die is placed at the box centre, so two separate
+  `1d6` throws stack in the same spot; `2d6` in one throw gets scattered and
+  separated by the module. Split into individual rolls only for Real Dice, where
+  there are no faces to read. GAMBLE does exactly that, and asserts both paths.
 
 - **the 3D layer is skipped when `MG_QUIET` is set**, i.e. in `selftest` and
   `shot`. It draws on the GL layer, which needs a window, and a headless run has
