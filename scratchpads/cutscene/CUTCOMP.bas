@@ -614,6 +614,14 @@ SUB CutEmitLayerMods (lay AS STRING, startat AS INTEGER, ln AS INTEGER)
     IF tgt >= 0 THEN
         op = CutEmit%(OP_LAYSET, CutStr&(lay), CUT_NOSTR, LS_PARALLAX, CutNum!(CutTok$(tgt + 1)), 0, 0, ln, TRUE)
     END IF
+    '--- explicit depth. Without this a layer can only ever go IN FRONT of
+    '    everything already shown, because new layers take the next free z --
+    '    so there is no way to slide a backdrop in behind a character who is
+    '    already on screen. ---
+    tgt = CutKw%("z", startat)
+    IF tgt >= 0 THEN
+        op = CutEmit%(OP_LAYSET, CutStr&(lay), CUT_NOSTR, LS_Z, CutNum!(CutTok$(tgt + 1)), 0, 0, ln, TRUE)
+    END IF
 END SUB
 
 '--- `dissolve to "crypt.png"` / `wipe to "gate.png" dir left`.

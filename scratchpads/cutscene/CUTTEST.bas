@@ -203,6 +203,19 @@ SUB DoSelftest
     CutOk "  the SAME fade with the modifiers swapped", ABS(CUT_OPS(i).n1 - 2) < 0.001
 
     ' ------------------------------------------------------------------
+    CutSect "compiler: explicit layer depth"
+
+    '--- a new layer takes the next free z, so without an explicit `z` a
+    '    layer can only ever be drawn IN FRONT of what is already shown. ---
+    ok = CutCompileText%("show bg " + CHR$(34) + "a.png" + CHR$(34) + CHR$(10) + "show sky " + CHR$(34) + "b.png" + CHR$(34) + " z 0" + CHR$(10))
+    CutOk "`z` compiles", ok
+    CutRunHeadless 1
+    i = CutLayerFind%("bg")
+    n = CutLayerFind%("sky")
+    CutOk "  both layers exist", i > 0 _ANDALSO n > 0
+    IF i > 0 _ANDALSO n > 0 THEN CutOk "  the later layer sits BEHIND the earlier one", CUT_LAY(n).z < CUT_LAY(i).z
+
+    ' ------------------------------------------------------------------
     CutSect "compiler: choice"
 
     s = "choice " + CHR$(34) + "Well?" + CHR$(34) + CHR$(10)

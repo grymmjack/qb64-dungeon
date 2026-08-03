@@ -278,6 +278,8 @@ SUB CutExec (p AS INTEGER)
                         CutMaybeBlock p, slot
                     CASE LS_PARALLAX
                         CUT_LAY(L).parallax = CUT_OPS(p).n2
+                    CASE LS_Z
+                        CUT_LAY(L).z = CINT(CUT_OPS(p).n2)
                 END SELECT
             END IF
 

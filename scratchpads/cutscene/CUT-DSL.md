@@ -96,14 +96,16 @@ half as much (twice as close).
 ### Art
 
 ```
-show  <layer> "<path>" [fade <t>] [at <x>,<y>] [scale <s>] [parallax <p>]
+show  <layer> "<path>" [fade <t>] [at <x>,<y>] [scale <s>] [parallax <p>] [z <n>]
 hide  <layer> [fade <t>]
 clear
 anim  <layer> "<base>" frames <n> fps <f> [loop|once|pingpong] [fade <t>] [at ..] [scale ..]
 ```
 
 Layers are created on first use and **stack in that order** — the first thing
-you `show` is the backdrop. Paths resolve through the content packs (§7).
+you `show` is the backdrop. A new layer takes the next free depth, so without
+`z` a layer can only ever be drawn *in front* of what is already there; `z 0`
+slides one in behind. Paths resolve through the content packs (§7).
 
 `anim` plays a **PNG frame sequence**: `anim fog "fx/fog" frames 8 fps 12 loop`
 looks for `fx/fog-01.png` … `fx/fog-08.png`. Two digits, zero-padded — which is
@@ -310,7 +312,7 @@ one landed on its end value.
 
 After a command's fixed arguments, the rest of the line is searched for
 `fade`, `over`, `at`, `scale`, `ease`, `dir`, `for`, `frames`, `fps`,
-`parallax`, `layer`, `color`, `anchor` wherever they appear. These are the same
+`parallax`, `z`, `layer`, `color`, `anchor` wherever they appear. These are the same
 line:
 
 ```
@@ -393,12 +395,18 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     102 headless assertions
+cutplay.run selftest                     headless assertions (105)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in
 real time, so the same command lands on the same frame every run — which is
 what makes it usable as a regression check.
+
+`scratchpads/cutscene/run-tests.sh` is the gate: build, selftest, `lint all`,
+and then **render** every scene at three fixed times, requiring a non-black
+frame. A scene can lint perfectly and draw nothing — wrong layer order, a
+camera parked off the art, a transition that never clears — and "nothing" is
+also exactly what a missing backdrop looks like.
 
 ---
 

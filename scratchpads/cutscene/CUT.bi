@@ -130,6 +130,7 @@ CONST LS_Y = 1
 CONST LS_SCALE = 2
 CONST LS_ALPHA = 3
 CONST LS_PARALLAX = 4
+CONST LS_Z = 5
 
 '--- animation playback modes ---
 CONST AM_LOOP = 0
