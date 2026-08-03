@@ -2,32 +2,148 @@
 '  MGDICE.bas -- see MGDICE.bi.
 ' ============================================================================
 
-' DICE3D's only dependency on its host. In the game it lays CANVAS down before
-' the GL triangles go over it, because the tray and caption are drawn to CANVAS
-' and only reach the screen through the host's present step -- without it the
-' dice roll on a black screen.
+' DICE3D's only dependency on its host, and it is load-bearing.
 '
-' The prototypes draw straight to the display page, so there is nothing to lay
-' down and this is a no-op. It exists so the vendored module links unmodified:
-' the moment a prototype grows a separate canvas, this is the one place to fix.
+' dice3d_roll runs its own animation loop and draws nothing but DICE. Whatever the
+' rest of the screen was is simply whatever happens to be in the back buffer -- so
+' without laying the host's picture down every frame, the game's UI vanishes the
+' moment the dice start rolling and comes back when they stop. In the game this
+' blits CANVAS; here it blits the snapshot MgRollHere took just before the roll.
+'
+' A no-op version linked fine and rolled dice on a screen that had gone blank,
+' which is exactly what it looked like.
+' GL calibration, from engine/DICE3D_GAME.bas: 1 model unit is about 103 screen
+' pixels at the module's view depth. It lives in the game's presentation layer
+' rather than in the module, so a host has to supply it -- this is that.
+CONST MGD_PXPERUNIT = 103.0
+
 SUB PresentNoFlip
+    IF MGD_SNAP <> 0 THEN _PUTIMAGE , MGD_SNAP, 0
 END SUB
 
-' Bring the 3D dice up. Safe to call when they cannot work -- dice3d_ready stays
-' FALSE and every roll falls back to the plain path, which is exactly what the
-' game does with a missing or broken dice set.
+' Bring the 3D dice up, using THE GAME'S OWN dice sets.
+'
+' The style -- body colour, ink, finish, bevel, light -- lives in the set FILE,
+' not in code, which is why loading the same file the game loads is the whole of
+' "make it look like the game". Reads assets/data/default/dicesets.txt for the
+' manifest and loads the chosen set, falling back to the legacy single
+' diceset.txt, exactly as the game's LoadDiceSets does.
+'
+' Safe to call when 3D cannot work: dice3d_ready stays FALSE and every roll falls
+' back to the plain path, which is what the game does with a missing set.
 SUB MgDiceInit
+    DIM i AS INTEGER, fh AS INTEGER, n AS INTEGER
+    DIM ln AS STRING, pick AS STRING, dpath AS STRING
+
+    dpath = "../../assets/data/default/"    ' `dpath`, not `base`: BASE is taken
     dice3d_ready = FALSE
-    dice3d_config_defaults DICE_CFG
-    dice3d_light_defaults DICE_CFG
-    IF _FILEEXISTS("../../assets/data/diceset.txt") THEN
-        DIM cset(1 TO 8) AS DICE3D_CONFIG
-        IF dice3d_set_load%(cset(), "../../assets/data/diceset.txt") THEN DICE_CFG = cset(1)
+    FOR i = 0 TO 6
+        dice3d_config_defaults DSET3D(i)
+        dice3d_light_defaults DSET3D(i)
+    NEXT i
+    IF opt_dice3d_set < 1 THEN opt_dice3d_set = 1
+
+    IF _FILEEXISTS(dpath + "dicesets.txt") THEN
+        fh = FREEFILE
+        OPEN dpath + "dicesets.txt" FOR INPUT AS #fh
+        DO UNTIL EOF(fh)
+            LINE INPUT #fh, ln
+            ln = _TRIM$(ln)
+            IF LEN(ln) > 0 _ANDALSO LEFT$(ln, 1) <> "#" THEN
+                IF INSTR(ln, "|") > 0 THEN
+                    n = n + 1
+                    IF n = opt_dice3d_set THEN pick = _TRIM$(MID$(ln, INSTR(ln, "|") + 1))
+                END IF
+            END IF
+        LOOP
+        CLOSE #fh
     END IF
+
+    IF LEN(pick) > 0 THEN
+        IF dice3d_set_load%(DSET3D(), dpath + "dicesets/" + pick) THEN dice3d_ready = -1
+    END IF
+    IF NOT dice3d_ready THEN
+        IF dice3d_set_load%(DSET3D(), dpath + "diceset.txt") THEN dice3d_ready = -1
+    END IF
+
     ' the module draws on the GL layer, which does not exist without a window --
-    ' and a headless run has no business animating anything anyway
-    IF NOT MG_QUIET THEN dice3d_ready = -1
-    DICE_CFG.SOUND_ENABLED = 0        ' the prototype owns its own noises, via MgBeep
+    ' and a headless run has no business animating anything
+    IF MG_QUIET THEN dice3d_ready = FALSE
+
+    FOR i = 0 TO 6
+        DSET3D(i).SOUND_ENABLED = 0   ' the prototype owns its noises, via MgBeep
+    NEXT i
+END SUB
+
+
+' The player's SETTINGS applied ON TOP of the set, exactly as the game's
+' ApplyDiceLight and its Dice Round row do. The SET is the style; these two are
+' the knobs that override it.
+SUB MgApplyDiceSettings (cfg AS DICE3D_CONFIG)
+    SELECT CASE opt_dicelight
+        CASE 0: cfg.LIGHT_ENABLED = 0
+        CASE 1: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.78: cfg.LIGHT_INTENSITY = 0.5
+        CASE 2: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.62: cfg.LIGHT_INTENSITY = 0.8
+        CASE ELSE: cfg.LIGHT_ENABLED = -1: cfg.LIGHT_AMBIENT = 0.5: cfg.LIGHT_INTENSITY = 1!
+    END SELECT
+    IF opt_diceround > 0 THEN cfg.BEVEL = opt_diceround / 10
+END SUB
+
+' Reserve a region of the prototype's layout for the dice, ONCE. Everything else
+' is laid out around it: the tray is furniture, not a popup that appears over the
+' game and takes the screen away while it is up.
+SUB MgDiceTray (x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER, cap AS STRING)
+    TRAY_X = x: TRAY_Y = y: TRAY_W = w
+    TRAY_H = (h \ CH) * CH
+    TRAY_CAP = cap
+END SUB
+
+' Draw the tray. The prototype calls this from its own draw routine EVERY frame,
+' so it is on screen whether or not dice are in the air -- which is the point.
+' Same visual language as the game: a plush violet box under a caption header.
+SUB MgDrawTray
+    DIM viol AS _UNSIGNED LONG, edge AS _UNSIGNED LONG
+    DIM hb AS INTEGER, hw AS INTEGER, hx AS INTEGER
+    IF TRAY_W <= 0 THEN EXIT SUB
+    viol = _RGB32(&H34, &H22, &H7A)
+    edge = _RGB32(&H8A, &H70, &HE0)
+
+    hw = (LEN(TRAY_CAP) + 4) * CW
+    IF hw < TRAY_W THEN hw = TRAY_W
+    hx = TRAY_X + (TRAY_W - hw) \ 2
+    hb = 2 * CH
+    LINE (hx, TRAY_Y - hb)-(hx + hw, TRAY_Y), viol, BF
+    LINE (hx, TRAY_Y - hb)-(hx + hw, TRAY_Y), edge, B
+    COLOR C_TITLE, viol
+    _PRINTSTRING (hx + (hw - LEN(TRAY_CAP) * CW) \ 2, TRAY_Y - hb + CH \ 2), TRAY_CAP
+
+    LINE (TRAY_X, TRAY_Y)-(TRAY_X + TRAY_W, TRAY_Y + TRAY_H), viol, BF
+    LINE (TRAY_X, TRAY_Y)-(TRAY_X + TRAY_W, TRAY_Y + TRAY_H), edge, B
+    COLOR C_TEXT, 0
+END SUB
+
+' Fit the PHYSICS box inside the DRAWN tray, mirroring the game's geometry: inset
+' from the painted edge so a die never settles half over the border, and anchored
+' to the tray's BOTTOM so the floor cannot drift down into whatever is printed
+' under it.
+SUB MgFitBox (cfg AS DICE3D_CONFIG)
+    DIM inset AS INTEGER, botinset AS INTEGER, minw AS INTEGER, minh AS INTEGER
+    inset = 10
+    botinset = dice3d_radius!(cfg) + 6
+    minw = cfg.DIE_SIZE * 4: minh = cfg.DIE_SIZE * 3
+    cfg.BOX_W = TRAY_W - inset * 2: IF cfg.BOX_W < minw THEN cfg.BOX_W = minw
+    cfg.BOX_H = TRAY_H - inset * 2 - botinset: IF cfg.BOX_H < minh THEN cfg.BOX_H = minh
+    cfg.BOX_X = TRAY_X + inset
+    cfg.BOX_Y = TRAY_Y + TRAY_H - botinset - cfg.BOX_H
+    IF cfg.BOX_Y < TRAY_Y THEN cfg.BOX_Y = TRAY_Y
+
+    ' Where the tray sits in GL space. The game's GlX!/GlY! also account for its
+    ' fullscreen present-scaling; a prototype draws 1:1 into its own window, so
+    ' this is the unscaled form of the same expression -- offset from the window
+    ' centre in model units, y flipped because GL counts upward.
+    DICE3D_HW_CX = (cfg.BOX_X + cfg.BOX_W * 0.5 - SW * CW * 0.5) / MGD_PXPERUNIT
+    DICE3D_HW_CY = -(cfg.BOX_Y + cfg.BOX_H * 0.5 - SH * CH * 0.5) / MGD_PXPERUNIT
+    DICE3D_HW_PXK = 1! / MGD_PXPERUNIT
 END SUB
 
 '--- dice -------------------------------------------------------------------
@@ -69,10 +185,22 @@ FUNCTION AnimatedRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, what A
     DIM v(1 TO MG_MAXDICE) AS INTEGER
     DIM r(1 TO MG_MAXDICE) AS INTEGER
     DIM notation AS STRING
+    DIM cfg AS DICE3D_CONFIG        ' at the top: a DIM inside the IF is a syntax error
 
     IF opt_dice3d _ANDALSO dice3d_ready _ANDALSO dice3d_supported%(sides) _ANDALSO n <= MG_MAXDICE THEN
+        cfg = DSET3D(dice3d_set_index%(sides))     ' the SET carries the style
+        MgApplyDiceSettings cfg                    ' the player's two overrides
+        MgFitBox cfg                               ' into the tray the layout reserved
+
+        ' photograph the screen so PresentNoFlip can lay it back down under every
+        ' frame of the tumble -- without this the prototype's UI vanishes mid-roll
+        IF MGD_SNAP <> 0 THEN _FREEIMAGE MGD_SNAP
+        MGD_SNAP = _COPYIMAGE(0, 32)
+
         notation = _TRIM$(STR$(n)) + "d" + _TRIM$(STR$(sides))
-        dice3d_roll notation, DICE_CFG, r()        ' animates, returns settled faces
+        dice3d_roll notation, cfg, r()             ' animates, returns settled faces
+
+        IF MGD_SNAP <> 0 THEN _FREEIMAGE MGD_SNAP: MGD_SNAP = 0
         FOR i = 1 TO n
             v(i) = r(i): t = t + v(i)
         NEXT i

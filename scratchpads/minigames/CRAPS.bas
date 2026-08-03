@@ -37,6 +37,8 @@ IF INSTR(cmd, "SELFTEST") > 0 THEN CrapsSelfTest
 
 MgScreen
 MgDiceInit                     ' after the window: the 3D layer needs GL
+' the tray is part of the LAYOUT -- reserved once, drawn every frame
+MgDiceTray 34 * CW, 11 * CH, 64 * CW, 8 * CH, "-=  the bones  =-"
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawCraps 4, 5, 6, CR_POINT, 120, 20, "the point is 6 -- roll it again before a 7"
     _SAVEIMAGE "craps-shot.png"
@@ -189,21 +191,29 @@ FUNCTION PlayCraps% (purse AS LONG, bet AS LONG)
     LOOP
 END FUNCTION
 
+' The layout is built AROUND the dice tray rather than being covered by it. The
+' tray occupies rows 10-17 permanently, so the table state sits above it and the
+' purse and prompts below -- and the bones are always somewhere on screen, even
+' before the first throw.
 SUB DrawCraps (a AS INTEGER, b AS INTEGER, pnt AS INTEGER, phase AS INTEGER, purse AS LONG, bet AS LONG, msg AS STRING)
     MgHeader "C R A P S", "the table is loud and nobody here is patient"
-    IF a > 0 THEN
-        COLOR C_TEXT, 0: MgCenter 12, "the bones:   " + _TRIM$(STR$(a)) + "   " + _TRIM$(STR$(b)) + "      =" + STR$(a + b)
-    END IF
+
     IF phase = CR_POINT THEN
-        COLOR C_COOL, 0: MgCenter 15, "THE POINT:  " + _TRIM$(STR$(pnt))
-        COLOR C_DIM, 0: MgCenter 17, "roll " + _TRIM$(STR$(pnt)) + " to win  ---  roll 7 and it is over"
+        COLOR C_COOL, 0: MgCenter 6, "THE POINT:  " + _TRIM$(STR$(pnt))
+        COLOR C_DIM, 0: MgCenter 7, "roll " + _TRIM$(STR$(pnt)) + " to win  ---  roll 7 and it is over"
     ELSE
-        COLOR C_COOL, 0: MgCenter 15, "COME-OUT"
-        COLOR C_DIM, 0: MgCenter 17, "7 or 11 wins  ---  2, 3 or 12 craps out"
+        COLOR C_COOL, 0: MgCenter 6, "COME-OUT"
+        COLOR C_DIM, 0: MgCenter 7, "7 or 11 wins  ---  2, 3 or 12 craps out"
     END IF
-    COLOR C_WARN, 0: MgCenter 21, "purse " + _TRIM$(STR$(purse)) + "      staked " + _TRIM$(STR$(bet))
-    COLOR C_TEXT, 0: MgCenter 25, msg
-    COLOR C_GOOD, 0: MgCenter 31, "[SPACE] roll     [ESC] step away"
+
+    MgDrawTray                         ' always, rolling or not
+
+    IF a > 0 THEN
+        COLOR C_TEXT, 0: MgCenter 20, "the bones:   " + _TRIM$(STR$(a)) + "   " + _TRIM$(STR$(b)) + "      =" + STR$(a + b)
+    END IF
+    COLOR C_WARN, 0: MgCenter 22, "purse " + _TRIM$(STR$(purse)) + "      staked " + _TRIM$(STR$(bet))
+    COLOR C_TEXT, 0: MgCenter 24, msg
+    COLOR C_GOOD, 0: MgCenter 27, "[SPACE] roll     [ESC] step away"
     _DISPLAY
 END SUB
 

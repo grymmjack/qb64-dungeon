@@ -24,8 +24,26 @@ DIM SHARED opt_dicemath AS INTEGER   ' ...and adds the modifier themselves
 DIM SHARED opt_dice3d AS INTEGER     ' animate real 3D polyhedra
 DIM SHARED opt_d6pips AS INTEGER     ' a d6 shows pips rather than a numbered face
 
+DIM SHARED opt_dicelight AS INTEGER  ' 0 off .. 3 strong
+DIM SHARED opt_diceround AS INTEGER  ' edge bevel, tenths
+DIM SHARED opt_dice3d_set AS INTEGER ' which set in dicesets.txt
+
 DIM SHARED dice3d_ready AS INTEGER   ' the module loaded and has a usable set
-DIM SHARED DICE_CFG AS DICE3D_CONFIG
+
+'--- one config PER DIE SIZE, exactly as the game keeps DSET3D(). The SET is what
+'    carries the style -- body, ink, finish, bevel, light -- so loading the same
+'    file the game loads is what makes a prototype look like the game. ---
+DIM SHARED DSET3D(0 TO 6) AS DICE3D_CONFIG
+
+'--- the tray. Reserved by the prototype's layout and drawn EVERY frame, so the
+'    dice have a home that is always on screen rather than a box that appears. ---
+DIM SHARED AS INTEGER TRAY_X, TRAY_Y, TRAY_W, TRAY_H
+DIM SHARED TRAY_CAP AS STRING
+
+'--- the screen under the dice. dice3d_roll runs its own animation loop and only
+'    draws DICE; without laying this back down every frame the rest of the screen
+'    is whatever was last flipped, which is how a UI "disappears" mid-roll. ---
+DIM SHARED MGD_SNAP AS LONG
 
 CONST MG_MAXDICE = 16
 

@@ -45,6 +45,7 @@ IF INSTR(cmd, "SELFTEST") > 0 THEN GambleSelfTest
 
 MgScreen
 MgDiceInit                     ' after the window: the 3D layer needs GL
+MgDiceTray 34 * CW, 11 * CH, 64 * CW, 8 * CH, "-=  the knucklebones  =-"
 
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawTable 190, 26, 4, 5, 2, 13, "the bones are warm -- roll again, or take it?"
@@ -249,26 +250,30 @@ SUB DrawTable (purse AS LONG, pot AS LONG, a AS INTEGER, b AS INTEGER, rolls AS 
     MgCenter 3, "-=  K N U C K L E B O N E S  =-"
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
     MgCenter 5, "any ONE and the table takes the pot"
+    ' the tray is furniture: reserved by the layout and drawn every frame, so the
+    ' bones always have a home rather than a box that appears over the table
+    MgDrawTray
+
     IF a > 0 THEN
         COLOR _RGB32(&HEC, &HE8, &HDC), 0
-        MgCenter 12, "the bones:   " + _TRIM$(STR$(a)) + "   " + _TRIM$(STR$(b))
+        MgCenter 20, "the bones:   " + _TRIM$(STR$(a)) + "   " + _TRIM$(STR$(b))
     END IF
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    MgCenter 16, "pot on the table:  " + _TRIM$(STR$(pot))
+    MgCenter 22, "pot on the table:  " + _TRIM$(STR$(pot))
     COLOR _RGB32(&HFF, &HC0, &H40), 0
-    MgCenter 18, "your purse:  " + _TRIM$(STR$(purse)) + "        rolls: " + _TRIM$(STR$(rolls))
+    MgCenter 24, "your purse:  " + _TRIM$(STR$(purse)) + "        rolls: " + _TRIM$(STR$(rolls))
     ' WIS reads the table rather than bending it
     IF ReadsTheOdds%(wis) THEN
         COLOR _RGB32(&H55, &HFF, &HFF), 0
-        MgCenter 22, "you reckon the odds turn against you past " + _TRIM$(STR$(INT(BreakEvenPot!))) + " in the pot"
+        MgCenter 27, "you reckon the odds turn against you past " + _TRIM$(STR$(INT(BreakEvenPot!))) + " in the pot"
     ELSE
         COLOR _RGB32(&H70, &H70, &H70), 0
-        MgCenter 22, "you have no head for the odds"
+        MgCenter 27, "you have no head for the odds"
     END IF
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    MgCenter 26, msg
+    MgCenter 30, msg
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    MgCenter 32, "[R] roll again     [B] bank the pot     [ESC] take it and go"
+    MgCenter 33, "[R] roll again     [B] bank the pot     [ESC] take it and go"
     _DISPLAY
 END SUB
 
