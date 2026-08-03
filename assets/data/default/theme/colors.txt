@@ -1,0 +1,47 @@
+# ============================================================================
+#  THEME -- every PRESENTATION colour in the game, by name.
+#
+#  FORMAT:  key | RRGGBB          (or RRGGBBAA for translucent overlays)
+#           # comments and blank lines are ignored
+#
+#  A key that is absent, or a value that will not parse, means "leave that
+#  colour exactly as the game already draws it" -- every call site passes its
+#  own fallback. So a pack can restyle three things and stay silent about the
+#  rest, and deleting this file changes nothing.
+#
+#  Data-pack aware, like every other table here: a pack's own
+#  theme/colors.txt is tried first, then default/.
+#
+#  ---------------------------------------------------------------------------
+#  WHAT IS NOT HERE, AND WHY
+#
+#  The BOARD colours -- path yellow, door brown, secret-door blue, wall black --
+#  are not ink. The board art IS the collision map: engine/BOARD.bas decides
+#  what a cell is by asking `POINT(...) = BROWN`. Recolouring them here would
+#  not restyle the game, it would stop doors being doors while everything still
+#  looked fine. They belong to the ANSI-ART pack, which ships the art they have
+#  to match. `dungeon.run themelint` rejects board.* keys for this reason.
+#
+#  Dice BODY/INK colours are not here either -- they are a player SETTING with
+#  its own palettes (assets/data/dice-colors.txt, SETTINGS "Dice Colour"), and
+#  the 3D sets carry their own materials in engine/DICE3D/diceset.txt.
+# ============================================================================
+
+# -- UI ink: the seven colours nearly every panel, label and prompt draws with
+ui.white     | FFFFFF
+ui.grey      | AAAAAA
+ui.red       | FF5555
+ui.green     | 55FF55
+ui.yellow    | FFFF55
+ui.cyan      | 55FFFF
+ui.panel.bg  | 200000
+
+# -- the dice tray (the roll box behind the dice, and its border)
+dice.tray.bg   | 34227A
+dice.tray.edge | 8A6CF2
+
+# -- timing bars: the composure gauge and the luck / attack fuses
+gauge.track  | 28282E
+fuse.track   | 28282E
+fuse.ok      | AA9646
+fuse.urgent  | DC3C32

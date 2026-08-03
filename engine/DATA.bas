@@ -295,6 +295,68 @@ FUNCTION HexRGB~& (h AS STRING)
     HexRGB~& = _RGB32(VAL("&H" + MID$(s, 1, 2)), VAL("&H" + MID$(s, 3, 2)), VAL("&H" + MID$(s, 5, 2)))
 END FUNCTION
 
+' ============================================================================
+'  THEME -- named presentation colours from assets/data/<pack>/theme/colors.txt
+'
+'  `key | RRGGBB` or `key | RRGGBBAA`. Missing file, missing key or a malformed value all mean
+'  "use the fallback the call site passed", so the game looks exactly as it does today until the
+'  file says otherwise. Colours are looked up by NAME, not by position, so a pack can override
+'  three of them and say nothing about the rest.
+' ============================================================================
+
+' Colours that are COLLISION values, not ink -- see the note on THM_KEY in ENGINE.BI. Named here
+' so themelint can refuse them with an explanation rather than letting someone recolour the board
+' out from under the movement code and then wonder why doors stopped working.
+FUNCTION ThemeReserved% (k AS STRING)
+    SELECT CASE LCASE$(_TRIM$(k))
+        CASE "board.path", "board.door", "board.secret", "board.black": ThemeReserved% = -1
+        CASE ELSE: ThemeReserved% = 0
+    END SELECT
+END FUNCTION
+
+SUB LoadTheme
+    DIM i AS INTEGER, k AS STRING, v AS STRING
+    THM_N = 0
+    theme_loaded = TRUE
+    ReadDataFile "assets/data/theme/colors.txt"
+    FOR i = 1 TO DLINE_N
+        k = LCASE$(DField$(DLINE(i), 1))
+        v = DField$(DLINE(i), 2)
+        IF LEN(k) > 0 AND LEN(v) >= 6 THEN
+            IF THM_N < THEME_MAX AND ThemeReserved%(k) = 0 THEN
+                THM_N = THM_N + 1
+                THM_KEY(THM_N) = k
+                THM_VAL(THM_N) = HexRGBA~&(v)
+                THM_HIT(THM_N) = 0
+            END IF
+        END IF
+    NEXT i
+END SUB
+
+' As HexRGB~& but accepts an 8-digit RRGGBBAA form as well -- overlays and tints need the alpha,
+' and half the colours being themeable while the translucent ones were not would be a poor rule.
+FUNCTION HexRGBA~& (h AS STRING)
+    DIM s AS STRING
+    s = _TRIM$(h): IF LEFT$(s, 1) = "#" THEN s = MID$(s, 2)
+    IF LEN(s) < 8 THEN HexRGBA~& = HexRGB~&(s): EXIT FUNCTION
+    HexRGBA~& = _RGBA32(VAL("&H" + MID$(s, 1, 2)), VAL("&H" + MID$(s, 3, 2)), VAL("&H" + MID$(s, 5, 2)), VAL("&H" + MID$(s, 7, 2)))
+END FUNCTION
+
+' The themed colour for `key`, or `fallback` when the theme says nothing about it.
+FUNCTION Thm~& (nm AS STRING, fallback AS _UNSIGNED LONG)   ' `nm` -- KEY is reserved
+    DIM i AS INTEGER, k AS STRING
+    IF NOT theme_loaded THEN LoadTheme
+    k = LCASE$(_TRIM$(nm))
+    FOR i = 1 TO THM_N
+        IF THM_KEY(i) = k THEN
+            THM_HIT(i) = -1
+            Thm~& = THM_VAL(i)
+            EXIT FUNCTION
+        END IF
+    NEXT i
+    Thm~& = fallback
+END FUNCTION
+
 ' Field n (1-based) of a pipe-delimited line, trimmed. "" if there aren't that many.
 FUNCTION DField$ (ln AS STRING, n AS INTEGER)
     DIM s AS STRING, p AS INTEGER, i AS INTEGER

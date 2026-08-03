@@ -60,6 +60,7 @@ SUB EnsureDumps
     RegisterDump "images", "engine", "sprite cache (loaded + missing) and recently drawn art"
     RegisterDump "vars", "engine", "engine globals: screen, canvas, options, mixer, fog"
     RegisterDump "sounds", "engine", "the sound graveyard: handles parked awaiting _SNDCLOSE"
+    RegisterDump "theme", "engine", "named presentation colours + whether each came from the theme file"
     Game_RegisterDumps                            ' the game appends its own topics
 END SUB
 
@@ -77,6 +78,7 @@ FUNCTION DumpRun% (topic AS STRING)
         CASE "images": Dump_Images
         CASE "vars": Dump_Vars
         CASE "sounds": Dump_Sounds
+        CASE "theme": Dump_Theme
         CASE ELSE: DumpRun% = Game_DevDump%(t)    ' not ours -- offer it to the game
     END SELECT
 END FUNCTION
@@ -292,6 +294,31 @@ SUB Dump_Sounds
         END IF
     NEXT i
     IF n = 0 THEN ConPrintC GREENU, "  (empty -- everything retired has been freed)"
+END SUB
+
+SUB Dump_Theme
+    DIM i AS INTEGER, used AS INTEGER
+    ConHead "-- THEME (assets/data/theme/colors.txt) --"
+    ConRow "colours loaded", _TRIM$(STR$(THM_N)) + " of " + _TRIM$(STR$(THEME_MAX))
+    IF THM_N = 0 THEN
+        ConPrintC REDU, "  nothing loaded -- every colour is using its built-in fallback"
+        EXIT SUB
+    END IF
+    FOR i = 1 TO THM_N
+        IF THM_HIT(i) THEN used = used + 1
+    NEXT i
+    ConRow "asked for so far", _TRIM$(STR$(used)) + "   (the rest are drawn on screens not yet shown)"
+    ConHead "-- KEYS --"
+    FOR i = 1 TO THM_N
+        IF THM_HIT(i) THEN
+            ConPrintC GREENU, "  " + PadR$(THM_KEY(i), 24) + HexOf$(THM_VAL(i)) + "   in use"
+        ELSE
+            ConPrintC GREY, "  " + PadR$(THM_KEY(i), 24) + HexOf$(THM_VAL(i))
+        END IF
+    NEXT i
+    ConPrint ""
+    ConPrint "  Board colours (path/door/secret/wall) are NOT themeable: the art IS the collision"
+    ConPrint "  map, so recolouring them would stop doors being doors. See ThemeReserved%."
 END SUB
 
 SUB Dump_Vars

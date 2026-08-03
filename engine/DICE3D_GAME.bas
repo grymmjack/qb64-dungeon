@@ -172,8 +172,8 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
     ' The tray (a software box on CANVAS) -- the 3D dice render on the GL layer over it.
     ' Roomy tray with its own wider caption header above; a royal-purple "dice box".
     DIM boxviolet AS _UNSIGNED LONG, boxedge AS _UNSIGNED LONG
-    boxviolet = _RGB32(&H34, &H22, &H7A)           ' plush violet-blue royal purple
-    boxedge = _RGB32(&H8A, &H6C, &HF2)             ' lighter violet border
+    boxviolet = Thm~&("dice.tray.bg", _RGB32(&H34, &H22, &H7A))   ' plush violet-blue royal purple
+    boxedge = Thm~&("dice.tray.edge", _RGB32(&H8A, &H6C, &HF2))   ' lighter violet border
     ' Die radius in box/screen px, SHAPE-CORRECTED.
     '
     ' Every mesh is built at unit circumradius, so a flat 28 makes them all the same SPHERE --

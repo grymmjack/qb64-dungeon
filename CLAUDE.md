@@ -565,6 +565,23 @@ Environment specifics that dictate this approach:
   so each monster/class gets biology-appropriate hit/miss/crit/fumble/death lines. All flavor
   supports `{mon} {player} {class} {dmg} {deaths} {level} {room} {treasure} {weapon}` tokens
   via `Fill$`; combat sets the `FX_*` context globals before each line.
+- **THEME — named presentation colours** (`assets/data/<pack>/theme/colors.txt`, `LoadTheme`/`Thm~&`
+  in `engine/DATA.bas`). `key | RRGGBB` (or `RRGGBBAA`). Every call site passes its own fallback —
+  `Thm~&("ui.red", _RGB32(&HFF,&H55,&H55))` — so a missing file, missing key or bad value all mean
+  "leave that colour exactly as it is", the same *missing means unchanged* rule `Say$` uses. That
+  is what makes converting the codebase safe **one file at a time**, and it means a pack can
+  restyle three colours and stay silent about the other hundred.
+  **The board colours are deliberately NOT themeable.** `YELLOW`/`BROWN`/`BRIGHT_BLUE`/`BLACK` are
+  not ink, they are **collision values**: the art IS the collision map and `BOARD.bas` asks
+  `POINT(...) = BROWN` to decide what a cell is. Recolouring them from a theme would not restyle
+  the game, it would stop doors being doors while everything still looked right. They belong to
+  the ANSI-ART pack that ships the art they must match, and `ThemeReserved%` refuses `board.*` keys.
+  Dice body/ink are excluded too — those are a player SETTING with its own palettes.
+  **`dungeon.run themelint`** (gated) lists every key, proves the file is actually being read (it
+  asks for a known key with a fallback the file could never return), and confirms the board names
+  are still reserved — because a misspelt key does not fail, it silently keeps the built-in colour
+  and the pack author sees no change at all. `dump theme` shows the same live, marking which keys
+  have actually been asked for.
 - **Configurable UI fonts** — `assets/data/ui-fonts.txt` (`region | fontfile | size`) maps UI
   regions to TrueType fonts in `assets/fonts/ui/`, loaded by `LoadUIFonts` into `UIF_*` handles
   (0 = the built-in 8×16 grid font, handle `CH`). Wrap a draw block with `UIFontOn h` /

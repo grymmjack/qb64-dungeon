@@ -33,6 +33,23 @@ DIM SHARED AS INTEGER SW, SH, CW, CH
 DIM SHARED AS LONG CANVAS, CANVAS_COPY
 DIM SHARED AS _UNSIGNED LONG YELLOW, BLACK, BROWN, BRIGHT_BLUE
 DIM SHARED AS _UNSIGNED LONG WHITE, GREY, REDU, GREENU, YELLOWU, CYANU, BOXBG
+
+' --- THEME: every presentation colour, by name (assets/data/<pack>/theme/colors.txt) -----------
+' Thm~&("key", fallback) returns the file's value or the fallback, so a call site keeps exactly
+' the colour it has today when the file says nothing -- the same "missing means unchanged" rule
+' Say$ uses for strings. That is what makes converting the codebase safe to do a file at a time.
+'
+' WHAT IS DELIBERATELY *NOT* THEMEABLE: YELLOW / BROWN / BRIGHT_BLUE / BLACK above. Those are not
+' ink, they are COLLISION VALUES -- the board art IS the collision map, and BOARD.bas asks
+' `POINT(...) = BROWN` to decide what a cell is. Recolouring them from a theme file would not
+' restyle the game, it would silently stop doors being doors. They belong to the ANSI-ART pack,
+' which ships the art they have to match, and themelint refuses to load a key that names one.
+CONST THEME_MAX = 192
+DIM SHARED THM_KEY(1 TO THEME_MAX) AS STRING
+DIM SHARED THM_VAL(1 TO THEME_MAX) AS _UNSIGNED LONG
+DIM SHARED THM_N AS INTEGER
+DIM SHARED THM_HIT(1 TO THEME_MAX) AS INTEGER    ' asked for at least once (themelint reports unused keys)
+DIM SHARED theme_loaded AS INTEGER
 DIM SHARED BOARD_ANSI AS STRING
 DIM SHARED DOOROPEN(0 TO 131, 0 TO 60) AS INTEGER    ' cell -> TRUE once a door has been passed through (FOV: closed doors block sight)
 ' Line of sight FORCED ON by where you are, regardless of the player's setting -- the game sets

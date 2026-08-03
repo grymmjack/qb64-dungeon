@@ -137,6 +137,21 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # The theme file. Colours resolve by NAME with a per-call-site fallback, so a typo does not
+    # fail -- it silently keeps the built-in colour and a pack author sees no change at all.
+    echo "-- theme colours (dungeon.run themelint) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 60 "themelint" ./dungeon.run themelint nocolor; then tl="$DEVRUN_OUT"
+            grep -E 'colour\(s\) loaded|asked for' <<<"$tl" | sed 's/^/  /'
+        else
+            tl="$DEVRUN_OUT"
+            grep -E 'BAD' <<<"$tl" | head -4 | sed 's/^/    /'
+            (( fail++ )); failed+=("themelint")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Ability-roll methods. A method is two claims -- how it LOOKS and what it PRODUCES -- and
     # "3d6 re-roll 1s & 2s" once shipped as 3d4+6: identical maths, visibly the wrong dice, and
     # nothing could tell. This checks the half a screenshot cannot.

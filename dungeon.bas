@@ -62,6 +62,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10datalint|07     validate the loaded content tables (unreachable treasure slots, bad item codes)")
     PRINT PipeCol$("  |10ruleslint|07    print the GENERATED rules sections (your-game + what each ability does)")
     PRINT PipeCol$("  |10statroll|07 |14[n]|07  sample each ability-roll method; check range + that the fast path matches")
+    PRINT PipeCol$("  |10themelint|07    list assets/data/theme/colors.txt and prove it drives the game's colours")
     PRINT PipeCol$("  |10balancedump|07 |14[--includestats]|07  monster curve + player ascension, with hits-to-die vs hits-to-kill")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
@@ -102,13 +103,15 @@ BLACK = _RGB32(&H00, &H00, &H00)
 BROWN = _RGB32(&HAA, &H55, &H00)
 BRIGHT_BLUE = _RGB32(&H55, &H55, &HFF)
 ' UI palette
-WHITE = _RGB32(&HFF, &HFF, &HFF)
-GREY = _RGB32(&HAA, &HAA, &HAA)
-REDU = _RGB32(&HFF, &H55, &H55)
-GREENU = _RGB32(&H55, &HFF, &H55)
-YELLOWU = _RGB32(&HFF, &HFF, &H55)
-CYANU = _RGB32(&H55, &HFF, &HFF)
-BOXBG = _RGB32(&H20, &H00, &H00)
+' UI INK -- themeable (assets/data/theme/colors.txt). The four board colours above are NOT:
+' they are collision values the art has to match. See the note on THM_KEY in ENGINE.BI.
+WHITE = Thm~&("ui.white", _RGB32(&HFF, &HFF, &HFF))
+GREY = Thm~&("ui.grey", _RGB32(&HAA, &HAA, &HAA))
+REDU = Thm~&("ui.red", _RGB32(&HFF, &H55, &H55))
+GREENU = Thm~&("ui.green", _RGB32(&H55, &HFF, &H55))
+YELLOWU = Thm~&("ui.yellow", _RGB32(&HFF, &HFF, &H55))
+CYANU = Thm~&("ui.cyan", _RGB32(&H55, &HFF, &HFF))
+BOXBG = Thm~&("ui.panel.bg", _RGB32(&H20, &H00, &H00))
 
 RANDOMIZE TIMER
 
@@ -424,6 +427,9 @@ IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 
 '--- dev: `dungeon.run datalint` validates the loaded content tables and exits ---
 IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
+
+'--- dev: `dungeon.run themelint` lists the theme colours and proves the file is being read ---
+IF INSTR(UCASE$(COMMAND$), "THEMELINT") > 0 THEN ThemeLint
 
 '--- dev: `dungeon.run statroll [n]` samples every ability-roll method and checks its shape ---
 IF INSTR(UCASE$(COMMAND$), "STATROLL") > 0 THEN StatRollCheck VAL(NthField$(COMMAND$, " ", 2))

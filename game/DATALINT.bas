@@ -2112,3 +2112,51 @@ SUB StatRollCheck (samples AS INTEGER)
     PRINT PipeCol$("  |10ok |07  every method is in range and its fast path matches")
     SYSTEM
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run themelint` -- the theme file, key by key.
+'
+'  Colours resolve by NAME with a per-call-site fallback, which is what makes converting the
+'  codebase safe one file at a time -- and also what makes a typo invisible: a misspelt key does
+'  not fail, it silently keeps the built-in colour and the pack author sees no change. So this
+'  lists what actually loaded, proves the file is being read at all, and names the two ways a key
+'  can be dead: reserved (a board COLLISION colour, which must match the art) or never asked for.
+' ============================================================================
+SUB ThemeLint
+    DIM i AS INTEGER, bad AS INTEGER, unused AS INTEGER, probe AS _UNSIGNED LONG
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15themelint|07 -- " + DataPath$("assets/data/theme/colors.txt"))
+    ' NOT reloading: startup has already resolved the palette through Thm~&, so THM_HIT records
+    ' which keys the game genuinely asked for. Calling LoadTheme here would reset those flags and
+    ' report every key as unused -- the report would be about this dev mode, not about the game.
+    PRINT PipeCol$("  " + _TRIM$(STR$(THM_N)) + " colour(s) loaded")
+    IF THM_N = 0 THEN
+        PRINT PipeCol$("|12BAD|07  nothing loaded -- missing or unreadable theme file")
+        SYSTEM 1
+    END IF
+    ' PROOF the file is actually driving the colours: ask for a key it defines with a fallback it
+    ' could never legitimately return. If the pipeline were broken every Thm~& call would quietly
+    ' hand back its fallback and the whole feature would look like it worked.
+    probe = Thm~&("ui.white", _RGB32(1, 2, 3))
+    IF probe = _RGB32(1, 2, 3) THEN
+        PRINT PipeCol$("|12BAD|07  ui.white fell through to the fallback -- the file is not being read")
+        bad = bad + 1
+    END IF
+    ' The reserved names must not be themeable. Checked here rather than trusted, because the
+    ' failure mode is a board whose doors stop working while nothing looks wrong.
+    IF ThemeReserved%("board.door") = 0 THEN
+        PRINT PipeCol$("|12BAD|07  board.* is no longer reserved -- a theme could recolour the collision map")
+        bad = bad + 1
+    END IF
+    FOR i = 1 TO THM_N
+        IF THM_HIT(i) = 0 THEN unused = unused + 1
+    NEXT i
+    PRINT PipeCol$("  " + _TRIM$(STR$(THM_N - unused)) + " asked for during startup, " + _TRIM$(STR$(unused)) + " not yet (drawn later, or a typo)")
+    FOR i = 1 TO THM_N
+        PRINT PipeCol$("    " + PadR$(THM_KEY(i), 22) + "|08" + HexOf$(THM_VAL(i)) + "|07")
+    NEXT i
+    IF bad > 0 THEN SYSTEM 1
+    PRINT PipeCol$("  |10ok |07  theme loads, resolves by name, and board colours stay reserved")
+    SYSTEM
+END SUB

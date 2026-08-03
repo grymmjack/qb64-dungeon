@@ -1691,8 +1691,8 @@ SUB DrawLuckPrompt (total AS INTEGER, raw AS INTEGER, sides AS INTEGER, frac AS 
         ' the fuse: same colours and the same "turns red near the end" cue as the gesture gauge,
         ' so the two prompts read as one language rather than two unrelated widgets
         fx = (bx + 3) * CW: fw = (bw - 6) * CW
-        LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), _RGB32(40, 40, 46), BF
-        IF frac > 0.35 THEN fcol = _RGB32(170, 150, 70) ELSE fcol = _RGB32(220, 60, 50)
+        LINE (fx, (by + 3) * CH)-(fx + fw, (by + 4) * CH - 4), Thm~&("fuse.track", _RGB32(40, 40, 46)), BF
+        IF frac > 0.35 THEN fcol = Thm~&("fuse.ok", _RGB32(170, 150, 70)) ELSE fcol = Thm~&("fuse.urgent", _RGB32(220, 60, 50))
         LINE (fx, (by + 3) * CH)-(fx + INT(fw * frac), (by + 4) * CH - 4), fcol, BF
         COLOR GREY, BOXBG: PrintCentered by + 4, "[R] re-roll      [SPACE] continue"
     END IF

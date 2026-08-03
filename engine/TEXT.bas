@@ -75,3 +75,16 @@ FUNCTION SubstAll$ (s AS STRING, finds AS STRING, repl AS STRING)
     LOOP
     SubstAll$ = acc
 END FUNCTION
+
+' "RRGGBB" (plus AA when not opaque) for a packed colour. Lives in the ENGINE because the dev
+' console's `dump theme` prints it too, and engine/ may not name a game symbol.
+FUNCTION HexOf$ (kolor AS _UNSIGNED LONG)   ' `kolor` -- `c` is the shared CURSOR (audit-shadow)
+    DIM s AS STRING
+    s = HexPair$(_RED32(kolor)) + HexPair$(_GREEN32(kolor)) + HexPair$(_BLUE32(kolor))
+    IF _ALPHA32(kolor) <> 255 THEN s = s + HexPair$(_ALPHA32(kolor))
+    HexOf$ = s
+END FUNCTION
+
+FUNCTION HexPair$ (v AS INTEGER)
+    HexPair$ = RIGHT$("0" + HEX$(v), 2)
+END FUNCTION
