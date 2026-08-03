@@ -155,6 +155,11 @@ SUB DoLint (target AS STRING)
 
     FOR i = 1 TO n
         ok = CutCompile%(scn(i))
+        '--- Compiling proves the SCRIPT is well formed. It says nothing about
+        '    whether the art and audio it names are on disk -- and a scene
+        '    whose backdrop is missing still compiles, still plays, and just
+        '    shows the wrong thing. Walk the ops and resolve every asset. ---
+        CutLintAssets
         tot = tot + 1
         PRINT scn(i); " -- "; LTRIM$(STR$(CUT_NOP)); " ops, "; LTRIM$(STR$(CUT_NLBL)); " labels";
         IF CUT_NERR = 0 THEN
@@ -173,6 +178,97 @@ SUB DoLint (target AS STRING)
     '--- CUT_NFATAL is per-compile, so the LAST file would otherwise decide the
     '    exit code for the whole run. ---
     IF bad > 0 THEN CUT_NFATAL = bad ELSE CUT_NFATAL = 0
+END SUB
+
+'--- Resolve every asset a compiled scene names, WITHOUT playing it.
+'
+'  Art is loaded lazily at the moment an op executes, so a missing backdrop on
+'  a branch nobody took during testing stays invisible until a player takes
+'  that branch. Here every op is checked, both arms of every conditional
+'  included, because the check walks the PROGRAM and not an execution.
+'
+'  Missing audio is a WARNING, not an error: a silent effect is a legitimate
+'  state (the game falls back to a beeper tone, and packs ship partial sets).
+'  Missing ART is an error -- there is no sensible fallback for a picture.
+SUB CutLintAssets
+    DIM i AS INTEGER, f AS INTEGER, pth AS STRING, nm AS STRING
+    DIM nframes AS INTEGER, missing AS INTEGER, firstmiss AS STRING
+
+    FOR i = 1 TO CUT_NOP
+        SELECT CASE CUT_OPS(i).cmd
+
+            CASE OP_SHOW
+                pth = CutStrGet$(CUT_OPS(i).s2)
+                IF LEN(pth) > 0 THEN
+                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                        CutErrAdd 2, CUT_OPS(i).srcline, "art not found: " + pth
+                    END IF
+                END IF
+
+            CASE OP_TRANS
+                '--- a transition's `to "<path>"` is stored as layer|path ---
+                pth = CutStrGet$(CUT_OPS(i).s3)
+                f = INSTR(pth, "|")
+                IF f > 0 THEN
+                    pth = MID$(pth, f + 1)
+                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                        CutErrAdd 2, CUT_OPS(i).srcline, "art not found: " + pth
+                    END IF
+                END IF
+
+            CASE OP_PORTRAIT
+                pth = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(pth) > 0 THEN
+                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                        CutErrAdd 2, CUT_OPS(i).srcline, "portrait not found: " + pth
+                    END IF
+                END IF
+
+            CASE OP_ANIM
+                '--- EVERY frame, not just the first. A sequence that is one
+                '    frame short plays fine until it reaches the end, and then
+                '    shows a MISSING box mid-animation. ---
+                nm = CutStrGet$(CUT_OPS(i).s2)
+                nframes = CINT(CUT_OPS(i).n1)
+                missing = 0
+                firstmiss = ""
+                FOR f = 1 TO nframes
+                    pth = CutFramePath$(nm, f)
+                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                        missing = missing + 1
+                        IF LEN(firstmiss) = 0 THEN firstmiss = pth
+                    END IF
+                NEXT f
+                IF missing > 0 THEN
+                    CutErrAdd 2, CUT_OPS(i).srcline, "anim " + nm + ": " + LTRIM$(STR$(missing)) + " of" + STR$(nframes) + " frames not found (first: " + firstmiss + ")"
+                END IF
+
+            CASE OP_MUSIC, OP_CUE
+                nm = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(nm) > 0 THEN
+                    IF LEN(Cut_AudioPath$("music", nm)) = 0 THEN
+                        CutErrAdd 1, CUT_OPS(i).srcline, "no music named '" + nm + "' (scene will play silent)"
+                    END IF
+                END IF
+
+            CASE OP_SFX
+                nm = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(nm) > 0 THEN
+                    IF LEN(Cut_AudioPath$("sfx", nm)) = 0 THEN
+                        CutErrAdd 1, CUT_OPS(i).srcline, "no sfx named '" + nm + "'"
+                    END IF
+                END IF
+
+            CASE OP_NARRATE
+                nm = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(nm) > 0 THEN
+                    IF LEN(Cut_AudioPath$("narration", nm)) = 0 THEN
+                        CutErrAdd 1, CUT_OPS(i).srcline, "no narration for key '" + nm + "'"
+                    END IF
+                END IF
+
+        END SELECT
+    NEXT i
 END SUB
 
 SUB CutPrintDiags
