@@ -86,6 +86,20 @@ silent about the rest.
 
 payouts
 
+## Dice
+
+Pass-line resolves entirely on the **total**, so one roll is right:
+
+```basic
+t = GameRoll%(2, 6, 0, "the come-out")
+a = DieFace%(1): b = DieFace%(2)      ' for the PICTURE only
+```
+
+Under Real Dice the player is asked for the total once, `DieFace%` honestly
+reports nothing, and the game is unaffected because it never needed the faces.
+The Monte Carlo uses `SimRoll2%` and must never route through `GameRoll%` — it
+runs 400,000 hands and would try to prompt.
+
 ## Stat hook
 
 **none -- pure odds, deliberately** — nothing; this is the one game where no stat reads for you

@@ -36,8 +36,8 @@ xvfb-run -a ./RIDDLE.run shot
 | `RIDDLE.bas` | Magic mouths — save WIS | answer matching; WIS buys attempts, a save buys a hint | WIS | 31 |
 | `MAZE.bas` | Magic sirens — save WIS | trace a perfect maze to the sigil against a fuse | WIS | 14 |
 | `DODGE.bas` | Arrow slits — gesture | step PERPENDICULAR to the arrow; DEX widens the window | DEX | 19 |
-| `GAMBLE.bas` | Tavern — gamble | push-your-luck 2d6; any ONE takes the pot | WIS reads odds | 14 |
-| `CRAPS.bas` | Tavern | come-out, then chase the point; when to walk | — | 20 |
+| `GAMBLE.bas` | Tavern — gamble | push-your-luck 2d6; any ONE takes the pot | WIS reads odds | 22 |
+| `CRAPS.bas` | Tavern | come-out, then chase the point; when to walk | — | 28 |
 | `PLINKO.bas` | Fortune shrine | real physics; place the coin on the lip, payouts MEASURED from the board | placement is skill | 13 |
 | `GUESS.bas` | A bound spirit | binary search under a guess budget | INT buys guesses | 9 |
 | `RPS.bas` | A goblin duel | read the opponent's habit and exploit it | WIS spots the tell | 15 |
@@ -91,6 +91,24 @@ every doc has a prototype, and every constant a doc names in its Configuration
 section still exists in the source. It cannot check whether the prose is true —
 that is what each file's **Invariants** section is for, since every entry there
 names an assertion that already exists in the selftest.
+
+## Dice
+
+The two prototypes that roll dice a player would recognise — CRAPS and GAMBLE —
+honour `qb64-dungeon`'s **Real Dice** and **Dice Math** settings already, through
+a shim in `MG.bas` named *exactly* as `engine/UI.bas` names them. Integration is
+deleting the shim, not rewriting call sites.
+
+The half that usually rots is asserted: under Real Dice the game gets the total
+the player typed and **no faces at all**, because they rolled physical dice. So a
+mechanic that needs to know what each die showed has to roll them individually —
+GAMBLE does (any single 1 busts), CRAPS does not need to (pass line resolves on
+totals). Rolling 2d6 and reading `DieFace%` would work perfectly in testing and
+break for exactly the players who turned the setting on.
+
+`audit-dice.sh` keeps the line: any raw die-shaped roll needs an inline
+`' not a die:` waiver saying why — a Monte Carlo is the common legitimate case,
+since it runs hundreds of thousands of times and must never be able to prompt.
 
 ## Error handling
 

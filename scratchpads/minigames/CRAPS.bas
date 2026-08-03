@@ -82,16 +82,23 @@ FUNCTION PointRoll% (total AS INTEGER, pnt AS INTEGER)
     PointRoll% = 0
 END FUNCTION
 
+' 2d6 for the Monte Carlo. NOT a die the player rolls -- this runs hundreds of
+' thousands of times with nobody watching, so it must never route through
+' GameRoll% and must never be able to prompt. See audit-dice.sh.
+FUNCTION SimRoll2% ()
+    SimRoll2% = MgRoll%(6) + MgRoll%(6)   ' not a die: headless Monte Carlo
+END FUNCTION
+
 ' Play one full hand headlessly. 1 = pass, -1 = don't. Same resolution the screen
 ' drives, so the Monte Carlo measures the real game.
 FUNCTION SimHand% ()
     DIM t AS INTEGER, p AS INTEGER, res AS INTEGER
-    t = MgRoll%(6) + MgRoll%(6)
+    t = SimRoll2%                      ' not a die the player rolls -- see below
     res = ComeOut%(t)
     IF res <> 0 THEN SimHand% = res: EXIT FUNCTION
     p = t
     DO
-        t = MgRoll%(6) + MgRoll%(6)
+        t = SimRoll2%
         res = PointRoll%(t, p)
         IF res <> 0 THEN SimHand% = res: EXIT FUNCTION
     LOOP
@@ -142,7 +149,12 @@ FUNCTION PlayCraps% (purse AS LONG, bet AS LONG)
         k = UCASE$(INKEY$)
         IF k = CHR$(27) THEN purse = purse + bet: PlayCraps% = MG_LEFT: EXIT FUNCTION
         IF k = " " OR k = "R" THEN
-            a = MgRoll%(6): b = MgRoll%(6): t = a + b
+            ' 2d6 as ONE roll: pass-line resolves entirely on the TOTAL, so Real
+            ' Dice can ask for the total and the game needs nothing else. The two
+            ' faces are only for the picture, and DieFace% honestly reports none
+            ' when the player rolled physical dice.
+            t = GameRoll%(2, 6, 0, "the come-out")
+            a = DieFace%(1): b = DieFace%(2)
             IF phase = CR_COMEOUT THEN
                 res = ComeOut%(t)
                 IF res = 1 THEN
@@ -202,6 +214,10 @@ SUB CrapsSelfTest
     DIM i AS LONG, n AS LONG, w AS LONG, p AS DOUBLE, sim AS DOUBLE, edge AS DOUBLE
     _DEST _CONSOLE
     PRINT "CRAPS selftest"
+
+    ' AFTER _DEST _CONSOLE: an Ok before that prints to the graphics page, and
+    ' eight assertions ran invisibly the first time this was wired up.
+    MgDiceSelfTest
 
     MgSection "the come-out"
     Ok "7 is a natural", ComeOut%(7) = 1

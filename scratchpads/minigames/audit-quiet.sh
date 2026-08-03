@@ -25,7 +25,7 @@ echo "== 1. nobody calls SOUND / BEEP / PLAY directly =="
 # MG.bas is the ONE place SOUND is allowed -- it is the thing being funnelled to.
 hits=$(grep -nE '(^|[^A-Za-z_])(SOUND|BEEP|PLAY)[ (]' *.bas \
        | grep -v '^MG\.bas:' \
-       | grep -vE ":\s*'" \
+       | grep -vE ':[0-9]+:[[:space:]]*'"'"'' \
        | grep -viE 'MgBeep|PlayJack|PlayLock|PlayScr|PlayName|PlayWheel|PlayCups|PlayWhack|PlayMonkey|PlayRps|PlaySlab|PlayPlinko|PlayGame|PlayMaze|PlayDodge|PlayGamble|PlayCraps|PlayGuess|PlayTrap|PlayRiddle' )
 if [ -n "$hits" ]; then
     echo "  BAD -- raw sound statements bypass every mute there is:"
@@ -57,10 +57,19 @@ fi
 echo
 echo "== 4. every selftest silences itself explicitly, belt AND braces =="
 missing=""
+mute=""
 for f in *.bas; do
     [ "$f" = "MG.bas" ] && continue
     sub=$(grep -oE '^SUB [A-Za-z]*SelfTest[[:space:]]*$' "$f" | head -1)
     [ -z "$sub" ] && continue
+    # a prototype that predates MG.bi cannot call MgQuiet -- so instead it must be
+    # provably incapable of making a sound at all
+    if ! grep -q "INCLUDE:'MG.bas'" "$f"; then
+        if grep -vE "^[[:space:]]*'" "$f" | grep -qE '(^|[^A-Za-z_])(SOUND|BEEP|PLAY)[ (]|MgBeep'; then
+            mute="$mute $f"
+        fi
+        continue
+    fi
     # the line right after the SUB header must be MgQuiet
     if ! awk -v s="$sub" 'p==1{print;exit} $0==s{p=1}' "$f" | grep -q 'MgQuiet'; then
         missing="$missing $f"
@@ -69,9 +78,31 @@ done
 if [ -n "$missing" ]; then
     echo "  BAD -- selftest does not call MgQuiet first:$missing"
     fail=1
-else
-    echo "  ok -- every selftest opens with MgQuiet"
 fi
+if [ -n "$mute" ]; then
+    echo "  BAD -- pre-harness prototype can make a sound but cannot mute itself:$mute"
+    fail=1
+fi
+if [ -z "$missing" ] && [ -z "$mute" ]; then
+    echo "  ok -- every harness selftest opens with MgQuiet; every pre-harness one is silent by construction"
+fi
+
+echo
+echo "== 4b. a harness call must actually RESOLVE =="
+# QB64 parses a call to an undefined SUB as a LABEL: it compiles, it runs, it does
+# nothing. Checking that the text is present is therefore not enough -- four
+# prototypes predate MG.bi and had a MgQuiet line that had never once executed.
+resolve=0
+for f in *.bas; do
+    [ "$f" = "MG.bas" ] && continue
+    uses=$(grep -cE '^[[:space:]]*(MgQuiet|MgLoud|MgBeep|MgDiceSelfTest)' "$f")
+    [ "$uses" -eq 0 ] && continue
+    if ! grep -q "INCLUDE:'MG.bas'" "$f"; then
+        echo "  BAD -- $f calls a harness SUB but does not include MG.bas (it compiles as a label and does nothing)"
+        resolve=1; fail=1
+    fi
+done
+[ $resolve -eq 0 ] && echo "  ok -- every harness call is backed by an include"
 
 echo
 echo "== 5. SOUND's queue is bounded =="

@@ -29,26 +29,19 @@
 '    ./GAMBLE.run shot       one frame -> gamble-shot.png
 '    ./GAMBLE.run            play it
 ' ============================================================================
-$CONSOLE
-OPTION _EXPLICIT
-
-CONST TRUE = -1, FALSE = NOT TRUE
+'$INCLUDE:'MG.bi'
 
 CONST GB_BANKED = 1
 CONST GB_BUST = 2
 CONST GB_LEFT = 3
 
-DIM SHARED AS INTEGER SW, SH, CW, CH
-SW = 132: SH = 51: CW = 8: CH = 16
-
-DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
-
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal          ' no modal dialogs -- see the handler below
+MgInit
 cmd = UCASE$(COMMAND$)
 IF INSTR(cmd, "SELFTEST") > 0 THEN GambleSelfTest
 
-SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)
+MgScreen
 
 IF INSTR(cmd, "SHOT") > 0 THEN
     DrawTable 190, 26, 4, 5, 2, 13, "the bones are warm -- roll again, or take it?"
@@ -123,15 +116,12 @@ END FUNCTION
 '  RULES
 ' ----------------------------------------------------------------------------
 
-FUNCTION AbilMod% (score AS INTEGER)
-    AbilMod% = INT((score - 10) / 2)
-END FUNCTION
 
 ' WIS does not bend the dice -- it reads them. A sharp hero is TOLD the break-even
 ' number; a dull one gambles blind. Nudging the odds instead would make the table
 ' unfair in the player's favour, which is the same problem as an unfair table.
 FUNCTION ReadsTheOdds% (wis AS INTEGER)
-    ReadsTheOdds% = (AbilMod%(wis) >= 1)
+    ReadsTheOdds% = (MgAbilMod%(wis) >= 1)
 END FUNCTION
 
 ' The house takes its cut from the BANKED pot, not from the ante -- a player who
@@ -152,10 +142,29 @@ FUNCTION HouseCut& (pot AS LONG)
     HouseCut& = c
 END FUNCTION
 
-FUNCTION RollDie% (sides AS INTEGER)
-    IF sides < 1 THEN sides = 1
-    RollDie% = INT(RND * sides) + 1
+' Not a die the player rolls: this is the Monte Carlo, run hundreds of thousands
+' of times with nobody watching. It must never route through GameRoll% and must
+' never be able to prompt. See audit-dice.sh.
+FUNCTION SimDie% (nsides AS INTEGER)
+    SimDie% = MgRoll%(nsides)              ' not a die: headless Monte Carlo
 END FUNCTION
+
+' The player's two knucklebones, rolled ONE AT A TIME on purpose.
+'
+' Knucklebones busts on any single 1, so the game has to know what EACH bone
+' showed -- and under Real Dice the player rolled physical bones on their table
+' and the game never sees the faces (DieFace% reports none, honestly). Rolling
+' 2d6 and reading DieFace% would work perfectly with animated dice and silently
+' break for every Real Dice player, which is the worst shape a bug can have.
+'
+' So: two rolls, each returning its own bone. RollSeqBegin/End means the animated
+' path still shows one shared tray rather than blinking a box in and out.
+SUB RollBones (a AS INTEGER, b AS INTEGER)
+    RollSeqBegin
+    a = GameRoll%(1, 6, 0, "first bone")
+    b = GameRoll%(1, 6, 0, "second bone")
+    RollSeqEnd
+END SUB
 
 
 ' ----------------------------------------------------------------------------
@@ -176,7 +185,7 @@ FUNCTION SimRound& (ante AS LONG, target AS LONG)
     DIM pot AS LONG, a AS INTEGER, b AS INTEGER
     pot = ante
     DO
-        a = RollDie%(6): b = RollDie%(6)
+        a = SimDie%(6): b = SimDie%(6)
         IF a = 1 OR b = 1 THEN SimRound& = -ante: EXIT FUNCTION
         pot = pot + a + b
         IF pot >= target THEN EXIT DO
@@ -204,7 +213,7 @@ FUNCTION PlayGamble% (purse AS LONG, ante AS LONG, wis AS INTEGER)
             PlayGamble% = GB_LEFT: EXIT FUNCTION
         END IF
         IF k = "R" OR k = " " THEN
-            a = RollDie%(6): b = RollDie%(6)
+            RollBones a, b
             rolls = rolls + 1
             IF a = 1 OR b = 1 THEN
                 pot = 0
@@ -234,45 +243,38 @@ END FUNCTION
 SUB DrawTable (purse AS LONG, pot AS LONG, a AS INTEGER, b AS INTEGER, rolls AS INTEGER, wis AS INTEGER, msg AS STRING)
     CLS , _RGB32(10, 8, 8)
     COLOR _RGB32(&HFF, &HE0, &H50), 0
-    CenterText 3, "-=  K N U C K L E B O N E S  =-"
+    MgCenter 3, "-=  K N U C K L E B O N E S  =-"
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 5, "any ONE and the table takes the pot"
+    MgCenter 5, "any ONE and the table takes the pot"
     IF a > 0 THEN
         COLOR _RGB32(&HEC, &HE8, &HDC), 0
-        CenterText 12, "the bones:   " + _TRIM$(STR$(a)) + "   " + _TRIM$(STR$(b))
+        MgCenter 12, "the bones:   " + _TRIM$(STR$(a)) + "   " + _TRIM$(STR$(b))
     END IF
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    CenterText 16, "pot on the table:  " + _TRIM$(STR$(pot))
+    MgCenter 16, "pot on the table:  " + _TRIM$(STR$(pot))
     COLOR _RGB32(&HFF, &HC0, &H40), 0
-    CenterText 18, "your purse:  " + _TRIM$(STR$(purse)) + "        rolls: " + _TRIM$(STR$(rolls))
+    MgCenter 18, "your purse:  " + _TRIM$(STR$(purse)) + "        rolls: " + _TRIM$(STR$(rolls))
     ' WIS reads the table rather than bending it
     IF ReadsTheOdds%(wis) THEN
         COLOR _RGB32(&H55, &HFF, &HFF), 0
-        CenterText 22, "you reckon the odds turn against you past " + _TRIM$(STR$(INT(BreakEvenPot!))) + " in the pot"
+        MgCenter 22, "you reckon the odds turn against you past " + _TRIM$(STR$(INT(BreakEvenPot!))) + " in the pot"
     ELSE
         COLOR _RGB32(&H70, &H70, &H70), 0
-        CenterText 22, "you have no head for the odds"
+        MgCenter 22, "you have no head for the odds"
     END IF
     COLOR _RGB32(&HAA, &HAA, &HAA), 0
-    CenterText 26, msg
+    MgCenter 26, msg
     COLOR _RGB32(&H55, &HFF, &H55), 0
-    CenterText 32, "[R] roll again     [B] bank the pot     [ESC] take it and go"
+    MgCenter 32, "[R] roll again     [B] bank the pot     [ESC] take it and go"
     _DISPLAY
 END SUB
 
-SUB CenterText (row AS INTEGER, s AS STRING)
-    _PRINTSTRING (((SW - LEN(s)) \ 2) * CW, row * CH), s     ' parens: `*` binds tighter than `\`
-END SUB
 
 
 ' ----------------------------------------------------------------------------
 '  SELFTEST
 ' ----------------------------------------------------------------------------
 
-SUB Ok (label AS STRING, cond AS INTEGER)
-    T_RUN = T_RUN + 1
-    IF cond THEN PRINT "  ok   "; label ELSE PRINT "  FAIL "; label: T_BAD = T_BAD + 1
-END SUB
 
 SUB GambleSelfTest
     MgQuiet                              ' a selftest is never listened to
@@ -280,6 +282,10 @@ SUB GambleSelfTest
     DIM ret AS SINGLE, best AS SINGLE, bestt AS INTEGER
     _DEST _CONSOLE
     PRINT "GAMBLE selftest"
+
+    ' AFTER _DEST _CONSOLE: an Ok before that prints to the graphics page, and
+    ' eight assertions ran invisibly the first time this was wired up.
+    MgDiceSelfTest
     PRINT
 
     PRINT " exact odds"
@@ -381,3 +387,5 @@ FUNCTION BestBeatsWorst% (n AS LONG)
     PRINT "       bank-at-16 net"; a; " vs bank-at-60 net"; b
     BestBeatsWorst% = (a > b)
 END FUNCTION
+
+'$INCLUDE:'MG.bas'

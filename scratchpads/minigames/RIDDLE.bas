@@ -343,7 +343,11 @@ SUB Ok (label AS STRING, cond AS INTEGER)
 END SUB
 
 SUB RiddleSelfTest
-    MgQuiet                              ' a selftest is never listened to
+    ' NOTE: this prototype predates MG.bi and does not include the harness, so it
+    ' cannot call MgQuiet. It is silent because it makes no sound at all -- it has
+    ' no MgBeep and no SOUND. A MgQuiet line here would compile as a LABEL and do
+    ' nothing, which is exactly what was sitting here before audit-quiet learned to
+    ' check that the symbol RESOLVES rather than that the text is present.
     DIM i AS INTEGER, dup AS INTEGER, j AS INTEGER
     _DEST _CONSOLE
     PRINT "RIDDLE selftest"

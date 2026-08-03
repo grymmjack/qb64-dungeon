@@ -178,16 +178,62 @@ muted so the voice carries it. Optional for every mini-game; free when unused.
 Any roll a *player* would recognise as a roll goes through:
 
 ```basic
-n = GameRoll(count, sides, bonus, "label")
+n = GameRoll%(count, sides, bonus, "label")
 ```
 
-which honours the SETTINGS **Real Dice** toggle (the player rolls physical dice
-and types the result) and **Dice Math** (who adds the modifier). A mini-game that
-rolls with `RND` where the player expects dice silently breaks Real Dice for that
-player.
+which honours **Real Dice** (the player rolls physical dice and types the result)
+and **Dice Math** (who adds the modifier). A mini-game that rolls with `RND`
+where the player expects dice silently opts that player out of a setting they
+turned on, and nothing looks wrong from either side.
 
-Internal randomness that is *not* a die — a shuffle, a peg bounce, a spawn
-position — is `RND` and should stay that way.
+The prototypes ship a shim in `MG.bas` named **exactly** as `engine/UI.bas` names
+these — `GameRoll%`, `PromptRoll%`, `AnimatedRoll%`, `PublishFaces`, `DieFace%`,
+`RollSeqBegin`/`RollSeqEnd`, `opt_realdice`, `opt_dicemath`, `DIE_FACE_N` — so
+integration is **deleting the shim**, not rewriting call sites.
+
+### The trap: Real Dice publishes NO faces
+
+```basic
+IF opt_realdice THEN
+    raw = PromptRoll%(n, sides, bonus, what)
+    DIE_FACE_N = 0        ' physical dice -- the game never saw them
+```
+
+The player rolled real dice on a real table. The game knows the **total** they
+typed and cannot know what each die showed. So:
+
+> **A mechanic that needs individual faces must roll its dice INDIVIDUALLY.**
+
+Rolling `2d6` and reading `DieFace%(1)` / `DieFace%(2)` works perfectly with
+animated dice and breaks for every Real Dice player — which is the worst shape a
+bug can have, because the people it breaks for are the ones who went out of their
+way to turn a feature on.
+
+Wrap individual rolls in `RollSeqBegin` / `RollSeqEnd` and the animated path still
+shows one shared tray instead of blinking a box in and out between them.
+
+| game | needs | so it rolls |
+|---|---|---|
+| CRAPS | the **total** only (pass line resolves on totals) | `GameRoll%(2, 6, 0, ...)` — one prompt |
+| GAMBLE | **each** bone (any single 1 busts) | two `GameRoll%(1, 6, 0, ...)` inside a RollSeq — two prompts |
+
+### Randomness that is not a die
+
+A shuffle, a peg bounce, a spawn position, a simulated opponent — that is `RND`
+and must stay `RND`. In particular a **Monte Carlo must never route through
+`GameRoll%`**: it runs hundreds of thousands of times with nobody watching, and
+under Real Dice it would try to prompt.
+
+`audit-dice.sh` enforces the line: any raw die-shaped roll (d4/d6/d8/d10/d12/d20)
+needs an inline `' not a die:` waiver saying why. That forces a decision at each
+site rather than a policy nobody re-reads.
+
+### What is not shimmed
+
+The look — pip dice vs polyhedra, dice colour, finish, speed, 3D, the light — is
+entirely a SETTINGS concern inside `AnimatedRoll%`, and the prototypes do not
+reimplement it. They draw their own dice; the engine's renderer replaces that
+wholesale on integration and every call site is already correct.
 
 ## 9. The frame chokepoint — `Present`
 

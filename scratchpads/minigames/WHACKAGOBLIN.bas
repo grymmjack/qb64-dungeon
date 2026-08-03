@@ -334,9 +334,9 @@ FUNCTION ScoreSloppy% ()
     DIM i AS INTEGER, s AS INTEGER
     FOR i = 1 TO g_pops
         IF IsFoe%(POPK(i)) THEN
-            IF MgRoll%(6) > 1 THEN s = s + HIT_GOOD
+            IF MgRoll%(6) > 1 THEN s = s + HIT_GOOD   ' not a die: a simulated player's accuracy
         ELSE
-            IF MgRoll%(10) = 1 THEN s = s + HIT_BAD
+            IF MgRoll%(10) = 1 THEN s = s + HIT_BAD   ' not a die: a simulated player's error rate
         END IF
     NEXT i
     ScoreSloppy% = s

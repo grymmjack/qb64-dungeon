@@ -87,6 +87,27 @@ silent about the rest.
 
 the rake, and the ante ladder
 
+## Dice
+
+Knucklebones busts on any **single** 1, so the game has to know what each bone
+showed — and under Real Dice it cannot, because the player rolled physical bones.
+So the two bones are rolled individually:
+
+```basic
+SUB RollBones (a AS INTEGER, b AS INTEGER)
+    RollSeqBegin
+    a = GameRoll%(1, 6, 0, "first bone")
+    b = GameRoll%(1, 6, 0, "second bone")
+    RollSeqEnd
+END SUB
+```
+
+Two prompts under Real Dice, one shared tray under animation. Rolling `2d6` and
+reading `DieFace%` would have worked perfectly in testing and broken for every
+Real Dice player.
+
+The Monte Carlo uses `SimDie%` and must never route through `GameRoll%`.
+
 ## Stat hook
 
 **WIS** — the odds shown on screen -- it reads, it does not bend
