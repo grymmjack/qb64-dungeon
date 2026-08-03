@@ -1,0 +1,38 @@
+# ============================================================================
+#  RIDDLES -- for the MAGIC MOUTH encounter (plans/PLANS.todo: "Magic mouths --
+#  save WIS -- mini-game riddles").
+#
+#  FORMAT:  answer[/alt/alt] | riddle text
+#    answer   the word(s) that count as correct. Slash-separated alternates all
+#             count -- RiddleMatch% normalises case, punctuation, spaces and a
+#             leading article, so "a shadow", "Shadow" and "shadows" all pass.
+#    riddle   one line. Keep it under ~200 chars so it wraps inside the panel.
+#
+#  `#` comments and blank lines are ignored, like every other table here.
+#
+#  NOTE ON SOURCING: PLANS.todo points at github.com/crawsome/riddles
+#  (riddles.csv). This box has no network access, so this is a hand-written
+#  STARTER set in the dungeon's own voice. The loader is CSV-shaped enough that
+#  importing that file later is a column swap, not a rewrite.
+# ============================================================================
+
+shadow          | I follow you all day long, but when the torch dies I am gone. What am I?
+echo            | I speak without a mouth and answer only when spoken to. What am I?
+darkness        | The more of me there is, the less you see. What am I?
+candle/torch    | I am tall when young and short when old, and my one eye weeps as I die. What am I?
+key             | I have teeth but cannot bite, and one turn of me opens the way. What am I?
+coffin          | Six men carried me in, and only five walked back out. What am I?
+silence         | Say my name and you have already broken me. What am I?
+footsteps       | The more you take of them, the more you leave behind. What are they?
+river           | I have a mouth but never eat, a bed but never sleep, and I run without legs. What am I?
+map             | I have cities but no houses, mountains but no stone, and water but no fish. What am I?
+bones           | The dungeon keeps me long after it has forgotten your name. What am I?
+fire            | Feed me and I live; give me drink and I die. What am I?
+egg             | A stone chest without hinge or key, and a golden treasure hides in me. What am I?
+hole            | The more you take away from me, the bigger I become. What am I?
+your name       | It belongs to you, yet everyone else uses it more than you do. What is it?
+tomorrow        | I am always coming but I never arrive. What am I?
+teeth           | Thirty white horses upon a red hill; they champ and stamp and then stand still. What are they?
+wind            | You cannot see me, cannot hold me, but you feel me at every door. What am I?
+door            | I am the one thing in this place that is both the way in and the way out. What am I?
+gold            | Men dig through stone and die in the dark for me, and I have never once been worth it. What am I?
