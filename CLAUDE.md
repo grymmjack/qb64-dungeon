@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> ## 🚧 IN PROGRESS — CUTSCENE ENGINE (do not duplicate)
+>
+> Another session is building the **cut-scene engine** (a DSL-scripted "little movies"
+> system: still art, frame-sequence animation, pan/zoom camera, transitions, music /
+> narration / sfx cues, input and conditional branching).
+>
+> - **Branch:** `cutscene-engine` — **worktree:** `../qb64-dungeon-cutscene` (NOT this checkout).
+> - **Owns:** anything named `CUTSCENE*` / `CUT*` under `scratchpads/cutscene/`, plus any
+>   future `engine/CUTSCENE.bas` / `assets/cutscenes/`.
+> - **Do not** start a parallel cut-scene / cinematic / intro-movie implementation, and do not
+>   refactor `engine/UI.bas` fades, `engine/ARTPACK.bas` or `engine/MUSIC.bas` signatures
+>   without saying so — that session is building on top of them.
+> - This notice is **removed by that session when it lands**. If it is still here, the work is live.
+
 ## What this is
 
 A dungeon-crawler game written in **QB64 Phoenix Edition (QB64PE)** BASIC. Graphics are
