@@ -36,9 +36,11 @@ CONST FULL_TURN = 360!
 CONST BALK_AT = 360!            ' fewer degrees than this and the wheel has BALKED
 
 '--- the crank ---
-CONST CRANK_GAIN = 7!           ' charge per alternating stroke
-CONST CRANK_DECAY = 34!         ' charge lost per second if you stop cranking
+CONST CRANK_GAIN = 8!           ' charge per alternating stroke
+CONST CRANK_GRACE = 0.45        ' seconds after a stroke before it starts bleeding
+CONST CRANK_DECAY = 14!         ' charge lost per second AFTER the grace window
 CONST CRANK_MAX = 100!
+CONST MIN_RELEASE = 6!          ' below this the handle simply does not move -- see PlayWheel
 CONST TRAVEL_PER_CHARGE = 26!   ' degrees of travel bought per point of charge
 CONST TRAVEL_SLOP = 900!        ' random degrees ON TOP -- this is the anti-aim term
 
@@ -166,6 +168,22 @@ FUNCTION IsBalk% (travel AS SINGLE)
     IsBalk% = (travel < BALK_AT)
 END FUNCTION
 
+' What the charge decays to, `idle` seconds after the last stroke.
+'
+' The grace window is not a nicety, it is the difference between a crank you can
+' use and one you cannot. The first version bled 34 a second with no grace, while
+' one stroke was worth 7 -- so the moment you stopped cranking to press SPACE you
+' lost the equivalent of a whole stroke, and a wheel cranked well past the marked
+' line refused to move by the time your finger arrived. It read as the meter
+' being uncalibrated, which is exactly what it felt like.
+FUNCTION ChargeAfter! (charge AS SINGLE, idle AS SINGLE)
+    DIM d AS SINGLE
+    IF idle <= CRANK_GRACE THEN ChargeAfter! = charge: EXIT FUNCTION
+    d = charge - CRANK_DECAY * (idle - CRANK_GRACE)
+    IF d < 0! THEN d = 0!
+    ChargeAfter! = d
+END FUNCTION
+
 ' The charge below which a balk is possible at all. Displayed, so nobody balks
 ' by accident -- the consequence is for people who try it, not for people who
 ' misjudged an invisible threshold.
@@ -179,7 +197,7 @@ FUNCTION PlayWheel% ()
     DIM k AS STRING, u AS STRING
     DIM AS SINGLE travel, gone, v, v0, lastwedge
     DIM AS INTEGER tick, lastdir, balked
-    DIM t0 AS DOUBLE
+    DIM t0 AS DOUBLE, laststroke AS DOUBLE
 
     g_angle = MgRoll%(360) - 1
 
@@ -187,23 +205,37 @@ FUNCTION PlayWheel% ()
     ' because a handle you push and push is not being cranked, it is being leaned
     ' on. Stop and the charge bleeds away, so the wheel has to be worked up to.
     g_charge = 0!: lastdir = 0
-    t0 = TIMER
+    t0 = TIMER: laststroke = TIMER
     DO
-        g_charge = g_charge - CRANK_DECAY * MgElapsed!(t0)
+        IF MgElapsed!(laststroke) > CRANK_GRACE THEN
+            g_charge = g_charge - CRANK_DECAY * MgElapsed!(t0)
+        END IF
         t0 = TIMER
         IF g_charge < 0! THEN g_charge = 0!
         DrawWheel "crank the handle -- up, down, up, down"
         k = INKEY$: u = UCASE$(k)
         IF k = CHR$(27) THEN PlayWheel% = MG_LEFT: EXIT FUNCTION
         IF u = "W" OR k = CHR$(0) + "H" THEN
-            IF lastdir <> 1 THEN g_charge = g_charge + CRANK_GAIN: MgBeep 200 + g_charge * 3, 0.6
+            IF lastdir <> 1 THEN g_charge = g_charge + CRANK_GAIN: laststroke = TIMER: MgBeep 200 + g_charge * 3, 0.6
             lastdir = 1
         END IF
         IF u = "S" OR k = CHR$(0) + "P" THEN
-            IF lastdir <> 2 THEN g_charge = g_charge + CRANK_GAIN: MgBeep 220 + g_charge * 3, 0.6
+            IF lastdir <> 2 THEN g_charge = g_charge + CRANK_GAIN: laststroke = TIMER: MgBeep 220 + g_charge * 3, 0.6
             lastdir = 2
         END IF
         IF g_charge > CRANK_MAX THEN g_charge = CRANK_MAX
+
+        ' You cannot let go of a handle you have not moved. Without this, SPACE
+        ' on a cold wheel span it anyway -- the random anti-aim term alone was
+        ' enough to carry it past a full turn now and then, so doing NOTHING was
+        ' a legitimate way to play and the crank was decoration.
+        IF (k = " " OR k = CHR$(13)) _ANDALSO g_charge < MIN_RELEASE THEN
+            DrawWheel "the handle does not budge -- put some work into it"
+            MgBeep 90, 3
+            _DELAY 0.5
+            t0 = TIMER: laststroke = TIMER
+            k = ""
+        END IF
         _LIMIT 60
     LOOP UNTIL k = " " OR k = CHR$(13)
 
@@ -293,12 +325,23 @@ SUB DrawWheel (msg AS STRING)
     ' the bar is 52 characters wide and centred, so the marker is placed at the
     ' bar's OWN left column -- centring the marker line separately puts the arrow
     ' under nothing in particular, which is worse than not drawing it
+    ' 50 cells for 100 charge, so one cell is exactly 2 charge. Both thresholds
+    ' are marked ON the bar at the same scale -- a meter whose markings do not
+    ' share the fill's scale is worse than a meter with no markings.
     barx = (SW - 52) \ 2
-    IF g_charge < SafeCharge! THEN COLOR C_BAD, 0 ELSE COLOR C_GOOD, 0
+    IF g_charge < MIN_RELEASE THEN
+        COLOR C_BAD, 0
+    ELSEIF g_charge < SafeCharge! THEN
+        COLOR C_WARN, 0
+    ELSE
+        COLOR C_GOOD, 0
+    END IF
     MgText barx, 36, "[" + STRING$(INT(g_charge / 2!), "=") + STRING$(50 - INT(g_charge / 2!), ".") + "]"
+    MgText barx + 54, 36, _TRIM$(STR$(INT(g_charge)))
+    COLOR C_BAD, 0: MgText barx + 1 + INT(MIN_RELEASE / 2!), 37, "!"
+    COLOR C_GOOD, 0: MgText barx + 1 + INT(SafeCharge! / 2!), 37, "^"
     COLOR C_DIM, 0
-    MgText barx + 1 + INT(SafeCharge! / 2!), 37, "^"
-    MgText barx + 3 + INT(SafeCharge! / 2!), 37, "below here it will not go round"
+    MgText barx, 38, "  ! it will not move at all      ^ from here it always goes round"
 
     COLOR C_GOOD, 0: MgCenter 39, "[UP]/[DOWN] crank it      [SPACE] let go      [ESC] leave it alone"
     _DISPLAY
@@ -345,8 +388,21 @@ SUB WheelSelfTest
     MgSection "the CRANK: strength is yours, the landing is not"
     Ok "cranking harder always means a longer spin", CrankIsMonotonic%
     Ok "a full crank always clears a full turn by a mile", AimedTravel!(CRANK_MAX) > FULL_TURN * 5!
-    PRINT USING "       a spin is safe from ## charge up; a full crank is ###"; SafeCharge!; CRANK_MAX
+    PRINT USING "       the handle moves at ##; a spin is certain from ## up; a full crank is ###"; MIN_RELEASE; SafeCharge!; CRANK_MAX
     Ok "the balk threshold is reachable but not easy to hit by accident", SafeCharge! > 5! _ANDALSO SafeCharge! < CRANK_MAX * 0.35
+    Ok "a cold wheel cannot be released at all", MIN_RELEASE > 0!
+    Ok "...and doing nothing is never a spin", MIN_RELEASE < SafeCharge!
+    Ok "the weakest release that IS allowed can still balk", CanBalkAt%(MIN_RELEASE)
+    Ok "and a crank past the marked line never balks", NeverBalksAt%(SafeCharge! + 1!)
+
+    MgSection "the crank is usable by a human hand"
+    PRINT USING "       cranking at 5 strokes a second reaches full in #.#s"; TimeToFull!(5!)
+    Ok "a human cranking rate reaches a full charge", TimeToFull!(5!) < 4!
+    Ok "a slow, deliberate crank still gets there", TimeToFull!(2.5) < 12!
+    PRINT USING "       after a stroke, a charge of ## survives #.##s of not cranking"; SafeCharge!; HoldTime!(SafeCharge!)
+    Ok "letting go to press SPACE does not disarm the wheel", HoldTime!(SafeCharge!) > 0.9
+    Ok "...even from the weakest legal charge", HoldTime!(MIN_RELEASE) > CRANK_GRACE
+    Ok "but standing there does eventually bleed it away", ChargeAfter!(CRANK_MAX, 30!) = 0!
 
     MgSection "NO crank setting aims the wheel -- the whole reason the slop exists"
     PRINT USING "       narrowest wedge is ##.# degrees; the random part of a spin spans ####"; NarrowestWedge!; TRAVEL_SLOP
@@ -457,6 +513,51 @@ FUNCTION RareIsRare% ()
         IF WWEIGHT(w) < WWEIGHT(lo) THEN lo = w
     NEXT w
     RareIsRare% = (WWEIGHT(lo) = 1 _ANDALSO WNAME(lo) = "THE KEY")
+END FUNCTION
+
+' A weak-but-legal crank has to be able to fail, or the balk rule never fires and
+' the consequence is theoretical.
+' How long to reach a full crank at `rate` strokes per second. This is the test
+' that would have caught the un-usable first version: the charge simply never got
+' anywhere, because decay outran a human hand.
+FUNCTION TimeToFull! (rate AS SINGLE)
+    DIM AS SINGLE c, t, gap
+    gap = 1! / rate
+    DO WHILE c < CRANK_MAX _ANDALSO t < 60!
+        c = ChargeAfter!(c, gap) + CRANK_GAIN
+        IF c > CRANK_MAX THEN c = CRANK_MAX
+        t = t + gap
+    LOOP
+    TimeToFull! = t
+END FUNCTION
+
+' How long a charge survives once you stop cranking. Has to cover the time it
+' takes to move a finger from an arrow key to the space bar, with room to spare.
+FUNCTION HoldTime! (charge AS SINGLE)
+    DIM t AS SINGLE
+    DO WHILE ChargeAfter!(charge, t) >= MIN_RELEASE _ANDALSO t < 60!
+        t = t + 0.02!
+    LOOP
+    HoldTime! = t
+END FUNCTION
+
+FUNCTION CanBalkAt% (charge AS SINGLE)
+    DIM i AS LONG
+    RANDOMIZE 123
+    FOR i = 1 TO 20000
+        IF IsBalk%(TravelFor!(charge)) THEN CanBalkAt% = TRUE: EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
+' ...and past the line drawn on the meter it must NEVER fire, or the game is
+' punishing people for misjudging something it told them was safe.
+FUNCTION NeverBalksAt% (charge AS SINGLE)
+    DIM i AS LONG
+    NeverBalksAt% = TRUE
+    RANDOMIZE 124
+    FOR i = 1 TO 40000
+        IF IsBalk%(TravelFor!(charge)) THEN NeverBalksAt% = FALSE: EXIT FUNCTION
+    NEXT i
 END FUNCTION
 
 FUNCTION CrankIsMonotonic% ()
