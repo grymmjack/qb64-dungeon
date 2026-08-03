@@ -339,7 +339,10 @@ END SUB
 FUNCTION RealAssetAt% (full AS STRING)
     RealAssetAt% = 0
     IF NOT _FILEEXISTS(full) THEN EXIT FUNCTION
-    IF IsPlaceholder%(full) THEN EXIT FUNCTION
+    IF IsPlaceholder%(full) THEN EXIT FUNCTION          ' the explicit record (path + size)
+    ' ...and the record's backstop. The list was emptied once by someone who believed the art was
+    ' finished, and three stand-ins then audited as done for good. Counting colours needs no list.
+    IF ArtLooksPlaceholder%(full) THEN EXIT FUNCTION
     RealAssetAt% = -1
 END FUNCTION
 

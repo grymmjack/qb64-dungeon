@@ -595,6 +595,17 @@ Environment specifics that dictate this approach:
   RADIAL gaussian: `InitVignette` pre-bakes `NVIG` low-res overlays (a near-death ramp) once, and
   `DrawWounds` stretch-blits the level-appropriate one each frame (`VIG()`).
 
+- **PLACEHOLDER ART is detected by CONTENT, not by a list** (`ArtLooksPlaceholder%`, engine/ARTPACK.bas).
+  A stand-in is a *file*, so every "does the asset exist" check says yes, the generator skips it,
+  and the game happily draws it — the art looks missing while every audit reports 0 missing.
+  `assets/PLACEHOLDERS.txt` records them as `path|bytes` and retires an entry when the size
+  changes, which is right but not sufficient: the list was **emptied once** on the belief the work
+  was done, and three stand-ins then audited as finished permanently. Counting distinct opaque
+  colours needs no bookkeeping — the placeholder tool draws a box, a diagonal and a caption (4
+  colours) while the sparsest real art here uses 23, so the `ART_PLACEHOLDER_COLORS = 8` threshold
+  sits in a wide gap rather than between two close numbers. `RealAssetAt%` consults both, so
+  **`dungeon.run imagemanifest audit`** lists a placeholder as still-to-make.
+
 [assets/README.md](assets/README.md) is the player/modder-facing map of every editable
 asset (data tables, flavor prose, music playlist, sound effects) with formats and the
 token list — keep it in sync when the asset formats change.

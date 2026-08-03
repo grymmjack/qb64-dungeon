@@ -26,6 +26,64 @@ FUNCTION Sprite& (path AS STRING)
     Sprite& = h
 END FUNCTION
 
+' Does this image LOOK like a placeholder -- i.e. is it a stand-in rather than art?
+'
+' Counts distinct opaque colours and stops as soon as there are enough to settle it. The
+' placeholder tool draws a bordered box, a diagonal and a caption: four colours. Real art in this
+' project bottoms out at 23 (measured across every file in assets/pixel-art), so a threshold of 8
+' sits in a very wide gap -- it is not a guess balanced between two close numbers.
+'
+' Content, not bookkeeping. assets/PLACEHOLDERS.txt is the explicit record and it is still read,
+' but a list can be emptied by someone who believes the work is finished, and then a placeholder
+' passes every existence check forever. This cannot be emptied.
+'
+' PNG only, and cached: this runs over whole manifests.
+FUNCTION ArtLooksPlaceholder% (path AS STRING)
+    DIM i AS INTEGER, h AS LONG, x AS INTEGER, y AS INTEGER, w AS INTEGER, hh AS INTEGER
+    DIM cols(1 TO ART_PLACEHOLDER_COLORS) AS _UNSIGNED LONG, ncol AS INTEGER, j AS INTEGER
+    DIM pxc AS _UNSIGNED LONG, dup AS INTEGER, olds AS LONG, verdict AS INTEGER
+    ' `verdict`, not the return slot: QB64 reads a bare ArtLooksPlaceholder% in an expression as a
+    ' recursive CALL, the same trap SellPrice& documents in COMBAT.bas.
+    verdict = 0
+    ArtLooksPlaceholder% = 0
+    IF LCASE$(RIGHT$(path, 4)) <> ".png" THEN EXIT FUNCTION
+    FOR i = 1 TO APH_N
+        IF APH_PATH(i) = path THEN ArtLooksPlaceholder% = APH_VERDICT(i): EXIT FUNCTION
+    NEXT i
+    IF NOT _FILEEXISTS(path) THEN EXIT FUNCTION
+    h = _LOADIMAGE(path, 32)
+    IF h >= -1 THEN EXIT FUNCTION                    ' unreadable -> not our call to make
+    w = _WIDTH(h): hh = _HEIGHT(h)
+    olds = _SOURCE
+    _SOURCE h
+    ncol = 0
+    FOR y = 0 TO hh - 1
+        FOR x = 0 TO w - 1
+            pxc = POINT(x, y)
+            IF _ALPHA32(pxc) > 16 THEN
+                pxc = _RGB32(_RED32(pxc), _GREEN32(pxc), _BLUE32(pxc))
+                dup = 0
+                FOR j = 1 TO ncol
+                    IF cols(j) = pxc THEN dup = -1: EXIT FOR
+                NEXT j
+                IF dup = 0 THEN
+                    ncol = ncol + 1
+                    IF ncol >= ART_PLACEHOLDER_COLORS THEN EXIT FOR   ' enough to know it is real art
+                    cols(ncol) = pxc
+                END IF
+            END IF
+        NEXT x
+        IF ncol >= ART_PLACEHOLDER_COLORS THEN EXIT FOR
+    NEXT y
+    _SOURCE olds
+    _FREEIMAGE h
+    IF ncol < ART_PLACEHOLDER_COLORS THEN verdict = -1
+    IF APH_N < APH_MAX THEN
+        APH_N = APH_N + 1: APH_PATH(APH_N) = path: APH_VERDICT(APH_N) = verdict
+    END IF
+    ArtLooksPlaceholder% = verdict
+END FUNCTION
+
 ' Blit a sprite scaled to fit inside a px box, centred, aspect preserved.
 ' Returns TRUE if something was drawn (i.e. the sprite exists).
 FUNCTION DrawSpriteFit% (path AS STRING, bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER)

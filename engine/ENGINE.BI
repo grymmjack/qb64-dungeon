@@ -19,6 +19,18 @@ DIM SHARED SPR_PATH(1 TO 200) AS STRING   ' loaded-sprite cache: path -> image h
 DIM SHARED SPR_H(1 TO 200) AS LONG
 DIM SHARED SPR_N AS INTEGER
 
+' --- PLACEHOLDER ART DETECTION (see ArtLooksPlaceholder% in engine/ARTPACK.bas) ---------------
+' A stand-in image is a FILE, so every "does the asset exist" check says yes and the generator
+' skips it. assets/PLACEHOLDERS.txt records them by path+size, which works right up until someone
+' empties the list believing the art is done -- which is exactly what happened to the three
+' weapons. Counting colours needs no list to stay honest: a stand-in is a box, a diagonal and a
+' word (4 colours); the sparsest real art in this project uses 23.
+CONST ART_PLACEHOLDER_COLORS = 8                 ' fewer distinct opaque colours than this = a stand-in
+CONST APH_MAX = 256
+DIM SHARED APH_PATH(1 TO APH_MAX) AS STRING      ' cache: verdict per path (loading a PNG is not free)
+DIM SHARED APH_VERDICT(1 TO APH_MAX) AS INTEGER
+DIM SHARED APH_N AS INTEGER
+
 ' --- the cursor / player token ---
 TYPE CURSOR
     x            AS INTEGER
