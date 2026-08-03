@@ -382,15 +382,18 @@ FUNCTION Show3DRoll% (n AS INTEGER, sides AS INTEGER, bonus AS INTEGER, droplow 
 
     rrow = (ty + th) \ CH
     _DEST CANVAS: _FONT CH
-    LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxviolet, BF
-    LINE (tx, rrow * CH)-(tx + tw, (rrow + 2) * CH), boxedge, B
+    ' THREE rows, with the text on the MIDDLE one. At two rows the total was printed on the lane's
+    ' FIRST row -- directly beneath the border drawn along its top edge, so the line sat on the
+    ' digits with a blank row going to waste underneath. One clear row above and below instead.
+    LINE (tx, rrow * CH)-(tx + tw, (rrow + 3) * CH), boxviolet, BF
+    LINE (tx, rrow * CH)-(tx + tw, (rrow + 3) * CH), boxedge, B
 
     skip = FALSE
     _KEYCLEAR
     FOR bi = 1 TO nb
         _DEST CANVAS: _FONT CH
-        LINE (tx + CW, rrow * CH)-(tx + tw - CW, (rrow + 2) * CH), boxviolet, BF   ' clear row (text re-centres each beat)
-        COLOR WHITE, boxviolet: PrintCentered rrow, beat(bi)
+        LINE (tx + CW, rrow * CH)-(tx + tw - CW, (rrow + 3) * CH), boxviolet, BF   ' clear row (text re-centres each beat)
+        COLOR WHITE, boxviolet: PrintCentered rrow + 1, beat(bi)
         dice3d_repost cfg
         IF opt_sfx THEN
             IF bi = nb THEN SfxOr "dice-math-2", 1100, 0.15 ELSE SfxOr "dice-math-1", 440 + bi * 120, 0.06  ' summing: ticks then total
