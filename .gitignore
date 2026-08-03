@@ -35,8 +35,16 @@ __pycache__/
 # Screenshot captures (regenerable via scratchpads/shots/capture.sh, which stays tracked)
 scratchpads/shots/*.png
 
-# Claude Code local files (activity log etc.)
-.claude/
+# Claude Code: the SKILLS and shared settings belong to the project and are tracked; the
+# per-machine and transient bits are not. `.claude/*` matches direct children only (git's `*`
+# does not cross a `/`), so re-including the skills dir also re-includes everything under it.
+.claude/*
+!.claude/skills/
+!.claude/settings.json
+# ...and the local-only pieces, listed after the re-includes so they still lose:
+.claude/activity.log
+.claude/settings.local.json
+.claude/worktrees/
 # all runtime saves/prefs/stats/maps live here (game MKDIRs it at startup)
 gameplay-data-saves/
 # big lossless render kept locally; the game/playlist uses the .ogg
