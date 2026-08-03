@@ -410,7 +410,9 @@ SUB ScanDataPacks
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
-                IF nm <> "." AND nm <> ".." AND DATAPACK_N < UBOUND(DATAPACKS) THEN DATAPACK_N = DATAPACK_N + 1: DATAPACKS(DATAPACK_N) = nm
+                IF nm <> "." AND nm <> ".." AND DATAPACK_N < UBOUND(DATAPACKS) THEN
+                    IF PackIgnored%("assets/data/" + nm) = 0 THEN DATAPACK_N = DATAPACK_N + 1: DATAPACKS(DATAPACK_N) = nm
+                END IF
             END IF
             e = _FILES$
         LOOP

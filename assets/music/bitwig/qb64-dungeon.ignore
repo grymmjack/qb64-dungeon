@@ -1,0 +1,6 @@
+This folder is a Bitwig Studio PROJECT -- the DAW the game's music is made in --
+not a music pack. The presence of this file tells every pack scanner to skip the
+folder outright (see PackIgnored% in engine/DATA.bas), so a loop rendered in here
+mid-session can never turn it into a selectable pack full of nothing.
+
+Finished tracks belong in a real pack: assets/music/<pack-name>/<track>.ogg

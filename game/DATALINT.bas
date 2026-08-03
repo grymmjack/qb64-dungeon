@@ -2160,3 +2160,36 @@ SUB ThemeLint
     PRINT PipeCol$("  |10ok |07  theme loads, resolves by name, and board colours stay reserved")
     SYSTEM
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run packs` -- what the game will actually OFFER in SETTINGS.
+'
+'  The pack lists are built by scanning directories at startup, so what is on disk and what the
+'  player can choose are two different questions: a folder with no audio is skipped, and a folder
+'  holding qb64-dungeon.ignore is skipped whatever is in it. Neither is visible from a file
+'  listing, which is exactly why a DAW project sitting in assets/music/ looked like a pack.
+' ============================================================================
+SUB PackList
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15packs|07 -- what SETTINGS will offer (scanned, not just listed on disk)")
+    ScanAllPacks
+    PackListOne "SFX", SFXPACKS(), SFXPACK_N
+    PackListOne "Music", MUSICPACKS(), MUSICPACK_N
+    PackListOne "Narration", NARRPACKS(), NARRPACK_N
+    PackListOne "Art", ARTPACKS(), ARTPACK_N
+    PackListOne "ANSI art", ANSIPACKS(), ANSIPACK_N
+    PackListOne "Data", DATAPACKS(), DATAPACK_N
+    PRINT PipeCol$("  |08a folder is skipped when it holds no assets of that kind, or holds " + PACK_IGNORE_FILE + "|07")
+    SYSTEM
+END SUB
+
+SUB PackListOne (label AS STRING, packs() AS STRING, cnt AS INTEGER)
+    DIM i AS INTEGER, s AS STRING
+    FOR i = 1 TO cnt
+        IF LEN(s) > 0 THEN s = s + "  "
+        s = s + _TRIM$(packs(i))
+    NEXT i
+    IF LEN(s) = 0 THEN s = "(none)"
+    PRINT PipeCol$("  |14" + PadR$(label, 10) + "|07" + _TRIM$(STR$(cnt)) + "  " + s)
+END SUB

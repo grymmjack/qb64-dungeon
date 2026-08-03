@@ -56,6 +56,8 @@ DIM SHARED AS _UNSIGNED LONG WHITE, GREY, REDU, GREENU, YELLOWU, CYANU, BOXBG
 ' `POINT(...) = BROWN` to decide what a cell is. Recolouring them from a theme file would not
 ' restyle the game, it would silently stop doors being doors. They belong to the ANSI-ART pack,
 ' which ships the art they have to match, and themelint refuses to load a key that names one.
+' A folder under assets/<kind>/ holding this file is NOT a content pack -- see PackIgnored%.
+CONST PACK_IGNORE_FILE = "qb64-dungeon.ignore"
 CONST THEME_MAX = 192
 DIM SHARED THM_KEY(1 TO THEME_MAX) AS STRING
 DIM SHARED THM_VAL(1 TO THEME_MAX) AS _UNSIGNED LONG

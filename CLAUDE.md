@@ -470,7 +470,15 @@ Environment specifics that dictate this approach:
   flat dir. `RegisterSfx`/`ResolveMusic$` try the selected pack dir first and **fall back to the
   flat dir** per file, so a partial pack overrides only what it ships. Cycling a pack reloads SFX
   (`ReloadSfxPack`) or re-resolves the current track immediately. A saved pack whose folder has
-  since vanished falls back to `(main)` (validated in `ScanAllPacks`). **Art packs** (SPRITES.bas,
+  since vanished falls back to `(main)` (validated in `ScanAllPacks`).
+  **A folder can opt OUT of being a pack**: drop a `qb64-dungeon.ignore` file in it and every
+  scanner skips it (`PackIgnored%`, engine/TEXT.bas — it lives there because the scanners are
+  spread across ARTPACK/DATA/MUSIC and those are compiled IN ISOLATION by their unit suites).
+  `assets/music/bitwig/` is a Bitwig Studio *project* — the DAW the music is made in — not a music
+  pack. It was skipped only because it held no audio, which stops being true the moment a loop is
+  rendered into it mid-session. **`dungeon.run packs`** (gated) lists what SETTINGS will actually
+  offer, which is a different question from what sits on disk.
+  **Art packs** (SPRITES.bas,
   `opt_artpack`, SETTINGS **Art Pack** row): a sub-folder of `assets/pixel-art/` that MIRRORS the
   category layout (`monsters/`, `treasures/`, …) is a visual theme; `ArtFile$(subpath)` resolves the
   pack dir first then the flat main dir per sprite (so a partial pack overrides only what it ships),

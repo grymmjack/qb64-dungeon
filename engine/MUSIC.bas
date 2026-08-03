@@ -676,7 +676,7 @@ SUB ScanAudioPacks (bpath AS STRING, packs() AS STRING, cnt AS INTEGER)
         e = _FILES$
     LOOP
     FOR i = 1 TO ns                                       ' pass 2: keep the ones with audio
-        IF DirHasAudio%(bpath + subs(i) + "/") THEN
+        IF DirHasAudio%(bpath + subs(i) + "/") AND PackIgnored%(bpath + subs(i)) = 0 THEN
             IF cnt < UBOUND(packs) THEN cnt = cnt + 1: packs(cnt) = subs(i)
         END IF
     NEXT i

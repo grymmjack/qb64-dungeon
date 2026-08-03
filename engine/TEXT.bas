@@ -88,3 +88,25 @@ END FUNCTION
 FUNCTION HexPair$ (v AS INTEGER)
     HexPair$ = RIGHT$("0" + HEX$(v), 2)
 END FUNCTION
+
+' Is this directory marked NOT-A-PACK?
+'
+' A folder living under assets/<kind>/ is treated as a content pack, which is right for content
+' and wrong for working files that happen to live there -- assets/music/bitwig is a Bitwig Studio
+' project (the DAW the music is MADE in), not a music pack. Today it is skipped only because it
+' holds no audio; render one loop into it mid-session and it silently becomes a selectable pack
+' full of nothing.
+'
+' Dropping a `qb64-dungeon.ignore` file in a folder says so explicitly and permanently, whatever
+' ends up inside it. Every pack scanner asks this.
+'
+' Lives in TEXT.bas -- the one engine file every unit suite includes -- because the scanners are
+' spread across ARTPACK, DATA and MUSIC, and those are compiled IN ISOLATION by their suites.
+' Putting a shared helper in any one of them breaks the others' builds (see also HexOf$).
+FUNCTION PackIgnored% (dir AS STRING)
+    DIM d AS STRING
+    d = dir
+    IF RIGHT$(d, 1) <> "/" THEN d = d + "/"
+    PackIgnored% = _FILEEXISTS(d + PACK_IGNORE_FILE)
+END FUNCTION
+

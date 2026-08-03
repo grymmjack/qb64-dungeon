@@ -1,5 +1,6 @@
 $CONSOLE:ONLY
 '$INCLUDE:'TESTLIB.bi'
+'$INCLUDE:'../engine/ENGINE.BI'   ' header only -- PackIgnored% reads PACK_IGNORE_FILE from it
 
 ' ============================================================================
 '  engine/TEXT.bas -- the reusable string helpers. All pure, so all cheap to pin.

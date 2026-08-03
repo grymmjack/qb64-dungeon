@@ -137,6 +137,21 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # Pack scanning. What is on disk and what SETTINGS offers are different questions -- a folder
+    # with no assets of that kind is skipped, and one holding qb64-dungeon.ignore is skipped
+    # whatever is in it. Neither is visible from a file listing, which is how a DAW project
+    # sitting in assets/music/ came to look like a music pack.
+    echo "-- content packs (dungeon.run packs) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 60 "packs" ./dungeon.run packs nocolor; then pl="$DEVRUN_OUT"
+            grep -E '^  (SFX|Music|Art|Data)' <<<"$pl" | sed 's/^/  /'
+        else
+            (( fail++ )); failed+=("packs")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # The theme file. Colours resolve by NAME with a per-call-site fallback, so a typo does not
     # fail -- it silently keeps the built-in colour and a pack author sees no change at all.
     echo "-- theme colours (dungeon.run themelint) --"

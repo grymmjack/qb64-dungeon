@@ -63,6 +63,7 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10ruleslint|07    print the GENERATED rules sections (your-game + what each ability does)")
     PRINT PipeCol$("  |10statroll|07 |14[n]|07  sample each ability-roll method; check range + that the fast path matches")
     PRINT PipeCol$("  |10themelint|07    list assets/data/theme/colors.txt and prove it drives the game's colours")
+    PRINT PipeCol$("  |10packs|07        list the content packs SETTINGS will offer (scanned, not just on disk)")
     PRINT PipeCol$("  |10balancedump|07 |14[--includestats]|07  monster curve + player ascension, with hits-to-die vs hits-to-kill")
     PRINT PipeCol$("  |10econdump|07     expected gold economy + win pacing per class (after a balance change)")
     PRINT PipeCol$("  |10roomlint|07     rooms holding cells the player cannot stand on (half-block art vs collision)")
@@ -427,6 +428,9 @@ IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 
 '--- dev: `dungeon.run datalint` validates the loaded content tables and exits ---
 IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
+
+'--- dev: `dungeon.run packs` lists the packs SETTINGS will actually offer ---
+IF INSTR(UCASE$(COMMAND$), "PACKS") > 0 THEN PackList
 
 '--- dev: `dungeon.run themelint` lists the theme colours and proves the file is being read ---
 IF INSTR(UCASE$(COMMAND$), "THEMELINT") > 0 THEN ThemeLint

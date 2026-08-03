@@ -287,7 +287,9 @@ SUB ScanArtPacks
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
-                IF nm <> "." AND nm <> ".." AND ARTPACK_N < UBOUND(ARTPACKS) THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
+                IF nm <> "." AND nm <> ".." AND ARTPACK_N < UBOUND(ARTPACKS) THEN
+                    IF PackIgnored%("assets/pixel-art/" + nm) = 0 THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
+                END IF
             END IF
             e = _FILES$
         LOOP
@@ -342,7 +344,9 @@ SUB ScanAnsiPacks
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
-                IF nm <> "." AND nm <> ".." AND ANSIPACK_N < UBOUND(ANSIPACKS) THEN ANSIPACK_N = ANSIPACK_N + 1: ANSIPACKS(ANSIPACK_N) = nm
+                IF nm <> "." AND nm <> ".." AND ANSIPACK_N < UBOUND(ANSIPACKS) THEN
+                    IF PackIgnored%("assets/ansi-art/" + nm) = 0 THEN ANSIPACK_N = ANSIPACK_N + 1: ANSIPACKS(ANSIPACK_N) = nm
+                END IF
             END IF
             e = _FILES$
         LOOP
