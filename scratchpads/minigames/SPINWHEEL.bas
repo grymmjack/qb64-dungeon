@@ -32,7 +32,15 @@
 
 CONST WEDGES = 10
 CONST FRICTION = 62!            ' degrees per second per second
-CONST MIN_TRAVEL = 720!         ' never fewer than two full turns
+CONST FULL_TURN = 360!
+CONST BALK_AT = 360!            ' fewer degrees than this and the wheel has BALKED
+
+'--- the crank ---
+CONST CRANK_GAIN = 7!           ' charge per alternating stroke
+CONST CRANK_DECAY = 34!         ' charge lost per second if you stop cranking
+CONST CRANK_MAX = 100!
+CONST TRAVEL_PER_CHARGE = 26!   ' degrees of travel bought per point of charge
+CONST TRAVEL_SLOP = 900!        ' random degrees ON TOP -- this is the anti-aim term
 
 DIM SHARED WNAME(1 TO WEDGES) AS STRING
 DIM SHARED WTELL(1 TO WEDGES) AS STRING
@@ -41,7 +49,8 @@ DIM SHARED WCOL(1 TO WEDGES) AS _UNSIGNED LONG
 DIM SHARED WSTART(1 TO WEDGES) AS SINGLE        ' first degree of the wedge
 DIM SHARED WSTOP(1 TO WEDGES) AS SINGLE   ' NOT "WEND" -- that closes a WHILE
 DIM SHARED AS SINGLE g_angle
-DIM SHARED AS INTEGER g_result
+DIM SHARED AS INTEGER g_result, g_balks
+DIM SHARED g_charge AS SINGLE
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal
@@ -53,7 +62,7 @@ IF INSTR(cmd, "SELFTEST") > 0 THEN MG_QUIET = TRUE: WheelSelfTest
 MgScreen
 IF INSTR(cmd, "SHOT") > 0 THEN
     MG_QUIET = TRUE
-    g_angle = 41!
+    g_angle = 41!: g_charge = 46!
     g_result = PointerWedge%(g_angle)
     DrawWheel WNAME(g_result) + " -- " + WTELL(g_result)
     _SAVEIMAGE "spinwheel-shot.png"
@@ -133,30 +142,82 @@ FUNCTION PointerWedge% (ang AS SINGLE)
     PointerWedge% = WedgeAt%(-ang)
 END FUNCTION
 
-' A spin: pick a starting speed, then let friction decide where it stops. The
-' distance travelled is v^2 / 2a, which is physics rather than a hidden choice.
-FUNCTION SpinTravel! ()
-    DIM v AS SINGLE
-    v = 700! + MgRoll%(900)
-    SpinTravel! = MIN_TRAVEL + v * v / (2! * FRICTION)
+' How far the wheel travels for a given crank charge.
+'
+' The deterministic part is what the player controls; TRAVEL_SLOP is what stops
+' them controlling it. See AimingIsImpossible% -- the slop is not flavour, it is
+' the number that makes the wheel unaimable, and it is sized against the WIDTH OF
+' THE NARROWEST WEDGE rather than picked because it felt about right.
+FUNCTION TravelFor! (charge AS SINGLE)
+    TravelFor! = charge * TRAVEL_PER_CHARGE + RND * TRAVEL_SLOP
+END FUNCTION
+
+' The part of the travel a player can actually aim with -- no randomness.
+FUNCTION AimedTravel! (charge AS SINGLE)
+    AimedTravel! = charge * TRAVEL_PER_CHARGE
+END FUNCTION
+
+' A wheel that does not complete one full revolution has BALKED.
+'
+' This is the rule that stops the obvious cheat: crank a whisker, nudge the wheel
+' two wedges to the one you want, collect. Without it every other guarantee in
+' this file is decoration, because the player simply would not spin.
+FUNCTION IsBalk% (travel AS SINGLE)
+    IsBalk% = (travel < BALK_AT)
+END FUNCTION
+
+' The charge below which a balk is possible at all. Displayed, so nobody balks
+' by accident -- the consequence is for people who try it, not for people who
+' misjudged an invisible threshold.
+FUNCTION SafeCharge! ()
+    SafeCharge! = BALK_AT / TRAVEL_PER_CHARGE
 END FUNCTION
 
 '--- play --------------------------------------------------------------------
 
 FUNCTION PlayWheel% ()
-    DIM k AS STRING
+    DIM k AS STRING, u AS STRING
     DIM AS SINGLE travel, gone, v, v0, lastwedge
-    DIM tick AS INTEGER
+    DIM AS INTEGER tick, lastdir, balked
+    DIM t0 AS DOUBLE
 
     g_angle = MgRoll%(360) - 1
-    DrawWheel "pull the handle"
+
+    ' THE CRANK. Alternate up and down -- one continuous heave does nothing,
+    ' because a handle you push and push is not being cranked, it is being leaned
+    ' on. Stop and the charge bleeds away, so the wheel has to be worked up to.
+    g_charge = 0!: lastdir = 0
+    t0 = TIMER
     DO
-        k = INKEY$
+        g_charge = g_charge - CRANK_DECAY * MgElapsed!(t0)
+        t0 = TIMER
+        IF g_charge < 0! THEN g_charge = 0!
+        DrawWheel "crank the handle -- up, down, up, down"
+        k = INKEY$: u = UCASE$(k)
         IF k = CHR$(27) THEN PlayWheel% = MG_LEFT: EXIT FUNCTION
+        IF u = "W" OR k = CHR$(0) + "H" THEN
+            IF lastdir <> 1 THEN g_charge = g_charge + CRANK_GAIN: MgBeep 200 + g_charge * 3, 0.6
+            lastdir = 1
+        END IF
+        IF u = "S" OR k = CHR$(0) + "P" THEN
+            IF lastdir <> 2 THEN g_charge = g_charge + CRANK_GAIN: MgBeep 220 + g_charge * 3, 0.6
+            lastdir = 2
+        END IF
+        IF g_charge > CRANK_MAX THEN g_charge = CRANK_MAX
         _LIMIT 60
     LOOP UNTIL k = " " OR k = CHR$(13)
 
-    travel = SpinTravel!
+    travel = TravelFor!(g_charge)
+    balked = IsBalk%(travel)
+    IF balked THEN
+        ' It did not go round. The wheel finishes the job itself, at a strength
+        ' nobody chose, and takes its due first.
+        DrawWheel "it barely moves -- the wheel does not care to be TEASED"
+        MgBeep 80, 10
+        _DELAY 1.6
+        g_balks = g_balks + 1
+        travel = FULL_TURN + RND * (TRAVEL_SLOP * 3!)
+    END IF
     v0 = SQR(2! * FRICTION * travel)
     v = v0: gone = 0!
     lastwedge = PointerWedge%(g_angle)
@@ -178,7 +239,11 @@ FUNCTION PlayWheel% ()
     ' READ the result off the rim. It was never decided anywhere else.
     g_result = PointerWedge%(g_angle)
     MgBeep 660, 4
-    DrawWheel WNAME(g_result) + " -- " + WTELL(g_result)
+    IF balked THEN
+        DrawWheel "THE LASH for teasing it, and then: " + WNAME(g_result) + " -- " + WTELL(g_result)
+    ELSE
+        DrawWheel WNAME(g_result) + " -- " + WTELL(g_result)
+    END IF
     _DELAY 2!
     PlayWheel% = MG_WON
 END FUNCTION
@@ -188,6 +253,7 @@ END FUNCTION
 SUB DrawWheel (msg AS STRING)
     DIM i AS INTEGER, w AS INTEGER
     DIM AS SINGLE deg, rad, cx, cy, rr
+    DIM barx AS INTEGER
     DIM od AS LONG
     od = _DEST: _DEST 0
 
@@ -221,7 +287,20 @@ SUB DrawWheel (msg AS STRING)
     MgText 4, 8 + WEDGES + 2, "each # is one part of the rim in forty"
 
     COLOR C_TEXT, 0: MgCenter 34, msg
-    COLOR C_GOOD, 0: MgCenter 37, "[SPACE] pull the handle      [ESC] leave it alone"
+
+    ' the crank meter, with the balk line marked ON it -- nobody should balk by
+    ' accident, the consequence is for people who try to tease it
+    ' the bar is 52 characters wide and centred, so the marker is placed at the
+    ' bar's OWN left column -- centring the marker line separately puts the arrow
+    ' under nothing in particular, which is worse than not drawing it
+    barx = (SW - 52) \ 2
+    IF g_charge < SafeCharge! THEN COLOR C_BAD, 0 ELSE COLOR C_GOOD, 0
+    MgText barx, 36, "[" + STRING$(INT(g_charge / 2!), "=") + STRING$(50 - INT(g_charge / 2!), ".") + "]"
+    COLOR C_DIM, 0
+    MgText barx + 1 + INT(SafeCharge! / 2!), 37, "^"
+    MgText barx + 3 + INT(SafeCharge! / 2!), 37, "below here it will not go round"
+
+    COLOR C_GOOD, 0: MgCenter 39, "[UP]/[DOWN] crank it      [SPACE] let go      [ESC] leave it alone"
     _DISPLAY
     _DEST od
 END SUB
@@ -261,8 +340,22 @@ SUB WheelSelfTest
     Ok "the rarest wedge is genuinely rare, not merely thin", RareIsRare%
 
     MgSection "it settles, it does not cut"
-    Ok "every spin travels at least two full turns", TravelAlwaysLong%
     Ok "the wheel always slows down and stops", DecelIsMonotonic%
+
+    MgSection "the CRANK: strength is yours, the landing is not"
+    Ok "cranking harder always means a longer spin", CrankIsMonotonic%
+    Ok "a full crank always clears a full turn by a mile", AimedTravel!(CRANK_MAX) > FULL_TURN * 5!
+    PRINT USING "       a spin is safe from ## charge up; a full crank is ###"; SafeCharge!; CRANK_MAX
+    Ok "the balk threshold is reachable but not easy to hit by accident", SafeCharge! > 5! _ANDALSO SafeCharge! < CRANK_MAX * 0.35
+
+    MgSection "NO crank setting aims the wheel -- the whole reason the slop exists"
+    PRINT USING "       narrowest wedge is ##.# degrees; the random part of a spin spans ####"; NarrowestWedge!; TRAVEL_SLOP
+    Ok "the unaimable part of a spin is wider than the whole rim", TRAVEL_SLOP > 360!
+    Ok "every crank strength lands fairly, checked across the whole range", AimingIsImpossible%
+
+    MgSection "and balking is punished rather than rewarded"
+    Ok "a spin under one full turn is a balk", IsBalk%(FULL_TURN - 1!) _ANDALSO NOT IsBalk%(FULL_TURN + 1!)
+    Ok "a balked wheel finishes the spin ITSELF, so nudging selects nothing", BalkNeverHelps%
 
     MgSection "and what it does to you is survivable"
     Ok "no single wedge can kill outright", NoInstantDeath%
@@ -299,7 +392,7 @@ FUNCTION SpinAgreesWithRim% ()
     DIM AS SINGLE start, travel, gone, v, ang
     DIM AS INTEGER shown, guard
     start = MgRoll%(360) - 1
-    travel = SpinTravel!
+    travel = TravelFor!(50!)
 
     ' run the ANIMATION, frame by frame, exactly as PlayWheel does
     ang = start
@@ -345,7 +438,7 @@ FUNCTION WidthGap# (spins AS LONG)
     DIM AS DOUBLE want, got, gap
     RANDOMIZE 102
     FOR i = 1 TO spins
-        w = WedgeAt%(MgRoll%(360) - 1 + SpinTravel!)
+        w = PointerWedge%(MgRoll%(360) - 1 + TravelFor!(RND * CRANK_MAX))
         hits(w) = hits(w) + 1
     NEXT i
     FOR w = 1 TO WEDGES: tot = tot + WWEIGHT(w): NEXT w
@@ -366,13 +459,84 @@ FUNCTION RareIsRare% ()
     RareIsRare% = (WWEIGHT(lo) = 1 _ANDALSO WNAME(lo) = "THE KEY")
 END FUNCTION
 
-FUNCTION TravelAlwaysLong% ()
-    DIM i AS LONG
-    TravelAlwaysLong% = TRUE
-    RANDOMIZE 103
-    FOR i = 1 TO 20000
-        IF SpinTravel! < MIN_TRAVEL THEN TravelAlwaysLong% = FALSE
+FUNCTION CrankIsMonotonic% ()
+    DIM c AS INTEGER
+    CrankIsMonotonic% = TRUE
+    FOR c = 1 TO INT(CRANK_MAX)
+        IF AimedTravel!(c) <= AimedTravel!(c - 1) THEN CrankIsMonotonic% = FALSE
+    NEXT c
+END FUNCTION
+
+FUNCTION NarrowestWedge! ()
+    DIM i AS INTEGER
+    DIM AS SINGLE w, narrow
+    narrow = 360!
+    FOR i = 1 TO WEDGES
+        w = WSTOP(i) - WSTART(i)
+        IF w < narrow THEN narrow = w
     NEXT i
+    NarrowestWedge! = narrow
+END FUNCTION
+
+' THE ANTI-AIM PROOF, and the reason the slop term is sized the way it is.
+'
+' A player controls the crank exactly. If that control translated into control of
+' the landing, the wheel would be a skill game with a fortune attached and every
+' fairness claim above would be beside the point -- they would simply learn "78
+' charge lands on THE KEY" and never spin any other way.
+'
+' So: sweep the entire crank range, spin thousands of times at each setting, and
+' require that the landing distribution at EVERY setting matches the wedge widths.
+' Not "on average across settings" -- at each one, because a single exploitable
+' charge value is all it takes.
+FUNCTION AimingIsImpossible% ()
+    DIM c AS INTEGER, i AS LONG, w AS INTEGER
+    DIM hits(1 TO WEDGES) AS LONG
+    DIM AS DOUBLE want, got, gap, worst
+    DIM tot AS INTEGER
+    RANDOMIZE 121
+    FOR i = 1 TO WEDGES: tot = tot + WWEIGHT(i): NEXT i
+    FOR c = 0 TO INT(CRANK_MAX) STEP 4
+        FOR w = 1 TO WEDGES: hits(w) = 0: NEXT w
+        FOR i = 1 TO 4000
+            w = PointerWedge%(MgRoll%(360) - 1 + TravelFor!(c))
+            hits(w) = hits(w) + 1
+        NEXT i
+        FOR w = 1 TO WEDGES
+            want = WWEIGHT(w) / tot
+            got = hits(w) / 4000
+            gap = ABS(want - got)
+            IF gap > worst THEN worst = gap
+        NEXT w
+    NEXT c
+    PRINT USING "       worst wedge bias at ANY crank setting: #.####"; worst
+    AimingIsImpossible% = (worst < 0.03)
+END FUNCTION
+
+' A balk must not be a cheap way to place the wheel. The wheel finishes the spin
+' itself at a strength nobody chose, so the outcome after a balk has to be drawn
+' from the same distribution as any other spin -- otherwise "nudge it, take the
+' punishment, collect the wedge you wanted" is a winning strategy.
+FUNCTION BalkNeverHelps% ()
+    DIM i AS LONG, w AS INTEGER
+    DIM hits(1 TO WEDGES) AS LONG
+    DIM AS DOUBLE want, got, gap, worst
+    DIM tot AS INTEGER
+    RANDOMIZE 122
+    FOR i = 1 TO WEDGES: tot = tot + WWEIGHT(i): NEXT i
+    FOR i = 1 TO 40000
+        ' a deliberate tease: one stroke of the crank, aimed at a chosen wedge
+        w = PointerWedge%(0! + FULL_TURN + RND * (TRAVEL_SLOP * 3!))
+        hits(w) = hits(w) + 1
+    NEXT i
+    FOR w = 1 TO WEDGES
+        want = WWEIGHT(w) / tot
+        got = hits(w) / 40000
+        gap = ABS(want - got)
+        IF gap > worst THEN worst = gap
+    NEXT w
+    PRINT USING "       after a balk, worst wedge bias: #.####"; worst
+    BalkNeverHelps% = (worst < 0.03)
 END FUNCTION
 
 ' A wheel that snaps to its answer reads as rigged even when it is not, so the
@@ -381,7 +545,7 @@ FUNCTION DecelIsMonotonic% ()
     DIM AS SINGLE travel, gone, v, prev
     DIM guard AS LONG
     RANDOMIZE 104
-    travel = SpinTravel!
+    travel = TravelFor!(50!)
     prev = 1E+09
     DecelIsMonotonic% = TRUE
     DO WHILE gone < travel _ANDALSO guard < 200000
