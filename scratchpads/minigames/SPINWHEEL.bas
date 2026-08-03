@@ -31,7 +31,7 @@
 '$INCLUDE:'MG.bi'
 
 CONST WEDGES = 10
-CONST FRICTION = 184!           ' degrees per second per second -- how fast it gives up
+CONST FRICTION = 112!           ' degrees per second per second -- how fast it gives up
 CONST FULL_TURN = 360!
 CONST BALK_AT = 360!            ' fewer degrees than this and the wheel has BALKED
 
@@ -41,7 +41,9 @@ CONST CRANK_GRACE = 0.45        ' seconds after a stroke before it starts bleedi
 CONST CRANK_DECAY = 14!         ' charge lost per second AFTER the grace window
 CONST CRANK_MAX = 100!
 CONST MIN_RELEASE = 6!          ' below this the handle simply does not move -- see PlayWheel
-CONST MAXTRAVEL = 9000!         ' degrees a full crank is worth -- twenty-five turns
+CONST MAXTRAVEL = 3600!         ' degrees a full crank is worth -- ten turns
+CONST MAX_STEP = 0.1            ' seconds: a hitch must not teleport the wheel
+CONST SUBSTEP = 0.004           ' physics step, so fast spins still tick per wedge
 CONST TRAVEL_SLOP = 420!        ' random degrees ON TOP -- this is the anti-aim term
 
 DIM SHARED WNAME(1 TO WEDGES) AS STRING
@@ -53,6 +55,7 @@ DIM SHARED WSTOP(1 TO WEDGES) AS SINGLE   ' NOT "WEND" -- that closes a WHILE
 DIM SHARED AS SINGLE g_angle
 DIM SHARED AS INTEGER g_result, g_balks
 DIM SHARED g_charge AS SINGLE
+DIM SHARED g_speed AS SINGLE
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal
@@ -204,6 +207,13 @@ FUNCTION SafeCharge! ()
     SafeCharge! = CRANK_MAX * SQR(BALK_AT / MAXTRAVEL)
 END FUNCTION
 
+' How fast the wheel is turning the instant it is released, in degrees a second.
+' This is the number the player actually SEES, and it has to differ visibly with
+' the crank or the wheel has no momentum however far it eventually travels.
+FUNCTION PeakSpeed! (charge AS SINGLE)
+    PeakSpeed! = SQR(2! * FRICTION * AimedTravel!(charge))
+END FUNCTION
+
 ' How long a spin of `travel` degrees lasts, from the same friction the animation
 ' uses. Shown to the player as turns, because "how far will this go" is the
 ' question the crank is actually asking and there is no reason to hide it.
@@ -221,7 +231,10 @@ FUNCTION PlayWheel% ()
     DIM k AS STRING, u AS STRING
     DIM AS SINGLE travel, gone, v, v0, lastwedge
     DIM AS INTEGER tick, lastdir, balked
-    DIM t0 AS DOUBLE, laststroke AS DOUBLE
+    DIM t0 AS DOUBLE, laststroke AS DOUBLE, lastt AS DOUBLE
+    DIM AS SINGLE dt, sdt
+    ' `stp`, not `sub` -- SUB is a QB64 keyword
+    DIM AS INTEGER nsub, stp
 
     g_angle = MgRoll%(360) - 1
 
@@ -277,20 +290,43 @@ FUNCTION PlayWheel% ()
     v0 = SQR(2! * FRICTION * travel)
     v = v0: gone = 0!
     lastwedge = PointerWedge%(g_angle)
+
+    ' REAL TIME, and substepped.
+    '
+    ' The first version advanced the wheel by v/60 per FRAME, which quietly
+    ' assumes the frame rate. Drawing this wheel is 360 line draws, so it does not
+    ' hold 60 -- and the effect was that every spin played in the same uniform
+    ' slow motion regardless of how hard it had been cranked. The stopping point
+    ' was right, so the physics looked fine on paper; the momentum was simply not
+    ' on screen.
+    '
+    ' Substepping matters too: at full crank the wheel covers most of a wedge in a
+    ' single frame, and a per-frame check would miss wedges entirely, so the
+    ' ticking would thin out exactly when the wheel is going fastest.
+    lastt = TIMER
     DO WHILE gone < travel
-        v = SQR(2! * FRICTION * (travel - gone))         ' speed left to cover it
-        IF v < 12! THEN v = 12!
-        gone = gone + v / 60!
-        IF gone > travel THEN gone = travel
-        g_angle = g_angle + v / 60!
-        tick = PointerWedge%(g_angle)
-        IF tick <> lastwedge THEN
-            MgBeep 300 + v / 8!, 0.7
-            lastwedge = tick
-        END IF
+        dt = MgElapsed!(lastt): lastt = TIMER
+        IF dt > MAX_STEP THEN dt = MAX_STEP
+        nsub = INT(dt / SUBSTEP) + 1
+        sdt = dt / nsub
+        FOR stp = 1 TO nsub
+            v = SQR(2! * FRICTION * (travel - gone))     ' speed left to cover it
+            IF v < 12! THEN v = 12!
+            gone = gone + v * sdt
+            IF gone > travel THEN gone = travel
+            g_angle = g_angle + v * sdt
+            tick = PointerWedge%(g_angle)
+            IF tick <> lastwedge THEN
+                MgBeep 300 + v / 3!, 0.7
+                lastwedge = tick
+            END IF
+            IF gone >= travel THEN EXIT FOR
+        NEXT stp
+        g_speed = v
         DrawWheel "..."
         _LIMIT 60
     LOOP
+    g_speed = 0!
 
     ' READ the result off the rim. It was never decided anywhere else.
     g_result = PointerWedge%(g_angle)
@@ -329,6 +365,21 @@ SUB DrawWheel (msg AS STRING)
     CIRCLE (cx, cy), rr * 0.22!, _RGB32(20, 18, 24)
     PAINT (cx, cy), _RGB32(16, 14, 20), _RGB32(20, 18, 24)
 
+    ' A SPOKE. Without one the rim is rotationally busy enough to be unreadable --
+    ' the colours sweep past and there is nothing to actually follow, so a fast
+    ' spin and a slow one look equally like a shimmer. One bright bar fixed to the
+    ' wheel is the difference between "it is spinning" and "something is happening".
+    ' drawn a few degrees wide, because the rim is itself made of radial lines --
+    ' a one-pixel spoke disappears into the thing it is supposed to stand out from
+    FOR i = -2 TO 2
+        rad = (g_angle + i * 0.55! - 90!) * 3.14159265! / 180!
+        LINE (cx + COS(rad) * rr * 0.24!, cy + SIN(rad) * rr * 0.24!)-(cx + COS(rad) * rr, cy + SIN(rad) * rr), _RGB32(&HFF, &HF8, &HE0)
+    NEXT i
+    FOR i = -1 TO 1
+        rad = (g_angle + 180! + i * 0.55! - 90!) * 3.14159265! / 180!
+        LINE (cx + COS(rad) * rr * 0.24!, cy + SIN(rad) * rr * 0.24!)-(cx + COS(rad) * rr * 0.8!, cy + SIN(rad) * rr * 0.8!), _RGB32(&H20, &H1C, &H26)
+    NEXT i
+
     ' the pointer, at the top
     LINE (cx - CW, cy - rr - CH)-(cx + CW, cy - rr - CH), C_TITLE
     LINE (cx - CW, cy - rr - CH)-(cx, cy - rr + 4), C_TITLE
@@ -363,6 +414,7 @@ SUB DrawWheel (msg AS STRING)
     MgText barx, 36, "[" + STRING$(INT(g_charge / 2!), "=") + STRING$(50 - INT(g_charge / 2!), ".") + "]"
     MgText barx + 54, 36, _TRIM$(STR$(INT(g_charge)))
     IF g_charge >= MIN_RELEASE THEN
+        IF g_speed > 1! THEN MgText barx + 8, 34, "turning " + _TRIM$(STR$(INT(g_speed / 3.6!) / 100)) + " turns a second"
         MgText barx + 8, 35, "about " + _TRIM$(STR$(INT(SpinTurns!(g_charge) * 10) / 10)) + " turns, " + _TRIM$(STR$(INT(SpinSeconds!(AimedTravel!(g_charge)) * 10) / 10)) + "s of spin"
     ELSE
         MgText barx + 8, 35, "it has not moved yet"
@@ -427,7 +479,11 @@ SUB WheelSelfTest
     MgSection "the wheel has WEIGHT -- strength is calibrated to the spin"
     PRINT USING "       a bare release spins #.# turns; a full crank spins ###.# turns"; SpinTurns!(MIN_RELEASE); SpinTurns!(CRANK_MAX)
     PRINT USING "       ...lasting #.#s and ##.#s"; SpinSeconds!(AimedTravel!(SafeCharge!)); SpinSeconds!(AimedTravel!(CRANK_MAX))
-    Ok "a full crank spins vastly further than a weak one", SpinTurns!(CRANK_MAX) > SpinTurns!(SafeCharge!) * 15!
+    Ok "a full crank spins vastly further than a weak one", SpinTurns!(CRANK_MAX) > SpinTurns!(SafeCharge!) * 8!
+    PRINT USING "       release speed: #.## turns a second at the balk line, #.## at a full crank"; PeakSpeed!(SafeCharge!) / 360!; PeakSpeed!(CRANK_MAX) / 360!
+    Ok "a full crank LEAVES YOUR HAND far faster -- momentum you can see", PeakSpeed!(CRANK_MAX) > PeakSpeed!(SafeCharge!) * 3!
+    Ok "...and not so fast that it is a blur nobody can follow", PeakSpeed!(CRANK_MAX) < 1100!
+    Ok "the animation substeps, so fast spins still tick every wedge", SUBSTEP * 1100! < NarrowestWedge!
     Ok "twice the effort is worth MORE than twice the spin -- that is the weight", AimedTravel!(60!) > AimedTravel!(30!) * 3!
     Ok "the first strokes barely move it", SpinTurns!(CRANK_GAIN) < 0.5
     Ok "a full spin is long enough to watch and short enough to sit through", SpinSeconds!(AimedTravel!(CRANK_MAX)) > 6! _ANDALSO SpinSeconds!(AimedTravel!(CRANK_MAX)) < 14!

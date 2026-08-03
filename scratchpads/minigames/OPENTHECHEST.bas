@@ -46,6 +46,12 @@ CONST LEVELS = 9
 CONST HUES = 3                  ' colours in play; a code is a permutation of them
 CONST TRAP_DESTROYS = TRUE      ' the open question in the spec, as one constant
 
+'--- the fuse. A wrong clasp no longer destroys the chest on the spot: it starts
+'    the mechanism ticking, and you can still save it. ---
+CONST FUSE_SECS = 12!           ' seconds on the clock once the trap is armed
+CONST WRONG_PENALTY = 4!        ' seconds a further wrong clasp costs
+CONST HUMAN_PICK = 2.5          ' seconds to read three colours and choose one
+
 '--- art lookup: every piece by NAME, so the same game runs on placeholders,
 '    pixel art or ANSI art without knowing which it got ---
 CONST ART_NONE = 0              ' nothing on disk -- draw the built-in placeholder
@@ -70,6 +76,9 @@ DIM SHARED KNOWNAT(1 TO LEVELS) AS INTEGER
 DIM SHARED CLASPHUE(1 TO CLASPS) AS INTEGER     ' which colour each clasp shows
 DIM SHARED CLASPOPEN(1 TO CLASPS) AS INTEGER
 DIM SHARED AS INTEGER g_level, g_step, g_sel, g_blown, g_opened
+DIM SHARED AS INTEGER g_armed, g_wrongs
+DIM SHARED AS SINGLE g_left
+DIM SHARED g_fuse0 AS DOUBLE
 
 DIM cmd AS STRING
 ON ERROR GOTO MgFatal
@@ -257,36 +266,51 @@ SUB ChestSetup (lv AS INTEGER)
     DIM i AS INTEGER
     g_level = lv: g_step = 1: g_sel = 1
     g_blown = FALSE: g_opened = FALSE
+    g_armed = FALSE: g_wrongs = 0: g_left = FUSE_SECS
     FOR i = 1 TO CLASPS: CLASPOPEN(i) = FALSE: NEXT i
+    ' a fresh chest is dealt, not shuffled -- there is nothing to move yet
+    FOR i = 1 TO CLASPS: CLASPHUE(i) = i: NEXT i
     ShuffleShut
 END SUB
 
-' Deal the colours of the clasps that are still SHUT across their positions, at
-' random. Opened clasps keep both their colour and their place -- they are done.
+' Re-deal EVERY clasp across the positions -- the opened ones too.
+'
+' They keep their colour and their opened state; what they lose is their place.
+' The first version only shuffled the ones still shut, which with three clasps
+' means two, which means a coin flip -- so half of all shuffles changed nothing
+' visible and the chest looked like it had ignored you. Re-dealing all three
+' makes the point the mechanic is built on impossible to miss: POSITION IS NOT
+' THE ANSWER.
+'
+' It does NOT retry until the arrangement differs, and that is deliberate. Making
+' the re-deal "always change something" means excluding the identity permutation,
+' and excluding it biases where the answer ends up: measured, the answer landed in
+' its old position 20% of the time and in each other position 40%. A uniform
+' re-deal is 33/33/33.
+'
+' The visible-movement problem it was trying to solve is real, but it is a
+' PRESENTATION problem and is solved in presentation: ShuffleAnim shows the clasps
+' tumbling, so a re-deal that happens to land back still reads as a shuffle that
+' happened rather than as the chest ignoring you.
 '
 ' Every colour still needed must still be ON the chest, or a player who knows the
 ' code is asked for something that is not there. That is the failure this whole
 ' file is built to avoid, and AKnownCodeAlwaysWins% is the assertion for it.
 SUB ShuffleShut
-    DIM i AS INTEGER, j AS INTEGER, n AS INTEGER, t AS INTEGER
-    DIM pool(1 TO HUES) AS INTEGER, slot(1 TO CLASPS) AS INTEGER
+    DIM i AS INTEGER, j AS INTEGER, t AS INTEGER
+    DIM ord(1 TO CLASPS) AS INTEGER
+    DIM hue0(1 TO CLASPS) AS INTEGER, open0(1 TO CLASPS) AS INTEGER
 
-    ' the colours not yet used, in code order
-    n = 0
-    FOR i = 1 TO HUES
-        IF NOT HueAlreadyOpen%(i) THEN n = n + 1: pool(n) = i
+    FOR i = 1 TO CLASPS: hue0(i) = CLASPHUE(i): open0(i) = CLASPOPEN(i): NEXT i
+
+    FOR i = 1 TO CLASPS: ord(i) = i: NEXT i
+    FOR i = CLASPS TO 2 STEP -1
+        j = MgRoll%(i): t = ord(i): ord(i) = ord(j): ord(j) = t
     NEXT i
-    ' the positions still shut
-    j = 0
+
     FOR i = 1 TO CLASPS
-        IF NOT CLASPOPEN(i) THEN j = j + 1: slot(j) = i
-    NEXT i
-    ' shuffle the colours across those positions
-    FOR i = n TO 2 STEP -1
-        j = MgRoll%(i): t = pool(i): pool(i) = pool(j): pool(j) = t
-    NEXT i
-    FOR i = 1 TO n
-        IF i <= CLASPS THEN CLASPHUE(slot(i)) = pool(i)
+        CLASPHUE(i) = hue0(ord(i))
+        CLASPOPEN(i) = open0(ord(i))
     NEXT i
 END SUB
 
@@ -298,11 +322,18 @@ FUNCTION HueAlreadyOpen% (h AS INTEGER)
 END FUNCTION
 
 ' Try clasp `c`. Returns TRUE if it was the right one.
+' Try clasp `c`. Returns TRUE if it was the right one.
+'
+' A wrong clasp used to end the chest on the spot. Now it ARMS the mechanism: the
+' fuse starts, and you can still save it by getting the rest right. Every correct
+' clasp winds the fuse back to full and it keeps burning -- so a blunder is
+' survivable but permanent pressure, rather than a coin flip for the whole hoard.
 FUNCTION TryClasp% (c AS INTEGER)
     IF CLASPOPEN(c) THEN TryClasp% = FALSE: EXIT FUNCTION
     IF CLASPHUE(c) = CodeHue%(g_level, g_step) THEN
         CLASPOPEN(c) = TRUE
         g_step = g_step + 1
+        IF g_armed THEN FuseReset            ' wound back, still burning
         IF g_step > CLASPS THEN
             g_opened = TRUE
             ChestCodeLearn g_level
@@ -311,10 +342,57 @@ FUNCTION TryClasp% (c AS INTEGER)
         END IF
         TryClasp% = TRUE
     ELSE
-        g_blown = TRUE
+        g_wrongs = g_wrongs + 1
+        IF NOT g_armed THEN
+            g_armed = TRUE
+            FuseReset
+        ELSE
+            ' already ticking: a further wrong clasp costs, it does not reset
+            g_left = g_left - WRONG_PENALTY
+            g_fuse0 = g_fuse0 + WRONG_PENALTY
+        END IF
+        ShuffleShut
         TryClasp% = FALSE
     END IF
 END FUNCTION
+
+' Show the clasps tumbling. Purely presentational -- it does not touch the deal --
+' but it is what lets the re-deal stay uniform: without it, the one time in six
+' that a uniform shuffle lands back where it started reads as a bug.
+SUB ShuffleAnim
+    DIM f AS INTEGER, i AS INTEGER, j AS INTEGER, t AS INTEGER
+    DIM keep(1 TO CLASPS) AS INTEGER, ord(1 TO CLASPS) AS INTEGER
+    FOR i = 1 TO CLASPS: keep(i) = CLASPHUE(i): NEXT i
+    FOR f = 1 TO 7
+        FOR i = 1 TO CLASPS: ord(i) = i: NEXT i
+        FOR i = CLASPS TO 2 STEP -1
+            j = MgRoll%(i): t = ord(i): ord(i) = ord(j): ord(j) = t
+        NEXT i
+        FOR i = 1 TO CLASPS: CLASPHUE(i) = keep(ord(i)): NEXT i
+        ChestSfx "chest.shuffle"
+        DrawChest "..."
+        _DELAY 0.07
+    NEXT f
+    FOR i = 1 TO CLASPS: CLASPHUE(i) = keep(i): NEXT i
+END SUB
+
+SUB FuseReset
+    g_fuse0 = TIMER: g_left = FUSE_SECS
+END SUB
+
+' A scripted pause -- a clasp clicking, the shuffle -- must not burn the fuse.
+' The player is not deciding anything during those, and charging for the game's
+' own animations is the same bug LOCKPICK had.
+SUB ChestPause (secs AS SINGLE)
+    _DELAY secs
+    g_fuse0 = g_fuse0 + secs
+END SUB
+
+SUB FuseTick
+    IF NOT g_armed THEN g_left = FUSE_SECS: EXIT SUB
+    g_left = FUSE_SECS - MgElapsed!(g_fuse0)
+    IF g_left < 0! THEN g_left = 0!
+END SUB
 
 ' Which position currently shows the colour that opens next. Used by the tests to
 ' play perfectly; the player has to work it out from the colours on screen.
@@ -350,6 +428,14 @@ FUNCTION PlayChest% (lv AS INTEGER)
 
     msg = "three clasps, one order -- choose the first"
     DO
+        FuseTick
+        IF g_armed _ANDALSO g_left <= 0! THEN
+            g_blown = TRUE
+            ChestSfx "chest.trap"
+            DrawChest "the fuse runs out -- chest, contents, everything"
+            _DELAY 2.4
+            PlayChest% = MG_LOST: EXIT FUNCTION
+        END IF
         DrawChest msg
         k = INKEY$: u = UCASE$(k)
         IF k = CHR$(27) THEN PlayChest% = MG_LEFT: EXIT FUNCTION
@@ -365,18 +451,24 @@ FUNCTION PlayChest% (lv AS INTEGER)
                         PlayChest% = MG_WON: EXIT FUNCTION
                     END IF
                     ChestSfx "chest.correct"
-                    DrawChest "it gives -- and the others move"
-                    _DELAY 0.6
-                    ChestSfx "chest.shuffle"
+                    IF g_armed THEN
+                        DrawChest "it gives -- the fuse winds back, but it is still burning"
+                    ELSE
+                        DrawChest "it gives -- and they all move"
+                    END IF
+                    ChestPause 0.6
+                    ShuffleAnim
+                    g_fuse0 = g_fuse0 + 0.5!      ' the tumble is not thinking time
                     msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS))
                 ELSE
                     ChestSfx "chest.wrong"
-                    DrawChest "wrong clasp"
-                    _DELAY 0.7
-                    ChestSfx "chest.trap"
-                    DrawChest "the trap fires -- chest, contents, everything"
-                    _DELAY 2.4
-                    PlayChest% = MG_LOST: EXIT FUNCTION
+                    IF g_wrongs = 1 THEN
+                        DrawChest "something inside starts TICKING -- finish it, quickly"
+                    ELSE
+                        DrawChest "wrong again -- " + _TRIM$(STR$(WRONG_PENALTY)) + " seconds gone"
+                    END IF
+                    ChestPause 1.1
+                    msg = "clasp " + _TRIM$(STR$(g_step)) + " of " + _TRIM$(STR$(CLASPS)) + " -- and it is ticking"
                 END IF
             END IF
         END IF
@@ -460,6 +552,11 @@ SUB DrawChest (msg AS STRING)
     ELSE
         COLOR C_DIM, 0: MgCenter 26, "crack one chest here and every other chest on this level opens for nothing"
     END IF
+    IF g_armed THEN
+        IF g_left <= 4! THEN COLOR C_BAD, 0 ELSE COLOR C_WARN, 0
+        MgCenter 27, "*** THE MECHANISM IS TICKING ***"
+        MgFuse 30, g_left / FUSE_SECS, g_left
+    END IF
     COLOR C_TEXT, 0: MgCenter 29, msg
     COLOR C_GOOD, 0
     MgCenter 32, "[LEFT]/[RIGHT] choose a clasp   [SPACE] open it   [ESC] back away"
@@ -501,7 +598,10 @@ SUB ChestSelfTest
     MgSection "the shuffle destroys position, which is the puzzle"
     Ok "the answer is equally likely to be in any position", PositionIsNoise%
     Ok "...at every step, not just the first", PositionIsNoiseAtStep2%
-    Ok "an opened clasp keeps its colour and its place", OpenedStaysPut%
+    Ok "an opened clasp keeps its colour and its opened state", OpenedStaysPut%
+    Ok "EVERY clasp is re-dealt, not just the shut ones", ShuffleMoveRate# > 0.6
+    PRINT USING "       a re-deal changes the arrangement #.### of the time (uniform = 0.833)"; ShuffleMoveRate#
+    Ok "...at the uniform rate, NOT forced -- forcing it biases the answer", ABS(ShuffleMoveRate# - 5! / 6!) < 0.02
 
     MgSection "THE assertion: knowing the code always wins"
     Ok "perfect play opens the chest every time, 20000 chests", AKnownCodeAlwaysWins%
@@ -510,7 +610,16 @@ SUB ChestSelfTest
     MgSection "...and not knowing it is a one-in-six gamble"
     PRINT USING "       blind play opens #.#### of chests (1 in 6 = 0.1667)"; BlindWinRate#
     Ok "guessing wins about one time in six", ABS(BlindWinRate# - 1! / 6!) < 0.02
-    Ok "a wrong clasp destroys the contents", WrongClaspDestroys%
+    Ok "a wrong clasp arms the trap rather than ending it there", WrongClaspArms%
+
+    MgSection "the fuse: a blunder is survivable, brute force is not"
+    PRINT USING "       fuse ##.#s; a pick costs #.#s of thinking; a further wrong clasp costs #.#s"; FUSE_SECS; HUMAN_PICK; WRONG_PENALTY
+    Ok "perfect play never arms the fuse at all", PerfectPlayNeverArms%
+    Ok "one blunder is recoverable at a human pace", HUMAN_PICK + WRONG_PENALTY + HUMAN_PICK <= FUSE_SECS
+    Ok "a correct clasp winds it back to full", CorrectRewinds%
+    Ok "...but does not disarm it -- it keeps burning", CorrectDoesNotDisarm%
+    Ok "guessing every colour in turn runs the fuse out", 2! * (HUMAN_PICK + WRONG_PENALTY) > FUSE_SECS
+    Ok "a scripted pause is not charged against the fuse", ChestPauseIsFree%
 
     MgSection "the level code is learned ONCE and shared by every chest on it"
     Ok "a fresh run knows nothing", NothingKnownAtStart%
@@ -643,8 +752,11 @@ FUNCTION PositionIsNoiseAtStep2% ()
     PositionIsNoiseAtStep2% = (hi - lo < 0.55)
 END FUNCTION
 
+' An opened clasp keeps its COLOUR and stays open. It does not keep its place --
+' see ShuffleShut. So the test is that exactly one clasp is open afterwards and
+' that its colour is the one that was just opened.
 FUNCTION OpenedStaysPut% ()
-    DIM i AS LONG, c AS INTEGER, h AS INTEGER
+    DIM i AS LONG, c AS INTEGER, h AS INTEGER, j AS INTEGER, n AS INTEGER, found AS INTEGER
     OpenedStaysPut% = TRUE
     RANDOMIZE 136
     ChestRollCodes
@@ -653,10 +765,43 @@ FUNCTION OpenedStaysPut% ()
         c = CorrectClasp%
         h = CLASPHUE(c)
         IF TryClasp%(c) THEN
-            IF CLASPHUE(c) <> h THEN OpenedStaysPut% = FALSE
-            IF CLASPOPEN(c) = 0 THEN OpenedStaysPut% = FALSE
+            n = 0: found = FALSE
+            FOR j = 1 TO CLASPS
+                IF CLASPOPEN(j) THEN
+                    n = n + 1
+                    IF CLASPHUE(j) = h THEN found = TRUE
+                END IF
+            NEXT j
+            IF n <> 1 THEN OpenedStaysPut% = FALSE
+            IF NOT found THEN OpenedStaysPut% = FALSE
         END IF
     NEXT i
+END FUNCTION
+
+' A shuffle that lands back where it started is indistinguishable from a shuffle
+' that did not happen, and the chest looks like it ignored you.
+' How often a re-deal actually changes the arrangement. A uniform shuffle of three
+' things lands back on itself one time in six, so this should read 5/6 -- and if
+' it reads 1.000 somebody has "fixed" it by excluding the identity, which biases
+' where the answer sits. The animation covers the one-in-six; the maths must not.
+FUNCTION ShuffleMoveRate# ()
+    DIM i AS LONG, j AS INTEGER, same AS INTEGER
+    DIM AS LONG moved, n
+    DIM h0(1 TO CLASPS) AS INTEGER
+    RANDOMIZE 144
+    ChestRollCodes
+    FOR i = 1 TO 40000
+        ChestSetup 1 + (i MOD LEVELS)
+        FOR j = 1 TO CLASPS: h0(j) = CLASPHUE(j): NEXT j
+        ShuffleShut
+        same = TRUE
+        FOR j = 1 TO CLASPS
+            IF CLASPHUE(j) <> h0(j) THEN same = FALSE
+        NEXT j
+        n = n + 1
+        IF NOT same THEN moved = moved + 1
+    NEXT i
+    ShuffleMoveRate# = moved / n
 END FUNCTION
 
 ' The one the whole design rests on. If the shuffle can ever put a needed colour
@@ -717,17 +862,72 @@ FUNCTION BlindWinRate# ()
     BlindWinRate# = won / n
 END FUNCTION
 
-FUNCTION WrongClaspDestroys% ()
+FUNCTION WrongClaspArms% ()
     DIM i AS INTEGER, c AS INTEGER
     RANDOMIZE 140
     ChestRollCodes
     ChestSetup 6
-    ' any clasp that is not the answer
     FOR i = 1 TO CLASPS
         IF i <> CorrectClasp% THEN c = i
     NEXT i
-    IF TryClasp%(c) THEN WrongClaspDestroys% = FALSE: EXIT FUNCTION
-    WrongClaspDestroys% = (g_blown _ANDALSO NOT g_opened _ANDALSO TRAP_DESTROYS)
+    IF TryClasp%(c) THEN WrongClaspArms% = FALSE: EXIT FUNCTION
+    WrongClaspArms% = (g_armed _ANDALSO NOT g_blown _ANDALSO NOT g_opened)
+END FUNCTION
+
+FUNCTION PerfectPlayNeverArms% ()
+    DIM i AS LONG, st AS INTEGER
+    PerfectPlayNeverArms% = TRUE
+    RANDOMIZE 145
+    ChestRollCodes
+    FOR i = 1 TO 5000
+        ChestSetup 1 + (i MOD LEVELS)
+        FOR st = 1 TO CLASPS
+            IF NOT TryClasp%(CorrectClasp%) THEN PerfectPlayNeverArms% = FALSE
+        NEXT st
+        IF g_armed THEN PerfectPlayNeverArms% = FALSE
+    NEXT i
+END FUNCTION
+
+FUNCTION CorrectRewinds% ()
+    DIM i AS INTEGER, c AS INTEGER
+    RANDOMIZE 146
+    ChestRollCodes
+    ChestSetup 4
+    FOR i = 1 TO CLASPS
+        IF i <> CorrectClasp% THEN c = i
+    NEXT i
+    IF TryClasp%(c) THEN CorrectRewinds% = FALSE: EXIT FUNCTION   ' arms it
+    g_fuse0 = g_fuse0 - 6!                                       ' six seconds burnt
+    FuseTick
+    IF g_left > FUSE_SECS - 5! THEN CorrectRewinds% = FALSE: EXIT FUNCTION
+    IF NOT TryClasp%(CorrectClasp%) THEN CorrectRewinds% = FALSE: EXIT FUNCTION
+    FuseTick
+    CorrectRewinds% = (g_left > FUSE_SECS - 0.5)
+END FUNCTION
+
+FUNCTION CorrectDoesNotDisarm% ()
+    DIM i AS INTEGER, c AS INTEGER
+    RANDOMIZE 147
+    ChestRollCodes
+    ChestSetup 4
+    FOR i = 1 TO CLASPS
+        IF i <> CorrectClasp% THEN c = i
+    NEXT i
+    IF TryClasp%(c) THEN CorrectDoesNotDisarm% = FALSE: EXIT FUNCTION
+    IF NOT TryClasp%(CorrectClasp%) THEN CorrectDoesNotDisarm% = FALSE: EXIT FUNCTION
+    CorrectDoesNotDisarm% = g_armed
+END FUNCTION
+
+FUNCTION ChestPauseIsFree% ()
+    DIM AS SINGLE before, after
+    RANDOMIZE 148
+    ChestRollCodes
+    ChestSetup 4
+    g_armed = TRUE: FuseReset
+    FuseTick: before = g_left
+    ChestPause 0.35!
+    FuseTick: after = g_left
+    ChestPauseIsFree% = (ABS(before - after) < 0.08!)
 END FUNCTION
 
 FUNCTION NothingKnownAtStart% ()
