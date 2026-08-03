@@ -44,8 +44,6 @@
 CONST CLASPS = 3                ' NOT "LOCKS" -- LOCK is a QB64 reserved word
 CONST LEVELS = 9
 CONST HUES = 3                  ' colours in play; a code is a permutation of them
-CONST TRAP_DESTROYS = TRUE      ' the open question in the spec, as one constant
-
 '--- the fuse. A wrong clasp no longer destroys the chest on the spot: it starts
 '    the mechanism ticking, and you can still save it. ---
 CONST FUSE_SECS = 12!           ' seconds on the clock once the trap is armed

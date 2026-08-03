@@ -125,9 +125,38 @@ forever — three is a tuning value, not an architecture.
 - a wrong pick destroys the contents (the stake is real, or the guess is free
   and there is no game)
 
-## Open question for the integration, not for the prototype
+## The open question, and how it got answered
 
-Whether a wrong first pick should destroy the chest outright or cost HP and let
-you retry. Destroying it is cleaner and matches "trap", but it makes the first
-chest of every level a 1-in-6 coin flip for the whole hoard. Worth playtesting
-both; the prototype will make it a single constant so it can be flipped.
+The question was whether a wrong first pick should destroy the chest outright or
+cost something and let you retry. Destroying it is cleaner and matches "trap",
+but it makes the first chest of every level a 1-in-6 coin flip for the whole
+hoard, which is a lot to ask of a player who has just arrived on a new level.
+
+**Answered by a fuse instead of by choosing either.** A wrong clasp *arms* the
+mechanism: twelve seconds, wound back to full by each correct clasp and never
+disarmed. So it is still a trap and still frightening, but the punishment for one
+mistake is pressure rather than an instant loss — and the one thing that must not
+work still does not, because guessing your way through the colours costs more
+time than the fuse has.
+
+That made `TRAP_DESTROYS` a dead constant, and it has been removed rather than
+left sitting there labelled as an open decision.
+
+Both halves are asserted against the same three numbers:
+
+| | |
+|---|---|
+| fuse | 12s |
+| a pick (reading three colours and choosing) | 2.5s |
+| a further wrong clasp | −4s |
+
+`2.5 + 4 + 2.5 ≤ 12` — one blunder is recoverable at a human pace.
+`2 × (2.5 + 4) > 12` — brute force is not.
+
+## Still open
+
+Whether the fuse should also be the mechanism for chests found on a level whose
+code you already know. Right now those open instantly with no roll at all, which
+is the point of the level memory; if that turns out to feel like nothing is
+happening, a short "you already know this one" flourish is presentation, not
+rules.
