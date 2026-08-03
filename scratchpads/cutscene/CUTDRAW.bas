@@ -367,20 +367,47 @@ SUB CutBlinkPrompt (col AS INTEGER, row AS INTEGER)
     CutTextAt col, row, CHR$(31), _RGB32(200, 180, 120)
 END SUB
 
+'--- The portrait gets its OWN framed box, matching the speaker panel.
+'
+'  Drawn bare it read as a sprite that happened to be lying next to the
+'  dialogue rather than as part of it, and nothing stopped it hanging off the
+'  bottom of the panel: the fit was computed from the height alone, so a wide
+'  portrait overflowed sideways and a tall one overflowed down. Fitting to
+'  BOTH axes and then centring in what is left is the whole fix.
 SUB CutDrawPortrait
-    DIM w AS INTEGER, h AS INTEGER, dx AS INTEGER, dy AS INTEGER, sc AS SINGLE
+    DIM w AS INTEGER, h AS INTEGER, sc AS SINGLE, scw AS SINGLE, sch AS SINGLE
+    DIM c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER
+    DIM bw AS INTEGER, bh AS INTEGER, dx AS INTEGER, dy AS INTEGER
+
     IF CUT_PORTRAIT >= -1 THEN EXIT SUB
     w = _WIDTH(CUT_PORTRAIT)
     h = _HEIGHT(CUT_PORTRAIT)
     IF w < 1 _ORELSE h < 1 THEN EXIT SUB
 
-    '--- fit into the panel's height, keeping aspect ---
-    sc = (7 * CUT_CH) / h
-    IF w * sc > 15 * CUT_CW THEN sc = (15 * CUT_CW) / w
+    r1 = CUT_SH - 9
+    r2 = CUT_SH - 2
+    IF CUT_PORTSIDE = 1 THEN
+        c1 = CUT_SW - 17
+        c2 = CUT_SW - 3
+    ELSE
+        c1 = 2
+        c2 = 16
+    END IF
 
-    dx = 2 * CUT_CW
-    dy = (CUT_SH - 9) * CUT_CH
-    IF CUT_PORTSIDE = 1 THEN dx = (CUT_SW - 17) * CUT_CW
+    CutPanel c1, r1, c2, r2, _RGBA32(8, 6, 12, 225), _RGBA32(150, 130, 90, 200)
+
+    '--- the drawable area, one cell in from the frame on every side ---
+    bw = (c2 - c1 - 1) * CUT_CW
+    bh = (r2 - r1 - 1) * CUT_CH
+    IF bw < 1 _ORELSE bh < 1 THEN EXIT SUB
+
+    '--- fit to whichever axis binds first, so it can never overflow either ---
+    scw = bw / w
+    sch = bh / h
+    IF scw < sch THEN sc = scw ELSE sc = sch
+
+    dx = (c1 + 1) * CUT_CW + (bw - w * sc) / 2
+    dy = (r1 + 1) * CUT_CH + (bh - h * sc) / 2
 
     _PUTIMAGE (dx, dy)-(dx + w * sc - 1, dy + h * sc - 1), CUT_PORTRAIT, _DEST
 END SUB

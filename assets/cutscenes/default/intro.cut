@@ -13,7 +13,7 @@ stage 2112x1632
 ' Open in the dark and bring the gate up out of it, rather than cutting to a
 ' lit picture: the scene should feel like your eyes adjusting.
 cam 0.5,0.62 zoom 1.6
-show bg "bg/cut-gate.png" scale 8 at 0.5,0.5
+show bg "bg/cut-gate.png" fill at 0.5,0.5
 fade to black over 0
 
 music "intro" fadein 4.0

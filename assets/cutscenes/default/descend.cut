@@ -15,7 +15,7 @@ scene descend
 ' No `stage` line: the default stage is exactly the screen, which is what a
 ' short beat with one slow push-in wants.
 
-show bg "bg/cut-stair.png" scale 4 at 0.5,0.5
+show bg "bg/cut-stair.png" fill at 0.5,0.5
 cam 0.5,0.35 zoom 1.05
 
 ' Everything below runs UNDER this push-in, which lasts the whole scene.

@@ -216,6 +216,30 @@ SUB DoSelftest
     IF i > 0 _ANDALSO n > 0 THEN CutOk "  the later layer sits BEHIND the earlier one", CUT_LAY(n).z < CUT_LAY(i).z
 
     ' ------------------------------------------------------------------
+    CutSect "layers: fill sizes against the STAGE, not against a magic number"
+
+    '--- `scale 8` is only right for one exact source size. Art regenerated a
+    '    little smaller silently grows a black border in every scene that used
+    '    it -- which is also what a missing backdrop looks like. ---
+    ok = CutCompileText%("stage 2112x1632" + CHR$(10) + "show bg " + CHR$(34) + "bg/cut-gate.png" + CHR$(34) + " fill" + CHR$(10))
+    CutOk "`fill` compiles", ok
+    CutRunHeadless 1
+    i = CutLayerFind%("bg")
+    IF i > 0 THEN
+        CutOk "  the layer loaded", CUT_LAY(i).w > 0
+        CutOk "  it covers the stage horizontally", CUT_LAY(i).w * CUT_LAY(i).scale >= CUT_STAGEW - 1
+        CutOk "  it covers the stage vertically", CUT_LAY(i).h * CUT_LAY(i).scale >= CUT_STAGEH - 1
+    END IF
+
+    ok = CutCompileText%("stage 2112x1632" + CHR$(10) + "show bg " + CHR$(34) + "bg/cut-gate.png" + CHR$(34) + " fit" + CHR$(10))
+    CutRunHeadless 1
+    i = CutLayerFind%("bg")
+    IF i > 0 THEN
+        CutOk "`fit` stays INSIDE the stage horizontally", CUT_LAY(i).w * CUT_LAY(i).scale <= CUT_STAGEW + 1
+        CutOk "  and vertically", CUT_LAY(i).h * CUT_LAY(i).scale <= CUT_STAGEH + 1
+    END IF
+
+    ' ------------------------------------------------------------------
     CutSect "compiler: choice"
 
     s = "choice " + CHR$(34) + "Well?" + CHR$(34) + CHR$(10)

@@ -96,7 +96,7 @@ half as much (twice as close).
 ### Art
 
 ```
-show  <layer> "<path>" [fade <t>] [at <x>,<y>] [scale <s>] [parallax <p>] [z <n>]
+show  <layer> "<path>" [fade <t>] [at <x>,<y>] [scale <s>|fill|fit] [parallax <p>] [z <n>]
 hide  <layer> [fade <t>]
 clear
 anim  <layer> "<base>" frames <n> fps <f> [loop|once|pingpong] [fade <t>] [at ..] [scale ..]
@@ -117,6 +117,18 @@ move       <layer> to <x>,<y> over <t> [ease <e>]
 grow       <layer> to <scale> over <t> [ease <e>]
 fadelayer  <layer> to <0..1>  over <t> [ease <e>]
 ```
+
+**`fill` / `fit` size a layer against the stage** instead of against a number
+you worked out from the art's dimensions. `fill` covers the stage and crops the
+overflow (what a backdrop wants); `fit` puts the whole picture inside and
+leaves bars.
+
+Prefer them to `scale` for backdrops. `scale 8` is only correct for one exact
+source size, so the day the art is regenerated a little smaller, every scene
+using it grows a black border — which is also exactly what a missing backdrop
+looks like. That happened here: a generator flag silently produced 128×96
+instead of 264×204 and five scenes quietly letterboxed themselves. `fill`
+cannot go stale.
 
 **Parallax** is a depth cue: `1` (default) means the layer is pinned to the
 stage and moves fully with the camera; `0` means it is pinned to the *camera*
@@ -312,7 +324,7 @@ one landed on its end value.
 
 After a command's fixed arguments, the rest of the line is searched for
 `fade`, `over`, `at`, `scale`, `ease`, `dir`, `for`, `frames`, `fps`,
-`parallax`, `z`, `layer`, `color`, `anchor` wherever they appear. These are the same
+`parallax`, `z`, `fill`, `fit`, `layer`, `color`, `anchor` wherever they appear. These are the same
 line:
 
 ```
@@ -395,7 +407,7 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     headless assertions (105)
+cutplay.run selftest                     headless assertions (111)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in

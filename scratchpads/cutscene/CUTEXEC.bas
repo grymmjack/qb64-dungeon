@@ -280,6 +280,10 @@ SUB CutExec (p AS INTEGER)
                         CUT_LAY(L).parallax = CUT_OPS(p).n2
                     CASE LS_Z
                         CUT_LAY(L).z = CINT(CUT_OPS(p).n2)
+                    CASE LS_FILL
+                        CutLayerCover L, TRUE
+                    CASE LS_FIT
+                        CutLayerCover L, FALSE
                 END SELECT
             END IF
 
@@ -419,6 +423,21 @@ FUNCTION CutAnyTween% ()
     NEXT i
     CutAnyTween% = FALSE
 END FUNCTION
+
+'--- size a layer against the stage. cover = TRUE fills it and crops the
+'    overflow; FALSE fits the whole picture inside and leaves bars. ---
+SUB CutLayerCover (L AS INTEGER, cover AS INTEGER)
+    DIM sx AS SINGLE, sy AS SINGLE
+    IF L < 1 THEN EXIT SUB
+    IF CUT_LAY(L).w < 1 _ORELSE CUT_LAY(L).h < 1 THEN EXIT SUB
+    sx = CUT_STAGEW / CUT_LAY(L).w
+    sy = CUT_STAGEH / CUT_LAY(L).h
+    IF cover THEN
+        IF sx > sy THEN CUT_LAY(L).scale = sx ELSE CUT_LAY(L).scale = sy
+    ELSE
+        IF sx < sy THEN CUT_LAY(L).scale = sx ELSE CUT_LAY(L).scale = sy
+    END IF
+END SUB
 
 SUB CutLayerSetArt (L AS INTEGER, subpath AS STRING)
     DIM img AS LONG

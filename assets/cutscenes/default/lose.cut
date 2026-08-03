@@ -6,7 +6,7 @@ scene lose
 noskip
 
 musicstop fade 0.6
-show bg "bg/cut-crypt.png" scale 4 at 0.5,0.5
+show bg "bg/cut-crypt.png" fill at 0.5,0.5
 cam 0.5,0.5 zoom 1.6
 
 ' The screen dies before the scene starts, then comes back wrong.

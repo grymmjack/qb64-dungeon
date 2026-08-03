@@ -11,7 +11,7 @@ stage 2112x1632
 
 musicstop fade 1.0
 cam 0.5,0.5 zoom 2.4
-show bg "bg/cut-dawn.png" scale 8 at 0.5,0.5
+show bg "bg/cut-dawn.png" fill at 0.5,0.5
 
 ' Open on white and let the dawn resolve out of it -- the inverse of the
 ' intro, which opened on black.

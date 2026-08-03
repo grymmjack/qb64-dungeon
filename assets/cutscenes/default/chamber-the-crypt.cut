@@ -9,7 +9,7 @@
 scene chamber-the-crypt
 stage 2112x1632
 
-show bg "bg/cut-hall.png" scale 8 at 0.5,0.5
+show bg "bg/cut-hall.png" fill at 0.5,0.5
 cam 0.30,0.5 zoom 2.0
 
 ' A long lateral pan across the hall, so the room reads as WIDE. This is the

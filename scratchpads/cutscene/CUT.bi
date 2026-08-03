@@ -131,6 +131,8 @@ CONST LS_SCALE = 2
 CONST LS_ALPHA = 3
 CONST LS_PARALLAX = 4
 CONST LS_Z = 5
+CONST LS_FILL = 6           ' cover the stage (crop the overflow)
+CONST LS_FIT = 7            ' fit inside the stage (letterbox)
 
 '--- animation playback modes ---
 CONST AM_LOOP = 0

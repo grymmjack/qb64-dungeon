@@ -622,6 +622,20 @@ SUB CutEmitLayerMods (lay AS STRING, startat AS INTEGER, ln AS INTEGER)
     IF tgt >= 0 THEN
         op = CutEmit%(OP_LAYSET, CutStr&(lay), CUT_NOSTR, LS_Z, CutNum!(CutTok$(tgt + 1)), 0, 0, ln, TRUE)
     END IF
+
+    '--- `fill` / `fit` size a layer against the STAGE instead of against a
+    '    number the author worked out from the art's dimensions.
+    '
+    '    That arithmetic is a trap: `scale 8` is only correct for one exact
+    '    source size, so the day the art is regenerated a little smaller every
+    '    scene using it silently grows a black border -- which is also exactly
+    '    what a missing backdrop looks like. `fill` cannot go stale. ---
+    IF CutHasKw%("fill", startat) THEN
+        op = CutEmit%(OP_LAYSET, CutStr&(lay), CUT_NOSTR, LS_FILL, 0, 0, 0, ln, TRUE)
+    END IF
+    IF CutHasKw%("fit", startat) THEN
+        op = CutEmit%(OP_LAYSET, CutStr&(lay), CUT_NOSTR, LS_FIT, 0, 0, 0, ln, TRUE)
+    END IF
 END SUB
 
 '--- `dissolve to "crypt.png"` / `wipe to "gate.png" dir left`.
