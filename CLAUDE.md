@@ -2,19 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> ## 🚧 IN PROGRESS — CUTSCENE ENGINE (do not duplicate)
+> ## 🚧 IN PROGRESS — CUT-SCENE **STORYBOOK** (the engine itself has landed)
 >
-> Another session is building the **cut-scene engine** (a DSL-scripted "little movies"
-> system: still art, frame-sequence animation, pan/zoom camera, transitions, music /
-> narration / sfx cues, input and conditional branching).
+> The cut-scene **engine** is merged and documented below. What is still live is the
+> **Storybook**: embedding the engine in the game (`engine/CUTSCENE*` + `Game_Cut*` hooks)
+> and a Bestiary-pattern replay screen (`???` for scenes not yet seen).
 >
-> - **Branch:** `cutscene-engine` — **worktree:** `../qb64-dungeon-cutscene` (NOT this checkout).
-> - **Owns:** anything named `CUTSCENE*` / `CUT*` under `scratchpads/cutscene/`, plus any
->   future `engine/CUTSCENE.bas` / `assets/cutscenes/`.
-> - **Do not** start a parallel cut-scene / cinematic / intro-movie implementation, and do not
->   refactor `engine/UI.bas` fades, `engine/ARTPACK.bas` or `engine/MUSIC.bas` signatures
->   without saying so — that session is building on top of them.
-> - This notice is **removed by that session when it lands**. If it is still here, the work is live.
+> - **Owns:** `scratchpads/cutscene/`, `assets/cutscenes/`, and the future
+>   `engine/CUTSCENE*` / `game/STORYBOOK.bas` / the `[M]` Game Menu row.
+> - **Do not** start a parallel cut-scene / cinematic / intro-movie implementation.
+> - This notice is **removed by that session when the Storybook lands**.
 
 ## What this is
 
@@ -445,6 +442,40 @@ Environment specifics that dictate this approach:
   trap (`SpringTrap`), grant all items + Level Key, +potions, heal full, +5000 gold, reveal all secret
   doors, or set up win-ready state. It calls the real gameplay hooks so the test path exercises the
   same code as play.
+- **CUT-SCENE ENGINE** (`scratchpads/cutscene/`, scenes in `assets/cutscenes/<pack>/*.cut`).
+  DSL-scripted "little movies": layered still art + PNG frame-sequence animation, a pan/zoom
+  camera, transitions, music/sfx/narration, conditional branching and player choice menus.
+  **[scratchpads/cutscene/CUT-DSL.md](scratchpads/cutscene/CUT-DSL.md) is the language reference**; `run-tests.sh` beside it is the gate.
+  **The VM is a STEP MACHINE, not a blocking loop.** `CutStep` runs opcodes until one *declares
+  a wait*, then returns to a frame loop that advances tweens and redraws. Every other
+  interactive screen here is its own `DO...LOOP`, which is exactly why none of them can do two
+  things at once — and a cut-scene's whole job is to pan the camera WHILE the music swells
+  WHILE the text types. That design is what makes `async` free: a blocking op and an `async` op
+  run the **same code**, and the only difference is whether the op also sets `CUT_WAIT`, so
+  there is no second path to keep in sync.
+  **Three steps a frame:** layers (each `.png`, or an `.ans` rendered through `ANSI_Print` ONCE
+  into an image) composite onto a **stage** usually bigger than the screen; the **camera** crops
+  the stage to the screen; then text, menus and transitions draw on top. Authoring in ANSI but
+  moving in pixels is the point — pan and zoom are smooth instead of jumping a whole 8×16 cell.
+  **`zoom 1` = the largest screen-shaped rect that fits the stage**, so the picture can never
+  distort. **Size backdrops with `fill`/`fit`, never `scale <n>`**: a scale factor is only right
+  for one exact source size, so regenerating art a little smaller silently letterboxes every
+  scene — which is also exactly what a missing backdrop looks like (this already happened once,
+  when a pixelmon flag returned 128×96 instead of the requested 264×204).
+  **Traps already paid for, all in `CUTPARSE`/`CUTEXEC`:** comparison characters must tokenize
+  as a **run** (`==` split into two `=` made every `if class == wizard` fail to compile) with
+  `->` handled first (`>` is itself one of them, so every choice option resolved to no label);
+  `CutClock#` folds out TIMER's **midnight reset** (a scene playing across midnight would see
+  time jump back 86400s and freeze forever, only ever between 23:59:59 and 00:00:00); and
+  `CutStep` bounds instructions per frame, because `label spin` / `jump spin` is two legal lines
+  that would otherwise hang with no window update and no way to press anything.
+  **`cutplay.run` is the authoring loop** — `[R]` recompiles from disk and restarts, and game
+  state comes from the command line (`cutplay.run intro.cut class=wizard gold=6000`) so every
+  branch can be *watched* rather than hoped about. `lint` resolves every asset a scene names by
+  walking the compiled program (so both arms of a conditional, and every frame of an `anim`);
+  `shot` renders at a fixed simulated time for regression checks. The engine reaches its host
+  through **eleven `Cut_*` hooks and nothing else** — `CUTMOCK.bas` is a second, dungeon-free
+  host that proves it, the same argument `examples/minimal` makes for `engine/`.
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
