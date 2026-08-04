@@ -649,7 +649,7 @@ CONST SETOPT_MAX = 128
 ' How many settings options exist. Lives here rather than inside RunSettings so the layout check
 ' (SettingsLayoutCheck, run by `dungeon.run settingsshot`) can see it: an option counted here but
 ' never given a SetLayRow draws nowhere, silently. Raise it when adding a row.
-CONST NSET = 67
+CONST NSET = 68
 DIM SHARED SL_COL(1 TO SETOPT_MAX) AS INTEGER    ' per option id: which column (1..NSCOL)
 DIM SHARED SL_ROW(1 TO SETOPT_MAX) AS INTEGER    ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count
@@ -737,3 +737,32 @@ DIM SHARED TUNE_HP_BLOODIED AS INTEGER
 ' branch therefore covers all of them; wiring each call site separately would have guaranteed one
 ' gets missed.
 DIM SHARED opt_tactical AS INTEGER
+
+' ============================================================================
+'  CUT-SCENES
+'
+'  What the player has SEEN is one flat list of names, not a bitmask against a
+'  fixed roster: a data pack can ship scenes the base game has never heard of,
+'  and a bitmask would silently mis-index the moment the roster changed length.
+'
+'  Story flags share the list with a "flag:" prefix, so ONE save line carries
+'  both and the two cannot drift apart.
+' ============================================================================
+CONST CUTSEEN_MAX = 128
+DIM SHARED CUTSEEN(1 TO CUTSEEN_MAX) AS STRING * 40
+DIM SHARED CUTSEEN_N AS INTEGER
+
+'--- SETTINGS: Manual (hold each beat for a key) / Auto (time out on its own,
+'    which is what an attract loop needs) / Off. It is a SETTING and not a
+'    script property on purpose -- scripts stay agnostic about pacing. ---
+DIM SHARED opt_cutscenes AS INTEGER
+
+'--- the Storybook roster, built by scanning the pack's .cut files once when
+'    the screen opens. Kept separate from CUTSEEN because that list is what the
+'    player HAS seen, while this is what EXISTS to be seen.
+CONST STORY_MAX = 64
+DIM SHARED STORY_NAME(1 TO STORY_MAX) AS STRING * 40
+DIM SHARED STORY_TITLE(1 TO STORY_MAX) AS STRING * 40
+DIM SHARED STORY_BLURB(1 TO STORY_MAX) AS STRING * 72
+DIM SHARED STORY_ART(1 TO STORY_MAX) AS STRING * 72
+DIM SHARED STORY_N AS INTEGER

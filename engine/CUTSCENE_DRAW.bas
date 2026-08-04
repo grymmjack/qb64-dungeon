@@ -226,8 +226,8 @@ SUB CutTextCentered (row AS INTEGER, s AS STRING, k AS _UNSIGNED LONG)
     CutTextAt col, row, s, k
 END SUB
 
-SUB CutPanel (c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER, fill AS _UNSIGNED LONG, edge AS _UNSIGNED LONG)
-    LINE (c1 * CUT_CW, r1 * CUT_CH)-((c2 + 1) * CUT_CW - 1, (r2 + 1) * CUT_CH - 1), fill, BF
+SUB CutPanel (c1 AS INTEGER, r1 AS INTEGER, c2 AS INTEGER, r2 AS INTEGER, bgcol AS _UNSIGNED LONG, edge AS _UNSIGNED LONG)
+    LINE (c1 * CUT_CW, r1 * CUT_CH)-((c2 + 1) * CUT_CW - 1, (r2 + 1) * CUT_CH - 1), bgcol, BF
     LINE (c1 * CUT_CW, r1 * CUT_CH)-((c2 + 1) * CUT_CW - 1, (r2 + 1) * CUT_CH - 1), edge, B
 END SUB
 

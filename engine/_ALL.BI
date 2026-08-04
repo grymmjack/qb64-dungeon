@@ -12,5 +12,6 @@ $INCLUDEONCE
 ' ============================================================================
 '$INCLUDE:'ansi/ANSIPrint.bi'
 '$INCLUDE:'ENGINE.BI'
+'$INCLUDE:'CUTSCENE.BI'
 '$INCLUDE:'DICE3D/_ALL.BI'
 '$INCLUDE:'DICE3D_GAME.bi'

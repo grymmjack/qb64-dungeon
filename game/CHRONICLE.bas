@@ -887,19 +887,20 @@ END SUB
 ' ---------------------------------------------------------------------------
 SUB GameMenu
     DIM sel AS INTEGER, i AS INTEGER, y AS INTEGER, k AS STRING
-    DIM lbl(1 TO 8) AS STRING
+    DIM lbl(1 TO 9) AS STRING
     lbl(1) = "Character Sheet"
     lbl(2) = "Game Summary"
     lbl(3) = "Event Log"
     lbl(4) = "Bestiary"
     lbl(5) = "Treasury"
-    lbl(6) = "Rules"
-    lbl(7) = "Controls"
-    lbl(8) = "Resume Game"
+    lbl(6) = "Storybook"
+    lbl(7) = "Rules"
+    lbl(8) = "Controls"
+    lbl(9) = "Resume Game"
     sel = 1
     DO
         ChroniclePanel 44, 12, 88, 33, "G A M E   M E N U", "gamemenu"
-        FOR i = 1 TO 8
+        FOR i = 1 TO 9
             y = 15 + (i - 1) * 2
             IF i = sel THEN COLOR WHITE, REDU ELSE COLOR CYANU, BOXBG
             PrintCentered y, "   " + lbl(i) + "   "
@@ -908,8 +909,8 @@ SUB GameMenu
         Present
         AudioTick                             ' gamemenu cue crossfade / narration fade keeps ramping
         k = NormKey$(UCASE$(INKEY$))
-        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 8
-        IF k = "S" THEN sel = sel + 1: IF sel > 8 THEN sel = 1
+        IF k = "W" THEN sel = sel - 1: IF sel < 1 THEN sel = 9
+        IF k = "S" THEN sel = sel + 1: IF sel > 9 THEN sel = 1
         ' BOTH exits go through ChronicleClose. ChroniclePanel leaves _PRINTMODE _KEEPBACKGROUND
         ' set while a frame is up, and leaking that back into the play loop means every later
         ' _PRINTSTRING keeps whatever pixels are under it instead of filling its own background --
@@ -923,9 +924,10 @@ SUB GameMenu
                 CASE 3: ShowEventLog
                 CASE 4: ShowBestiary
                 CASE 5: ShowTreasury
-                CASE 6: ShowRules
-                CASE 7: ShowKeys
-                CASE 8: ChronicleClose: EXIT SUB
+                CASE 6: ShowStorybook
+                CASE 7: ShowRules
+                CASE 8: ShowKeys
+                CASE 9: ChronicleClose: EXIT SUB
             END SELECT
         END IF
     LOOP

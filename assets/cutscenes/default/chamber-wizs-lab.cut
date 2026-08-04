@@ -1,0 +1,35 @@
+scene chamber-wizs-lab
+storybook "The Wizard's Lab" "Someone left the experiment running."
+include "_common.cut"
+
+' A backdrop at parallax 1 and a haze layer at 0.35 -- the haze drifts against
+' the scenery as the camera sweeps, which is the whole point of parallax.
+show bg   "bg/cham-wizlab.png" fill parallax 1
+show haze "events/glowing-mushrooms.png" fit scale 0.9 at 0.5,0.5 parallax 0.35 fade 2.0
+
+' z 0 slides the circle BEHIND the haze even though it was shown later.
+show circ "events/rune-obelisk.png" fit scale 0.25 at 0.62,0.6 z 0 fade 1.5
+
+cam 0.25,0.45 zoom 2.0
+async pan to 0.75,0.55 over 11.0 ease inout
+
+music "dungeon" fadein 2.0
+caption "THE WIZARD'S LAB" at 66,3 anchor c color magenta fade 1.0
+
+say "The candles are still lit. They have been still lit for a long time."
+
+flash magenta 0.20
+sfx "spell-cast"
+say "Something in a jar turns to follow you. Only the jar is empty."
+
+if class == wizard
+    caption "YOU KNOW THIS WORK" at 66,6 anchor c color cyan fade 1.0
+    say "You recognise the hand. You do not like recognising the hand."
+    grant hp 4
+    set read_the_lab_notes = 1
+else
+    say "None of it means anything to you, which is probably a mercy."
+end
+
+waitall
+dissolve over 1.4

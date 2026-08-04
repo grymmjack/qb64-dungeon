@@ -421,6 +421,7 @@ SUB SaveSettings
     PRINT #f, "sfxvol " + _TRIM$(STR$(opt_sfxvol))
     PRINT #f, "voicevol " + _TRIM$(STR$(opt_voicevol))
     PRINT #f, "duckamt " + _TRIM$(STR$(opt_duckamt))
+    PRINT #f, "cutscenes " + _TRIM$(STR$(opt_cutscenes))
     PRINT #f, "realdice " + _TRIM$(STR$(opt_realdice))
     PRINT #f, "dicemath " + _TRIM$(STR$(opt_dicemath))
     PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
@@ -565,6 +566,7 @@ SUB LoadSettings
                 CASE "solomins": opt_solomins = v
                 CASE "sfxpack": opt_sfxpack = vs        ' string value (subdir name; validated in ScanAllPacks)
                 CASE "musicpack": opt_musicpack = vs
+                CASE "cutscenes": opt_cutscenes = v
                 CASE "narration": opt_narration = v
                 CASE "narrationpack": opt_narrationpack = vs
                 CASE "narrfreq": opt_narrfreq = v

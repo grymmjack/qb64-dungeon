@@ -15,45 +15,45 @@
 '  and hoping about it.
 ' ============================================================================
 
-FUNCTION Cut_State# (k AS STRING)
+FUNCTION Game_CutState# (k AS STRING)
     DIM i AS INTEGER, kk AS STRING
     kk = LCASE$(_TRIM$(k))
     FOR i = 1 TO MOCK_N
         IF LCASE$(_TRIM$(MOCK_K(i))) = kk THEN
-            Cut_State# = MOCK_V(i)
+            Game_CutState# = MOCK_V(i)
             EXIT FUNCTION
         END IF
     NEXT i
     '--- an unknown key is 0, not an error. A scene written against a state
     '    key the host does not publish should read as "false", not crash the
     '    player mid-scene: same "missing means unchanged" rule as Thm~&. ---
-    Cut_State# = 0
+    Game_CutState# = 0
 END FUNCTION
 
-FUNCTION Cut_StateStr$ (k AS STRING)
+FUNCTION Game_CutStateStr$ (k AS STRING)
     DIM i AS INTEGER, kk AS STRING
     kk = LCASE$(_TRIM$(k))
     FOR i = 1 TO MOCK_N
         IF LCASE$(_TRIM$(MOCK_K(i))) = kk THEN
-            Cut_StateStr$ = MOCK_S(i)
+            Game_CutStateStr$ = MOCK_S(i)
             EXIT FUNCTION
         END IF
     NEXT i
-    Cut_StateStr$ = ""
+    Game_CutStateStr$ = ""
 END FUNCTION
 
-SUB Cut_SetFlag (nm AS STRING, v AS DOUBLE)
+SUB Game_CutSetFlag (nm AS STRING, v AS DOUBLE)
     MockSet "flag." + nm, v, LTRIM$(STR$(v))
     MOCK_LOG = MOCK_LOG + "set " + nm + "=" + LTRIM$(STR$(v)) + CHR$(10)
 END SUB
 
-SUB Cut_Grant (what AS STRING, amount AS DOUBLE)
+SUB Game_CutGrant (what AS STRING, amount AS DOUBLE)
     DIM w AS STRING
     w = LCASE$(_TRIM$(what))
     IF LEFT$(w, 5) = "item:" THEN
         MockSet "item." + MID$(w, 6), 1, "1"
     ELSE
-        MockSet w, Cut_State#(w) + amount, ""
+        MockSet w, Game_CutState#(w) + amount, ""
     END IF
     MOCK_LOG = MOCK_LOG + "grant " + w + " " + LTRIM$(STR$(amount)) + CHR$(10)
 END SUB
@@ -96,7 +96,7 @@ END SUB
 '  ships. The last resort is the path exactly as written, which is what makes
 '  a scratch scene with a relative path work before any pack exists.
 ' ----------------------------------------------------------------------------
-FUNCTION Cut_ArtPath$ (subpath AS STRING)
+FUNCTION Game_CutArtPath$ (subpath AS STRING)
     DIM c(1 TO 8) AS STRING, i AS INTEGER, n AS INTEGER, pk AS STRING
     pk = MOCK_PACK
     IF LEN(pk) = 0 THEN pk = "default"
@@ -112,12 +112,12 @@ FUNCTION Cut_ArtPath$ (subpath AS STRING)
     n = n + 1: c(n) = subpath
 
     FOR i = 1 TO n
-        IF _FILEEXISTS(c(i)) THEN Cut_ArtPath$ = c(i): EXIT FUNCTION
+        IF _FILEEXISTS(c(i)) THEN Game_CutArtPath$ = c(i): EXIT FUNCTION
     NEXT i
-    Cut_ArtPath$ = ""
+    Game_CutArtPath$ = ""
 END FUNCTION
 
-FUNCTION Cut_AudioPath$ (kind AS STRING, nm AS STRING)
+FUNCTION Game_CutAudioPath$ (kind AS STRING, nm AS STRING)
     DIM ext(1 TO 5) AS STRING, dpath(1 TO 3) AS STRING
     DIM i AS INTEGER, j AS INTEGER, nd AS INTEGER, p AS STRING
 
@@ -141,10 +141,10 @@ FUNCTION Cut_AudioPath$ (kind AS STRING, nm AS STRING)
     FOR i = 1 TO nd
         FOR j = 1 TO 5
             p = dpath(i) + nm + ext(j)
-            IF _FILEEXISTS(p) THEN Cut_AudioPath$ = p: EXIT FUNCTION
+            IF _FILEEXISTS(p) THEN Game_CutAudioPath$ = p: EXIT FUNCTION
         NEXT j
     NEXT i
-    Cut_AudioPath$ = ""
+    Game_CutAudioPath$ = ""
 END FUNCTION
 
 ' ----------------------------------------------------------------------------
@@ -156,7 +156,7 @@ END FUNCTION
 '  documented in CLAUDE.md as aborting roughly one headless run in ten with a
 '  varying message. A silent run must open nothing.
 ' ----------------------------------------------------------------------------
-SUB Cut_Music (path AS STRING, fadein AS SINGLE, doloop AS INTEGER)
+SUB Game_CutMusic (path AS STRING, fadein AS SINGLE, doloop AS INTEGER)
     IF CUT_QUIET THEN
         MOCK_LOG = MOCK_LOG + "music " + path + CHR$(10)
         EXIT SUB
@@ -186,7 +186,7 @@ SUB Cut_Music (path AS STRING, fadein AS SINGLE, doloop AS INTEGER)
     END IF
 END SUB
 
-SUB Cut_MusicStop (fade AS SINGLE)
+SUB Game_CutMusicStop (fade AS SINGLE)
     IF CUT_QUIET THEN EXIT SUB
     IF MOCK_MUS >= -1 THEN EXIT SUB
     IF fade <= 0 THEN
@@ -200,11 +200,11 @@ SUB Cut_MusicStop (fade AS SINGLE)
     MOCK_MUSFADE = fade
 END SUB
 
-SUB Cut_Sfx (nm AS STRING)
+SUB Game_CutSfx (nm AS STRING)
     DIM p AS STRING, h AS LONG
     MOCK_LOG = MOCK_LOG + "sfx " + nm + CHR$(10)
     IF CUT_QUIET THEN EXIT SUB
-    p = Cut_AudioPath$("sfx", nm)
+    p = Game_CutAudioPath$("sfx", nm)
     IF LEN(p) = 0 THEN EXIT SUB
     h = _SNDOPEN(p)
     IF h < -1 THEN
@@ -213,11 +213,11 @@ SUB Cut_Sfx (nm AS STRING)
     END IF
 END SUB
 
-SUB Cut_Narrate (k AS STRING)
+SUB Game_CutNarrate (k AS STRING)
     DIM p AS STRING, h AS LONG
     MOCK_LOG = MOCK_LOG + "narrate " + k + CHR$(10)
     IF CUT_QUIET THEN EXIT SUB
-    p = Cut_AudioPath$("narration", k)
+    p = Game_CutAudioPath$("narration", k)
     IF LEN(p) = 0 THEN EXIT SUB
     h = _SNDOPEN(p)
     IF h < -1 THEN
@@ -264,7 +264,7 @@ END SUB
 '    the fade simply freezes part-way. That lesson is already in CLAUDE.md as
 '    "AudioTick must be in every loop"; here there is only one loop, and the
 '    engine calls it from CutTick so a host cannot forget. ---
-SUB Cut_AudioTick
+SUB Game_CutAudioTick
     DIM dt AS SINGLE
     IF CUT_QUIET THEN EXIT SUB
 

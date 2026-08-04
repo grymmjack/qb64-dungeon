@@ -1,0 +1,32 @@
+scene chamber-torture-chamber
+storybook "The Torture Chamber" "Still in working order."
+noskip
+include "_common.cut"
+
+' The one chamber that will not let you look away.
+show bg "bg/cham-torture.png" fill
+cam 0.5,0.5 zoom 2.4
+
+static 0.5
+music "combat-intense" fadein 0.5
+sfx "trap"
+caption "THE TORTURE CHAMBER" at 66,3 anchor c color blood fade 0.6
+
+shake 7 for 0.8
+say "Everything in here still works. Someone has kept it oiled."
+
+flash blood 0.25
+say "There is a fresh mark on the floor. Fresh is the wrong word. Recent."
+
+async pan to 0.5,0.72 over 6.0 ease inoutcubic
+show body "markers/player-body.png" fit scale 0.3 at 0.5,0.72 fade 2.0
+
+if deaths >= 1
+    say "You recognise the posture. You have been in it."
+else
+    say "You have not seen this from the floor yet."
+end
+
+waitall
+musicstop fade 1.5
+fade to black over 1.5

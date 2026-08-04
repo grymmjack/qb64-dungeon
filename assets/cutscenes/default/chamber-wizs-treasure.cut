@@ -1,0 +1,34 @@
+scene chamber-wizs-treasure
+storybook "The Wizard's Hoard" "Everything here is worth more than it looks, or less."
+include "_common.cut"
+
+show bg "bg/cham-wiztreasure.png" fill
+cam 0.5,0.5 zoom 1.0
+iris out at 0.5,0.5 over 1.4
+
+music "dungeon" fadein 1.5
+caption "THE WIZARD'S HOARD" at 66,3 anchor c color cyan fade 1.0
+
+show orb "items/crystal-ball.png" fit scale 0.22 at 0.30,0.70 fade 1.0
+
+' Move and grow a layer as separate async tweens, joined at the end -- the orb
+' drifts up into the middle of frame while the dialogue runs underneath it.
+async move orb to 0.5,0.45 over 6.0 ease inoutcubic
+async grow orb to 0.40      over 6.0 ease inoutcubic
+
+say "It floats up to meet you. That is not how gold behaves."
+say "Whatever this is, it is not treasure. It is inventory."
+
+if gold >= 3000
+    say "It weighs your purse and finds it interesting."
+    take gold 250
+    caption "-250 GP" at 66,44 anchor c color red fade 0.5
+    say "Something took a commission."
+else
+    grant gold 300
+    caption "+300 GP" at 66,44 anchor c color gold fade 0.5
+end
+
+waitall
+async fadelayer orb to 0 over 1.2
+iris in at 0.5,0.45 over 1.6

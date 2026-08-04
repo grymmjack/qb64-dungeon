@@ -1,0 +1,34 @@
+scene chamber-kitchen
+storybook "The Kitchen" "Something is still cooking."
+include "_common.cut"
+
+show bg "bg/cham-kitchen.png" fill
+cam 0.35,0.6 zoom 2.0
+async pan to 0.65,0.45 over 7.0 ease out
+
+music "dungeon" fadein 2.0
+sfx "chamber-enter"
+caption "THE KITCHEN" at 66,3 anchor c color orange fade 0.8
+
+say "The cauldron is at a rolling boil. Nobody has been down here in years."
+
+portrait "monsters/beasts/goblin.png"
+say Cook: "You are early. Sit down."
+say Cook: "...you are not who I was expecting."
+portrait ""
+
+push to "bg/cham-kitchen.png" dir up over 0.7
+sfx "monster-appear"
+shake 5 for 0.5
+
+say "You do not sit down."
+
+if hp <= 10
+    say "The smell nearly finishes what the dungeon started."
+    grant hp 6
+    caption "+6 HP" at 66,44 anchor c color green fade 0.6
+end
+
+unset expected_for_dinner
+waitall
+fade to black over 0.7

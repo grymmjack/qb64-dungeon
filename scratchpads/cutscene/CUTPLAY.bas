@@ -19,7 +19,7 @@
 '      [1..4] pick a choice    [ESC] skip / quit
 ' ============================================================================
 $CONSOLE
-'$INCLUDE:'CUT.bi'
+'$INCLUDE:'../../engine/CUTSCENE.BI'
 '$INCLUDE:'CUTMOCK.bi'
 '$INCLUDE:'../../engine/ansi/ANSIPrint.bi'
 
@@ -200,7 +200,7 @@ SUB CutLintAssets
             CASE OP_SHOW
                 pth = CutStrGet$(CUT_OPS(i).s2)
                 IF LEN(pth) > 0 THEN
-                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                    IF LEN(Game_CutArtPath$(pth)) = 0 THEN
                         CutErrAdd 2, CUT_OPS(i).srcline, "art not found: " + pth
                     END IF
                 END IF
@@ -211,7 +211,7 @@ SUB CutLintAssets
                 f = INSTR(pth, "|")
                 IF f > 0 THEN
                     pth = MID$(pth, f + 1)
-                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                    IF LEN(Game_CutArtPath$(pth)) = 0 THEN
                         CutErrAdd 2, CUT_OPS(i).srcline, "art not found: " + pth
                     END IF
                 END IF
@@ -219,7 +219,7 @@ SUB CutLintAssets
             CASE OP_PORTRAIT
                 pth = CutStrGet$(CUT_OPS(i).s1)
                 IF LEN(pth) > 0 THEN
-                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                    IF LEN(Game_CutArtPath$(pth)) = 0 THEN
                         CutErrAdd 2, CUT_OPS(i).srcline, "portrait not found: " + pth
                     END IF
                 END IF
@@ -234,7 +234,7 @@ SUB CutLintAssets
                 firstmiss = ""
                 FOR f = 1 TO nframes
                     pth = CutFramePath$(nm, f)
-                    IF LEN(Cut_ArtPath$(pth)) = 0 THEN
+                    IF LEN(Game_CutArtPath$(pth)) = 0 THEN
                         missing = missing + 1
                         IF LEN(firstmiss) = 0 THEN firstmiss = pth
                     END IF
@@ -246,7 +246,7 @@ SUB CutLintAssets
             CASE OP_MUSIC, OP_CUE
                 nm = CutStrGet$(CUT_OPS(i).s1)
                 IF LEN(nm) > 0 THEN
-                    IF LEN(Cut_AudioPath$("music", nm)) = 0 THEN
+                    IF LEN(Game_CutAudioPath$("music", nm)) = 0 THEN
                         CutErrAdd 1, CUT_OPS(i).srcline, "no music named '" + nm + "' (scene will play silent)"
                     END IF
                 END IF
@@ -254,7 +254,7 @@ SUB CutLintAssets
             CASE OP_SFX
                 nm = CutStrGet$(CUT_OPS(i).s1)
                 IF LEN(nm) > 0 THEN
-                    IF LEN(Cut_AudioPath$("sfx", nm)) = 0 THEN
+                    IF LEN(Game_CutAudioPath$("sfx", nm)) = 0 THEN
                         CutErrAdd 1, CUT_OPS(i).srcline, "no sfx named '" + nm + "'"
                     END IF
                 END IF
@@ -262,7 +262,7 @@ SUB CutLintAssets
             CASE OP_NARRATE
                 nm = CutStrGet$(CUT_OPS(i).s1)
                 IF LEN(nm) > 0 THEN
-                    IF LEN(Cut_AudioPath$("narration", nm)) = 0 THEN
+                    IF LEN(Game_CutAudioPath$("narration", nm)) = 0 THEN
                         CutErrAdd 1, CUT_OPS(i).srcline, "no narration for key '" + nm + "'"
                     END IF
                 END IF
@@ -314,6 +314,10 @@ SUB CutFindScenes (scn() AS STRING, n AS INTEGER)
     FOR i = 1 TO np
         f = _FILES$(root + packs(i) + "/*.cut")
         DO WHILE LEN(f) > 0
+            '--- skip `_`-prefixed fragments: they are `include` targets and do
+            '    not stand alone, so linting them as scenes reports errors that
+            '    are not errors. ---
+            IF LEFT$(f, 1) = "_" THEN f = _FILES$: _CONTINUE
             IF n < 255 THEN
                 n = n + 1
                 scn(n) = root + packs(i) + "/" + f
@@ -522,11 +526,11 @@ END SUB
 '  body file declares anything at file scope. Assembling a program is these
 '  few lines plus the two headers at the top.
 ' ============================================================================
-'$INCLUDE:'CUTPARSE.bas'
-'$INCLUDE:'CUTCOMP.bas'
-'$INCLUDE:'CUTVM.bas'
-'$INCLUDE:'CUTEXEC.bas'
-'$INCLUDE:'CUTDRAW.bas'
+'$INCLUDE:'../../engine/CUTSCENE_PARSE.bas'
+'$INCLUDE:'../../engine/CUTSCENE_COMP.bas'
+'$INCLUDE:'../../engine/CUTSCENE_VM.bas'
+'$INCLUDE:'../../engine/CUTSCENE_EXEC.bas'
+'$INCLUDE:'../../engine/CUTSCENE_DRAW.bas'
 '$INCLUDE:'CUTMOCK.bas'
 '$INCLUDE:'CUTTEST.bas'
 '$INCLUDE:'../../engine/ansi/ANSIPrint.bas'

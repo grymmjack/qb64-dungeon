@@ -1,0 +1,34 @@
+scene chamber-armory
+storybook "The Armory" "Racks of other people's weapons."
+include "_common.cut"
+
+show bg "bg/cham-armory.png" fill
+cam 0.30,0.5 zoom 1.9
+async pan to 0.70,0.5 over 8.0 ease inout
+
+music "dungeon" fadein 2.0
+sfx "chamber-enter"
+caption "THE ARMORY" at 66,3 anchor c color bone fade 0.8
+
+say "Every rack is full. Nobody came back for any of it."
+
+' A sprite on its own layer, in FRONT of the backdrop (new layers stack up).
+show blade "items/elven-blade.png" fit scale 0.35 at 0.32,0.62 fade 1.0
+grow blade to 0.45 over 2.5 ease back
+
+portrait "monsters/humanoids/evil-hero.png" right
+say Quartermaster: "Take what you like. The last one did."
+
+' A wipe reveals the aftermath rather than cutting to it.
+wipe to "bg/cham-armory.png" dir left over 0.9
+hide blade fade 0.4
+portrait ""
+
+if class == hero
+    say "Good steel. You know good steel when you hold it."
+elseif class == wizard
+    say "None of it is any use to you. That has never stopped anyone looking."
+end
+
+waitall
+fade to black over 0.8

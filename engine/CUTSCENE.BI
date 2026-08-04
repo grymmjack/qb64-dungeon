@@ -327,6 +327,8 @@ DIM SHARED CUT_NFATAL AS INTEGER
 DIM SHARED CUT_NAME AS STRING
 DIM SHARED CUT_FILE AS STRING
 DIM SHARED CUT_NOSKIP AS INTEGER
+DIM SHARED CUT_SBTITLE AS STRING    ' Storybook display title
+DIM SHARED CUT_SBBLURB AS STRING    ' one-line description for the Storybook
 DIM SHARED CUT_STAGEW AS INTEGER
 DIM SHARED CUT_STAGEH AS INTEGER
 
@@ -458,14 +460,14 @@ DIM SHARED CUT_CHN AS INTEGER
 '  set small is the whole point: it is what lets the engine be lifted into
 '  engine/CUTSCENE.bas without dragging DUNGEON! along with it.
 ' ============================================================================
-DECLARE FUNCTION Cut_State# (k AS STRING)                       ' read a state value
-DECLARE FUNCTION Cut_StateStr$ (k AS STRING)                    ' read a state string
-DECLARE SUB Cut_SetFlag (nm AS STRING, v AS DOUBLE)             ' write a persistent flag
-DECLARE SUB Cut_Grant (what AS STRING, amount AS DOUBLE)        ' gold / hp / item / key
-DECLARE FUNCTION Cut_ArtPath$ (subpath AS STRING)                  ' pack-resolve an image
-DECLARE FUNCTION Cut_AudioPath$ (kind AS STRING, nm AS STRING)  ' pack-resolve audio
-DECLARE SUB Cut_Music (path AS STRING, fadein AS SINGLE, doloop AS INTEGER)
-DECLARE SUB Cut_MusicStop (fade AS SINGLE)
-DECLARE SUB Cut_Sfx (nm AS STRING)
-DECLARE SUB Cut_Narrate (k AS STRING)
-DECLARE SUB Cut_AudioTick                                       ' fades are frame-ticked
+DECLARE FUNCTION Game_CutState# (k AS STRING)                       ' read a state value
+DECLARE FUNCTION Game_CutStateStr$ (k AS STRING)                    ' read a state string
+DECLARE SUB Game_CutSetFlag (nm AS STRING, v AS DOUBLE)             ' write a persistent flag
+DECLARE SUB Game_CutGrant (what AS STRING, amount AS DOUBLE)        ' gold / hp / item / key
+DECLARE FUNCTION Game_CutArtPath$ (subpath AS STRING)                  ' pack-resolve an image
+DECLARE FUNCTION Game_CutAudioPath$ (kind AS STRING, nm AS STRING)  ' pack-resolve audio
+DECLARE SUB Game_CutMusic (path AS STRING, fadein AS SINGLE, doloop AS INTEGER)
+DECLARE SUB Game_CutMusicStop (fade AS SINGLE)
+DECLARE SUB Game_CutSfx (nm AS STRING)
+DECLARE SUB Game_CutNarrate (k AS STRING)
+DECLARE SUB Game_CutAudioTick                                       ' fades are frame-ticked

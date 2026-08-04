@@ -269,15 +269,15 @@ SUB DoSelftest
     s = s + "set reached_end 1" + CHR$(10)
     CutOk "false-branch scene compiles", CutCompileText%(s)
     CutRunHeadless 5
-    CutOk "  the guarded body did NOT run", Cut_State#("flag.took_rich") = 0
-    CutOk "  execution continued past the block", Cut_State#("flag.reached_end") = 1
+    CutOk "  the guarded body did NOT run", Game_CutState#("flag.took_rich") = 0
+    CutOk "  execution continued past the block", Game_CutState#("flag.reached_end") = 1
 
     '--- ...and when it is TRUE, it must ---
     MOCK_N = 0
     MockSet "gold", 9999, "9999"
     CutOk "true-branch scene compiles", CutCompileText%(s)
     CutRunHeadless 5
-    CutOk "  the guarded body ran", Cut_State#("flag.took_rich") = 1
+    CutOk "  the guarded body ran", Game_CutState#("flag.took_rich") = 1
 
     '--- else must be exclusive with the if body ---
     MOCK_N = 0
@@ -286,8 +286,8 @@ SUB DoSelftest
     s = s + "else" + CHR$(10) + "set poor 1" + CHR$(10) + "end" + CHR$(10)
     CutOk "if/else compiles", CutCompileText%(s)
     CutRunHeadless 5
-    CutOk "  else branch taken", Cut_State#("flag.poor") = 1
-    CutOk "  if branch NOT taken", Cut_State#("flag.rich") = 0
+    CutOk "  else branch taken", Game_CutState#("flag.poor") = 1
+    CutOk "  if branch NOT taken", Game_CutState#("flag.rich") = 0
 
     '--- elseif picks exactly one arm ---
     MOCK_N = 0
@@ -297,9 +297,9 @@ SUB DoSelftest
     s = s + "else" + CHR$(10) + "set c 1" + CHR$(10) + "end" + CHR$(10)
     CutOk "if/elseif/else compiles", CutCompileText%(s)
     CutRunHeadless 5
-    CutOk "  only the elseif arm ran", Cut_State#("flag.b") = 1
-    CutOk "  the if arm did not", Cut_State#("flag.a") = 0
-    CutOk "  the else arm did not", Cut_State#("flag.c") = 0
+    CutOk "  only the elseif arm ran", Game_CutState#("flag.b") = 1
+    CutOk "  the if arm did not", Game_CutState#("flag.a") = 0
+    CutOk "  the else arm did not", Game_CutState#("flag.c") = 0
 
     ' ------------------------------------------------------------------
     CutSect "VM: the runaway guard"
@@ -320,8 +320,8 @@ SUB DoSelftest
     s = "grant gold 250" + CHR$(10) + "grant key" + CHR$(10) + "take gold 50" + CHR$(10)
     CutOk "grant scene compiles", CutCompileText%(s)
     CutRunHeadless 5
-    CutOk "  gold granted then taken", Cut_State#("gold") = 200
-    CutOk "  key granted", Cut_State#("key") = 1
+    CutOk "  gold granted then taken", Game_CutState#("gold") = 200
+    CutOk "  key granted", Game_CutState#("key") = 1
 
     ' ------------------------------------------------------------------
     CutSect "clock: the midnight wrap"
@@ -358,7 +358,7 @@ SUB DoSelftest
     CutWaitCheck
     CutOk "  a negative shift elapses it", CUT_WAIT = WAIT_NONE
     CutStep
-    CutOk "  and execution continues past it", Cut_State#("flag.past_the_wait") = 1
+    CutOk "  and execution continues past it", Game_CutState#("flag.past_the_wait") = 1
 
     ' ------------------------------------------------------------------
     CutSect "text wrap"

@@ -1,0 +1,29 @@
+scene chamber-store-room
+storybook "The Store Room" "Barrels, crates, and a draught from nowhere."
+include "_common.cut"
+
+show bg "bg/cham-storeroom.png" fill
+cam 0.5,0.45 zoom 1.7
+async zoom to 2.3 over 9.0 ease in
+
+music "dungeon" fadein 2.0
+caption "THE STORE ROOM" at 66,3 anchor c color bone fade 0.8
+
+' `fit` rather than `fill`: this sprite must be seen WHOLE, not cropped.
+show crate "events/curio-chest.png" fit scale 0.28 at 0.5,0.62 fade 1.0
+
+say "Stacked to the ceiling, and a draught coming from behind the stack."
+
+if gold >= 8000
+    say "You are carrying too much to be interested in more."
+    say "You are, of course, interested in more."
+elseif gold <= 200
+    say "You would take the barrels themselves at this point."
+    grant gold 150
+    caption "+150 GP" at 66,44 anchor c color gold fade 0.6
+else
+    say "Salt, rope, lamp oil. The dungeon plans ahead."
+end
+
+waitall
+crtoff 1.0

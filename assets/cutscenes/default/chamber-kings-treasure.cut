@@ -1,0 +1,51 @@
+scene chamber-kings-treasure
+storybook "The King's Treasure" "The reason anyone comes down at all."
+include "_common.cut"
+
+show bg "bg/cham-kingstreasure.png" fill
+cam 0.5,0.75 zoom 2.6
+
+music "victory" fadein 1.0 once
+sfx "treasure"
+flash gold 0.3
+caption "THE KING'S TREASURE" at 66,3 anchor c color gold fade 1.2
+
+' A slow reveal upward with `back`, so the camera overshoots and settles --
+' the little snap that makes a move read as deliberate.
+async pan  to 0.5,0.35 over 7.0 ease back
+async zoom to 1.1      over 7.0 ease outcubic
+
+show hoard "treasures/dragon-hoard.png" fit scale 0.45 at 0.5,0.55 fade 2.0
+
+say "This is the one they tell you about upstairs."
+say "They never mention that it is guarded by how much of it there is."
+
+waitall
+
+choice "You cannot carry all of it. Nobody ever could."
+    option "Fill your pack"        -> king_greedy
+    option "Take what you can run with" -> king_wise
+end
+
+label king_greedy
+    grant gold 2500
+    caption "+2500 GP" at 66,44 anchor c color gold fade 0.6
+    say "You take everything that fits and some that does not."
+    say "You will feel every coin on the stairs."
+    set greedy_at_the_hoard = 1
+    shake 6 for 0.8
+    jump king_out
+
+label king_wise
+    grant gold 1200
+    caption "+1200 GP" at 66,44 anchor c color gold fade 0.6
+    say "You take what will not slow you down."
+    say "The rest of it watches you go."
+    set wise_at_the_hoard = 1
+    jump king_out
+
+label king_out
+async fadelayer hoard to 0 over 2.0
+musicstop fade 2.0
+waitall
+iris in at 0.5,0.5 over 1.8

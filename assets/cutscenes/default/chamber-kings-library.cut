@@ -1,0 +1,36 @@
+scene chamber-kings-library
+storybook "The King's Library" "Every book is about the same thing."
+include "_common.cut"
+
+show bg "bg/cham-kingslibrary.png" fill
+cam 0.5,0.5 zoom 1.0
+fade to black over 0
+
+music "dungeon" fadein 4.0
+title "THE KING'S LIBRARY" "nine shelves, nine levels" for 3.0
+fade from black over 1.5
+
+async pan  to 0.5,0.25 over 14.0 ease inout
+async zoom to 1.9      over 14.0 ease inout
+
+narrate "chamber.kings-library"
+say "Nine shelves. One for each level, and the ninth is empty."
+
+' z 0 puts the lectern BEHIND a book shown afterwards -- explicit depth, since
+' new layers otherwise always land in front.
+show lectern "events/shrine.png" fit scale 0.3 at 0.5,0.62 z 0 fade 1.5
+show tome    "items/secret-door-card.png" fit scale 0.16 at 0.5,0.58 fade 2.0
+
+say "The book on the lectern is open, and the ink is not dry."
+
+if kills >= 10
+    say "It is a list. You are on it. Your tally is correct."
+    set found_the_ledger = 1
+elseif kills == 0
+    say "It is a list, and you are not on it yet. That is not reassuring."
+else
+    say "It is a list of everyone who has come down. Most entries stop."
+end
+
+waitall
+scan over 1.0

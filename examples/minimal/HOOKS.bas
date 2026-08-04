@@ -94,3 +94,52 @@ END FUNCTION
 ' but the hook must exist: an undefined Game_* called as a statement parses as a LABEL.
 SUB Game_BoardShown
 END SUB
+
+' ----------------------------------------------------------------------------
+'  CUT-SCENE HOOKS
+'
+'  This game has no cut-scenes. The stubs exist because a bare `Game_Foo`
+'  statement whose SUB is undefined parses as a LABEL, not a call -- it
+'  compiles clean and silently does nothing, so "the demo still builds" proves
+'  nothing at all. tests/audit-boundary.sh is the alarm; these are the answer.
+'
+'  Every one is the honest empty behaviour, not a placeholder: no state, no
+'  assets, no sound. A cut-scene run against this host plays silently against
+'  missing art, which is exactly what should happen.
+' ----------------------------------------------------------------------------
+FUNCTION Game_CutState# (k AS STRING)
+    Game_CutState# = 0
+END FUNCTION
+
+FUNCTION Game_CutStateStr$ (k AS STRING)
+    Game_CutStateStr$ = ""
+END FUNCTION
+
+SUB Game_CutSetFlag (nm AS STRING, v AS DOUBLE)
+END SUB
+
+SUB Game_CutGrant (what AS STRING, amount AS DOUBLE)
+END SUB
+
+FUNCTION Game_CutArtPath$ (subpath AS STRING)
+    Game_CutArtPath$ = ""
+END FUNCTION
+
+FUNCTION Game_CutAudioPath$ (kind AS STRING, nm AS STRING)
+    Game_CutAudioPath$ = ""
+END FUNCTION
+
+SUB Game_CutMusic (path AS STRING, fadein AS SINGLE, doloop AS INTEGER)
+END SUB
+
+SUB Game_CutMusicStop (fade AS SINGLE)
+END SUB
+
+SUB Game_CutSfx (nm AS STRING)
+END SUB
+
+SUB Game_CutNarrate (k AS STRING)
+END SUB
+
+SUB Game_CutAudioTick
+END SUB

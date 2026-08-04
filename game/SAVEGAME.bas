@@ -34,7 +34,7 @@ SUB SaveGame
     el = TIMER - game_start: IF el < 0 THEN el = el + 86400
     f = FREEFILE
     OPEN SAVE_FILE FOR OUTPUT AS #f
-    PRINT #f, "DUNGEONSAVE 9"   ' v9: curse_turns joins the status ints
+    PRINT #f, "DUNGEONSAVE 10"  ' v10: CUTS -- cut-scenes seen + story flags
     PRINT #f, run_seed
     PRINT #f, num_players; cur_player
     PRINT #f, el
@@ -119,6 +119,21 @@ SUB SaveGame
         PRINT #f, " " + StrSubst$(_TRIM$(PLAYERS(i).name), " ", CHR$(1))
     NEXT i
 
+    ' Cut-scenes SEEN, plus story flags (which share the list with a "flag:" prefix).
+    ' This is what the Storybook reads to decide whether a row is a title or a row of
+    ' question marks, so losing it would silently re-lock every scene the player has
+    ' already watched.
+    '
+    ' Written BEFORE the SOLO block for the same reason PLRS is: SOLO's trailing HMON
+    ' field reads to the end of the stream and would swallow anything appended after it.
+    ' Names are filename slugs and flags are lowercase words -- neither can contain a
+    ' space -- so they need none of the CHR$(1) encoding player names do.
+    s = "CUTS " + _TRIM$(STR$(CUTSEEN_N))
+    FOR i = 1 TO CUTSEEN_N
+        s = s + " " + _TRIM$(CUTSEEN(i))
+    NEXT i
+    PRINT #f, s
+
     ' solo challenge (single-player variants) -- so a saved timed / item-hunt / monster-prey
     ' run RESUMES in the same mode (else Continue dropped back to normal play: no timer/hunter)
     PRINT #f, "SOLO "; solo_on; opt_solomode; opt_solomins; solo_item_room; solo_item_lvl; solo_found; hunt_on; hunt_cx; hunt_cy; hunt_slot; hunt_lvl
@@ -134,6 +149,7 @@ END SUB
 ' Assumes the caller (PlayGame) enters the loop afterwards.
 SUB LoadGameApply
     DIM i AS INTEGER, rn AS INTEGER, el AS DOUBLE, tag AS STRING, nm AS STRING, sver AS INTEGER
+    DIM ncut AS INTEGER
     DIM scx AS INTEGER, scy AS INTEGER, spx AS INTEGER, spy AS INTEGER
 
     TokLoad SAVE_FILE
@@ -300,6 +316,22 @@ SUB LoadGameApply
             ' push the authoritative globals INTO the active seat. For v6 the two already
             ' agree (SaveGame synced before writing), so this is a harmless no-op.
             SaveActivePlayer cur_player
+        END IF
+    END IF
+
+    ' cut-scenes seen (optional -- pre-v10 saves lack it, so tag-guard). Default: none
+    ' seen, which is the honest answer for a save written before the feature existed.
+    CUTSEEN_N = 0
+    IF SVTOK_I <= SVTOK_N THEN
+        IF SVTOK(SVTOK_I) = "CUTS" THEN
+            tag = NextTok$                            ' "CUTS"
+            ncut = NextI
+            IF ncut > CUTSEEN_MAX THEN ncut = CUTSEEN_MAX
+            FOR i = 1 TO ncut
+                IF SVTOK_I > SVTOK_N THEN EXIT FOR
+                CUTSEEN_N = CUTSEEN_N + 1
+                CUTSEEN(CUTSEEN_N) = NextTok$
+            NEXT i
         END IF
     END IF
 

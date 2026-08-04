@@ -71,6 +71,10 @@ say "render (a scene can lint clean and still draw nothing)"
 for f in assets/cutscenes/*/*.cut; do
     [ -e "$f" ] || continue
     name=$(basename "$f" .cut)
+    # A leading underscore marks an `include` FRAGMENT, not a scene. It has no
+    # backdrop of its own and correctly renders nothing, so rendering it would
+    # be a guaranteed false failure.
+    case "$name" in _*) continue ;; esac
     lit=0
     for t in 2 6 12; do
         png="/tmp/cutgate-$name-$t.png"

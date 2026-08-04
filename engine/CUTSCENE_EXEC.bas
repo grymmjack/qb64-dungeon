@@ -120,7 +120,7 @@ END SUB
 '    that once with placeholder art auditing as finished. ---
 FUNCTION CutLoadArt& (subpath AS STRING)
     DIM p AS STRING, img AS LONG
-    p = Cut_ArtPath$(subpath)
+    p = Game_CutArtPath$(subpath)
     CUT_LASTART = p
 
     IF LEN(p) = 0 _ORELSE (NOT _FILEEXISTS(p)) THEN
@@ -372,30 +372,30 @@ SUB CutExec (p AS INTEGER)
         CASE OP_MUSIC
             s = CutStrGet$(CUT_OPS(p).s1)
             CUT_LASTMUSIC = s
-            Cut_Music Cut_AudioPath$("music", s), CUT_OPS(p).n1, CINT(CUT_OPS(p).n2)
+            Game_CutMusic Game_CutAudioPath$("music", s), CUT_OPS(p).n1, CINT(CUT_OPS(p).n2)
 
         CASE OP_MUSICSTOP
-            Cut_MusicStop CUT_OPS(p).n1
+            Game_CutMusicStop CUT_OPS(p).n1
 
         CASE OP_SFX
             s = CutStrGet$(CUT_OPS(p).s1)
             CUT_LASTSFX = s
-            Cut_Sfx s
+            Game_CutSfx s
 
         CASE OP_NARRATE
-            Cut_Narrate CutStrGet$(CUT_OPS(p).s1)
+            Game_CutNarrate CutStrGet$(CUT_OPS(p).s1)
 
         CASE OP_CUE
             s = CutStrGet$(CUT_OPS(p).s1)
             CUT_LASTMUSIC = s
-            Cut_Music Cut_AudioPath$("cue", s), 0, CINT(CUT_OPS(p).n1)
+            Game_CutMusic Game_CutAudioPath$("cue", s), 0, CINT(CUT_OPS(p).n1)
 
         ' ---------------- state ----------------
         CASE OP_SET
-            Cut_SetFlag CutStrGet$(CUT_OPS(p).s1), CUT_OPS(p).n1
+            Game_CutSetFlag CutStrGet$(CUT_OPS(p).s1), CUT_OPS(p).n1
 
         CASE OP_GRANT
-            Cut_Grant CutStrGet$(CUT_OPS(p).s1), CUT_OPS(p).n1
+            Game_CutGrant CutStrGet$(CUT_OPS(p).s1), CUT_OPS(p).n1
 
         CASE OP_CHOICE
             CutChoiceBegin p
@@ -571,7 +571,7 @@ FUNCTION CutTick% ()
     CutStep
     CutRender
 
-    Cut_AudioTick
+    Game_CutAudioTick
 
     CutTick% = CUT_RUNSTATE
 END FUNCTION

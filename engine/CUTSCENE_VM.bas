@@ -208,7 +208,7 @@ END FUNCTION
 '      op    := == != = <> < <= > >=
 '
 '  A bare `key` is true when non-zero. A non-numeric value compares as a
-'  STRING against Cut_StateStr$, which is what makes `class == wizard` work
+'  STRING against Game_CutStateStr$, which is what makes `class == wizard` work
 '  without the author quoting anything.
 '
 '  Chains evaluate strictly LEFT TO RIGHT with no precedence: `a and b or c`
@@ -324,12 +324,12 @@ FUNCTION CutCondTerm% (k AS STRING, o AS STRING, v AS STRING)
     DIM r AS INTEGER
 
     IF LEN(o) = 0 THEN
-        IF Cut_State#(k) <> 0 THEN CutCondTerm% = TRUE ELSE CutCondTerm% = FALSE
+        IF Game_CutState#(k) <> 0 THEN CutCondTerm% = TRUE ELSE CutCondTerm% = FALSE
         EXIT FUNCTION
     END IF
 
     IF CutIsNum%(v) THEN
-        lhsn = Cut_State#(k)
+        lhsn = Game_CutState#(k)
         rhsn = VAL(v)
         SELECT CASE o
             CASE "==", "=": r = (lhsn = rhsn)
@@ -340,7 +340,7 @@ FUNCTION CutCondTerm% (k AS STRING, o AS STRING, v AS STRING)
             CASE ">=": r = (lhsn >= rhsn)
         END SELECT
     ELSE
-        lhss = LCASE$(_TRIM$(Cut_StateStr$(k)))
+        lhss = LCASE$(_TRIM$(Game_CutStateStr$(k)))
         rhss = LCASE$(_TRIM$(v))
         SELECT CASE o
             CASE "==", "=": r = (lhss = rhss)

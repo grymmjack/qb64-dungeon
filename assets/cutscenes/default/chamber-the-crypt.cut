@@ -1,34 +1,47 @@
-' ============================================================================
-'  chamber-the-crypt.cut -- entering a named hall.
-'
-'  One file per chamber, named `chamber-<slug>.cut`, so the eventual
-'  board-position trigger is a lookup and not a special case. This is also the
-'  shape a future per-cell trigger table would fire.
-' ============================================================================
-
 scene chamber-the-crypt
-stage 2112x1632
+storybook "The Crypt" "Three doors. One already closed."
+include "_common.cut"
 
-show bg "bg/cut-hall.png" fill at 0.5,0.5
-cam 0.30,0.5 zoom 2.0
+show bg "bg/cham-crypt.png" fill
+cam 0.5,0.35 zoom 2.2
+async zoom to 1.5 over 10.0 ease inoutcubic
 
-' A long lateral pan across the hall, so the room reads as WIDE. This is the
-' one thing a still image cannot do on its own.
-async pan to 0.72,0.5 over 9.0 ease inout
-
-sfx "chamber-enter"
+music "dungeon" fadein 2.0
 narrate "chamber.the-crypt"
 caption "THE CRYPT" at 66,3 anchor c color gold fade 1.0
 
 say "Three doors, and the one you came through has already closed."
 say "Something in here counts to three."
 
-' First visit only. The flag is persistent, so the second visit is quieter --
-' which is the point of persistent flags in a roguelike.
-if not flag.seen_crypt
-    set seen_crypt = 1
-    say "You have not been here before. It has been here the whole time."
+show lid "markers/gravestone.png" fit scale 0.30 at 0.5,0.66 fade 1.2
+shake 4 for 0.6
+sfx "door-open"
+
+choice "The nearest lid has moved. Not much. Some."
+    option "Lift it"          -> crypt_lift
+    option "Put your back to it" -> crypt_hold
+    option "Leave, quietly"   -> crypt_leave
 end
 
+label crypt_lift
+    flash bone 0.15
+    sfx "chest-open"
+    say "Grave goods. Someone was buried rich and stayed poor company."
+    grant gold 400
+    set opened_a_crypt_lid = 1
+    jump crypt_out
+
+label crypt_hold
+    say "You hold it down until whatever is under it stops trying."
+    say "It stops. That is worse."
+    set held_the_lid = 1
+    jump crypt_out
+
+label crypt_leave
+    say "You leave the lid alone. It does not extend you the courtesy."
+    jump crypt_out
+
+label crypt_out
+hide lid fade 0.5
 waitall
-scatter over 1.0
+scatter over 1.1

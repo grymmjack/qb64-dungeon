@@ -681,6 +681,18 @@ SUB ChamberArrival (cid AS INTEGER)
     IF CHM_SEEN(cid) THEN EXIT SUB
     CHM_SEEN(cid) = TRUE
     cname = _TRIM$(CHM_NAME(cid))
+
+    ' A CUT-SCENE takes precedence over the text crawl, when the pack ships one for this
+    ' hall. The name is the whole lookup: NarrSlug$ turns "KING'S TREASURE" into
+    ' kings-treasure, exactly as it already does for the narration key, so the scene file
+    ' is assets/cutscenes/<pack>/chamber-kings-treasure.cut and nothing has to be
+    ' registered anywhere.
+    '
+    ' Falling THROUGH when there is no scene is the point: a pack that ships two chamber
+    ' scenes gets two cut-scenes and ten crawls, rather than ten silent halls. It is the
+    ' same "missing means unchanged" rule Say$ and Thm~& use.
+    IF PlayCutscene%("chamber-" + NarrSlug$(cname)) THEN EXIT SUB
+
     cdesc = ChamberDesc$(cname)
     IF LEN(cdesc) = 0 THEN cdesc = "You step into the " + cname + " -- three guard this hall, and it holds no treasure."
     Sfx "key"                                          ' the same chime a named room's crawl opens on

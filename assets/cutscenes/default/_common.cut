@@ -1,0 +1,8 @@
+' ============================================================================
+'  _common.cut -- spliced into every chamber scene by `include`.
+'
+'  Leading underscore: the Storybook skips files starting with `_`, because
+'  this is a fragment and not a scene. Everything here is the house style for
+'  a chamber beat -- change it once, and all twelve change.
+' ============================================================================
+stage 2112x1632

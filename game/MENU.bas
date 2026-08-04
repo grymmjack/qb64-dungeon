@@ -677,6 +677,7 @@ SUB BuildSetLayout
     SetLayHdr 3, "DISPLAY & ART", prow()
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
     SetLayRow 3, 59, prow()                          ' Stats Overlay -- a DISPLAY choice, not a rule
+    SetLayRow 3, 68, prow()                          ' Cut-scenes: pacing is a PLAYER choice, not a script property
     SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow()
     prow(3) = prow(3) + 1
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
@@ -870,6 +871,7 @@ SUB RunSettings
                     ' preference appears to do nothing until the next launch.
                     ReloadSfxPack
                     music_curfile = ""        ' force PlayLevelMusic to re-resolve the track
+                CASE 68: CycleCutscenes delta
                 CASE 45: CycleNarration delta
                 CASE 46: CycleArtPack delta
                 CASE 47
@@ -1004,6 +1006,7 @@ SUB RunSettings
                     opt_solomins = opt_solomins - 5: IF opt_solomins < 15 THEN opt_solomins = 30
                 CASE 43: CycleSfxPack 1
                 CASE 44: CycleMusicPack 1
+                CASE 68: CycleCutscenes 1
                 CASE 45: CycleNarration 1
                 CASE 46: CycleArtPack 1
                 CASE 47
@@ -1264,6 +1267,9 @@ SUB RunSettings
                     lbl = "Music Pack": slider = TRUE
                     vtxt = PackLabel$(opt_musicpack)
                     ' (counter dropped -- see SFX Pack)
+                CASE 68
+                    lbl = "Cut-scenes": slider = TRUE
+                    vtxt = CutsceneModeLabel$
                 CASE 45
                     lbl = "Narration": slider = TRUE
                     vtxt = NarrationLabel$
@@ -2308,4 +2314,28 @@ SUB SettingsLayoutCheck
         SYSTEM 1
     END IF
     PRINT PipeCol$("  |10ok |07  every option id has a column and a row")
+END SUB
+
+
+' ----------------------------------------------------------------------------
+'  Cut-scene pacing -- Manual / Auto / Off.
+'
+'  This is a SETTING and not a property of any script, on purpose: how long a
+'  line of dialogue holds is the player's business, and a scene that hardcoded
+'  it would be wrong for half the people who see it. `Auto` is also what an
+'  attract loop and a headless screenshot need, so the same switch serves all
+'  three.
+' ----------------------------------------------------------------------------
+FUNCTION CutsceneModeLabel$
+    SELECT CASE opt_cutscenes
+        CASE CUT_AUTO: CutsceneModeLabel$ = "auto"
+        CASE CUT_OFF: CutsceneModeLabel$ = "off"
+        CASE ELSE: CutsceneModeLabel$ = "manual"
+    END SELECT
+END FUNCTION
+
+SUB CycleCutscenes (delta AS INTEGER)
+    opt_cutscenes = opt_cutscenes + delta
+    IF opt_cutscenes > CUT_OFF THEN opt_cutscenes = CUT_MANUAL
+    IF opt_cutscenes < CUT_MANUAL THEN opt_cutscenes = CUT_OFF
 END SUB

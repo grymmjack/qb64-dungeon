@@ -94,6 +94,13 @@ FUNCTION CutCompile% (path AS STRING)
             CASE "noskip"
                 CUT_NOSKIP = TRUE
 
+            CASE "storybook"
+                '--- how this scene presents itself in the Storybook. Optional:
+                '    without it the screen falls back to the scene's own name,
+                '    so an unlabelled scene still lists rather than vanishing. ---
+                CUT_SBTITLE = CutFirstQuoted$(2, qat)
+                IF qat > 0 THEN CUT_SBBLURB = CutFirstQuoted$(qat + 1, j)
+
             CASE "stage"
                 CUT_STAGEW = CutNum!(CutTok$(2))
                 CUT_STAGEH = CutNum!(CutTok$(3))
@@ -716,6 +723,8 @@ SUB CutResetProgram
     CUT_CHOP = 0
     CUT_CHN = 0
     CUT_NOSKIP = FALSE
+    CUT_SBTITLE = ""
+    CUT_SBBLURB = ""
     CUT_STAGEW = CUT_PXW
     CUT_STAGEH = CUT_PXH
     CUT_MISSING = 0

@@ -1,0 +1,47 @@
+scene chamber-guard-room
+storybook "The Guard Room" "The dice are still on the table."
+include "_common.cut"
+
+show bg "bg/cham-guardroom.png" fill
+cam 0.5,0.5 zoom 1.8
+
+music "dungeon" fadein 2.0
+caption "THE GUARD ROOM" at 66,3 anchor c color bone fade 0.8
+
+say "The table is overturned. The dice are not."
+say "Both dice show six. Nobody stopped to collect."
+
+' The FIRST visit offers the choice; later visits are quieter. That is what
+' persistent flags are for -- and the flag survives into the save.
+if flag.searched_guard_room
+    say "You have already been through this room. It was thorough."
+    jump guard_out
+end
+
+choice "Three ways to treat a room somebody left in a hurry."
+    option "Search it properly"  -> guard_search
+    option "Take the dice"       -> guard_dice
+    option "Do not touch anything" -> guard_none
+end
+
+label guard_search
+    sfx "search"
+    say "Under the table: a purse, and the reason nobody came back for it."
+    grant gold 350
+    set searched_guard_room = 1
+    jump guard_out
+
+label guard_dice
+    say "You pocket the dice. They are warm."
+    say "You will roll them later and wish you had not."
+    set carry_the_warm_dice = 1
+    set searched_guard_room = 1
+    jump guard_out
+
+label guard_none
+    say "You leave it exactly as you found it, which is what the last one did."
+    jump guard_out
+
+label guard_out
+waitall
+wipe dir right over 0.8
