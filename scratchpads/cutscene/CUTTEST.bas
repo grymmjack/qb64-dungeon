@@ -424,6 +424,40 @@ SUB DoSelftest
     CutOk "  and the font SURVIVED the colour line", CUT_STYFONT(STY_TITLE) <> 0
 
     ' ------------------------------------------------------------------
+    CutSect "pipe colours + {token} substitution"
+
+    CutPipeInit
+    DIM ps AS STRING
+    ps = "The |10wizard |12HITS|07!"
+
+    CutOk "strip removes the codes", CutPipeStrip$(ps) = "The wizard HITS!"
+    CutOk "  visible length ignores markup", CutPipeVis%(ps) = 16
+    CutOk "|PI is a literal pipe", CutPipeStrip$("a|PIb") = "a|b"
+    CutOk "  and counts as ONE visible character", CutPipeVis%("a|PIb") = 3
+    CutOk "a bare | that is not a code survives", CutPipeStrip$("5 | 3") = "5 | 3"
+    CutOk "a background code strips too", CutPipeStrip$("|17red bg") = "red bg"
+
+    '--- the typewriter reveals LETTERS, not markup: a code must come through
+    '    with the letters before it, without consuming a reveal step ---
+    CutOk "take(4) keeps the leading text", CutPipeStrip$(CutPipeTake$(ps, 4)) = "The "
+    CutOk "take(6) has crossed the code and kept it", CutPipeTake$(ps, 6) = "The |10wi"
+    CutOk "  ...so the visible count is exactly 6", CutPipeVis%(CutPipeTake$(ps, 6)) = 6
+    CutOk "take beyond the end returns everything", CutPipeStrip$(CutPipeTake$(ps, 999)) = "The wizard HITS!"
+
+    '--- {token} resolves through the SAME state keys as `if` ---
+    MOCK_N = 0
+    MockSet "class", 1, "wizard"
+    MockSet "gold", 17, "17"
+    CutOk "a string token substitutes", CutFillTokens$("I am a {class}.") = "I am a wizard."
+    CutOk "a numeric token substitutes", CutFillTokens$("{gold} gold") = "17 gold"
+    CutOk "an unknown token reads as 0, like a condition", CutFillTokens$("{nope}") = "0"
+    CutOk "an unclosed brace is left alone", CutFillTokens$("a {b") = "a {b"
+
+    '--- and the two compose, which is the whole point ---
+    CutOk "pipes and tokens together", CutFillTokens$("|10{class} |12hits") = "|10wizard |12hits"
+    CutOk "  ...and the result still strips clean", CutPipeStrip$(CutFillTokens$("|10{class} |12hits")) = "wizard hits"
+
+    ' ------------------------------------------------------------------
     CutSect "animated GIF decoding"
 
     '--- _LOADIMAGE opens a .gif and hands back only its FIRST frame: the handle

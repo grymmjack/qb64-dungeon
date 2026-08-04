@@ -266,6 +266,201 @@ SUB CutStyleDefaults
     IF CUT_GRIDFONT = 0 THEN CUT_GRIDFONT = 16       ' QB64's built-in 8x16
 END SUB
 
+'--- {token} substitution, resolved through the SAME state keys the `if`
+'    conditions use -- one namespace to learn, not two:
+'
+'        say "The |10{monster} |12HITS for |04{dmg} |12points of damage!"
+'
+'    A string key wins; otherwise the numeric one is formatted. An unknown key
+'    reads as 0, exactly as it does in a condition.
+'
+'    Done ONCE when the beat starts, not per frame: the typewriter counts
+'    visible characters, and a token whose value changed mid-line would make
+'    the reveal jump backwards. ---
+FUNCTION CutFillTokens$ (s AS STRING)
+    DIM i AS INTEGER, j AS INTEGER, r AS STRING, k AS STRING, v AS STRING
+
+    i = 1
+    DO WHILE i <= LEN(s)
+        IF MID$(s, i, 1) = "{" THEN
+            j = INSTR(i + 1, s, "}")
+            IF j > i THEN
+                k = MID$(s, i + 1, j - i - 1)
+                v = _TRIM$(Game_CutStateStr$(k))
+                IF LEN(v) = 0 THEN v = _TRIM$(STR$(Game_CutState#(k)))
+                r = r + v
+                i = j + 1
+                _CONTINUE
+            END IF
+        END IF
+        r = r + MID$(s, i, 1)
+        i = i + 1
+    LOOP
+    CutFillTokens$ = r
+END FUNCTION
+
+' ----------------------------------------------------------------------------
+'  PIPE COLOURS -- inline |NN, the same notation as PipeCol$ and PIPEPRINT.
+'
+'      say "The |12blood|07 runs cold, and the |14gold|07 does not care."
+'
+'  |00-|15 foreground, |16-|23 background, |PI a literal pipe. Identical codes
+'  to the CLI formatter, so one habit covers console output and dialogue.
+'
+'  THREE THINGS HAVE TO AGREE or this breaks in ways that look unrelated:
+'    * WIDTH must measure the text WITHOUT the codes, or wrapping breaks early
+'      on a line that merely mentions a colour.
+'    * The TYPEWRITER must count VISIBLE characters, or the reveal stalls for
+'      three frames on every code and types at a different speed per line.
+'    * A colour must CARRY across a wrapped line, or a long coloured phrase
+'      snaps back to the default halfway through for no visible reason.
+' ----------------------------------------------------------------------------
+
+SUB CutPipeInit
+    CUT_PIPE(0) = _RGB32(0, 0, 0): CUT_PIPE(1) = _RGB32(0, 0, 170)
+    CUT_PIPE(2) = _RGB32(0, 170, 0): CUT_PIPE(3) = _RGB32(0, 170, 170)
+    CUT_PIPE(4) = _RGB32(170, 0, 0): CUT_PIPE(5) = _RGB32(170, 0, 170)
+    CUT_PIPE(6) = _RGB32(170, 85, 0): CUT_PIPE(7) = _RGB32(170, 170, 170)
+    CUT_PIPE(8) = _RGB32(85, 85, 85): CUT_PIPE(9) = _RGB32(85, 85, 255)
+    CUT_PIPE(10) = _RGB32(85, 255, 85): CUT_PIPE(11) = _RGB32(85, 255, 255)
+    CUT_PIPE(12) = _RGB32(255, 85, 85): CUT_PIPE(13) = _RGB32(255, 85, 255)
+    CUT_PIPE(14) = _RGB32(255, 255, 85): CUT_PIPE(15) = _RGB32(255, 255, 255)
+END SUB
+
+'--- is s(i..i+2) a pipe code? returns 0 = no, 1 = foreground, 2 = background,
+'    3 = the |PI escape. `n` comes back as the colour index. ---
+FUNCTION CutPipeAt% (s AS STRING, i AS INTEGER, n AS INTEGER)
+    DIM cod AS STRING, d1 AS STRING, d2 AS STRING, v AS INTEGER
+    CutPipeAt% = 0
+    n = 0
+    IF i + 2 > LEN(s) THEN EXIT FUNCTION
+    IF MID$(s, i, 1) <> "|" THEN EXIT FUNCTION
+    cod = MID$(s, i, 3)
+    IF cod = "|PI" _ORELSE cod = "|pi" THEN CutPipeAt% = 3: EXIT FUNCTION
+    d1 = MID$(s, i + 1, 1): d2 = MID$(s, i + 2, 1)
+    IF d1 < "0" _ORELSE d1 > "9" THEN EXIT FUNCTION
+    IF d2 < "0" _ORELSE d2 > "9" THEN EXIT FUNCTION
+    v = VAL(MID$(s, i + 1, 2))
+    IF v <= 15 THEN
+        n = v: CutPipeAt% = 1
+    ELSEIF v <= 23 THEN
+        n = v - 16: CutPipeAt% = 2
+    END IF
+END FUNCTION
+
+'--- the text with every code removed: what WIDTH must be measured on ---
+FUNCTION CutPipeStrip$ (s AS STRING)
+    DIM i AS INTEGER, r AS STRING, k AS INTEGER, n AS INTEGER
+    i = 1
+    DO WHILE i <= LEN(s)
+        k = CutPipeAt%(s, i, n)
+        IF k = 3 THEN
+            r = r + "|": i = i + 3
+        ELSEIF k > 0 THEN
+            i = i + 3
+        ELSE
+            r = r + MID$(s, i, 1): i = i + 1
+        END IF
+    LOOP
+    CutPipeStrip$ = r
+END FUNCTION
+
+FUNCTION CutPipeVis% (s AS STRING)
+    CutPipeVis% = LEN(CutPipeStrip$(s))
+END FUNCTION
+
+FUNCTION CutPipeW% (s AS STRING)
+    CutPipeW% = _PRINTWIDTH(CutPipeStrip$(s))
+END FUNCTION
+
+'--- the first `want` VISIBLE characters, with every code up to that point
+'    kept: the typewriter reveals letters, not markup ---
+FUNCTION CutPipeTake$ (s AS STRING, want AS INTEGER)
+    DIM i AS INTEGER, r AS STRING, k AS INTEGER, n AS INTEGER, shown AS INTEGER
+    i = 1
+    DO WHILE i <= LEN(s)
+        IF shown >= want THEN EXIT DO
+        k = CutPipeAt%(s, i, n)
+        IF k = 3 THEN
+            r = r + "|PI": shown = shown + 1: i = i + 3
+        ELSEIF k > 0 THEN
+            r = r + MID$(s, i, 3): i = i + 3
+        ELSE
+            r = r + MID$(s, i, 1): shown = shown + 1: i = i + 1
+        END IF
+    LOOP
+    CutPipeTake$ = r
+END FUNCTION
+
+'--- draw, changing colour as the codes go by ---
+SUB CutPipeDraw (x AS INTEGER, y AS INTEGER, s AS STRING, defk AS _UNSIGNED LONG)
+    DIM i AS INTEGER, k AS INTEGER, n AS INTEGER, piece AS STRING
+    DIM cx AS INTEGER, fg AS _UNSIGNED LONG, bg AS _UNSIGNED LONG, hasbg AS INTEGER
+    DIM w AS INTEGER, fh AS INTEGER
+
+    cx = x
+    fg = defk
+    hasbg = FALSE
+    fh = _FONTHEIGHT
+    i = 1
+
+    DO WHILE i <= LEN(s)
+        k = CutPipeAt%(s, i, n)
+        IF k = 1 _ORELSE k = 2 THEN
+            IF LEN(piece) > 0 THEN CutPipeRun cx, y, piece, fg, bg, hasbg, fh: piece = ""
+            IF k = 1 THEN fg = CUT_PIPE(n) ELSE bg = CUT_PIPE(n): hasbg = TRUE
+            i = i + 3
+        ELSEIF k = 3 THEN
+            piece = piece + "|": i = i + 3
+        ELSE
+            piece = piece + MID$(s, i, 1): i = i + 1
+        END IF
+    LOOP
+    IF LEN(piece) > 0 THEN CutPipeRun cx, y, piece, fg, bg, hasbg, fh
+END SUB
+
+SUB CutPipeRun (cx AS INTEGER, y AS INTEGER, piece AS STRING, fg AS _UNSIGNED LONG, bg AS _UNSIGNED LONG, hasbg AS INTEGER, fh AS INTEGER)
+    DIM w AS INTEGER
+    w = _PRINTWIDTH(piece)
+    IF hasbg THEN LINE (cx, y)-(cx + w - 1, y + fh - 1), bg, BF
+    COLOR fg, _RGBA32(0, 0, 0, 0)
+    _PRINTSTRING (cx, y), piece
+    cx = cx + w
+END SUB
+
+'--- centre by the STRIPPED width, then draw with the codes ---
+SUB CutPipeCenter (y AS INTEGER, s AS STRING, defk AS _UNSIGNED LONG)
+    DIM x AS INTEGER
+    x = (CUT_PXW - CutPipeW%(s)) \ 2
+    IF x < 0 THEN x = 0
+    CutPipeDraw x, y, s, defk
+END SUB
+
+'--- carry the active colour onto each continuation line, so a coloured phrase
+'    that wraps does not snap back to the default halfway through ---
+SUB CutPipeCarry (outl() AS STRING, n AS INTEGER)
+    DIM i AS INTEGER, j AS INTEGER, k AS INTEGER, cc AS INTEGER, active AS STRING, nxt AS STRING
+    active = ""
+    FOR i = 1 TO n
+        IF LEN(active) > 0 THEN outl(i) = active + outl(i)
+        nxt = active
+        j = 1
+        DO WHILE j <= LEN(outl(i))
+            k = CutPipeAt%(outl(i), j, cc)
+            '--- a single-line IF cannot carry an ELSEIF chain in QB64 ---
+            IF k = 1 THEN
+                nxt = MID$(outl(i), j, 3)
+                j = j + 3
+            ELSEIF k > 0 THEN
+                j = j + 3
+            ELSE
+                j = j + 1
+            END IF
+        LOOP
+        active = nxt
+    NEXT i
+END SUB
+
 ' ----------------------------------------------------------------------------
 '  Text helpers
 ' ----------------------------------------------------------------------------
@@ -301,7 +496,7 @@ SUB CutWrapPx (s AS STRING, pxw AS INTEGER, outl() AS STRING, n AS INTEGER)
         IF chx = CHR$(10) THEN
             IF LEN(word) > 0 THEN
                 IF LEN(cur) > 0 THEN cand = cur + " " + word ELSE cand = word
-                IF CutTextW%(cand) > pxw _ANDALSO LEN(cur) > 0 THEN
+                IF CutPipeW%(cand) > pxw _ANDALSO LEN(cur) > 0 THEN
                     n = n + 1: outl(n) = cur: cur = word
                 ELSE
                     cur = cand
@@ -315,7 +510,7 @@ SUB CutWrapPx (s AS STRING, pxw AS INTEGER, outl() AS STRING, n AS INTEGER)
         IF chx = " " THEN
             IF LEN(word) > 0 THEN
                 IF LEN(cur) > 0 THEN cand = cur + " " + word ELSE cand = word
-                IF CutTextW%(cand) > pxw _ANDALSO LEN(cur) > 0 THEN
+                IF CutPipeW%(cand) > pxw _ANDALSO LEN(cur) > 0 THEN
                     n = n + 1: outl(n) = cur: cur = word
                 ELSE
                     cur = cand
@@ -412,7 +607,9 @@ END FUNCTION
 SUB CutTextTick
     DIM total AS INTEGER, want AS INTEGER, hold AS SINGLE
 
-    total = LEN(CUT_TXBODY)
+    '--- VISIBLE characters: a |NN code is markup, and counting it would stall
+    '    the reveal for three frames and type each line at a different speed ---
+    total = CutPipeVis%(CUT_TXBODY)
     IF CUT_TXMODE = TX_NONE _ORELSE total = 0 THEN
         CUT_TXDONE = TRUE
         EXIT SUB
@@ -470,11 +667,12 @@ SUB CutDrawText
             CutPanel 2, CUT_SH - 6, CUT_SW - 3, CUT_SH - 2, _RGBA32(0, 0, 0, 200), _RGBA32(120, 110, 90, 160)
             CutFontOn fnt
             fh = _FONTHEIGHT
-            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
+            shown = CutPipeTake$(CUT_TXBODY, CUT_TXSHOWN)
             CutWrapPx shown, (CUT_SW - 8) * CUT_CW, lines(), n
+            CutPipeCarry lines(), n
             FOR i = 1 TO n
                 IF i > 3 THEN EXIT FOR
-                CutTextPx 4 * CUT_CW, (CUT_SH - 5) * CUT_CH + (i - 1) * fh, lines(i), ink
+                CutPipeDraw 4 * CUT_CW, (CUT_SH - 5) * CUT_CH + (i - 1) * fh, lines(i), ink
             NEXT i
             CutFontOff
             IF CUT_TXHOLD THEN CutBlinkPrompt CUT_SW - 6, CUT_SH - 2
@@ -493,11 +691,12 @@ SUB CutDrawText
             ink = CutInkFor~&(STY_SAY, okey)
             CutFontOn fnt
             fh = _FONTHEIGHT
-            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
+            shown = CutPipeTake$(CUT_TXBODY, CUT_TXSHOWN)
             CutWrapPx shown, (CUT_SW - 4 - bx) * CUT_CW, lines(), n
+            CutPipeCarry lines(), n
             FOR i = 1 TO n
                 IF i > 6 THEN EXIT FOR
-                CutTextPx (bx + 2) * CUT_CW, (CUT_SH - 7) * CUT_CH + (i - 1) * fh, lines(i), ink
+                CutPipeDraw (bx + 2) * CUT_CW, (CUT_SH - 7) * CUT_CH + (i - 1) * fh, lines(i), ink
             NEXT i
             CutFontOff
 
@@ -505,22 +704,22 @@ SUB CutDrawText
             IF CUT_TXHOLD THEN CutBlinkPrompt CUT_SW - 6, CUT_SH - 2
 
         CASE TX_TITLE
-            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
+            shown = CutPipeTake$(CUT_TXBODY, CUT_TXSHOWN)
             fnt = CutFontFor&(STY_TITLE, CUT_OPS(CUT_TXOP).fonth)
             CutFontOn fnt
             fh = _FONTHEIGHT
             y = (CUT_SH \ 2 - 2) * CUT_CH
-            CutTextCenterPx y, shown, CutInkFor~&(STY_TITLE, okey)
+            CutPipeCenter y, shown, CutInkFor~&(STY_TITLE, okey)
             '--- the rules are sized from the TITLE's measured width, so they
             '    still frame it when the font is not the grid font ---
-            CutRulePx y - fh, CutTextW%(CUT_TXBODY), _RGB32(110, 92, 60)
-            CutRulePx y + fh + fh \ 2, CutTextW%(CUT_TXBODY), _RGB32(110, 92, 60)
+            CutRulePx y - fh, CutPipeW%(CUT_TXBODY), _RGB32(110, 92, 60)
+            CutRulePx y + fh + fh \ 2, CutPipeW%(CUT_TXBODY), _RGB32(110, 92, 60)
             CutFontOff
 
             IF LEN(CUT_TXSUB) > 0 THEN
                 IF CUT_TXSHOWN >= LEN(CUT_TXBODY) THEN
                     CutFontOn CutFontFor&(STY_SUB, 0)
-                    CutTextCenterPx y + fh * 2 + 8, CUT_TXSUB, CutInkFor~&(STY_SUB, "")
+                    CutPipeCenter y + fh * 2 + 8, CUT_TXSUB, CutInkFor~&(STY_SUB, "")
                     CutFontOff
                 END IF
             END IF
@@ -531,6 +730,7 @@ SUB CutDrawText
             CutFontOn fnt
             fh = _FONTHEIGHT
             CutWrapPx CUT_TXBODY, (CUT_SW - 20) * CUT_CW, lines(), n
+            CutPipeCarry lines(), n
             prog = (CUT_NOW - CUT_TXT0) / CUT_TXHOLDSECS
             IF prog < 0 THEN prog = 0
             IF prog > 1 THEN prog = 1
@@ -538,7 +738,7 @@ SUB CutDrawText
             FOR i = 1 TO n
                 y = INT(top + i * fh)
                 IF y >= -fh THEN
-                    IF y < CUT_PXH THEN CutTextCenterPx y, lines(i), ink
+                    IF y < CUT_PXH THEN CutPipeCenter y, lines(i), ink
                 END IF
             NEXT i
             CutFontOff
@@ -622,7 +822,7 @@ SUB CutDrawCaptions
 
         '--- anchor by MEASURED width: with a proportional font, counting
         '    characters puts a centred caption visibly off-centre ---
-        w = CutTextW%(s)
+        w = CutPipeW%(s)
         x = CUT_CAP(i).col * CUT_CW
         SELECT CASE CUT_CAP(i).anchor
             CASE ANC_C: x = x - w \ 2
@@ -635,7 +835,7 @@ SUB CutDrawCaptions
         IF aa > 255 THEN aa = 255
         k = CUT_CAP(i).kolor
         k = _RGBA32(_RED32(k), _GREEN32(k), _BLUE32(k), aa)
-        CutTextPx x, CUT_CAP(i).row * CUT_CH, s, k
+        CutPipeDraw x, CUT_CAP(i).row * CUT_CH, s, k
 
         CutFontOff
     NEXT i

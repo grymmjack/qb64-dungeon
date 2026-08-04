@@ -359,23 +359,23 @@ SUB CutExec (p AS INTEGER)
 
         CASE OP_SAY
             CUT_TXOP = p
-            CUT_TXBODY = CutStrGet$(CUT_OPS(p).s1)
-            CUT_TXWHO = CutStrGet$(CUT_OPS(p).s2)
+            CUT_TXBODY = CutFillTokens$(CutStrGet$(CUT_OPS(p).s1))
+            CUT_TXWHO = CutFillTokens$(CutStrGet$(CUT_OPS(p).s2))
             IF LEN(CUT_TXWHO) > 0 THEN CUT_TXMODE = TX_SPEAKER ELSE CUT_TXMODE = TX_SUBTITLE
             CutTextBegin CUT_OPS(p).n1
             IF CUT_OPS(p).async = 0 THEN CUT_WAIT = WAIT_TEXT
 
         CASE OP_TITLE
             CUT_TXOP = p
-            CUT_TXBODY = CutStrGet$(CUT_OPS(p).s1)
-            CUT_TXSUB = CutStrGet$(CUT_OPS(p).s2)
+            CUT_TXBODY = CutFillTokens$(CutStrGet$(CUT_OPS(p).s1))
+            CUT_TXSUB = CutFillTokens$(CutStrGet$(CUT_OPS(p).s2))
             CUT_TXMODE = TX_TITLE
             CutTextBegin CUT_OPS(p).n1
             IF CUT_OPS(p).async = 0 THEN CUT_WAIT = WAIT_TEXT
 
         CASE OP_CRAWL
             CUT_TXOP = p
-            CUT_TXBODY = CutStrGet$(CUT_OPS(p).s1)
+            CUT_TXBODY = CutFillTokens$(CutStrGet$(CUT_OPS(p).s1))
             CUT_TXMODE = TX_CRAWL
             CutTextBegin CUT_OPS(p).n1
             IF CUT_OPS(p).async = 0 THEN CUT_WAIT = WAIT_TEXT
@@ -389,7 +389,7 @@ SUB CutExec (p AS INTEGER)
             NEXT i
 
         CASE OP_CAPTION
-            CutCaptionAdd CutStrGet$(CUT_OPS(p).s1), CINT(CUT_OPS(p).n1), CINT(CUT_OPS(p).n2), CINT(CUT_OPS(p).n3), CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s2), CUT_OPS(p).fonth
+            CutCaptionAdd CutFillTokens$(CutStrGet$(CUT_OPS(p).s1)), CINT(CUT_OPS(p).n1), CINT(CUT_OPS(p).n2), CINT(CUT_OPS(p).n3), CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s2), CUT_OPS(p).fonth
 
         CASE OP_PORTRAIT
             IF CUT_PORTRAIT > 0 THEN _FREEIMAGE CUT_PORTRAIT
@@ -793,6 +793,7 @@ SUB CutBegin
     CUT_TXOP = 0
 
     CutStyleDefaults
+    CutPipeInit
 
     CUT_TRACTIVE = FALSE
     CUT_NCH = 0

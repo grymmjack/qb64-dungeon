@@ -279,6 +279,34 @@ sync.
 > count, so proportional fonts wrap and centre correctly. On the grid font the
 > two are identical, so nothing changes for a scene that sets no font.
 
+### Inline colour and tokens
+
+Text carries **pipe colours** — the same `|NN` notation as `PipeCol$` and
+PIPEPRINT — and **`{token}`** substitution:
+
+```
+say "The |10{class} |12HITS for |04{gold} |07points of damage!"
+```
+
+`|00`–`|15` foreground, `|16`–`|23` background, `|PI` a literal `|`. A bare `|`
+that is not a valid code is left alone.
+
+**Pipe colours work in any font**, including TTFs — they are drawn through the
+same font cascade as everything else, so `font "Gold Box Games.ttf" 26` and
+`|12` compose.
+
+`{token}` resolves through **the same state keys as the `if` conditions**, so
+there is one namespace to learn: `{class}` `{name}` `{gold}` `{hp}` `{level}`
+`{deaths}` `{kills}`… An unknown token reads as `0`, exactly as it does in a
+condition. Tokens are filled **once, when the beat starts**, not per frame — a
+value that changed mid-line would make the typewriter jump backwards.
+
+> Three things stay in step so this cannot break subtly: width is measured on
+> the **stripped** text (or a line mentioning a colour wraps early), the
+> typewriter counts **visible** characters (or the reveal stalls three frames
+> on every code), and a colour **carries** across a wrapped line (or a long
+> coloured phrase snaps back to the default halfway through).
+
 ### Audio
 
 ```
@@ -479,7 +507,7 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     headless assertions (140)
+cutplay.run selftest                     headless assertions (156)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in

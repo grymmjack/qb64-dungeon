@@ -185,6 +185,9 @@ DIM SHARED CUT_GLOBCOLSET AS INTEGER
 '    built-in 8x16, which is what both hosts actually use. ---
 DIM SHARED CUT_GRIDFONT AS LONG
 
+'--- the DOS 16, for inline |NN pipe colours in dialogue ---
+DIM SHARED CUT_PIPE(0 TO 15) AS _UNSIGNED LONG
+
 '--- loaded fonts, cached by "file|size": _LOADFONT on every line would reload
 '    the same face 60 times a second while a subtitle types. ---
 CONST CUT_MAXFONT = 24

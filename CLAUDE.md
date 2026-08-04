@@ -469,6 +469,12 @@ Environment specifics that dictate this approach:
   time jump back 86400s and freeze forever, only ever between 23:59:59 and 00:00:00); and
   `CutStep` bounds instructions per frame, because `label spin` / `jump spin` is two legal lines
   that would otherwise hang with no window update and no way to press anything.
+  **Text is styled like BASIC**: `font`/`color` are STICKY (scene-wide, or per style
+  `color title gold`), a per-line `color`/`font` overrides without sticking, and `var`
+  gives compile-time names (`var myfont$ = "alagard.ttf"`). Dialogue carries inline
+  **pipe colours** (`|12`, same notation as `PipeCol$`) and `{token}`s resolved through the
+  SAME state keys the `if` conditions use. Layout measures with `_PRINTWIDTH`, not `LEN*8`,
+  or a proportional TTF wraps early and centres off-centre.
   **`cutplay.run` is the authoring loop** — `[R]` recompiles from disk and restarts, and game
   state comes from the command line (`cutplay.run intro.cut class=wizard gold=6000`) so every
   branch can be *watched* rather than hoped about. `lint` resolves every asset a scene names by
