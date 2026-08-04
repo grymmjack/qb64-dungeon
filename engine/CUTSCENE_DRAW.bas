@@ -173,14 +173,14 @@ END SUB
 '  Text helpers
 ' ----------------------------------------------------------------------------
 SUB CutWrap (s AS STRING, w AS INTEGER, outl() AS STRING, n AS INTEGER)
-    DIM i AS INTEGER, word AS STRING, cur AS STRING, c AS STRING
+    DIM i AS INTEGER, word AS STRING, cur AS STRING, chx AS STRING
 
     n = 0
     cur = ""
     FOR i = 1 TO LEN(s) + 1
-        IF i <= LEN(s) THEN c = MID$(s, i, 1) ELSE c = " "
+        IF i <= LEN(s) THEN chx = MID$(s, i, 1) ELSE chx = " "
 
-        IF c = CHR$(10) THEN
+        IF chx = CHR$(10) THEN
             IF LEN(word) > 0 THEN
                 IF LEN(cur) + LEN(word) + 1 > w THEN
                     n = n + 1: outl(n) = cur: cur = word
@@ -193,7 +193,7 @@ SUB CutWrap (s AS STRING, w AS INTEGER, outl() AS STRING, n AS INTEGER)
             _CONTINUE
         END IF
 
-        IF c = " " THEN
+        IF chx = " " THEN
             IF LEN(word) > 0 THEN
                 IF LEN(cur) + LEN(word) + 1 > w THEN
                     n = n + 1: outl(n) = cur
@@ -204,7 +204,7 @@ SUB CutWrap (s AS STRING, w AS INTEGER, outl() AS STRING, n AS INTEGER)
                 word = ""
             END IF
         ELSE
-            word = word + c
+            word = word + chx
         END IF
         IF n >= 60 THEN EXIT SUB
     NEXT i
@@ -413,24 +413,24 @@ SUB CutDrawPortrait
 END SUB
 
 SUB CutDrawCaptions
-    DIM i AS INTEGER, c AS INTEGER, s AS STRING
+    DIM i AS INTEGER, chx AS INTEGER, s AS STRING
     DIM k AS _UNSIGNED LONG, aa AS INTEGER
 
     FOR i = 1 TO CUT_MAXCAP
         IF CUT_CAP(i).used = 0 THEN _CONTINUE
         s = _TRIM$(CUT_CAP(i).txt)
-        c = CUT_CAP(i).col
+        chx = CUT_CAP(i).col
         SELECT CASE CUT_CAP(i).anchor
-            CASE ANC_C: c = c - LEN(s) \ 2
-            CASE ANC_R: c = c - LEN(s)
+            CASE ANC_C: chx = chx - LEN(s) \ 2
+            CASE ANC_R: chx = chx - LEN(s)
         END SELECT
-        IF c < 0 THEN c = 0
+        IF chx < 0 THEN chx = 0
 
         aa = INT(CUT_CAP(i).alpha * 255)
         IF aa < 0 THEN aa = 0
         IF aa > 255 THEN aa = 255
         k = _RGBA32(_RED32(CUT_CAP(i).kolor), _GREEN32(CUT_CAP(i).kolor), _BLUE32(CUT_CAP(i).kolor), aa)
-        CutTextAt c, CUT_CAP(i).row, s, k
+        CutTextAt chx, CUT_CAP(i).row, s, k
     NEXT i
 END SUB
 

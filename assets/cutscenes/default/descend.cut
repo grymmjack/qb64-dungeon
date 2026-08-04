@@ -11,6 +11,7 @@
 ' ============================================================================
 
 scene descend
+storybook "Going Deeper" "One short beat, nine times a run."
 
 ' No `stage` line: the default stage is exactly the screen, which is what a
 ' short beat with one slow push-in wants.

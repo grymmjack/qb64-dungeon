@@ -2,17 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> ## 🚧 IN PROGRESS — CUT-SCENE **STORYBOOK** (the engine itself has landed)
->
-> The cut-scene **engine** is merged and documented below. What is still live is the
-> **Storybook**: embedding the engine in the game (`engine/CUTSCENE*` + `Game_Cut*` hooks)
-> and a Bestiary-pattern replay screen (`???` for scenes not yet seen).
->
-> - **Owns:** `scratchpads/cutscene/`, `assets/cutscenes/`, and the future
->   `engine/CUTSCENE*` / `game/STORYBOOK.bas` / the `[M]` Game Menu row.
-> - **Do not** start a parallel cut-scene / cinematic / intro-movie implementation.
-> - This notice is **removed by that session when the Storybook lands**.
-
 ## What this is
 
 A dungeon-crawler game written in **QB64 Phoenix Edition (QB64PE)** BASIC. Graphics are
@@ -442,7 +431,9 @@ Environment specifics that dictate this approach:
   trap (`SpringTrap`), grant all items + Level Key, +potions, heal full, +5000 gold, reveal all secret
   doors, or set up win-ready state. It calls the real gameplay hooks so the test path exercises the
   same code as play.
-- **CUT-SCENE ENGINE** (`scratchpads/cutscene/`, scenes in `assets/cutscenes/<pack>/*.cut`).
+- **CUT-SCENE ENGINE** (`engine/CUTSCENE.BI` + `engine/CUTSCENE_*.bas`; scenes in
+  `assets/cutscenes/<pack>/*.cut`; the standalone authoring player is
+  `scratchpads/cutscene/CUTPLAY.bas` -> `cutplay.run`).
   DSL-scripted "little movies": layered still art + PNG frame-sequence animation, a pan/zoom
   camera, transitions, music/sfx/narration, conditional branching and player choice menus.
   **[scratchpads/cutscene/CUT-DSL.md](scratchpads/cutscene/CUT-DSL.md) is the language reference**; `run-tests.sh` beside it is the gate.
@@ -474,8 +465,34 @@ Environment specifics that dictate this approach:
   branch can be *watched* rather than hoped about. `lint` resolves every asset a scene names by
   walking the compiled program (so both arms of a conditional, and every frame of an `anim`);
   `shot` renders at a fixed simulated time for regression checks. The engine reaches its host
-  through **eleven `Cut_*` hooks and nothing else** — `CUTMOCK.bas` is a second, dungeon-free
-  host that proves it, the same argument `examples/minimal` makes for `engine/`.
+  through **eleven `Game_Cut*` hooks and nothing else** — `scratchpads/cutscene/CUTMOCK.bas`
+  is a second, dungeon-free host that proves it, the same argument `examples/minimal` makes
+  for `engine/`. The engine sits directly in `engine/` rather than a subdirectory **on
+  purpose**: `tests/audit-boundary.sh` globs `engine/*.bas`, so that placement is what
+  subjects it to the audit.
+- **STORYBOOK** (`game/STORYBOOK.bas`, `[M]` Game Menu row; `game/CUTSCENE.bas` is the game
+  side of the engine). Replays any cut-scene the player has finished, on the **Bestiary's
+  pattern**: an unseen row still takes a slot, but shows only the right NUMBER of question
+  marks so a title cannot leak. The roster is built by **scanning** the pack's `.cut` files,
+  so a pack that ships its own scenes gets its own Storybook for free; each row illustrates
+  itself with the scene's first `show`, and an optional `storybook "Title" "blurb"` line
+  names it. Files starting `_` are `include` FRAGMENTS and are skipped by the scan, the
+  linter and the render gate alike.
+  **What the player has seen is one flat list of names** (`CUTSEEN`), not a bitmask against a
+  fixed roster — a pack can ship scenes the base game never heard of, and a bitmask would
+  mis-index the moment the roster changed length. Story flags share that list behind a
+  `flag:` prefix, so one save line (`CUTS`, v10) carries both and they cannot drift apart;
+  it is written **before** the `SOLO` block because `SOLO`'s trailing `HMON` field reads to
+  the end of the token stream.
+  **Scenes hook into gameplay by NAME, never by registration.** `ChamberArrival` asks for
+  `"chamber-" + NarrSlug$(chamber name)` — the same slug the narration key already uses — and
+  falls through to the existing text crawl when the pack ships no scene, so a pack with two
+  scenes gets two cut-scenes and ten crawls rather than ten silent halls. `ShowEnd` does the
+  same for `win`/`lose`. That is also what keeps a future board-position trigger table
+  (level + cell -> scene) a data file rather than an engine change.
+  **`dungeon.run storyshot`** renders the screen at its three extremes (nothing seen, mixed,
+  everything seen) and fails if any scene would list without a title — a collection screen
+  only breaks when it is full or empty, and a normal run shows neither.
 - **`scratchpads/`** — the active workshop. The prototypes `dungeon.bas` was built from
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and

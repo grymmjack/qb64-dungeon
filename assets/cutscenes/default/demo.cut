@@ -7,6 +7,7 @@
 ' ============================================================================
 
 scene demo
+storybook "Engine Demo" "Every feature the cut-scene engine has, once."
 
 ' A stage BIGGER than the screen is what there is to pan around in. The screen
 ' is 1056x816, so this is a 2x2 world.

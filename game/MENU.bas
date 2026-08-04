@@ -1641,6 +1641,17 @@ END SUB
 
 SUB ShowEnd (win AS INTEGER)
     DIM nm AS STRING, el AS LONG, mapid AS LONG
+    DIM played AS INTEGER
+
+    ' The ending CUT-SCENE runs first, if the pack ships one, and the existing end
+    ' screen follows it. It is a prologue to the scorecard, not a replacement: the
+    ' gold total, the Lords entry and the summary are all still the payoff, and a
+    ' pack that ships no ending scene loses nothing.
+    '
+    ' Deliberately BEFORE the victory cue starts -- win.cut opens on its own music,
+    ' and starting both would crossfade one into the other under the title card.
+    IF win THEN played = PlayCutscene%("win") ELSE played = PlayCutscene%("lose")
+
     IF win THEN
         Sfx "win"
         PlayCue "victory", TRUE                  ' victory music (if assets/music/victory.* exists), through name entry

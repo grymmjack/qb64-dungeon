@@ -334,6 +334,9 @@ IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
 ' Seeds a MAXED-OUT hero, because that is the only state the sheet's layout can break in.
 IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
 
+'--- dev: `dungeon.run storyshot` renders the [M] > Storybook at its extremes ---
+IF INSTR(UCASE$(COMMAND$), "STORYSHOT") > 0 THEN DumpStorybook: SYSTEM
+
 '--- dev: `dungeon.run gaugeshot [depth] [hp]` renders the action-gesture gauge, BOTH forms ---
 IF INSTR(UCASE$(COMMAND$), "GAUGESHOT") > 0 THEN DumpGaugeShot: SYSTEM
 

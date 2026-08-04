@@ -66,18 +66,18 @@ FUNCTION CutLow$ (s AS STRING)
 END FUNCTION
 
 FUNCTION CutIsNum% (s AS STRING)
-    DIM i AS INTEGER, c AS INTEGER, digits AS INTEGER, dots AS INTEGER
+    DIM i AS INTEGER, chcode AS INTEGER, digits AS INTEGER, dots AS INTEGER
     IF LEN(s) = 0 THEN CutIsNum% = FALSE: EXIT FUNCTION
     FOR i = 1 TO LEN(s)
-        c = ASC(s, i)
-        IF c >= 48 THEN
-            IF c <= 57 THEN digits = digits + 1: _CONTINUE
+        chcode = ASC(s, i)
+        IF chcode >= 48 THEN
+            IF chcode <= 57 THEN digits = digits + 1: _CONTINUE
         END IF
-        IF c = 46 THEN dots = dots + 1: _CONTINUE
-        IF c = 45 THEN
+        IF chcode = 46 THEN dots = dots + 1: _CONTINUE
+        IF chcode = 45 THEN
             IF i = 1 THEN _CONTINUE
         END IF
-        IF c = 43 THEN
+        IF chcode = 43 THEN
             IF i = 1 THEN _CONTINUE
         END IF
         CutIsNum% = FALSE: EXIT FUNCTION
@@ -105,7 +105,7 @@ END FUNCTION
 '  interchangeably.
 ' ----------------------------------------------------------------------------
 SUB CutTokenize (rawln AS STRING)
-    DIM ln AS STRING, i AS INTEGER, c AS INTEGER
+    DIM ln AS STRING, i AS INTEGER, chcode AS INTEGER
     DIM cur AS STRING, inq AS INTEGER, quoted AS INTEGER
 
     CUT_NTK = 0
@@ -113,28 +113,28 @@ SUB CutTokenize (rawln AS STRING)
     cur = "": inq = FALSE: quoted = FALSE
 
     FOR i = 1 TO LEN(ln)
-        c = ASC(ln, i)
+        chcode = ASC(ln, i)
 
         IF inq THEN
-            IF c = 34 THEN
+            IF chcode = 34 THEN
                 inq = FALSE
                 CutPushTok cur, TRUE
                 cur = "": quoted = FALSE
             ELSE
-                cur = cur + CHR$(c)
+                cur = cur + CHR$(chcode)
             END IF
             _CONTINUE
         END IF
 
         '--- an apostrophe outside quotes starts a comment ---
-        IF c = 39 THEN EXIT FOR
-        IF c = 35 THEN
+        IF chcode = 39 THEN EXIT FOR
+        IF chcode = 35 THEN
             IF LEN(cur) = 0 THEN
                 IF CUT_NTK = 0 THEN EXIT FOR
             END IF
         END IF
 
-        IF c = 34 THEN
+        IF chcode = 34 THEN
             IF LEN(cur) > 0 THEN CutPushTok cur, FALSE: cur = ""
             inq = TRUE
             quoted = TRUE
@@ -142,7 +142,7 @@ SUB CutTokenize (rawln AS STRING)
         END IF
 
         '--- space, tab and comma all separate ---
-        IF c = 32 _ORELSE c = 9 _ORELSE c = 44 THEN
+        IF chcode = 32 _ORELSE chcode = 9 _ORELSE chcode = 44 THEN
             IF LEN(cur) > 0 THEN CutPushTok cur, FALSE: cur = ""
             _CONTINUE
         END IF
@@ -157,7 +157,7 @@ SUB CutTokenize (rawln AS STRING)
         '--- `->` first: `>` is a comparison character, so without this the
         '    arrow in `option "Open it" -> open_it` would split into `-` and
         '    `>` and the option would resolve to no label at all. ---
-        IF c = 45 THEN
+        IF chcode = 45 THEN
             IF i < LEN(ln) THEN
                 IF ASC(ln, i + 1) = 62 THEN
                     IF LEN(cur) > 0 THEN CutPushTok cur, FALSE: cur = ""
@@ -168,7 +168,7 @@ SUB CutTokenize (rawln AS STRING)
             END IF
         END IF
 
-        IF CutIsCmpChar%(c) THEN
+        IF CutIsCmpChar%(chcode) THEN
             IF LEN(cur) > 0 THEN CutPushTok cur, FALSE: cur = ""
             DO WHILE i <= LEN(ln)
                 IF CutIsCmpChar%(ASC(ln, i)) = 0 THEN EXIT DO
@@ -181,7 +181,7 @@ SUB CutTokenize (rawln AS STRING)
             _CONTINUE
         END IF
 
-        cur = cur + CHR$(c)
+        cur = cur + CHR$(chcode)
     NEXT i
 
     IF LEN(cur) > 0 THEN CutPushTok cur, inq

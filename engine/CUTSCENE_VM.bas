@@ -211,8 +211,8 @@ END FUNCTION
 '  STRING against Game_CutStateStr$, which is what makes `class == wizard` work
 '  without the author quoting anything.
 '
-'  Chains evaluate strictly LEFT TO RIGHT with no precedence: `a and b or c`
-'  is `(a and b) or c`. Precedence without parentheses would be a trap, and
+'  Chains evaluate strictly LEFT TO RIGHT with no precedence: `a and b or chcode`
+'  is `(a and b) or chcode`. Precedence without parentheses would be a trap, and
 '  parentheses are more language than this needs.
 ' ----------------------------------------------------------------------------
 FUNCTION CutCondEval% (cond AS STRING)
@@ -359,23 +359,23 @@ END FUNCTION
 '    condition is checked from INSIDE the compile loop, which would clobber
 '    the line being compiled. ---
 FUNCTION CutCondSplit% (cond AS STRING, ct() AS STRING)
-    DIM i AS INTEGER, c AS INTEGER, cur AS STRING, n AS INTEGER, inq AS INTEGER
+    DIM i AS INTEGER, chcode AS INTEGER, cur AS STRING, n AS INTEGER, inq AS INTEGER
 
     FOR i = 1 TO LEN(cond)
-        c = ASC(cond, i)
+        chcode = ASC(cond, i)
 
         IF inq THEN
-            IF c = 34 THEN
+            IF chcode = 34 THEN
                 inq = FALSE
                 IF n < 63 THEN n = n + 1: ct(n) = cur
                 cur = ""
             ELSE
-                cur = cur + CHR$(c)
+                cur = cur + CHR$(chcode)
             END IF
             _CONTINUE
         END IF
 
-        IF c = 34 THEN
+        IF chcode = 34 THEN
             IF LEN(cur) > 0 THEN
                 IF n < 63 THEN n = n + 1: ct(n) = cur
                 cur = ""
@@ -384,7 +384,7 @@ FUNCTION CutCondSplit% (cond AS STRING, ct() AS STRING)
             _CONTINUE
         END IF
 
-        IF c = 32 _ORELSE c = 9 THEN
+        IF chcode = 32 _ORELSE chcode = 9 THEN
             IF LEN(cur) > 0 THEN
                 IF n < 63 THEN n = n + 1: ct(n) = cur
                 cur = ""
@@ -395,14 +395,14 @@ FUNCTION CutCondSplit% (cond AS STRING, ct() AS STRING)
         '--- operators glue to their neighbours as often as not (`gold>=100`),
         '    so they break out as their own tokens the way `=` does in the
         '    main tokeniser. ---
-        IF c = 60 _ORELSE c = 62 _ORELSE c = 61 _ORELSE c = 33 THEN
+        IF chcode = 60 _ORELSE chcode = 62 _ORELSE chcode = 61 _ORELSE chcode = 33 THEN
             IF LEN(cur) > 0 THEN
                 IF CutIsCmpChar%(ASC(cur, LEN(cur))) = 0 THEN
                     IF n < 63 THEN n = n + 1: ct(n) = cur
                     cur = ""
                 END IF
             END IF
-            cur = cur + CHR$(c)
+            cur = cur + CHR$(chcode)
             _CONTINUE
         END IF
 
@@ -412,7 +412,7 @@ FUNCTION CutCondSplit% (cond AS STRING, ct() AS STRING)
                 cur = ""
             END IF
         END IF
-        cur = cur + CHR$(c)
+        cur = cur + CHR$(chcode)
     NEXT i
 
     IF LEN(cur) > 0 THEN
@@ -421,8 +421,8 @@ FUNCTION CutCondSplit% (cond AS STRING, ct() AS STRING)
     CutCondSplit% = n
 END FUNCTION
 
-FUNCTION CutIsCmpChar% (c AS INTEGER)
-    IF c = 60 _ORELSE c = 62 _ORELSE c = 61 _ORELSE c = 33 THEN
+FUNCTION CutIsCmpChar% (chcode AS INTEGER)
+    IF chcode = 60 _ORELSE chcode = 62 _ORELSE chcode = 61 _ORELSE chcode = 33 THEN
         CutIsCmpChar% = TRUE
     ELSE
         CutIsCmpChar% = FALSE

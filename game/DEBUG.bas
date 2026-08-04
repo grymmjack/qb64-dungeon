@@ -1458,3 +1458,70 @@ SUB HeldRerollCheck
     NEXT style
     IF bad > 0 THEN rollshot_facebad = -1
 END SUB
+
+' ----------------------------------------------------------------------------
+'  dev: `dungeon.run storyshot` -- render the [M] > Storybook screen to PNGs.
+'
+'  Shoots THREE states, because a collection screen only breaks at its extremes
+'  and a normal run shows none of them: nothing seen (every row a mystery),
+'  a mixed roster (the state a real player is in), and everything seen (the
+'  longest titles, the fullest list, the scroll).
+' ----------------------------------------------------------------------------
+SUB DumpStorybook
+    DIM i AS INTEGER
+
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15storyshot|07 -- rendering the Storybook at its three extremes")
+    DevPackOverride
+
+    CUTSEEN_N = 0
+    StorybookScan
+    PRINT PipeCol$("  roster: |14" + _TRIM$(STR$(STORY_N)) + "|07 scene(s) found")
+    IF STORY_N = 0 THEN
+        PRINT PipeCol$("  |12BAD|07 -- no scenes found; the Storybook would be empty")
+        EXIT SUB
+    END IF
+
+    '--- 1. nothing seen ---
+    StorybookPaint 1
+    _SAVEIMAGE "storyshot-unseen.png", CANVAS
+    _DEST _CONSOLE                                     ' StorybookPaint selects CANVAS
+    PRINT PipeCol$("  wrote |10storyshot-unseen.png|07")
+
+    '--- 2. every other one seen: the mixed state, and the one where a
+    '       mis-numbered question-mark row would show up against a real title ---
+    CUTSEEN_N = 0
+    FOR i = 1 TO STORY_N STEP 2
+        MarkCutsceneSeen _TRIM$(STORY_NAME(i))
+    NEXT i
+    StorybookPaint 1
+    _SAVEIMAGE "storyshot-mixed.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  wrote |10storyshot-mixed.png|07")
+
+    '--- 3. all seen ---
+    CUTSEEN_N = 0
+    FOR i = 1 TO STORY_N
+        MarkCutsceneSeen _TRIM$(STORY_NAME(i))
+    NEXT i
+    StorybookPaint 3
+    _SAVEIMAGE "storyshot-all.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  wrote |10storyshot-all.png|07")
+
+    '--- and the verdict: every scene must produce a TITLE, or the Storybook
+    '    lists rows nobody can identify. A blank title is what a missing
+    '    `storybook` line plus a filename that slugs to nothing looks like. ---
+    DIM bad AS INTEGER
+    FOR i = 1 TO STORY_N
+        IF LEN(_TRIM$(STORY_TITLE(i))) = 0 THEN
+            bad = bad + 1
+            PRINT PipeCol$("  |12BAD|07 -- scene '" + _TRIM$(STORY_NAME(i)) + "' has no title")
+        END IF
+    NEXT i
+    IF bad = 0 THEN
+        PRINT PipeCol$("  |10ok|07  -- every scene has a title and a row")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " scene(s) would list unidentifiably|07")
+    END IF
+END SUB

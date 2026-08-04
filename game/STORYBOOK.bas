@@ -33,6 +33,27 @@ SUB StorybookScan
         IF LCASE$(pk) <> "default" THEN StorybookScanDir "assets/cutscenes/" + pk + "/"
     END IF
     StorybookScanDir "assets/cutscenes/default/"
+    StorybookSort
+END SUB
+
+'--- _FILES$ hands back directory order, which reads as random to a player
+'    looking for the one they just watched. Sorted by TITLE, not by filename,
+'    because the title is what is on screen -- and an unseen row still sorts by
+'    its hidden title, so the list does not reshuffle as scenes are unlocked. ---
+SUB StorybookSort
+    DIM i AS INTEGER, j AS INTEGER
+    DIM tn AS STRING, tt AS STRING, tb AS STRING, ta AS STRING
+
+    FOR i = 1 TO STORY_N - 1
+        FOR j = 1 TO STORY_N - i
+            IF UCASE$(_TRIM$(STORY_TITLE(j))) > UCASE$(_TRIM$(STORY_TITLE(j + 1))) THEN
+                tn = STORY_NAME(j): STORY_NAME(j) = STORY_NAME(j + 1): STORY_NAME(j + 1) = tn
+                tt = STORY_TITLE(j): STORY_TITLE(j) = STORY_TITLE(j + 1): STORY_TITLE(j + 1) = tt
+                tb = STORY_BLURB(j): STORY_BLURB(j) = STORY_BLURB(j + 1): STORY_BLURB(j + 1) = tb
+                ta = STORY_ART(j): STORY_ART(j) = STORY_ART(j + 1): STORY_ART(j + 1) = ta
+            END IF
+        NEXT j
+    NEXT i
 END SUB
 
 SUB StorybookScanDir (dirpath AS STRING)
@@ -93,17 +114,17 @@ END SUB
 
 '--- "chamber-the-crypt" -> "The Crypt";  "win" -> "Win" ---
 FUNCTION StoryPrettyName$ (nm AS STRING)
-    DIM s AS STRING, o AS STRING, i AS INTEGER, c AS STRING, up AS INTEGER
+    DIM s AS STRING, o AS STRING, i AS INTEGER, chx AS STRING, up AS INTEGER
     s = LCASE$(_TRIM$(nm))
     IF LEFT$(s, 8) = "chamber-" THEN s = MID$(s, 9)
     up = TRUE
     FOR i = 1 TO LEN(s)
-        c = MID$(s, i, 1)
-        IF c = "-" _ORELSE c = "_" THEN
+        chx = MID$(s, i, 1)
+        IF chx = "-" _ORELSE chx = "_" THEN
             o = o + " "
             up = TRUE
         ELSE
-            IF up THEN o = o + UCASE$(c) ELSE o = o + c
+            IF up THEN o = o + UCASE$(chx) ELSE o = o + chx
             up = FALSE
         END IF
     NEXT i
@@ -126,86 +147,14 @@ END FUNCTION
 '  The screen
 ' ----------------------------------------------------------------------------
 SUB ShowStorybook
-    DIM sel AS INTEGER, i AS INTEGER, y AS INTEGER, k AS STRING
-    DIM seen AS INTEGER, nseen AS INTEGER, sp AS STRING, top AS INTEGER
-    DIM rows AS INTEGER
+    DIM sel AS INTEGER, k AS STRING
 
     StorybookScan
     PlayCue "bestiary", -1                  ' same reflective cue as the Bestiary
     sel = 1
-    rows = 34
 
     DO
-        _DEST CANVAS
-        IF ListPanel%("storybook", 4, 3, 124, 44, CYANU) = 0 THEN
-            LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
-            LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), CYANU, B
-        END IF
-        COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  S T O R Y B O O K  =-"
-
-        nseen = 0
-        FOR i = 1 TO STORY_N
-            IF CutsceneSeen%(_TRIM$(STORY_NAME(i))) THEN nseen = nseen + 1
-        NEXT i
-
-        '--- scroll the list so the selection stays visible once the roster
-        '    outgrows the panel (12 chambers plus the set pieces already do) ---
-        top = 1
-        IF sel > rows THEN top = sel - rows + 1
-
-        FOR i = top TO STORY_N
-            y = 7 + (i - top)
-            IF y > 6 + rows THEN EXIT FOR
-            seen = CutsceneSeen%(_TRIM$(STORY_NAME(i)))
-            IF i = sel THEN
-                COLOR WHITE, REDU
-            ELSEIF seen THEN
-                COLOR GREENU, BOXBG
-            ELSE
-                COLOR GREY, BOXBG
-            END IF
-            IF seen THEN
-                _PRINTSTRING (7 * CW, y * CH), PadR$("  " + _TRIM$(STORY_TITLE(i)), 26)
-            ELSE
-                '--- the right NUMBER of question marks, never the title ---
-                _PRINTSTRING (7 * CW, y * CH), PadR$("  " + STRING$(LEN(_TRIM$(STORY_TITLE(i))), 63), 26)
-            END IF
-        NEXT i
-
-        '--- detail ---
-        IF sel >= 1 AND sel <= STORY_N THEN
-            seen = CutsceneSeen%(_TRIM$(STORY_NAME(sel)))
-            IF seen THEN
-                sp = _TRIM$(STORY_ART(sel))
-                IF LEN(sp) > 0 THEN
-                    sp = Game_CutArtPath$(sp)
-                    IF LEN(sp) > 0 THEN CombatArtBox sp, 38, 34, 7, 17, "-= " + _TRIM$(STORY_TITLE(sel)) + " =-", CYANU
-                END IF
-                y = 26
-                COLOR CYANU, BOXBG: _PRINTSTRING (38 * CW, y * CH), _TRIM$(STORY_TITLE(sel))
-                y = y + 2
-                COLOR GREY, BOXBG
-                IF LEN(_TRIM$(STORY_BLURB(sel))) > 0 THEN _PRINTSTRING (38 * CW, y * CH), _TRIM$(STORY_BLURB(sel))
-                y = y + 3
-                COLOR GREENU, BOXBG: _PRINTSTRING (38 * CW, y * CH), "SEEN"
-                y = y + 2
-                COLOR YELLOWU, BOXBG: _PRINTSTRING (38 * CW, y * CH), "[ENTER] watch it again"
-            ELSE
-                MysteryBox 38, 34, 7, 17
-                y = 26
-                COLOR GREY, BOXBG: _PRINTSTRING (38 * CW, y * CH), "NOT YET SEEN"
-                y = y + 2
-                _PRINTSTRING (38 * CW, y * CH), "This one has not happened to you."
-                y = y + 2
-                _PRINTSTRING (38 * CW, y * CH), "Play it in the dungeon and it will"
-                y = y + 1
-                _PRINTSTRING (38 * CW, y * CH), "be here afterwards, for good."
-            END IF
-        END IF
-
-        COLOR GREY, BOXBG
-        PrintCentered 43, LTRIM$(STR$(nseen)) + " of " + LTRIM$(STR$(STORY_N)) + " scenes remembered"
-        COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] browse   [ENTER] replay   [ESC] back"
+        StorybookPaint sel
         Present
         AudioTick
 
@@ -216,9 +165,6 @@ SUB ShowStorybook
         IF k = " " _ORELSE k = CHR$(13) THEN
             IF sel >= 1 _ANDALSO sel <= STORY_N THEN
                 IF CutsceneSeen%(_TRIM$(STORY_NAME(sel))) THEN
-                    '--- replay WITHOUT recording: watching it again should not
-                    '    change the record, and the roster must survive the
-                    '    scene, which compiles over CUT_OPS. ---
                     StorybookReplay _TRIM$(STORY_NAME(sel))
                     sel = StoryIndexOf%(_TRIM$(STORY_NAME(sel)))
                     IF sel < 1 THEN sel = 1
@@ -226,6 +172,93 @@ SUB ShowStorybook
             END IF
         END IF
     LOOP
+END SUB
+
+'--- PAINT ONLY: no input, no waiting, no board repaint. Split out so the
+'    screen can be shot headlessly (`dungeon.run storyshot`) -- a collection
+'    screen only breaks when it is FULL, or when it is empty, and neither
+'    state shows up by opening it once during a normal run. ---
+SUB StorybookPaint (sel AS INTEGER)
+    DIM i AS INTEGER, y AS INTEGER, seen AS INTEGER, nseen AS INTEGER
+    DIM sp AS STRING, top AS INTEGER, rows AS INTEGER
+
+    rows = 34
+    _DEST CANVAS
+    IF ListPanel%("storybook", 4, 3, 124, 44, CYANU) = 0 THEN
+        LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), BOXBG, BF
+        LINE (4 * CW, 3 * CH)-(128 * CW, 47 * CH), CYANU, B
+    END IF
+    COLOR YELLOWU, BOXBG: PrintCentered 4, "-=  S T O R Y B O O K  =-"
+
+    IF STORY_N = 0 THEN
+        COLOR GREY, BOXBG
+        PrintCentered 22, "This pack ships no cut-scenes."
+        PrintCentered 24, "Drop a .cut file in assets/cutscenes/ and it will appear here."
+        COLOR YELLOWU, BOXBG: PrintCentered 45, "[ESC] back"
+        EXIT SUB
+    END IF
+
+    FOR i = 1 TO STORY_N
+        IF CutsceneSeen%(_TRIM$(STORY_NAME(i))) THEN nseen = nseen + 1
+    NEXT i
+
+    '--- scroll so the selection stays visible once the roster outgrows the
+    '    panel, which 12 chambers plus the set pieces already do ---
+    top = 1
+    IF sel > rows THEN top = sel - rows + 1
+
+    FOR i = top TO STORY_N
+        y = 7 + (i - top)
+        IF y > 6 + rows THEN EXIT FOR
+        seen = CutsceneSeen%(_TRIM$(STORY_NAME(i)))
+        IF i = sel THEN
+            COLOR WHITE, REDU
+        ELSEIF seen THEN
+            COLOR GREENU, BOXBG
+        ELSE
+            COLOR GREY, BOXBG
+        END IF
+        IF seen THEN
+            _PRINTSTRING (7 * CW, y * CH), PadR$("  " + _TRIM$(STORY_TITLE(i)), 26)
+        ELSE
+            '--- the right NUMBER of question marks, never the title ---
+            _PRINTSTRING (7 * CW, y * CH), PadR$("  " + STRING$(LEN(_TRIM$(STORY_TITLE(i))), 63), 26)
+        END IF
+    NEXT i
+
+    IF sel >= 1 AND sel <= STORY_N THEN
+        seen = CutsceneSeen%(_TRIM$(STORY_NAME(sel)))
+        IF seen THEN
+            sp = _TRIM$(STORY_ART(sel))
+            IF LEN(sp) > 0 THEN
+                sp = Game_CutArtPath$(sp)
+                IF LEN(sp) > 0 THEN CombatArtBox sp, 38, 34, 7, 17, "-= " + _TRIM$(STORY_TITLE(sel)) + " =-", CYANU
+            END IF
+            y = 26
+            COLOR CYANU, BOXBG: _PRINTSTRING (38 * CW, y * CH), _TRIM$(STORY_TITLE(sel))
+            y = y + 2
+            COLOR GREY, BOXBG
+            IF LEN(_TRIM$(STORY_BLURB(sel))) > 0 THEN _PRINTSTRING (38 * CW, y * CH), _TRIM$(STORY_BLURB(sel))
+            y = y + 3
+            COLOR GREENU, BOXBG: _PRINTSTRING (38 * CW, y * CH), "SEEN"
+            y = y + 2
+            COLOR YELLOWU, BOXBG: _PRINTSTRING (38 * CW, y * CH), "[ENTER] watch it again"
+        ELSE
+            MysteryBox 38, 34, 7, 17
+            y = 26
+            COLOR GREY, BOXBG: _PRINTSTRING (38 * CW, y * CH), "NOT YET SEEN"
+            y = y + 2
+            _PRINTSTRING (38 * CW, y * CH), "This one has not happened to you."
+            y = y + 2
+            _PRINTSTRING (38 * CW, y * CH), "Play it in the dungeon and it will"
+            y = y + 1
+            _PRINTSTRING (38 * CW, y * CH), "be here afterwards, for good."
+        END IF
+    END IF
+
+    COLOR GREY, BOXBG
+    PrintCentered 43, LTRIM$(STR$(nseen)) + " of " + LTRIM$(STR$(STORY_N)) + " scenes remembered"
+    COLOR YELLOWU, BOXBG: PrintCentered 45, "[Up/Down] browse   [ENTER] replay   [ESC] back"
 END SUB
 
 '--- playing a scene RECOMPILES over CUT_OPS, which is the same array the

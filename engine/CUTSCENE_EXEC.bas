@@ -65,25 +65,25 @@ END FUNCTION
 '    as the art actually is. Stops at the 0x1A EOF so a SAUCE record is not
 '    counted as picture. ---
 SUB CutAnsiDims (raw AS STRING, cols AS INTEGER, rows AS INTEGER)
-    DIM i AS LONG, c AS INTEGER, col AS INTEGER, mx AS INTEGER, rw AS INTEGER
+    DIM i AS LONG, chcode AS INTEGER, col AS INTEGER, mx AS INTEGER, rw AS INTEGER
     DIM inesc AS INTEGER
 
     col = 0: mx = 0: rw = 1
     FOR i = 1 TO LEN(raw)
-        c = ASC(raw, i)
-        IF c = 26 THEN EXIT FOR
+        chcode = ASC(raw, i)
+        IF chcode = 26 THEN EXIT FOR
 
         IF inesc THEN
             '--- a CSI ends on a byte in 64..126. NOTE the trap documented in
             '    CLAUDE.md: `[` is itself in that range, so the check must come
             '    AFTER consuming the `[` that opened the sequence. ---
-            IF c >= 64 THEN
-                IF c <= 126 THEN inesc = FALSE
+            IF chcode >= 64 THEN
+                IF chcode <= 126 THEN inesc = FALSE
             END IF
             _CONTINUE
         END IF
 
-        IF c = 27 THEN
+        IF chcode = 27 THEN
             inesc = TRUE
             IF i < LEN(raw) THEN
                 IF ASC(raw, i + 1) = 91 THEN i = i + 1
@@ -91,13 +91,13 @@ SUB CutAnsiDims (raw AS STRING, cols AS INTEGER, rows AS INTEGER)
             _CONTINUE
         END IF
 
-        IF c = 10 THEN
+        IF chcode = 10 THEN
             IF col > mx THEN mx = col
             col = 0
             rw = rw + 1
             _CONTINUE
         END IF
-        IF c = 13 THEN _CONTINUE
+        IF chcode = 13 THEN _CONTINUE
 
         col = col + 1
         IF col >= CUT_SW THEN

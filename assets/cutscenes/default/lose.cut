@@ -3,6 +3,7 @@
 ' ============================================================================
 
 scene lose
+storybook "The Way Down" "You did not."
 noskip
 
 musicstop fade 0.6

@@ -6,6 +6,7 @@
 ' ============================================================================
 
 scene win
+storybook "The Way Out" "You came back up the stair."
 noskip
 stage 2112x1632
 
