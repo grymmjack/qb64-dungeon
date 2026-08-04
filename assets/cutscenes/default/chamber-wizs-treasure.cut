@@ -6,7 +6,7 @@ show bg "bg/cham-wiztreasure.png" fill
 cam 0.5,0.5 zoom 1.0
 iris out at 0.5,0.5 over 1.4
 
-music "dungeon" fadein 1.5
+music "everdark" fadein 1.5
 caption "THE WIZARD'S HOARD" at 66,3 anchor c color cyan fade 1.0
 
 show orb "items/crystal-ball.png" fit scale 0.22 at 0.30,0.70 fade 1.0

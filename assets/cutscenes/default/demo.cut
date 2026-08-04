@@ -25,7 +25,7 @@ show bg "rooms/the-crypt.png" scale 11 at 0.5,0.5
 cam 0.35,0.35 zoom 2.2
 fade from black over 1.2
 
-music "dungeon" fadein 3.0
+music "everdark" fadein 3.0
 
 ' A caption does NOT block -- it sits there while everything else continues.
 caption "LEVEL FIVE" at 66,4 anchor c color gold fade 0.8
@@ -72,7 +72,7 @@ end
 ' --------------------------------------------------------------------- arms
 label fight
     flash white 0.12
-    sfx "sword-hit"
+    sfx "hit"
     say "You swing first. It was always going to be first."
     grant gold 250
     set fought_the_bones = 1

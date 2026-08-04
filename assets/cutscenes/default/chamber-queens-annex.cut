@@ -6,7 +6,7 @@ show bg "bg/cham-queenannex.png" fill
 cam 0.5,0.5 zoom 1.6
 async pan to 0.35,0.42 over 12.0 ease inout
 
-music "dungeon" fadein 3.0
+music "everdark" fadein 3.0
 caption "THE QUEEN'S ANNEX" at 66,3 anchor c color magenta fade 1.0
 
 say "Someone hung silk over the stone. The stone won."

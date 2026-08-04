@@ -13,13 +13,13 @@ show circ "events/rune-obelisk.png" fit scale 0.25 at 0.62,0.6 z 0 fade 1.5
 cam 0.25,0.45 zoom 2.0
 async pan to 0.75,0.55 over 11.0 ease inout
 
-music "dungeon" fadein 2.0
+music "everdark" fadein 2.0
 caption "THE WIZARD'S LAB" at 66,3 anchor c color magenta fade 1.0
 
 say "The candles are still lit. They have been still lit for a long time."
 
 flash magenta 0.20
-sfx "spell-cast"
+sfx "teleport"
 say "Something in a jar turns to follow you. Only the jar is empty."
 
 if class == wizard

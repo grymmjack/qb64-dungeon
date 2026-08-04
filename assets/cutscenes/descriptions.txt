@@ -1,0 +1,35 @@
+# descriptions.txt -- generation prompts for CUT-SCENE art.
+#
+# Format:  path | size | prompt        (path is relative to assets/cutscenes/<pack>/art/)
+#
+# `dungeon.run imagemanifest audit` scans every .cut in every pack, and any art that
+# resolves NOWHERE is listed as a gap with the prompt from this file. Art a scene names
+# that the game already ships (classes/wizard.png, monsters/...) is NOT listed here --
+# imagemanifest already owns those trees.
+#
+# BACKDROPS ARE 264x204 and are sized in the scene with `fill`, never a `scale` number:
+# a scale factor is correct for exactly one source size, so regenerating art a little
+# smaller silently letterboxes every scene that used it -- which looks identical to a
+# missing backdrop. 264x204 is a clean quarter of the 1056x816 screen, so it also scales
+# by whole pixels.
+#
+# Generate flat (pixelmon --snap-pixels --smooth mode); the raw downscale is noisy, and
+# at 4-8x magnification that noise becomes blocks of confetti.
+
+bg/cut-gate.png          | 264x204 | a colossal ancient stone dungeon gate at night seen from outside, iron portcullis, two guttering torches, worn steps leading down into blackness, moonlit fog, wide cinematic establishing shot, dark fantasy
+bg/cut-stair.png         | 264x204 | a steep spiral stone staircase descending into total darkness, torchlight raking across damp carved walls, deep perspective looking down, wide cinematic, dark fantasy
+bg/cut-hall.png          | 264x204 | a vast pillared underground hall lit by green braziers, a throne built of bones at the far end, banners rotting, wide cinematic establishing shot, dark fantasy
+bg/cut-dawn.png          | 264x204 | warm dawn light pouring through a shattered dungeon gate from inside, dust in the beams, freedom beyond, wide cinematic, dark fantasy
+bg/cut-crypt.png         | 264x204 | a cold empty crypt chamber, a dropped sword on flagstones, one guttering torch, open stone sarcophagus, wide cinematic, dark fantasy
+bg/cham-armory.png       | 264x204 | a dungeon armory hall lined with racks of rusted swords spears and dented shields, one lit brazier, stone walls, wide cinematic establishing shot, dark fantasy
+bg/cham-crypt.png        | 264x204 | a vaulted crypt of stacked stone sarcophagi and bone niches, cold blue light from a grate above, wide cinematic establishing shot, dark fantasy
+bg/cham-wizlab.png       | 264x204 | a wizard's laboratory in a dungeon, bubbling alembics, floating candles, a chalk summoning circle, shelves of jars, purple glow, wide cinematic establishing shot, dark fantasy
+bg/cham-wiztreasure.png  | 264x204 | a wizard's hoard chamber, floating gemstones and glowing spellbooks on pedestals, arcane blue light, wide cinematic establishing shot, dark fantasy
+bg/cham-kitchen.png      | 264x204 | a filthy dungeon kitchen, huge cauldron over a fire pit, hanging cleavers, a long butcher block, greasy orange firelight, wide cinematic establishing shot, dark fantasy
+bg/cham-guardroom.png    | 264x204 | a dungeon guard room, overturned table with scattered dice and tankards, weapon rack, one guttering torch, wide cinematic establishing shot, dark fantasy
+bg/cham-storeroom.png    | 264x204 | a dungeon store room packed with barrels crates and hanging sacks, dusty shafts of light, rats, wide cinematic establishing shot, dark fantasy
+bg/cham-torture.png      | 264x204 | a torture chamber, rack and iron maiden and chains on the walls, a brazier of hot irons, red light, wide cinematic establishing shot, dark fantasy
+bg/cham-queenannex.png   | 264x204 | an opulent underground queen's annex, silk drapes over stone, a carved vanity and gilded mirror, candlelight, wide cinematic establishing shot, dark fantasy
+bg/cham-queentreasure.png| 264x204 | a queen's treasure vault, pearl necklaces and silver crowns spilling from chests, soft rose light, wide cinematic establishing shot, dark fantasy
+bg/cham-kingslibrary.png | 264x204 | a king's underground library, towering shelves of ancient tomes, a reading lectern, dusty golden light through high windows, wide cinematic establishing shot, dark fantasy
+bg/cham-kingstreasure.png| 264x204 | a king's treasure vault, mountains of gold coins and jewelled crowns, a great iron-bound chest, warm gold light, wide cinematic establishing shot, dark fantasy

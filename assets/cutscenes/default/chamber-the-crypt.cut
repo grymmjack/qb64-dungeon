@@ -6,7 +6,7 @@ show bg "bg/cham-crypt.png" fill
 cam 0.5,0.35 zoom 2.2
 async zoom to 1.5 over 10.0 ease inoutcubic
 
-music "dungeon" fadein 2.0
+music "everdark" fadein 2.0
 narrate "chamber.the-crypt"
 caption "THE CRYPT" at 66,3 anchor c color gold fade 1.0
 
@@ -15,7 +15,7 @@ say "Something in here counts to three."
 
 show lid "markers/gravestone.png" fit scale 0.30 at 0.5,0.66 fade 1.2
 shake 4 for 0.6
-sfx "door-open"
+sfx "door"
 
 choice "The nearest lid has moved. Not much. Some."
     option "Lift it"          -> crypt_lift
@@ -25,7 +25,7 @@ end
 
 label crypt_lift
     flash bone 0.15
-    sfx "chest-open"
+    sfx "chest"
     say "Grave goods. Someone was buried rich and stayed poor company."
     grant gold 400
     set opened_a_crypt_lid = 1

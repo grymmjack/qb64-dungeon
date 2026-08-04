@@ -6,7 +6,7 @@ show bg "bg/cham-storeroom.png" fill
 cam 0.5,0.45 zoom 1.7
 async zoom to 2.3 over 9.0 ease in
 
-music "dungeon" fadein 2.0
+music "everdark" fadein 2.0
 caption "THE STORE ROOM" at 66,3 anchor c color bone fade 0.8
 
 ' `fit` rather than `fill`: this sprite must be seen WHOLE, not cropped.

@@ -5,7 +5,7 @@ include "_common.cut"
 show bg "bg/cham-guardroom.png" fill
 cam 0.5,0.5 zoom 1.8
 
-music "dungeon" fadein 2.0
+music "everdark" fadein 2.0
 caption "THE GUARD ROOM" at 66,3 anchor c color bone fade 0.8
 
 say "The table is overturned. The dice are not."

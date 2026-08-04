@@ -6,7 +6,7 @@ show bg "bg/cham-kitchen.png" fill
 cam 0.35,0.6 zoom 2.0
 async pan to 0.65,0.45 over 7.0 ease out
 
-music "dungeon" fadein 2.0
+music "everdark" fadein 2.0
 sfx "chamber-enter"
 caption "THE KITCHEN" at 66,3 anchor c color orange fade 0.8
 

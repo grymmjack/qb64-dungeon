@@ -19,7 +19,8 @@ FUNCTION Game_SfxNames$
         " amb-thump amb-hinge amb-slam amb-chains amb-wind amb-drone amb-scream" + _
         " amb-squeak amb-hiss amb-gibber amb-growl amb-slither amb-laugh amb-howl" + _
         " amb-bark amb-moan amb-whisper" + _
-        " rest-water rest-breath rest-gold"
+        " rest-water rest-breath rest-gold" + _
+        " chamber-enter monster-appear stairs"      ' cut-scene beats (see assets/cutscenes/)
 END FUNCTION
 
 ' Look up want in the parallel keys()/vals() arrays (case-insensitive), or a placeholder.
@@ -146,8 +147,19 @@ SUB DumpAudioManifest
     ManAsset "narration/combat.flee | You break away and slip back into the shadows, the fight unfinished."
     ManAsset "narration/combat.hurt | Pain sears through you as the blow lands. Blood runs."
     ManAsset "narration/combat.downed | Your strength fails you. The world tilts, darkens -- and you fall."
+
+    ' --- CUT-SCENE audio, scanned from assets/cutscenes/<pack>/*.cut ---
+    ' These names live ONLY inside the scripts, so nothing above enumerates them:
+    ' before this, every audit said MISSING: 0 while seventeen scenes referred to
+    ' sounds that did not exist and could not have played if they had.
+    ManOut ""
+    ManOut "# --- CUT-SCENE audio (scanned from assets/cutscenes/*/*.cut) ---"
+    MAN_CUTSEEN = ""
+    ManCutscenes "audio"
+
     ManHeader "DUNGEON! audio manifest"
     ManFlush
+
 END SUB
 
 
@@ -545,3 +557,168 @@ SUB ManFlush
     NEXT i
     MAN_N = 0
 END SUB
+
+' ============================================================================
+'  CUT-SCENE ASSETS -- scanned from the .cut scripts themselves.
+'
+'  WHY THIS EXISTS: a cut-scene names its art and its sounds ONLY inside the
+'  script. Nothing else in the game enumerates them, so before this the whole
+'  category was invisible to every audit -- `imagemanifest audit` and
+'  `audiomanifest audit` both said MISSING: 0 while seventeen scenes referred
+'  to sounds that did not exist and could not have played if they had.
+'
+'  That is the same failure the placeholder-detection work was about, one level
+'  up: the audit was not wrong, it was never asked the question.
+'
+'  The scan COMPILES each scene and walks the opcodes rather than grepping the
+'  text, so it sees exactly what the engine will ask for -- both arms of every
+'  conditional, every frame of an `anim` sequence, and a transition's `to`
+'  target. Files starting `_` are `include` fragments and are skipped.
+' ============================================================================
+
+'--- walk every scene in every cut-scene pack, calling back into ManAsset.
+'    kind = "audio" or "art". ---
+SUB ManCutscenes (kind AS STRING)
+    DIM packs(1 TO 32) AS STRING, np AS INTEGER, i AS INTEGER
+    DIM root AS STRING, d AS STRING, f AS STRING
+    DIM scn(1 TO 128) AS STRING, ns AS INTEGER, j AS INTEGER
+
+    root = "assets/cutscenes/"
+    IF NOT _DIREXISTS(root) THEN EXIT SUB
+
+    '--- two passes over _FILES$: the walk cannot be re-entered while it is
+    '    being consumed, and compiling a scene reads files. ---
+    d = _FILES$(root)
+    DO WHILE LEN(d) > 0
+        IF d <> "." AND d <> ".." THEN
+            IF RIGHT$(d, 1) = "/" THEN d = LEFT$(d, LEN(d) - 1)
+            IF _DIREXISTS(root + d) THEN
+                IF np < 32 THEN np = np + 1: packs(np) = d
+            END IF
+        END IF
+        d = _FILES$
+    LOOP
+
+    FOR i = 1 TO np
+        ns = 0
+        f = _FILES$(root + packs(i) + "/*.cut")
+        DO WHILE LEN(f) > 0
+            IF LEFT$(f, 1) <> "_" THEN                 ' `_x.cut` is an include fragment
+                IF ns < 128 THEN ns = ns + 1: scn(ns) = f
+            END IF
+            f = _FILES$
+        LOOP
+
+        FOR j = 1 TO ns
+            IF CutCompile%(root + packs(i) + "/" + scn(j)) THEN
+                IF LCASE$(kind) = "audio" THEN
+                    ManCutAudioOps
+                ELSE
+                    ManCutArtOps packs(i)
+                END IF
+            END IF
+        NEXT j
+    NEXT i
+END SUB
+
+'--- the audio a compiled scene will ask for ---
+SUB ManCutAudioOps
+    DIM i AS INTEGER, nm AS STRING
+
+    FOR i = 1 TO CUT_NOP
+        SELECT CASE CUT_OPS(i).cmd
+            CASE OP_SFX
+                nm = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(nm) > 0 THEN
+                    IF INSTR(MAN_CUTSEEN, "|sfx/" + nm + "|") = 0 THEN
+                        MAN_CUTSEEN = MAN_CUTSEEN + "|sfx/" + nm + "|"
+                        '--- A cut-scene sfx that is NOT in the roster can never
+                        '    play, however present the file is: Sfx looks up a
+                        '    preloaded handle and only roster names are loaded.
+                        '    So an unregistered name is reported even when the
+                        '    audio exists -- generating the file would not fix
+                        '    it, and "the file is there" would look like it had. ---
+                        IF INSTR(" " + Game_SfxNames$ + " ", " " + nm + " ") = 0 THEN
+                            ManAsset "sfx/" + nm + " | 1.00 | UNREGISTERED -- add to Game_SfxNames$ or it will never load"
+                        ELSE
+                            ManAsset "sfx/" + nm + " | 1.00 | (cut-scene) " + ManCutDesc$("assets/sfx/descriptions.txt", nm)
+                        END IF
+                    END IF
+                END IF
+
+            CASE OP_MUSIC, OP_CUE
+                nm = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(nm) > 0 THEN
+                    IF INSTR(MAN_CUTSEEN, "|music/" + nm + "|") = 0 THEN
+                        MAN_CUTSEEN = MAN_CUTSEEN + "|music/" + nm + "|"
+                        ManAsset "music/" + nm + " | 60 | (cut-scene) " + ManCutDesc$("assets/music/descriptions.txt", nm)
+                    END IF
+                END IF
+
+            CASE OP_NARRATE
+                nm = CutStrGet$(CUT_OPS(i).s1)
+                IF LEN(nm) > 0 THEN
+                    IF INSTR(MAN_CUTSEEN, "|narration/" + nm + "|") = 0 THEN
+                        MAN_CUTSEEN = MAN_CUTSEEN + "|narration/" + nm + "|"
+                        ManAsset "narration/" + nm + " | " + Say$(nm)
+                    END IF
+                END IF
+        END SELECT
+    NEXT i
+END SUB
+
+'--- the art a compiled scene will draw. Only art that resolves NOWHERE is a
+'    gap: a scene may legitimately name a sprite the game already ships
+'    (classes/wizard.png), and imagemanifest already owns those. ---
+SUB ManCutArtOps (pk AS STRING)
+    DIM i AS INTEGER, nm AS STRING, fr AS INTEGER, p AS INTEGER
+
+    FOR i = 1 TO CUT_NOP
+        nm = ""
+        SELECT CASE CUT_OPS(i).cmd
+            CASE OP_SHOW: nm = CutStrGet$(CUT_OPS(i).s2)
+            CASE OP_PORTRAIT: nm = CutStrGet$(CUT_OPS(i).s1)
+            CASE OP_TRANS
+                nm = CutStrGet$(CUT_OPS(i).s3)
+                p = INSTR(nm, "|")
+                IF p > 0 THEN nm = MID$(nm, p + 1) ELSE nm = ""
+            CASE OP_ANIM
+                '--- EVERY frame. A sequence one frame short plays fine until it
+                '    reaches the end, then shows a MISSING box mid-animation. ---
+                FOR fr = 1 TO CINT(CUT_OPS(i).n1)
+                    ManCutArtOne CutFramePath$(CutStrGet$(CUT_OPS(i).s2), fr), pk
+                NEXT fr
+        END SELECT
+        IF LEN(nm) > 0 THEN ManCutArtOne nm, pk
+    NEXT i
+END SUB
+
+SUB ManCutArtOne (nm AS STRING, pk AS STRING)
+    IF LEN(nm) = 0 THEN EXIT SUB
+    IF INSTR(MAN_CUTSEEN, "|art/" + nm + "|") > 0 THEN EXIT SUB
+    MAN_CUTSEEN = MAN_CUTSEEN + "|art/" + nm + "|"
+    '--- resolves somewhere (a cut-scene art dir, pixel-art, ansi-art)? then it
+    '    is not a gap, and whichever manifest owns that tree already lists it. ---
+    IF LEN(Game_CutArtPath$(nm)) > 0 THEN EXIT SUB
+    ManAsset "cutscenes/art/" + nm + " | cutscene | 512x384 | " + ManCutDesc$("assets/cutscenes/descriptions.txt", nm)
+END SUB
+
+FUNCTION ManCutDesc$ (path AS STRING, want AS STRING)
+    DIM i AS INTEGER, k AS STRING, r AS STRING
+    '--- a function's own name cannot be READ in QB64 -- `LEN(ManCutDesc$)`
+    '    parses as a recursive call -- so the answer is built in a local. ---
+    r = "(no description -- add one to " + path + ")"
+    IF _FILEEXISTS(path) THEN
+        ReadDataFile path
+        FOR i = 1 TO DLINE_N
+            '--- DField$ takes the LINE TEXT, not an index: DLINE(i) is the line ---
+            k = _TRIM$(DField$(DLINE(i), 1))
+            IF UCASE$(k) = UCASE$(_TRIM$(want)) THEN
+                r = _TRIM$(DField$(DLINE(i), 3))
+                IF LEN(r) = 0 THEN r = _TRIM$(DField$(DLINE(i), 2))
+                EXIT FOR
+            END IF
+        NEXT i
+    END IF
+    ManCutDesc$ = r
+END FUNCTION

@@ -766,3 +766,7 @@ DIM SHARED STORY_TITLE(1 TO STORY_MAX) AS STRING * 40
 DIM SHARED STORY_BLURB(1 TO STORY_MAX) AS STRING * 72
 DIM SHARED STORY_ART(1 TO STORY_MAX) AS STRING * 72
 DIM SHARED STORY_N AS INTEGER
+
+'--- dedup key for the cut-scene manifest scan (a scene may name the same asset
+'    many times, and 17 scenes share a handful of backdrops) ---
+DIM SHARED MAN_CUTSEEN AS STRING

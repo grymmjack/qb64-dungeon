@@ -87,3 +87,12 @@ amb-whisper    | 3    | a faint whisper you cannot quite make out
 rest-water     | 4    | clean running water in a stone basin, calm and steady, no splashing
 rest-breath    | 3    | one long human breath drawn in and let out slowly, relieved, close-mic
 rest-gold      | 2    | a small hoard of coins shifting and settling, bright and unhurried
+
+# --- cut-scene beats (assets/cutscenes/*.cut) -------------------------------
+# These are named only inside .cut scripts, so nothing else in the game enumerates
+# them. They live here so `dungeon.run audiomanifest` can see them like any other
+# effect -- a category no manifest lists is a category that never gets generated.
+chamber-enter  | 1.20 | a vast stone hall opening up ahead of you, a low swelling reverberant boom with a long tail, awe and dread, one hit
+monster-appear | 1.00 | a monster rearing up out of the dark, a sharp rising shriek-and-thud sting, one hit, no loop
+stairs         | 1.00 | slow deliberate boot-steps descending worn stone stairs, three or four falls, dry with a faint cellar echo
+

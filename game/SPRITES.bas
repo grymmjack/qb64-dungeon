@@ -533,8 +533,19 @@ SUB DumpImageManifest
     ' no human comparing outputs.
     ManReset
     DumpImageBody
+
+    ' --- CUT-SCENE art, scanned from assets/cutscenes/<pack>/*.cut ---
+    ' Only art that resolves NOWHERE is listed. A scene may legitimately name a
+    ' sprite the game already ships, and that is this manifest's own business
+    ' above rather than a second, duplicate entry down here.
+    ManOut ""
+    ManOut "# --- CUT-SCENE art (scanned from assets/cutscenes/*/*.cut) ---"
+    MAN_CUTSEEN = ""
+    ManCutscenes "art"
+
     ManHeader "DUNGEON! image manifest"
     ManFlush
+
 END SUB
 
 ' The manifest body. Run twice: once with ART_COUNTING set (counts subjects, prints nothing) and

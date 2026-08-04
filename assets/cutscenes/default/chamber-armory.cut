@@ -6,7 +6,7 @@ show bg "bg/cham-armory.png" fill
 cam 0.30,0.5 zoom 1.9
 async pan to 0.70,0.5 over 8.0 ease inout
 
-music "dungeon" fadein 2.0
+music "everdark" fadein 2.0
 sfx "chamber-enter"
 caption "THE ARMORY" at 66,3 anchor c color bone fade 0.8
 

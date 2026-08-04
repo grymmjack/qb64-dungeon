@@ -754,6 +754,9 @@ SUB Sfx (kind AS STRING)
         CASE "key": Tone 660, 0.06: Tone 880, 0.06: Tone 1174, 0.06: Tone 1568, 0.18
         CASE "idle": Tone 130, 0.1: Tone 98, 0.16
         CASE "treasure": Tone 820, 0.05: Tone 1040, 0.05: Tone 1320, 0.12
+        CASE "chamber-enter": Tone 160, 0.16: Tone 120, 0.20: Tone 90, 0.28   ' a big room opening up
+        CASE "monster-appear": Tone 900, 0.05: Tone 1300, 0.05: Tone 220, 0.22 ' shriek, then the weight of it
+        CASE "stairs": Tone 200, 0.07: Tone 180, 0.07: Tone 160, 0.07: Tone 140, 0.12  ' four falls, descending
         CASE "trap": Tone 240, 0.1: Tone 150, 0.14: Tone 90, 0.22
         CASE "hit": Tone 620, 0.05: Tone 320, 0.12
         CASE "miss": Tone 200, 0.14
