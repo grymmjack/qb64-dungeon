@@ -335,7 +335,30 @@ SUB CutExec (p AS INTEGER)
             END IF
 
         ' ---------------- text ----------------
+        CASE OP_STYLE
+            '--- STICKY. n1 = which style, or -1 for the whole scene. n2/n3 say
+            '    which of the two this line actually set, so `color title gold`
+            '    does not also blank the title font. ---
+            IF CUT_OPS(p).n2 <> 0 THEN
+                IF CINT(CUT_OPS(p).n1) < 0 THEN
+                    CUT_GLOBFONT = CUT_OPS(p).fonth
+                ELSE
+                    CUT_STYFONT(CINT(CUT_OPS(p).n1)) = CUT_OPS(p).fonth
+                END IF
+            END IF
+            IF CUT_OPS(p).n3 <> 0 THEN
+                IF CINT(CUT_OPS(p).n1) < 0 THEN
+                    CUT_GLOBCOL = CutColor~&(CutStrGet$(CUT_OPS(p).s1), CUT_GLOBCOL)
+                    CUT_GLOBCOLSET = TRUE
+                ELSE
+                    L = CINT(CUT_OPS(p).n1)
+                    CUT_STYCOL(L) = CutColor~&(CutStrGet$(CUT_OPS(p).s1), CUT_DEFCOL(L))
+                    CUT_STYCOLSET(L) = TRUE
+                END IF
+            END IF
+
         CASE OP_SAY
+            CUT_TXOP = p
             CUT_TXBODY = CutStrGet$(CUT_OPS(p).s1)
             CUT_TXWHO = CutStrGet$(CUT_OPS(p).s2)
             IF LEN(CUT_TXWHO) > 0 THEN CUT_TXMODE = TX_SPEAKER ELSE CUT_TXMODE = TX_SUBTITLE
@@ -343,6 +366,7 @@ SUB CutExec (p AS INTEGER)
             IF CUT_OPS(p).async = 0 THEN CUT_WAIT = WAIT_TEXT
 
         CASE OP_TITLE
+            CUT_TXOP = p
             CUT_TXBODY = CutStrGet$(CUT_OPS(p).s1)
             CUT_TXSUB = CutStrGet$(CUT_OPS(p).s2)
             CUT_TXMODE = TX_TITLE
@@ -350,6 +374,7 @@ SUB CutExec (p AS INTEGER)
             IF CUT_OPS(p).async = 0 THEN CUT_WAIT = WAIT_TEXT
 
         CASE OP_CRAWL
+            CUT_TXOP = p
             CUT_TXBODY = CutStrGet$(CUT_OPS(p).s1)
             CUT_TXMODE = TX_CRAWL
             CutTextBegin CUT_OPS(p).n1
@@ -364,7 +389,7 @@ SUB CutExec (p AS INTEGER)
             NEXT i
 
         CASE OP_CAPTION
-            CutCaptionAdd CutStrGet$(CUT_OPS(p).s1), CINT(CUT_OPS(p).n1), CINT(CUT_OPS(p).n2), CINT(CUT_OPS(p).n3), CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s2)
+            CutCaptionAdd CutStrGet$(CUT_OPS(p).s1), CINT(CUT_OPS(p).n1), CINT(CUT_OPS(p).n2), CINT(CUT_OPS(p).n3), CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s2), CUT_OPS(p).fonth
 
         CASE OP_PORTRAIT
             IF CUT_PORTRAIT > 0 THEN _FREEIMAGE CUT_PORTRAIT
@@ -505,7 +530,7 @@ SUB CutLayerDropArt (L AS INTEGER)
     CUT_LAY(L).workstep = -1
 END SUB
 
-SUB CutCaptionAdd (txt AS STRING, col AS INTEGER, row AS INTEGER, anchor AS INTEGER, fade AS SINGLE, colorkey AS STRING)
+SUB CutCaptionAdd (txt AS STRING, col AS INTEGER, row AS INTEGER, anchor AS INTEGER, fade AS SINGLE, colorkey AS STRING, fonth AS LONG)
     DIM i AS INTEGER, slot AS INTEGER
     FOR i = 1 TO CUT_MAXCAP
         IF CUT_CAP(i).used = 0 THEN slot = i: EXIT FOR
@@ -516,7 +541,10 @@ SUB CutCaptionAdd (txt AS STRING, col AS INTEGER, row AS INTEGER, anchor AS INTE
     CUT_CAP(slot).col = col
     CUT_CAP(slot).row = row
     CUT_CAP(slot).anchor = anchor
-    CUT_CAP(slot).kolor = CutColor~&(colorkey, _RGB32(226, 218, 196))
+    '--- no `color` on the line means "use the caption STYLE", which is what
+    '    makes a scene-wide `color caption gold` actually reach captions ---
+    CUT_CAP(slot).kolor = CutInkFor~&(STY_CAPTION, colorkey)
+    CUT_CAP(slot).fonth = fonth
     CUT_CAP(slot).born = CUT_NOW
     CUT_CAP(slot).fade = fade
     CUT_CAP(slot).alpha = 0
@@ -762,6 +790,9 @@ SUB CutBegin
     CUT_TXSUB = ""
     CUT_TXHOLD = FALSE
     CUT_TXDONE = FALSE
+    CUT_TXOP = 0
+
+    CutStyleDefaults
 
     CUT_TRACTIVE = FALSE
     CUT_NCH = 0

@@ -361,6 +361,69 @@ SUB DoSelftest
     CutOk "  and execution continues past it", Game_CutState#("flag.past_the_wait") = 1
 
     ' ------------------------------------------------------------------
+    CutSect "variables (compile-time substitution)"
+
+    ok = CutCompileText%("var myfont$ = " + CHR$(34) + "alagard.ttf" + CHR$(34) + CHR$(10) + "var big = 44" + CHR$(10))
+    CutOk "var declarations compile", ok
+    CutOk "  both are remembered", CUT_NVAR = 2
+
+    '--- the point of the feature: a name stands in for a value ANYWHERE ---
+    CutTokenize "font title myfont$ big"
+    CutVarSubst
+    CutOk "a string var substitutes its value", CutTok$(3) = "alagard.ttf"
+    CutOk "  ...and comes back QUOTED, so it reads as a filename", CUT_TKQ(3) <> 0
+    CutOk "a numeric var substitutes too", CutTok$(4) = "44"
+    CutOk "  ...unquoted, so it still reads as a number", CUT_TKQ(4) = 0
+
+    '--- text is text: a variable's name inside dialogue is not substituted ---
+    CutTokenize "say " + CHR$(34) + "big myfont$ words" + CHR$(34)
+    CutVarSubst
+    CutOk "a var name INSIDE quoted text is left alone", CutTok$(2) = "big myfont$ words"
+
+    ' ------------------------------------------------------------------
+    CutSect "sticky font/colour, QB64-style"
+
+    CutStyleDefaults
+    CutOk "with nothing set, a style uses its built-in", CutInkFor~&(STY_SAY, "") = CUT_DEFCOL(STY_SAY)
+
+    '--- scene-wide sticky ---
+    CUT_GLOBCOL = _RGB32(1, 2, 3): CUT_GLOBCOLSET = TRUE
+    CutOk "a scene-wide colour overrides the built-in", CutInkFor~&(STY_SAY, "") = _RGB32(1, 2, 3)
+    CutOk "  and reaches EVERY style", CutInkFor~&(STY_TITLE, "") = _RGB32(1, 2, 3)
+
+    '--- per-style sticky beats scene-wide ---
+    CUT_STYCOL(STY_TITLE) = _RGB32(9, 9, 9): CUT_STYCOLSET(STY_TITLE) = TRUE
+    CutOk "a per-style colour beats the scene-wide one", CutInkFor~&(STY_TITLE, "") = _RGB32(9, 9, 9)
+    CutOk "  and leaves other styles alone", CutInkFor~&(STY_SAY, "") = _RGB32(1, 2, 3)
+
+    '--- a per-LINE key beats both, and does NOT stick ---
+    CutOk "a per-line colour beats both", CutInkFor~&(STY_TITLE, "red") = CutColor~&("red", 0)
+    CutOk "  ...and does not change the sticky value", CutInkFor~&(STY_TITLE, "") = _RGB32(9, 9, 9)
+
+    '--- BLACK is a legal colour, which is why "set" is a separate flag: 0
+    '    cannot double as "unset" or a deliberate black falls back to bone ---
+    CUT_STYCOL(STY_SAY) = _RGB32(0, 0, 0): CUT_STYCOLSET(STY_SAY) = TRUE
+    CutOk "black is honoured, not treated as unset", CutInkFor~&(STY_SAY, "") = _RGB32(0, 0, 0)
+
+    '--- fonts fall through the same three tiers ---
+    CutStyleDefaults
+    CutOk "no font set falls back to the grid font", CutFontFor&(STY_SAY, 0) = CUT_GRIDFONT
+    CUT_GLOBFONT = 12345
+    CutOk "a scene-wide font applies", CutFontFor&(STY_SAY, 0) = 12345
+    CUT_STYFONT(STY_SAY) = 999
+    CutOk "  a per-style font beats it", CutFontFor&(STY_SAY, 0) = 999
+    CutOk "  a per-line font beats them both", CutFontFor&(STY_SAY, 777) = 777
+    CutOk "  other styles keep the scene-wide font", CutFontFor&(STY_TITLE, 0) = 12345
+    CutStyleDefaults
+
+    '--- setting a colour must not blank the font, and vice versa ---
+    ok = CutCompileText%("font title " + CHR$(34) + "alagard.ttf" + CHR$(34) + " 40" + CHR$(10) + "color title gold" + CHR$(10))
+    CutOk "font+color on one style compiles", ok
+    CutRunHeadless 1
+    CutOk "  the colour was set", CUT_STYCOLSET(STY_TITLE)
+    CutOk "  and the font SURVIVED the colour line", CUT_STYFONT(STY_TITLE) <> 0
+
+    ' ------------------------------------------------------------------
     CutSect "animated GIF decoding"
 
     '--- _LOADIMAGE opens a .gif and hands back only its FIRST frame: the handle

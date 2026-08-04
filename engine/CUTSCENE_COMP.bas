@@ -9,6 +9,73 @@
 '  as a label and never runs). An unknown command here is a hard error.
 ' ============================================================================
 
+'--- `var name = value`. Stored verbatim; the QUOTED-ness is stored too, so
+'    `var f$ = "alagard.ttf"` substitutes back in as a quoted token and still
+'    reads as a filename rather than a keyword. ---
+SUB CutVarSet (nm AS STRING, vv AS STRING, wasq AS INTEGER)
+    DIM i AS INTEGER
+    FOR i = 1 TO CUT_NVAR
+        IF UCASE$(_TRIM$(CUT_VARNAME(i))) = UCASE$(_TRIM$(nm)) THEN
+            CUT_VARVAL(i) = vv: CUT_VARQ(i) = wasq
+            EXIT SUB
+        END IF
+    NEXT i
+    IF CUT_NVAR >= CUT_MAXVAR THEN EXIT SUB
+    CUT_NVAR = CUT_NVAR + 1
+    REDIM _PRESERVE CUT_VARVAL(1 TO CUT_MAXVAR) AS STRING
+    CUT_VARNAME(CUT_NVAR) = nm
+    CUT_VARVAL(CUT_NVAR) = vv
+    CUT_VARQ(CUT_NVAR) = wasq
+END SUB
+
+'--- replace any UNQUOTED token that is a declared variable. Runs on every
+'    line after tokenising, so `font say myfont$ mysize` becomes
+'    `font say "alagard.ttf" 24` before the command table ever sees it.
+'
+'    Quoted tokens are left alone: text is text, and a line of dialogue that
+'    happens to contain a variable's name is dialogue. ---
+SUB CutVarSubst
+    DIM i AS INTEGER, j AS INTEGER
+    FOR i = 1 TO CUT_NTK
+        IF CUT_TKQ(i) THEN _CONTINUE
+        FOR j = 1 TO CUT_NVAR
+            IF UCASE$(CUT_TK(i)) = UCASE$(_TRIM$(CUT_VARNAME(j))) THEN
+                CUT_TK(i) = CUT_VARVAL(j)
+                CUT_TKQ(i) = CUT_VARQ(j)
+                EXIT FOR
+            END IF
+        NEXT j
+    NEXT i
+END SUB
+
+FUNCTION CutStyleCode% (nm AS STRING)
+    SELECT CASE LCASE$(_TRIM$(nm))
+        CASE "say", "text", "dialogue": CutStyleCode% = STY_SAY
+        CASE "speaker", "name": CutStyleCode% = STY_SPEAKER
+        CASE "title": CutStyleCode% = STY_TITLE
+        CASE "sub", "subtitle": CutStyleCode% = STY_SUB
+        CASE "crawl": CutStyleCode% = STY_CRAWL
+        CASE "caption": CutStyleCode% = STY_CAPTION
+        CASE "choice", "menu": CutStyleCode% = STY_CHOICE
+        CASE "all", "": CutStyleCode% = -1          ' the whole-scene value
+        CASE ELSE: CutStyleCode% = -2               ' not a style name
+    END SELECT
+END FUNCTION
+
+'--- a per-LINE `color`/`font` override, which sets this op only and leaves the
+'    sticky values alone ---
+SUB CutLineStyleMods (op AS INTEGER, startat AS INTEGER, ln AS INTEGER)
+    DIM t AS INTEGER, q AS INTEGER, fil AS STRING
+    t = CutKw%("color", startat)
+    IF t >= 0 THEN CUT_OPS(op).s3 = CutStr&(CutTok$(t + 1))
+    t = CutKw%("font", startat)
+    IF t >= 0 THEN
+        fil = CutTok$(t + 1)
+        CUT_OPS(op).fonth = CutFontGet&(fil, CINT(CutNum!(CutTok$(t + 2))))
+        IF CUT_OPS(op).fonth = 0 THEN CutErrAdd 1, ln, "font not found: " + fil
+    END IF
+END SUB
+
 FUNCTION CutJoinFrom$ (startat AS INTEGER)
     DIM i AS INTEGER, s AS STRING
     FOR i = startat TO CUT_NTK
@@ -60,6 +127,7 @@ FUNCTION CutCompile% (path AS STRING)
         ln = CUT_SRCLN(i)
         CutTokenize CUT_SRC(i)
         IF CUT_NTK = 0 THEN _CONTINUE
+        CutVarSubst
 
         '--- `async <cmd>` is a prefix, not a command: strip it and shift. ---
         isasync = FALSE
@@ -93,6 +161,55 @@ FUNCTION CutCompile% (path AS STRING)
 
             CASE "noskip"
                 CUT_NOSKIP = TRUE
+
+            CASE "var"
+                '--- `var name = value` / `var name value` ---
+                nm = CutTok$(2)
+                IF LEN(nm) = 0 THEN
+                    CutErrAdd 2, ln, "var needs a name"
+                ELSE
+                    tgt = CutKw%("=", 2)
+                    IF tgt < 0 THEN tgt = 2
+                    CutVarSet nm, CutTok$(tgt + 1), CUT_TKQ(tgt + 1)
+                END IF
+
+            CASE "font"
+                '--- `font "<file>" <size>`  (whole scene, sticky)
+                '    `font <style> "<file>" <size>`  (that kind of text) ---
+                IF CUT_TKQ(2) THEN
+                    k = -1
+                    tgt = 2
+                ELSE
+                    k = CutStyleCode%(CutTok$(2))
+                    tgt = 3
+                    IF k = -2 THEN
+                        CutErrAdd 2, ln, "unknown text style '" + CutTok$(2) + "' (say/speaker/title/sub/crawl/caption/choice/all)"
+                        k = -1
+                    END IF
+                END IF
+                nm = CutTok$(tgt)
+                IF LEN(nm) = 0 THEN
+                    CutErrAdd 2, ln, "font needs: font [<style>] " + CHR$(34) + "<file>" + CHR$(34) + " <size>"
+                ELSE
+                    op = CutEmit%(OP_STYLE, CUT_NOSTR, CUT_NOSTR, k, 1, 0, 0, ln, FALSE)
+                    CUT_OPS(op).fonth = CutFontGet&(nm, CINT(CutNum!(CutTok$(tgt + 1))))
+                    IF CUT_OPS(op).fonth = 0 THEN CutErrAdd 1, ln, "font not found: " + nm
+                END IF
+
+            CASE "color", "colour"
+                '--- `color <colour>` (whole scene) / `color <style> <colour>` ---
+                k = CutStyleCode%(CutTok$(2))
+                IF k = -2 _ORELSE CUT_NTK < 3 THEN
+                    k = -1
+                    nm = CutTok$(2)
+                ELSE
+                    nm = CutTok$(3)
+                END IF
+                IF LEN(nm) = 0 THEN
+                    CutErrAdd 2, ln, "color needs a colour name or #RRGGBB"
+                ELSE
+                    op = CutEmit%(OP_STYLE, CutStr&(nm), CUT_NOSTR, k, 0, 1, 0, ln, FALSE)
+                END IF
 
             CASE "storybook"
                 '--- how this scene presents itself in the Storybook. Optional:
@@ -299,6 +416,7 @@ FUNCTION CutCompile% (path AS STRING)
                         IF RIGHT$(who, 1) = ":" THEN who = LEFT$(who, LEN(who) - 1)
                     END IF
                     op = CutEmit%(OP_SAY, CutStr&(txt), CutStr&(who), CutKwNum!("for", qat + 1, 0), 0, 0, 0, ln, isasync)
+                    CutLineStyleMods op, qat + 1, ln
                 END IF
 
             CASE "portrait"
@@ -318,6 +436,7 @@ FUNCTION CutCompile% (path AS STRING)
                 ELSE
                     body = CutFirstQuoted$(qat + 1, j)
                     op = CutEmit%(OP_TITLE, CutStr&(txt), CutStr&(body), CutKwNum!("for", 2, 2.5), 0, 0, 0, ln, isasync)
+                    CutLineStyleMods op, 2, ln
                 END IF
 
             CASE "crawl"
@@ -332,6 +451,7 @@ FUNCTION CutCompile% (path AS STRING)
                     CutErrAdd 2, ln, "crawl needs at least one quoted line"
                 ELSE
                     op = CutEmit%(OP_CRAWL, CutStr&(body), CUT_NOSTR, CutKwNum!("for", 2, 6), 0, 0, 0, ln, isasync)
+                    CutLineStyleMods op, 2, ln
                 END IF
 
             CASE "caption"
@@ -340,7 +460,8 @@ FUNCTION CutCompile% (path AS STRING)
                 IF qat < 0 _ORELSE tgt < 0 THEN
                     CutErrAdd 2, ln, "caption needs: caption " + CHR$(34) + "text" + CHR$(34) + " at <col>,<row>"
                 ELSE
-                    op = CutEmit%(OP_CAPTION, CutStr&(txt), CutStr&(CutKwStr$("color", 2, "bone")), CutNum!(CutTok$(tgt + 1)), CutNum!(CutTok$(tgt + 2)), CutAnchorCode%(CutKwStr$("anchor", 2, "l")), CutKwNum!("fade", 2, 0.3), ln, isasync)
+                    op = CutEmit%(OP_CAPTION, CutStr&(txt), CutStr&(CutKwStr$("color", 2, "")), CutNum!(CutTok$(tgt + 1)), CutNum!(CutTok$(tgt + 2)), CutAnchorCode%(CutKwStr$("anchor", 2, "l")), CutKwNum!("fade", 2, 0.3), ln, isasync)
+                    CutLineStyleMods op, 2, ln
                 END IF
 
             CASE "cleartext"
@@ -703,6 +824,7 @@ SUB CutResetProgram
         CUT_OPS(i).s1 = CUT_NOSTR
         CUT_OPS(i).s2 = CUT_NOSTR
         CUT_OPS(i).s3 = CUT_NOSTR
+        CUT_OPS(i).fonth = 0
         CUT_OPS(i).n1 = 0
         CUT_OPS(i).n2 = 0
         CUT_OPS(i).n3 = 0
@@ -719,6 +841,7 @@ SUB CutResetProgram
     REDIM CUT_SPOOL(0 TO 0) AS STRING
     REDIM CUT_SRC(0 TO 0) AS STRING
     REDIM CUT_SRCFILE(0 TO 0) AS STRING
+    CUT_NVAR = 0
     CUT_NEST = 0
     CUT_CHOP = 0
     CUT_CHN = 0

@@ -170,8 +170,165 @@ SUB CutCameraBlit
 END SUB
 
 ' ----------------------------------------------------------------------------
+'  FONTS AND INK
+'
+'  Sticky, exactly like QB64's _FONT and COLOR: set it and it stays set. The
+'  value actually used is resolved per line, cheapest-to-most-specific:
+'
+'      per-line override  ->  per-style sticky  ->  scene sticky  ->  built-in
+'
+'  Every measurement goes through _PRINTWIDTH rather than LEN * 8. For the grid
+'  font those are identical, so nothing changes; for a proportional TTF, LEN*8
+'  would wrap in the wrong place and centre off-centre -- and that reads as a
+'  styling bug rather than the arithmetic mistake it is.
+' ----------------------------------------------------------------------------
+
+'--- load a UI font once and remember it. _LOADFONT per line would reload the
+'    same face sixty times a second while a subtitle types. ---
+FUNCTION CutFontGet& (file AS STRING, sz AS INTEGER)
+    DIM i AS INTEGER, fkey AS STRING, p AS STRING, h AS LONG
+
+    CutFontGet& = 0
+    IF LEN(_TRIM$(file)) = 0 _ORELSE sz < 1 THEN EXIT FUNCTION
+
+    fkey = LCASE$(_TRIM$(file)) + "|" + LTRIM$(STR$(sz))
+    FOR i = 1 TO CUT_NFONT
+        IF _TRIM$(CUT_FONTKEY(i)) = fkey THEN CutFontGet& = CUT_FONTH(i): EXIT FUNCTION
+    NEXT i
+
+    p = CUT_ASSETROOT + "fonts/ui/" + _TRIM$(file)
+    IF NOT _FILEEXISTS(p) THEN p = CUT_ASSETROOT + "fonts/" + _TRIM$(file)
+    IF NOT _FILEEXISTS(p) THEN p = _TRIM$(file)
+    IF NOT _FILEEXISTS(p) THEN EXIT FUNCTION
+
+    '--- proportional on purpose: forcing MONOSPACE squeezes every glyph into a
+    '    fixed cell narrower than the point size and clips wide letters, which
+    '    is the same trap the DPoly dice fonts documented. ---
+    h = _LOADFONT(p, sz)
+    IF h <= 0 THEN EXIT FUNCTION
+
+    IF CUT_NFONT < CUT_MAXFONT THEN
+        CUT_NFONT = CUT_NFONT + 1
+        CUT_FONTKEY(CUT_NFONT) = fkey
+        CUT_FONTH(CUT_NFONT) = h
+    END IF
+    CutFontGet& = h
+END FUNCTION
+
+'--- which font this line actually draws in ---
+FUNCTION CutFontFor& (sty AS INTEGER, opfont AS LONG)
+    IF opfont <> 0 THEN CutFontFor& = opfont: EXIT FUNCTION
+    IF sty >= 0 THEN
+        IF CUT_STYFONT(sty) <> 0 THEN CutFontFor& = CUT_STYFONT(sty): EXIT FUNCTION
+    END IF
+    IF CUT_GLOBFONT <> 0 THEN CutFontFor& = CUT_GLOBFONT: EXIT FUNCTION
+    CutFontFor& = CUT_GRIDFONT
+END FUNCTION
+
+'--- ...and in which ink. A per-line colour fkey wins; then the style; then the
+'    scene; then the built-in the engine has always used. ---
+FUNCTION CutInkFor~& (sty AS INTEGER, opkey AS STRING)
+    IF LEN(_TRIM$(opkey)) > 0 THEN
+        CutInkFor~& = CutColor~&(opkey, CUT_DEFCOL(sty))
+        EXIT FUNCTION
+    END IF
+    IF sty >= 0 THEN
+        IF CUT_STYCOLSET(sty) THEN CutInkFor~& = CUT_STYCOL(sty): EXIT FUNCTION
+    END IF
+    IF CUT_GLOBCOLSET THEN CutInkFor~& = CUT_GLOBCOL: EXIT FUNCTION
+    IF sty >= 0 THEN CutInkFor~& = CUT_DEFCOL(sty) ELSE CutInkFor~& = _RGB32(232, 226, 208)
+END FUNCTION
+
+SUB CutFontOn (h AS LONG)
+    IF h <> 0 THEN _FONT h
+END SUB
+
+SUB CutFontOff
+    IF CUT_GRIDFONT <> 0 THEN _FONT CUT_GRIDFONT
+END SUB
+
+'--- the built-ins, so a scene that sets nothing looks exactly as it did ---
+SUB CutStyleDefaults
+    DIM i AS INTEGER
+    CUT_DEFCOL(STY_SAY) = _RGB32(232, 226, 208)
+    CUT_DEFCOL(STY_SPEAKER) = _RGB32(226, 188, 96)
+    CUT_DEFCOL(STY_TITLE) = _RGB32(236, 210, 140)
+    CUT_DEFCOL(STY_SUB) = _RGB32(150, 145, 130)
+    CUT_DEFCOL(STY_CRAWL) = _RGB32(232, 226, 208)
+    CUT_DEFCOL(STY_CAPTION) = _RGB32(226, 218, 196)
+    CUT_DEFCOL(STY_CHOICE) = _RGB32(232, 226, 208)
+    FOR i = 0 TO STY_N - 1
+        CUT_STYFONT(i) = 0
+        CUT_STYCOLSET(i) = FALSE
+    NEXT i
+    CUT_GLOBFONT = 0
+    CUT_GLOBCOLSET = FALSE
+    IF CUT_GRIDFONT = 0 THEN CUT_GRIDFONT = 16       ' QB64's built-in 8x16
+END SUB
+
+' ----------------------------------------------------------------------------
 '  Text helpers
 ' ----------------------------------------------------------------------------
+
+'--- pixel width in the CURRENT font. Identical to LEN*8 on the grid font. ---
+FUNCTION CutTextW% (s AS STRING)
+    CutTextW% = _PRINTWIDTH(s)
+END FUNCTION
+
+SUB CutTextPx (x AS INTEGER, y AS INTEGER, s AS STRING, k AS _UNSIGNED LONG)
+    COLOR k, _RGBA32(0, 0, 0, 0)
+    _PRINTSTRING (x, y), s
+END SUB
+
+'--- centre by MEASURED width, not by character count ---
+SUB CutTextCenterPx (y AS INTEGER, s AS STRING, k AS _UNSIGNED LONG)
+    DIM x AS INTEGER
+    x = (CUT_PXW - CutTextW%(s)) \ 2
+    IF x < 0 THEN x = 0
+    CutTextPx x, y, s, k
+END SUB
+
+'--- greedy wrap to a PIXEL width, measuring each candidate line in the font
+'    that is actually selected ---
+SUB CutWrapPx (s AS STRING, pxw AS INTEGER, outl() AS STRING, n AS INTEGER)
+    DIM i AS INTEGER, word AS STRING, cur AS STRING, chx AS STRING, cand AS STRING
+
+    n = 0
+    cur = ""
+    FOR i = 1 TO LEN(s) + 1
+        IF i <= LEN(s) THEN chx = MID$(s, i, 1) ELSE chx = " "
+
+        IF chx = CHR$(10) THEN
+            IF LEN(word) > 0 THEN
+                IF LEN(cur) > 0 THEN cand = cur + " " + word ELSE cand = word
+                IF CutTextW%(cand) > pxw _ANDALSO LEN(cur) > 0 THEN
+                    n = n + 1: outl(n) = cur: cur = word
+                ELSE
+                    cur = cand
+                END IF
+                word = ""
+            END IF
+            n = n + 1: outl(n) = cur: cur = ""
+            _CONTINUE
+        END IF
+
+        IF chx = " " THEN
+            IF LEN(word) > 0 THEN
+                IF LEN(cur) > 0 THEN cand = cur + " " + word ELSE cand = word
+                IF CutTextW%(cand) > pxw _ANDALSO LEN(cur) > 0 THEN
+                    n = n + 1: outl(n) = cur: cur = word
+                ELSE
+                    cur = cand
+                END IF
+                word = ""
+            END IF
+        ELSE
+            word = word + chx
+        END IF
+        IF n >= 60 THEN EXIT SUB
+    NEXT i
+    IF LEN(cur) > 0 THEN n = n + 1: outl(n) = cur
+END SUB
 SUB CutWrap (s AS STRING, w AS INTEGER, outl() AS STRING, n AS INTEGER)
     DIM i AS INTEGER, word AS STRING, cur AS STRING, chx AS STRING
 
@@ -278,7 +435,7 @@ SUB CutTextTick
         EXIT SUB
     END IF
 
-    '--- fully typed. In MANUAL mode this beat waits for a key (CutAdvance
+    '--- fully typed. In MANUAL mode this beat waits for a fkey (CutAdvance
     '    sets CUT_TXDONE); in AUTO it times out on its own. An explicit
     '    `for <t>` on the line wins over both. ---
     hold = CUT_TXHOLDSECS
@@ -298,67 +455,108 @@ END SUB
 SUB CutDrawText
     DIM lines(0 TO 63) AS STRING
     DIM n AS INTEGER, i AS INTEGER, shown AS STRING
-    DIM r AS INTEGER, w AS INTEGER, bx AS INTEGER
-    DIM ink AS _UNSIGNED LONG, dimk AS _UNSIGNED LONG
-    DIM prog AS SINGLE, top AS SINGLE
+    DIM r AS INTEGER, bx AS INTEGER, fh AS INTEGER
+    DIM ink AS _UNSIGNED LONG, fnt AS LONG
+    DIM prog AS SINGLE, top AS SINGLE, y AS INTEGER
+    DIM okey AS STRING
 
-    ink = _RGB32(232, 226, 208)
-    dimk = _RGB32(150, 145, 130)
+    okey = CutStrGet$(CUT_OPS(CUT_TXOP).s3)
 
     SELECT CASE CUT_TXMODE
 
         CASE TX_SUBTITLE
-            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
-            CutWrap shown, CUT_SW - 8, lines(), n
+            fnt = CutFontFor&(STY_SAY, CUT_OPS(CUT_TXOP).fonth)
+            ink = CutInkFor~&(STY_SAY, okey)
             CutPanel 2, CUT_SH - 6, CUT_SW - 3, CUT_SH - 2, _RGBA32(0, 0, 0, 200), _RGBA32(120, 110, 90, 160)
+            CutFontOn fnt
+            fh = _FONTHEIGHT
+            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
+            CutWrapPx shown, (CUT_SW - 8) * CUT_CW, lines(), n
             FOR i = 1 TO n
                 IF i > 3 THEN EXIT FOR
-                CutTextAt 4, CUT_SH - 5 + (i - 1), lines(i), ink
+                CutTextPx 4 * CUT_CW, (CUT_SH - 5) * CUT_CH + (i - 1) * fh, lines(i), ink
             NEXT i
+            CutFontOff
             IF CUT_TXHOLD THEN CutBlinkPrompt CUT_SW - 6, CUT_SH - 2
 
         CASE TX_SPEAKER
-            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
             bx = 2
             IF CUT_PORTRAIT < -1 THEN bx = 18
-            CutWrap shown, (CUT_SW - 4 - bx), lines(), n
             CutPanel bx, CUT_SH - 9, CUT_SW - 3, CUT_SH - 2, _RGBA32(8, 6, 12, 225), _RGBA32(150, 130, 90, 200)
-            CutTextAt bx + 2, CUT_SH - 9, " " + UCASE$(CUT_TXWHO) + " ", _RGB32(226, 188, 96)
+
+            fnt = CutFontFor&(STY_SPEAKER, 0)
+            CutFontOn fnt
+            CutTextPx (bx + 2) * CUT_CW, (CUT_SH - 9) * CUT_CH, " " + UCASE$(CUT_TXWHO) + " ", CutInkFor~&(STY_SPEAKER, "")
+            CutFontOff
+
+            fnt = CutFontFor&(STY_SAY, CUT_OPS(CUT_TXOP).fonth)
+            ink = CutInkFor~&(STY_SAY, okey)
+            CutFontOn fnt
+            fh = _FONTHEIGHT
+            shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
+            CutWrapPx shown, (CUT_SW - 4 - bx) * CUT_CW, lines(), n
             FOR i = 1 TO n
                 IF i > 6 THEN EXIT FOR
-                CutTextAt bx + 2, CUT_SH - 7 + (i - 1), lines(i), ink
+                CutTextPx (bx + 2) * CUT_CW, (CUT_SH - 7) * CUT_CH + (i - 1) * fh, lines(i), ink
             NEXT i
+            CutFontOff
+
             IF CUT_PORTRAIT < -1 THEN CutDrawPortrait
             IF CUT_TXHOLD THEN CutBlinkPrompt CUT_SW - 6, CUT_SH - 2
 
         CASE TX_TITLE
             shown = LEFT$(CUT_TXBODY, CUT_TXSHOWN)
-            r = CUT_SH \ 2 - 2
-            CutTextCentered r, shown, _RGB32(236, 210, 140)
-            CutTextCentered r - 2, STRING$(LEN(CUT_TXBODY) + 6, "-"), _RGB32(110, 92, 60)
-            CutTextCentered r + 2, STRING$(LEN(CUT_TXBODY) + 6, "-"), _RGB32(110, 92, 60)
+            fnt = CutFontFor&(STY_TITLE, CUT_OPS(CUT_TXOP).fonth)
+            CutFontOn fnt
+            fh = _FONTHEIGHT
+            y = (CUT_SH \ 2 - 2) * CUT_CH
+            CutTextCenterPx y, shown, CutInkFor~&(STY_TITLE, okey)
+            '--- the rules are sized from the TITLE's measured width, so they
+            '    still frame it when the font is not the grid font ---
+            CutRulePx y - fh, CutTextW%(CUT_TXBODY), _RGB32(110, 92, 60)
+            CutRulePx y + fh + fh \ 2, CutTextW%(CUT_TXBODY), _RGB32(110, 92, 60)
+            CutFontOff
+
             IF LEN(CUT_TXSUB) > 0 THEN
-                IF CUT_TXSHOWN >= LEN(CUT_TXBODY) THEN CutTextCentered r + 4, CUT_TXSUB, dimk
+                IF CUT_TXSHOWN >= LEN(CUT_TXBODY) THEN
+                    CutFontOn CutFontFor&(STY_SUB, 0)
+                    CutTextCenterPx y + fh * 2 + 8, CUT_TXSUB, CutInkFor~&(STY_SUB, "")
+                    CutFontOff
+                END IF
             END IF
 
         CASE TX_CRAWL
-            '--- scrolls from below the screen to above it over its duration,
-            '    so the author sets the pace with `for <t>` and never has to
-            '    count lines. ---
-            CutWrap CUT_TXBODY, CUT_SW - 20, lines(), n
+            fnt = CutFontFor&(STY_CRAWL, CUT_OPS(CUT_TXOP).fonth)
+            ink = CutInkFor~&(STY_CRAWL, okey)
+            CutFontOn fnt
+            fh = _FONTHEIGHT
+            CutWrapPx CUT_TXBODY, (CUT_SW - 20) * CUT_CW, lines(), n
             prog = (CUT_NOW - CUT_TXT0) / CUT_TXHOLDSECS
             IF prog < 0 THEN prog = 0
             IF prog > 1 THEN prog = 1
-            top = CUT_SH - prog * (CUT_SH + n + 2)
+            top = CUT_PXH - prog * (CUT_PXH + (n + 2) * fh)
             FOR i = 1 TO n
-                r = INT(top + i)
-                IF r >= 0 THEN
-                    IF r < CUT_SH THEN CutTextCentered r, lines(i), ink
+                y = INT(top + i * fh)
+                IF y >= -fh THEN
+                    IF y < CUT_PXH THEN CutTextCenterPx y, lines(i), ink
                 END IF
             NEXT i
+            CutFontOff
     END SELECT
 
     CutDrawCaptions
+END SUB
+
+'--- a centred rule of dashes, drawn as a LINE so it does not depend on the
+'    glyph width of whatever font is selected ---
+SUB CutRulePx (y AS INTEGER, w AS INTEGER, k AS _UNSIGNED LONG)
+    DIM x1 AS INTEGER, x2 AS INTEGER
+    IF w < 8 THEN EXIT SUB
+    x1 = (CUT_PXW - w) \ 2 - 12
+    x2 = x1 + w + 24
+    IF x1 < 0 THEN x1 = 0
+    IF x2 > CUT_PXW - 1 THEN x2 = CUT_PXW - 1
+    LINE (x1, y)-(x2, y + 1), k, BF
 END SUB
 
 SUB CutBlinkPrompt (col AS INTEGER, row AS INTEGER)
@@ -413,24 +611,33 @@ SUB CutDrawPortrait
 END SUB
 
 SUB CutDrawCaptions
-    DIM i AS INTEGER, chx AS INTEGER, s AS STRING
+    DIM i AS INTEGER, s AS STRING, x AS INTEGER, w AS INTEGER
     DIM k AS _UNSIGNED LONG, aa AS INTEGER
 
     FOR i = 1 TO CUT_MAXCAP
         IF CUT_CAP(i).used = 0 THEN _CONTINUE
         s = _TRIM$(CUT_CAP(i).txt)
-        chx = CUT_CAP(i).col
+
+        CutFontOn CutFontFor&(STY_CAPTION, CUT_CAP(i).fonth)
+
+        '--- anchor by MEASURED width: with a proportional font, counting
+        '    characters puts a centred caption visibly off-centre ---
+        w = CutTextW%(s)
+        x = CUT_CAP(i).col * CUT_CW
         SELECT CASE CUT_CAP(i).anchor
-            CASE ANC_C: chx = chx - LEN(s) \ 2
-            CASE ANC_R: chx = chx - LEN(s)
+            CASE ANC_C: x = x - w \ 2
+            CASE ANC_R: x = x - w
         END SELECT
-        IF chx < 0 THEN chx = 0
+        IF x < 0 THEN x = 0
 
         aa = INT(CUT_CAP(i).alpha * 255)
         IF aa < 0 THEN aa = 0
         IF aa > 255 THEN aa = 255
-        k = _RGBA32(_RED32(CUT_CAP(i).kolor), _GREEN32(CUT_CAP(i).kolor), _BLUE32(CUT_CAP(i).kolor), aa)
-        CutTextAt chx, CUT_CAP(i).row, s, k
+        k = CUT_CAP(i).kolor
+        k = _RGBA32(_RED32(k), _GREEN32(k), _BLUE32(k), aa)
+        CutTextPx x, CUT_CAP(i).row * CUT_CH, s, k
+
+        CutFontOff
     NEXT i
 END SUB
 
@@ -517,7 +724,7 @@ SUB CutDrawChoice
     FOR i = 1 TO CUT_NCH
         s = LTRIM$(STR$(i)) + ") " + CUT_CHTEXT(i)
         IF i = CUT_CHSEL THEN
-            k = _RGB32(255, 232, 150)
+            k = CutInkFor~&(STY_CHOICE, "")
             LINE ((c1 + 2) * CUT_CW, (r + 2 + i) * CUT_CH)-((c1 + w - 1) * CUT_CW, (r + 3 + i) * CUT_CH - 1), _RGBA32(90, 70, 30, 200), BF
             CutTextAt c1 + 3, r + 2 + i, CHR$(16) + " " + s, k
         ELSE

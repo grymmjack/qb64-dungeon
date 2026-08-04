@@ -225,6 +225,60 @@ and is cleared by `cleartext`.
 grey bone`, or `#RRGGBB`. An unknown name keeps the built-in colour rather than
 failing — the same "missing means unchanged" rule the game's theme system uses.
 
+### Fonts, colour and variables
+
+Both are **sticky, exactly like QB64's `COLOR` and `_FONT`**: set it and it stays
+set until something sets it again.
+
+```
+var  myfont$   = "alagard.ttf"      ' declare once, use anywhere below
+var  titlesize = 44
+var  ink       = #e8e2d0
+var  accent    = gold
+
+font  myfont$ bodysize              ' whole scene, every kind of text
+color ink
+
+font  title myfont$ titlesize       ' just titles
+color title accent
+color speaker accent
+
+say   "..."                          ' uses the sticky values
+say   "..." color red                ' one line only -- does NOT stick
+title "..." font myfont$ 56
+```
+
+Resolved most-specific first:
+
+| | |
+|---|---|
+| 1 | a per-**line** `color` / `font` |
+| 2 | a per-**style** sticky value (`color title gold`) |
+| 3 | the **scene-wide** sticky value (`color bone`) |
+| 4 | the engine's built-in |
+
+**Styles:** `say` `speaker` `title` `sub` `crawl` `caption` `choice`, or `all`
+for the scene-wide value. Setting a colour never clears that style's font, or
+the other way round.
+
+**Fonts** are TrueType, from `assets/fonts/ui/` (then `assets/fonts/`), loaded
+once and cached. Sizes are points, so `font title "alagard.ttf" 44` is a 44pt
+title regardless of the 8×16 grid.
+
+**Variables** are substituted at **compile time**, so a name must be declared
+before it is used — like a `#define`. A variable's name inside quoted text is
+*not* substituted: dialogue is dialogue. Values keep their quoted-ness, so
+`var f$ = "alagard.ttf"` still reads as a filename where it lands.
+
+Because `_common.cut` is `include`d by every scene, putting the `var` and
+`font`/`color` lines there is how a pack restyles **all** its cut-scenes at
+once — the DSL configuring itself, rather than a second mechanism to keep in
+sync.
+
+> Text is laid out by **measured** width (`_PRINTWIDTH`), not by character
+> count, so proportional fonts wrap and centre correctly. On the grid font the
+> two are identical, so nothing changes for a scene that sets no font.
+
 ### Audio
 
 ```
@@ -425,7 +479,7 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     headless assertions (117)
+cutplay.run selftest                     headless assertions (140)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in

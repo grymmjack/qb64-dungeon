@@ -125,6 +125,7 @@ CONST OP_CRAWL = 42       ' s1 body (LF-separated), n1 secs
 CONST OP_CAPTION = 43     ' s1 text, n1 col, n2 row, n3 anchor, n4 fade, s2 colour key
 CONST OP_CLEARTEXT = 44
 CONST OP_PORTRAIT = 45    ' s1 path, n1 side (0 left, 1 right)
+CONST OP_STYLE = 46       ' n1 = which STY_*, fonth = handle, s1 = colour key
 
 '--- 50-59 audio ---
 CONST OP_MUSIC = 50       ' s1 name, n1 fadein secs, n2 loop
@@ -139,6 +140,69 @@ CONST OP_GRANT = 61       ' s1 what, n1 amount
 CONST OP_CHOICE = 62      ' s1 prompt, n1 count, n2 first option op
 CONST OP_OPTION = 63      ' s1 text, n1 resolved jump target
 CONST OP_ENDCHOICE = 64
+
+' ----------------------------------------------------------------------------
+'  TEXT STYLES
+'
+'  Each kind of text carries its own font and ink. A scene sets them once with
+'  `style`, and any single line can override both -- so the common case is tidy
+'  and the exceptional line is still possible.
+'
+'  There is no theme-key coupling here on purpose. A pack restyles cut-scenes
+'  by shipping `style` lines in a `_common.cut` and `include`-ing it, which is
+'  the DSL restyling itself rather than a second mechanism to keep in sync.
+' ----------------------------------------------------------------------------
+CONST STY_SAY = 0         ' the subtitle bar, and the VN box body
+CONST STY_SPEAKER = 1     ' the name plate above a VN line
+CONST STY_TITLE = 2
+CONST STY_SUB = 3         ' a title's second line
+CONST STY_CRAWL = 4
+CONST STY_CAPTION = 5
+CONST STY_CHOICE = 6
+CONST STY_N = 7
+
+'--- STICKY, exactly like QB64's COLOR and _FONT: set it and it stays set
+'    until something sets it again. Three tiers, resolved in this order:
+'
+'      1. a per-LINE override      say "x" color red
+'      2. a per-STYLE sticky value color title gold
+'      3. a whole-scene sticky     color bone      /  font "alagard.ttf" 24
+'      4. the built-in default     (what the engine has always drawn)
+'
+'    A "set" flag is carried beside each colour because 0 is a legal colour
+'    (black) and cannot double as "unset" -- a scene that deliberately set
+'    black would otherwise fall through to the default and draw bone.
+DIM SHARED CUT_STYFONT(0 TO STY_N - 1) AS LONG
+DIM SHARED CUT_STYCOL(0 TO STY_N - 1) AS _UNSIGNED LONG
+DIM SHARED CUT_STYCOLSET(0 TO STY_N - 1) AS INTEGER
+DIM SHARED CUT_DEFCOL(0 TO STY_N - 1) AS _UNSIGNED LONG
+DIM SHARED CUT_GLOBFONT AS LONG
+DIM SHARED CUT_GLOBCOL AS _UNSIGNED LONG
+DIM SHARED CUT_GLOBCOLSET AS INTEGER
+
+'--- the host's grid font. The engine must not reach for the game's CH: the
+'    standalone player does not include the game's header at all. 16 is QB64's
+'    built-in 8x16, which is what both hosts actually use. ---
+DIM SHARED CUT_GRIDFONT AS LONG
+
+'--- loaded fonts, cached by "file|size": _LOADFONT on every line would reload
+'    the same face 60 times a second while a subtitle types. ---
+CONST CUT_MAXFONT = 24
+DIM SHARED CUT_FONTKEY(1 TO CUT_MAXFONT) AS STRING * 64
+DIM SHARED CUT_FONTH(1 TO CUT_MAXFONT) AS LONG
+DIM SHARED CUT_NFONT AS INTEGER
+
+' ----------------------------------------------------------------------------
+'  SCRIPT VARIABLES -- substituted at COMPILE time, so a name must be declared
+'  before it is used, exactly like a #define. Presentation scripts want naming,
+'  not scoping, and compile-time substitution keeps `var` from interacting with
+'  branches in ways nobody would be able to predict from reading the file.
+' ----------------------------------------------------------------------------
+CONST CUT_MAXVAR = 64
+DIM SHARED CUT_VARNAME(1 TO CUT_MAXVAR) AS STRING * 32
+REDIM SHARED CUT_VARVAL(1 TO CUT_MAXVAR) AS STRING
+DIM SHARED CUT_VARQ(1 TO CUT_MAXVAR) AS INTEGER   ' was the value quoted?
+DIM SHARED CUT_NVAR AS INTEGER
 
 '--- layer properties for OP_LAYSET ---
 CONST LS_X = 0
@@ -241,6 +305,7 @@ TYPE CUTOP
     s1 AS LONG              ' index into CUT_SPOOL$, or CUT_NOSTR
     s2 AS LONG
     s3 AS LONG              ' third string slot; set after CutEmit% returns
+    fonth AS LONG           ' per-line font override (0 = use the style's)
     n1 AS SINGLE
     n2 AS SINGLE
     n3 AS SINGLE
@@ -315,6 +380,7 @@ TYPE CUTCAP
     alpha AS SINGLE
     born AS DOUBLE
     fade AS SINGLE
+    fonth AS LONG           ' per-caption font override (0 = the caption style)
 END TYPE
 
 ' ============================================================================
@@ -392,6 +458,7 @@ DIM SHARED CUT_TXHOLD AS INTEGER    ' TRUE = fully typed, waiting to advance
 DIM SHARED CUT_TXHOLDT0 AS DOUBLE
 DIM SHARED CUT_TXDONE AS INTEGER    ' this beat is finished with
 DIM SHARED CUT_TXHOLDSECS AS SINGLE ' explicit `for <t>` on this beat, or 0
+DIM SHARED CUT_TXOP AS INTEGER      ' the op this beat came from, for its font/colour
 DIM SHARED CUT_PORTRAIT AS LONG
 DIM SHARED CUT_PORTSIDE AS INTEGER
 

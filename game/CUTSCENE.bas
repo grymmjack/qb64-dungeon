@@ -55,6 +55,7 @@ FUNCTION PlayCutsceneEx% (nm AS STRING, record AS INTEGER)
     CUT_TEXTSPEED = 45
     CUT_QUIET = audio_muted
     CUT_ASSETROOT = "assets/"
+    CUT_GRIDFONT = CH                 ' the engine must not reach for CH itself
 
     olddest = _DEST
     _DEST CANVAS
