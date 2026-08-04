@@ -1,0 +1,48 @@
+' ============================================================================
+'  deathtext.cut -- YOU / DIED, falling in and landing hard.
+'
+'  Short on purpose (about 5 seconds): it is the reference for ANIMATED TEXT,
+'  and a 90-second showcase is no use when you are iterating on the timing of
+'  one landing.
+'
+'  Three things have to line up or the hit does not read:
+'    * `from 66,-8` starts the caption ABOVE the screen, so it falls in rather
+'      than appearing.
+'    * `ease bounce` gives it the landing. `out` would settle politely; bounce
+'      is what makes it feel like weight.
+'    * the thud and the shake are SEPARATE lines after a `wait`, timed to the
+'      moment it lands -- firing them with the caption would sound the impact
+'      while the text was still in the air.
+' ============================================================================
+
+scene deathtext
+storybook "You Died" "Animated text: falling, landing, and the shake."
+
+var display$ = "alagard.ttf"
+var blood    = #cc1111
+
+show bg "bg/cut-crypt.png" fill
+cam 0.5,0.5 zoom 1.4
+fade to black over 0
+fade from black over 0.5
+
+musicstop fade 0.3
+
+' --------------------------------------------------------------- "YOU"
+caption "YOU" at 66,13 from 66,-8 over 0.9 ease bounce anchor c color blood font display$ 96
+wait 0.85
+sfx "chamber-enter"
+shake 9 for 0.6
+
+' --------------------------------------------------------------- "DIED"
+caption "DIED" at 66,26 from 66,-12 over 1.0 ease bounce anchor c color blood font display$ 96
+wait 0.95
+sfx "boom"
+shake 14 for 0.9
+flash blood 0.22
+
+' the epitaph arrives quietly, from the side, once the shouting is over
+caption "{name} the {class}, {level} levels down" at 66,38 from 20,38 over 1.2 ease outcubic anchor c color #7a6a6a font display$ 22
+wait 2.2
+
+crtoff 0.9

@@ -1,0 +1,63 @@
+' ============================================================================
+'  gifdemo.cut -- animated GIFs on a layer.
+'
+'  An animated GIF is just art: `show <layer> "<file>.gif"` and it plays. No
+'  `anim`, no frame count, no fps, no splitting the file into a PNG sequence.
+'  The engine decodes every frame at load and plays each at ITS OWN delay, so
+'  the GIF looks exactly as it does in any other viewer.
+'
+'  Why the engine carries its own decoder: _LOADIMAGE will happily open a .gif
+'  and hand back only the FIRST FRAME. The handle is valid, every existence
+'  check passes, the lint is clean -- and the picture never moves. That is
+'  indistinguishable from a still the author meant to be still, which is why it
+'  had to be fixed at the decoder rather than papered over.
+' ============================================================================
+
+scene gifdemo
+storybook "Animated GIFs" "Drop a .gif on a layer and it plays itself."
+
+var body$ = "dungeon-mode.ttf"
+
+stage 2112x1632
+show bg "bg/cham-wizlab.png" fill
+cam 0.5,0.5 zoom 1.5
+async pan to 0.5,0.62 over 18.0 ease inout
+
+font  body$ 20
+color #e8e2d0
+music "everdark" fadein 2.0
+
+title "ANIMATED GIF" "one file, every frame" for 2.5
+
+' -------------------------------------------------------------- ONE GIF
+' A SPRITE wants `scale`. `fit`/`fill` size against the STAGE, which is right
+' for a backdrop and wrong for a rune -- and they ignore `scale` when both are
+' given, so the linter warns rather than letting it silently fill the screen.
+show rune "rune-pulse.gif" scale 2.4 at 0.5,0.55 fade 1.0
+say "That rune is a |14single .gif|07 on a layer. Eight frames, playing at the delays baked into the file."
+
+' ------------------------------------------------------- SEVERAL AT ONCE
+' Each layer runs its own animation, independently -- they are separate
+' decodes, so they do not have to share a frame or a rate.
+show r2 "rune-pulse.gif" scale 1.3 at 0.24,0.42 fade 0.8
+show r3 "rune-pulse.gif" scale 1.3 at 0.76,0.42 fade 0.8
+say "Layers animate independently. These three are the same file, decoded three times."
+
+' ------------------------------------------------- IT IS STILL A LAYER
+' A GIF layer is an ordinary layer: it moves, scales, fades and parallaxes
+' like any other, and keeps animating throughout.
+async move r2 to 0.24,0.70 over 4.0 ease inout
+async move r3 to 0.76,0.70 over 4.0 ease inout
+say "It is a |10layer|07 like any other -- it moves, scales and fades while it plays."
+
+async grow rune to 3.4 over 3.0 ease back
+say "Growing it does not stop it. The frames keep coming."
+
+async fadelayer r2 to 0 over 2.0
+async fadelayer r3 to 0 over 2.0
+say "And fading one out fades the animation with it."
+
+waitall
+hide rune fade 1.2
+musicstop fade 1.5
+iris in at 0.5,0.55 over 1.5

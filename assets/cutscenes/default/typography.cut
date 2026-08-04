@@ -1,0 +1,176 @@
+' ============================================================================
+'  typography.cut -- every text feature the engine has, in one scene.
+'
+'  Watch it:  cutplay.run assets/cutscenes/default/typography.cut
+'  Faster:    cutplay.run assets/cutscenes/default/typography.cut auto
+'
+'  This is the reference for FONTS, COLOUR, VARIABLES, PIPE COLOURS and
+'  {TOKEN}s. If you want to know what a text feature looks like, it is here.
+' ============================================================================
+
+scene typography
+storybook "Typography" "Every text feature the engine has, in one scene."
+
+' ---------------------------------------------------------------- VARIABLES
+' Declared once, used everywhere below. They are substituted at COMPILE time,
+' so a name has to be declared before it is used -- like a #define. Change the
+' three lines here and the whole scene re-styles.
+var display$ = "alagard.ttf"          ' the blackletter, for titles
+var body$    = "dungeon-mode.ttf"     ' the reading face
+var mono$    = "PetMe64.ttf"          ' a chunky C64 face, for the machine voice
+var boxy$    = "Gold Box Games.ttf"   ' 80s CRPG, for the menu
+
+var titlesz  = 46
+var bodysz   = 20
+var monosz   = 16
+
+var ink      = #e8e2d0                ' bone
+var accent   = gold
+var warn     = #ff5555
+
+stage 2112x1632
+show bg "bg/cham-kingslibrary.png" fill
+cam 0.5,0.45 zoom 1.6
+async pan to 0.5,0.60 over 40.0 ease inout
+
+' ------------------------------------------------------------------- STICKY
+' Set once, and it stays set -- exactly like QB64's COLOR and _FONT. Every
+' line from here on is `body$` at `bodysz` in `ink`, until something says
+' otherwise.
+font  body$ bodysz
+color ink
+
+' ...and per KIND of text, also sticky.
+font  title   display$ titlesz
+color title   accent
+font  sub     body$ bodysz
+color speaker accent
+font  caption mono$ monosz
+color caption accent
+font  choice  boxy$ 20
+
+' ------------------------------------------------------------------- TITLES
+title "THE KING'S LIBRARY" "nine shelves, and the ninth is empty" for 3.0
+
+caption "TYPOGRAPHY" at 66,3 anchor c color accent
+wait 0.4
+
+' --------------------------------------------------------------- THE BASICS
+say "This is the |14sticky|07 body font. Everything inherits it until something says otherwise."
+say "A single line can override the colour..." color warn
+say "...and the next line is back to the sticky ink, because an override does not stick."
+
+' ---------------------------------------------------------- PER-LINE FONTS
+say "A line can override the FONT too." font display$ 26
+say "And then hand it straight back."
+
+' ---------------------------------------------------------- PIPE COLOURS
+' The same |NN notation as PipeCol$ and PIPEPRINT. |00-|15 foreground,
+' |16-|23 background, |PI a literal pipe.
+say "Pipe colours work mid-sentence: |12danger|07, |10safety|07, |14gold|07, |11ice|07, |13magic|07."
+say "The full sixteen: |00 0|01 1|02 2|03 3|04 4|05 5|06 6|07 7|08 8|09 9|10 10|11 11|12 12|13 13|14 14|15 15"
+say "|17 A background code paints behind the run. |07 And then it stops."
+say "A literal pipe is |PI -- and |PI|PI|PI reads as three of them."
+
+' ------------------------------------------------------------------ TOKENS
+' {token} resolves through the SAME state keys as the `if` conditions, so
+' there is one namespace to learn rather than two.
+say "You are |10{name}|07, a |10{class}|07, carrying |14{gold}|07 gold at |12{hp}|07 hit points."
+say "Unknown tokens read as |080|07, exactly as they would in a condition: {no_such_thing}"
+
+' ------------------------------------------------ PIPES ACROSS A WRAP
+say "|12A long coloured phrase that has to wrap across more than one line, without snapping back to the default colour halfway through, because the active colour carries onto each continuation line.|07"
+
+' ------------------------------------------------------------ SPEAKER BOX
+portrait "monsters/humanoids/evil-wizard.png"
+say Librarian: "The speaker plate has its |14own|07 style, and the body keeps yours."
+say Librarian: "I can shout in a |15different face|07 when it matters." font mono$ 18
+portrait ""
+
+' ------------------------------------------------------------ THE MACHINE
+' A whole different voice: swap the STICKY body font mid-scene and everything
+' after it changes, until it is set back.
+font  say mono$ monosz
+color say #7fffd4
+say "SYSTEM: the sticky body font has been changed. This line, and every line after it, is the C64 face."
+say "SYSTEM: it will stay that way until something sets it back."
+font  say body$ bodysz
+color say ink
+say "And here we are again, in the reading face."
+
+' ---------------------------------------------------------------- A CHOICE
+' The menu has its own font style too.
+choice "Which face suits a dungeon best?"
+    option "The blackletter"   -> t_black
+    option "The C64"           -> t_c64
+    option "The CRPG box"      -> t_box
+end
+
+label t_black
+    font say display$ 24
+    say "|14Blackletter it is.|07 Hard to read, impossible to argue with."
+    jump t_end
+
+label t_c64
+    font say mono$ monosz
+    say "|11The C64 face.|07 Everything sounds like a load error."
+    jump t_end
+
+label t_box
+    font say boxy$ 20
+    say "|10Gold Box.|07 You can hear the disk drive from here."
+    jump t_end
+
+label t_end
+font  say body$ bodysz
+color say ink
+
+' ----------------------------------------------------------- SIZE LADDER
+' The same sentence, walked up the point sizes, each in its own colour, so the
+' difference between 14 and 46 is visible rather than described.
+cleartext
+caption "14pt -- a whisper"      at 66,10 anchor c color #6f7f6f font body$ 14
+caption "20pt -- speaking"       at 66,13 anchor c color #9fbf9f font body$ 20
+caption "28pt -- raising it"     at 66,17 anchor c color #d8d0b0 font body$ 28
+caption "38pt -- SHOUTING"       at 66,22 anchor c color accent  font body$ 38
+caption "52pt -- THE ROOM HEARS" at 66,29 anchor c color warn    font display$ 52
+wait 3.5
+cleartext
+
+' ------------------------------------------------------- ANIMATED TEXT
+' `from` makes a caption ARRIVE from somewhere else. Off-screen is a negative
+' row, so this drops in from above the screen -- and `ease bounce` gives it the
+' landing. The thud and the screen-shake are separate lines, timed to hit as
+' it lands rather than when it starts.
+fade to black over 0.8
+cam 0.5,0.5 zoom 1.0
+
+caption "YOU" at 66,14 from 66,-8 over 0.9 ease bounce anchor c color #cc1111 font display$ 96
+wait 0.85
+sfx "chamber-enter"
+shake 9 for 0.6
+
+caption "DIED" at 66,26 from 66,-10 over 1.0 ease bounce anchor c color #cc1111 font display$ 96
+wait 0.95
+sfx "boom"
+shake 14 for 0.9
+flash blood 0.25
+
+wait 2.0
+cleartext
+
+' ------------------------------------------------------------------- CRAWL
+' The crawl gets the display face, big, and carries pipe colour as it scrolls.
+' A big display crawl...
+font  crawl display$ 34
+color crawl ink
+crawl "nine shelves" "|14one for each level|07" "and the ninth" "|12still empty|07" for 7.0
+
+' ...and a small, quiet one in a different face and colour, to show the crawl
+' is styled like any other text.
+font  crawl mono$ 14
+color crawl #6f7f6f
+crawl "a smaller crawl, in another face" "and a colder colour" "so the two do not read the same" for 6.0
+
+cleartext
+fade to black over 1.2

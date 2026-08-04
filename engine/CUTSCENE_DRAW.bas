@@ -822,8 +822,21 @@ SUB CutDrawCaptions
 
         '--- anchor by MEASURED width: with a proportional font, counting
         '    characters puts a centred caption visibly off-centre ---
+        '--- MOTION: a caption with a `from` eases into place. Position is
+        '    computed per frame in pixels, so it can arrive from off-screen. ---
+        DIM cc AS SINGLE, rr AS SINGLE, mt AS SINGLE
+        cc = CUT_CAP(i).col
+        rr = CUT_CAP(i).row
+        IF CUT_CAP(i).movedur > 0 THEN
+            mt = (CUT_NOW - CUT_CAP(i).born) / CUT_CAP(i).movedur
+            IF mt > 1 THEN mt = 1
+            mt = CutEase!(mt, CUT_CAP(i).moveease)
+            cc = CUT_CAP(i).col0 + (CUT_CAP(i).col - CUT_CAP(i).col0) * mt
+            rr = CUT_CAP(i).row0 + (CUT_CAP(i).row - CUT_CAP(i).row0) * mt
+        END IF
+
         w = CutPipeW%(s)
-        x = CUT_CAP(i).col * CUT_CW
+        x = cc * CUT_CW
         SELECT CASE CUT_CAP(i).anchor
             CASE ANC_C: x = x - w \ 2
             CASE ANC_R: x = x - w
@@ -835,7 +848,7 @@ SUB CutDrawCaptions
         IF aa > 255 THEN aa = 255
         k = CUT_CAP(i).kolor
         k = _RGBA32(_RED32(k), _GREEN32(k), _BLUE32(k), aa)
-        CutPipeDraw x, CUT_CAP(i).row * CUT_CH, s, k
+        CutPipeDraw x, rr * CUT_CH, s, k
 
         CutFontOff
     NEXT i

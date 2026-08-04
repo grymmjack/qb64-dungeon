@@ -462,6 +462,15 @@ FUNCTION CutCompile% (path AS STRING)
                 ELSE
                     op = CutEmit%(OP_CAPTION, CutStr&(txt), CutStr&(CutKwStr$("color", 2, "")), CutNum!(CutTok$(tgt + 1)), CutNum!(CutTok$(tgt + 2)), CutAnchorCode%(CutKwStr$("anchor", 2, "l")), CutKwNum!("fade", 2, 0.3), ln, isasync)
                     CutLineStyleMods op, 2, ln
+                    '--- `from <c>,<r> over <t> [ease <e>]` makes the caption
+                    '    ARRIVE at `at` from somewhere else: text that falls in,
+                    '    slides on, or drops off the top of the screen. ---
+                    j = CutKw%("from", 2)
+                    IF j >= 0 THEN
+                        CUT_OPS(op).s3 = CutStr&(CutTok$(j + 1) + "," + CutTok$(j + 2) + "," + _
+                            _TRIM$(STR$(CutKwNum!("over", 2, 0.6))) + "," + _
+                            _TRIM$(STR$(CutEaseOr%(CutKwStr$("ease", 2, "out"), ln))))
+                    END IF
                 END IF
 
             CASE "cleartext"
@@ -758,6 +767,15 @@ SUB CutEmitLayerMods (lay AS STRING, startat AS INTEGER, ln AS INTEGER)
     '    source size, so the day the art is regenerated a little smaller every
     '    scene using it silently grows a black border -- which is also exactly
     '    what a missing backdrop looks like. `fill` cannot go stale. ---
+    '--- `fill`/`fit` size against the STAGE and therefore ignore `scale`. Both
+    '    on one line is an authoring mistake with no error and a very visible
+    '    result: a 128px sprite quietly blown up to fill the whole stage. ---
+    IF CutHasKw%("scale", startat) THEN
+        IF CutHasKw%("fill", startat) _ORELSE CutHasKw%("fit", startat) THEN
+            CutErrAdd 1, ln, "`scale` is ignored when `fill`/`fit` is also given (they size against the stage)"
+        END IF
+    END IF
+
     IF CutHasKw%("fill", startat) THEN
         op = CutEmit%(OP_LAYSET, CutStr&(lay), CUT_NOSTR, LS_FILL, 0, 0, 0, ln, TRUE)
     END IF

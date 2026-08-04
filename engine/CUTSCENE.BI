@@ -376,8 +376,14 @@ CONST TWN_MUSICVOL = 8
 TYPE CUTCAP
     used AS INTEGER
     txt AS STRING * 96
-    col AS INTEGER
-    row AS INTEGER
+    '--- SINGLE, not INTEGER: a caption that moves has to be able to sit a
+    '    fraction of a cell along, or falling text lands in visible jerks. ---
+    col AS SINGLE
+    row AS SINGLE
+    col0 AS SINGLE          ' where it starts, when it moves
+    row0 AS SINGLE
+    movedur AS SINGLE       ' 0 = it does not move
+    moveease AS INTEGER
     anchor AS INTEGER
     kolor AS _UNSIGNED LONG
     alpha AS SINGLE

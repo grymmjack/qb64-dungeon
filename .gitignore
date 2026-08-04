@@ -102,5 +102,22 @@ statshot.png
 creatorshot.png
 cutplay.run
 cutscene-shot.png
+
+# Dev-mode screenshots written to the repo ROOT. They are handy to leave lying
+# around (that is the point -- you can open them without hunting), so every
+# generator's output is ignored by name rather than tidied away.
 cutshot-*.png
 storyshot-*.png
+creatorshot*.png
+charsheet.png
+roomlint.png
+fogdump*.png
+sectorauto.png
+chamberdump.png
+settingsshot*.png
+gaugeshot*.png
+summaryshot*.png
+fightshot*.png
+rollshot*.png
+dice*shot*.png
+cutscene-shot.png

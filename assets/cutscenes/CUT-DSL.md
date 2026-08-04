@@ -161,8 +161,19 @@ zoom  to <factor> over <t> [ease <e>]
 shake <amplitude> [for <t>]
 ```
 
-`shake` never blocks — it decays on its own, because holding the scene for a
-garnish would be wrong.
+**`shake <amplitude> [for <secs>]`** — amplitude is in **pixels**, and it decays
+to nothing over the duration with an ease-out, so it hits hard and settles.
+
+| | |
+|---|---|
+| `shake 3 for 0.3` | a flinch — a door, a small hit |
+| `shake 6 for 0.5` | something lands |
+| `shake 9 for 0.6` | a body hits the floor |
+| `shake 14 for 0.9` | the room itself |
+
+It never blocks — holding the scene for a garnish would be wrong — so it runs
+*under* whatever comes next. It shakes the camera's **source** rectangle rather
+than the destination, so no black edge ever creeps in at the screen border.
 
 **Eases:** `linear` `in` `out` `inout` (default for camera) `incubic`
 `outcubic` `inoutcubic`/`smooth` `back` `bounce`.
@@ -220,6 +231,37 @@ is the player's setting, not the script's (§6).
 
 A `caption` does **not** block — it sits there while everything else continues,
 and is cleared by `cleartext`.
+
+#### Captions can MOVE
+
+```
+caption "<text>" at <col>,<row> from <col>,<row> over <secs> [ease <e>]
+```
+
+`from` is where it **starts**; `at` is where it **ends up**. Off-screen is just a
+coordinate outside the grid, so a negative row drops text in from above:
+
+```
+caption "YOU" at 66,13 from 66,-8 over 0.9 ease bounce anchor c color #cc1111 font display$ 96
+```
+
+Positions are held as fractions of a cell while moving, so text slides smoothly
+rather than snapping cell to cell.
+
+**Timing the impact is a separate line.** The thud and the shake belong *after*
+a `wait`, matched to when the text lands — fire them on the same beat as the
+caption and the impact sounds while the text is still in the air:
+
+```
+caption "DIED" at 66,26 from 66,-12 over 1.0 ease bounce anchor c color #cc1111 font display$ 96
+wait 0.95            ' let it fall
+sfx   "boom"         ' ...then hit
+shake 14 for 0.9
+flash blood 0.22
+```
+
+`ease bounce` is what makes it read as weight; `ease out` settles politely and
+`ease back` overshoots and snaps in. See `deathtext.cut` for the whole thing.
 
 **Colours:** `black white red blood green blue cyan magenta yellow gold orange
 grey bone`, or `#RRGGBB`. An unknown name keeps the built-in colour rather than
@@ -522,7 +564,82 @@ also exactly what a missing backdrop looks like.
 
 ---
 
-## 9. Things the compiler will not let you do
+## 9. Recipes
+
+### Restyle every scene in a pack, from one file
+
+`_common.cut` is `include`d by every scene, so the `var` and sticky `font`/
+`color` lines belong there. Change those, and the whole pack changes.
+
+```
+' _common.cut
+var display$ = "alagard.ttf"
+var body$    = "dungeon-mode.ttf"
+var ink      = #e8e2d0
+var accent   = gold
+
+stage 2112x1632
+font  body$ 20
+color ink
+font  title display$ 46
+color title accent
+```
+
+```
+' any scene
+include "_common.cut"
+title "THE CRYPT"          ' already blackletter, already gold
+say   "The air turns cold." ' already the reading face
+```
+
+### Text that falls in and lands
+
+See `deathtext.cut` — the short version is: `from` above the screen,
+`ease bounce`, then `wait` and hit it with `sfx` + `shake`.
+
+### A size ladder
+
+The same words at several sizes reads more clearly than any description:
+
+```
+caption "14pt -- a whisper"      at 66,10 anchor c color #6f7f6f font body$ 14
+caption "28pt -- raising it"     at 66,17 anchor c color #d8d0b0 font body$ 28
+caption "52pt -- THE ROOM HEARS" at 66,29 anchor c color #ff5555 font display$ 52
+```
+
+### A different voice, mid-scene
+
+Because `font`/`color` are sticky, a machine or a god can simply take over and
+hand back:
+
+```
+font  say mono$ 16
+color say #7fffd4
+say "SYSTEM: this line, and every line after it, is the C64 face."
+font  say body$ 20        ' ...and back
+color say ink
+```
+
+### Fire, smoke, water
+
+Drop an animated GIF on a layer; it decodes whole and loops at its own delays:
+
+```
+show fire "fx/torch.gif" at 0.18,0.55 scale 3
+```
+
+### Two things at once
+
+```
+async pan  to 0.7,0.6 over 8.0 ease inout
+async zoom to 1.4     over 8.0 ease inout
+say   "The camera keeps moving while this types."
+waitall
+```
+
+---
+
+## 10. Things the compiler will not let you do
 
 An unknown command is a **hard error**, not a silent no-op. So is a jump to a
 label that does not exist, a duplicate label, an unclosed `if`, an `option`
@@ -541,7 +658,7 @@ anything. The VM bounds the instructions per frame and reports it instead.
 
 ---
 
-## 10. Embedding the engine in a game
+## 11. Embedding the engine in a game
 
 The engine reaches its host through **eleven hooks and nothing else**:
 

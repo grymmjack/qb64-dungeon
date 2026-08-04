@@ -389,7 +389,7 @@ SUB CutExec (p AS INTEGER)
             NEXT i
 
         CASE OP_CAPTION
-            CutCaptionAdd CutFillTokens$(CutStrGet$(CUT_OPS(p).s1)), CINT(CUT_OPS(p).n1), CINT(CUT_OPS(p).n2), CINT(CUT_OPS(p).n3), CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s2), CUT_OPS(p).fonth
+            CutCaptionAdd CutFillTokens$(CutStrGet$(CUT_OPS(p).s1)), CUT_OPS(p).n1, CUT_OPS(p).n2, CINT(CUT_OPS(p).n3), CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s2), CUT_OPS(p).fonth, CutStrGet$(CUT_OPS(p).s3)
 
         CASE OP_PORTRAIT
             IF CUT_PORTRAIT > 0 THEN _FREEIMAGE CUT_PORTRAIT
@@ -530,7 +530,7 @@ SUB CutLayerDropArt (L AS INTEGER)
     CUT_LAY(L).workstep = -1
 END SUB
 
-SUB CutCaptionAdd (txt AS STRING, col AS INTEGER, row AS INTEGER, anchor AS INTEGER, fade AS SINGLE, colorkey AS STRING, fonth AS LONG)
+SUB CutCaptionAdd (txt AS STRING, col AS SINGLE, row AS SINGLE, anchor AS INTEGER, fade AS SINGLE, colorkey AS STRING, fonth AS LONG, movespec AS STRING)
     DIM i AS INTEGER, slot AS INTEGER
     FOR i = 1 TO CUT_MAXCAP
         IF CUT_CAP(i).used = 0 THEN slot = i: EXIT FOR
@@ -548,6 +548,27 @@ SUB CutCaptionAdd (txt AS STRING, col AS INTEGER, row AS INTEGER, anchor AS INTE
     CUT_CAP(slot).born = CUT_NOW
     CUT_CAP(slot).fade = fade
     CUT_CAP(slot).alpha = 0
+
+    '--- "<c>,<r>,<secs>,<ease>" from the compiler, or empty for a still one ---
+    CUT_CAP(slot).movedur = 0
+    CUT_CAP(slot).col0 = col
+    CUT_CAP(slot).row0 = row
+    IF LEN(movespec) > 0 THEN
+        DIM mv(1 TO 4) AS STRING, mi AS INTEGER, mp AS INTEGER, mrest AS STRING
+        mrest = movespec
+        FOR mi = 1 TO 4
+            mp = INSTR(mrest, ",")
+            IF mp > 0 THEN
+                mv(mi) = LEFT$(mrest, mp - 1): mrest = MID$(mrest, mp + 1)
+            ELSE
+                mv(mi) = mrest: mrest = ""
+            END IF
+        NEXT mi
+        CUT_CAP(slot).col0 = CutNum!(mv(1))
+        CUT_CAP(slot).row0 = CutNum!(mv(2))
+        CUT_CAP(slot).movedur = CutNum!(mv(3))
+        CUT_CAP(slot).moveease = CINT(CutNum!(mv(4)))
+    END IF
 END SUB
 
 ' ----------------------------------------------------------------------------
