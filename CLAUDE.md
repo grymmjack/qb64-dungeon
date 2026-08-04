@@ -436,7 +436,16 @@ Environment specifics that dictate this approach:
   `scratchpads/cutscene/CUTPLAY.bas` -> `cutplay.run`).
   DSL-scripted "little movies": layered still art + PNG frame-sequence animation, a pan/zoom
   camera, transitions, music/sfx/narration, conditional branching and player choice menus.
-  **[scratchpads/cutscene/CUT-DSL.md](scratchpads/cutscene/CUT-DSL.md) is the language reference**; `run-tests.sh` beside it is the gate.
+  **[assets/cutscenes/CUT-DSL.md](assets/cutscenes/CUT-DSL.md) is the language reference** (it lives
+  beside the scenes, not with the code, so it cannot be misplaced);
+  `scratchpads/cutscene/run-tests.sh` is the gate.
+  **Animated GIFs just work** — `show fx "fire.gif"` decodes every frame with its own
+  delay and loops. `_LOADIMAGE` opens a .gif and returns only its FIRST frame, which is the
+  worst kind of failure (valid handle, every check passes, picture never moves), so
+  `engine/CUTSCENE_GIF.bas` is a self-contained decoder: LZW, interlace, local/global
+  palettes, transparency, all four disposal methods. Toolbox64 HAS a GIF library, but its
+  `Core/Common.bi` collides with the older copy already vendored under `engine/ansi/` —
+  two versions of one header in a single program.
   **The VM is a STEP MACHINE, not a blocking loop.** `CutStep` runs opcodes until one *declares
   a wait*, then returns to a frame loop that advances tweens and redraws. Every other
   interactive screen here is its own `DO...LOOP`, which is exactly why none of them can do two

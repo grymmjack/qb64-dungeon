@@ -531,6 +531,7 @@ END SUB
 '$INCLUDE:'../../engine/CUTSCENE_VM.bas'
 '$INCLUDE:'../../engine/CUTSCENE_EXEC.bas'
 '$INCLUDE:'../../engine/CUTSCENE_DRAW.bas'
+'$INCLUDE:'../../engine/CUTSCENE_GIF.bas'
 '$INCLUDE:'CUTMOCK.bas'
 '$INCLUDE:'CUTTEST.bas'
 '$INCLUDE:'../../engine/ansi/ANSIPrint.bas'

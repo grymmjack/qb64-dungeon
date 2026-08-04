@@ -214,7 +214,12 @@ SUB CutExec (p AS INTEGER)
             L = CutLayerGet%(CutStrGet$(CUT_OPS(p).s1))
             IF L > 0 THEN
                 CutLayerSetArt L, CutStrGet$(CUT_OPS(p).s2)
-                CUT_LAY(L).isanim = FALSE
+                '--- `show` normally makes a layer a STILL, undoing any earlier
+                '    `anim` on it. An animated GIF is a still FILE that animates
+                '    itself, so it has to survive that -- clearing the flag here
+                '    unconditionally decoded every frame and then showed the
+                '    first one forever. ---
+                IF CUT_LAY(L).isgif = 0 THEN CUT_LAY(L).isanim = FALSE
                 IF CUT_OPS(p).n1 > 0 THEN
                     CUT_LAY(L).alpha = 0
                     slot = CutTweenStart%(TWN_LAYALPHA, L, 0, 1, CUT_OPS(p).n1, EASE_LINEAR)
@@ -320,7 +325,7 @@ SUB CutExec (p AS INTEGER)
                     L = CutLayerGet%(LEFT$(s, i - 1))
                     IF L > 0 THEN
                         CutLayerSetArt L, MID$(s, i + 1)
-                        CUT_LAY(L).isanim = FALSE
+                        IF CUT_LAY(L).isgif = 0 THEN CUT_LAY(L).isanim = FALSE
                         CUT_LAY(L).alpha = 1
                     END IF
                 END IF
@@ -440,12 +445,43 @@ SUB CutLayerCover (L AS INTEGER, cover AS INTEGER)
 END SUB
 
 SUB CutLayerSetArt (L AS INTEGER, subpath AS STRING)
-    DIM img AS LONG
+    DIM img AS LONG, n AS INTEGER, p AS STRING
+
+    '--- an ANIMATED GIF is one file that is really many frames. Decode it
+    '    whole, here, so nothing downstream has to know the difference: from
+    '    the compositor's point of view the layer just changes picture. ---
+    IF CutIsGif%(subpath) THEN
+        p = Game_CutArtPath$(subpath)
+        IF LEN(p) > 0 THEN
+            CutLayerDropArt L
+            GifFreeLayer L
+            n = GifLoadInto%(L, p)
+            IF n > 0 THEN
+                CUT_LASTART = p
+                CUT_LAY(L).isgif = TRUE
+                CUT_LAY(L).isanim = TRUE
+                CUT_LAY(L).nframes = n
+                CUT_LAY(L).frame = 1
+                CUT_LAY(L).adir = 1
+                CUT_LAY(L).adone = FALSE
+                CUT_LAY(L).amode = AM_LOOP
+                CUT_LAY(L).atime = CUT_NOW
+                CUT_LAY(L).src = CUT_GIFIMG(L, 1)
+                CUT_LAY(L).w = _WIDTH(CUT_GIFIMG(L, 1))
+                CUT_LAY(L).h = _HEIGHT(CUT_GIFIMG(L, 1))
+                CUT_LAY(L).workstep = -1
+                EXIT SUB
+            END IF
+        END IF
+        '--- a .gif that would not decode falls through to the ordinary loader,
+        '    which draws the loud MISSING box rather than nothing ---
+    END IF
+
+    CutLayerDropArt L
+    GifFreeLayer L
+    CUT_LAY(L).isgif = FALSE
+
     img = CutLoadArt&(subpath)
-    IF CUT_LAY(L).src > 0 THEN _FREEIMAGE CUT_LAY(L).src
-    IF CUT_LAY(L).work > 0 THEN _FREEIMAGE CUT_LAY(L).work
-    CUT_LAY(L).work = 0
-    CUT_LAY(L).workstep = -1
     CUT_LAY(L).src = img
     IF img < -1 THEN
         CUT_LAY(L).w = _WIDTH(img)
@@ -454,6 +490,19 @@ SUB CutLayerSetArt (L AS INTEGER, subpath AS STRING)
         CUT_LAY(L).w = 0
         CUT_LAY(L).h = 0
     END IF
+END SUB
+
+'--- release whatever the layer is currently holding. A GIF layer's `src` is
+'    borrowed from CUT_GIFIMG and must NOT be freed here -- GifFreeLayer owns
+'    those, and freeing one twice is the classic way to corrupt the heap. ---
+SUB CutLayerDropArt (L AS INTEGER)
+    IF CUT_LAY(L).isgif = 0 THEN
+        IF CUT_LAY(L).src < -1 THEN _FREEIMAGE CUT_LAY(L).src
+    END IF
+    CUT_LAY(L).src = 0
+    IF CUT_LAY(L).work < -1 THEN _FREEIMAGE CUT_LAY(L).work
+    CUT_LAY(L).work = 0
+    CUT_LAY(L).workstep = -1
 END SUB
 
 SUB CutCaptionAdd (txt AS STRING, col AS INTEGER, row AS INTEGER, anchor AS INTEGER, fade AS SINGLE, colorkey AS STRING)
@@ -622,7 +671,14 @@ SUB CutAnimTick
 
         nf = CUT_LAY(i).nframes
         IF nf < 2 THEN _CONTINUE
-        IF CUT_NOW - CUT_LAY(i).atime < 1 / CUT_LAY(i).fps THEN _CONTINUE
+        IF CUT_LAY(i).isgif THEN
+            '--- a GIF times ITSELF: each frame carries its own delay, and
+            '    flattening that to one fps is what makes a decoded GIF play
+            '    at visibly the wrong speed. ---
+            IF CUT_NOW - CUT_LAY(i).atime < CUT_GIFDELAY(i, CUT_LAY(i).frame) THEN _CONTINUE
+        ELSE
+            IF CUT_NOW - CUT_LAY(i).atime < 1 / CUT_LAY(i).fps THEN _CONTINUE
+        END IF
 
         CUT_LAY(i).atime = CUT_NOW
         adv = CUT_LAY(i).frame + CUT_LAY(i).adir
@@ -649,7 +705,16 @@ SUB CutAnimTick
 
         IF adv <> CUT_LAY(i).frame THEN
             CUT_LAY(i).frame = adv
-            CutLayerSetArt i, CutFramePath$(_TRIM$(CUT_LAY(i).abase), adv)
+            IF CUT_LAY(i).isgif THEN
+                '--- already in memory: just point at it, and invalidate the
+                '    alpha working copy so a faded GIF still fades ---
+                CUT_LAY(i).src = CUT_GIFIMG(i, adv)
+                IF CUT_LAY(i).work < -1 THEN _FREEIMAGE CUT_LAY(i).work
+                CUT_LAY(i).work = 0
+                CUT_LAY(i).workstep = -1
+            ELSE
+                CutLayerSetArt i, CutFramePath$(_TRIM$(CUT_LAY(i).abase), adv)
+            END IF
         END IF
     NEXT i
 END SUB

@@ -64,6 +64,22 @@ CONST CUT_MAXCRAWL = 32
 CONST CUT_MAXCAP = 8
 CONST CUT_MAXINC = 8
 
+'--- ANIMATED GIF: frames are decoded whole at load (engine/CUTSCENE_GIF.bas).
+'    _LOADIMAGE opens a .gif and returns only its FIRST frame, which is the
+'    worst kind of failure -- the handle is valid, every check passes, and the
+'    picture simply never moves.
+CONST CUT_MAXGIF = 96
+DIM SHARED CUT_GIFIMG(0 TO CUT_MAXLAYER, 1 TO CUT_MAXGIF) AS LONG
+DIM SHARED CUT_GIFDELAY(0 TO CUT_MAXLAYER, 1 TO CUT_MAXGIF) AS SINGLE
+
+'--- the decoder's working palettes: the CURRENT frame's, and the global one it
+'    falls back to (a local table overwrites GIF_PAL, so the global must be
+'    kept separately or the frame after a local-table frame decodes wrong).
+DIM SHARED GIF_PAL(0 TO 255) AS _UNSIGNED LONG
+DIM SHARED GIF_GCT(0 TO 255) AS _UNSIGNED LONG
+DIM SHARED GIF_NPAL AS INTEGER
+DIM SHARED GIF_NGCT AS INTEGER
+
 '--- string-pool sentinel: "this op has no string in slot N" ---
 CONST CUT_NOSTR = 0
 
@@ -259,6 +275,7 @@ TYPE CUTLAYER
     atime AS DOUBLE         ' when the current frame started
     adone AS INTEGER        ' a `once` animation has finished
     adir AS INTEGER         ' +1 / -1, so pingpong needs no second state
+    isgif AS INTEGER        ' frames live in CUT_GIFIMG, not loaded per frame
 END TYPE
 
 '--- one running interpolation. Everything that moves over time is one of

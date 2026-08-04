@@ -472,6 +472,7 @@ FUNCTION CutLayerGet% (nm AS STRING)
             CUT_LAY(i).parallax = 1
             CUT_LAY(i).z = maxz + 1
             CUT_LAY(i).isanim = FALSE
+            CUT_LAY(i).isgif = FALSE
             CUT_LAY(i).nframes = 0
             CUT_LAY(i).frame = 1
             CUT_LAY(i).adone = FALSE
@@ -486,13 +487,19 @@ END FUNCTION
 
 SUB CutLayerFree (i AS INTEGER)
     IF i < 1 THEN EXIT SUB
-    IF CUT_LAY(i).src > 0 THEN _FREEIMAGE CUT_LAY(i).src
-    IF CUT_LAY(i).work > 0 THEN _FREEIMAGE CUT_LAY(i).work
+    '--- a GIF layer's src is BORROWED from CUT_GIFIMG; GifFreeLayer owns it ---
+    IF CUT_LAY(i).isgif THEN
+        GifFreeLayer i
+    ELSE
+        IF CUT_LAY(i).src < -1 THEN _FREEIMAGE CUT_LAY(i).src
+    END IF
+    IF CUT_LAY(i).work < -1 THEN _FREEIMAGE CUT_LAY(i).work
     CUT_LAY(i).src = 0
     CUT_LAY(i).work = 0
     CUT_LAY(i).workstep = -1
     CUT_LAY(i).used = FALSE
     CUT_LAY(i).isanim = FALSE
+    CUT_LAY(i).isgif = FALSE
 END SUB
 
 SUB CutLayersFreeAll

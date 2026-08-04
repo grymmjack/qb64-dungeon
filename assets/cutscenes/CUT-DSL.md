@@ -107,6 +107,24 @@ you `show` is the backdrop. A new layer takes the next free depth, so without
 `z` a layer can only ever be drawn *in front* of what is already there; `z 0`
 slides one in behind. Paths resolve through the content packs (§7).
 
+**Animated GIFs just work.** `show fx "fire.gif"` decodes every frame, keeps
+each frame's own delay, and loops — no `anim`, no frame count, no splitting:
+
+```
+show fx "fx/torch.gif" at 0.8,0.4 scale 2
+```
+
+`_LOADIMAGE` will open a .gif and hand back only its FIRST frame, which is the
+worst kind of failure — the handle is valid, every check passes, and the picture
+simply never moves. So the engine carries its own decoder
+(`engine/CUTSCENE_GIF.bas`): LZW, interlace, local and global palettes,
+transparency, and all four disposal methods. A GIF frame is a *patch* applied to
+a running canvas rather than a picture, so frames are composited and snapshotted
+whole; decoding them in isolation would give a stack of fragments on black.
+
+Use a frame sequence instead when you want per-frame control (`once`,
+`pingpong`, a chosen fps) or when the art needs more than 256 colours.
+
 `anim` plays a **PNG frame sequence**: `anim fog "fx/fog" frames 8 fps 12 loop`
 looks for `fx/fog-01.png` … `fx/fog-08.png`. Two digits, zero-padded — which is
 what `ffmpeg -i in.gif out-%02d.png` and ImageMagick both write by default, so
@@ -407,7 +425,7 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     headless assertions (111)
+cutplay.run selftest                     headless assertions (117)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in

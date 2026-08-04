@@ -361,6 +361,49 @@ SUB DoSelftest
     CutOk "  and execution continues past it", Game_CutState#("flag.past_the_wait") = 1
 
     ' ------------------------------------------------------------------
+    CutSect "animated GIF decoding"
+
+    '--- _LOADIMAGE opens a .gif and hands back only its FIRST frame: the handle
+    '    is valid, every check passes, and the picture never moves. So the whole
+    '    decoder is here, and this proves it reads frame TWO.
+    '
+    '    The GIF is embedded as bytes rather than read from assets/ because a
+    '    test that depends on an asset file tests the asset, not the decoder --
+    '    and this one has to keep working when the art is regenerated. ---
+    DIM g AS STRING, gp AS STRING, gn AS INTEGER, gc AS _UNSIGNED LONG, gsrc AS LONG
+    g = g + GifHex$("47494638396104000100F00000FF000000000021FF0B4E45")
+    g = g + GifHex$("545343415045322E30030100000021F90400050000002C00")
+    g = g + GifHex$("0000000400010000020284510021F90400050000002C0000")
+    g = g + GifHex$("0000040001008000FF0000000002028451003B")
+
+    gp = "cuttest-tiny.gif"
+    DIM gf AS INTEGER
+    gf = FREEFILE
+    OPEN gp FOR OUTPUT AS #gf: CLOSE #gf          ' truncate
+    OPEN gp FOR BINARY AS #gf
+    PUT #gf, 1, g
+    CLOSE #gf
+
+    CutOk "a .gif is recognised as one", CutIsGif%("fx/fire.gif")
+    CutOk "a .png is not", CutIsGif%("fx/fire.png") = 0
+
+    gn = GifLoadInto%(1, gp)
+    CutOk "the decoder finds BOTH frames (not just the first)", gn = 2
+    IF gn >= 2 THEN
+        gsrc = _SOURCE
+        _SOURCE CUT_GIFIMG(1, 1)
+        gc = POINT(1, 0)
+        CutOk "  frame 1 is red", _RED32(gc) > 200 _ANDALSO _GREEN32(gc) < 60
+        _SOURCE CUT_GIFIMG(1, 2)
+        gc = POINT(1, 0)
+        CutOk "  frame 2 is GREEN -- a different picture, so it really animates", _GREEN32(gc) > 200 _ANDALSO _RED32(gc) < 60
+        _SOURCE gsrc
+        CutOk "  each frame carries its own delay", CUT_GIFDELAY(1, 1) > 0
+    END IF
+    GifFreeLayer 1
+    KILL gp
+
+    ' ------------------------------------------------------------------
     CutSect "text wrap"
 
     DIM lines(0 TO 63) AS STRING, nl AS INTEGER
@@ -404,3 +447,13 @@ SUB CutRunHeadless (maxsecs AS SINGLE)
         CUT_NOW = CutClock#
     NEXT i
 END SUB
+
+
+'--- hex string -> bytes, so a binary fixture can live in the source ---
+FUNCTION GifHex$ (h AS STRING)
+    DIM i AS INTEGER, r AS STRING
+    FOR i = 1 TO LEN(h) - 1 STEP 2
+        r = r + CHR$(VAL("&H" + MID$(h, i, 2)))
+    NEXT i
+    GifHex$ = r
+END FUNCTION
