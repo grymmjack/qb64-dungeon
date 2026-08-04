@@ -1,0 +1,35 @@
+' ============================================================================
+'  lose.cut -- you did not.
+' ============================================================================
+
+scene lose
+noskip
+
+musicstop fade 0.6
+show bg "bg/cut-crypt.png" fill at 0.5,0.5
+cam 0.5,0.5 zoom 1.6
+
+' The screen dies before the scene starts, then comes back wrong.
+static 0.4
+music "lose" fadein 0.5 once
+narrate "lose.title"
+
+shake 5 for 0.6
+title "YOU DID NOT" for 2.5
+
+' Very slow drift in on the dropped sword. Nothing else moves.
+async zoom to 1.9 over 12.0 ease linear
+
+say "The torch goes out somewhere above you, and stays out."
+say "Whatever you were carrying belongs to the dungeon now."
+
+if level >= 7
+    say "Seven levels down. Nobody will find this."
+elseif level <= 2
+    say "Two levels down. That is almost embarrassing."
+end
+
+caption "R.I.P." at 66,44 anchor c color blood fade 2.0
+
+waitall
+crtoff 1.2

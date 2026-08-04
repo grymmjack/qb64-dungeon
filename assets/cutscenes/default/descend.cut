@@ -1,0 +1,52 @@
+' ============================================================================
+'  descend.cut -- one short beat each time you go a level deeper.
+'
+'  ONE scene handles all nine descents rather than nine files. The depth is
+'  read from game state, so the branch lives in the script where an author can
+'  see it, and adding a line for level 7 does not mean touching any code.
+'
+'  This is the most-seen cut-scene in a run, so it is deliberately SHORT --
+'  about four seconds if you let it play, less if you press a key. A beat you
+'  watch nine times a game earns its length differently from an ending.
+' ============================================================================
+
+scene descend
+
+' No `stage` line: the default stage is exactly the screen, which is what a
+' short beat with one slow push-in wants.
+
+show bg "bg/cut-stair.png" fill at 0.5,0.5
+cam 0.5,0.35 zoom 1.05
+
+' Everything below runs UNDER this push-in, which lasts the whole scene.
+async zoom to 1.35 over 5.0 ease inoutcubic
+async pan  to 0.5,0.62 over 5.0 ease inoutcubic
+
+sfx "stairs"
+caption "DESCENDING" at 66,3 anchor c color bone fade 0.6
+
+' ------------------------------------------------------------- where you are
+if level >= 9
+    caption "LEVEL NINE" at 66,5 anchor c color red fade 0.6
+    say "There is no tenth level. Whatever is down here knows that too."
+elseif level >= 7
+    caption "THE DEEP LEVELS" at 66,5 anchor c color orange fade 0.6
+    say "The stone stops being cut and starts being worn."
+elseif level >= 5
+    caption "THE CRYPT LEVELS" at 66,5 anchor c color gold fade 0.6
+    say "Down here the doors were built to be closed from the outside."
+else
+    say "The stair turns, and turns, and does not end."
+end
+
+' -------------------------------------------------- what you are carrying
+' A second, independent branch. Two small conditionals read better than one
+' big one, and each can be edited without disturbing the other.
+if has_key
+    say "The Level Key is warm in your hand. It should not be warm."
+elseif gold >= 5000
+    say "Your purse has started to make you slower, and louder."
+end
+
+waitall
+fade to black over 0.5

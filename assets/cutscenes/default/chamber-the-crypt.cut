@@ -1,0 +1,34 @@
+' ============================================================================
+'  chamber-the-crypt.cut -- entering a named hall.
+'
+'  One file per chamber, named `chamber-<slug>.cut`, so the eventual
+'  board-position trigger is a lookup and not a special case. This is also the
+'  shape a future per-cell trigger table would fire.
+' ============================================================================
+
+scene chamber-the-crypt
+stage 2112x1632
+
+show bg "bg/cut-hall.png" fill at 0.5,0.5
+cam 0.30,0.5 zoom 2.0
+
+' A long lateral pan across the hall, so the room reads as WIDE. This is the
+' one thing a still image cannot do on its own.
+async pan to 0.72,0.5 over 9.0 ease inout
+
+sfx "chamber-enter"
+narrate "chamber.the-crypt"
+caption "THE CRYPT" at 66,3 anchor c color gold fade 1.0
+
+say "Three doors, and the one you came through has already closed."
+say "Something in here counts to three."
+
+' First visit only. The flag is persistent, so the second visit is quieter --
+' which is the point of persistent flags in a roguelike.
+if not flag.seen_crypt
+    set seen_crypt = 1
+    say "You have not been here before. It has been here the whole time."
+end
+
+waitall
+scatter over 1.0

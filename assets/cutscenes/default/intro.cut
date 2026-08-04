@@ -1,0 +1,55 @@
+' ============================================================================
+'  intro.cut -- the game opens.
+'
+'  Played once, before the first level. This is the scene that replaces the
+'  old intro.descent text crawl, so it keeps that narration key: any narration
+'  pack that already voices `intro.descent` voices this too, unchanged.
+' ============================================================================
+
+scene intro
+stage 2112x1632
+
+' ------------------------------------------------------------- the gate
+' Open in the dark and bring the gate up out of it, rather than cutting to a
+' lit picture: the scene should feel like your eyes adjusting.
+cam 0.5,0.62 zoom 1.6
+show bg "bg/cut-gate.png" fill at 0.5,0.5
+fade to black over 0
+
+music "intro" fadein 4.0
+fade from black over 2.5
+
+title "DUNGEON!" "nine levels down" for 3.0
+
+' The camera drifts the whole time the narration runs. Six seconds of pan
+' under two lines of text costs nothing extra -- that is what `async` is for.
+async pan  to 0.5,0.30 over 12.0 ease inout
+async zoom to 2.1      over 12.0 ease inout
+
+narrate "intro.descent"
+say "They say the stair was cut by something that wanted company."
+say "Nine levels. Every one of them deeper than the last."
+say "Nobody makes you go down. That is the part people forget."
+
+waitall
+
+' ------------------------------------------------------------ who you are
+' The class art is a sprite, not a backdrop, so it sits on its own layer over
+' the gate and fades in.
+if class == wizard
+    show hero "classes/wizard.png" scale 5 at 0.5,0.55 fade 1.2
+    say "You go down with a staff and eight spells and no armour at all."
+elseif class == elf
+    show hero "classes/elf.png" scale 5 at 0.5,0.55 fade 1.2
+    say "You go down looking for the doors nobody else can find."
+elseif class == superhero
+    show hero "classes/superhero.png" scale 5 at 0.5,0.55 fade 1.2
+    say "You go down because twenty thousand in gold is a reasonable price."
+else
+    show hero "classes/hero.png" scale 5 at 0.5,0.55 fade 1.2
+    say "You go down with a sword and a lantern, like everyone before you."
+end
+
+set seen_intro = 1
+
+crtoff 0.8
