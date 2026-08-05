@@ -136,8 +136,12 @@ First-person view (26-08-05):
     x A weapon/hand in the foreground, per class, bobbing and swinging on a hit @done(26-08-05)
     x Doors as THIN WALLS on the cell midline, hung across the corridor by their jambs @done(26-08-05)
     x Combat staged in the corridor -- the 3D view is the backdrop behind the panel @done(26-08-05)
-    - monsters that face you / animate between frames
-    - the fight's own camera moves (a lunge on a crit, a shake on a hit taken)
+    x The fight's camera: lunge on a landed blow, shake on one taken, red flash on the struck monster @done(26-08-05)
+    x   lunge moves the EYE (perspective), shake moves the BLIT (a jolt, not a swim) @done(26-08-05)
+    x   the flash is a cached alpha-correct red copy, not a rectangle over the columns @done(26-08-05)
+    x Living billboards breathe, phase-shifted per position @done(26-08-05)
+    - monsters that turn to face you (needs per-facing art or a mirrored sheet)
+    - a torch radius: light falls off from the player rather than only with distance
     - door FRAMES using fps/door.png (the art is generated and unused today)
 
 Engine GUIs (26-08-05):

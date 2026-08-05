@@ -478,6 +478,20 @@ Environment specifics that dictate this approach:
   the combat panel is the 3D view with the camera turned to the monster -- its real billboard at
   its real distance, fogged like everything else, not a portrait pasted on. Nothing about the
   fight changes; only what is behind it.
+  **THE FIGHT MOVES THE CAMERA** (`FpsShakeNow` / `FpsLungeNow` / `FpsFlashAt`, all decayed in
+  ONE place by `FpsDecay` -- scattering decay across the setters is how one of them never decays
+  and the screen shakes forever). A landed blow **lunges** (applied to the EYE, so the walls move
+  in perspective the way stepping forward does); a blow taken **shakes** (applied to the BLIT,
+  because a shake is the picture rattling, and shaking the eye through a raycaster makes the
+  world swim rather than jolt) -- and the shake **over-covers** by its own magnitude, or a strip
+  of the 2D board shows along one edge. A struck monster **flashes red**: a cached red copy of
+  the sprite drawn OVER the real one, because painting red over its screen COLUMNS is a one-liner
+  that ignores alpha and flashes a red RECTANGLE with the monster faintly inside it. Living
+  billboards also **breathe** (`FSP_BOB`), phase-shifted by position so a row of skeletons does
+  not rise and fall in unison.
+  **Gotcha:** `FpsPresent` (the shot) and `FpsPresentPlayer` (the play loop) each used to blit
+  the buffer themselves, and the camera impulses went into only one -- so the shot could not
+  photograph the thing it exists to photograph. Both go through `FpsCompose` now.
   **Gotcha that cost a debugging round:** a local named `sw` shadows the shared `SW`, so
   `SW * CW` silently became 0 and the weapon drew at x = -317. `tests/audit-shadow.sh` lists
   `sw` for exactly this reason -- it would have said so the moment the gate ran.

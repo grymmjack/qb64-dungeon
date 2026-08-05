@@ -302,7 +302,7 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
     DIM tx AS SINGLE, ty AS SINGLE, scrx AS INTEGER
     DIM sw2 AS INTEGER, sh2 AS INTEGER, x1 AS INTEGER, x2 AS INTEGER
     DIM y1 AS INTEGER, y2 AS INTEGER, col AS INTEGER, u AS INTEGER
-    DIM h AS LONG, fog AS INTEGER, lift AS INTEGER
+    DIM h AS LONG, fog AS INTEGER, lift AS INTEGER, hurt AS LONG
 
     IF FSP_N < 1 THEN EXIT SUB
 
@@ -347,6 +347,10 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
         lift = (FPS_H * FPS_WALLH / ty) / 2 - sh2 * (1 - FSP_LIFT(i))
         y1 = hz - sh2 \ 2 - lift + sh2 \ 2
         y1 = hz + INT((FPS_H * FPS_WALLH / ty) / 2) - sh2 - INT(FSP_LIFT(i) * sh2)
+        '--- a slow idle rise and fall, phase-shifted per sprite by its position
+        '    so a row of skeletons does not breathe in unison. Scaled by 1/ty so
+        '    a distant one does not jitter a whole pixel. ---
+        IF FSP_BOB(i) THEN y1 = y1 + INT(SIN(FPS_IDLE + FSP_X(i) + FSP_Y(i) * 1.7) * (sh2 * 0.045))
         y2 = y1 + sh2 - 1
 
         x1 = scrx - sw2 \ 2
@@ -354,6 +358,20 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
         IF x2 < 0 _ORELSE x1 > FPS_W - 1 THEN FPS_RJ_OFF = FPS_RJ_OFF + 1: _CONTINUE
 
         fog = FpsFog%(ty)
+        '--- is THIS the thing that was just struck? If so, swap in a RED copy
+        '    of the image rather than painting red over the column: a column
+        '    overlay ignores the sprite's alpha and paints a red RECTANGLE, box
+        '    and all, which is what the first version did. ---
+        hurt = 0
+        IF FPS_FLASH > 0 THEN
+            IF INT(FSP_X(i)) = FPS_FLASHX _ANDALSO INT(FSP_Y(i)) = FPS_FLASHY THEN
+                '--- the red is drawn OVER the real sprite, not instead of it,
+                '    so the monster is still recognisably itself while it is
+                '    lit up. Gated on the decay so it blinks rather than fades
+                '    to a pink smear. ---
+                IF FPS_FLASH > 0.35 THEN hurt = FpsHurtImage&(FSP_PATH(i), h)
+            END IF
+        END IF
 
         FOR col = x1 TO x2
             IF col < 0 _ORELSE col > FPS_W - 1 THEN _CONTINUE
@@ -362,6 +380,7 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
             IF u < 0 THEN u = 0
             IF u > _WIDTH(h) - 1 THEN u = _WIDTH(h) - 1
             _PUTIMAGE (col, y1)-(col, y2), h, FPS_BUF, (u, 0)-(u, _HEIGHT(h) - 1)
+            IF hurt < -1 THEN _PUTIMAGE (col, y1)-(col, y2), hurt, FPS_BUF, (u, 0)-(u, _HEIGHT(hurt) - 1)
             IF fog > 0 THEN LINE (col, y1)-(col, y2), _RGBA32(0, 0, 6, fog)
             FPS_DREW = FPS_DREW + 1
         NEXT col
@@ -370,6 +389,11 @@ END SUB
 
 '--- the game hands billboards in through this, once per frame ---
 SUB FpsAddSprite (cx AS SINGLE, cy AS SINGLE, path AS STRING, scale AS SINGLE, lift AS SINGLE)
+    FpsAddSpriteEx cx, cy, path, scale, lift, 0
+END SUB
+
+'--- `bob` marks a sprite as ALIVE: it breathes. A grave should not. ---
+SUB FpsAddSpriteEx (cx AS SINGLE, cy AS SINGLE, path AS STRING, scale AS SINGLE, lift AS SINGLE, bob AS INTEGER)
     IF FSP_N >= FPS_SPR_MAX THEN EXIT SUB
     IF LEN(path) = 0 THEN EXIT SUB
     FSP_N = FSP_N + 1
@@ -378,10 +402,12 @@ SUB FpsAddSprite (cx AS SINGLE, cy AS SINGLE, path AS STRING, scale AS SINGLE, l
     FSP_PATH(FSP_N) = path
     FSP_SCALE(FSP_N) = scale
     FSP_LIFT(FSP_N) = lift
+    FSP_BOB(FSP_N) = bob
 END SUB
 
 SUB FpsClearSprites
     FSP_N = 0
+    FPS_IDLE = FPS_IDLE + 0.07          ' the world's own slow breath, one tick a frame
 END SUB
 
 '--- fog rises with distance and then stops, so the far end of a long hall is
@@ -469,12 +495,48 @@ END FUNCTION
 ' ----------------------------------------------------------------------------
 '  The screen: render small, blit big, then the chrome.
 ' ----------------------------------------------------------------------------
-SUB FpsPresent (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
-    FpsRender px, py, ang
+'--- ONE composer. FpsPresent (the headless shot) and FpsPresentPlayer (the
+'    play loop) used to each blit the buffer themselves, and the camera impulses
+'    were added to only one of them -- so the shot could not photograph the very
+'    thing it exists to photograph. Both go through here now. ---
+SUB FpsCompose (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
+    DIM ex AS SINGLE, ey AS SINGLE, ox AS INTEGER, oy AS INTEGER, k AS INTEGER
+    DIM sav AS SINGLE, bob AS SINGLE
+
+    '--- A LUNGE moves the EYE along the facing, so the walls move in
+    '    perspective the way stepping forward does. A SHAKE moves the BLIT,
+    '    because a shake is the picture rattling rather than you walking about
+    '    -- shaking the eye through a raycaster makes the world swim. ---
+    FpsDecay
+    ex = px + COS(ang) * FPS_LUNGE * 0.45
+    ey = py + SIN(ang) * FPS_LUNGE * 0.45
+
+    sav = FPS_PITCH
+    bob = SIN(FPS_BOB) * 3
+    FPS_PITCH = FPS_PITCH + bob
+    FpsRender ex, ey, ang
+    FPS_PITCH = sav
+
     _DEST CANVAS
-    _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), FPS_BUF, CANVAS
+    IF FPS_SHAKE > 0 THEN
+        '--- alternate the sign every frame so it JUDDERS rather than drifting
+        '    off in one direction ---
+        FPS_SHAKESIGN = -FPS_SHAKESIGN
+        IF FPS_SHAKESIGN = 0 THEN FPS_SHAKESIGN = 1
+        ox = FPS_SHAKE * 22 * FPS_SHAKESIGN
+        oy = FPS_SHAKE * 14 * FPS_SHAKESIGN
+        '--- and OVER-COVER by the same amount. Offsetting the blit alone leaves
+        '    a strip of whatever was on the canvas before showing along one edge
+        '    -- which here is the 2D BOARD, so a shake flashed the map at you. ---
+        k = ABS(ox) + ABS(oy) + 2
+    END IF
+    _PUTIMAGE (ox - k, oy - k)-(SW * CW - 1 + ox + k, SH * CH - 1 + oy + k), FPS_BUF, CANVAS
     FpsDrawHand
     FpsChrome px, py, ang
+END SUB
+
+SUB FpsPresent (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
+    FpsCompose px, py, ang
 END SUB
 
 '--- a compass, the cell, and the level. The point of this view is to be lost
@@ -584,6 +646,17 @@ SUB FpsShot (cx AS INTEGER, cy AS INTEGER, deg AS SINGLE, outp AS STRING)
     '    cell that happens to face a monster is how a sprite bug survives a
     '    dozen screenshots of empty corridor. ---
     IF INSTR(LCASE$(COMMAND$), "aim") > 0 THEN FpsAimAtSprite cx + 0.5, cy + 0.5
+    IF INSTR(LCASE$(COMMAND$), "aimdoor") > 0 THEN FpsAimAtDoor cx + 0.5, cy + 0.5
+    '--- `hurt` fires the combat impulses so a still frame can show them: a
+    '    flash and a shake are three frames long in play and unphotographable
+    '    by hand ---
+    IF INSTR(LCASE$(COMMAND$), "hurt") > 0 THEN
+        FpsAimAtSprite cx + 0.5, cy + 0.5
+        IF FPS_AIMED > 0 THEN FpsFlashAt INT(FSP_X(FPS_AIMED)), INT(FSP_Y(FPS_AIMED))
+        FpsShakeNow 0.7
+        FpsLungeNow 0.6
+        FPS_SWING = 0.5
+    END IF
     FpsPresent cx + 0.5, cy + 0.5, FPS_ANG
     _SAVEIMAGE outp, CANVAS
     d = _DEST: _DEST _CONSOLE
@@ -643,23 +716,50 @@ END SUB
 
 '--- one frame from where the player is standing ---
 SUB FpsPresentPlayer
-    DIM bob AS SINGLE, sav AS SINGLE
     FpsInit
     FpsFollow 0
-
     FpsClearSprites
     Game_FpsPopulate
+    FpsCompose FPS_EYEX, FPS_EYEY, FPS_ANG
+END SUB
 
-    sav = FPS_PITCH
-    bob = SIN(FPS_BOB) * 3
-    FPS_PITCH = FPS_PITCH + bob
-    FpsRender FPS_EYEX, FPS_EYEY, FPS_ANG
-    FPS_PITCH = sav
+'--- every impulse decays here, in ONE place. Scattering the decay across the
+'    setters is how one of them ends up never decaying and the screen shakes
+'    forever. ---
+SUB FpsDecay
+    IF FPS_SHAKE > 0 THEN
+        FPS_SHAKE = FPS_SHAKE - 0.055
+        IF FPS_SHAKE < 0 THEN FPS_SHAKE = 0
+    END IF
+    IF FPS_LUNGE > 0 THEN
+        FPS_LUNGE = FPS_LUNGE - 0.09
+        IF FPS_LUNGE < 0 THEN FPS_LUNGE = 0
+    END IF
+    IF FPS_FLASH > 0 THEN
+        FPS_FLASH = FPS_FLASH - 0.09
+        IF FPS_FLASH < 0 THEN FPS_FLASH = 0
+    END IF
+END SUB
 
-    _DEST CANVAS
-    _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), FPS_BUF, CANVAS
-    FpsDrawHand
-    FpsChrome FPS_EYEX, FPS_EYEY, FPS_ANG
+'--- the three impulses the game fires. Magnitudes are 0..1 so a caller says
+'    how hard, not how many pixels -- pixels are this module's business. ---
+SUB FpsShakeNow (amt AS SINGLE)
+    IF amt > FPS_SHAKE THEN FPS_SHAKE = amt
+    IF FPS_SHAKE > 1 THEN FPS_SHAKE = 1
+END SUB
+
+SUB FpsLungeNow (amt AS SINGLE)
+    IF amt > FPS_LUNGE THEN FPS_LUNGE = amt
+    IF FPS_LUNGE > 1 THEN FPS_LUNGE = 1
+END SUB
+
+'--- the thing you just hit lights up red. Keyed to a CELL rather than to a
+'    sprite index, because the sprite list is rebuilt from scratch every frame
+'    and an index would point at whatever happened to land in that slot. ---
+SUB FpsFlashAt (cx AS INTEGER, cy AS INTEGER)
+    FPS_FLASH = 1
+    FPS_FLASHX = cx
+    FPS_FLASHY = cy
 END SUB
 
 ' ----------------------------------------------------------------------------
@@ -830,6 +930,7 @@ SUB FpsAimAtSprite (px AS SINGLE, py AS SINGLE)
         IF d > 1 _ANDALSO d < best THEN best = d: bi = i
     NEXT i
     IF bi = 0 THEN EXIT SUB
+    FPS_AIMED = bi
     FPS_ANG = _ATAN2(FSP_Y(bi) - py, FSP_X(bi) - px)
 END SUB
 
@@ -910,4 +1011,66 @@ FUNCTION FpsDoorAt% (cx AS INTEGER, cy AS INTEGER)
     IF FPS_DOORTEX >= -1 THEN EXIT FUNCTION
     IF DOOROPEN(cx, cy) THEN EXIT FUNCTION
     FpsDoorAt% = Game_FpsIsDoor%(cx, cy)
+END FUNCTION
+
+
+'--- turn toward the nearest door in sight, so the thin-wall door can be
+'    photographed without hunting the board for one ---
+SUB FpsAimAtDoor (px AS SINGLE, py AS SINGLE)
+    DIM i AS INTEGER, d AS SINGLE, best AS SINGLE, bi AS INTEGER
+    best = 1E+30
+    FOR i = 1 TO DOOR_N
+        IF FpsLineClear%(px, py, DOOR_X(i) + 0.5, DOOR_Y(i) + 0.5) = 0 THEN _CONTINUE
+        d = (DOOR_X(i) + 0.5 - px) * (DOOR_X(i) + 0.5 - px) + (DOOR_Y(i) + 0.5 - py) * (DOOR_Y(i) + 0.5 - py)
+        IF d > 0.5 _ANDALSO d < best THEN best = d: bi = i
+    NEXT i
+    IF bi = 0 THEN EXIT SUB
+    FPS_ANG = _ATAN2(DOOR_Y(bi) + 0.5 - py, DOOR_X(bi) + 0.5 - px)
+END SUB
+
+
+' ----------------------------------------------------------------------------
+'  The HURT image -- a red copy of a sprite, alpha intact.
+'
+'  Built once per sprite and cached, because it is a per-pixel pass. Painting
+'  red over the sprite's screen COLUMNS instead is a one-liner and it is wrong:
+'  the columns are the bounding box, so a monster flashes as a red rectangle
+'  with the monster faintly inside it. The alpha has to survive, and only the
+'  image knows where it is.
+' ----------------------------------------------------------------------------
+FUNCTION FpsHurtImage& (path AS STRING, src AS LONG)
+    DIM i AS INTEGER, w AS INTEGER, ht AS INTEGER, x AS INTEGER, y AS INTEGER
+    DIM d AS LONG, so AS LONG, k AS _UNSIGNED LONG, a AS INTEGER
+
+    FOR i = 1 TO FPS_HURT_N
+        IF FPS_HURT_KEY(i) = path THEN FpsHurtImage& = FPS_HURT_IMG(i): EXIT FUNCTION
+    NEXT i
+    IF FPS_HURT_N >= UBOUND(FPS_HURT_IMG) THEN FpsHurtImage& = src: EXIT FUNCTION
+
+    w = _WIDTH(src): ht = _HEIGHT(src)
+    IF w < 1 _ORELSE ht < 1 THEN FpsHurtImage& = src: EXIT FUNCTION
+
+    d = _DEST: so = _SOURCE
+    FPS_HURT_N = FPS_HURT_N + 1
+    FPS_HURT_KEY(FPS_HURT_N) = path
+    FPS_HURT_IMG(FPS_HURT_N) = _NEWIMAGE(w, ht, 32)
+
+    _SOURCE src
+    _DEST FPS_HURT_IMG(FPS_HURT_N)
+    CLS , _RGBA32(0, 0, 0, 0)
+    FOR y = 0 TO ht - 1
+        FOR x = 0 TO w - 1
+            k = POINT(x, y)
+            a = _ALPHA32(k)
+            IF a > 0 THEN
+                '--- keep some of the original luminance so the shape still
+                '    reads; a flat silhouette loses the monster entirely ---
+                '--- a translucent red WASH, not a silhouette: the shape has to
+                '    stay readable, it is the thing you are fighting ---
+                PSET (x, y), _RGBA32(255, 40, 30, a * 0.62)
+            END IF
+        NEXT x
+    NEXT y
+    _DEST d: _SOURCE so
+    FpsHurtImage& = FPS_HURT_IMG(FPS_HURT_N)
 END FUNCTION

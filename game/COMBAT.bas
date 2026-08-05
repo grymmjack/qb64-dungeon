@@ -371,6 +371,7 @@ FUNCTION DoCombat% (rm AS INTEGER)
                 ROOMS(rm).malive = FALSE: ROOMS(rm).looted = TRUE
                 RecordCrit mon, 0
                 Sfx "crit"
+                IF FPS_ON THEN FpsSwing: FpsLungeNow 1: FpsFlashAt ROOMS(rm).cx, ROOMS(rm).cy
                 IF opt_critfumble THEN
                     DoCrit rm, mon, WeaponName$, 0     ' cinematic + a heroic heal on the killing blow
                 ELSE
@@ -779,6 +780,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"
+                IF FPS_ON THEN FpsFlashAt ROOMS(rm).cx, ROOMS(rm).cy
                 DrawCombatPanel rm, mon, lead     ' drain the HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.6, 0
                 Banner "You cast " + SpellLabel$(spell_elem) + "!  " + _TRIM$(STR$(spell_dcnt)) + "d6 = " + _TRIM$(STR$(dmg)), SpellLabel$(spell_elem) + " engulfs the " + mon + "!   [ press any key ]"
@@ -813,7 +815,8 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ' A crit that FINISHES the monster earns the killcrit aftermath text rather than
                 ' the quiet death line. Read here, consumed by ClaimTreasure.
                 IF ROOMS(rm).mhp_now <= 0 THEN fx_critkill = TRUE
-                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
+                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"
+                IF FPS_ON THEN FpsFlashAt ROOMS(rm).cx, ROOMS(rm).cy   ' wounded (not slain) -> a cry
                 RecordCrit mon, dmg
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
@@ -844,9 +847,12 @@ SUB DoCombatDnD (rm AS INTEGER)
                 ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg: g_damage_done = g_damage_done + dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg: RecordDamage dmg
-                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
+                IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"
+                IF FPS_ON THEN FpsFlashAt ROOMS(rm).cx, ROOMS(rm).cy   ' wounded (not slain) -> a cry
                 Sfx "hit"
-                IF FPS_ON THEN FpsSwing
+                ' The camera says what the dice said. A landed blow throws the
+                ' eye forward and lights the monster up; the arm swings with it.
+                IF FPS_ON THEN FpsSwing: FpsLungeNow 0.55: FpsFlashAt ROOMS(rm).cx, ROOMS(rm).cy
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.45, 0   ' a lighter thump when you connect
                 FX_DMG = dmg
@@ -875,6 +881,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     mhs = MaxHitSaying$(mon, WeaponName$)
                     IF LEN(mhs) > 0 THEN
                         Sfx "maxhit"
+                        IF FPS_ON THEN FpsShakeNow 1
                         Banner "** A CRUSHING BLOW! **  (max damage)", mhs + "   [ press any key ]"
                         CombatPause
                     END IF
@@ -924,6 +931,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
                 IF player_hp > 0 THEN Sfx "player-pain"   ' hurt but standing -> a cry
+                IF FPS_ON THEN FpsShakeNow 0.8              ' the blow lands on YOU: the view rattles
                 Sfx "crit"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg) * 1.25, 0   ' a brutal crit really rattles the frame
@@ -945,6 +953,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
                 IF player_hp > 0 THEN Sfx "player-pain"   ' hurt but standing -> a cry
+                IF FPS_ON THEN FpsShakeNow 0.8              ' the blow lands on YOU: the view rattles
                 Sfx "bump"
                 DrawCombatPanel rm, mon, lead     ' drain YOUR HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(mdmg), 0         ' you take a hit -- the frame lurches

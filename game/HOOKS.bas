@@ -317,7 +317,7 @@ SUB Game_FpsPopulate
         IF FpsFar%(cx, cy) THEN _CONTINUE
         IF ROOMS(i).malive THEN
             p = MonsterSprite$(_TRIM$(ROOMS(i).monster))
-            IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.75, 0
+            IF LEN(p) > 0 THEN FpsAddSpriteEx cx + 0.5, cy + 0.5, p, 0.75, 0, -1
         ELSEIF ROOMS(i).monster_fought THEN
             p = PixelArtFile$("markers/grave")
             IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.45, 0
