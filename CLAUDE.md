@@ -455,8 +455,13 @@ Environment specifics that dictate this approach:
   own** field count, never the table's widest -- padding a short row would invent empty columns
   in a ragged table. **Gotcha:** some loaders split on the FIRST pipe only, because their values
   legitimately contain pipes -- that is how an inline colour is spelled (`|10`); `DeMaxCols%`
-  mirrors each loader's rule. **`dungeon.run dataedittest`** (gated) proves load -> save is a
-  no-op across all 26 tables. Its useful check is the third one: checks 1-2 split and rejoin
+  mirrors each loader's rule. It covers `assets/data/<pack>/`, its `theme/` subdir **and**
+  `assets/flavor/<pack>/` -- the prose files have the same typos in them, and a tool that
+  covers two thirds of the tables teaches you to go back to the text editor for all of them.
+  A field is replaced by **splicing** the raw line, keeping that slice's own spacing, rather
+  than re-joining every field with `" | "`: flavor rows are written `1|Dust motes drift...`
+  with no space after the pipe, and a rebuild reformatted every row it touched.
+  **`dungeon.run dataedittest`** (gated) proves load -> save is a no-op across all 35 tables. Its useful check is the third one: checks 1-2 split and rejoin
   with the same rule and so agree with themselves even when the rule is wrong, while check 3
   counts pipes NOT followed by a space and consults no rule at all. Planting
   `DeMaxCols% = 0` for `strings.txt` turned a row's `|10` into `| 10`: check 2 said ok, check 3

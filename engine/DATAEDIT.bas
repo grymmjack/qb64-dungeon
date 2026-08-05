@@ -41,6 +41,23 @@ CONST DE_MAXCOL = 24
 FUNCTION DeMaxCols% (path AS STRING)
     DIM b AS STRING
     b = LCASE$(path)
+
+    '--- FLAVOR files are prose with a key in front, and prose is exactly what
+    '    contains stray pipes. Checked by DIRECTORY, because flavor/chambers.txt
+    '    (level | line) and data/chambers.txt (name | c1 | r1 | c2 | r2) share a
+    '    filename and disagree about every column. ---
+    IF INSTR(b, "flavor") > 0 THEN
+        IF INSTR(b, "maxhit.txt") > 0 _ORELSE INSTR(b, "forfeit.txt") > 0 THEN DeMaxCols% = 1: EXIT FUNCTION
+        '--- the *_events files are the exception among flavor: LoadEventText
+        '    reads them with DField$, which splits on EVERY pipe, and there is
+        '    a FOURTH optional column (the narration key). Capping them at the
+        '    three visible columns would have swallowed that key into the line
+        '    the player reads. ---
+        IF INSTR(b, "_events.txt") > 0 THEN DeMaxCols% = 0: EXIT FUNCTION
+        DeMaxCols% = 2
+        EXIT FUNCTION
+    END IF
+
     IF INSTR(b, "strings.txt") > 0 THEN DeMaxCols% = 2: EXIT FUNCTION
     DeMaxCols% = 0
 END FUNCTION
@@ -118,6 +135,16 @@ SUB DeLoad (path AS STRING)
         IF DE_W(col) < 3 THEN DE_W(col) = 3
     NEXT col
 
+    '--- the LAST column of these tables is nearly always the prose one -- a
+    '    flavor line, a description, a string. Cutting it at 28 like the key
+    '    columns makes the file unreadable in the one tool meant to read it, so
+    '    it gets whatever width is left on screen. ---
+    n = 5
+    FOR col = 1 TO DE_NCOL - 1: n = n + DE_W(col) + 1: NEXT col
+    IF DE_NCOL >= 1 THEN
+        IF SW - 2 - n > DE_W(DE_NCOL) THEN DE_W(DE_NCOL) = SW - 2 - n
+    END IF
+
     DE_MSG = LTRIM$(STR$(DE_NROW)) + " rows x " + LTRIM$(STR$(DE_NCOL)) + " cols"
 END SUB
 
@@ -156,32 +183,75 @@ FUNCTION DeField$ (row AS INTEGER, col AS INTEGER)
     DeField$ = DeSplit$(DE_RAW(DE_ROWMAP(row)), col, DeMaxCols%(DE_PATH))
 END FUNCTION
 
-'--- rewrite ONE raw line with one field replaced, re-padded to the file's own
-'    column widths so the row still lines up with the ones around it ---
+'--- Replace ONE field by SPLICING the raw line, not by rebuilding it.
+'
+'    Rebuilding meant re-joining every field with " | ", which quietly
+'    reformatted every row it touched: assets/flavor/regular.txt is written
+'    "1|Dust motes drift..." with no space after the pipe, and a rebuild turned
+'    that into "1 | Dust motes...". Harmless to the loader, which trims -- and
+'    exactly the kind of whole-file churn that makes a diff unreadable and an
+'    editor untrustworthy. The round-trip gate's rule-free check caught it.
+'
+'    So: keep the line, replace the slice between the two separators, and hold
+'    on to that slice's own leading and trailing spaces. A shorter value is
+'    padded back out to the width it had, which is what preserves the column
+'    alignment in the hand-aligned tables; a longer one just makes the row
+'    longer, the same as typing into it. ---
 SUB DeSetField (row AS INTEGER, col AS INTEGER, v AS STRING)
-    DIM i AS INTEGER, n AS INTEGER, res AS STRING, f AS STRING
+    DIM ln AS STRING, slice AS STRING, lead AS INTEGER, trail AS INTEGER
+    DIM oldt AS STRING, newt AS STRING, pad AS INTEGER
+    DIM p AS LONG, q AS LONG
+
     IF row < 1 _ORELSE row > DE_NROW THEN EXIT SUB
-    '--- the ROW's own field count, not the file's widest. Padding a short row
-    '    out to the table's maximum would invent empty columns in a ragged file
-    '    (many of these tables have optional trailing fields), and the loader
-    '    would then read "" where it used to read a default. ---
-    n = DeCount%(DE_RAW(DE_ROWMAP(row)), DE_PATH)
-    IF col > n THEN n = col
-    FOR i = 1 TO n
-        IF i = col THEN f = _TRIM$(v) ELSE f = DeField$(row, i)
-        IF i > 1 THEN res = res + " | "
-        IF i < n THEN
-            res = res + f + SPACE$(DeMax%(0, DE_W(i) - LEN(f)))
-        ELSE
-            res = res + f
-        END IF
-    NEXT i
-    DE_RAW(DE_ROWMAP(row)) = RTRIM$(res)
+    ln = DE_RAW(DE_ROWMAP(row))
+    IF DeFieldSpan%(ln, col, DeMaxCols%(DE_PATH), p, q) = 0 THEN EXIT SUB
+
+    slice = MID$(ln, p, q - p)
+    oldt = _TRIM$(slice)
+    newt = _TRIM$(v)
+
+    lead = 0
+    DO WHILE lead < LEN(slice)
+        IF MID$(slice, lead + 1, 1) <> " " THEN EXIT DO
+        lead = lead + 1
+    LOOP
+    trail = 0
+    DO WHILE trail < LEN(slice) - lead
+        IF MID$(slice, LEN(slice) - trail, 1) <> " " THEN EXIT DO
+        trail = trail + 1
+    LOOP
+
+    pad = LEN(oldt) - LEN(newt)
+    IF pad < 0 THEN pad = 0
+
+    DE_RAW(DE_ROWMAP(row)) = LEFT$(ln, p - 1) + SPACE$(lead) + newt + SPACE$(pad + trail) + MID$(ln, q)
     DE_DIRTY = -1
 END SUB
 
+'--- character span of field n in ln: p is its first character, q one PAST its
+'    last. Honours the file's split rule, so the last field of a capped file
+'    runs to the end of the line, pipes and all. ---
+FUNCTION DeFieldSpan% (ln AS STRING, n AS INTEGER, cap AS INTEGER, p AS LONG, q AS LONG)
+    DIM i AS INTEGER, r AS LONG
+    p = 1
+    FOR i = 1 TO n - 1
+        IF cap > 0 _ANDALSO i >= cap THEN DeFieldSpan% = 0: EXIT FUNCTION
+        r = INSTR(p, ln, "|")
+        IF r = 0 THEN DeFieldSpan% = 0: EXIT FUNCTION
+        p = r + 1
+    NEXT i
+    IF cap > 0 _ANDALSO n >= cap THEN
+        q = LEN(ln) + 1
+    ELSE
+        q = INSTR(p, ln, "|")
+        IF q = 0 THEN q = LEN(ln) + 1
+    END IF
+    DeFieldSpan% = -1
+END FUNCTION
+
 '--- how many pipes in this line are NOT followed by a space? An inline pipe
-'    colour is spelled |10, so this number must survive a rewrite. ---
+'    colour is spelled |10, and a flavor line is spelled 1|text -- both must
+'    survive a rewrite, and this counts them without consulting any split rule. ---
 FUNCTION DeTightPipes% (ln AS STRING)
     DIM i AS LONG, n AS INTEGER
     FOR i = 1 TO LEN(ln)
@@ -232,19 +302,55 @@ END SUB
 ' ----------------------------------------------------------------------------
 '  The file list
 ' ----------------------------------------------------------------------------
+'--- every editable table the pack owns, not just assets/data/<pack>/. The
+'    FLAVOR prose and the THEME colours are the same kind of file with the same
+'    kind of typo in them, and a tool that covers two thirds of the tables
+'    quietly teaches you to go back to the text editor for all of them. ---
 SUB DeScanFiles (dir AS STRING)
-    DIM e AS STRING
     DE_NFILE = 0
+    DeScanOne dir
+    DeScanOne dir + "theme/"
+    DeScanOne DeFlavorDir$(dir)
+    DeSortFiles
+END SUB
+
+'--- assets/data/<pack>/ -> assets/flavor/<pack>/ ---
+FUNCTION DeFlavorDir$ (dir AS STRING)
+    DIM d AS STRING
+    d = dir
+    IF INSTR(d, "assets/data/") = 1 THEN
+        DeFlavorDir$ = "assets/flavor/" + MID$(d, LEN("assets/data/") + 1)
+    ELSE
+        DeFlavorDir$ = ""
+    END IF
+END FUNCTION
+
+SUB DeScanOne (dir AS STRING)
+    DIM e AS STRING
+    IF LEN(dir) = 0 THEN EXIT SUB
     IF _DIREXISTS(dir) = 0 THEN EXIT SUB
     e = _FILES$(dir + "*.txt")
     DO WHILE LEN(e) > 0
         IF RIGHT$(e, 1) <> "/" THEN
-            IF DE_NFILE < UBOUND(DE_FILE) THEN DE_NFILE = DE_NFILE + 1: DE_FILE(DE_NFILE) = e
+            IF DE_NFILE < UBOUND(DE_FILE) THEN DE_NFILE = DE_NFILE + 1: DE_FILE(DE_NFILE) = dir + e
         END IF
         e = _FILES$
     LOOP
-    DeSortFiles
 END SUB
+
+'--- the list shows where a file came from, since three directories are now
+'    mixed into one list and two of them hold a chambers.txt ---
+FUNCTION DeLabel$ (path AS STRING)
+    DIM p AS STRING
+    p = path
+    IF INSTR(p, "assets/flavor/") = 1 THEN
+        DeLabel$ = "flavor/" + MID$(p, _INSTRREV(p, "/") + 1)
+    ELSEIF INSTR(p, "/theme/") > 0 THEN
+        DeLabel$ = "theme/" + MID$(p, _INSTRREV(p, "/") + 1)
+    ELSE
+        DeLabel$ = MID$(p, _INSTRREV(p, "/") + 1)
+    END IF
+END FUNCTION
 
 SUB DeSortFiles
     DIM i AS INTEGER, j AS INTEGER, t AS STRING
@@ -334,10 +440,10 @@ SUB DeDrawFiles (dir AS STRING, sel AS INTEGER)
         y = 2 + ((i - 1) MOD (SH - 5))
         IF i = sel THEN
             COLOR _RGB32(255, 255, 210), _RGBA32(0, 0, 0, 0)
-            _PRINTSTRING ((2 + 34 * ((i - 1) \ (SH - 5))) * CW, y * CH), CHR$(16) + " " + DE_FILE(i)
+            _PRINTSTRING ((2 + 34 * ((i - 1) \ (SH - 5))) * CW, y * CH), CHR$(16) + " " + DeLabel$(DE_FILE(i))
         ELSE
             COLOR _RGB32(160, 172, 190), _RGBA32(0, 0, 0, 0)
-            _PRINTSTRING ((4 + 34 * ((i - 1) \ (SH - 5))) * CW, y * CH), DE_FILE(i)
+            _PRINTSTRING ((4 + 34 * ((i - 1) \ (SH - 5))) * CW, y * CH), DeLabel$(DE_FILE(i))
         END IF
     NEXT i
     COLOR _RGB32(130, 140, 160), _RGBA32(0, 0, 0, 0)
@@ -483,7 +589,7 @@ SUB DataEditor (dir AS STRING)
                     IF ingrid THEN
                         DeEditCell
                     ELSE
-                        DeLoad dir + DE_FILE(sel): ingrid = -1
+                        DeLoad DE_FILE(sel): ingrid = -1
                     END IF
                 CASE 9
                     IF ingrid THEN ingrid = 0
@@ -561,7 +667,7 @@ FUNCTION DataEditSelfTest% (dir AS STRING)
     PRINT PipeCol$("|15dataedit round-trip |07-- |14" + LTRIM$(STR$(DE_NFILE)) + "|07 table(s) in " + dir)
 
     FOR fi = 1 TO DE_NFILE
-        path = dir + DE_FILE(fi)
+        path = DE_FILE(fi)
         before = _READFILE$(path)
         DeLoad path
 
@@ -602,15 +708,15 @@ FUNCTION DataEditSelfTest% (dir AS STRING)
 
         _DEST _CONSOLE
         IF bad = 0 THEN
-            PRINT PipeCol$("  |10ok  |07" + DE_FILE(fi) + " (" + LTRIM$(STR$(DE_NROW)) + "x" + LTRIM$(STR$(DE_NCOL)) + ")")
+            PRINT PipeCol$("  |10ok  |07" + DeLabel$(DE_FILE(fi)) + " (" + LTRIM$(STR$(DE_NROW)) + "x" + LTRIM$(STR$(DE_NCOL)) + ")")
         ELSE
             fail = fail + 1
             IF bad = 1 THEN
-                PRINT PipeCol$("  |12BAD |07" + DE_FILE(fi) + " -- untouched save would change the file")
+                PRINT PipeCol$("  |12BAD |07" + DeLabel$(DE_FILE(fi)) + " -- untouched save would change the file")
             ELSEIF bad >= 4 THEN
-                PRINT PipeCol$("  |12BAD |07" + DE_FILE(fi) + " -- rewriting row " + LTRIM$(STR$(r)) + " broke a |PI-tight pipe (inline colour?)")
+                PRINT PipeCol$("  |12BAD |07" + DeLabel$(DE_FILE(fi)) + " -- rewriting row " + LTRIM$(STR$(r)) + " broke a |PI-tight pipe (inline colour?)")
             ELSE
-                PRINT PipeCol$("  |12BAD |07" + DE_FILE(fi) + " -- rewriting row " + LTRIM$(STR$(r)) + " lost a field")
+                PRINT PipeCol$("  |12BAD |07" + DeLabel$(DE_FILE(fi)) + " -- rewriting row " + LTRIM$(STR$(r)) + " lost a field")
             END IF
         END IF
     NEXT fi
