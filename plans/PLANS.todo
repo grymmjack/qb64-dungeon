@@ -109,6 +109,26 @@ Game Tweaks:
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
 
+Engine GUIs (26-08-05):
+    x Map debugger -- every derived layer toggleable on one screen (sectors, walkable, rooms, room-kind, doors, chambers, secret regions, triggers/overlays, markers) @done(26-08-05)
+    x   ...because each layer already had its own PNG dump, and the questions that come up are about a RELATIONSHIP between two of them @done(26-08-05)
+    x   ...reading the SAME arrays the game reads, nothing recomputed for display @done(26-08-05)
+    x   `dungeon.run mapdebugshot <digits> [event] <out.png>` -- one frame, headless @done(26-08-05)
+    x Map debugger EVENT menu -- fire a real event at the picked cell @done(26-08-05)
+    x   teleport / curio / wandering monster / trap / room monster / chamber encounter @done(26-08-05)
+    x   play any cut-scene in the pack; reveal the secret region here @done(26-08-05)
+    x   append a trigger row for this cell to triggers.txt (closes the coordinate-hunting loop) @done(26-08-05)
+    x   every row calls the routine gameplay calls; player moved to the cell first @done(26-08-05)
+    x   opened over a live run from [~] then [9], snapshot in / restore out @done(26-08-05)
+    x Data editor -- the pack's pipe tables as a grid, over the raw lines they live in @done(26-08-05)
+    x   comments/blank lines/banner art survive a save; only the edited line is rewritten @done(26-08-05)
+    x   re-pads to the file's own widths and the ROW's own field count @done(26-08-05)
+    x   DeMaxCols% mirrors each loader's split rule (strings.txt values contain pipes) @done(26-08-05)
+    x   `dungeon.run dataedittest` in the gate -- 26/26 tables round-trip, proven by planting the wrong rule @done(26-08-05)
+    - Board-overlay editor -- place/drag an animated overlay and write overlays.txt
+    - Chamber-rectangle editor -- drag the chambers.txt rects over the board
+    - A GUI for the audio/art pack pickers (SETTINGS rows are fine, a preview grid would be better)
+
 Cut-scenes (engine, player, editor -- 26-08-03..05):
     ✔ CUT-SCENE ENGINE: DSL-scripted scenes -- layered art, pan/zoom camera, transitions, @done(26-08-05)
       ✔ music/sfx/narration, conditional branching, player choice menus @done(26-08-05)

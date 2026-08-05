@@ -1606,7 +1606,7 @@ SUB ShowKeys
     ky(7) = "V": ds(7) = "Scry the dungeon (Crystal Ball)"
     ky(8) = "T": ds(8) = "Read a Teleport Scroll -> START"
     ky(9) = "?": ds(9) = "This controls list"
-    ky(10) = "~  or  `": ds(10) = "Debug overlay ([0] test menu, click = teleport)"
+    ky(10) = "~  or  `": ds(10) = "Debug overlay ([0] test menu, [9] MAP DEBUG, click = teleport)"
     ky(11) = "ESC": ds(11) = "Flee combat / quit to menu"
     ky(12) = "R": ds(12) = "Re-roll (during character creation)"
     ky(13) = "H": ds(13) = "Quaff a healing potion"

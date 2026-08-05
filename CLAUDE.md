@@ -416,6 +416,42 @@ Environment specifics that dictate this approach:
   `BeginTrack` and `DrawSpriteFit%` each log one line, so a feature added later is covered without
   anyone remembering. It is a separate dependency-free module because `TEST-ARTPACK` compiles
   `ARTPACK.bas` in isolation and a one-line log call would otherwise drag the whole console in.
+- **MAP DEBUGGER + EVENT MENU** (`game/MAPDEBUG.bas`) -- `dungeon.run mapdebug`, or **`[~]` then
+  `[9]`** over a live run. Every DERIVED board layer toggleable on one screen: `1` sectors
+  (`SECTORAT`), `2` walkable (`CellKind%`), `3` rooms (`ROOMAT`), `4` room-kind (`ROOMKIND`,
+  the floor/doorway/decoration distinction), `5` doors, `6` chambers, `7` secret regions,
+  `8` triggers + overlays, `9` room markers; `0` art, `A`/`N` all/none, `-`/`=` tint.
+  Each derivation already has a dump mode that writes a PNG, and those answer one question at
+  a time from a cold start -- but the questions that come up are about a **relationship**
+  between two layers (is this room's cell inside the sector the mask claims; does that door
+  open the region beside it; is the trigger on the walkable cell or the wall next to it).
+  **Nothing is recomputed for display** -- every layer reads the same array the game reads, so
+  a debugger that agrees with itself cannot be wrong about the game.
+  **`[E]` fires a real event AT the selected cell** (click or arrows to pick it): teleport,
+  curio, wandering monster, trap, this room's monster, this chamber's encounter, any cut-scene
+  in the pack, reveal the secret region here, or **append a trigger row for this cell to
+  `triggers.txt`** -- which closes the loop where placing a cut-scene meant walking to a cell to
+  read off the coordinates you were trying to establish. Every row calls the SAME routine
+  gameplay calls (`DoCurio` / `WanderEncounter` / `SpringTrap` / `DoCombat%` /
+  `ChamberEncounter` / `PlayCutscene%` / `RevealRegionFromDoor`) and the player is **moved to
+  the cell first**, because all of them read position for their level and flavour. Rows needing
+  a live run grey out rather than vanish. `dungeon.run mapdebugshot <digits> [event] <out.png>`
+  draws one frame headlessly, panel included.
+- **DATA EDITOR** (`engine/DATAEDIT.bas`) -- `dungeon.run dataedit`: the pack's pipe-delimited
+  tables as a grid, with column names lifted from each file's own header comment. The files stay
+  hand-editable text; this only spares you counting columns. **The file is held as its RAW
+  LINES** and the grid is a view of them -- only the line under the cursor is rewritten on
+  commit, so comments, blank lines and banner art survive (those comments ARE the format's
+  documentation). A rewritten row is re-padded to the widths already in the file and to **its
+  own** field count, never the table's widest -- padding a short row would invent empty columns
+  in a ragged table. **Gotcha:** some loaders split on the FIRST pipe only, because their values
+  legitimately contain pipes -- that is how an inline colour is spelled (`|10`); `DeMaxCols%`
+  mirrors each loader's rule. **`dungeon.run dataedittest`** (gated) proves load -> save is a
+  no-op across all 26 tables. Its useful check is the third one: checks 1-2 split and rejoin
+  with the same rule and so agree with themselves even when the rule is wrong, while check 3
+  counts pipes NOT followed by a space and consults no rule at all. Planting
+  `DeMaxCols% = 0` for `strings.txt` turned a row's `|10` into `| 10`: check 2 said ok, check 3
+  went red.
 - **`[TAB]` / `[Shift-TAB]` overlay** — `[TAB]` shows/hides the overlay box; `[Shift-TAB]` swaps it
   between **RUN STATS** and **BEARINGS** (`DrawBearingsOverlay`, game/DUMP.bas): what music / sfx /
   narration / art is playing or drawn *with full resolved paths* and the beeper fallback marked as
