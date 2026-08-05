@@ -504,6 +504,37 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     SYSTEM DEV_FAIL
 END IF
 
+'--- dev: `dungeon.run mapdebug` -- the interactive map debugger. Every derived
+'    layer (sectors, walkable, rooms, room-kind, doors, chambers, secret
+'    regions, triggers/overlays, markers) toggleable on one screen, because the
+'    questions are almost always about a RELATIONSHIP between two of them and a
+'    PNG per layer cannot answer that. `mapdebugshot <layers> <out.png>` draws
+'    one frame headlessly. ---
+IF INSTR(UCASE$(COMMAND$), "MAPDEBUGSHOT") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    DetectDoors
+    Game_PopulateBoard
+    RandomizeRooms
+    LoadCutTriggers
+    LoadBoardOverlays
+    InitFog
+    DumpMapDebugShot MdArgMask$, MdArgOut$
+    SYSTEM
+END IF
+IF INSTR(UCASE$(COMMAND$), "MAPDEBUG") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    DetectDoors
+    Game_PopulateBoard
+    RandomizeRooms
+    LoadCutTriggers
+    LoadBoardOverlays
+    InitFog
+    DumpMapDebug
+    SYSTEM
+END IF
+
 '--- dev: `dungeon.run overlaylint` validates board overlays (same board setup) ---
 IF INSTR(UCASE$(COMMAND$), "OVERLAYLINT") > 0 THEN
     BuildBoardImages

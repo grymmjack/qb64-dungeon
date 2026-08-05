@@ -814,3 +814,8 @@ DIM SHARED OVL_N AS INTEGER
 '    exits 0 is a lint the gate cannot act on -- it looks wired in and enforces
 '    nothing. ---
 DIM SHARED DEV_FAIL AS INTEGER
+
+'--- MAP DEBUGGER state (game/MAPDEBUG.bas) ---
+DIM SHARED MD_ON(1 TO 16) AS INTEGER      ' which layers are toggled on
+DIM SHARED MD_ART AS INTEGER              ' draw the board art underneath
+DIM SHARED MD_ALPHA AS INTEGER            ' tint strength, so layers stay readable together
