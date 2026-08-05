@@ -77,6 +77,9 @@ SUB FpsInit
             FpsTintTexture FPS_TEX(i), i
         END IF
     NEXT i
+
+    p = PixelArtFile$("fps/door.png")
+    IF LEN(p) > 0 THEN FPS_DOORTEX = _LOADIMAGE(p, 32)
 END SUB
 
 '--- A procedural stone texture in the level's own colour. Not a placeholder to
@@ -171,7 +174,7 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
     DIM dirx AS SINGLE, diry AS SINGLE, planex AS SINGLE, planey AS SINGLE
     DIM mapx AS INTEGER, mapy AS INTEGER, stepx AS INTEGER, stepy AS INTEGER
     DIM sidex AS SINGLE, sidey AS SINGLE, ddx AS SINGLE, ddy AS SINGLE
-    DIM hit AS INTEGER, side AS INTEGER, dist AS SINGLE
+    DIM hit AS INTEGER, side AS INTEGER, dist AS SINGLE, isdoor AS INTEGER
     DIM lineh AS INTEGER, y1 AS INTEGER, y2 AS INTEGER
     DIM wallx AS SINGLE, tx AS INTEGER, tex AS LONG, lvl AS INTEGER
     DIM fog AS INTEGER, d AS LONG, hz AS INTEGER
@@ -214,6 +217,7 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
         '--- DDA: always advance whichever grid line is nearer, so every cell the
         '    ray crosses is visited exactly once and none is skipped ---
         hit = 0
+        isdoor = 0
         DO
             IF sidex < sidey THEN
                 sidex = sidex + ddx: mapx = mapx + stepx: side = 0
@@ -222,6 +226,16 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
             END IF
             IF FpsSolid%(mapx, mapy) THEN hit = -1
             IF side = 0 THEN dist = sidex - ddx ELSE dist = sidey - ddy
+            '--- A DOOR is a THIN WALL standing on the cell's MIDLINE, not a
+            '    solid cell. It has to be thin: the cell is walkable and you
+            '    step onto it, so a solid door would be a door you cannot go
+            '    through. Standing it at the midline is also what puts you IN
+            '    the doorway for a step, with the frame either side of you. ---
+            IF hit = 0 _ANDALSO FpsDoorAt%(mapx, mapy) THEN
+                IF FpsThinHit%(px, py, rdx, rdy, mapx, mapy, side, ddx, ddy, sidex, sidey, dist, wallx) THEN
+                    hit = -1: isdoor = -1
+                END IF
+            END IF
             IF dist > FPS_MAXDIST THEN EXIT DO
         LOOP UNTIL hit
 
@@ -236,10 +250,17 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
         IF y2 > FPS_H - 1 THEN y2 = FPS_H - 1
         IF y2 < y1 THEN _CONTINUE
 
-        '--- where along the wall face the ray landed, 0..1 -> texture column ---
-        IF side = 0 THEN wallx = py + dist * rdy ELSE wallx = px + dist * rdx
-        wallx = wallx - INT(wallx)
-        tex = FpsWallTex&(mapx, mapy, stepx, stepy, side, lvl)
+        '--- where along the wall face the ray landed, 0..1 -> texture column.
+        '    A door already worked its own out when it decided it was hit. ---
+        IF isdoor = 0 THEN
+            IF side = 0 THEN wallx = py + dist * rdy ELSE wallx = px + dist * rdx
+            wallx = wallx - INT(wallx)
+        END IF
+        IF isdoor THEN
+            tex = FPS_DOORTEX
+        ELSE
+            tex = FpsWallTex&(mapx, mapy, stepx, stepy, side, lvl)
+        END IF
         tx = INT(wallx * _WIDTH(tex))
         IF tx < 0 THEN tx = 0
         IF tx > _WIDTH(tex) - 1 THEN tx = _WIDTH(tex) - 1
@@ -452,6 +473,7 @@ SUB FpsPresent (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
     FpsRender px, py, ang
     _DEST CANVAS
     _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), FPS_BUF, CANVAS
+    FpsDrawHand
     FpsChrome px, py, ang
 END SUB
 
@@ -565,6 +587,7 @@ SUB FpsShot (cx AS INTEGER, cy AS INTEGER, deg AS SINGLE, outp AS STRING)
     FpsPresent cx + 0.5, cy + 0.5, FPS_ANG
     _SAVEIMAGE outp, CANVAS
     d = _DEST: _DEST _CONSOLE
+    PRINT PipeCol$("|07  hand |14" + FPS_HANDPATH + "|07 handle |14" + LTRIM$(STR$(FPS_HANDH)) + "|07")
     PRINT PipeCol$("|07  rejects: image |14" + LTRIM$(STR$(FPS_RJ_IMG)) + "|07 behind |14" + LTRIM$(STR$(FPS_RJ_BEHIND)) + _
                    "|07 far |14" + LTRIM$(STR$(FPS_RJ_FAR)) + "|07 offscreen |14" + LTRIM$(STR$(FPS_RJ_OFF)) + _
                    "|07 zbuf |14" + LTRIM$(STR$(FPS_RJ_Z)) + "|07")
@@ -635,7 +658,61 @@ SUB FpsPresentPlayer
 
     _DEST CANVAS
     _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), FPS_BUF, CANVAS
+    FpsDrawHand
     FpsChrome FPS_EYEX, FPS_EYEY, FPS_ANG
+END SUB
+
+' ----------------------------------------------------------------------------
+'  THE HELD WEAPON
+'
+'  Drawn onto the CANVAS at full size rather than into the little render buffer,
+'  because it never needs perspective and blowing a 200px sprite up 4x to match
+'  the buffer would throw away every pixel the generator drew.
+'
+'  It bobs with the walk, using the same FPS_BOB the eye does but a quarter-turn
+'  out of phase -- an arm that swings in time with the head reads as a limb
+'  bolted to the skull. The SWING is a separate one-shot arc triggered by a
+'  blow landing, so a fight has a hand in it.
+' ----------------------------------------------------------------------------
+SUB FpsDrawHand
+    DIM h AS LONG, w AS INTEGER, ht AS INTEGER, x AS INTEGER, y AS INTEGER
+    '--- NOT `sw`: QB64 identifiers are case-insensitive, so a local `sw` shadows
+    '    the shared SW (screen width in cells) and `SW * CW` silently becomes 0.
+    '    The hand drew at x = -317. tests/audit-shadow.sh lists `sw` for exactly
+    '    this reason and would have said so the moment the gate ran. ---
+    DIM p AS STRING, bx AS SINGLE, by AS SINGLE, swing AS SINGLE
+
+    p = Game_FpsHandArt$
+    FPS_HANDPATH = p
+    IF LEN(p) = 0 THEN EXIT SUB
+    h = Sprite&(p)
+    FPS_HANDH = h
+    IF h >= -1 THEN EXIT SUB
+
+    '--- big enough to feel held: a third of the screen height ---
+    ht = (SH * CH) * 0.42
+    w = ht * _WIDTH(h) / _HEIGHT(h)
+
+    bx = COS(FPS_BOB * 0.5) * 6
+    by = ABS(SIN(FPS_BOB * 0.5)) * 7
+
+    '--- the swing: a quick arc up-and-across, decaying back to rest ---
+    swing = 0
+    IF FPS_SWING > 0 THEN
+        FPS_SWING = FPS_SWING - 0.06
+        IF FPS_SWING < 0 THEN FPS_SWING = 0
+        swing = SIN(FPS_SWING * 3.14159265)
+    END IF
+
+    x = SW * CW - w + 20 + bx - swing * (w * 0.5)
+    y = SH * CH - ht + 8 + by - swing * (ht * 0.28)
+
+    _PUTIMAGE (x, y)-(x + w - 1, y + ht - 1), h, CANVAS
+END SUB
+
+'--- called by the game when a blow lands, so the arm moves when the fight does ---
+SUB FpsSwing
+    FPS_SWING = 1
 END SUB
 
 '--- Turn with the mouse. Called from the play loop, and it must not eat the
@@ -768,4 +845,69 @@ FUNCTION FpsLineClear% (x1 AS SINGLE, y1 AS SINGLE, x2 AS SINGLE, y2 AS SINGLE)
         IF FpsSolid%(INT(x), INT(y)) THEN FpsLineClear% = 0: EXIT FUNCTION
     NEXT i
     FpsLineClear% = -1
+END FUNCTION
+
+
+'--- Does this ray meet the door plane inside this cell?
+'
+'    The door stands across the middle of the cell, perpendicular to whichever
+'    way you walk through it -- which is decided by the WALLS around it, not by
+'    the ray: a door in a north-south corridor hangs east-west. Solve for the
+'    ray parameter at that midline, and accept only if the crossing is inside
+'    the cell. Anything else and you would see doors through the wall beside
+'    them.
+'
+'    dist and wallx come back updated, because a thin wall is nearer than the
+'    cell boundary the DDA measured to. ---
+FUNCTION FpsThinHit% (px AS SINGLE, py AS SINGLE, rdx AS SINGLE, rdy AS SINGLE, _
+                      mapx AS INTEGER, mapy AS INTEGER, side AS INTEGER, _
+                      ddx AS SINGLE, ddy AS SINGLE, sidex AS SINGLE, sidey AS SINGLE, _
+                      dist AS SINGLE, wallx AS SINGLE)
+    DIM t AS SINGLE, hx AS SINGLE, hy AS SINGLE, vert AS INTEGER
+
+    '--- which way the door hangs: across the corridor it sits in. Solid cells
+    '    to left and right mean the way through is north-south, so the door
+    '    faces east-west. ---
+    vert = 0
+    IF FpsSolid%(mapx - 1, mapy) _ANDALSO FpsSolid%(mapx + 1, mapy) THEN
+        vert = 0                                  ' walls beside it: door lies flat (E-W)
+    ELSEIF FpsSolid%(mapx, mapy - 1) _ANDALSO FpsSolid%(mapx, mapy + 1) THEN
+        vert = -1                                 ' walls above and below: door stands (N-S)
+    ELSE
+        '--- an open doorway with no jambs either side: hang it across the way
+        '    the ray is travelling most, which is the only guess left ---
+        vert = (ABS(rdx) > ABS(rdy))
+    END IF
+
+    IF vert THEN
+        IF rdx = 0 THEN EXIT FUNCTION
+        t = (mapx + 0.5 - px) / rdx
+        IF t <= 0 THEN EXIT FUNCTION
+        hy = py + t * rdy
+        IF hy < mapy _ORELSE hy > mapy + 1 THEN EXIT FUNCTION
+        wallx = hy - mapy
+    ELSE
+        IF rdy = 0 THEN EXIT FUNCTION
+        t = (mapy + 0.5 - py) / rdy
+        IF t <= 0 THEN EXIT FUNCTION
+        hx = px + t * rdx
+        IF hx < mapx _ORELSE hx > mapx + 1 THEN EXIT FUNCTION
+        wallx = hx - mapx
+    END IF
+
+    '--- the ray parameter IS the perpendicular distance here, because rdx/rdy
+    '    are the unnormalised camera-space ray -- the same quantity the DDA
+    '    produces, so near/far ordering stays consistent between the two ---
+    dist = t
+    FpsThinHit% = -1
+END FUNCTION
+
+'--- a door the player has not opened yet. An OPENED door stops being drawn --
+'    it swung out of the way, and leaving it hanging there would be a door you
+'    walk through while looking at it. ---
+FUNCTION FpsDoorAt% (cx AS INTEGER, cy AS INTEGER)
+    IF cx < 0 _ORELSE cy < 0 _ORELSE cx > SW - 1 _ORELSE cy > SH - 1 THEN EXIT FUNCTION
+    IF FPS_DOORTEX >= -1 THEN EXIT FUNCTION
+    IF DOOROPEN(cx, cy) THEN EXIT FUNCTION
+    FpsDoorAt% = Game_FpsIsDoor%(cx, cy)
 END FUNCTION

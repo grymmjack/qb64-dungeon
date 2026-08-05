@@ -536,6 +536,7 @@ IF INSTR(UCASE$(COMMAND$), "FPSSHOT") > 0 THEN
     LoadBoardOverlays
     InitFog
     FpsSeeAll                      ' a shot has no run behind it, so nothing would be `seen`
+    IF INSTR(LCASE$(COMMAND$), "hand") > 0 THEN player_class = 1
     FpsShot VAL(COMMAND$(2)), VAL(COMMAND$(3)), VAL(COMMAND$(4)), DeArg$("fpsshot.png", ".png")
     SYSTEM
 END IF

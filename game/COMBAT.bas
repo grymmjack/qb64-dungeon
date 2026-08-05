@@ -709,7 +709,15 @@ SUB DoCombatDnD (rm AS INTEGER)
         AudioTick                            ' keep combat narration fade + music crossfade ramping while idle
         ' Once an action's banners are done, wipe the message/dice area and redraw
         ' the board so ONLY the combat panel shows -- makes it obvious it's your turn.
-        IF dirty THEN cursor_erase: cursor_draw: dirty = 0
+        IF dirty THEN
+            cursor_erase: cursor_draw
+            ' STAGE THE FIGHT WHERE IT IS HAPPENING. In first person the backdrop
+            ' behind the combat panel is the corridor you are standing in, with the
+            ' monster's own billboard filling it -- not the 2D board with a panel
+            ' over it. Nothing about the fight changes; only what is behind it.
+            IF FPS_ON THEN FpsCombatBackdrop rm
+            dirty = 0
+        END IF
         DrawHUD                              ' row-50 stats + the panel (via combat_active hook); the board redraw above wipes the HUD line otherwise
         k = INKEY$
         ' AUTO-COMBAT drives by synthesising the attack key. A REAL keypress is read first and
@@ -838,6 +846,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
                 Sfx "hit"
+                IF FPS_ON THEN FpsSwing
                 DrawCombatPanel rm, mon, lead     ' drain the monster's HP bar before the banner
                 IF opt_juice THEN ImpactFX ShakeMag(dmg) * 0.45, 0   ' a lighter thump when you connect
                 FX_DMG = dmg
@@ -1025,6 +1034,21 @@ SUB PanelShudder (bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER)
     IF PANEL_BUF = 0 THEN PANEL_BUF = _NEWIMAGE(SW * CW, SH * CH, 32)
     _PUTIMAGE (0, 0)-(w, h), CANVAS, PANEL_BUF, (x1, y1)-(x1 + w, y1 + h)
     _PUTIMAGE (x1 + dxp, y1 + dyp)-(x1 + dxp + w, y1 + dyp + h), PANEL_BUF, CANVAS, (0, 0)-(w, h)
+END SUB
+
+'--- The corridor, looking straight at the thing you are fighting. Drawn by the
+'    ordinary render with the camera turned -- so the monster is its real
+'    billboard at its real distance, lit and fogged like everything else,
+'    rather than a portrait pasted on. ---
+SUB FpsCombatBackdrop (rm AS INTEGER)
+    DIM tx AS SINGLE, ty AS SINGLE
+    IF rm < 1 _ORELSE rm > ROOM_N + 2 THEN EXIT SUB
+    tx = ROOMS(rm).cx + 0.5
+    ty = ROOMS(rm).cy + 0.5
+    IF ROOMS(rm).cx >= 0 _ANDALSO ROOMS(rm).cy >= 0 THEN
+        IF ABS(tx - FPS_EYEX) + ABS(ty - FPS_EYEY) > 0.1 THEN FPS_ANG = _ATAN2(ty - FPS_EYEY, tx - FPS_EYEX)
+    END IF
+    FpsPresentPlayer
 END SUB
 
 SUB DrawCombatPanel (rm AS INTEGER, mon AS STRING, lead AS STRING)

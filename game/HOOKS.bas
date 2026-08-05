@@ -338,16 +338,28 @@ SUB Game_FpsPopulate
         NEXT j
     NEXT i
 
-    '--- doors, as art hung in the gap the ray already passes through. A door
-    '    cell is WALKABLE, so it can never be a wall here; making it one to get
-    '    a picture would break walking through it. ---
-    FOR i = 1 TO DOOR_N
-        cx = DOOR_X(i): cy = DOOR_Y(i)
+    '--- treasure still lying in a cleared room ---
+    FOR i = 1 TO ROOM_N
+        IF ROOMS(i).seen = 0 THEN _CONTINUE
+        IF ROOMS(i).malive THEN _CONTINUE
+        IF ROOMS(i).looted THEN _CONTINUE
+        IF ROOMS(i).treasure <= 0 THEN _CONTINUE
+        cx = ROOMS(i).cx: cy = ROOMS(i).cy
         IF FpsFar%(cx, cy) THEN _CONTINUE
-        IF DOOROPEN(cx, cy) THEN _CONTINUE
-        p = PixelArtFile$("fps/door")
-        IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.95, 0
+        p = TreasureSprite$(_TRIM$(ROOMS(i).treasure_name))
+        IF LEN(p) > 0 THEN FpsAddSprite cx + 0.35, cy + 0.65, p, 0.3, 0
     NEXT i
+
+    '--- the other players in a hot-seat game, standing where their token is ---
+    IF num_players > 1 THEN
+        FOR i = 1 TO num_players
+            IF i = cur_player THEN _CONTINUE
+            cx = PLAYERS(i).cx \ CW: cy = PLAYERS(i).cy \ CH
+            IF FpsFar%(cx, cy) THEN _CONTINUE
+            p = ClassSprite$(PLAYERS(i).klass)
+            IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.7, 0
+        NEXT i
+    END IF
 
     '--- board overlays (the torches) show up in here too, for free ---
     FOR i = 1 TO OVL_N
@@ -377,3 +389,34 @@ SUB FpsSeeAll
     DIM i AS INTEGER
     FOR i = 1 TO ROOM_N: ROOMS(i).seen = TRUE: NEXT i
 END SUB
+
+
+'--- a door cell, for the raycaster's THIN WALL. The engine knows a cell is
+'    walkable; that it is a DOOR rather than floor is this game's palette. ---
+FUNCTION Game_FpsIsDoor% (cx AS INTEGER, cy AS INTEGER)
+    DIM s AS LONG, col AS _UNSIGNED LONG
+    IF cx < 0 _ORELSE cy < 0 _ORELSE cx > SW - 1 _ORELSE cy > SH - 1 THEN EXIT FUNCTION
+    '--- read the COLLISION layer, and pin _SOURCE around it: this is called
+    '    from inside the raycaster, which reaches the board by _PUTIMAGE and
+    '    leaves _SOURCE wherever the last caller put it. Same trap as
+    '    Game_FloorColorAt~&. ---
+    s = _SOURCE
+    _SOURCE COLLIDE_BOARD
+    col = POINT(cx * CW + CW \ 2, cy * CH + CH \ 2)
+    _SOURCE s
+    Game_FpsIsDoor% = (col = BROWN)
+END FUNCTION
+
+
+'--- what the player is holding, in their own hands. Per CLASS, because a
+'    Wizard holding a longsword would be a rules bug you can see. ---
+FUNCTION Game_FpsHandArt$
+    DIM nm AS STRING
+    SELECT CASE player_class
+        CASE 2: nm = "elf"
+        CASE 3: nm = "superhero"
+        CASE 4: nm = "wizard"
+        CASE ELSE: nm = "hero"
+    END SELECT
+    Game_FpsHandArt$ = PixelArtFile$("fps/hand-" + nm)
+END FUNCTION

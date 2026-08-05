@@ -132,9 +132,12 @@ First-person view (26-08-05):
     x   projected by inverting the camera matrix; per-COLUMN z-buffer clipping @done(26-08-05)
     x   fpsshot reject tally + aim/aimmon with a line-of-sight test @done(26-08-05)
     x Fighting from inside the view -- combat already fires on entering the cell @done(26-08-05)
-    - treasure and rival player tokens as billboards
-    - a weapon/hand in the foreground
-    - texture the doors as thin walls rather than billboards
+    x Treasure and rival hot-seat player tokens as billboards @done(26-08-05)
+    x A weapon/hand in the foreground, per class, bobbing and swinging on a hit @done(26-08-05)
+    x Doors as THIN WALLS on the cell midline, hung across the corridor by their jambs @done(26-08-05)
+    x Combat staged in the corridor -- the 3D view is the backdrop behind the panel @done(26-08-05)
+    - monsters that face you / animate between frames
+    - the fight's own camera moves (a lunge on a crit, a shake on a hit taken)
     - door FRAMES using fps/door.png (the art is generated and unused today)
 
 Engine GUIs (26-08-05):

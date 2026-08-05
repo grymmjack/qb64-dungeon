@@ -464,6 +464,26 @@ Environment specifics that dictate this approach:
   Without those, "0 columns drawn" is indistinguishable from "you happen to be facing a wall",
   and a sprite bug hides behind a working torch. It also **snaps to the nearest walkable cell** --
   a shot aimed at a wall renders the inside of that wall and looks exactly like a broken renderer.
+  **DOORS ARE THIN WALLS**, not billboards and not solid cells (`FpsThinHit%`): the cell is
+  WALKABLE, so a solid door would be a door you cannot walk through. The face stands on the
+  cell's MIDLINE, across the corridor -- which way it hangs is decided by the WALLS beside it,
+  not by the ray -- so you stand *in* the doorway for a step with the frame either side.
+  `DOOROPEN` cells stop drawing: the door swung out of the way.
+  **The held weapon** (`FpsDrawHand`, per class via `Game_FpsHandArt$`) is drawn onto CANVAS at
+  full size rather than into the little buffer -- it needs no perspective, and upscaling a 200px
+  sprite 4x would throw away every pixel the generator drew. It bobs a quarter-turn out of phase
+  with the eye (an arm swinging in time with the head reads as bolted to the skull) and
+  `FpsSwing` fires a one-shot arc when a blow lands.
+  **Combat is STAGED IN THE CORRIDOR** (`FpsCombatBackdrop`): while `FPS_ON`, the backdrop behind
+  the combat panel is the 3D view with the camera turned to the monster -- its real billboard at
+  its real distance, fogged like everything else, not a portrait pasted on. Nothing about the
+  fight changes; only what is behind it.
+  **Gotcha that cost a debugging round:** a local named `sw` shadows the shared `SW`, so
+  `SW * CW` silently became 0 and the weapon drew at x = -317. `tests/audit-shadow.sh` lists
+  `sw` for exactly this reason -- it would have said so the moment the gate ran.
+  **Gotcha:** `PixelArtFile$` used to require the `.png`, so `PixelArtFile$("markers/grave")`
+  returned `""` -- no error, the sprite simply never drew -- while both forms read as correct at
+  the call site. It now appends `.png` when the subpath has no extension.
 - **PACK BROWSER** (`game/PACKBROWSE.bas`) -- `dungeon.run packbrowse`, or **`[B]` from
   SETTINGS**. Six kinds of content pack (art / sfx / music / narration / data / ansi art), and
   the SETTINGS row for each can show a NAME and nothing else -- so choosing one means picking a

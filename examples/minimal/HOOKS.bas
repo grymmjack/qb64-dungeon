@@ -158,3 +158,13 @@ END FUNCTION
 '--- a game with nothing in its world still gets walls ---
 SUB Game_FpsPopulate
 END SUB
+
+
+'--- no doors in a game with no doors ---
+FUNCTION Game_FpsIsDoor% (cx AS INTEGER, cy AS INTEGER)
+END FUNCTION
+
+
+'--- empty-handed ---
+FUNCTION Game_FpsHandArt$
+END FUNCTION

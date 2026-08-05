@@ -825,7 +825,13 @@ DIM SHARED FPS_RJ_IMG AS LONG, FPS_RJ_BEHIND AS LONG, FPS_RJ_FAR AS LONG
 DIM SHARED FPS_RJ_OFF AS LONG, FPS_RJ_Z AS LONG
 DIM SHARED FPS_DREW AS LONG        ' sprite columns actually drawn -- the only proof a billboard survived
 DIM SHARED FPS_MLX AS INTEGER, FPS_MLY AS INTEGER, FPS_MFIRST AS INTEGER
+DIM SHARED FPS_DOORTEX AS LONG            ' the door face, hung as a thin wall on the cell midline
 DECLARE SUB Game_FpsPopulate ()
+DECLARE FUNCTION Game_FpsIsDoor% (cx AS INTEGER, cy AS INTEGER)
+DECLARE FUNCTION Game_FpsHandArt$ ()
+DIM SHARED FPS_HANDPATH AS STRING
+DIM SHARED FPS_HANDH AS LONG
+DIM SHARED FPS_SWING AS SINGLE            ' the weapon swing, 1 -> 0 over a few frames
 '--- the two things a raycaster cannot know without the game: which zone a cell
 '    belongs to, and what colour that zone is. ---
 DECLARE FUNCTION Game_FpsZone% (cx AS INTEGER, cy AS INTEGER)

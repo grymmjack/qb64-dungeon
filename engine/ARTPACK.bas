@@ -254,12 +254,18 @@ END FUNCTION
 
 ' The PIXEL half of ArtFile$: selected art pack, then the default pack, per file.
 FUNCTION PixelArtFile$ (subpath AS STRING)
-    DIM p AS STRING
+    DIM p AS STRING, sp AS STRING
+    '--- An extension-less subpath means .png. Without this, PixelArtFile$("markers/grave")
+    '    returns "" -- no error, no warning, the sprite simply never draws -- while
+    '    PixelArtFile$("markers/grave.png") works, and both forms read as correct at the
+    '    call site. That cost an afternoon of wondering where the graves went. ---
+    sp = subpath
+    IF INSTR(_INSTRREV(sp, "/") + 1, sp, ".") = 0 THEN sp = sp + ".png"
     IF LEN(opt_artpack) > 0 THEN
-        p = "assets/pixel-art/" + opt_artpack + "/" + subpath
+        p = "assets/pixel-art/" + opt_artpack + "/" + sp
         IF _FILEEXISTS(p) THEN PixelArtFile$ = p: EXIT FUNCTION
     END IF
-    p = "assets/pixel-art/default/" + subpath       ' fall back to the DEFAULT pack (every pack is a named subfolder)
+    p = "assets/pixel-art/default/" + sp       ' fall back to the DEFAULT pack (every pack is a named subfolder)
     IF _FILEEXISTS(p) THEN PixelArtFile$ = p ELSE PixelArtFile$ = ""
 END FUNCTION
 
