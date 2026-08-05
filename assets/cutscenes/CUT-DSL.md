@@ -544,6 +544,13 @@ just dialogue.
 | **SPACE / ENTER** | first press dumps the rest of the typing line, second press moves on |
 | **1–4, W/S, arrows** | a choice menu |
 
+These three are the **engine's** keys (`CutKeyFeed`), so they behave identically
+in the game and in `cutplay.run`. They are the only keys a player ever has.
+
+The authoring keys in §8 are `cutplay.run`'s own, handled in its loop before
+anything reaches the engine — they do **not** exist in the game, which is the
+point: reloading a scene from disk mid-run is a tool, not a feature.
+
 Whether a finished line waits for a key or times out on its own is a
 **setting** (`Manual` / `Auto` / `Off`), not a property of the script. Scripts
 stay agnostic; an explicit `for <t>` on a line overrides both.
@@ -582,14 +589,28 @@ appeared" is indistinguishable from "the layer is behind something".
 cutplay.run <file.cut> [key=value ...]
 ```
 
-| key | |
-|---|---|
-| `[R]` | **recompile from disk and restart** — edit in your editor, tap R |
-| `[P]` | pause (the clock freezes; nothing snaps forward when you resume) |
-| `[→]` | jump one second ahead |
-| `[L]` | loop |
-| `[S]` | screenshot |
-| `[ESC]` | skip / quit |
+| key | | works in the game? |
+|---|---|---|
+| `[SPACE]` / `[ENTER]` | advance — first press dumps the rest of the line, second moves on | **yes** |
+| `[ESC]` | skip the scene (unless it declared `noskip`) | **yes** |
+| `[1]`–`[4]`, `[W]`/`[S]`, arrows | pick a choice | **yes** |
+| `[R]` | **recompile from disk and restart** — edit in your editor, tap R | no |
+| `[P]` | pause (the clock freezes; nothing snaps forward when you resume) | no |
+| `[→]` | jump one second ahead | no |
+| `[L]` | loop the scene | no |
+| `[S]` | screenshot to `cutscene-shot.png` | no |
+
+The first three rows are the engine's and reach any host. The rest are
+`cutplay.run`'s own, handled before anything reaches the engine.
+
+**They are the same for every scene** — none of them are per-scene, so whatever
+you are editing, the keys are the keys.
+
+One deliberate difference between the tool and the game: **`ESC` always exits in
+`cutplay.run`, even for a scene marked `noskip`.** That flag is a promise to the
+player that a beat will land; it has no business trapping the author inside a
+forty-second scene they are iterating on. The engine still honours `noskip` —
+the editor simply overrides it.
 
 A HUD along the top shows the current op, **the source line it came from**, the
 scene clock, the camera, and a `MISSING:` count.

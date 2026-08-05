@@ -85,6 +85,8 @@ IF LEN(target) = 0 THEN
     PRINT "       cutplay.run lint <file.cut|all>"
     PRINT "       cutplay.run shot <file.cut> <seconds> <out.png>"
     PRINT "       cutplay.run selftest"
+    PRINT
+    PrintCutKeys
     SYSTEM 2
 END IF
 
@@ -331,6 +333,26 @@ END SUB
 ' ----------------------------------------------------------------------------
 '  Play, with hot reload
 ' ----------------------------------------------------------------------------
+'--- The key list, printed where it cannot be missed. Which keys reach the
+'    ENGINE and which are this tool's own is the part worth stating: the
+'    authoring keys do not exist in the game, and someone who learns them here
+'    would otherwise expect them there. ---
+SUB PrintCutKeys
+    DIM d AS LONG
+    d = _DEST
+    _DEST _CONSOLE
+    PRINT "keys -- these three also work IN THE GAME (they are the engine's):"
+    PRINT "  SPACE/ENTER  advance (1st press dumps the line, 2nd moves on)"
+    PRINT "  ESC          skip the scene (unless it declared `noskip`)"
+    PRINT "  1-4 W/S      pick a choice"
+    PRINT
+    PRINT "authoring keys -- cutplay.run ONLY, not in the game:"
+    PRINT "  R            recompile from disk and restart"
+    PRINT "  P            pause          L   loop"
+    PRINT "  ->           jump 1s ahead  S   screenshot -> cutscene-shot.png"
+    _DEST d
+END SUB
+
 SUB DoPlay (target AS STRING)
     DIM r AS INTEGER, k AS STRING, kk AS STRING
     DIM running AS INTEGER
@@ -347,6 +369,8 @@ SUB DoPlay (target AS STRING)
             _LIMIT 30
         LOOP
     END IF
+
+    PrintCutKeys
 
     running = TRUE
     DO
@@ -384,6 +408,16 @@ SUB DoPlay (target AS STRING)
             IF k = CHR$(0) + "M" THEN
                 CUT_MODE = CUT_AUTO
                 CutShiftClocks -1#
+                _CONTINUE
+            END IF
+
+            '--- ESC ALWAYS ends the scene HERE, even one marked `noskip`.
+            '    That flag is a promise to the player that a beat will land; it
+            '    has no business trapping the author inside a 40-second scene
+            '    they are trying to iterate on. The engine still honours it --
+            '    this is the tool overriding, not the rule changing. ---
+            IF k = CHR$(27) THEN
+                CutSkip
                 _CONTINUE
             END IF
 

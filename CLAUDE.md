@@ -476,7 +476,8 @@ Environment specifics that dictate this approach:
   SAME state keys the `if` conditions use. Layout measures with `_PRINTWIDTH`, not `LEN*8`,
   or a proportional TTF wraps early and centres off-centre.
   **`cutplay.run` is the authoring loop** — `[R]` recompiles from disk and restarts, and game
-  state comes from the command line (`cutplay.run intro.cut class=wizard gold=6000`) so every
+  state comes from the command line. Only `SPACE`/`ESC`/`1-4` are the ENGINE's keys and reach
+  the game; `R`/`P`/`L`/`S`/`->` are the tool's own and deliberately do not ship to players (`cutplay.run intro.cut class=wizard gold=6000`) so every
   branch can be *watched* rather than hoped about. `lint` resolves every asset a scene names by
   walking the compiled program (so both arms of a conditional, and every frame of an `anim`);
   `shot` renders at a fixed simulated time for regression checks. The engine reaches its host
