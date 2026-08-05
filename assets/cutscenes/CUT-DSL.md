@@ -1,5 +1,10 @@
 # The `.cut` language
 
+> **Two tools, two references.** This file is the **CUT language** — what you
+> write in a `.cut` file. For the **CUT player** (`cutplay.run`: its modes,
+> keys, the reload loop, and how to check a scene without watching it) see
+> [scratchpads/cutscene/CUTPLAY.md](../../scratchpads/cutscene/CUTPLAY.md).
+
 A cut-scene is a plain-text script. It is compiled once when it loads and then
 run one frame at a time, so what you write is what plays — there is no hidden
 interpretation step to diverge from the file on disk.

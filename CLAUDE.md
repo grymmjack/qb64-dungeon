@@ -436,8 +436,11 @@ Environment specifics that dictate this approach:
   `scratchpads/cutscene/CUTPLAY.bas` -> `cutplay.run`).
   DSL-scripted "little movies": layered still art + PNG frame-sequence animation, a pan/zoom
   camera, transitions, music/sfx/narration, conditional branching and player choice menus.
-  **[assets/cutscenes/CUT-DSL.md](assets/cutscenes/CUT-DSL.md) is the language reference** (it lives
-  beside the scenes, not with the code, so it cannot be misplaced);
+  **TWO references, because there are two things.** The **CUT language** (what you write in a
+  `.cut`) is [assets/cutscenes/CUT-DSL.md](assets/cutscenes/CUT-DSL.md) — it lives beside the
+  scenes, not with the code, so it cannot be misplaced. The **CUT player** (`cutplay.run`: its
+  four modes, its keys, the `[R]` reload loop, and how to check a scene without watching it) is
+  [scratchpads/cutscene/CUTPLAY.md](scratchpads/cutscene/CUTPLAY.md).
   `scratchpads/cutscene/run-tests.sh` is the gate.
   **Animated GIFs just work** — `show fx "fire.gif"` decodes every frame with its own
   delay and loops. `_LOADIMAGE` opens a .gif and returns only its FIRST frame, which is the
