@@ -23,6 +23,73 @@ END FUNCTION
 ' ----------------------------------------------------------------------------
 '  Art loading
 ' ----------------------------------------------------------------------------
+'--- Rebuild the stream with every row exactly `cols` printable cells wide and
+'    no line breaks at all. Escape sequences are copied through untouched --
+'    they are not printable cells and must not be counted as any. ---
+FUNCTION CutAnsiNormalize$ (raw AS STRING, cols AS INTEGER)
+    DIM i AS LONG, chcode AS INTEGER, r AS STRING, col AS INTEGER
+    DIM inesc AS INTEGER
+
+    i = 1
+    DO WHILE i <= LEN(raw)
+        chcode = ASC(raw, i)
+        IF chcode = 26 THEN EXIT DO                  ' SAUCE starts here
+
+        IF inesc THEN
+            r = r + CHR$(chcode)
+            '--- a CSI ends on a byte in 64..126; `[` is itself in that range,
+            '    so this must run only AFTER the `[` has been consumed ---
+            IF chcode >= 64 _ANDALSO chcode <= 126 THEN inesc = FALSE
+            i = i + 1
+            _CONTINUE
+        END IF
+
+        IF chcode = 27 THEN
+            r = r + CHR$(27)
+            inesc = TRUE
+            i = i + 1
+            IF i <= LEN(raw) THEN
+                IF ASC(raw, i) = 91 THEN r = r + "[": i = i + 1
+            END IF
+            _CONTINUE
+        END IF
+
+        IF chcode = 10 THEN
+            '--- pad ONLY a partial row. A row that exactly fills the width has
+            '    already wrapped and col is back at 0 -- padding it here would
+            '    add a whole blank row, which is the very banding this function
+            '    exists to remove. ---
+            IF col > 0 THEN r = r + SPACE$(cols - col)
+            col = 0
+            i = i + 1
+            _CONTINUE
+        END IF
+        IF chcode = 13 THEN i = i + 1: _CONTINUE
+
+        r = r + CHR$(chcode)
+        col = col + 1
+        IF col >= cols THEN col = 0
+        i = i + 1
+    LOOP
+
+    IF col > 0 _ANDALSO col < cols THEN r = r + SPACE$(cols - col)
+    CutAnsiNormalize$ = r
+END FUNCTION
+
+'--- remove every CR; leave the LFs alone ---
+FUNCTION CutStripCR$ (raw AS STRING)
+    DIM i AS LONG, r AS STRING, chunk AS STRING, p AS LONG
+    p = 1
+    DO
+        i = INSTR(p, raw, CHR$(13))
+        IF i = 0 THEN EXIT DO
+        r = r + MID$(raw, p, i - p)
+        p = i + 1
+    LOOP
+    r = r + MID$(raw, p)
+    CutStripCR$ = r
+END FUNCTION
+
 FUNCTION CutIsAnsi% (path AS STRING)
     DIM s AS STRING
     s = LCASE$(path)
@@ -44,9 +111,27 @@ FUNCTION CutRenderAnsi& (path AS STRING)
     raw = _READFILE$(path)
     IF LEN(raw) = 0 THEN CutRenderAnsi& = 0: EXIT FUNCTION
 
+    '--- STRIP CR. This is the trap CLAUDE.md documents for the board masks,
+    '    arriving down a different road: ANSI_Print advances on the CR *and*
+    '    on the LF, so a CRLF file paints a blank row after every painted one.
+    '    The board art dodges it by having no line breaks at all and relying on
+    '    auto-wrap at column 132 -- which cut-scene art cannot do, because a
+    '    13-column flame is nowhere near the wrap point.
+    '
+    '    .gitattributes keeps *.ans as CRLF on disk (the board art needs that),
+    '    so normalising at LOAD is the only place this can be fixed once. ---
+    raw = CutStripCR$(raw)
+
     CutAnsiDims raw, cols, rows
     IF cols < 1 THEN cols = CUT_SW
     IF rows < 1 THEN rows = CUT_SH
+
+    '--- Pad every row to the canvas width and DROP the line breaks, so the
+    '    rows land by auto-wrap alone. ANSI_Print advances at the wrap point
+    '    AND on the newline, so a file with both paints a blank row after
+    '    every painted one -- the same trap MaskNormalize$ exists for on the
+    '    board masks, reached here from a different direction. ---
+    raw = CutAnsiNormalize$(raw, cols)
 
     img = _NEWIMAGE(cols * CUT_CW, rows * CUT_CH, 32)
     IF img >= -1 THEN CutRenderAnsi& = 0: EXIT FUNCTION
@@ -167,10 +252,56 @@ END FUNCTION
 '    Two digits because that is what every splitter this repo would use
 '    (ffmpeg %02d, ImageMagick -scene) writes by default. ---
 FUNCTION CutFramePath$ (abase AS STRING, n AS INTEGER)
-    DIM s AS STRING
+    CutFramePath$ = CutFramePathEx$(abase, n, "png")
+END FUNCTION
+
+'--- frame N of a sequence, in whatever format: "fx/fire" + 3 + "ans" is
+'    fx/fire-03.ans. Two digits because that is what ffmpeg %02d and
+'    ImageMagick -scene both write, so splitting an animation needs no
+'    renaming -- and it is what ANSI artists number frames by hand. ---
+FUNCTION CutFramePathEx$ (abase AS STRING, n AS INTEGER, ext AS STRING)
+    DIM s AS STRING, e AS STRING
     s = LTRIM$(STR$(n))
     IF LEN(s) < 2 THEN s = "0" + s
-    CutFramePath$ = abase + "-" + s + ".png"
+    e = LCASE$(_TRIM$(ext))
+    IF LEN(e) = 0 THEN e = "png"
+    IF LEFT$(e, 1) = "." THEN e = MID$(e, 2)
+    CutFramePathEx$ = abase + "-" + s + "." + e
+END FUNCTION
+
+'--- Fill a layer's frame list and return how many frames it actually has.
+'
+'    When the scene gives no `frames <n>`, the count is found by PROBING: ask
+'    for frame 1, 2, 3... until one does not resolve. That deliberately avoids
+'    needing a directory-listing hook -- the engine already has a way to ask
+'    "does this art exist", and counting is the same question asked repeatedly.
+'    It also means adding a frame to an animation is dropping a file in, with
+'    no number to keep in sync anywhere. ---
+FUNCTION CutAnimBuild% (L AS INTEGER, abase AS STRING, ext AS STRING, want AS INTEGER)
+    DIM i AS INTEGER, n AS INTEGER, pth AS STRING
+    DIM lim AS INTEGER
+
+    IF L < 1 _ORELSE L > CUT_MAXLAYER THEN CutAnimBuild% = 0: EXIT FUNCTION
+
+    lim = want
+    IF lim < 1 _ORELSE lim > CUT_MAXAFRAME THEN lim = CUT_MAXAFRAME
+
+    FOR i = 1 TO lim
+        pth = CutFramePathEx$(abase, i, ext)
+        IF LEN(Game_CutArtPath$(pth)) = 0 THEN
+            '--- an explicit `frames <n>` that overshoots is worth saying out
+            '    loud: the animation plays, but shorter than the author asked
+            '    for, and a silently short loop is very hard to spot. ---
+            IF want >= 1 _ANDALSO i <= want THEN
+                CutErrAdd 1, 0, "anim " + abase + ": only " + LTRIM$(STR$(i - 1)) + " of" + STR$(want) + " frames resolve"
+            END IF
+            EXIT FOR
+        END IF
+        n = i
+        CUT_AFILE(L, i) = pth
+    NEXT i
+
+    CutAnimBuild% = n
 END FUNCTION
 
 ' ----------------------------------------------------------------------------
@@ -248,14 +379,17 @@ SUB CutExec (p AS INTEGER)
             IF L > 0 THEN
                 CUT_LAY(L).isanim = TRUE
                 CUT_LAY(L).abase = CutStrGet$(CUT_OPS(p).s2)
-                CUT_LAY(L).nframes = CUT_OPS(p).n1
+                CUT_LAY(L).aext = CutStrGet$(CUT_OPS(p).s3)
+                '--- one list, whatever the source. `frames` is optional: with
+                '    no count, CutAnimBuild% probes until a frame is missing. ---
+                CUT_LAY(L).nframes = CutAnimBuild%(L, _TRIM$(CUT_LAY(L).abase), _TRIM$(CUT_LAY(L).aext), CINT(CUT_OPS(p).n1))
                 CUT_LAY(L).fps = CUT_OPS(p).n2
                 IF CUT_LAY(L).fps <= 0 THEN CUT_LAY(L).fps = 12
                 CUT_LAY(L).amode = CUT_OPS(p).n3
                 CUT_LAY(L).frame = 1
                 CUT_LAY(L).adone = FALSE
                 CUT_LAY(L).atime = CUT_NOW
-                CutLayerSetArt L, CutFramePath$(_TRIM$(CUT_LAY(L).abase), 1)
+                IF CUT_LAY(L).nframes >= 1 THEN CutLayerSetArt L, _TRIM$(CUT_AFILE(L, 1))
                 IF CUT_OPS(p).n4 > 0 THEN
                     CUT_LAY(L).alpha = 0
                     slot = CutTweenStart%(TWN_LAYALPHA, L, 0, 1, CUT_OPS(p).n4, EASE_LINEAR)
@@ -762,7 +896,7 @@ SUB CutAnimTick
                 CUT_LAY(i).work = 0
                 CUT_LAY(i).workstep = -1
             ELSE
-                CutLayerSetArt i, CutFramePath$(_TRIM$(CUT_LAY(i).abase), adv)
+                CutLayerSetArt i, _TRIM$(CUT_AFILE(i, adv))
             END IF
         END IF
     NEXT i

@@ -458,6 +458,50 @@ SUB DoSelftest
     CutOk "  ...and the result still strips clean", CutPipeStrip$(CutFillTokens$("|10{class} |12hits")) = "wizard hits"
 
     ' ------------------------------------------------------------------
+    CutSect "frame sequences: any format, optional count"
+
+    CutOk "png is the default extension", CutFramePathEx$("fx/fog", 3, "") = "fx/fog-03.png"
+    CutOk "  and frames are zero-padded to two digits", CutFramePathEx$("fx/fog", 7, "png") = "fx/fog-07.png"
+    CutOk "an ANSI sequence names .ans", CutFramePathEx$("fx/torch", 1, "ans") = "fx/torch-01.ans"
+    CutOk "  a leading dot is tolerated", CutFramePathEx$("fx/torch", 1, ".ans") = "fx/torch-01.ans"
+    CutOk "past nine, both digits are used", CutFramePathEx$("fx/torch", 12, "ans") = "fx/torch-12.ans"
+
+    '--- PROBING: with no `frames <n>` the runtime counts by asking for frames
+    '    until one does not resolve, so adding a frame is dropping a file in. ---
+    ok = CutCompileText%("anim t " + CHR$(34) + "fx/torch" + CHR$(34) + " fps 10 ext ans" + CHR$(10))
+    CutOk "anim compiles with no frame count", ok
+    CutRunHeadless 1
+    i = CutLayerFind%("t")
+    IF i > 0 THEN
+        CutOk "  it probed and found the six real frames", CUT_LAY(i).nframes = 6
+        CutOk "  and it is flagged as an animation", CUT_LAY(i).isanim <> 0
+    END IF
+
+    ' ------------------------------------------------------------------
+    CutSect "ANSI row normalisation (the banding bug)"
+
+    '--- ANSI_Print advances at the WRAP POINT and again on the newline, so a
+    '    file with both paints a blank row after every painted one. Rows are
+    '    padded to the canvas width and the line breaks dropped.
+    '
+    '    The subtle half: a row that EXACTLY fills the width has already
+    '    wrapped, so its column counter is back at 0 -- padding it "up to the
+    '    width" would insert a whole blank row and cause the very banding this
+    '    is meant to remove. That shipped once and looked like a font bug. ---
+    DIM a3 AS STRING, r3 AS STRING
+    a3 = "abc" + CHR$(13) + CHR$(10) + "def" + CHR$(13) + CHR$(10)
+    r3 = CutAnsiNormalize$(a3, 3)
+    CutOk "an exact-width row is NOT padded", r3 = "abcdef"
+    CutOk "  so N rows produce exactly N*width cells", LEN(r3) = 6
+
+    r3 = CutAnsiNormalize$("ab" + CHR$(10) + "cd" + CHR$(10), 3)
+    CutOk "a SHORT row is padded out to the width", r3 = "ab cd "
+
+    CutOk "CR alone is dropped", CutAnsiNormalize$("ab" + CHR$(13) + "c", 3) = "abc"
+    CutOk "an escape sequence is copied, not counted", CutAnsiNormalize$(CHR$(27) + "[31mabc" + CHR$(10), 3) = CHR$(27) + "[31mabc"
+    CutOk "everything after the 0x1A EOF is dropped", CutAnsiNormalize$("abc" + CHR$(26) + "SAUCE", 3) = "abc"
+
+    ' ------------------------------------------------------------------
     CutSect "animated GIF decoding"
 
     '--- _LOADIMAGE opens a .gif and hands back only its FIRST frame: the handle

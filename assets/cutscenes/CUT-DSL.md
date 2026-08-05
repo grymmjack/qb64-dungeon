@@ -125,10 +125,41 @@ whole; decoding them in isolation would give a stack of fragments on black.
 Use a frame sequence instead when you want per-frame control (`once`,
 `pingpong`, a chosen fps) or when the art needs more than 256 colours.
 
-`anim` plays a **PNG frame sequence**: `anim fog "fx/fog" frames 8 fps 12 loop`
+`anim` plays a **frame sequence** — PNG by default, or full ANSI files with
+`ext ans`: `anim fog "fx/fog" frames 8 fps 12 loop`
 looks for `fx/fog-01.png` … `fx/fog-08.png`. Two digits, zero-padded — which is
 what `ffmpeg -i in.gif out-%02d.png` and ImageMagick both write by default, so
 splitting an animated GIF needs no renaming.
+
+**`frames` is optional.** Leave it off and the runtime *probes* — frame 1, 2,
+3… until one does not resolve:
+
+```
+anim torch "fx/torch" fps 10 ext ans      ' plays however many frames exist
+```
+
+So adding a frame to an animation is dropping a file in the folder, with no
+number to keep in sync anywhere. Give an explicit `frames <n>` and it warns if
+fewer than that resolve — a silently short loop is very hard to spot.
+
+**`ext ans` plays a sequence of complete ANSI files** — separate `.ans` files,
+one per frame, *not* one file full of cursor codes. Each is rendered through
+`ANSI_Print` once as it loads, so from then on the camera treats a frame of
+ANSI exactly like a frame of bitmap: it pans, zooms, scales and fades.
+
+```
+anim torch "fx/torch" fps 10 ext ans scale 3 at 0.2,0.55
+```
+
+> Rows are normalised on load: padded to the canvas width, line breaks dropped.
+> `ANSI_Print` advances at the wrap point **and** again on the newline, so a
+> file with both paints a blank row after every painted one — the banding trap
+> `MaskNormalize$` exists for on the board masks, reached from another
+> direction. `.ans` files stay CRLF on disk (`.gitattributes`, which the board
+> art needs), so this has to be fixed at load.
+
+**Animated GIFs need none of this** — `show fx "fire.gif"` decodes every frame
+with its own delay and loops.
 
 ```
 move       <layer> to <x>,<y> over <t> [ease <e>]
@@ -549,7 +580,7 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     headless assertions (156)
+cutplay.run selftest                     headless assertions (170)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in

@@ -185,6 +185,13 @@ DIM SHARED CUT_GLOBCOLSET AS INTEGER
 '    built-in 8x16, which is what both hosts actually use. ---
 DIM SHARED CUT_GRIDFONT AS LONG
 
+'--- A per-layer FRAME LIST. PNG sequences, ANSI sequences and (one day) a
+'    zip all resolve to the same thing: an ordered list of files. Keeping it
+'    as a list rather than re-deriving a path each tick is what lets those
+'    sources differ without CutAnimTick knowing which one it is looking at.
+CONST CUT_MAXAFRAME = 64
+DIM SHARED CUT_AFILE(1 TO CUT_MAXLAYER, 1 TO CUT_MAXAFRAME) AS STRING * 96
+
 '--- the DOS 16, for inline |NN pipe colours in dialogue ---
 DIM SHARED CUT_PIPE(0 TO 15) AS _UNSIGNED LONG
 
@@ -336,6 +343,7 @@ TYPE CUTLAYER
     ' frame-sequence animation
     isanim AS INTEGER
     abase AS STRING * 96     ' "fx/fog" -> fx/fog-01.png ...
+    aext AS STRING * 8       ' frame extension: png (default) or ans/icy/xb
     nframes AS INTEGER
     fps AS SINGLE
     amode AS INTEGER

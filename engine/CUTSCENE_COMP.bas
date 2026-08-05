@@ -261,13 +261,17 @@ FUNCTION CutCompile% (path AS STRING)
                     k = AM_LOOP
                     IF CutHasKw%("once", 3) THEN k = AM_ONCE
                     IF CutHasKw%("pingpong", 3) THEN k = AM_PINGPONG
+                    '--- `frames` is OPTIONAL: with no count the runtime probes
+                    '    until a frame is missing, so adding a frame to an
+                    '    animation is dropping a file in and nothing else. ---
                     j = CutKwNum!("frames", 3, 0)
-                    IF j < 1 THEN
-                        CutErrAdd 2, ln, "anim needs `frames <n>` with n >= 1"
-                    ELSE
-                        op = CutEmit%(OP_ANIM, CutStr&(nm), CutStr&(txt), j, CutKwNum!("fps", 3, 12), k, CutKwNum!("fade", 3, 0), ln, isasync)
-                        CutEmitLayerMods nm, 3, ln
-                    END IF
+                    op = CutEmit%(OP_ANIM, CutStr&(nm), CutStr&(txt), j, CutKwNum!("fps", 3, 12), k, CutKwNum!("fade", 3, 0), ln, isasync)
+                    '--- `ext ans` plays a sequence of full ANSI files. Each is
+                    '    rendered through ANSI_Print once as it is loaded, so
+                    '    from then on the camera treats a frame of ANSI exactly
+                    '    like a frame of bitmap. ---
+                    CUT_OPS(op).s3 = CutStr&(CutKwStr$("ext", 3, "png"))
+                    CutEmitLayerMods nm, 3, ln
                 END IF
 
             CASE "move"
