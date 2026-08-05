@@ -149,7 +149,9 @@ Engine GUIs (26-08-05):
     x Chamber-rectangle editor -- [C]: drag a rect, name it, writes chambers.txt and re-derives @done(26-08-05)
     x   both APPEND and then reload, so the screen shows the consequence not the intention @done(26-08-05)
     x   both delete through the data editor's raw-line machinery, so comments survive @done(26-08-05)
-    - A GUI for the audio/art pack pickers (SETTINGS rows are fine, a preview grid would be better)
+    x Pack browser -- all six pack kinds with real previews, [B] from SETTINGS @done(26-08-05)
+    x   ART draws four sprites FROM THAT PACK; SFX shows roster coverage; [P] auditions @done(26-08-05)
+    x   previews resolve inside ONE directory, never through the falling-back resolver @done(26-08-05)
 
 Cut-scenes (engine, player, editor -- 26-08-03..05):
     ✔ CUT-SCENE ENGINE: DSL-scripted scenes -- layered art, pan/zoom camera, transitions, @done(26-08-05)

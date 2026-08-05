@@ -442,6 +442,22 @@ Environment specifics that dictate this approach:
   **Which zone a cell is in is the one thing the engine cannot know**, so it asks:
   `Game_FpsZone%` / `Game_FpsZoneColor~&` (hooks 15-16). `examples/minimal` answers "one zone,
   one colour" and still gets a 3D view.
+- **PACK BROWSER** (`game/PACKBROWSE.bas`) -- `dungeon.run packbrowse`, or **`[B]` from
+  SETTINGS**. Six kinds of content pack (art / sfx / music / narration / data / ansi art), and
+  the SETTINGS row for each can show a NAME and nothing else -- so choosing one means picking a
+  word, restarting, and finding out. This shows the contents: **ART** draws four sprites from
+  that pack, **SFX** shows how much of `Game_SfxNames$` it covers as a bar and `[P]` plays one
+  of ITS sounds, **MUSIC/NARRATION** list their files and `[P]` plays one, the rest list what
+  they ship. **The detail that makes it honest: previews resolve inside ONE directory, never
+  through the normal resolver.** The resolver's whole job is to fall back to `default/` per
+  file, which is right for playing and a lie in a browser -- every pack, including an empty
+  one, would preview as complete. `[ENTER]` selects (audio and art reload immediately; data and
+  ansi art say "applies on next launch", because they are read once at startup).
+  **Gotcha:** index 0 of every `*PACKS()` array is the legacy flat-directory slot from before
+  every pack became a named folder; the browser lists from 1, or `default` appears twice.
+  **Gotcha (bit again):** dev modes match against the WHOLE command line, so
+  `packbrowseshot 1 1 cutshot-packs-art.png` ran `PackList` because the OUTPUT FILENAME
+  contained `packs`. Longest mode name must be checked first.
 - **MAP DEBUGGER + EVENT MENU** (`game/MAPDEBUG.bas`) -- `dungeon.run mapdebug`, or **`[~]` then
   `[9]`** over a live run. Every DERIVED board layer toggleable on one screen: `1` sectors
   (`SECTORAT`), `2` walkable (`CellKind%`), `3` rooms (`ROOMAT`), `4` room-kind (`ROOMKIND`,

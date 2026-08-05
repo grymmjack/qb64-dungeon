@@ -446,6 +446,21 @@ IF INSTR(UCASE$(COMMAND$), "SAVETEST") > 0 THEN SaveRoundTripTest
 IF INSTR(UCASE$(COMMAND$), "DATALINT") > 0 THEN DataLint
 
 '--- dev: `dungeon.run packs` lists the packs SETTINGS will actually offer ---
+'--- dev: `dungeon.run packbrowseshot <kind> <n> <out.png>` -- one frame of the
+'    pack browser. `packbrowse` opens it. ---
+IF INSTR(UCASE$(COMMAND$), "PACKBROWSESHOT") > 0 THEN
+    PackBrowseShot VAL(COMMAND$(2)), VAL(COMMAND$(3)), DeArg$("packbrowse.png", ".png")
+    SYSTEM
+END IF
+IF INSTR(UCASE$(COMMAND$), "PACKBROWSE") > 0 THEN
+    PackBrowse
+    SYSTEM
+END IF
+
+' NOTE: these two MUST precede the PACKS check below. Dev modes match against the
+' WHOLE command line, so any ARGUMENT containing a shorter mode name triggers it --
+' `packbrowseshot 1 1 cutshot-packs-art.png` ran PackList because the OUTPUT FILE
+' said "packs". Longest name first is the rule.
 IF INSTR(UCASE$(COMMAND$), "PACKS") > 0 THEN PackList
 
 '--- dev: `dungeon.run themelint` lists the theme colours and proves the file is being read ---

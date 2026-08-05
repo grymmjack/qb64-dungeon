@@ -833,3 +833,9 @@ DIM SHARED MD_PL_SCALE AS SINGLE
 DIM SHARED MD_PL_LIT AS INTEGER
 DIM SHARED MD_RC1X AS INTEGER, MD_RC1Y AS INTEGER   ' chamber rect: first corner
 DIM SHARED MD_RC_SET AS INTEGER                     ' is that corner placed yet
+
+'--- PACK BROWSER (game/PACKBROWSE.bas) ---
+DIM SHARED PB_TYPE AS INTEGER             ' which kind of pack is being browsed
+DIM SHARED PB_SEL AS INTEGER              ' which pack in that kind
+DIM SHARED PB_MSG AS STRING
+DIM SHARED PB_SND AS LONG                 ' the audition handle (retired, never closed)

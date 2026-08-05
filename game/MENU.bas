@@ -754,6 +754,10 @@ SUB RunSettings
         IF k = CHR$(9) THEN sel = SetColJump%(sel, 1): Sfx "select"          ' TAB: jump to next column
         IF k = CHR$(0) + CHR$(15) THEN sel = SetColJump%(sel, -1): Sfx "select"   ' Shift-TAB: prev column
         IF k = CHR$(27) THEN SaveSettings: Free3DPreviews: EXIT SUB
+        ' [B] -- the PACK BROWSER. The six pack rows here can show a NAME and nothing
+        ' else, so picking one means picking a word and finding out later; the browser
+        ' shows the art, the coverage, and plays the sounds.
+        IF k = "B" THEN PackBrowse: BuildSetLayout
 
         ' A/D (left/right arrows) adjust the selected slider/value -- the familiar convention
         IF k = "A" OR k = "D" THEN
