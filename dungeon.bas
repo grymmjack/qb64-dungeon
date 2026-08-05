@@ -1071,6 +1071,12 @@ FUNCTION PlayGame%
             IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: Present   ' wipe the frozen debug overlay off the board
         END IF
         IF dbg_on AND k = "0" THEN DebugTestMenu   ' [~] on -> [0] opens the cheat/test panel
+        ' [~] on -> [9] opens the MAP DEBUGGER over the live run: every derived layer
+        ' toggleable, and an EVENT menu that fires a curio / wanderer / trap / room fight /
+        ' chamber encounter / cut-scene AT a clicked cell. Live is the point -- those events
+        ' all read the player's position and level, so firing them from a dev mode with no
+        ' run behind it would exercise the menu rather than the event.
+        IF dbg_on AND k = "9" THEN MapDebugScreen -1
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1

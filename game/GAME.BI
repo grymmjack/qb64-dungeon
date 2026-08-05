@@ -819,3 +819,7 @@ DIM SHARED DEV_FAIL AS INTEGER
 DIM SHARED MD_ON(1 TO 16) AS INTEGER      ' which layers are toggled on
 DIM SHARED MD_ART AS INTEGER              ' draw the board art underneath
 DIM SHARED MD_ALPHA AS INTEGER            ' tint strength, so layers stay readable together
+DIM SHARED MD_LIVE AS INTEGER             ' opened over a run in progress? (events need one)
+DIM SHARED MD_SX AS INTEGER, MD_SY AS INTEGER   ' the selected cell -- what events fire AT
+DIM SHARED MD_CLICK AS INTEGER            ' click debounce, so one press is one pick
+DIM SHARED MD_MSG AS STRING               ' last action, shown in the readout line
