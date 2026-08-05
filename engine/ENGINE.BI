@@ -837,9 +837,19 @@ DIM SHARED FPS_SHAKE AS SINGLE, FPS_SHAKESIGN AS INTEGER
 DIM SHARED FPS_LUNGE AS SINGLE
 DIM SHARED FPS_FLASH AS SINGLE, FPS_FLASHX AS INTEGER, FPS_FLASHY AS INTEGER
 DIM SHARED FPS_IDLE AS SINGLE
+DIM SHARED FPS_TORCH_R AS SINGLE, FPS_TORCH_T AS SINGLE   ' the flame's reach this frame, and its phase
+'--- a RENDERER setting, so it lives with the renderer. The game only persists
+'    it and puts a SETTINGS row on it; engine/ may not name a game symbol. ---
+DIM SHARED opt_fpslight AS INTEGER        ' 0 off (flat fog) / 1 guttering / 2 torch / 3 brand
 DIM SHARED FPS_HURT_KEY(1 TO 48) AS STRING
 DIM SHARED FPS_HURT_IMG(1 TO 48) AS LONG
 DIM SHARED FPS_HURT_N AS INTEGER
+DIM SHARED FPS_CUT_KEY(1 TO 96) AS STRING
+DIM SHARED FPS_CUT_IMG(1 TO 96) AS LONG
+DIM SHARED FPS_CUT_N AS INTEGER
+DIM SHARED FPS_SH_KEY(1 TO 256) AS STRING
+DIM SHARED FPS_SH_IMG(1 TO 256) AS LONG
+DIM SHARED FPS_SH_N AS INTEGER
 DIM SHARED FPS_AIMED AS INTEGER           ' which sprite the shot's `aim` turned to            ' the weapon swing, 1 -> 0 over a few frames
 '--- the two things a raycaster cannot know without the game: which zone a cell
 '    belongs to, and what colour that zone is. ---

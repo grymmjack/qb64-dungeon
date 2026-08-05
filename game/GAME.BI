@@ -653,7 +653,7 @@ CONST SETOPT_MAX = 128
 ' How many settings options exist. Lives here rather than inside RunSettings so the layout check
 ' (SettingsLayoutCheck, run by `dungeon.run settingsshot`) can see it: an option counted here but
 ' never given a SetLayRow draws nowhere, silently. Raise it when adding a row.
-CONST NSET = 68
+CONST NSET = 69                                   ' 69 = Torch Light (first-person lighting)
 DIM SHARED SL_COL(1 TO SETOPT_MAX) AS INTEGER    ' per option id: which column (1..NSCOL)
 DIM SHARED SL_ROW(1 TO SETOPT_MAX) AS INTEGER    ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count

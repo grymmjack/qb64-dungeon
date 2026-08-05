@@ -678,6 +678,7 @@ SUB BuildSetLayout
     SetLayRow 3, 18, prow(): SetLayRow 3, 19, prow(): SetLayRow 3, 20, prow(): SetLayRow 3, 35, prow()
     SetLayRow 3, 59, prow()                          ' Stats Overlay -- a DISPLAY choice, not a rule
     SetLayRow 3, 68, prow()                          ' Cut-scenes: pacing is a PLAYER choice, not a script property
+    SetLayRow 3, 69, prow()                          ' Torch Light: how dark first person is
     SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow()
     prow(3) = prow(3) + 1
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
@@ -875,6 +876,11 @@ SUB RunSettings
                     ' preference appears to do nothing until the next launch.
                     ReloadSfxPack
                     music_curfile = ""        ' force PlayLevelMusic to re-resolve the track
+                CASE 69
+                    opt_fpslight = opt_fpslight + delta
+                    IF opt_fpslight < 0 THEN opt_fpslight = 3
+                    IF opt_fpslight > 3 THEN opt_fpslight = 0
+                    Sfx "select"
                 CASE 68: CycleCutscenes delta
                 CASE 45: CycleNarration delta
                 CASE 46: CycleArtPack delta
@@ -1010,6 +1016,9 @@ SUB RunSettings
                     opt_solomins = opt_solomins - 5: IF opt_solomins < 15 THEN opt_solomins = 30
                 CASE 43: CycleSfxPack 1
                 CASE 44: CycleMusicPack 1
+                CASE 69
+                    opt_fpslight = opt_fpslight + 1: IF opt_fpslight > 3 THEN opt_fpslight = 0
+                    Sfx "select"
                 CASE 68: CycleCutscenes 1
                 CASE 45: CycleNarration 1
                 CASE 46: CycleArtPack 1
@@ -1271,6 +1280,9 @@ SUB RunSettings
                     lbl = "Music Pack": slider = TRUE
                     vtxt = PackLabel$(opt_musicpack)
                     ' (counter dropped -- see SFX Pack)
+                CASE 69
+                    lbl = "Torch Light": slider = TRUE
+                    vtxt = TorchLabel$
                 CASE 68
                     lbl = "Cut-scenes": slider = TRUE
                     vtxt = CutsceneModeLabel$
@@ -2355,3 +2367,15 @@ SUB CycleCutscenes (delta AS INTEGER)
     IF opt_cutscenes > CUT_OFF THEN opt_cutscenes = CUT_MANUAL
     IF opt_cutscenes < CUT_MANUAL THEN opt_cutscenes = CUT_OFF
 END SUB
+
+
+'--- how dark first person is. Off is not "no light" -- it is the flat distance
+'    fog the view had before torches, kept because the dark is a choice. ---
+FUNCTION TorchLabel$
+    SELECT CASE opt_fpslight
+        CASE 0: TorchLabel$ = "Off (flat)"
+        CASE 1: TorchLabel$ = "Guttering"
+        CASE 3: TorchLabel$ = "Bright brand"
+        CASE ELSE: TorchLabel$ = "Torch"
+    END SELECT
+END FUNCTION

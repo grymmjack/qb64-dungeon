@@ -48,6 +48,7 @@
 CONST FPS_W = 264                    ' render buffer, stretched to the canvas
 CONST FPS_H = 204
 CONST FPS_TEXW = 128                 ' expected wall-texture size (any size works)
+CONST FPS_SHADE_LV = 7               ' pre-darkened sprite copies per distance band
 CONST FPS_MAXDIST = 24               ' cells; past this a ray gives up and fogs out
 '--- how tall a wall is, in cells. 1.0 is the textbook value and it makes this
 '    board read as a hedge maze: the corridors here are several cells wide, so a
@@ -177,7 +178,7 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
     DIM hit AS INTEGER, side AS INTEGER, dist AS SINGLE, isdoor AS INTEGER
     DIM lineh AS INTEGER, y1 AS INTEGER, y2 AS INTEGER
     DIM wallx AS SINGLE, tx AS INTEGER, tex AS LONG, lvl AS INTEGER
-    DIM fog AS INTEGER, d AS LONG, hz AS INTEGER
+    DIM fog AS INTEGER, d AS LONG, hz AS INTEGER, warm AS INTEGER
 
     d = _DEST
     _DEST FPS_BUF
@@ -274,8 +275,10 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
         '    at an invisible corner. ---
         fog = FpsFog%(dist)
         IF side = 1 THEN fog = fog + 38
-        IF fog > 245 THEN fog = 245
+        IF fog > 250 THEN fog = 250
         IF fog > 0 THEN LINE (x, y1)-(x, y2), _RGBA32(0, 0, 6, fog)
+        warm = FpsWarm%(dist)
+        IF warm > 0 THEN LINE (x, y1)-(x, y2), _RGBA32(255, 150, 60, warm)
     NEXT x
 
     FpsDrawSprites px, py, dirx, diry, planex, planey, hz
@@ -327,6 +330,7 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
         i = FSP_ORD(n)
         h = Sprite&(FSP_PATH(i))
         IF h >= -1 THEN FPS_RJ_IMG = FPS_RJ_IMG + 1: _CONTINUE
+        h = FpsCutout&(FSP_PATH(i), h)
 
         sx = FSP_X(i) - px
         sy = FSP_Y(i) - py
@@ -357,7 +361,13 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
         x2 = x1 + sw2 - 1
         IF x2 < 0 _ORELSE x1 > FPS_W - 1 THEN FPS_RJ_OFF = FPS_RJ_OFF + 1: _CONTINUE
 
+        '--- FOG A SPRITE BY SHADING THE IMAGE, never by painting over its
+        '    screen columns. The columns are its bounding BOX, so a translucent
+        '    dark overlay paints a faintly-different-dark RECTANGLE around it --
+        '    invisible in a bright corridor and glaring once the torch made the
+        '    dungeon dark. Exactly the mistake the red flash made first. ---
         fog = FpsFog%(ty)
+        IF fog > 8 THEN h = FpsShadeImage&(FSP_PATH(i), h, fog)
         '--- is THIS the thing that was just struck? If so, swap in a RED copy
         '    of the image rather than painting red over the column: a column
         '    overlay ignores the sprite's alpha and paints a red RECTANGLE, box
@@ -381,7 +391,6 @@ SUB FpsDrawSprites (px AS SINGLE, py AS SINGLE, dirx AS SINGLE, diry AS SINGLE, 
             IF u > _WIDTH(h) - 1 THEN u = _WIDTH(h) - 1
             _PUTIMAGE (col, y1)-(col, y2), h, FPS_BUF, (u, 0)-(u, _HEIGHT(h) - 1)
             IF hurt < -1 THEN _PUTIMAGE (col, y1)-(col, y2), hurt, FPS_BUF, (u, 0)-(u, _HEIGHT(hurt) - 1)
-            IF fog > 0 THEN LINE (col, y1)-(col, y2), _RGBA32(0, 0, 6, fog)
             FPS_DREW = FPS_DREW + 1
         NEXT col
     NEXT n
@@ -408,17 +417,97 @@ END SUB
 SUB FpsClearSprites
     FSP_N = 0
     FPS_IDLE = FPS_IDLE + 0.07          ' the world's own slow breath, one tick a frame
+    FpsTorchTick                        ' one flame per frame, not one per surface
 END SUB
 
-'--- fog rises with distance and then stops, so the far end of a long hall is
-'    dark but never pure black -- pure black reads as "nothing rendered" ---
+' ----------------------------------------------------------------------------
+'  LIGHT -- you are carrying a torch, you are not standing in a lit room.
+'
+'  The old version was DISTANCE FOG: everything dimmed at a fixed linear rate and
+'  bottomed out at a floor so the far end of a hall stayed visible. That reads as
+'  a uniformly-lit dungeon photographed through haze, which is a different place
+'  from the one this game is about.
+'
+'  A torch is a POINT SOURCE. Its light falls off with the square of distance,
+'  it has a definite reach, and past that reach there is nothing -- not haze,
+'  nothing. Three things follow from modelling it that way rather than tuning the
+'  fog curve:
+'
+'    * corridors get genuinely dark, so walking one is a decision
+'    * the reach FLICKERS, and a flicker is the single cheapest thing that makes
+'      a still picture feel like a lit room instead of a rendered one
+'    * near surfaces take a WARM cast and far ones a cold blue-black, which is
+'      what a flame actually does and what no amount of grey fog can imitate
+'
+'  Torch Light OFF (opt_fpslight = 0) restores the flat distance fog, because
+'  the dark is a choice and somebody will want to see where they are going.
+' ----------------------------------------------------------------------------
+
+'--- how much light reaches something this far away, 0..1 ---
+FUNCTION FpsLight! (dist AS SINGLE)
+    DIM r AS SINGLE, t AS SINGLE
+
+    IF opt_fpslight <= 0 THEN
+        '--- flat fog: the old behaviour, kept whole ---
+        t = 1 - (dist - 1.2) / 13.7
+        IF t > 1 THEN t = 1
+        IF t < 0.2 THEN t = 0.2
+        FpsLight! = t
+        EXIT FUNCTION
+    END IF
+
+    r = FPS_TORCH_R
+    IF r <= 0 THEN r = 6.5
+    IF dist >= r THEN FpsLight! = 0: EXIT FUNCTION
+
+    '--- inverse-square, normalised so it is 1 at the flame and 0 at the reach.
+    '    The subtraction at the end is what makes the edge of the light a real
+    '    edge: without it the curve only ASYMPTOTES to dark and the far wall
+    '    keeps a permanent grey glow that gives the whole level away. ---
+    t = 1 / (1 + (dist / (r * 0.42)) ^ 2)
+    t = (t - 1 / (1 + (r / (r * 0.42)) ^ 2)) / (1 - 1 / (1 + (r / (r * 0.42)) ^ 2))
+    IF t < 0 THEN t = 0
+    IF t > 1 THEN t = 1
+    FpsLight! = t
+END FUNCTION
+
+'--- the darkening alpha for a surface at this distance ---
 FUNCTION FpsFog% (dist AS SINGLE)
     DIM v AS INTEGER
-    v = (dist - 1.2) * 15
+    v = (1 - FpsLight!(dist)) * 255
     IF v < 0 THEN v = 0
-    IF v > 205 THEN v = 205
+    IF v > 255 THEN v = 255
     FpsFog% = v
 END FUNCTION
+
+'--- the WARM cast on a surface close enough to be in the flame's colour. A
+'    separate pass from the darkening because they pull opposite ways: one adds
+'    orange, the other subtracts everything, and doing both in one blend just
+'    gives muddy brown. ---
+FUNCTION FpsWarm% (dist AS SINGLE)
+    DIM t AS SINGLE
+    IF opt_fpslight <= 0 THEN EXIT FUNCTION
+    t = FpsLight!(dist)
+    IF t < 0.55 THEN EXIT FUNCTION
+    FpsWarm% = (t - 0.55) * 150
+END FUNCTION
+
+'--- The torch reach for THIS frame, flickering. Advanced once per frame in
+'    FpsClearSprites so every surface in a frame is lit by the same flame --
+'    ticking it per surface would make the walls disagree about how bright the
+'    torch is, which reads as static rather than as firelight. ---
+SUB FpsTorchTick
+    DIM reach AS SINGLE          ' NOT `base` -- reserved word in QB64
+    SELECT CASE opt_fpslight
+        CASE 1: reach = 4.5              ' guttering
+        CASE 3: reach = 10.5             ' a proper brand
+        CASE ELSE: reach = 7             ' a torch
+    END SELECT
+    FPS_TORCH_T = FPS_TORCH_T + 0.31
+    '--- two incommensurate sines: one period is not a rational multiple of the
+    '    other, so the flicker never settles into a visible loop ---
+    FPS_TORCH_R = reach * (1 + SIN(FPS_TORCH_T) * 0.035 + SIN(FPS_TORCH_T * 2.7) * 0.025)
+END SUB
 
 '--- which texture a wall face wears: the level of the EMPTY cell in front of
 '    it, not the wall cell itself. Wall cells are unpainted black and belong to
@@ -448,7 +537,7 @@ END FUNCTION
 SUB FpsDrawFloors (px AS SINGLE, py AS SINGLE, ang AS SINGLE, hz AS INTEGER)
     DIM y AS INTEGER, rowd AS SINGLE, fx AS SINGLE, fy AS SINGLE
     DIM cx AS INTEGER, cy AS INTEGER, k AS _UNSIGNED LONG
-    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER, fog AS INTEGER
+    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER, fog AS INTEGER, warm AS INTEGER
 
     CLS , _RGB32(0, 0, 0)
 
@@ -472,6 +561,8 @@ SUB FpsDrawFloors (px AS SINGLE, py AS SINGLE, ang AS SINGLE, hz AS INTEGER)
 
         LINE (0, y)-(FPS_W - 1, y), _RGB32(FpsClamp%(r), FpsClamp%(g), FpsClamp%(b)), BF
         IF fog > 0 THEN LINE (0, y)-(FPS_W - 1, y), _RGBA32(0, 0, 6, fog), BF
+        warm = FpsWarm%(rowd)
+        IF warm > 0 THEN LINE (0, y)-(FPS_W - 1, y), _RGBA32(255, 150, 60, warm), BF
 
         '--- the ceiling mirrors the floor row, much darker: it gives the eye a
         '    horizon and a sense of height without needing its own art ---
@@ -660,6 +751,7 @@ SUB FpsShot (cx AS INTEGER, cy AS INTEGER, deg AS SINGLE, outp AS STRING)
     FpsPresent cx + 0.5, cy + 0.5, FPS_ANG
     _SAVEIMAGE outp, CANVAS
     d = _DEST: _DEST _CONSOLE
+    IF FPS_AIMED > 0 THEN PRINT PipeCol$("|07  aimed sprite |14" + FSP_PATH(FPS_AIMED) + "|07")
     PRINT PipeCol$("|07  hand |14" + FPS_HANDPATH + "|07 handle |14" + LTRIM$(STR$(FPS_HANDH)) + "|07")
     PRINT PipeCol$("|07  rejects: image |14" + LTRIM$(STR$(FPS_RJ_IMG)) + "|07 behind |14" + LTRIM$(STR$(FPS_RJ_BEHIND)) + _
                    "|07 far |14" + LTRIM$(STR$(FPS_RJ_FAR)) + "|07 offscreen |14" + LTRIM$(STR$(FPS_RJ_OFF)) + _
@@ -1073,4 +1165,159 @@ FUNCTION FpsHurtImage& (path AS STRING, src AS LONG)
     NEXT y
     _DEST d: _SOURCE so
     FpsHurtImage& = FPS_HURT_IMG(FPS_HURT_N)
+END FUNCTION
+
+
+' ----------------------------------------------------------------------------
+'  Black-background sprites.
+'
+'  Some sprites in the art packs were drawn on an opaque BLACK field rather than
+'  on transparency. On a 2D panel nobody notices. Standing in a dark corridor
+'  they are black RECTANGLES hanging in the air, and the darker the lighting got
+'  the worse they looked -- the torch made an old art problem visible rather
+'  than causing one.
+'
+'  So: if a sprite's four corners are opaque black, cache a copy with black
+'  keyed out. Corners rather than a pixel count, because a monster can be very
+'  dark without being on a black field, and all four corners being pure black is
+'  what a background looks like and what a subject does not.
+'
+'  The COPY matters. _CLEARCOLOR on the shared cached image would change how the
+'  sprite draws everywhere else in the game, from a decision taken by the
+'  raycaster.
+' ----------------------------------------------------------------------------
+FUNCTION FpsCutout& (path AS STRING, src AS LONG)
+    DIM i AS INTEGER, so AS LONG, d AS LONG, w AS INTEGER, ht AS INTEGER
+    DIM x AS INTEGER, y AS INTEGER, cp AS LONG, k AS _UNSIGNED LONG
+    DIM cr AS INTEGER, cg AS INTEGER, cb AS INTEGER, n AS INTEGER
+
+    FOR i = 1 TO FPS_CUT_N
+        IF FPS_CUT_KEY(i) = path THEN FpsCutout& = FPS_CUT_IMG(i): EXIT FUNCTION
+    NEXT i
+    IF FPS_CUT_N >= UBOUND(FPS_CUT_IMG) THEN FpsCutout& = src: EXIT FUNCTION
+
+    w = _WIDTH(src): ht = _HEIGHT(src)
+    IF w < 2 _ORELSE ht < 2 THEN FpsCutout& = src: EXIT FUNCTION
+
+    so = _SOURCE: d = _DEST
+    _SOURCE src
+
+    '--- the four corners must AGREE, and be dark. Agreement is the real test:
+    '    a monster can be very dark all over without being on a field, but four
+    '    corners that are the same dark colour is a background. ---
+    IF FpsCornerField%(w, ht, cr, cg, cb) = 0 THEN
+        _SOURCE so
+        FPS_CUT_N = FPS_CUT_N + 1
+        FPS_CUT_KEY(FPS_CUT_N) = path
+        FPS_CUT_IMG(FPS_CUT_N) = src
+        FpsCutout& = src
+        EXIT FUNCTION
+    END IF
+
+    cp = _NEWIMAGE(w, ht, 32)
+    _DEST cp
+    CLS , _RGBA32(0, 0, 0, 0)
+    FOR y = 0 TO ht - 1
+        FOR x = 0 TO w - 1
+            _SOURCE src
+            k = POINT(x, y)
+            _DEST cp
+            '--- keyed by NEARNESS to the field colour, not by an exact match:
+            '    these backgrounds are often a faint gradient rather than one
+            '    flat value, and _CLEARCOLOR only removes the exact shade --
+            '    which leaves a box with a hole in the middle of it. ---
+            IF ABS(_RED32(k) - cr) + ABS(_GREEN32(k) - cg) + ABS(_BLUE32(k) - cb) > 40 THEN
+                PSET (x, y), k
+            END IF
+        NEXT x
+    NEXT y
+    _DEST d: _SOURCE so
+
+    FPS_CUT_N = FPS_CUT_N + 1
+    FPS_CUT_KEY(FPS_CUT_N) = path
+    FPS_CUT_IMG(FPS_CUT_N) = cp
+    FpsCutout& = cp
+END FUNCTION
+
+'--- do the four corners agree on one dark colour? Returns it if so. ---
+FUNCTION FpsCornerField% (w AS INTEGER, ht AS INTEGER, cr AS INTEGER, cg AS INTEGER, cb AS INTEGER)
+    DIM k1 AS _UNSIGNED LONG, k2 AS _UNSIGNED LONG, k3 AS _UNSIGNED LONG, k4 AS _UNSIGNED LONG
+    k1 = POINT(0, 0): k2 = POINT(w - 1, 0)
+    k3 = POINT(0, ht - 1): k4 = POINT(w - 1, ht - 1)
+    IF _ALPHA32(k1) < 250 _ORELSE _ALPHA32(k2) < 250 THEN EXIT FUNCTION
+    IF _ALPHA32(k3) < 250 _ORELSE _ALPHA32(k4) < 250 THEN EXIT FUNCTION
+
+    cr = (_RED32(k1) + _RED32(k2) + _RED32(k3) + _RED32(k4)) \ 4
+    cg = (_GREEN32(k1) + _GREEN32(k2) + _GREEN32(k3) + _GREEN32(k4)) \ 4
+    cb = (_BLUE32(k1) + _BLUE32(k2) + _BLUE32(k3) + _BLUE32(k4)) \ 4
+
+    '--- dark, or it is not a black field and keying it would eat the art ---
+    IF cr > 60 _ORELSE cg > 60 _ORELSE cb > 60 THEN EXIT FUNCTION
+    '--- and all four close to that average ---
+    IF FpsFarFrom%(k1, cr, cg, cb) _ORELSE FpsFarFrom%(k2, cr, cg, cb) THEN EXIT FUNCTION
+    IF FpsFarFrom%(k3, cr, cg, cb) _ORELSE FpsFarFrom%(k4, cr, cg, cb) THEN EXIT FUNCTION
+    FpsCornerField% = -1
+END FUNCTION
+
+FUNCTION FpsFarFrom% (k AS _UNSIGNED LONG, cr AS INTEGER, cg AS INTEGER, cb AS INTEGER)
+    IF ABS(_RED32(k) - cr) + ABS(_GREEN32(k) - cg) + ABS(_BLUE32(k) - cb) > 36 THEN FpsFarFrom% = -1
+END FUNCTION
+
+
+
+
+' ----------------------------------------------------------------------------
+'  Shaded sprite copies.
+'
+'  A sprite has to be dimmed by distance like everything else, and the only way
+'  to do that WITHOUT painting over its transparent pixels is to dim the image.
+'  So: a handful of pre-darkened copies per sprite, built on demand and cached,
+'  and the renderer picks the nearest level.
+'
+'  This is the same answer the 3D dice reached for the same reason -- there the
+'  brightness levels are baked into the texture atlas as columns. Overlaying is
+'  always the tempting one-liner and it is always wrong the moment alpha is
+'  involved.
+'
+'  Quantised to FPS_SHADE_LV steps because the alternative is a fresh per-pixel
+'  pass every time a monster moves a foot nearer.
+' ----------------------------------------------------------------------------
+FUNCTION FpsShadeImage& (path AS STRING, src AS LONG, fog AS INTEGER)
+    DIM lv AS INTEGER, kk AS STRING, i AS INTEGER
+    DIM w AS INTEGER, ht AS INTEGER, x AS INTEGER, y AS INTEGER
+    DIM so AS LONG, d AS LONG, cp AS LONG, k AS _UNSIGNED LONG, f AS SINGLE
+
+    lv = (fog * FPS_SHADE_LV) \ 256
+    IF lv < 1 THEN FpsShadeImage& = src: EXIT FUNCTION
+    IF lv > FPS_SHADE_LV - 1 THEN lv = FPS_SHADE_LV - 1
+
+    kk = path + "#" + LTRIM$(STR$(lv))
+    FOR i = 1 TO FPS_SH_N
+        IF FPS_SH_KEY(i) = kk THEN FpsShadeImage& = FPS_SH_IMG(i): EXIT FUNCTION
+    NEXT i
+    IF FPS_SH_N >= UBOUND(FPS_SH_IMG) THEN FpsShadeImage& = src: EXIT FUNCTION
+
+    w = _WIDTH(src): ht = _HEIGHT(src)
+    IF w < 1 _ORELSE ht < 1 THEN FpsShadeImage& = src: EXIT FUNCTION
+
+    f = 1 - lv / FPS_SHADE_LV
+    so = _SOURCE: d = _DEST
+    cp = _NEWIMAGE(w, ht, 32)
+    _DEST cp: CLS , _RGBA32(0, 0, 0, 0)
+    FOR y = 0 TO ht - 1
+        FOR x = 0 TO w - 1
+            _SOURCE src
+            k = POINT(x, y)
+            _DEST cp
+            IF _ALPHA32(k) > 0 THEN
+                PSET (x, y), _RGBA32(_RED32(k) * f, _GREEN32(k) * f, _BLUE32(k) * f + 2, _ALPHA32(k))
+            END IF
+        NEXT x
+    NEXT y
+    _DEST d: _SOURCE so
+
+    FPS_SH_N = FPS_SH_N + 1
+    FPS_SH_KEY(FPS_SH_N) = kk
+    FPS_SH_IMG(FPS_SH_N) = cp
+    FpsShadeImage& = cp
 END FUNCTION

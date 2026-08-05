@@ -1950,3 +1950,86 @@ SUB DumpWindLint
         PRINT PipeCol$("|10windlint: |14" + LTRIM$(STR$(have)) + "|10 pack(s) with a draught, |14" + LTRIM$(STR$(miss)) + "|10 without")
     END IF
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run spritealpha` -- which sprites were drawn on an opaque field?
+'
+'  On a 2D panel a sprite with a black or grey background is fine -- nobody
+'  looks. Stood up as a billboard in a dark corridor it is a floating BOX, and
+'  the better the lighting gets the worse it looks. The torch did not cause
+'  that; it made an old art problem visible.
+'
+'  The engine keys out a background when the four corners AGREE on one dark
+'  colour, which is what a flat field looks like. It deliberately does not try
+'  harder than that: a cleverer keyer eventually eats a monster's own dark
+'  pixels, and the real fix is the art. So this counts them instead and hands
+'  over a work list.
+' ============================================================================
+SUB DumpSpriteAlpha
+    DIM n AS INTEGER, bad AS INTEGER, i AS INTEGER
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15spritealpha|07 -- sprites with an OPAQUE background (a box in first person)")
+    PRINT
+    SpriteAlphaDir "assets/pixel-art/" + _TRIM$(opt_artpack) + "/", "", n, bad
+    PRINT
+    PRINT PipeCol$("|07  scanned |14" + LTRIM$(STR$(n)) + "|07, opaque-field |14" + LTRIM$(STR$(bad)) + "|07")
+    IF bad > 0 THEN
+        PRINT PipeCol$("|14  these draw as a rectangle in the first-person view.")
+        PRINT PipeCol$("|14  fix in the ART: regenerate with a transparent background, or")
+        PRINT PipeCol$("|14  post-process (magick IN -fuzz 8% -transparent black OUT).")
+    ELSE
+        PRINT PipeCol$("|10  every sprite has a transparent or non-flat background")
+    END IF
+END SUB
+
+SUB SpriteAlphaDir (dir AS STRING, rel AS STRING, n AS INTEGER, bad AS INTEGER)
+    DIM e AS STRING, subs(1 TO 64) AS STRING, ns AS INTEGER, i AS INTEGER
+    DIM h AS LONG, so AS LONG, cr AS INTEGER, cg AS INTEGER, cb AS INTEGER
+
+    IF _DIREXISTS(dir) = 0 THEN EXIT SUB
+    e = _FILES$(dir)
+    DO WHILE LEN(e) > 0
+        IF RIGHT$(e, 1) = "/" THEN
+            IF e <> "./" _ANDALSO e <> "../" _ANDALSO ns < 64 THEN ns = ns + 1: subs(ns) = e
+        ELSEIF INSTR(LCASE$(e), ".png") > 0 THEN
+            h = _LOADIMAGE(dir + e, 32)
+            IF h < -1 THEN
+                n = n + 1
+                so = _SOURCE
+                _SOURCE h
+                '--- the same corner test the renderer uses, plus the cases it
+                '    refuses to key: a field that is not dark, or four corners
+                '    that are opaque but disagree (a gradient). Both are still
+                '    a box on screen. ---
+                IF SpriteOpaqueCorners%(h) THEN
+                    bad = bad + 1
+                    IF FpsCornerField%(_WIDTH(h), _HEIGHT(h), cr, cg, cb) THEN
+                        PRINT PipeCol$("|14  box |07" + rel + e + "  |08(flat dark field -- keyed out in first person)")
+                    ELSE
+                        PRINT PipeCol$("|12  BOX |07" + rel + e + "  |08(not flat/dark -- cannot be keyed, fix the art)")
+                    END IF
+                END IF
+                _SOURCE so
+                _FREEIMAGE h
+            END IF
+        END IF
+        e = _FILES$
+    LOOP
+    '--- subdirectories AFTER the walk: _FILES$ cannot be re-entered mid-walk ---
+    FOR i = 1 TO ns
+        SpriteAlphaDir dir + subs(i), rel + subs(i), n, bad
+    NEXT i
+END SUB
+
+'--- all four corners opaque = there is no transparency at the edges ---
+FUNCTION SpriteOpaqueCorners% (h AS LONG)
+    DIM w AS INTEGER, ht AS INTEGER
+    w = _WIDTH(h): ht = _HEIGHT(h)
+    IF w < 2 _ORELSE ht < 2 THEN EXIT FUNCTION
+    IF _ALPHA32(POINT(0, 0)) < 250 THEN EXIT FUNCTION
+    IF _ALPHA32(POINT(w - 1, 0)) < 250 THEN EXIT FUNCTION
+    IF _ALPHA32(POINT(0, ht - 1)) < 250 THEN EXIT FUNCTION
+    IF _ALPHA32(POINT(w - 1, ht - 1)) < 250 THEN EXIT FUNCTION
+    SpriteOpaqueCorners% = -1
+END FUNCTION

@@ -182,6 +182,7 @@ opt_flexstats = 2                             ' character build: 0 OFF (rolled) 
 opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
 opt_movedice = TRUE                           ' default boardgame move: roll 1d6 (FALSE = DUNGEON! "up to 5, your choice")
 opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
+opt_fpslight = 2                              ' first-person: you carry a torch (0 = flat fog, see FpsLight!)
 num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
 opt_dicecolor = 3                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
 opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
@@ -519,6 +520,10 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     SYSTEM DEV_FAIL
 END IF
 
+IF INSTR(UCASE$(COMMAND$), "SPRITEALPHA") > 0 THEN
+    DumpSpriteAlpha
+    SYSTEM
+END IF
 IF INSTR(UCASE$(COMMAND$), "WINDLINT") > 0 THEN
     DumpWindLint
     SYSTEM DEV_FAIL

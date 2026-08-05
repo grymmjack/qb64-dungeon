@@ -141,7 +141,12 @@ First-person view (26-08-05):
     x   the flash is a cached alpha-correct red copy, not a rectangle over the columns @done(26-08-05)
     x Living billboards breathe, phase-shifted per position @done(26-08-05)
     - monsters that turn to face you (needs per-facing art or a mirrored sheet)
-    - a torch radius: light falls off from the player rather than only with distance
+    x A torch radius -- inverse-square point source, flickering reach, warm near cast @done(26-08-05)
+    x   SETTINGS Torch Light (id 69): Off (flat) / Guttering / Torch / Bright brand @done(26-08-05)
+    x   sprites fogged by SHADING the image, not by painting their bounding columns @done(26-08-05)
+    x   `dungeon.run spritealpha` lists sprites drawn on an opaque field @done(26-08-05)
+    - fix the 3 sprites spritealpha flags (screens/you-win, screens/you-died, events/rest)
+    - a torch sprite in the off hand, lighting the wall it is nearest
     - door FRAMES using fps/door.png (the art is generated and unused today)
 
 Engine GUIs (26-08-05):

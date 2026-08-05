@@ -478,6 +478,29 @@ Environment specifics that dictate this approach:
   the combat panel is the 3D view with the camera turned to the monster -- its real billboard at
   its real distance, fogged like everything else, not a portrait pasted on. Nothing about the
   fight changes; only what is behind it.
+  **YOU ARE CARRYING A TORCH, not standing in a lit room** (`FpsLight!` / `FpsTorchTick`,
+  SETTINGS **Torch Light** `opt_fpslight`, id 69, default *Torch*). The old distance fog dimmed
+  everything at a fixed rate and bottomed out at a floor so the far end of a hall stayed
+  visible -- a uniformly-lit dungeon photographed through haze. A torch is a **point source**:
+  inverse-square falloff, a definite reach, and past that reach *nothing* rather than haze. The
+  normalisation subtracts the value at the reach, or the curve only ASYMPTOTES to dark and the
+  far wall keeps a permanent glow that gives the level away. The reach **flickers** on two
+  incommensurate sines (so it never settles into a visible loop) and is ticked **once per
+  frame** in `FpsClearSprites` -- ticking per surface makes the walls disagree about how bright
+  the flame is, which reads as static. Near surfaces take a **warm cast** (`FpsWarm%`), a
+  separate pass from the darkening because the two pull opposite ways and blending them at once
+  gives muddy brown. `opt_fpslight = 0` restores the flat fog whole, because the dark is a
+  choice.
+  **SPRITES ARE FOGGED BY SHADING THE IMAGE, never by painting their columns** (`FpsShadeImage&`,
+  `FPS_SHADE_LV` pre-darkened copies, cached). A translucent overlay across a sprite's screen
+  columns covers its BOUNDING BOX, so every monster wore a faintly-different-dark rectangle --
+  invisible in a bright corridor and glaring the moment the torch made the dungeon dark. Same
+  mistake the red flash made first, and the same answer the 3D dice reached with its atlas
+  brightness columns: **overlaying is the tempting one-liner and it is always wrong once alpha
+  is involved.** `FpsCutout&` additionally keys out a background when a sprite's four corners
+  agree on one dark colour; it deliberately tries no harder, because a cleverer keyer eats a
+  monster's own dark pixels. **`dungeon.run spritealpha`** counts the sprites that were drawn on
+  an opaque field, so the real fix (the art) has a work list.
   **THE FIGHT MOVES THE CAMERA** (`FpsShakeNow` / `FpsLungeNow` / `FpsFlashAt`, all decayed in
   ONE place by `FpsDecay` -- scattering decay across the setters is how one of them never decays
   and the screen shakes forever). A landed blow **lunges** (applied to the EYE, so the walls move
