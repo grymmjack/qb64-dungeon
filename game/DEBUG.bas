@@ -1523,6 +1523,7 @@ SUB DumpStorybook
         PRINT PipeCol$("  |10ok|07  -- every scene has a title and a row")
     ELSE
         PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " scene(s) would list unidentifiably|07")
+        DEV_FAIL = 1
     END IF
 END SUB
 
@@ -1594,6 +1595,7 @@ SUB DumpGifSprite
         PRINT PipeCol$("  |10ok|07  -- it animates through the ordinary Sprite& path")
     ELSE
         PRINT PipeCol$("  |12BAD|07 -- the handle never changed; this is a still")
+        DEV_FAIL = 1
     END IF
 END SUB
 
@@ -1690,6 +1692,7 @@ SUB DumpTriggerLint
         PRINT PipeCol$("  |10ok|07  -- every trigger names a real scene on a cell you can stand on")
     ELSE
         PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " trigger(s) can never fire|07")
+        DEV_FAIL = 1
     END IF
 END SUB
 
@@ -1813,6 +1816,7 @@ SUB DumpOverlayLint
         PRINT PipeCol$("  |10ok|07  -- every overlay resolves, and every one changed the board")
     ELSE
         PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " overlay(s) will draw nothing|07")
+        DEV_FAIL = 1
     END IF
 END SUB
 

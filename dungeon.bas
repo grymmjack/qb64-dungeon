@@ -342,11 +342,11 @@ IF INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0 THEN DumpFightShot: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
 
 '--- dev: `dungeon.run storyshot` renders the [M] > Storybook at its extremes ---
-IF INSTR(UCASE$(COMMAND$), "STORYSHOT") > 0 THEN DumpStorybook: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "STORYSHOT") > 0 THEN DumpStorybook: SYSTEM DEV_FAIL
 
 '--- dev: `dungeon.run gifsprite [file.gif]` -- does an animated GIF actually
 '    animate through the ordinary Sprite& path every portrait already uses? ---
-IF INSTR(UCASE$(COMMAND$), "GIFSPRITE") > 0 THEN DumpGifSprite: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "GIFSPRITE") > 0 THEN DumpGifSprite: SYSTEM DEV_FAIL
 
 
 '--- dev: `dungeon.run gaugeshot [depth] [hp]` renders the action-gesture gauge, BOTH forms ---
@@ -501,7 +501,7 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     DetectDoors
     Game_PopulateBoard
     DumpTriggerLint
-    SYSTEM
+    SYSTEM DEV_FAIL
 END IF
 
 '--- dev: `dungeon.run overlaylint` validates board overlays (same board setup) ---
@@ -511,7 +511,7 @@ IF INSTR(UCASE$(COMMAND$), "OVERLAYLINT") > 0 THEN
     DetectDoors
     Game_PopulateBoard
     DumpOverlayLint
-    SYSTEM
+    SYSTEM DEV_FAIL
 END IF
 
 '--- dev: `dungeon.run cutwire` -- every scene the game can ask for ---
@@ -521,7 +521,7 @@ IF INSTR(UCASE$(COMMAND$), "CUTWIRE") > 0 THEN
     Game_PopulateBoard
     LoadCutTriggers
     DumpCutWire
-    SYSTEM
+    SYSTEM DEV_FAIL
 END IF
 
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---

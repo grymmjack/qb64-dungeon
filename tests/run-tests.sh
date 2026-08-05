@@ -199,6 +199,51 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # CUT-SCENE WIRING. Every hook that plays a scene falls through gracefully when the
+    # scene is absent -- which is right, but means a RENAMED or MISTYPED scene is
+    # indistinguishable from one never written: nothing errors and the beat simply stops
+    # happening. cutwire prints the map; the gate fails only if a name the game asks for
+    # once resolved and now does not, which is what a rename looks like.
+    echo "-- cut-scene wiring (dungeon.run cutwire) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 90 "cutwire" ./dungeon.run cutwire nocolor; then cw="$DEVRUN_OUT"
+            grep -E 'answered' <<<"$cw" | sed 's/^/  /'
+            # every chamber must have a scene: those twelve are shipped, so a miss here is a
+            # slug that has drifted out of step with chambers.txt rather than unwritten art.
+            if grep -qE '^\s*--\s+chamber-' <<<"$cw"; then
+                echo "    BAD -- a chamber scene no longer resolves (slug drift?)"
+                grep -E '^\s*--\s+chamber-' <<<"$cw" | head -4 | sed 's/^/    /'
+                (( fail++ )); failed+=("cutwire")
+            fi
+        else
+            (( fail++ )); failed+=("cutwire")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
+    # BOARD TRIGGERS + BOARD ART. Both fail silently and look exactly like "nothing is
+    # there": a trigger on an unwalkable cell can never fire, and an overlay whose art does
+    # not resolve draws nothing. overlaylint also DRAWS them and requires the board's pixels
+    # to change, because "the data is valid" and "you can see it" are different claims.
+    echo "-- board triggers + overlays (dungeon.run triggerlint / overlaylint) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 90 "triggerlint" ./dungeon.run triggerlint nocolor; then tl="$DEVRUN_OUT"
+            grep -E 'trigger\(s\)$|ok  --' <<<"$tl" | head -2 | sed 's/^/  /'
+        else
+            tl="$DEVRUN_OUT"; grep -E 'BAD' <<<"$tl" | head -4 | sed 's/^/    /'
+            (( fail++ )); failed+=("triggerlint")
+        fi
+        if devrun 90 "overlaylint" ./dungeon.run overlaylint nocolor; then ol="$DEVRUN_OUT"
+            grep -E 'changed the board|ok  --' <<<"$ol" | head -2 | sed 's/^/  /'
+        else
+            ol="$DEVRUN_OUT"; grep -E 'BAD|drew NOTHING' <<<"$ol" | head -4 | sed 's/^/    /'
+            (( fail++ )); failed+=("overlaylint")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # The rules screen's GENERATED sections. Most of what a player reads there is assembled at
     # display time from live settings + stats.txt, so no file on disk contains it and nothing else
     # in the gate can see it. An empty ability section is what a missing stats.txt looks like.
