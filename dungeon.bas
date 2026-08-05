@@ -225,6 +225,7 @@ IF LEN(COLLIDE_ANSI) = 0 THEN DECOR_ANSI = ""   ' no layer-0 -> layer-1 alone wo
 LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
 LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
+LoadCutTriggers                  ' board-position cut-scene triggers (assets/data/triggers.txt)
 InitSectors
 InitClasses
 InitMonsterTables
@@ -336,6 +337,10 @@ IF INSTR(UCASE$(COMMAND$), "CHARSHEET") > 0 THEN DumpCharSheet: SYSTEM
 
 '--- dev: `dungeon.run storyshot` renders the [M] > Storybook at its extremes ---
 IF INSTR(UCASE$(COMMAND$), "STORYSHOT") > 0 THEN DumpStorybook: SYSTEM
+
+'--- dev: `dungeon.run gifsprite [file.gif]` -- does an animated GIF actually
+'    animate through the ordinary Sprite& path every portrait already uses? ---
+IF INSTR(UCASE$(COMMAND$), "GIFSPRITE") > 0 THEN DumpGifSprite: SYSTEM
 
 '--- dev: `dungeon.run gaugeshot [depth] [hp]` renders the action-gesture gauge, BOTH forms ---
 IF INSTR(UCASE$(COMMAND$), "GAUGESHOT") > 0 THEN DumpGaugeShot: SYSTEM
@@ -829,10 +834,16 @@ FUNCTION PlayGame%
         DIM ident AS STRING                                                 ' "Grognard the Fast, a HERO" (or "the HERO" if unnamed)
         IF _TRIM$(player_name) <> "" THEN ident = _TRIM$(player_name) + ", a " + class_name ELSE ident = "the " + class_name
 
+        ' A CUT-SCENE takes precedence over the crawl, when the pack ships one.
+        ' It keeps the SAME narration key, so a narration pack that already
+        ' voices intro.descent voices the cut-scene too, unchanged -- and a pack
+        ' with no intro.cut still gets the crawl it always had.
+        IF PlayCutscene%("intro") = 0 THEN
         IF num_players > 1 THEN
             ScrollTextVO "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin.", "intro.descent"
         ELSE
             ScrollTextVO "THE DESCENT", "Torchlight gutters as you, " + ident + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is rumoured to lie on the " + Ordinal$(key_level) + " level -- take it, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. A Crystal Ball would reveal exactly which room hides it. Few ever escape.", "intro.descent"
+        END IF
         END IF
     END IF
 
@@ -1043,6 +1054,12 @@ FUNCTION PlayGame%
                     IF curlvl >= 1 AND curlvl <= 9 THEN
                         IF NOT lvl_reached(curlvl) THEN
                             lvl_reached(curlvl) = TRUE
+                            ' The descent beat, the FIRST time each level is reached in a
+                            ' run. Level 1 is skipped: the intro already covered arriving,
+                            ' and two openings back to back is one too many.
+                            IF curlvl >= 2 THEN
+                                IF PlayCutscene%("descend") THEN cursor_erase: cursor_draw
+                            END IF
                             IF player_class = 4 THEN                    ' a WIZARD's power grows as they descend
                                 DIM rcl AS INTEGER
                                 rcl = 1 + SpellRecallBonus%                 ' INT: a sharp Wizard recalls more

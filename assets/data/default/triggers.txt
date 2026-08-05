@@ -1,0 +1,20 @@
+# ============================================================================
+#  triggers.txt -- play a cut-scene when the player steps on a board cell.
+#
+#  Format:  level | col | row | scene | once
+#
+#    level  1-9, or 0 for "any level"
+#    col,row  0-BASED cell coordinates, like every other cell coordinate here
+#             (chambers.txt, the sector mask, ROOMAT, the [~] readout)
+#    scene  the .cut name, without the extension
+#    once   1 = the first time only, ever (it is remembered in the save)
+#           0 = every time the cell is stepped on
+#
+#  A trigger whose scene the pack does not ship is simply skipped, so a data
+#  pack can list triggers for scenes it has not written yet.
+#
+#  Find coordinates with the [~] debug overlay: the mouse readout shows the
+#  cell under the pointer, and left-click teleports you there to check it.
+# ============================================================================
+#
+# level | col | row | scene           | once

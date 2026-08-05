@@ -285,3 +285,64 @@ END SUB
 SUB Game_CutAudioTick
     AudioTick
 END SUB
+
+
+' ============================================================================
+'  BOARD-POSITION TRIGGERS
+' ============================================================================
+
+'--- Load assets/data/<pack>/triggers.txt. Absent or empty is normal and
+'    silent: most packs will ship no triggers at all. ---
+SUB LoadCutTriggers
+    DIM f AS STRING, i AS INTEGER, nm AS STRING
+
+    TRIG_N = 0
+    f = DataPath$("assets/data/triggers.txt")
+    IF NOT _FILEEXISTS(f) THEN EXIT SUB
+
+    ReadDataFile f
+    FOR i = 1 TO DLINE_N
+        nm = _TRIM$(DField$(DLINE(i), 4))
+        IF LEN(nm) = 0 THEN _CONTINUE
+        IF TRIG_N >= TRIG_MAX THEN EXIT FOR
+        TRIG_N = TRIG_N + 1
+        TRIG_LVL(TRIG_N) = VAL(DField$(DLINE(i), 1))
+        TRIG_COL(TRIG_N) = VAL(DField$(DLINE(i), 2))
+        TRIG_ROW(TRIG_N) = VAL(DField$(DLINE(i), 3))
+        TRIG_SCENE(TRIG_N) = nm
+        TRIG_ONCE(TRIG_N) = (VAL(DField$(DLINE(i), 5)) <> 0)
+    NEXT i
+END SUB
+
+'--- Step on a cell: does anything fire? Returns TRUE if a scene played.
+'
+'    A `once` trigger is remembered by SCENE **and CELL**, not by scene alone:
+'    the same scene may legitimately be placed on several cells, and keying on
+'    the name would let the first one fired silence all the others. ---
+FUNCTION CheckCutTrigger% (cx AS INTEGER, cy AS INTEGER)
+    DIM i AS INTEGER, lv AS INTEGER, nm AS STRING, k AS STRING
+
+    CheckCutTrigger% = FALSE
+    IF TRIG_N < 1 THEN EXIT FUNCTION
+
+    lv = PlayerLevel%
+    FOR i = 1 TO TRIG_N
+        IF TRIG_COL(i) <> cx THEN _CONTINUE
+        IF TRIG_ROW(i) <> cy THEN _CONTINUE
+        IF TRIG_LVL(i) <> 0 THEN
+            IF TRIG_LVL(i) <> lv THEN _CONTINUE
+        END IF
+
+        nm = _TRIM$(TRIG_SCENE(i))
+        k = "trig:" + nm + "@" + LTRIM$(STR$(cx)) + "," + LTRIM$(STR$(cy))
+        IF TRIG_ONCE(i) THEN
+            IF CutsceneSeen%(k) THEN _CONTINUE
+        END IF
+
+        IF PlayCutscene%(nm) THEN
+            IF TRIG_ONCE(i) THEN MarkCutsceneSeen k
+            CheckCutTrigger% = TRUE
+            EXIT FUNCTION
+        END IF
+    NEXT i
+END FUNCTION

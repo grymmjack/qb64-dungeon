@@ -13,6 +13,13 @@
 ' (the miss is cached too, so a missing file isn't re-probed every frame).
 FUNCTION Sprite& (path AS STRING)
     DIM i AS INTEGER, h AS LONG
+
+    '--- An animated GIF is not one image, so it cannot live in the still
+    '    cache. Routing it here means every existing call site -- portraits,
+    '    the Bestiary, combat art, board overlays -- animates without knowing
+    '    that it does. ---
+    IF SprIsGif%(path) THEN Sprite& = AnimSprite&(path): EXIT FUNCTION
+
     FOR i = 1 TO SPR_N
         IF SPR_PATH(i) = path THEN Sprite& = SPR_H(i): EXIT FUNCTION
     NEXT
@@ -24,6 +31,67 @@ FUNCTION Sprite& (path AS STRING)
     END IF
     SPR_N = SPR_N + 1: SPR_PATH(SPR_N) = path: SPR_H(SPR_N) = h
     Sprite& = h
+END FUNCTION
+
+FUNCTION SprIsGif% (path AS STRING)
+    IF RIGHT$(LCASE$(_TRIM$(path)), 4) = ".gif" THEN SprIsGif% = TRUE ELSE SprIsGif% = FALSE
+END FUNCTION
+
+'--- The frame this GIF should be showing RIGHT NOW.
+'
+'    Decoded once on first sight, then the frame is derived from elapsed time
+'    modulo the loop length -- no stored "current frame", so nothing drifts and
+'    nothing needs ticking. A midnight TIMER wrap costs one visual hiccup
+'    rather than a freeze, which is the right trade for a decoration. ---
+FUNCTION AnimSprite& (path AS STRING)
+    DIM i AS INTEGER, n AS INTEGER, slot AS INTEGER
+    DIM t AS SINGLE, acc AS SINGLE
+
+    AnimSprite& = 0
+
+    slot = 0
+    FOR i = 1 TO GSPR_N
+        IF GSPR_PATH(i) = path THEN slot = i: EXIT FOR
+    NEXT i
+
+    IF slot = 0 THEN
+        IF GSPR_N >= GSPR_MAX THEN EXIT FUNCTION
+        IF NOT _FILEEXISTS(path) THEN EXIT FUNCTION
+
+        '--- decode through the cut-scene GIF decoder, into its spare layer 0,
+        '    then take the handles for ourselves ---
+        n = GifLoadInto%(0, path)
+        IF n < 1 THEN EXIT FUNCTION
+        '--- the decoder allows more frames than this cache holds; clamp
+        '    rather than write past the end ---
+        IF n > GSPR_MAXFRAME THEN n = GSPR_MAXFRAME
+
+        GSPR_N = GSPR_N + 1
+        slot = GSPR_N
+        GSPR_PATH(slot) = path
+        GSPR_FRAMES(slot) = n
+        GSPR_TOTAL(slot) = 0
+        FOR i = 1 TO n
+            GSPR_IMG(slot, i) = CUT_GIFIMG(0, i)
+            GSPR_DELAY(slot, i) = CUT_GIFDELAY(0, i)
+            IF GSPR_DELAY(slot, i) <= 0 THEN GSPR_DELAY(slot, i) = 0.1
+            GSPR_TOTAL(slot) = GSPR_TOTAL(slot) + GSPR_DELAY(slot, i)
+            CUT_GIFIMG(0, i) = 0          ' ownership moves here; do not free twice
+        NEXT i
+    END IF
+
+    IF GSPR_FRAMES(slot) < 1 THEN EXIT FUNCTION
+    IF GSPR_FRAMES(slot) = 1 THEN AnimSprite& = GSPR_IMG(slot, 1): EXIT FUNCTION
+    IF GSPR_TOTAL(slot) <= 0 THEN AnimSprite& = GSPR_IMG(slot, 1): EXIT FUNCTION
+
+    t = TIMER(0.001)
+    t = t - INT(t / GSPR_TOTAL(slot)) * GSPR_TOTAL(slot)      ' wrap into the loop
+    acc = 0
+    FOR i = 1 TO GSPR_FRAMES(slot)
+        acc = acc + GSPR_DELAY(slot, i)
+        IF t < acc THEN AnimSprite& = GSPR_IMG(slot, i): EXIT FUNCTION
+    NEXT i
+    AnimSprite& = GSPR_IMG(slot, GSPR_FRAMES(slot))
 END FUNCTION
 
 ' Does this image LOOK like a placeholder -- i.e. is it a stand-in rather than art?

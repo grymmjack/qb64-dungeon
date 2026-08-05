@@ -137,6 +137,15 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
     ' CHAMBERS: stepping into a fresh (uncleared) chamber wakes ONE of its 3 monsters;
     ' leave and re-enter for the next until three graves stand. Fire only on ENTRY
     ' (cur_chamber transition) and never on a coloured room block (rooms handle their own).
+    ' BOARD-POSITION TRIGGERS: a data-file scene for this cell, if any. Fired
+    ' before the chamber trigger so a scripted beat can set the scene for the
+    ' hall you are walking into rather than arriving after its guardian.
+    IF CheckCutTrigger%(cx, cy) THEN
+        cursor_erase
+        cursor_draw
+        DrawHUD
+    END IF
+
     chnow = CHAMBERAT(cx, cy)
     IF ROOMAT(cx, cy) <> 0 THEN chnow = 0
     IF chnow <> cur_chamber THEN

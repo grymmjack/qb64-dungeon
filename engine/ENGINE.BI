@@ -759,3 +759,27 @@ DIM SHARED con_snap AS LONG                      ' snapshot of CANVAS taken on o
 DIM SHARED con_down AS INTEGER                   ' backtick edge-detect: was it held on the previous poll?
 DIM SHARED CONHIST(1 TO CON_HIST) AS STRING
 DIM SHARED CONHIST_N AS INTEGER, CONHIST_I AS INTEGER
+
+' ============================================================================
+'  ANIMATED SPRITES -- an animated .gif anywhere the game draws pixel art.
+'
+'  Monster portraits, the Bestiary, combat art, board overlays: everything
+'  already funnels through Sprite&, so teaching THAT about GIFs lights all of
+'  them up at once rather than bolting animation onto each call site.
+'
+'  THERE IS NO TICK SERVICE, deliberately. The current frame is computed from
+'  wall-clock time every time the sprite is asked for, so a sprite that is not
+'  being drawn costs nothing and one that is drawn twice in a frame agrees with
+'  itself. Nothing has to remember to advance anything.
+' ============================================================================
+'--- its own frame bound rather than CUT_MAXGIF: that constant lives in
+'    CUTSCENE.BI, which loads AFTER this header, and a header that depends on
+'    a later one is a load-order trap waiting to happen. ---
+CONST GSPR_MAX = 32
+CONST GSPR_MAXFRAME = 64
+DIM SHARED GSPR_PATH(1 TO GSPR_MAX) AS STRING
+DIM SHARED GSPR_N AS INTEGER
+DIM SHARED GSPR_FRAMES(1 TO GSPR_MAX) AS INTEGER
+DIM SHARED GSPR_IMG(1 TO GSPR_MAX, 1 TO GSPR_MAXFRAME) AS LONG
+DIM SHARED GSPR_DELAY(1 TO GSPR_MAX, 1 TO GSPR_MAXFRAME) AS SINGLE
+DIM SHARED GSPR_TOTAL(1 TO GSPR_MAX) AS SINGLE

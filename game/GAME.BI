@@ -770,3 +770,20 @@ DIM SHARED STORY_N AS INTEGER
 '--- dedup key for the cut-scene manifest scan (a scene may name the same asset
 '    many times, and 17 scenes share a handful of backdrops) ---
 DIM SHARED MAN_CUTSEEN AS STRING
+
+' ============================================================================
+'  BOARD-POSITION CUT-SCENE TRIGGERS  (assets/data/<pack>/triggers.txt)
+'
+'  level | col | row | scene | once   -- step on the cell, play the scene.
+'
+'  This is a DATA file rather than an engine change because scenes are
+'  addressed by NAME through one entry point; that was the whole reason for
+'  building PlayCutscene that way.
+' ============================================================================
+CONST TRIG_MAX = 128
+DIM SHARED TRIG_LVL(1 TO TRIG_MAX) AS INTEGER
+DIM SHARED TRIG_COL(1 TO TRIG_MAX) AS INTEGER
+DIM SHARED TRIG_ROW(1 TO TRIG_MAX) AS INTEGER
+DIM SHARED TRIG_SCENE(1 TO TRIG_MAX) AS STRING * 40
+DIM SHARED TRIG_ONCE(1 TO TRIG_MAX) AS INTEGER
+DIM SHARED TRIG_N AS INTEGER

@@ -4,6 +4,7 @@ $CONSOLE:ONLY
 ' ARTPACK renders ANSI entity sprites (AnsiSprite&), so it now needs the vendored renderer --
 ' the same dependency the game takes. Declared here, body included at the bottom.
 '$INCLUDE:'../engine/ansi/ANSIPrint.bi'
+'$INCLUDE:'../engine/CUTSCENE.BI'     ' Sprite& routes .gif through the GIF decoder's frame store
 
 ' ============================================================================
 '  engine/ARTPACK.bas -- pack resolution + the keyword matcher.
@@ -96,4 +97,9 @@ END SUB
 '$INCLUDE:'../engine/ansi/ANSIPrint.bas'
 '$INCLUDE:'../engine/NINEGRID.bas'   ' CombatArtBox draws its box through the 9-grid frame slots
 '$INCLUDE:'../engine/TELEMETRY.bas'   ' DrawSpriteFit% logs every blit through LogImageDrawn
+' ARTPACK genuinely depends on the GIF decoder now: Sprite& animates a .gif, which
+' is what lights up portraits, the Bestiary, combat art and board overlays at once.
+' Pulling it in here is honest rather than pretending ARTPACK is still standalone --
+' and if that dependency ever grows past "decode frames", this include is the alarm.
+'$INCLUDE:'../engine/CUTSCENE_GIF.bas'
 '$INCLUDE:'../engine/ARTPACK.bas'

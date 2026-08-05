@@ -1525,3 +1525,74 @@ SUB DumpStorybook
         PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " scene(s) would list unidentifiably|07")
     END IF
 END SUB
+
+
+' ----------------------------------------------------------------------------
+'  dev: `dungeon.run gifsprite <file.gif>` -- prove an animated GIF actually
+'  animates through the ORDINARY sprite path (Sprite&), which is what every
+'  portrait, Bestiary row, combat panel and board overlay already calls.
+'
+'  Sampling the handle over time is the whole test: if it never changes, the
+'  sprite is a still and nobody would be able to tell from looking at one
+'  frame -- the same "valid handle, picture never moves" failure the GIF
+'  decoder was written for in the first place.
+' ----------------------------------------------------------------------------
+SUB DumpGifSprite
+    DIM pth AS STRING, i AS INTEGER, h AS LONG, prev AS LONG, changes AS INTEGER
+    DIM firstH AS LONG, t0 AS DOUBLE, slot AS INTEGER, seen AS STRING
+
+    _DEST _CONSOLE
+    pth = ""
+    FOR i = 1 TO _COMMANDCOUNT
+        IF INSTR(LCASE$(COMMAND$(i)), ".gif") > 0 THEN pth = COMMAND$(i)
+    NEXT i
+    IF LEN(pth) = 0 THEN pth = "assets/cutscenes/default/art/rune-pulse.gif"
+
+    PRINT PipeCol$("|15gifsprite|07 -- " + pth)
+    IF NOT _FILEEXISTS(pth) THEN
+        PRINT PipeCol$("  |12BAD|07 -- no such file")
+        EXIT SUB
+    END IF
+
+    h = Sprite&(pth)
+    IF h = 0 THEN
+        PRINT PipeCol$("  |12BAD|07 -- Sprite& returned no handle")
+        EXIT SUB
+    END IF
+
+    '--- how many frames did it decode, and how long is the loop? ---
+    slot = 0
+    FOR i = 1 TO GSPR_N
+        IF GSPR_PATH(i) = pth THEN slot = i
+    NEXT i
+    IF slot = 0 THEN
+        PRINT PipeCol$("  |12BAD|07 -- it did not take the animated path (is it really a .gif?)")
+        EXIT SUB
+    END IF
+    PRINT PipeCol$("  frames: |14" + _TRIM$(STR$(GSPR_FRAMES(slot))) + "|07   loop: |14" + LEFT$(_TRIM$(STR$(GSPR_TOTAL(slot))), 5) + "s|07")
+    PRINT PipeCol$("  size:   |14" + _TRIM$(STR$(_WIDTH(h))) + "x" + _TRIM$(STR$(_HEIGHT(h))) + "|07")
+
+    '--- sample across one whole loop and count DISTINCT handles ---
+    t0 = TIMER(0.001)
+    prev = 0: changes = 0: firstH = 0
+    FOR i = 0 TO 40
+        DO WHILE TIMER(0.001) - t0 < (GSPR_TOTAL(slot) / 40) * i
+            '--- spin: the frame is derived from wall-clock time, so real time
+            '    has to pass for it to move ---
+        LOOP
+        h = Sprite&(pth)
+        IF i = 0 THEN firstH = h
+        IF h <> prev THEN
+            changes = changes + 1
+            IF INSTR(seen, "|" + _TRIM$(STR$(h)) + "|") = 0 THEN seen = seen + "|" + _TRIM$(STR$(h)) + "|"
+        END IF
+        prev = h
+    NEXT i
+
+    PRINT PipeCol$("  handle changed |14" + _TRIM$(STR$(changes)) + "|07 time(s) across one loop")
+    IF changes > 1 THEN
+        PRINT PipeCol$("  |10ok|07  -- it animates through the ordinary Sprite& path")
+    ELSE
+        PRINT PipeCol$("  |12BAD|07 -- the handle never changed; this is a still")
+    END IF
+END SUB
