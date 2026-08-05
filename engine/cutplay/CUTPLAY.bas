@@ -55,6 +55,8 @@ FOR i = 1 TO _COMMANDCOUNT
         CASE "lint": mode = "lint": _CONTINUE
         CASE "shot": mode = "shot": _CONTINUE
         CASE "selftest": mode = "selftest": _CONTINUE
+        CASE "edit": mode = "edit": _CONTINUE
+        CASE "editshot": mode = "editshot": _CONTINUE
         CASE "auto": CUT_MODE = CUT_AUTO: _CONTINUE
         CASE "quiet": CUT_QUIET = TRUE: _CONTINUE
         CASE "loop": PLAY_LOOP = TRUE: _CONTINUE
@@ -69,10 +71,13 @@ FOR i = 1 TO _COMMANDCOUNT
 NEXT i
 
 '--- headless modes must be SILENT and must never wait for anything ---
-IF mode <> "play" THEN
+IF mode <> "play" _ANDALSO mode <> "edit" _ANDALSO mode <> "editshot" THEN
     CUT_QUIET = TRUE
     CUT_MODE = CUT_AUTO
 END IF
+'--- the editor scrubs by re-simulating, which would replay every sound each
+'    time the playhead moved. Silent by design. ---
+IF mode = "edit" _ORELSE mode = "editshot" THEN CUT_QUIET = TRUE
 
 SELECT CASE mode
     CASE "lint": DoLint target: SYSTEM CutExitCode%
@@ -84,6 +89,7 @@ IF LEN(target) = 0 THEN
     PRINT "usage: cutplay.run <file.cut> [key=value ...]"
     PRINT "       cutplay.run lint <file.cut|all>"
     PRINT "       cutplay.run shot <file.cut> <seconds> <out.png>"
+    PRINT "       cutplay.run edit <file.cut>          see it, scrub it, tune it"
     PRINT "       cutplay.run selftest"
     PRINT
     PrintCutKeys
@@ -99,6 +105,8 @@ SCREEN_SHOWN = TRUE
 
 SELECT CASE mode
     CASE "shot": DoShot target, shotT, shotOut: MockAudioShutdown: SYSTEM CutExitCode%
+    CASE "edit": DoEdit target
+    CASE "editshot": DoEditShot target, shotT, shotOut: MockAudioShutdown: SYSTEM CutExitCode%
     CASE ELSE: DoPlay target
 END SELECT
 
@@ -582,5 +590,6 @@ END SUB
 '$INCLUDE:'../CUTSCENE_DRAW.bas'
 '$INCLUDE:'../CUTSCENE_GIF.bas'
 '$INCLUDE:'CUTMOCK.bas'
+'$INCLUDE:'CUTEDIT.bas'
 '$INCLUDE:'CUTTEST.bas'
 '$INCLUDE:'../ansi/ANSIPrint.bas'

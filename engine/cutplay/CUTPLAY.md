@@ -237,7 +237,61 @@ is valid" and "you can see it" are different claims.
 
 ---
 
-## 8. Checking the wiring
+## 8. The editor
+
+```bash
+cutplay.run edit assets/cutscenes/default/the-long-hall.cut
+```
+
+Three panes: the scene, an op list, and a **timeline**.
+
+| | |
+|---|---|
+| `SPACE` | play / pause |
+| `←` `→` | scrub 0.25s |
+| `HOME` `END` | start / end of the scene |
+| `↑` `↓` or `[` `]` | pick an op — **and jump the playhead to its moment** |
+| `,` `.` | choose which of the op's four numbers to tune |
+| `-` `=` | nudge it, with the preview updating |
+| `W` | print the tuned value, to type into the `.cut` |
+| `R` | recompile from disk |
+| `S` | screenshot the whole editor |
+| `ESC` | quit |
+
+```bash
+cutplay.run editshot <file.cut> <secs> <out.png>    # headless, for checking the UI
+```
+
+### How it works, and what that costs
+
+The timeline is **measured, not declared**: a profile pass runs the scene once
+with drawing switched off and notes the clock as each instruction goes by. Add
+a line to the scene and its marker appears; there is nothing to keep in sync.
+
+Scrubbing is **restart + fast-forward**. The VM is stateful and cannot run
+backwards, so "show me t = 12.4" means re-simulating from zero. Not *drawing*
+those thrown-away frames is the difference between a scrub bar and a slideshow
+— and it is only possible because the host owns the clock (`CUT_CLKFIXED`).
+
+The lanes are art / camera / text / sound / flow, so a camera move and a line
+of dialogue at the same instant do not land on top of each other.
+
+### What the editor deliberately does not do
+
+**It does not write to your `.cut`.** Nudging changes the compiled op, so the
+preview is honest — but an op is several steps removed from the line that
+produced it: `move` emits two, modifiers are keyword-scanned in any order, and
+`n1` means something different per command. Rewriting from that would
+eventually mangle a carefully commented scene, and a tool that edits your
+source has to be right *every* time, not usually.
+
+So the loop is: nudge until it looks right, read the number off `[W]`, type it,
+`[R]`. The file stays the one source of truth — which is the same reason there
+is no project format.
+
+---
+
+## 9. Checking the wiring
 
 ```bash
 dungeon.run cutwire
@@ -268,7 +322,7 @@ The related dev modes:
 
 ---
 
-## 9. Where things are
+## 10. Where things are
 
 ```
 cutplay.run                        the tool (built to the repo root)

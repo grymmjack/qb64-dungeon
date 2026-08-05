@@ -484,6 +484,19 @@ DIM SHARED CUT_CLKWRAP AS DOUBLE
 '    took". Without it a screenshot at t=14 could show t=20. ---
 DIM SHARED CUT_CLKFIXED AS INTEGER
 
+'--- Skip the render. Seeking to t=30 means re-simulating from 0, because the VM
+'    is stateful and cannot be run backwards -- 1800 ticks, of which the first
+'    1799 are thrown away. Not drawing them is the difference between a scrub
+'    bar and a slideshow. ---
+DIM SHARED CUT_NORENDER AS INTEGER
+
+'--- When each op executed, in scene seconds, filled by a profile pass. This is
+'    what a TIMELINE is: the scene run once with the drawing turned off, noting
+'    the clock as each instruction goes by. ---
+DIM SHARED CUT_OPTIME(0 TO CUT_MAXOP) AS SINGLE
+DIM SHARED CUT_OPRAN(0 TO CUT_MAXOP) AS INTEGER
+DIM SHARED CUT_DURATION AS SINGLE
+
 '--- text presentation ---
 DIM SHARED CUT_TXMODE AS INTEGER
 DIM SHARED CUT_TXBODY AS STRING

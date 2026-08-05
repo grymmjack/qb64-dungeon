@@ -31,3 +31,14 @@ DIM SHARED MOCK_RETT(0 TO 16) AS DOUBLE
 
 '--- selftest counters (same shape as the mini-game prototypes' MG.bi) ---
 DIM SHARED T_RUN AS INTEGER, T_BAD AS INTEGER
+
+'--- the EDITOR's state (see CUTEDIT.bas) ---
+DIM SHARED ED_SCENE AS STRING
+DIM SHARED ED_T AS SINGLE            ' the playhead, in scene seconds
+DIM SHARED ED_SEL AS INTEGER         ' selected op
+DIM SHARED ED_FIELD AS INTEGER       ' which of the op's four numbers is being nudged
+DIM SHARED ED_PLAY AS INTEGER
+DIM SHARED ED_FRAME AS LONG          ' the scene rendered off-screen, so editor
+'                                      chrome never lands on it
+DIM SHARED ED_DIRTY AS INTEGER
+DIM SHARED ED_STATUS AS STRING

@@ -800,6 +800,13 @@ SUB CutStep
 
         p = CUT_PC
         CUT_PC = CUT_PC + 1
+        '--- note WHEN this instruction ran, for the timeline. Only the first
+        '    time: a jump can revisit an op, and a marker that keeps moving is
+        '    worse than one that says where the scene first got there. ---
+        IF CUT_OPRAN(p) = 0 THEN
+            CUT_OPRAN(p) = TRUE
+            CUT_OPTIME(p) = CUT_NOW - CUT_T0
+        END IF
         CutExec p
     LOOP
 END SUB
@@ -861,7 +868,7 @@ FUNCTION CutTick% ()
         '    origin forward by the frame's delta freezes time itself. ---
         CutShiftClocks CUT_NOW - CUT_LASTFRAME
         CUT_LASTFRAME = CUT_NOW
-        CutRender
+        IF CUT_NORENDER = 0 THEN CutRender
         CutTick% = CUT_RUNNING
         EXIT FUNCTION
     END IF
@@ -873,7 +880,7 @@ FUNCTION CutTick% ()
     CutCaptionTick
     CutWaitCheck
     CutStep
-    CutRender
+    IF CUT_NORENDER = 0 THEN CutRender
 
     Game_CutAudioTick
 
@@ -993,6 +1000,11 @@ END SUB
 ' ----------------------------------------------------------------------------
 SUB CutBegin
     DIM i AS INTEGER
+
+    FOR i = 0 TO CUT_MAXOP
+        CUT_OPRAN(i) = FALSE
+        CUT_OPTIME(i) = 0
+    NEXT i
 
     CUT_CLKLAST = 0
     CUT_CLKWRAP = 0
