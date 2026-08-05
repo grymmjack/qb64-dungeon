@@ -546,6 +546,10 @@ DIM SHARED g_crits AS INTEGER, g_fumbles AS INTEGER, g_wander_enc AS INTEGER, g_
 ' by RecordCrit). Drives the post-fight healing-potion reward -- see CritPotionReward.
 DIM SHARED combat_crits AS INTEGER
 DIM SHARED g_gold_found AS LONG, g_secret_tries AS INTEGER
+'--- damage dealt and taken across the run. Recorded at the four places HP
+'    actually changes, not at the call sites that lead there: a new attack
+'    route added later is then counted without anyone remembering to. ---
+DIM SHARED g_damage_done AS LONG, g_damage_taken AS LONG
 ' -- the rest of the run scorecard (Game Summary + the death screen) --
 ' NOT here: turns taken and distance travelled. `turn_num` and `moves_made` already carry both,
 ' are already reset per run, and are already in the save -- so a g_turns/g_distance pair would
@@ -563,7 +567,7 @@ DIM SHARED DEATH_STONE_X AS INTEGER, DEATH_STONE_Y AS INTEGER
 DIM SHARED DEATH_STONE_W AS INTEGER, DEATH_STONE_H AS INTEGER
 DIM SHARED death_skipped AS INTEGER    ' latched: one keypress skips the WHOLE death sequence
 DIM SHARED g_saved AS INTEGER          ' times a SECOND WIND pulled you back from a downing blow
-CONST STATROW_N = 24                    ' rows in the run scorecard (StatRowLabel$/StatRowValue$)
+CONST STATROW_N = 26                    ' rows in the run scorecard (StatRowLabel$/StatRowValue$)
 ' AUTO-COMBAT: the game plays the fight for you, one action every opt_autodelay seconds.
 ' `autocombat_run` is the RUNTIME flag (the option is the player's preference; the flag is
 ' whether it is actually driving right now), so combat can switch it off for a fight without

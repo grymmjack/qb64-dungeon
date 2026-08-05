@@ -18,6 +18,7 @@ SUB ChronicleReset
     g_items_looted = 0: g_levels_completed = 0: g_secrets_found = 0
     g_crits = 0: g_fumbles = 0: g_wander_enc = 0: g_run_deaths = 0
     g_gold_found = 0: EVLOG_N = 0
+    g_damage_done = 0: g_damage_taken = 0
     g_rooms_cleared = 0: g_chambers_cleared = 0
     g_max_level = 0: g_items_used = 0: g_flourishes = 0
     g_death_mon = "": g_death_lv = 0: g_saved = 0
@@ -389,6 +390,8 @@ FUNCTION StatRowLabel$ (i AS INTEGER)
         CASE 22: StatRowLabel$ = "Trips home to heal"
         CASE 23: StatRowLabel$ = "HP rested back"
         CASE 24: StatRowLabel$ = "Deaths this run"
+        CASE 25: StatRowLabel$ = "Damage dealt"
+        CASE 26: StatRowLabel$ = "Damage taken"
     END SELECT
 END FUNCTION
 
@@ -418,6 +421,8 @@ FUNCTION StatRowValue$ (i AS INTEGER)
         CASE 22: StatRowValue$ = EvNum$(start_heals)
         CASE 23: StatRowValue$ = EvNum$(g_rests)
         CASE 24: StatRowValue$ = EvNum$(g_run_deaths)
+        CASE 25: StatRowValue$ = EvNum$(g_damage_done)
+        CASE 26: StatRowValue$ = EvNum$(g_damage_taken)
     END SELECT
 END FUNCTION
 

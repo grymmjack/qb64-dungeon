@@ -109,6 +109,48 @@ Game Tweaks:
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
 
+Cut-scenes (engine, player, editor -- 26-08-03..05):
+    ✔ CUT-SCENE ENGINE: DSL-scripted scenes -- layered art, pan/zoom camera, transitions, @done(26-08-05)
+      ✔ music/sfx/narration, conditional branching, player choice menus @done(26-08-05)
+      ✔ The VM is a STEP MACHINE, not a blocking loop: ops run until one DECLARES a wait, @done(26-08-05)
+        ✔ then control returns to a frame loop. That is what buys `async` -- a blocking op @done(26-08-05)
+        ✔ and an async one run the SAME code, differing only in whether CUT_WAIT is set. @done(26-08-05)
+      ✔ Hybrid layers: an .ans is rendered through ANSI_Print ONCE into an image, so art is @done(26-08-05)
+        ✔ authored in ANSI but the camera moves it in PIXELS (smooth, not 8x16 jumps). @done(26-08-05)
+      ✔ Language reference: assets/cutscenes/CUT-DSL.md (lives beside the scenes). @done(26-08-05)
+    ✔ TEXT: sticky font/colour like QB64's _FONT and COLOR (scene-wide, per style, per line), @done(26-08-05)
+      ✔ `var` compile-time variables, inline |NN PIPE COLOURS in any font incl. TTFs, and @done(26-08-05)
+      ✔ {token}s resolved through the SAME state keys the `if` conditions use. @done(26-08-05)
+      ✔ Layout measures with _PRINTWIDTH, not LEN*8, or a proportional font wraps early. @done(26-08-05)
+    ✔ ANIMATION: PNG frame sequences, full multi-file ANSI sequences (`ext ans`), a .zip of @done(26-08-05)
+      ✔ ANSI frames (QB64's _INFLATE$ is ZLIB not raw deflate -- needs a 78 01 header AND the @done(26-08-05)
+      ✔ exact size, or it returns 10MB of nothing), and animated GIFs decoded whole. @done(26-08-05)
+    ✔ ANIMATED GIFS ANYWHERE THE GAME DRAWS PIXEL ART: Sprite& routes .gif to a frame cache, @done(26-08-05)
+      ✔ so portraits, the Bestiary, combat art and board overlays animate with no call site @done(26-08-05)
+      ✔ knowing. No tick service -- the frame is derived from wall-clock time on request. @done(26-08-05)
+    ✔ STORYBOOK ([M] Game Menu): replay any scene you have finished, Bestiary-pattern, with @done(26-08-05)
+      ✔ ??? for unseen. Roster SCANNED from the pack, so a pack gets its own for free. @done(26-08-05)
+      ✔ `dev` keeps showcase scenes out of it. Seen-list + story flags share one save line. @done(26-08-05)
+    ✔ HOOKED INTO PLAY: intro, per-level descent, win/lose, and one scene per named chamber @done(26-08-05)
+      ✔ (chamber-<slug>, resolved by NAME so nothing is registered). Each falls through to @done(26-08-05)
+      ✔ the old text crawl when a pack ships no scene. @done(26-08-05)
+    ✔ BOARD-POSITION TRIGGERS: assets/data/<pack>/triggers.txt -- level | col | row | scene | @done(26-08-05)
+      ✔ once. No engine change was needed; scenes were already addressed by name. @done(26-08-05)
+    ✔ BOARD OVERLAYS (answers "can the board have animated torches?"): overlays.txt places @done(26-08-05)
+      ✔ art on a cell -- a .gif animates because it draws through Sprite&. `lit` obeys fog. @done(26-08-05)
+    ✔ CUT PLAYER + EDITOR (engine/cutplay/, docs in CUTPLAY.md): hot reload, state injection @done(26-08-05)
+      ✔ from the command line so every branch can be WATCHED, lint, fixed-time `shot`, and @done(26-08-05)
+      ✔ `edit` -- preview + op inspector + a TIMELINE that is MEASURED (a profile pass with @done(26-08-05)
+      ✔ drawing off), scrubbing by restart-and-fast-forward. Does not write to your .cut. @done(26-08-05)
+    ✔ GATES: engine/cutplay/run-tests.sh (build, 190 assertions, lint every asset, RENDER @done(26-08-05)
+      ✔ every scene and require a non-black frame) + cutwire / triggerlint / overlaylint / @done(26-08-05)
+      ✔ storyshot / gifsprite in tests/run-tests.sh, all exiting non-zero on failure @done(26-08-05)
+      ✔ (verified by PLANTING failures, not by reading the code). @done(26-08-05)
+    ☐ REMAINS: play a full run and watch intro / descent / chamber / trigger scenes fire in
+      ☐ situ -- they are verified by compilation, the lints and cutwire, but not yet by eye.
+    ☐ REMAINS: a round-trip parser (op -> source span + token offsets) if the editor is ever
+      ☐ to write numbers back into a .cut safely.
+
 Roadmap (future / bigger efforts):
       ☐ Rival system / preferred enemies
         ☐ When killed by a creature, turns into rival
@@ -118,6 +160,10 @@ Roadmap (future / bigger efforts):
           ☐ Preferred enemy is +1 damage +1 to hit
       ☐ Can the board be much larger and zoomed in, and pan left and right and by user or events?
         ☐ This would allow more detail
+        ☐ NOTE (26-08-05): the CUT-SCENE camera already does exactly this over a stage bigger
+          ☐ than the screen, with parallax layers -- see the-long-hall.cut. Doing it for the
+          ☐ PLAYABLE board is a different problem (collision reads the art at fixed cells),
+          ☐ but the camera maths and the "zoom 1 = largest screen-shaped rect" rule transfer.
       ☐ Environmental curios / events:
         ☐ Pits
         ☐ Traps

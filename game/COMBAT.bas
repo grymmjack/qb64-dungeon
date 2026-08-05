@@ -767,7 +767,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     dmg = dmg + MagicFlourish%(mon, sec, SkillTier%, spell_elem)
                 END IF
                 IF dmg < 1 THEN dmg = 1
-                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
+                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg: g_damage_done = g_damage_done + dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"
@@ -799,7 +799,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     FlourishSpend
                     dmg = dmg + CritFlourish(mon, sec, SkillTier%)   ' time the gauge for +0/1/2 bonus dice
                 END IF
-                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
+                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg: g_damage_done = g_damage_done + dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 ' A crit that FINISHES the monster earns the killcrit aftermath text rather than
@@ -833,7 +833,7 @@ SUB DoCombatDnD (rm AS INTEGER)
             ELSEIF atk >= ROOMS(rm).mac THEN      ' hit
                 dmg = LuckyRoll%(1, player_dmgdie, player_dmgbonus + item_sword - CurseDmgPenalty%, "your DAMAGE on the " + mon)
                 IF dmg < 1 THEN dmg = 1
-                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg
+                ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - dmg: g_damage_done = g_damage_done + dmg
                 IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                 tot_dealt = tot_dealt + dmg: RecordDamage dmg
                 IF ROOMS(rm).mhp_now > 0 THEN Sfx "monster-pain"   ' wounded (not slain) -> a cry
@@ -851,7 +851,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                         DIM cdmg AS INTEGER
                         cdmg = ConfirmCrit%(mon, dmg, sec, SkillTier%)
                         IF cdmg > dmg THEN
-                            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - (cdmg - dmg)
+                            ROOMS(rm).mhp_now = ROOMS(rm).mhp_now - (cdmg - dmg): g_damage_done = g_damage_done + (cdmg - dmg)
                             IF ROOMS(rm).mhp_now < 0 THEN ROOMS(rm).mhp_now = 0
                             IF ROOMS(rm).mhp_now <= 0 THEN fx_critkill = TRUE
                             tot_dealt = tot_dealt + (cdmg - dmg): RecordDamage (cdmg - dmg)
@@ -911,7 +911,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                 PushMonsterDice: mdmg = GameRoll(2, 6, lvl \ 3, "the " + mon + "'s CRITICAL damage -- roll ITS 2d6"): PopMonsterDice
                 IF isboss THEN mdmg = mdmg + 3
                 IF mdmg < 1 THEN mdmg = 1
-                player_hp = player_hp - mdmg
+                player_hp = player_hp - mdmg: g_damage_taken = g_damage_taken + mdmg
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
                 IF player_hp > 0 THEN Sfx "player-pain"   ' hurt but standing -> a cry
@@ -932,7 +932,7 @@ SUB DoCombatDnD (rm AS INTEGER)
                     END IF
                 END IF
                 IF isboss THEN mdmg = mdmg + 3
-                player_hp = player_hp - mdmg
+                player_hp = player_hp - mdmg: g_damage_taken = g_damage_taken + mdmg
                 IF player_hp < 0 THEN player_hp = 0
                 tot_taken = tot_taken + mdmg
                 IF player_hp > 0 THEN Sfx "player-pain"   ' hurt but standing -> a cry
