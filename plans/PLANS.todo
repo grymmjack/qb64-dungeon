@@ -123,10 +123,18 @@ First-person view (26-08-05):
     x   per-level wall textures (pixelmon), washed toward the level colour on load @done(26-08-05)
     x   procedural fallback texture, so geometry works before any art exists @done(26-08-05)
     x   Game_FpsZone% / Game_FpsZoneColor~& hooks; examples/minimal answers with one zone @done(26-08-05)
-    - WALKING -- move on the grid from inside the view, with the board as the map
-    - mouse-look pitch (the horizon is fixed at FPS_H/2 today)
-    - sprites: monsters, treasure and the player tokens as billboards
-    - fighting from inside the view
+    x WALKING -- a RENDER MODE of the play loop, so every system works untouched @done(26-08-05)
+    x   keys remapped to the facing before they reach the movement code that exists @done(26-08-05)
+    x   eye lerps between cells with distance-driven head bob; movement stays grid-based @done(26-08-05)
+    x   all EIGHT board directions, because the board moves diagonally @done(26-08-05)
+    x mouse-look pitch @done(26-08-05)
+    x Billboards -- monsters (fog-gated on ROOMS().seen), graves, doors, and the board overlays @done(26-08-05)
+    x   projected by inverting the camera matrix; per-COLUMN z-buffer clipping @done(26-08-05)
+    x   fpsshot reject tally + aim/aimmon with a line-of-sight test @done(26-08-05)
+    x Fighting from inside the view -- combat already fires on entering the cell @done(26-08-05)
+    - treasure and rival player tokens as billboards
+    - a weapon/hand in the foreground
+    - texture the doors as thin walls rather than billboards
     - door FRAMES using fps/door.png (the art is generated and unused today)
 
 Engine GUIs (26-08-05):

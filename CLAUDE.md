@@ -442,6 +442,28 @@ Environment specifics that dictate this approach:
   **Which zone a cell is in is the one thing the engine cannot know**, so it asks:
   `Game_FpsZone%` / `Game_FpsZoneColor~&` (hooks 15-16). `examples/minimal` answers "one zone,
   one colour" and still gets a 3D view.
+  **WALKING -- it is a RENDER MODE of the play loop, not a loop of its own.** `[Q]` sets
+  `FPS_ON`; the play loop draws this instead of the board and remaps the movement keys to the
+  facing (`FpsMapKey$`: W/S walk, A/D turn, `,`/`.` strafe, mouse looks) BEFORE they reach the
+  code that already exists. So fights, cut-scene triggers, chamber counts, curios, the solo
+  timer, hot-seat turn passing and the save all work in here with **not one line of their code
+  touched** -- walking in 3D is walking. Movement stays strictly grid-based (the collision map
+  is a grid; re-deriving it in floating point would be a second, disagreeing map); only the EYE
+  lerps between cells (`FpsFollow`), with head-bob driven by distance-left-to-travel so standing
+  still is still. Facing maps to all **eight** board directions, not four -- the board moves
+  diagonally.
+  **BILLBOARDS** (`FpsDrawSprites` + the `Game_FpsPopulate` hook) are projected by inverting the
+  camera matrix, not by comparing angles -- an angle version drifts at the edges of the view and
+  reads as sprites sliding along the wall as you turn. Drawn far-to-near and clipped **per
+  column** against `FPS_ZBUF`, so a monster behind a corner is hidden by the corner rather than
+  by a rectangle. The game offers room monsters (only once `ROOMS().seen`, the same flag the 2D
+  marker draw reads, so a corridor does not show you what is round the corner), graves, doors
+  and **the board overlays -- so the animated torches appear in 3D for free**.
+  **`fpsshot` prints its own reject tally** (image / behind / far / offscreen / zbuf) and
+  `aim`/`aimmon` turn the camera to the nearest sprite **that is actually in line of sight**.
+  Without those, "0 columns drawn" is indistinguishable from "you happen to be facing a wall",
+  and a sprite bug hides behind a working torch. It also **snaps to the nearest walkable cell** --
+  a shot aimed at a wall renders the inside of that wall and looks exactly like a broken renderer.
 - **PACK BROWSER** (`game/PACKBROWSE.bas`) -- `dungeon.run packbrowse`, or **`[B]` from
   SETTINGS**. Six kinds of content pack (art / sfx / music / narration / data / ansi art), and
   the SETTINGS row for each can show a NAME and nothing else -- so choosing one means picking a

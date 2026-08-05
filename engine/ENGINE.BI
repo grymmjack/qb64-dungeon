@@ -807,6 +807,25 @@ DIM SHARED FPS_TEX(0 TO 32) AS LONG       ' wall texture per level (1-9)
 DIM SHARED FPS_BUF AS LONG                ' small render target, stretched to CANVAS
 DIM SHARED FPS_ANG AS SINGLE              ' facing, radians (screen space: +y is down)
 DIM SHARED FPS_FOV AS SINGLE
+DIM SHARED FPS_ON AS INTEGER              ' the play loop renders first-person instead of the board
+DIM SHARED FPS_EYEX AS SINGLE, FPS_EYEY AS SINGLE   ' the eye, which LERPS toward the player's cell
+DIM SHARED FPS_BOB AS SINGLE              ' head bob phase, advanced by walking
+DIM SHARED FPS_PITCH AS SINGLE            ' horizon offset in pixels (mouse look, not true pitch)
+DIM SHARED FPS_ZBUF(0 TO 511) AS SINGLE   ' per-column wall distance, so sprites can hide behind walls
+'--- billboards for this frame, filled by the game through FpsAddSprite ---
+CONST FPS_SPR_MAX = 96
+DIM SHARED FSP_X(1 TO FPS_SPR_MAX) AS SINGLE, FSP_Y(1 TO FPS_SPR_MAX) AS SINGLE
+DIM SHARED FSP_PATH(1 TO FPS_SPR_MAX) AS STRING
+DIM SHARED FSP_SCALE(1 TO FPS_SPR_MAX) AS SINGLE
+DIM SHARED FSP_LIFT(1 TO FPS_SPR_MAX) AS SINGLE     ' 0 = stands on the floor, 1 = hangs at eye height
+DIM SHARED FSP_N AS INTEGER
+DIM SHARED FSP_D(1 TO FPS_SPR_MAX) AS SINGLE        ' squared distance, for the painter sort
+DIM SHARED FSP_ORD(1 TO FPS_SPR_MAX) AS INTEGER
+DIM SHARED FPS_RJ_IMG AS LONG, FPS_RJ_BEHIND AS LONG, FPS_RJ_FAR AS LONG
+DIM SHARED FPS_RJ_OFF AS LONG, FPS_RJ_Z AS LONG
+DIM SHARED FPS_DREW AS LONG        ' sprite columns actually drawn -- the only proof a billboard survived
+DIM SHARED FPS_MLX AS INTEGER, FPS_MLY AS INTEGER, FPS_MFIRST AS INTEGER
+DECLARE SUB Game_FpsPopulate ()
 '--- the two things a raycaster cannot know without the game: which zone a cell
 '    belongs to, and what colour that zone is. ---
 DECLARE FUNCTION Game_FpsZone% (cx AS INTEGER, cy AS INTEGER)

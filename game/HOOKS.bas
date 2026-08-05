@@ -289,3 +289,91 @@ FUNCTION Game_FpsZoneColor~& (z AS INTEGER)
         Game_FpsZoneColor~& = SECTORS(z).kolor
     END IF
 END FUNCTION
+
+
+' ============================================================================
+'  Game_FpsPopulate -- what the first-person view can SEE, once per frame.
+'
+'  The engine raycasts geometry; everything that is a THING rather than a wall
+'  is this game's business. Handed over as billboards so the engine never
+'  learns what a monster is.
+'
+'  Fog is obeyed exactly as it is on the board: a room's monster is drawn only
+'  once ROOMS().seen is set, so walking a corridor does not show you what is
+'  waiting around the corner. That is not a rule reimplemented here -- it is
+'  the same flag the 2D marker draw reads.
+' ============================================================================
+SUB Game_FpsPopulate
+    DIM i AS INTEGER, cx AS INTEGER, cy AS INTEGER, p AS STRING
+    DIM lv AS INTEGER, j AS INTEGER
+
+    lv = PlayerLevel%
+
+    '--- room monsters and their graves ---
+    FOR i = 1 TO ROOM_N
+        IF ROOMS(i).seen = 0 THEN _CONTINUE
+        cx = ROOMS(i).cx: cy = ROOMS(i).cy
+        IF cx < 0 _ORELSE cy < 0 THEN _CONTINUE
+        IF FpsFar%(cx, cy) THEN _CONTINUE
+        IF ROOMS(i).malive THEN
+            p = MonsterSprite$(_TRIM$(ROOMS(i).monster))
+            IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.75, 0
+        ELSEIF ROOMS(i).monster_fought THEN
+            p = PixelArtFile$("markers/grave")
+            IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.45, 0
+        END IF
+    NEXT i
+
+    '--- chamber graves: three per cleared hall, exactly where the 2D board
+    '    seats them, so the two views agree about how far in you are ---
+    FOR i = 1 TO MAXCHAMBER
+        FOR j = 1 TO CHM_DEAD(i)
+            cx = CHM_GX(i, j): cy = CHM_GY(i, j)
+            IF cx > 0 _ANDALSO cy > 0 THEN
+                IF FpsFar%(cx, cy) = 0 THEN
+                    p = PixelArtFile$("markers/grave")
+                    IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.45, 0
+                END IF
+            END IF
+        NEXT j
+    NEXT i
+
+    '--- doors, as art hung in the gap the ray already passes through. A door
+    '    cell is WALKABLE, so it can never be a wall here; making it one to get
+    '    a picture would break walking through it. ---
+    FOR i = 1 TO DOOR_N
+        cx = DOOR_X(i): cy = DOOR_Y(i)
+        IF FpsFar%(cx, cy) THEN _CONTINUE
+        IF DOOROPEN(cx, cy) THEN _CONTINUE
+        p = PixelArtFile$("fps/door")
+        IF LEN(p) > 0 THEN FpsAddSprite cx + 0.5, cy + 0.5, p, 0.95, 0
+    NEXT i
+
+    '--- board overlays (the torches) show up in here too, for free ---
+    FOR i = 1 TO OVL_N
+        IF OVL_LVL(i) <> 0 _ANDALSO OVL_LVL(i) <> lv THEN _CONTINUE
+        IF FpsFar%(OVL_COL(i), OVL_ROW(i)) THEN _CONTINUE
+        IF OVL_LIT(i) _ANDALSO VIS(OVL_COL(i), OVL_ROW(i)) = 0 THEN _CONTINUE
+        p = Game_CutArtPath$(_TRIM$(OVL_ART(i)))
+        IF LEN(p) > 0 THEN FpsAddSprite OVL_COL(i) + 0.5, OVL_ROW(i) + 0.5, p, 0.35, 0.6
+    NEXT i
+END SUB
+
+'--- cheap reject before any path resolving: the view only reaches so far, and
+'    resolving 90 sprite paths a frame to throw them away is the one thing that
+'    would make this too slow ---
+FUNCTION FpsFar% (cx AS INTEGER, cy AS INTEGER)
+    DIM dx AS INTEGER, dy AS INTEGER
+    dx = ABS(cx - (c.x \ CW))
+    dy = ABS(cy - (c.y \ CH))
+    IF dx > 20 _ORELSE dy > 20 THEN FpsFar% = -1
+END FUNCTION
+
+
+'--- for the headless shot only: mark every room seen. Fog is honoured in play,
+'    and a shot taken with an empty fog mask would render an empty dungeon and
+'    read as "the billboards do not work". ---
+SUB FpsSeeAll
+    DIM i AS INTEGER
+    FOR i = 1 TO ROOM_N: ROOMS(i).seen = TRUE: NEXT i
+END SUB

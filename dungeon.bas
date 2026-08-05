@@ -532,7 +532,10 @@ IF INSTR(UCASE$(COMMAND$), "FPSSHOT") > 0 THEN
     DetectSecretDoors
     DetectDoors
     Game_PopulateBoard
+    RandomizeRooms
+    LoadBoardOverlays
     InitFog
+    FpsSeeAll                      ' a shot has no run behind it, so nothing would be `seen`
     FpsShot VAL(COMMAND$(2)), VAL(COMMAND$(3)), VAL(COMMAND$(4)), DeArg$("fpsshot.png", ".png")
     SYSTEM
 END IF
@@ -1117,9 +1120,28 @@ FUNCTION PlayGame%
         ' [Q] -- LOOK AROUND. A first-person view from the cell you are standing on,
         ' raycast over the SAME collision layer movement reads, so it cannot disagree
         ' with the board. Turning only, for now; walking is the next piece.
+        ' [Q] -- LOOK AROUND / walk in first person. This is a RENDER MODE of this
+        ' loop, not a loop of its own: the flag changes what gets drawn and how the
+        ' movement keys are read, and every other line below runs exactly as it does
+        ' on the board. That is what makes fights, triggers, chambers, the solo timer
+        ' and hot-seat turn passing work in here without one line of their code being
+        ' touched -- walking in 3D is walking.
         IF k = "q" OR k = "Q" THEN
-            FpsLook (c.x \ CW) + 0.5, (c.y \ CH) + 0.5, -1
+            IF FPS_ON THEN
+                FpsLeave
+            ELSE
+                FpsEnter ""
+            END IF
             cursor_erase: cursor_draw: DrawHUD: Present
+        END IF
+        IF FPS_ON THEN
+            FpsMouseLook
+            ' strafing has no board key of its own, so it borrows two that are free
+            IF k = "," THEN k = "SL"
+            IF k = "." THEN k = "SR"
+            IF IsMoveKey(k) OR k = "SL" OR k = "SR" THEN
+                k = FpsMapKey$(k)                 ' "" = the key was a TURN, not a step
+            END IF
         END IF
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
@@ -1235,6 +1257,11 @@ FUNCTION PlayGame%
 
         IF solo_on THEN SoloTick                   ' solo challenge: timer / two-deaths / the hunter's step
         IF dbg_on OR solo_on THEN cursor_erase: cursor_draw   ' redraw each frame so the crosshair / hunter token can't ghost
+        ' The first-person view is drawn OVER the board every frame -- it has to be
+        ' every frame because turning changes the picture while nothing else does.
+        ' The board underneath is still maintained and still correct; this simply
+        ' covers it, and cursor_erase restores it the moment [Q] turns this off.
+        IF FPS_ON THEN FpsPresentPlayer
         DrawHUD
         IF solo_on THEN DrawSoloHUD                 ' the solo status ribbon (timer / quest / hunter distance)
         IF dbg_on THEN DrawDebug

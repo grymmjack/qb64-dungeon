@@ -153,3 +153,8 @@ END FUNCTION
 FUNCTION Game_FpsZoneColor~& (z AS INTEGER)
     Game_FpsZoneColor~& = _RGB32(&H70, &H78, &H88)
 END FUNCTION
+
+
+'--- a game with nothing in its world still gets walls ---
+SUB Game_FpsPopulate
+END SUB
