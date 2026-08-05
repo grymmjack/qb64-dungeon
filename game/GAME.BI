@@ -787,3 +787,21 @@ DIM SHARED TRIG_ROW(1 TO TRIG_MAX) AS INTEGER
 DIM SHARED TRIG_SCENE(1 TO TRIG_MAX) AS STRING * 40
 DIM SHARED TRIG_ONCE(1 TO TRIG_MAX) AS INTEGER
 DIM SHARED TRIG_N AS INTEGER
+
+' ============================================================================
+'  BOARD OVERLAYS  (assets/data/<pack>/overlays.txt)
+'
+'  level | col | row | art | scale | lit  -- art drawn on the board itself.
+'
+'  A .gif animates here for free: it goes through Sprite&, which animates GIFs
+'  for every portrait and panel in the game, so board animation needed no
+'  machinery of its own.
+' ============================================================================
+CONST OVL_MAX = 128
+DIM SHARED OVL_LVL(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_COL(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_ROW(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_ART(1 TO OVL_MAX) AS STRING * 64
+DIM SHARED OVL_SCALE(1 TO OVL_MAX) AS SINGLE
+DIM SHARED OVL_LIT(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_N AS INTEGER

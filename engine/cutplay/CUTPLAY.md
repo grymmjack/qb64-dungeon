@@ -207,7 +207,37 @@ questions and nothing tells them apart by eye.
 
 ---
 
-## 7. Where things are
+## 7. Art on the board
+
+A `.gif` (or a still) can be placed on a board cell, in a data file, with no
+code:
+
+```
+assets/data/<pack>/overlays.txt      level | col | row | art | scale | lit
+0 | 13 | 9 | torch-flame.gif | 0.5 | 1
+```
+
+`lit 1` means it only appears once the player has **seen** that cell, so it
+obeys fog-of-war and line-of-sight like everything else on the board — a torch
+visible through a wall would give the map away.
+
+It animates for free. There is **no board-animation machinery**: the overlay
+draws through `Sprite&`, and `Sprite&` animates GIFs for every portrait and
+panel in the game. That is the whole reason the animation lives in `ARTPACK`
+rather than in any one call site.
+
+```bash
+dungeon.run overlaylint
+```
+
+Checks the art resolves, warns if a `.gif` decoded to a single frame (a still
+wearing an animation's name), and then **actually draws them** and requires the
+board's pixels to change — writing `overlayshot.png` so you can look. "The data
+is valid" and "you can see it" are different claims.
+
+---
+
+## 8. Where things are
 
 ```
 cutplay.run                        the tool (built to the repo root)

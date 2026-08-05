@@ -1692,3 +1692,126 @@ SUB DumpTriggerLint
         PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " trigger(s) can never fire|07")
     END IF
 END SUB
+
+' ----------------------------------------------------------------------------
+'  dev: `dungeon.run overlaylint` -- validate assets/data/<pack>/overlays.txt.
+'
+'  Same two silent failures as a trigger, and one more:
+'    * the art does not resolve (nothing is drawn, nothing is said)
+'    * `lit` is set on a cell the player can never see, so it never appears
+'    * the art is a .gif that decodes to a single frame -- a still wearing an
+'      animation's name, which is the exact failure the GIF decoder exists for
+' ----------------------------------------------------------------------------
+SUB DumpOverlayLint
+    DIM i AS INTEGER, bad AS INTEGER, warn AS INTEGER, oldsrc AS LONG
+    DIM nm AS STRING, pth AS STRING, note AS STRING, h AS LONG, slot AS INTEGER, j AS INTEGER
+
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15overlaylint|07 -- art placed on the board")
+    DevPackOverride
+    LoadBoardOverlays
+
+    IF OVL_N = 0 THEN
+        PRINT PipeCol$("  no overlays defined (assets/data/" + _TRIM$(opt_datapack) + "/overlays.txt)")
+        PRINT PipeCol$("  |10ok|07  -- nothing to get wrong")
+        EXIT SUB
+    END IF
+
+    PRINT PipeCol$("  " + _TRIM$(STR$(OVL_N)) + " overlay(s)")
+    PRINT
+
+    ' FULL_COLLIDE, not COLLIDE_BOARD: the latter is built by InitFog, which a
+    ' dev mode never runs, and every cell would read as solid.
+    oldsrc = _SOURCE
+    _SOURCE FULL_COLLIDE
+
+    FOR i = 1 TO OVL_N
+        nm = _TRIM$(OVL_ART(i))
+        note = ""
+
+        pth = Game_CutArtPath$(nm)
+        IF LEN(pth) = 0 THEN
+            note = note + " |12art not found|07"
+        ELSE
+            h = Sprite&(pth)
+            IF h >= -1 THEN note = note + " |12art will not load|07"
+            ' a .gif that decoded to one frame is a still pretending otherwise
+            IF SprIsGif%(pth) THEN
+                slot = 0
+                FOR j = 1 TO GSPR_N
+                    IF GSPR_PATH(j) = pth THEN slot = j
+                NEXT j
+                IF slot > 0 THEN
+                    IF GSPR_FRAMES(slot) < 2 THEN note = note + " |14gif has only one frame|07"
+                END IF
+            END IF
+        END IF
+
+        ' `lit` on a cell nothing can ever see means it never draws
+        IF OVL_LIT(i) THEN
+            IF CellKind%(OVL_COL(i), OVL_ROW(i)) = 0 THEN
+                note = note + " |14lit, but the cell is solid -- it may never be revealed|07"
+            END IF
+        END IF
+
+        IF INSTR(note, "|12") > 0 THEN
+            bad = bad + 1
+            PRINT PipeCol$("  |12BAD|07 lvl " + _TRIM$(STR$(OVL_LVL(i))) + " @ " + _TRIM$(STR$(OVL_COL(i))) + "," + _TRIM$(STR$(OVL_ROW(i))) + "  " + nm + note)
+        ELSEIF LEN(note) > 0 THEN
+            warn = warn + 1
+            PRINT PipeCol$("  |14warn|07 lvl " + _TRIM$(STR$(OVL_LVL(i))) + " @ " + _TRIM$(STR$(OVL_COL(i))) + "," + _TRIM$(STR$(OVL_ROW(i))) + "  " + nm + note)
+        ELSE
+            PRINT PipeCol$("  |10ok |07 lvl " + _TRIM$(STR$(OVL_LVL(i))) + " @ " + _TRIM$(STR$(OVL_COL(i))) + "," + _TRIM$(STR$(OVL_ROW(i))) + "  " + nm)
+        END IF
+    NEXT i
+
+    _SOURCE oldsrc
+
+    PRINT
+
+    '--- ...and now actually DRAW them, and check the pixels changed.
+    '
+    '    Everything above only proves the TABLE is right. Whether anything
+    '    reaches the board depends on the render hook, the fog gate and the
+    '    blit -- so sample each cell before and after, and render the result to
+    '    a PNG. "The data is valid" and "you can see it" are different claims,
+    '    and only the second one is what was asked for. ---
+    DIM before(1 TO OVL_MAX) AS _UNSIGNED LONG, drew AS INTEGER, i2 AS INTEGER
+
+    _DEST CANVAS
+    _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
+    '--- reveal the whole board so a `lit` overlay is allowed to appear ---
+    FOR i2 = 0 TO SW - 1
+        FOR j = 0 TO SH - 1
+            VIS(i2, j) = TRUE
+        NEXT j
+    NEXT i2
+
+    _SOURCE CANVAS
+    FOR i = 1 TO OVL_N
+        before(i) = POINT(OVL_COL(i) * CW + CW \ 2, OVL_ROW(i) * CH + CH \ 2)
+    NEXT i
+
+    DrawBoardOverlays
+
+    drew = 0
+    FOR i = 1 TO OVL_N
+        IF POINT(OVL_COL(i) * CW + CW \ 2, OVL_ROW(i) * CH + CH \ 2) <> before(i) THEN drew = drew + 1
+    NEXT i
+    _SOURCE oldsrc
+
+    _SAVEIMAGE "overlayshot.png", CANVAS
+    _DEST _CONSOLE
+    PRINT PipeCol$("  wrote |10overlayshot.png|07 -- " + _TRIM$(STR$(drew)) + " of " + _TRIM$(STR$(OVL_N)) + " changed the board")
+    IF drew < OVL_N THEN
+        bad = bad + (OVL_N - drew)
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(OVL_N - drew)) + " overlay(s) drew NOTHING even with the board fully revealed|07")
+    END IF
+
+    PRINT
+    IF bad = 0 THEN
+        PRINT PipeCol$("  |10ok|07  -- every overlay resolves, and every one changed the board")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " overlay(s) will draw nothing|07")
+    END IF
+END SUB

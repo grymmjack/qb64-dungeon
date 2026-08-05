@@ -226,6 +226,7 @@ LoadTuning                       ' gameplay balance knobs (assets/data/tuning.tx
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
 LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
 LoadCutTriggers                  ' board-position cut-scene triggers (assets/data/triggers.txt)
+LoadBoardOverlays                ' animated/still art placed on the board (assets/data/overlays.txt)
 InitSectors
 InitClasses
 InitMonsterTables
@@ -495,6 +496,16 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     DetectDoors
     Game_PopulateBoard
     DumpTriggerLint
+    SYSTEM
+END IF
+
+'--- dev: `dungeon.run overlaylint` validates board overlays (same board setup) ---
+IF INSTR(UCASE$(COMMAND$), "OVERLAYLINT") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    DetectDoors
+    Game_PopulateBoard
+    DumpOverlayLint
     SYSTEM
 END IF
 

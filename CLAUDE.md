@@ -448,6 +448,12 @@ Environment specifics that dictate this approach:
   (`level | col | row | scene | once`), needing no code because scenes are addressed by name.
   `dungeon.run triggerlint` validates them: a trigger whose scene is missing, or whose cell is
   not walkable, fails SILENTLY and looks exactly like "nothing is there".
+  **Board overlays** put art (animated `.gif` or still) on a board cell from
+  `assets/data/<pack>/overlays.txt` (`level | col | row | art | scale | lit`), `lit` obeying
+  fog-of-war. There is NO board-animation machinery -- it draws through `Sprite&`, which
+  animates GIFs everywhere, which is why that lives in `ARTPACK` and not in a call site.
+  `dungeon.run overlaylint` resolves each one AND draws them, requiring the board's pixels to
+  change, then writes `overlayshot.png`.
   **Animated GIFs just work** — `show fx "fire.gif"` decodes every frame with its own
   delay and loops. `_LOADIMAGE` opens a .gif and returns only its FIRST frame, which is the
   worst kind of failure (valid handle, every check passes, picture never moves), so
