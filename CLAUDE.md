@@ -437,6 +437,15 @@ Environment specifics that dictate this approach:
   the cell first**, because all of them read position for their level and flavour. Rows needing
   a live run grey out rather than vanish. `dungeon.run mapdebugshot <digits> [event] <out.png>`
   draws one frame headlessly, panel included.
+  **`[O]` places a board OVERLAY and `[C]` drags a CHAMBER rectangle**, writing `overlays.txt`
+  and `chambers.txt`. They live inside the debugger rather than being their own tools because
+  the *check* on a placement IS the layer view: an overlay is right when it sits on the cell you
+  meant (the art is previewed at the cell with `DrawBoardOverlays`' own centre-anchoring, not a
+  marker standing in for it), and a chamber rect is right when layer 6 tints the hall and not
+  the corridor beside it. Both APPEND a row and then **reload** (`LoadBoardOverlays` /
+  `DetectChambers`), so the screen shows the consequence rather than the intention; `[X]` deletes
+  through the DATA EDITOR's raw-line machinery so the file's comments survive. Verify with
+  `mapdebugshot 12 overlay|chamber <out.png>`.
 - **DATA EDITOR** (`engine/DATAEDIT.bas`) -- `dungeon.run dataedit`: the pack's pipe-delimited
   tables as a grid, with column names lifted from each file's own header comment. The files stay
   hand-editable text; this only spares you counting columns. **The file is held as its RAW

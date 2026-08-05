@@ -125,8 +125,10 @@ Engine GUIs (26-08-05):
     x   re-pads to the file's own widths and the ROW's own field count @done(26-08-05)
     x   DeMaxCols% mirrors each loader's split rule (strings.txt values contain pipes) @done(26-08-05)
     x   `dungeon.run dataedittest` in the gate -- 26/26 tables round-trip, proven by planting the wrong rule @done(26-08-05)
-    - Board-overlay editor -- place/drag an animated overlay and write overlays.txt
-    - Chamber-rectangle editor -- drag the chambers.txt rects over the board
+    x Board-overlay editor -- [O] in the map debugger: art picker, live preview at the cell, scale/lit, writes overlays.txt @done(26-08-05)
+    x Chamber-rectangle editor -- [C]: drag a rect, name it, writes chambers.txt and re-derives @done(26-08-05)
+    x   both APPEND and then reload, so the screen shows the consequence not the intention @done(26-08-05)
+    x   both delete through the data editor's raw-line machinery, so comments survive @done(26-08-05)
     - A GUI for the audio/art pack pickers (SETTINGS rows are fine, a preview grid would be better)
 
 Cut-scenes (engine, player, editor -- 26-08-03..05):
