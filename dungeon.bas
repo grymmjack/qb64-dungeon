@@ -504,6 +504,26 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     SYSTEM DEV_FAIL
 END IF
 
+'--- dev: `dungeon.run dataedit` -- the content tables as a grid. The files
+'    stay hand-editable text; this only spares you counting columns by eye. ---
+IF INSTR(UCASE$(COMMAND$), "DATAEDITTEST") > 0 THEN
+    DEV_FAIL = DataEditSelfTest%("assets/data/" + opt_datapack + "/")
+    IF DEV_FAIL > 0 THEN
+        PRINT PipeCol$("|12" + LTRIM$(STR$(DEV_FAIL)) + " table(s) FAILED round-trip")
+    ELSE
+        PRINT PipeCol$("|10every table survives load -> save unchanged")
+    END IF
+    SYSTEM DEV_FAIL
+END IF
+IF INSTR(UCASE$(COMMAND$), "DATAEDITSHOT") > 0 THEN
+    DataEditorShot DeArg$("assets/data/" + opt_datapack + "/monsters.txt", ".txt"), DeArg$("dataedit.png", ".png")
+    SYSTEM
+END IF
+IF INSTR(UCASE$(COMMAND$), "DATAEDIT") > 0 THEN
+    DataEditor "assets/data/" + opt_datapack + "/"
+    SYSTEM
+END IF
+
 '--- dev: `dungeon.run mapdebug` -- the interactive map debugger. Every derived
 '    layer (sectors, walkable, rooms, room-kind, doors, chambers, secret
 '    regions, triggers/overlays, markers) toggleable on one screen, because the

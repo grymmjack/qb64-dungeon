@@ -123,6 +123,23 @@ devrun() {
     echo "-- pack-fallback audit (a partial pack must degrade to default/) --"
     if tests/audit-packfallback.sh | tail -3; then :; else (( fail++ )); failed+=("audit-packfallback"); fi
 
+    # The data EDITOR writes to the same tables the game reads at launch, so the
+    # claim that matters is not how it looks -- it is that load->save is a no-op
+    # and that rewriting one field cannot shred the rest of the row. Proven by
+    # planting the wrong split rule for strings.txt, which made row 8's inline
+    # pipe colour "|10" come back as "| 10": the gate went red.
+    echo "-- data editor round-trip (dungeon.run dataedittest) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 90 "survives load" ./dungeon.run dataedittest nocolor; then
+            grep -E 'survives load' <<<"$DEVRUN_OUT" | sed 's/^/  /'
+        else
+            grep -E 'BAD|FAILED' <<<"$DEVRUN_OUT" | head -6 | sed 's/^/    /'
+            (( fail++ )); failed+=("dataedittest")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # Content tables: a data mistake never crashes, the level just plays wrong.
     echo "-- content tables (dungeon.run datalint) --"
     if [[ -x ./dungeon.run ]]; then
