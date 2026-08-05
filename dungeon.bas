@@ -504,6 +504,11 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     SYSTEM DEV_FAIL
 END IF
 
+IF INSTR(UCASE$(COMMAND$), "WINDLINT") > 0 THEN
+    DumpWindLint
+    SYSTEM DEV_FAIL
+END IF
+
 '--- dev: `dungeon.run fpsshot <col> <row> <deg> <out.png>` -- one frame of the
 '    first-person view. Needs the collision layer AND InitFog, because an
 '    unfound secret door must read as solid stone from inside the corridor. ---
@@ -984,6 +989,10 @@ FUNCTION PlayGame%
         _LIMIT 60
         AudioTick                                 ' advance music crossfade + narration fade each frame
         AmbienceTick                              ' a distant noise now and then, chosen by the level you are on
+        ' A DRAUGHT out of a hidden door: a loop whose volume tracks the distance to
+        ' the nearest UNFOUND secret door. Ticked here rather than in AudioTick because
+        ' AudioTick also runs under menus, where there is no player standing anywhere.
+        SecretWindTick c.x \ CW, c.y \ CH
         IF display_dirty THEN                     ' ...and repaint the whole board once it has settled
             display_dirty = 0
             cursor_erase: cursor_draw: DrawHUD: Present

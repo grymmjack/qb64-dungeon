@@ -811,3 +811,10 @@ DIM SHARED FPS_FOV AS SINGLE
 '    belongs to, and what colour that zone is. ---
 DECLARE FUNCTION Game_FpsZone% (cx AS INTEGER, cy AS INTEGER)
 DECLARE FUNCTION Game_FpsZoneColor~& (z AS INTEGER)
+
+'--- SECRET-DOOR WIND: a draught you can hear before you can see it. Set by the
+'    game's tuning loader; the engine defaults them if nothing does. ---
+DIM SHARED WIND_CELLS AS INTEGER          ' how far the draught carries, in cells
+DIM SHARED WIND_VOL AS INTEGER            ' loudest it ever gets, 0-10 (0 = off)
+DIM SHARED WIND_H AS LONG                 ' the looping handle, 0 = not running
+DIM SHARED WIND_NEAR AS SINGLE            ' distance to the nearest unfound door, for the dumps

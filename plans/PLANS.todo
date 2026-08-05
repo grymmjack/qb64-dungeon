@@ -109,6 +109,13 @@ Game Tweaks:
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
 
+Secret-door wind (26-08-05):
+    x A draught you can hear near an UNFOUND secret door -- squared falloff, stops when found @done(26-08-05)
+    x   a LOOP whose volume tracks distance, not a one-shot like ambience @done(26-08-05)
+    x   generated for all 13 sfx packs with soundmon, each in the pack's own voice @done(26-08-05)
+    x   WIND_CELLS / WIND_VOL in tuning.txt, either at 0 = off @done(26-08-05)
+    x   `dungeon.run windlint` in the gate -- checks a sound without listening to it @done(26-08-05)
+
 First-person view (26-08-05):
     x Raycast LOOK AROUND from the player's cell -- [Q] in game, fpsshot headless @done(26-08-05)
     x   over the SAME collision layer movement reads, so it cannot disagree with the board @done(26-08-05)

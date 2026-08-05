@@ -19,7 +19,7 @@ FUNCTION Game_SfxNames$
         " amb-thump amb-hinge amb-slam amb-chains amb-wind amb-drone amb-scream" + _
         " amb-squeak amb-hiss amb-gibber amb-growl amb-slither amb-laugh amb-howl" + _
         " amb-bark amb-moan amb-whisper" + _
-        " rest-water rest-breath rest-gold" + _
+        " rest-water rest-breath rest-gold secret-wind" + _
         " chamber-enter monster-appear stairs"      ' cut-scene beats (see assets/cutscenes/)
 END FUNCTION
 

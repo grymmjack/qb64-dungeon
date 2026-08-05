@@ -68,6 +68,7 @@ amb-hinge      | 3    | an old iron hinge creaking somewhere out of sight
 amb-slam       | 2    | a door slamming far off down the corridor
 amb-chains     | 3    | chains rattling in the dark
 amb-wind       | 4    | a low wind moving through stone corridors
+secret-wind    | 9    | a faint cold draught seeping through a crack in a stone wall, LOOPING, steady level
 amb-drone      | 5    | a deep subterranean drone, felt more than heard
 amb-scream     | 2    | a distant scream of pain, cut short
 amb-squeak     | 1    | vermin squeaking among the stores

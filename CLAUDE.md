@@ -678,6 +678,22 @@ Environment specifics that dictate this approach:
   the level music — `victory`/`lose` (one screen) and `combat-low`/`combat-high`/`combat-intense`
   (`CombatCueName$` by level/boss, looped through a D&D fight, `EndCue` restores the level track).
   `PlayCue` is a no-op when the cue file is absent, so cues never cut to silence.
+- **SECRET-DOOR WIND -- a draught heard before it is found** (`SecretWindTick` in
+  `engine/MUSIC.bas`, ticked from the play loop). A hidden door is a hole in a wall and air
+  moves through a hole, so standing near an **unfound** secret door you hear a thin cold
+  draught that blooms as you close on it and stops the moment the door is found -- a
+  hot-and-cold hint for `[F]` SEARCH. It is a **LOOP whose volume tracks distance**, not a
+  one-shot like ambience: different thing, different plumbing. Runs on the pack's own
+  `secret-wind` sample (all 13 sfx packs ship one), and a pack without one is **silent** --
+  deliberately no tone-beeper fallback, because a PC-speaker buzz is a UI sound and this is
+  meant to be part of the room. Falloff is **squared**, not linear: linear made the whole
+  radius a wash of quiet noise you stopped hearing. Tuned by `WIND_CELLS` / `WIND_VOL` in
+  `tuning.txt` (either at 0 = off). Ticked from the play loop rather than `AudioTick`, which
+  also runs under menus where no player is standing anywhere. It never `_SNDCLOSE`s -- the
+  handle belongs to the SFX table. **`dungeon.run windlint`** (gated) is how a sound gets
+  checked without listening to it: it plots the falloff and fails if it is not monotonic, not
+  full at distance 0, or still audible at its own radius (a permanent hiss under the level),
+  then counts which packs ship a sample.
 - **NOTHING calls `_SNDCLOSE` directly — it calls `RetireSound`.** `_SNDOPEN` hangs a node on
   miniaudio's mixing graph that a **device thread** walks every buffer callback; `_SNDCLOSE` frees
   that node from the game thread, and freeing one the mixer is mid-read of corrupts the heap. With

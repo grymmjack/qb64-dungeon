@@ -947,3 +947,93 @@ FUNCTION CombatCueName$ (lvl AS INTEGER, isboss AS INTEGER)
     END IF
 END FUNCTION
 
+
+
+' ============================================================================
+'  SECRET-DOOR WIND -- a draught, heard before it is found.
+'
+'  A hidden door is a hole in a wall, and air moves through a hole. So standing
+'  near one you hear a thin cold draught that gets louder as you close on it and
+'  stops the moment the door is found. It is a hot-and-cold hint for [F] SEARCH
+'  that costs the player nothing and tells them nothing they could not have
+'  worked out by searching every wall in the dungeon.
+'
+'  It is a LOOP whose volume tracks distance, not a one-shot like ambience --
+'  those two are different things and want different plumbing. The loop runs on
+'  the pack's own `secret-wind` sample, so a pack re-voices it like anything
+'  else; a pack that ships no such file is simply SILENT. There is deliberately
+'  NO tone-beeper fallback: a PC-speaker buzz is a UI sound, and this one is
+'  supposed to be part of the room.
+'
+'  Only UNFOUND doors sing. Once SD_FOUND is set the draught is explained, and a
+'  hint that keeps hinting after you have taken it is just noise.
+' ============================================================================
+SUB SecretWindTick (pcx AS INTEGER, pcy AS INTEGER)
+    DIM i AS INTEGER, dx AS SINGLE, dy AS SINGLE, d AS SINGLE, best AS SINGLE
+    DIM t AS SINGLE, vol AS SINGLE, h AS LONG
+
+    '--- defaults, so the engine works with a game that sets no tuning at all ---
+    IF WIND_CELLS <= 0 THEN WIND_CELLS = 7
+    IF WIND_VOL < 0 THEN WIND_VOL = 6
+
+    IF audio_muted _ORELSE WIND_VOL = 0 THEN SecretWindStop: EXIT SUB
+    IF NOT opt_sfx THEN SecretWindStop: EXIT SUB
+
+    best = 1000
+    FOR i = 1 TO SD_N
+        IF SD_FOUND(i) = 0 THEN
+            dx = SD_X(i) - pcx
+            dy = SD_Y(i) - pcy
+            d = SQR(dx * dx + dy * dy)
+            IF d < best THEN best = d
+        END IF
+    NEXT i
+    WIND_NEAR = best
+
+    IF best > WIND_CELLS THEN SecretWindStop: EXIT SUB
+
+    '--- SQUARED falloff. Linear made the whole radius a wash of quiet noise you
+    '    stopped hearing; squared keeps it almost silent until the last couple
+    '    of cells and then blooms, which is what makes it findable. ---
+    t = (WIND_CELLS - best) / WIND_CELLS
+    IF t < 0 THEN t = 0
+    IF t > 1 THEN t = 1
+    vol = t * t * (WIND_VOL / 10) * (opt_sfxvol / 10) * chgain_sfx
+
+    h = SfxHandle&("secret-wind")
+    IF h <= 0 THEN EXIT SUB                    ' pack ships no draught: silence, not a beep
+
+    IF WIND_H <= 0 THEN
+        WIND_H = h
+        _SNDVOL WIND_H, 0                      ' start silent, then ramp -- no click on entry
+        _SNDLOOP WIND_H
+    END IF
+    _SNDVOL WIND_H, vol
+END SUB
+
+'--- Stop, but never _SNDCLOSE: this handle is the SFX table's, not ours. See
+'    the RetireSound note -- freeing a node the mixer thread may be reading is
+'    the fatal one, and here there is nothing to free anyway. ---
+SUB SecretWindStop
+    IF WIND_H <= 0 THEN EXIT SUB
+    _SNDVOL WIND_H, 0
+    _SNDSTOP WIND_H
+    WIND_H = 0
+    WIND_NEAR = 0
+END SUB
+
+
+'--- The volume the draught would have at distance d. Split out of the tick so
+'    the curve can be TESTED: what a sound does is otherwise only checkable by
+'    listening to it, and a falloff that never reaches zero (or reaches it two
+'    cells early) sounds like "the wind is broken" with nothing to look at. ---
+FUNCTION WindCurve! (d AS SINGLE)
+    DIM t AS SINGLE, cells AS INTEGER
+    cells = WIND_CELLS
+    IF cells <= 0 THEN cells = 7
+    IF d > cells THEN WindCurve! = 0: EXIT FUNCTION
+    t = (cells - d) / cells
+    IF t < 0 THEN t = 0
+    IF t > 1 THEN t = 1
+    WindCurve! = t * t
+END FUNCTION

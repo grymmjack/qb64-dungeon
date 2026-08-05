@@ -16,6 +16,7 @@ SUB LoadTuning
     TREASURE_POTION_PCT = 15: TREASURE_LARGE_PCT = 25: LEVELCLEAR_LARGE_PCT = 30
     IDLE_ENCOUNTER_PCT = 30: LOITER_THRESHOLD = 3: WANDER_GOLD_DIV = 6
     AMB_SECS_MIN = 18: AMB_SECS_MAX = 45          ' seconds between ambient noises (MIN 0 = off)
+    WIND_CELLS = 7: WIND_VOL = 6                  ' secret-door draught: reach in cells, loudest 0-10 (0 = off)
     REST_ENC_PCT = 12: REST_ENC_PER_LVL = 3       ' [R]est: encounter odds, and how they climb with depth
     CLOSECALL_ROUNDS = 10: CLOSECALL_HP = 25      ' >10 rounds AND under 25% HP = a close call
     DOORNOISE_PCT = 25: DOORNOISE_CLEAR_PCT = 5   ' racket at a reinforced door: +% per attempt, and on a cleared floor
@@ -69,6 +70,8 @@ SUB LoadTuning
             CASE "XP_PER_KILL_LVL": XP_PER_KILL_LVL = v
             CASE "AMB_SECS_MIN": IF v >= 0 THEN AMB_SECS_MIN = v          ' 0 = ambience off
             CASE "AMB_SECS_MAX": IF v >= 1 THEN AMB_SECS_MAX = v
+            CASE "WIND_CELLS": IF v >= 0 THEN WIND_CELLS = v               ' 0 = no draught
+            CASE "WIND_VOL": IF v >= 0 AND v <= 10 THEN WIND_VOL = v       ' 0 = off
             CASE "DOORNOISE_PCT": IF v >= 0 THEN DOORNOISE_PCT = v
             CASE "DOORNOISE_CLEAR_PCT": IF v >= 0 THEN DOORNOISE_CLEAR_PCT = v
             CASE "REST_ENC_PCT": IF v >= 0 THEN REST_ENC_PCT = v

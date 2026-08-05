@@ -123,6 +123,22 @@ devrun() {
     echo "-- pack-fallback audit (a partial pack must degrade to default/) --"
     if tests/audit-packfallback.sh | tail -3; then :; else (( fail++ )); failed+=("audit-packfallback"); fi
 
+    # The secret-door draught is a LOOP whose volume tracks distance, and both of
+    # its failure modes are inaudible-until-annoying: a falloff that never reaches
+    # zero is a permanent hiss under the level, one that saturates early is a hint
+    # with no direction in it. Neither has anything to look at.
+    echo "-- secret-door draught (dungeon.run windlint) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 60 "windlint:" ./dungeon.run windlint nocolor; then
+            grep -E 'falloff is monotonic|windlint:' <<<"$DEVRUN_OUT" | sed 's/^/  /'
+        else
+            grep -E 'BAD|wrong' <<<"$DEVRUN_OUT" | head -4 | sed 's/^/    /'
+            (( fail++ )); failed+=("windlint")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # The data EDITOR writes to the same tables the game reads at launch, so the
     # claim that matters is not how it looks -- it is that load->save is a no-op
     # and that rewriting one field cannot shred the rest of the row. Proven by

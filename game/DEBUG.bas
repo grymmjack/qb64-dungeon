@@ -1877,3 +1877,76 @@ SUB CutWireRow (nm AS STRING, note AS STRING, have AS INTEGER, miss AS INTEGER)
         PRINT PipeCol$("  |14--  |07 " + PadR$(nm, 26) + "|08" + note + " (falls back)|07")
     END IF
 END SUB
+
+
+' ============================================================================
+'  `dungeon.run windlint` -- the secret-door draught, checked without listening.
+'
+'  Two questions, neither audible:
+'
+'    1. Does EVERY sfx pack ship a secret-wind sample? A pack that does not is
+'       silent there, which is a legitimate choice -- but it is also exactly
+'       what a forgotten pack looks like, so it is worth counting out loud.
+'    2. Does the falloff actually reach zero at the radius, and rise all the way
+'       in? A curve that never quite reaches zero leaves a permanent hiss under
+'       the whole level; one that saturates early is a hint with no direction in
+'       it. Both sound like "the wind is broken" and neither has anything to
+'       look at.
+' ============================================================================
+SUB DumpWindLint
+    DIM i AS INTEGER, d AS SINGLE, v AS SINGLE, prev AS SINGLE
+    DIM miss AS INTEGER, have AS INTEGER, e AS STRING, nm AS STRING
+    DIM bad AS INTEGER
+
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15windlint|07 -- the secret-door draught")
+    PRINT PipeCol$("|07  reach |14" + LTRIM$(STR$(WIND_CELLS)) + "|07 cells   loudest |14" + LTRIM$(STR$(WIND_VOL)) + "|07/10")
+    PRINT
+
+    '--- the curve ---
+    prev = 2
+    FOR i = 0 TO WIND_CELLS + 1
+        d = i
+        v = WindCurve!(d)
+        PRINT PipeCol$("|07   " + RIGHT$("  " + LTRIM$(STR$(i)), 3) + " cells |08|PI|07 " + _
+              STRING$(INT(v * 40), 35) + "|08" + STRING$(40 - INT(v * 40), 46) + "|07  " + _
+              LEFT$(LTRIM$(STR$(INT(v * 100))) + "  ", 4) + "%")
+        IF v > prev THEN bad = bad + 1                      ' must never rise with distance
+        prev = v
+    NEXT i
+    IF WindCurve!(0) < 0.99 THEN
+        bad = bad + 1
+        PRINT PipeCol$("|12  BAD |07 the draught never reaches full volume standing on the door")
+    END IF
+    IF WindCurve!(WIND_CELLS) > 0 THEN
+        bad = bad + 1
+        PRINT PipeCol$("|12  BAD |07 the draught is still audible at its own radius -- a permanent hiss")
+    END IF
+    IF bad = 0 THEN PRINT PipeCol$("|10  ok  |07 falloff is monotonic, full at 0, silent at the radius")
+
+    '--- coverage: one line per pack ---
+    PRINT
+    ScanAllPacks
+    '--- from 1: index 0 is the legacy flat "(main)" slot, and every pack here is
+    '    a real directory, so counting 0 reported `default` twice ---
+    FOR i = 1 TO SFXPACK_N
+        nm = SFXPACKS(i)
+        IF LEN(_TRIM$(nm)) = 0 THEN _CONTINUE
+        e = FirstAudioFile$("assets/sfx/" + _TRIM$(nm) + "/secret-wind")
+        IF LEN(e) > 0 THEN
+            have = have + 1
+            PRINT PipeCol$("|10  ok  |07 " + _TRIM$(nm) + "  ->  " + e)
+        ELSE
+            miss = miss + 1
+            PRINT PipeCol$("|14  --  |07 " + _TRIM$(nm) + "  (silent there)")
+        END IF
+    NEXT i
+
+    PRINT
+    IF bad > 0 THEN
+        PRINT PipeCol$("|12windlint: the falloff is wrong")
+        DEV_FAIL = 1
+    ELSE
+        PRINT PipeCol$("|10windlint: |14" + LTRIM$(STR$(have)) + "|10 pack(s) with a draught, |14" + LTRIM$(STR$(miss)) + "|10 without")
+    END IF
+END SUB

@@ -148,3 +148,11 @@ REST_ENC_PER_LVL | 3
 # exactly the ones that leave you too weak for the next.
 CLOSECALL_ROUNDS | 10
 CLOSECALL_HP | 25
+
+# --- the secret-door draught (engine/MUSIC.bas SecretWindTick) ---
+# A hidden door is a hole in a wall, and air moves through a hole. Standing near
+# an UNFOUND secret door you hear a thin cold draught that blooms as you close on
+# it and stops the moment the door is found -- a hot-and-cold hint for [F] SEARCH.
+# It plays the pack's `secret-wind` sample on a loop; a pack without one is silent.
+WIND_CELLS       | 7      # how far the draught carries, in cells (0 = off)
+WIND_VOL         | 6      # loudest it ever gets, 0-10 (0 = off)
