@@ -478,6 +478,41 @@ SUB DoSelftest
     END IF
 
     ' ------------------------------------------------------------------
+    CutSect "ANSI frames straight out of a .zip"
+
+    '--- _INFLATE$ is ZLIB, not raw deflate, and a zip entry stores raw. It
+    '    does not error on that -- it hands back a ten-megabyte buffer, which
+    '    is exactly the sort of plausible answer that gets mistaken for
+    '    success. The fix needs BOTH halves: the 2-byte zlib header to satisfy
+    '    the format check, and the exact uncompressed size so it stops before
+    '    the adler32 trailer that a zip does not carry. ---
+    DIM zpath AS STRING, zraw AS STRING, zn AS INTEGER
+    zpath = Game_CutArtPath$("torch.zip")
+    CutOk "the test archive resolves", LEN(zpath) > 0
+
+    zn = CutZipList%(zpath)
+    CutOk "  it catalogues its entries", zn = 6
+    CutOk "  sorted by name, so frame order is the artist's", _TRIM$(CUT_ZIPNAME(1)) = "torch-01.ans"
+    CutOk "  and the last is the last", _TRIM$(CUT_ZIPNAME(6)) = "torch-06.ans"
+    CutOk "  they really are DEFLATED, not stored", CUT_ZIPMETHOD(1) = 8
+
+    zraw = CutZipRead$(zpath, 1)
+    CutOk "an entry inflates", LEN(zraw) > 0
+    CutOk "  to exactly the size the header promised", LEN(zraw) = CUT_ZIPUSIZE(1)
+    CutOk "  and its CRC-32 matches the archive's", _CRC32(zraw) = CUT_ZIPCRC(1)
+    '--- and it is the SAME bytes as the loose file on disk ---
+    CutOk "  byte-identical to the loose frame", zraw = _READFILE$(Game_CutArtPath$("fx/torch-01.ans"))
+
+    ok = CutCompileText%("anim t " + CHR$(34) + "torch.zip" + CHR$(34) + " fps 10" + CHR$(10))
+    CutOk "a zip-sourced anim compiles", ok
+    CutRunHeadless 1
+    i = CutLayerFind%("t")
+    IF i > 0 THEN
+        CutOk "  the layer took all six frames", CUT_LAY(i).nframes = 6
+        CutOk "  and knows they come from the archive", LEN(_TRIM$(CUT_LAY(i).azip)) > 0
+    END IF
+
+    ' ------------------------------------------------------------------
     CutSect "ANSI row normalisation (the banding bug)"
 
     '--- ANSI_Print advances at the WRAP POINT and again on the newline, so a

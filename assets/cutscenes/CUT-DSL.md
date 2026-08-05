@@ -158,6 +158,32 @@ anim torch "fx/torch" fps 10 ext ans scale 3 at 0.2,0.55
 > direction. `.ans` files stay CRLF on disk (`.gitattributes`, which the board
 > art needs), so this has to be fixed at load.
 
+**A `.zip` of ANSI frames plays directly:**
+
+```
+anim torch "torch.zip" fps 10 scale 3
+```
+
+No `frames`, no `ext` — the archive lists its own entries, sorted by name, so
+frame order is the order an artist sees in the folder. This is how ANSI art has
+been shipped since the BBS days, and an animation should be able to stay in
+that shape.
+
+**ANSI only inside a zip.** A `.ans` is just a string, so it decodes and renders
+entirely in memory; `_LOADIMAGE` takes only a path, so a zipped `.png` would
+need writing to a temp file first. Loose PNGs work as always.
+
+Every entry is verified against the **CRC-32** the zip already stores, so a
+damaged archive is named rather than rendered as confetti.
+
+> The decompression is QB64's own `_INFLATE$`, with one wrinkle: it is *zlib*,
+> not raw deflate — it wants a 2-byte header and validates an adler32 trailer,
+> and a zip entry has neither. Feeding it a zip entry unmodified does not
+> error; it returns a 10 MB buffer of nothing. Both halves are needed:
+> `_INFLATE$(CHR$(&H78) + CHR$(&H01) + raw, uncompressedSize)` — the header
+> satisfies the format check, and the exact size stops it before the missing
+> trailer. The zip header supplies that size for free.
+
 **Animated GIFs need none of this** — `show fx "fire.gif"` decodes every frame
 with its own delay and loops.
 
@@ -580,7 +606,7 @@ Other modes:
 ```
 cutplay.run lint <file|all>              compile only; exit code 1 on errors
 cutplay.run shot <file> <secs> <out.png> render at a fixed simulated time
-cutplay.run selftest                     headless assertions (170)
+cutplay.run selftest                     headless assertions (182)
 ```
 
 `shot` steps the scene at a fixed 60 frames per simulated second rather than in

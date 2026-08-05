@@ -190,6 +190,18 @@ DIM SHARED CUT_GRIDFONT AS LONG
 '    as a list rather than re-deriving a path each tick is what lets those
 '    sources differ without CutAnimTick knowing which one it is looking at.
 CONST CUT_MAXAFRAME = 64
+
+'--- one zip held in memory at a time: an animation reads a frame per tick and
+'    re-reading the archive from disk each time would be absurd ---
+DIM SHARED CUT_ZIPPATH AS STRING
+DIM SHARED CUT_ZIPDATA AS STRING
+DIM SHARED CUT_ZIPNAME(1 TO CUT_MAXAFRAME) AS STRING * 96
+DIM SHARED CUT_ZIPMETHOD(1 TO CUT_MAXAFRAME) AS LONG
+DIM SHARED CUT_ZIPCSIZE(1 TO CUT_MAXAFRAME) AS _UNSIGNED LONG
+DIM SHARED CUT_ZIPUSIZE(1 TO CUT_MAXAFRAME) AS _UNSIGNED LONG
+DIM SHARED CUT_ZIPOFF(1 TO CUT_MAXAFRAME) AS _UNSIGNED LONG
+DIM SHARED CUT_ZIPCRC(1 TO CUT_MAXAFRAME) AS _UNSIGNED LONG
+DIM SHARED CUT_ZIPN AS INTEGER
 DIM SHARED CUT_AFILE(1 TO CUT_MAXLAYER, 1 TO CUT_MAXAFRAME) AS STRING * 96
 
 '--- the DOS 16, for inline |NN pipe colours in dialogue ---
@@ -344,6 +356,7 @@ TYPE CUTLAYER
     isanim AS INTEGER
     abase AS STRING * 96     ' "fx/fog" -> fx/fog-01.png ...
     aext AS STRING * 8       ' frame extension: png (default) or ans/icy/xb
+    azip AS STRING * 96      ' frames come from this .zip (empty = loose files)
     nframes AS INTEGER
     fps AS SINGLE
     amode AS INTEGER

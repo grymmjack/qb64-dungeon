@@ -105,11 +105,17 @@ END FUNCTION
 '    over what is below rather than boxing it out -- the same _CLEARCOLOR
 '    BLACK rule BuildBoardImages uses for the board's decoration layer. ---
 FUNCTION CutRenderAnsi& (path AS STRING)
+    CutRenderAnsi& = CutRenderAnsiStr&(_READFILE$(path))
+END FUNCTION
+
+'--- the same, from bytes already in hand. A .ans is just a string, which is
+'    what lets a zipped ANSI frame render without ever being written out. ---
+FUNCTION CutRenderAnsiStr& (rawin AS STRING)
     DIM raw AS STRING, img AS LONG, olddest AS LONG, oldfont AS LONG
     DIM cols AS INTEGER, rows AS INTEGER
 
-    raw = _READFILE$(path)
-    IF LEN(raw) = 0 THEN CutRenderAnsi& = 0: EXIT FUNCTION
+    raw = rawin
+    IF LEN(raw) = 0 THEN CutRenderAnsiStr& = 0: EXIT FUNCTION
 
     '--- STRIP CR. This is the trap CLAUDE.md documents for the board masks,
     '    arriving down a different road: ANSI_Print advances on the CR *and*
@@ -134,7 +140,7 @@ FUNCTION CutRenderAnsi& (path AS STRING)
     raw = CutAnsiNormalize$(raw, cols)
 
     img = _NEWIMAGE(cols * CUT_CW, rows * CUT_CH, 32)
-    IF img >= -1 THEN CutRenderAnsi& = 0: EXIT FUNCTION
+    IF img >= -1 THEN CutRenderAnsiStr& = 0: EXIT FUNCTION
 
     olddest = _DEST
     _DEST img
@@ -143,7 +149,7 @@ FUNCTION CutRenderAnsi& (path AS STRING)
     _DEST olddest
 
     _CLEARCOLOR _RGB32(0, 0, 0), img
-    CutRenderAnsi& = img
+    CutRenderAnsiStr& = img
 END FUNCTION
 
 '--- widest printable row and how many rows, so an ANSI layer is only as big
@@ -269,6 +275,65 @@ FUNCTION CutFramePathEx$ (abase AS STRING, n AS INTEGER, ext AS STRING)
     CutFramePathEx$ = abase + "-" + s + "." + e
 END FUNCTION
 
+'--- Frames from a .zip: the archive lists its own ANSI entries, so there is
+'    nothing to probe and nothing to number. Entry names go in the frame list
+'    exactly as loose paths would -- the only difference downstream is WHERE
+'    the bytes come from. ---
+FUNCTION CutAnimBuildZip% (L AS INTEGER, subpath AS STRING)
+    DIM zp AS STRING, i AS INTEGER, n AS INTEGER
+
+    CutAnimBuildZip% = 0
+    IF L < 1 _ORELSE L > CUT_MAXLAYER THEN EXIT FUNCTION
+
+    zp = Game_CutArtPath$(subpath)
+    IF LEN(zp) = 0 THEN
+        CUT_MISSING = CUT_MISSING + 1
+        CutErrAdd 2, 0, "zip not found: " + subpath
+        EXIT FUNCTION
+    END IF
+
+    n = CutZipList%(zp)
+    IF n < 1 THEN
+        CutErrAdd 2, 0, "no ANSI frames in " + subpath + " (only .ans/.icy/.xb are read from a zip)"
+        EXIT FUNCTION
+    END IF
+
+    CUT_LAY(L).azip = zp
+    FOR i = 1 TO n
+        CUT_AFILE(L, i) = CUT_ZIPNAME(i)
+    NEXT i
+    CutAnimBuildZip% = n
+END FUNCTION
+
+'--- Set a layer to frame N, from wherever that layer's frames live. ---
+SUB CutLayerSetFrame (L AS INTEGER, n AS INTEGER)
+    DIM img AS LONG, raw AS STRING, i AS INTEGER
+
+    IF LEN(_TRIM$(CUT_LAY(L).azip)) = 0 THEN
+        CutLayerSetArt L, _TRIM$(CUT_AFILE(L, n))
+        EXIT SUB
+    END IF
+
+    '--- from the archive, straight into an image ---
+    IF CutZipList%(_TRIM$(CUT_LAY(L).azip)) < 1 THEN EXIT SUB
+    raw = CutZipRead$(_TRIM$(CUT_LAY(L).azip), n)
+    IF LEN(raw) = 0 THEN EXIT SUB
+
+    img = CutRenderAnsiStr&(raw)
+    IF CUT_LAY(L).src > 0 THEN _FREEIMAGE CUT_LAY(L).src
+    IF CUT_LAY(L).work > 0 THEN _FREEIMAGE CUT_LAY(L).work
+    CUT_LAY(L).work = 0
+    CUT_LAY(L).workstep = -1
+    CUT_LAY(L).src = img
+    IF img < -1 THEN
+        CUT_LAY(L).w = _WIDTH(img)
+        CUT_LAY(L).h = _HEIGHT(img)
+    ELSE
+        CUT_LAY(L).w = 0
+        CUT_LAY(L).h = 0
+    END IF
+END SUB
+
 '--- Fill a layer's frame list and return how many frames it actually has.
 '
 '    When the scene gives no `frames <n>`, the count is found by PROBING: ask
@@ -380,16 +445,21 @@ SUB CutExec (p AS INTEGER)
                 CUT_LAY(L).isanim = TRUE
                 CUT_LAY(L).abase = CutStrGet$(CUT_OPS(p).s2)
                 CUT_LAY(L).aext = CutStrGet$(CUT_OPS(p).s3)
+                CUT_LAY(L).azip = ""
                 '--- one list, whatever the source. `frames` is optional: with
                 '    no count, CutAnimBuild% probes until a frame is missing. ---
-                CUT_LAY(L).nframes = CutAnimBuild%(L, _TRIM$(CUT_LAY(L).abase), _TRIM$(CUT_LAY(L).aext), CINT(CUT_OPS(p).n1))
+                IF CutIsZip%(_TRIM$(CUT_LAY(L).abase)) THEN
+                    CUT_LAY(L).nframes = CutAnimBuildZip%(L, _TRIM$(CUT_LAY(L).abase))
+                ELSE
+                    CUT_LAY(L).nframes = CutAnimBuild%(L, _TRIM$(CUT_LAY(L).abase), _TRIM$(CUT_LAY(L).aext), CINT(CUT_OPS(p).n1))
+                END IF
                 CUT_LAY(L).fps = CUT_OPS(p).n2
                 IF CUT_LAY(L).fps <= 0 THEN CUT_LAY(L).fps = 12
                 CUT_LAY(L).amode = CUT_OPS(p).n3
                 CUT_LAY(L).frame = 1
                 CUT_LAY(L).adone = FALSE
                 CUT_LAY(L).atime = CUT_NOW
-                IF CUT_LAY(L).nframes >= 1 THEN CutLayerSetArt L, _TRIM$(CUT_AFILE(L, 1))
+                IF CUT_LAY(L).nframes >= 1 THEN CutLayerSetFrame L, 1
                 IF CUT_OPS(p).n4 > 0 THEN
                     CUT_LAY(L).alpha = 0
                     slot = CutTweenStart%(TWN_LAYALPHA, L, 0, 1, CUT_OPS(p).n4, EASE_LINEAR)
@@ -896,7 +966,7 @@ SUB CutAnimTick
                 CUT_LAY(i).work = 0
                 CUT_LAY(i).workstep = -1
             ELSE
-                CutLayerSetArt i, _TRIM$(CUT_AFILE(i, adv))
+                CutLayerSetFrame i, adv
             END IF
         END IF
     NEXT i

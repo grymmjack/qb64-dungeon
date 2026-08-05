@@ -530,6 +530,7 @@ END SUB
 '$INCLUDE:'../../engine/CUTSCENE_PARSE.bas'
 '$INCLUDE:'../../engine/CUTSCENE_COMP.bas'
 '$INCLUDE:'../../engine/CUTSCENE_VM.bas'
+'$INCLUDE:'../../engine/CUTSCENE_ZIP.bas'
 '$INCLUDE:'../../engine/CUTSCENE_EXEC.bas'
 '$INCLUDE:'../../engine/CUTSCENE_DRAW.bas'
 '$INCLUDE:'../../engine/CUTSCENE_GIF.bas'
