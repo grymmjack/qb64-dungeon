@@ -143,3 +143,13 @@ END SUB
 
 SUB Game_CutAudioTick
 END SUB
+
+
+'--- one zone, one colour: a game with no levels still gets a 3D view ---
+FUNCTION Game_FpsZone% (cx AS INTEGER, cy AS INTEGER)
+    Game_FpsZone% = 1
+END FUNCTION
+
+FUNCTION Game_FpsZoneColor~& (z AS INTEGER)
+    Game_FpsZoneColor~& = _RGB32(&H70, &H78, &H88)
+END FUNCTION

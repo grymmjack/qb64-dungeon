@@ -109,6 +109,19 @@ Game Tweaks:
       ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
         ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
 
+First-person view (26-08-05):
+    x Raycast LOOK AROUND from the player's cell -- [Q] in game, fpsshot headless @done(26-08-05)
+    x   over the SAME collision layer movement reads, so it cannot disagree with the board @done(26-08-05)
+    x   doors are gaps and unfound secret doors are stone, both for free @done(26-08-05)
+    x   per-level wall textures (pixelmon), washed toward the level colour on load @done(26-08-05)
+    x   procedural fallback texture, so geometry works before any art exists @done(26-08-05)
+    x   Game_FpsZone% / Game_FpsZoneColor~& hooks; examples/minimal answers with one zone @done(26-08-05)
+    - WALKING -- move on the grid from inside the view, with the board as the map
+    - mouse-look pitch (the horizon is fixed at FPS_H/2 today)
+    - sprites: monsters, treasure and the player tokens as billboards
+    - fighting from inside the view
+    - door FRAMES using fps/door.png (the art is generated and unused today)
+
 Engine GUIs (26-08-05):
     x Map debugger -- every derived layer toggleable on one screen (sectors, walkable, rooms, room-kind, doors, chambers, secret regions, triggers/overlays, markers) @done(26-08-05)
     x   ...because each layer already had its own PNG dump, and the questions that come up are about a RELATIONSHIP between two of them @done(26-08-05)

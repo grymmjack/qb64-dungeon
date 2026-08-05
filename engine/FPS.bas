@@ -1,0 +1,450 @@
+' ============================================================================
+'  engine/FPS.bas -- LOOK AROUND: a first-person view of where you are standing.
+'
+'      dungeon.run fpsshot <col> <row> <deg> <out.png>     one frame, headless
+'      in game: [Q]                                        turn on the spot
+'
+'  The board art is already the collision map -- the game decides what a cell is
+'  by sampling its COLOUR. That means the dungeon is a 3D level that nobody has
+'  ever looked at from inside it, and a raycaster needs no new level data at
+'  all: solid/empty comes from CellKind%, and which LEVEL a wall belongs to
+'  comes from SECTORAT, exactly as movement and the HUD read them.
+'
+'  So this view cannot disagree with the map. If a wall is here in 3D it is here
+'  on the board, because it is the same array. That is also what makes it a
+'  debugging tool as much as a toy: a secret door reads as solid wall from in
+'  here for the same reason it reads as solid to the player's feet.
+'
+'  HOW IT DRAWS
+'
+'  Classic DDA raycasting, one ray per column of a SMALL buffer (FPS_W x FPS_H)
+'  that is then stretch-blitted to the canvas. Rendering small and scaling up is
+'  not a compromise here -- it is the look. It also keeps the per-frame cost in
+'  the hundreds of operations rather than the hundreds of thousands, which is
+'  what makes this possible in BASIC at all.
+'
+'  Walls are drawn with _PUTIMAGE from a ONE-PIXEL-WIDE slice of the texture,
+'  stretched to the column height. That hands the scaling to the blitter instead
+'  of doing it a pixel at a time.
+'
+'  Everything composites into FPS_BUF, a 32-bit software image, so the
+'  distance-fog overlays are ordinary alpha blends done by QB64 in software --
+'  the reliable path. (Translucent HARDWARE tiles are the thing that rendered
+'  invisible on a reporter's GPU during the 3D dice work; see DICE3D.)
+'
+'  ZONES. Which texture a wall wears is the one thing the engine cannot know:
+'  "level 3 is the Armoury and it is dark red" is this game's idea. So it asks
+'  through two hooks -- Game_FpsZone% (which zone is this cell in) and
+'  Game_FpsZoneColor~& (what colour is that zone) -- and a game with one zone
+'  and one colour is a perfectly good answer.
+'
+'  DOORS ARE NOT WALLS. A brown door cell is walkable, so a ray passes straight
+'  through it and the doorway appears as a gap in the wall -- which is what a
+'  doorway looks like. An UNFOUND secret door is painted black in COLLIDE_BOARD,
+'  so it reads as solid stone from in here too. Both fall out of using the
+'  collision layer rather than a second, hand-made 3D map.
+' ============================================================================
+
+CONST FPS_W = 264                    ' render buffer, stretched to the canvas
+CONST FPS_H = 204
+CONST FPS_TEXW = 128                 ' expected wall-texture size (any size works)
+CONST FPS_MAXDIST = 24               ' cells; past this a ray gives up and fogs out
+'--- how tall a wall is, in cells. 1.0 is the textbook value and it makes this
+'    board read as a hedge maze: the corridors here are several cells wide, so a
+'    one-cell wall is chest-high from across one. 1.8 is a dungeon. ---
+CONST FPS_WALLH = 1.8
+
+' ----------------------------------------------------------------------------
+'  Setup
+' ----------------------------------------------------------------------------
+SUB FpsInit
+    DIM i AS INTEGER, p AS STRING
+
+    IF FPS_BUF < -1 THEN EXIT SUB                    ' already built
+    FPS_BUF = _NEWIMAGE(FPS_W, FPS_H, 32)
+    FPS_FOV = 1.15                                   ' ~66 degrees, the classic feel
+
+    '--- one wall texture per LEVEL, resolved through the art pack like every
+    '    other sprite. A level with no texture falls back to a procedural one,
+    '    so the view works before any art exists -- which is the only way to
+    '    develop the geometry without waiting on a generator. ---
+    FOR i = 1 TO 9
+        p = PixelArtFile$("fps/wall-" + LTRIM$(STR$(i)) + ".png")
+        IF LEN(p) > 0 THEN FPS_TEX(i) = _LOADIMAGE(p, 32)
+        IF FPS_TEX(i) >= -1 THEN
+            FPS_TEX(i) = FpsMakeTexture&(i)
+        ELSE
+            FpsTintTexture FPS_TEX(i), i
+        END IF
+    NEXT i
+END SUB
+
+'--- A procedural stone texture in the level's own colour. Not a placeholder to
+'    be ashamed of: it is derived from the board palette, so the 3D walls match
+'    the 2D map even with no art shipped at all. ---
+FUNCTION FpsMakeTexture& (lvl AS INTEGER)
+    DIM h AS LONG, d AS LONG, x AS INTEGER, y AS INTEGER
+    DIM kbase AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER
+    DIM n AS INTEGER, bh AS INTEGER, bw AS INTEGER, xoff AS INTEGER
+
+    h = _NEWIMAGE(FPS_TEXW, FPS_TEXW, 32)
+    d = _DEST: _DEST h
+
+    kbase = Game_FpsZoneColor~&(lvl)
+    '--- stone, not paint: the level colour dragged most of the way to dark
+    '    grey, or every wall would glow like a menu ---
+    r = (_RED32(kbase) + 90) \ 4
+    g = (_GREEN32(kbase) + 90) \ 4
+    b = (_BLUE32(kbase) + 90) \ 4
+
+    CLS , _RGB32(r, g, b)
+
+    '--- courses of blocks, offset every other row, with the mortar darker and
+    '    a per-block brightness jitter so a flat wall still has texture ---
+    bh = 16: bw = 32
+    FOR y = 0 TO FPS_TEXW - 1 STEP bh
+        xoff = 0
+        IF ((y \ bh) MOD 2) = 1 THEN xoff = bw \ 2
+        FOR x = -bw TO FPS_TEXW - 1 STEP bw
+            n = (((x + y * 7) \ 8) MOD 5) * 4 - 8
+            LINE (x + xoff + 1, y + 1)-(x + xoff + bw - 2, y + bh - 2), _
+                 _RGB32(FpsClamp%(r + n + 14), FpsClamp%(g + n + 14), FpsClamp%(b + n + 14)), BF
+        NEXT x
+    NEXT y
+
+    _DEST d
+    FpsMakeTexture& = h
+END FUNCTION
+
+'--- Wash a loaded texture toward its level's colour.
+'
+'    The generated stone came back grey however the prompt was worded, which
+'    is the right call for a stone texture and the wrong one for THIS game: the
+'    board tells you which level you are on by COLOUR, and a 3D view that drops
+'    that is a view you can get lost in for the wrong reason. A light wash keeps
+'    every scratch and block edge the generator drew and still says "crypt" or
+'    "armoury" at a glance. Alpha-blended into a software image, so it is the
+'    reliable blend path.
+'
+'    Kept OUT of the art: tinting on load means one grey texture per level can
+'    become nine, and a pack that ships nine hand-painted ones is washed by so
+'    little it does not matter. ---
+SUB FpsTintTexture (h AS LONG, lvl AS INTEGER)
+    DIM d AS LONG, k AS _UNSIGNED LONG
+    IF h >= -1 THEN EXIT SUB
+    k = Game_FpsZoneColor~&(lvl)
+    d = _DEST: _DEST h
+    LINE (0, 0)-(_WIDTH(h) - 1, _HEIGHT(h) - 1), _RGBA32(_RED32(k), _GREEN32(k), _BLUE32(k), 62), BF
+    _DEST d
+END SUB
+
+FUNCTION FpsClamp% (v AS INTEGER)
+    '--- single-line IF has no ELSEIF in QB64; this must stay a block ---
+    IF v < 0 THEN
+        FpsClamp% = 0
+    ELSEIF v > 255 THEN
+        FpsClamp% = 255
+    ELSE
+        FpsClamp% = v
+    END IF
+END FUNCTION
+
+' ----------------------------------------------------------------------------
+'  Is this cell solid to a ray?
+'
+'  The SAME question movement asks, answered by the SAME routine. A 3D view with
+'  its own idea of what a wall is would be a second map to keep in sync, and the
+'  first thing it would do is disagree.
+' ----------------------------------------------------------------------------
+FUNCTION FpsSolid% (cx AS INTEGER, cy AS INTEGER)
+    IF cx < 0 _ORELSE cy < 0 _ORELSE cx > SW - 1 _ORELSE cy > SH - 1 THEN FpsSolid% = -1: EXIT FUNCTION
+    IF CellKind%(cx, cy) = 0 THEN FpsSolid% = -1 ELSE FpsSolid% = 0
+END FUNCTION
+
+' ----------------------------------------------------------------------------
+'  One frame, from (px,py) in CELLS (fractional -- the eye stands mid-cell)
+'  looking along ang radians, into FPS_BUF.
+' ----------------------------------------------------------------------------
+SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
+    DIM x AS INTEGER, y AS INTEGER
+    DIM camx AS SINGLE, rdx AS SINGLE, rdy AS SINGLE
+    DIM dirx AS SINGLE, diry AS SINGLE, planex AS SINGLE, planey AS SINGLE
+    DIM mapx AS INTEGER, mapy AS INTEGER, stepx AS INTEGER, stepy AS INTEGER
+    DIM sidex AS SINGLE, sidey AS SINGLE, ddx AS SINGLE, ddy AS SINGLE
+    DIM hit AS INTEGER, side AS INTEGER, dist AS SINGLE
+    DIM lineh AS INTEGER, y1 AS INTEGER, y2 AS INTEGER
+    DIM wallx AS SINGLE, tx AS INTEGER, tex AS LONG, lvl AS INTEGER
+    DIM fog AS INTEGER, d AS LONG, hz AS INTEGER
+
+    d = _DEST
+    _DEST FPS_BUF
+
+    dirx = COS(ang): diry = SIN(ang)
+    '--- the camera plane is perpendicular to the direction and as long as the
+    '    half-FOV tangent; every ray is dir + plane*camx, which is what keeps
+    '    the projection rectilinear instead of fish-eyed ---
+    planex = -diry * TAN(FPS_FOV / 2)
+    planey = dirx * TAN(FPS_FOV / 2)
+
+    hz = FPS_H \ 2
+    FpsDrawFloors px, py, ang, hz
+
+    FOR x = 0 TO FPS_W - 1
+        camx = 2 * x / (FPS_W - 1) - 1
+        rdx = dirx + planex * camx
+        rdy = diry + planey * camx
+
+        mapx = INT(px): mapy = INT(py)
+        IF rdx = 0 THEN ddx = 1E+30 ELSE ddx = ABS(1 / rdx)
+        IF rdy = 0 THEN ddy = 1E+30 ELSE ddy = ABS(1 / rdy)
+
+        IF rdx < 0 THEN
+            stepx = -1: sidex = (px - mapx) * ddx
+        ELSE
+            stepx = 1: sidex = (mapx + 1 - px) * ddx
+        END IF
+        IF rdy < 0 THEN
+            stepy = -1: sidey = (py - mapy) * ddy
+        ELSE
+            stepy = 1: sidey = (mapy + 1 - py) * ddy
+        END IF
+
+        '--- DDA: always advance whichever grid line is nearer, so every cell the
+        '    ray crosses is visited exactly once and none is skipped ---
+        hit = 0
+        DO
+            IF sidex < sidey THEN
+                sidex = sidex + ddx: mapx = mapx + stepx: side = 0
+            ELSE
+                sidey = sidey + ddy: mapy = mapy + stepy: side = 1
+            END IF
+            IF FpsSolid%(mapx, mapy) THEN hit = -1
+            IF side = 0 THEN dist = sidex - ddx ELSE dist = sidey - ddy
+            IF dist > FPS_MAXDIST THEN EXIT DO
+        LOOP UNTIL hit
+
+        IF hit = 0 THEN _CONTINUE
+
+        IF dist < 0.02 THEN dist = 0.02
+        lineh = FPS_H * FPS_WALLH / dist
+        y1 = hz - lineh \ 2
+        y2 = hz + lineh \ 2
+        IF y1 < 0 THEN y1 = 0
+        IF y2 > FPS_H - 1 THEN y2 = FPS_H - 1
+        IF y2 < y1 THEN _CONTINUE
+
+        '--- where along the wall face the ray landed, 0..1 -> texture column ---
+        IF side = 0 THEN wallx = py + dist * rdy ELSE wallx = px + dist * rdx
+        wallx = wallx - INT(wallx)
+        tex = FpsWallTex&(mapx, mapy, stepx, stepy, side, lvl)
+        tx = INT(wallx * _WIDTH(tex))
+        IF tx < 0 THEN tx = 0
+        IF tx > _WIDTH(tex) - 1 THEN tx = _WIDTH(tex) - 1
+
+        '--- ONE source column, stretched. The blitter does the scaling. ---
+        _PUTIMAGE (x, y1)-(x, y2), tex, FPS_BUF, (tx, 0)-(tx, _HEIGHT(tex) - 1)
+
+        '--- distance fog, plus a flat darkening of every N/S face. That second
+        '    one is the oldest trick in raycasting and it is worth more than any
+        '    texture: without it two perpendicular walls of the same stone meet
+        '    at an invisible corner. ---
+        fog = FpsFog%(dist)
+        IF side = 1 THEN fog = fog + 38
+        IF fog > 245 THEN fog = 245
+        IF fog > 0 THEN LINE (x, y1)-(x, y2), _RGBA32(0, 0, 6, fog)
+    NEXT x
+
+    _DEST d
+END SUB
+
+'--- fog rises with distance and then stops, so the far end of a long hall is
+'    dark but never pure black -- pure black reads as "nothing rendered" ---
+FUNCTION FpsFog% (dist AS SINGLE)
+    DIM v AS INTEGER
+    v = (dist - 1.2) * 15
+    IF v < 0 THEN v = 0
+    IF v > 205 THEN v = 205
+    FpsFog% = v
+END FUNCTION
+
+'--- which texture a wall face wears: the level of the EMPTY cell in front of
+'    it, not the wall cell itself. Wall cells are unpainted black and belong to
+'    no level; the room they face is what gives them their character. ---
+FUNCTION FpsWallTex& (mapx AS INTEGER, mapy AS INTEGER, stepx AS INTEGER, stepy AS INTEGER, side AS INTEGER, lvl AS INTEGER)
+    DIM fx AS INTEGER, fy AS INTEGER, s AS INTEGER
+    fx = mapx: fy = mapy
+    IF side = 0 THEN fx = mapx - stepx ELSE fy = mapy - stepy
+    s = 0
+    IF fx >= 0 _ANDALSO fy >= 0 _ANDALSO fx <= SW - 1 _ANDALSO fy <= SH - 1 THEN s = Game_FpsZone%(fx, fy)
+    IF s < 1 _ORELSE s > 9 THEN s = 1
+    lvl = s
+    FpsWallTex& = FPS_TEX(s)
+END FUNCTION
+
+' ----------------------------------------------------------------------------
+'  Floor and ceiling.
+'
+'  Per-pixel floor casting is the textbook answer and it is far too slow here --
+'  it is FPS_W*FPS_H inner-loop iterations in BASIC. But a floor's JOB in this
+'  game is to say which level you are standing on, and that is a colour the map
+'  already knows. So each screen ROW is drawn as one horizontal line in the
+'  colour of the cell that row's distance lands on, straight down the centre
+'  ray. ~100 LINEs a frame instead of 54,000 PSETs, and the floor still changes
+'  colour as you cross from a corridor into a room -- which is the whole point.
+' ----------------------------------------------------------------------------
+SUB FpsDrawFloors (px AS SINGLE, py AS SINGLE, ang AS SINGLE, hz AS INTEGER)
+    DIM y AS INTEGER, rowd AS SINGLE, fx AS SINGLE, fy AS SINGLE
+    DIM cx AS INTEGER, cy AS INTEGER, k AS _UNSIGNED LONG
+    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER, fog AS INTEGER
+
+    CLS , _RGB32(0, 0, 0)
+
+    FOR y = hz + 1 TO FPS_H - 1
+        '--- the distance at which the floor projects onto this row ---
+        rowd = (0.5 * FPS_H) / (y - hz)
+        IF rowd > FPS_MAXDIST THEN _CONTINUE
+
+        fx = px + COS(ang) * rowd
+        fy = py + SIN(ang) * rowd
+        cx = INT(fx): cy = INT(fy)
+
+        k = 0
+        IF cx >= 0 _ANDALSO cy >= 0 _ANDALSO cx <= SW - 1 _ANDALSO cy <= SH - 1 THEN k = FpsFloorColor~&(cx, cy)
+
+        fog = FpsFog%(rowd)
+        r = _RED32(k): g = _GREEN32(k): b = _BLUE32(k)
+        '--- floors are the board's own colours, taken down to a walkable-stone
+        '    brightness so they read as ground rather than as a lit surface ---
+        r = r \ 3: g = g \ 3: b = b \ 3
+
+        LINE (0, y)-(FPS_W - 1, y), _RGB32(FpsClamp%(r), FpsClamp%(g), FpsClamp%(b)), BF
+        IF fog > 0 THEN LINE (0, y)-(FPS_W - 1, y), _RGBA32(0, 0, 6, fog), BF
+
+        '--- the ceiling mirrors the floor row, much darker: it gives the eye a
+        '    horizon and a sense of height without needing its own art ---
+        LINE (0, 2 * hz - y)-(FPS_W - 1, 2 * hz - y), _RGB32(r \ 3, g \ 3, b \ 3 + 6), BF
+        IF fog > 0 THEN LINE (0, 2 * hz - y)-(FPS_W - 1, 2 * hz - y), _RGBA32(0, 0, 6, fog), BF
+    NEXT y
+END SUB
+
+'--- the colour the board paints this cell, read from the COLLISION layer for
+'    the same reason everything else reads it there: the decoration layer has
+'    art on it that means nothing to what you can walk on ---
+FUNCTION FpsFloorColor~& (cx AS INTEGER, cy AS INTEGER)
+    DIM s AS LONG, k AS _UNSIGNED LONG
+    s = _SOURCE
+    _SOURCE COLLIDE_BOARD
+    k = POINT(cx * CW + CW \ 2, cy * CH + CH \ 2)
+    _SOURCE s
+    FpsFloorColor~& = k
+END FUNCTION
+
+' ----------------------------------------------------------------------------
+'  The screen: render small, blit big, then the chrome.
+' ----------------------------------------------------------------------------
+SUB FpsPresent (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
+    FpsRender px, py, ang
+    _DEST CANVAS
+    _PUTIMAGE (0, 0)-(SW * CW - 1, SH * CH - 1), FPS_BUF, CANVAS
+    FpsChrome px, py, ang
+END SUB
+
+'--- a compass, the cell, and the level. The point of this view is to be lost
+'    in it; the point of the chrome is that you can still say where you are. ---
+SUB FpsChrome (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
+    DIM s AS STRING, lvl AS INTEGER, cx AS INTEGER, cy AS INTEGER
+
+    cx = INT(px): cy = INT(py)
+    lvl = 0
+    IF cx >= 0 _ANDALSO cy >= 0 _ANDALSO cx <= SW - 1 _ANDALSO cy <= SH - 1 THEN lvl = Game_FpsZone%(cx, cy)
+
+    LINE (0, (SH - 2) * CH)-(SW * CW - 1, SH * CH - 1), _RGBA32(0, 0, 0, 210), BF
+    COLOR _RGB32(210, 230, 255), _RGBA32(0, 0, 0, 0)
+    s = "cell " + LTRIM$(STR$(cx)) + "," + LTRIM$(STR$(cy)) + "   level " + LTRIM$(STR$(lvl)) + _
+        "   facing " + FpsCompass$(ang)
+    _PRINTSTRING (2 * CW, (SH - 2) * CH), s
+    COLOR _RGB32(140, 150, 170), _RGBA32(0, 0, 0, 0)
+    _PRINTSTRING (2 * CW, (SH - 1) * CH), "[left/right or mouse] turn   [up/down] look is not a thing yet   [ESC] back to the board"
+END SUB
+
+FUNCTION FpsCompass$ (ang AS SINGLE)
+    DIM a AS SINGLE, i AS INTEGER
+    DIM nm(0 TO 7) AS STRING
+    nm(0) = "E": nm(1) = "SE": nm(2) = "S": nm(3) = "SW"
+    nm(4) = "W": nm(5) = "NW": nm(6) = "N": nm(7) = "NE"
+    '--- screen space: +y is DOWN, so +angle turns south. Naming it correctly
+    '    here is cheaper than remembering it at every call site. ---
+    a = ang
+    DO WHILE a < 0: a = a + 6.2831853: LOOP
+    DO WHILE a >= 6.2831853: a = a - 6.2831853: LOOP
+    i = INT((a + 0.3926991) / 0.7853982) MOD 8
+    FpsCompass$ = nm(i)
+END FUNCTION
+
+' ----------------------------------------------------------------------------
+'  Interactive: stand where the player stands and turn.
+'
+'  `live` = opened over a run, so the board is photographed and restored -- the
+'  same trick the dev console and the map debugger use, and the reason this can
+'  be opened from anywhere without knowing what was on screen.
+' ----------------------------------------------------------------------------
+SUB FpsLook (px AS SINGLE, py AS SINGLE, live AS INTEGER)
+    DIM k AS STRING, quit AS INTEGER, snap AS LONG
+    DIM mx AS INTEGER, lastmx AS INTEGER, first AS INTEGER
+
+    FpsInit
+    IF live THEN
+        snap = _NEWIMAGE(SW * CW, SH * CH, 32)
+        _PUTIMAGE (0, 0), CANVAS, snap
+    END IF
+
+    first = -1
+    DO
+        FpsPresent px, py, FPS_ANG
+        Present
+
+        '--- mouse look. The first frame only ESTABLISHES where the pointer is:
+        '    taking a delta against an uninitialised last-x would snap the view
+        '    round by however far the pointer happened to be from zero. ---
+        WHILE _MOUSEINPUT: WEND
+        mx = _MOUSEX
+        IF first THEN lastmx = mx: first = 0
+        IF mx <> lastmx THEN FPS_ANG = FPS_ANG + (mx - lastmx) * 0.004
+        lastmx = mx
+
+        k = INKEY$
+        IF LEN(k) = 2 THEN
+            SELECT CASE ASC(RIGHT$(k, 1))
+                CASE 75: FPS_ANG = FPS_ANG - 0.09
+                CASE 77: FPS_ANG = FPS_ANG + 0.09
+            END SELECT
+        ELSEIF LEN(k) = 1 THEN
+            SELECT CASE LCASE$(k)
+                CASE "a": FPS_ANG = FPS_ANG - 0.09
+                CASE "d": FPS_ANG = FPS_ANG + 0.09
+                CASE "s": _SAVEIMAGE "fpsshot.png", CANVAS
+                CASE CHR$(27): quit = TRUE
+            END SELECT
+        END IF
+        IF quit THEN EXIT DO
+        _LIMIT 30
+    LOOP
+
+    IF live THEN
+        _PUTIMAGE (0, 0), snap, CANVAS
+        _FREEIMAGE snap
+    END IF
+END SUB
+
+'--- headless: one frame from a named cell and heading ---
+SUB FpsShot (cx AS INTEGER, cy AS INTEGER, deg AS SINGLE, outp AS STRING)
+    DIM d AS LONG
+    FpsInit
+    FPS_ANG = deg * 3.14159265 / 180
+    FpsPresent cx + 0.5, cy + 0.5, FPS_ANG
+    _SAVEIMAGE outp, CANVAS
+    d = _DEST: _DEST _CONSOLE
+    PRINT PipeCol$("|15fps|07 -- cell |14" + LTRIM$(STR$(cx)) + "," + LTRIM$(STR$(cy)) + _
+                   "|07 facing |14" + LTRIM$(STR$(INT(deg))) + "|07 -> |10" + outp + "|07")
+    _DEST d
+END SUB

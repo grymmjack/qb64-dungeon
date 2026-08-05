@@ -504,6 +504,19 @@ IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
     SYSTEM DEV_FAIL
 END IF
 
+'--- dev: `dungeon.run fpsshot <col> <row> <deg> <out.png>` -- one frame of the
+'    first-person view. Needs the collision layer AND InitFog, because an
+'    unfound secret door must read as solid stone from inside the corridor. ---
+IF INSTR(UCASE$(COMMAND$), "FPSSHOT") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    DetectDoors
+    Game_PopulateBoard
+    InitFog
+    FpsShot VAL(COMMAND$(2)), VAL(COMMAND$(3)), VAL(COMMAND$(4)), DeArg$("fpsshot.png", ".png")
+    SYSTEM
+END IF
+
 '--- dev: `dungeon.run dataedit` -- the content tables as a grid. The files
 '    stay hand-editable text; this only spares you counting columns by eye. ---
 IF INSTR(UCASE$(COMMAND$), "DATAEDITTEST") > 0 THEN
@@ -1077,6 +1090,13 @@ FUNCTION PlayGame%
         ' all read the player's position and level, so firing them from a dev mode with no
         ' run behind it would exercise the menu rather than the event.
         IF dbg_on AND k = "9" THEN MapDebugScreen -1
+        ' [Q] -- LOOK AROUND. A first-person view from the cell you are standing on,
+        ' raycast over the SAME collision layer movement reads, so it cannot disagree
+        ' with the board. Turning only, for now; walking is the next piece.
+        IF k = "q" OR k = "Q" THEN
+            FpsLook (c.x \ CW) + 0.5, (c.y \ CH) + 0.5, -1
+            cursor_erase: cursor_draw: DrawHUD: Present
+        END IF
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1

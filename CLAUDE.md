@@ -416,6 +416,32 @@ Environment specifics that dictate this approach:
   `BeginTrack` and `DrawSpriteFit%` each log one line, so a feature added later is covered without
   anyone remembering. It is a separate dependency-free module because `TEST-ARTPACK` compiles
   `ARTPACK.bas` in isolation and a one-line log call would otherwise drag the whole console in.
+- **LOOK AROUND -- the first-person view** (`engine/FPS.bas`) -- `[Q]` in game, or
+  `dungeon.run fpsshot <col> <row> <deg> <out.png>` for one headless frame. A DDA raycaster
+  over the **same collision layer movement reads** (`CellKind%` / `COLLIDE_BOARD`), so it cannot
+  disagree with the board: the art has been a 3D level all along and nobody had looked at it from
+  inside. Consequences that fall out for free rather than being coded: a brown **door is
+  walkable, so a ray passes through it** and a doorway is a gap in the wall; an **unfound secret
+  door is black in `COLLIDE_BOARD`**, so it reads as solid stone from in here too.
+  One ray per column of a small `FPS_BUF` (264x204) stretch-blitted to the canvas -- rendering
+  small IS the look, and it keeps a frame in the hundreds of operations rather than the hundreds
+  of thousands, which is what makes it possible in BASIC. Walls are drawn by `_PUTIMAGE` from a
+  **one-pixel-wide texture slice** stretched to the column height, handing the scaling to the
+  blitter. Floors do NOT cast per pixel (that is `FPS_W*FPS_H` inner iterations); each screen ROW
+  is one `LINE` in the colour of the cell the centre ray lands on -- ~100 draws a frame, and the
+  floor still changes colour walking from a corridor into a room, which is the whole job.
+  Everything composites into a **32-bit software image**, so the distance-fog overlays are
+  software alpha blends (the reliable path -- translucent HARDWARE tiles are what rendered
+  invisible on a reporter's GPU during the DICE3D work).
+  **`FPS_WALLH = 1.8`, not 1.0**: corridors here are several cells wide, so a textbook one-cell
+  wall reads as a hedge maze. **Textures** are `assets/pixel-art/<pack>/fps/wall-1..9.png`, resolved
+  through the art pack, and are **washed toward the level colour on load** (`FpsTintTexture`) --
+  generated stone comes back grey however you word the prompt, and this board tells you which
+  level you are on by colour. A missing texture falls back to a procedural one derived from the
+  same palette, so the geometry can be developed before any art exists.
+  **Which zone a cell is in is the one thing the engine cannot know**, so it asks:
+  `Game_FpsZone%` / `Game_FpsZoneColor~&` (hooks 15-16). `examples/minimal` answers "one zone,
+  one colour" and still gets a 3D view.
 - **MAP DEBUGGER + EVENT MENU** (`game/MAPDEBUG.bas`) -- `dungeon.run mapdebug`, or **`[~]` then
   `[9]`** over a live run. Every DERIVED board layer toggleable on one screen: `1` sectors
   (`SECTORAT`), `2` walkable (`CellKind%`), `3` rooms (`ROOMAT`), `4` room-kind (`ROOMKIND`,

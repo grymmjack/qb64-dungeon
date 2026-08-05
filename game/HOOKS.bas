@@ -272,3 +272,20 @@ END SUB
 SUB Game_BoardShown
     hud_live = TRUE
 END SUB
+
+
+'--- FPS zones: the dungeon LEVEL a cell sits on, and that level's board colour.
+'    The raycaster wears a different wall texture per zone and washes it toward
+'    the zone colour, so the 3D view says which level you are on the same way
+'    the 2D board does. ---
+FUNCTION Game_FpsZone% (cx AS INTEGER, cy AS INTEGER)
+    Game_FpsZone% = SECTORAT(cx, cy)
+END FUNCTION
+
+FUNCTION Game_FpsZoneColor~& (z AS INTEGER)
+    IF z < 1 _ORELSE z > 9 THEN
+        Game_FpsZoneColor~& = _RGB32(&H80, &H80, &H80)
+    ELSE
+        Game_FpsZoneColor~& = SECTORS(z).kolor
+    END IF
+END FUNCTION

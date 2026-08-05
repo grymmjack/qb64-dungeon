@@ -800,3 +800,14 @@ DIM SHARED DE_TOP AS INTEGER, DE_CUR AS INTEGER, DE_CCOL AS INTEGER, DE_LEFT AS 
 DIM SHARED DE_MSG AS STRING
 DIM SHARED DE_FILE(1 TO 128) AS STRING
 DIM SHARED DE_NFILE AS INTEGER
+
+'--- FIRST-PERSON view (engine/FPS.bas). The board art is already the collision
+'    map, so a raycaster needs no level data of its own. ---
+DIM SHARED FPS_TEX(0 TO 32) AS LONG       ' wall texture per level (1-9)
+DIM SHARED FPS_BUF AS LONG                ' small render target, stretched to CANVAS
+DIM SHARED FPS_ANG AS SINGLE              ' facing, radians (screen space: +y is down)
+DIM SHARED FPS_FOV AS SINGLE
+'--- the two things a raycaster cannot know without the game: which zone a cell
+'    belongs to, and what colour that zone is. ---
+DECLARE FUNCTION Game_FpsZone% (cx AS INTEGER, cy AS INTEGER)
+DECLARE FUNCTION Game_FpsZoneColor~& (z AS INTEGER)
