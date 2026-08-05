@@ -2,7 +2,7 @@
 # =============================================================================
 #  run-tests.sh -- the gate for the cut-scene engine.
 #
-#  Run from the REPO ROOT:   scratchpads/cutscene/run-tests.sh
+#  Run from the REPO ROOT:   engine/cutplay/run-tests.sh
 #
 #  Three checks, in order of how much they can tell you:
 #
@@ -39,7 +39,7 @@ fail() { RUN=$((RUN+1)); BAD=$((BAD+1)); printf '  \033[31mFAIL\033[0m %s\n' "$*
 X() { timeout 180 xvfb-run -a "$@"; }
 
 say "build"
-if "$QB64" -w -x scratchpads/cutscene/CUTPLAY.bas -o cutplay.run 2>&1 | grep -qa '^Output:'; then
+if "$QB64" -w -x engine/cutplay/CUTPLAY.bas -o cutplay.run 2>&1 | grep -qa '^Output:'; then
     ok "cutplay.run compiled"
 else
     fail "cutplay.run DID NOT COMPILE"

@@ -10,12 +10,12 @@ Two separate things, two separate references:
 | **the CUT player** — the tool you run scenes with | this file |
 
 ```bash
-qb64pe -w -x scratchpads/cutscene/CUTPLAY.bas -o cutplay.run    # from the REPO ROOT
+qb64pe -w -x engine/cutplay/CUTPLAY.bas -o cutplay.run    # from the REPO ROOT
 ```
 
 > The binary **must** live at the repo root. QB64PE chdirs to the executable at
 > startup, so `assets/...` only resolves when `cutplay.run` sits beside
-> `assets/`. Built into `scratchpads/` it silently fails every file check —
+> `assets/`. Built into a subdirectory it silently fails every file check —
 > everything looks missing and nothing says why.
 
 ---
@@ -150,7 +150,7 @@ exclusivity, the runaway guard, the sticky font/colour cascade, pipe colours,
 ### The gate
 
 ```bash
-scratchpads/cutscene/run-tests.sh
+engine/cutplay/run-tests.sh
 ```
 
 Build → `selftest` → `lint all` → **render every scene** at three fixed times
@@ -177,15 +177,45 @@ Everything runs under `xvfb`, never the live display.
 
 ---
 
-## 6. Where things are
+## 6. Board-position triggers
+
+A scene can be attached to a CELL, in a data file, with no code:
+
+```
+assets/data/<pack>/triggers.txt        level | col | row | scene | once
+0 | 16 | 9 | the-long-hall | 1
+```
+
+`level` is 1–9 or **0 for any**; `col`/`row` are 0-based like every other cell
+coordinate here; `once` remembers it in the save, keyed by scene **and cell**
+(the same scene may sit on several cells).
+
+Find coordinates with the in-game `[~]` overlay — the mouse readout names the
+cell under the pointer, and left-click teleports you there to check it.
+
+```bash
+dungeon.run triggerlint
+```
+
+A trigger fails **silently** in two ways that look identical to "nothing is
+there": the scene does not exist in this pack, or the cell is not walkable so
+the player can never stand on it. `triggerlint` checks both against the same
+collision layer the movement code reads, and when a cell is unreachable it
+names the nearest one that would work — a chamber's *rectangle* includes its
+walls, so "inside the armory" and "somewhere you can stand" are different
+questions and nothing tells them apart by eye.
+
+---
+
+## 7. Where things are
 
 ```
 cutplay.run                        the tool (built to the repo root)
-scratchpads/cutscene/CUTPLAY.bas   its source
-scratchpads/cutscene/CUTMOCK.bas   the mock host — a second, dungeon-free game
-scratchpads/cutscene/CUTTEST.bas   the assertions
-scratchpads/cutscene/run-tests.sh  the gate
-scratchpads/cutscene/CUTPLAY.md    this file
+engine/cutplay/CUTPLAY.bas   its source
+engine/cutplay/CUTMOCK.bas   the mock host — a second, dungeon-free game
+engine/cutplay/CUTTEST.bas   the assertions
+engine/cutplay/run-tests.sh  the gate
+engine/cutplay/CUTPLAY.md    this file
 
 engine/CUTSCENE.BI                 the engine (shared with the game)
 engine/CUTSCENE_{PARSE,COMP,VM,EXEC,DRAW,GIF,ZIP}.bas

@@ -294,13 +294,16 @@ END SUB
 '--- Load assets/data/<pack>/triggers.txt. Absent or empty is normal and
 '    silent: most packs will ship no triggers at all. ---
 SUB LoadCutTriggers
-    DIM f AS STRING, i AS INTEGER, nm AS STRING
+    DIM i AS INTEGER, nm AS STRING
 
     TRIG_N = 0
-    f = DataPath$("assets/data/triggers.txt")
-    IF NOT _FILEEXISTS(f) THEN EXIT SUB
 
-    ReadDataFile f
+    '--- the LOGICAL path. ReadDataFile routes it through DataPath$ itself, so
+    '    resolving first and passing the result made it route twice and look
+    '    for assets/data/default/default/triggers.txt -- which does not exist,
+    '    so every trigger silently vanished and the lint said "none defined". ---
+    ReadDataFile "assets/data/triggers.txt"
+    IF DLINE_N = 0 THEN EXIT SUB
     FOR i = 1 TO DLINE_N
         nm = _TRIM$(DField$(DLINE(i), 4))
         IF LEN(nm) = 0 THEN _CONTINUE

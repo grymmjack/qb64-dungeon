@@ -342,6 +342,7 @@ IF INSTR(UCASE$(COMMAND$), "STORYSHOT") > 0 THEN DumpStorybook: SYSTEM
 '    animate through the ordinary Sprite& path every portrait already uses? ---
 IF INSTR(UCASE$(COMMAND$), "GIFSPRITE") > 0 THEN DumpGifSprite: SYSTEM
 
+
 '--- dev: `dungeon.run gaugeshot [depth] [hp]` renders the action-gesture gauge, BOTH forms ---
 IF INSTR(UCASE$(COMMAND$), "GAUGESHOT") > 0 THEN DumpGaugeShot: SYSTEM
 
@@ -481,6 +482,20 @@ IF INSTR(UCASE$(COMMAND$), "ROOMLINT") > 0 THEN
     Game_PopulateBoard
     RandomizeRooms                  ' so the monster/treasure placement it reports is the real thing
     RoomLint
+END IF
+
+'--- dev: `dungeon.run triggerlint` validates board-position cut-scene triggers ---
+' Needs a BUILT board, exactly as roomlint does: the walkability test reads the
+' collision layer, and before BuildBoardImages that layer does not exist -- so
+' every cell reads as solid and every trigger is reported as unreachable. A
+' checker that confidently says "no" about everything is worse than no checker.
+IF INSTR(UCASE$(COMMAND$), "TRIGGERLINT") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    DetectDoors
+    Game_PopulateBoard
+    DumpTriggerLint
+    SYSTEM
 END IF
 
 '--- dev: `dungeon.run chamberdump` renders the detected CHAMBER regions to a PNG and exits ---

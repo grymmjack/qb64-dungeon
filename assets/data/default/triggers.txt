@@ -18,3 +18,7 @@
 # ============================================================================
 #
 # level | col | row | scene           | once
+# A demo trigger: step onto this cell on level 1 and the forest scene plays,
+# once ever (it is remembered in the save). Coordinates found with the [~]
+# overlay -- the mouse readout names the cell under the pointer.
+0 | 16 |  9 | the-long-hall | 1

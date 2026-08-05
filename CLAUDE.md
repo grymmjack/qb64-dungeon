@@ -433,15 +433,21 @@ Environment specifics that dictate this approach:
   same code as play.
 - **CUT-SCENE ENGINE** (`engine/CUTSCENE.BI` + `engine/CUTSCENE_*.bas`; scenes in
   `assets/cutscenes/<pack>/*.cut`; the standalone authoring player is
-  `scratchpads/cutscene/CUTPLAY.bas` -> `cutplay.run`).
+  `engine/cutplay/CUTPLAY.bas` -> `cutplay.run`).
   DSL-scripted "little movies": layered still art + PNG frame-sequence animation, a pan/zoom
   camera, transitions, music/sfx/narration, conditional branching and player choice menus.
   **TWO references, because there are two things.** The **CUT language** (what you write in a
   `.cut`) is [assets/cutscenes/CUT-DSL.md](assets/cutscenes/CUT-DSL.md) — it lives beside the
   scenes, not with the code, so it cannot be misplaced. The **CUT player** (`cutplay.run`: its
   four modes, its keys, the `[R]` reload loop, and how to check a scene without watching it) is
-  [scratchpads/cutscene/CUTPLAY.md](scratchpads/cutscene/CUTPLAY.md).
-  `scratchpads/cutscene/run-tests.sh` is the gate.
+  [engine/cutplay/CUTPLAY.md](engine/cutplay/CUTPLAY.md).
+  `engine/cutplay/run-tests.sh` is the gate. The player and its mock host live in
+  **`engine/cutplay/`**, not `scratchpads/` -- they are part of how the engine works and
+  scratchpads is for things that get cleaned up.
+  **Board-position triggers** attach a scene to a CELL in `assets/data/<pack>/triggers.txt`
+  (`level | col | row | scene | once`), needing no code because scenes are addressed by name.
+  `dungeon.run triggerlint` validates them: a trigger whose scene is missing, or whose cell is
+  not walkable, fails SILENTLY and looks exactly like "nothing is there".
   **Animated GIFs just work** — `show fx "fire.gif"` decodes every frame with its own
   delay and loops. `_LOADIMAGE` opens a .gif and returns only its FIRST frame, which is the
   worst kind of failure (valid handle, every check passes, picture never moves), so
@@ -484,7 +490,7 @@ Environment specifics that dictate this approach:
   branch can be *watched* rather than hoped about. `lint` resolves every asset a scene names by
   walking the compiled program (so both arms of a conditional, and every frame of an `anim`);
   `shot` renders at a fixed simulated time for regression checks. The engine reaches its host
-  through **eleven `Game_Cut*` hooks and nothing else** — `scratchpads/cutscene/CUTMOCK.bas`
+  through **eleven `Game_Cut*` hooks and nothing else** — `engine/cutplay/CUTMOCK.bas`
   is a second, dungeon-free host that proves it, the same argument `examples/minimal` makes
   for `engine/`. The engine sits directly in `engine/` rather than a subdirectory **on
   purpose**: `tests/audit-boundary.sh` globs `engine/*.bas`, so that placement is what

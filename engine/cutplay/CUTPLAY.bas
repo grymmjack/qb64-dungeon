@@ -1,7 +1,7 @@
 ' ============================================================================
 '  CUTPLAY.bas -- the standalone cut-scene player.
 '
-'  Build:  qb64pe -w -x scratchpads/cutscene/CUTPLAY.bas -o cutplay.run
+'  Build:  qb64pe -w -x engine/cutplay/CUTPLAY.bas -o cutplay.run
 '          ...FROM THE REPO ROOT, and the binary MUST live at the repo root:
 '          QB64PE chdirs to the executable at startup, so `assets/...` only
 '          resolves when the .run sits beside `assets/`. A binary built into
@@ -19,9 +19,9 @@
 '      [1..4] pick a choice    [ESC] skip / quit
 ' ============================================================================
 $CONSOLE
-'$INCLUDE:'../../engine/CUTSCENE.BI'
+'$INCLUDE:'../CUTSCENE.BI'
 '$INCLUDE:'CUTMOCK.bi'
-'$INCLUDE:'../../engine/ansi/ANSIPrint.bi'
+'$INCLUDE:'../ansi/ANSIPrint.bi'
 
 '--- A RUNTIME ERROR MUST NEVER OPEN A DIALOG.
 '    An unhandled QB64 error pops a modal box and waits for a CLICK; under
@@ -574,13 +574,13 @@ END SUB
 '  body file declares anything at file scope. Assembling a program is these
 '  few lines plus the two headers at the top.
 ' ============================================================================
-'$INCLUDE:'../../engine/CUTSCENE_PARSE.bas'
-'$INCLUDE:'../../engine/CUTSCENE_COMP.bas'
-'$INCLUDE:'../../engine/CUTSCENE_VM.bas'
-'$INCLUDE:'../../engine/CUTSCENE_ZIP.bas'
-'$INCLUDE:'../../engine/CUTSCENE_EXEC.bas'
-'$INCLUDE:'../../engine/CUTSCENE_DRAW.bas'
-'$INCLUDE:'../../engine/CUTSCENE_GIF.bas'
+'$INCLUDE:'../CUTSCENE_PARSE.bas'
+'$INCLUDE:'../CUTSCENE_COMP.bas'
+'$INCLUDE:'../CUTSCENE_VM.bas'
+'$INCLUDE:'../CUTSCENE_ZIP.bas'
+'$INCLUDE:'../CUTSCENE_EXEC.bas'
+'$INCLUDE:'../CUTSCENE_DRAW.bas'
+'$INCLUDE:'../CUTSCENE_GIF.bas'
 '$INCLUDE:'CUTMOCK.bas'
 '$INCLUDE:'CUTTEST.bas'
-'$INCLUDE:'../../engine/ansi/ANSIPrint.bas'
+'$INCLUDE:'../ansi/ANSIPrint.bas'

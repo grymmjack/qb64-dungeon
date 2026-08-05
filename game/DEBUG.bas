@@ -1596,3 +1596,99 @@ SUB DumpGifSprite
         PRINT PipeCol$("  |12BAD|07 -- the handle never changed; this is a still")
     END IF
 END SUB
+
+' ----------------------------------------------------------------------------
+'  dev: `dungeon.run triggerlint` -- validate assets/data/<pack>/triggers.txt.
+'
+'  A board trigger fails SILENTLY in two ways, and both look identical to
+'  "nothing is there":
+'
+'    * the scene it names does not exist in this pack
+'    * the CELL is not walkable, so the player can never stand on it
+'
+'  Neither errors, neither warns, and the author's only symptom is a beat that
+'  never happens. Both are checked here, against the same collision layer the
+'  movement code reads.
+' ----------------------------------------------------------------------------
+'--- spiral outward for a cell the player could actually stand on ---
+FUNCTION NearestWalkable$ (cx AS INTEGER, cy AS INTEGER)
+    DIM r AS INTEGER, dx AS INTEGER, dy AS INTEGER, nx AS INTEGER, ny AS INTEGER
+    NearestWalkable$ = " (no walkable cell within 12)"
+    FOR r = 1 TO 12
+        FOR dy = -r TO r
+            FOR dx = -r TO r
+                IF ABS(dx) <> r AND ABS(dy) <> r THEN _CONTINUE   ' ring only
+                nx = cx + dx: ny = cy + dy
+                IF nx < 0 OR ny < 0 OR nx > SW - 1 OR ny > SH - 1 THEN _CONTINUE
+                IF CellKind%(nx, ny) <> 0 THEN
+                    NearestWalkable$ = " |14-- try " + _TRIM$(STR$(nx)) + "," + _TRIM$(STR$(ny)) + "|07"
+                    EXIT FUNCTION
+                END IF
+            NEXT dx
+        NEXT dy
+    NEXT r
+END FUNCTION
+
+SUB DumpTriggerLint
+    DIM i AS INTEGER, bad AS INTEGER, k AS INTEGER, oldsrc AS LONG
+    DIM nm AS STRING, pth AS STRING, lv AS INTEGER, note AS STRING
+
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15triggerlint|07 -- board-position cut-scene triggers")
+    DevPackOverride
+    LoadCutTriggers
+
+    IF TRIG_N = 0 THEN
+        PRINT PipeCol$("  no triggers defined (assets/data/" + _TRIM$(opt_datapack) + "/triggers.txt)")
+        PRINT PipeCol$("  |10ok|07  -- nothing to get wrong")
+        EXIT SUB
+    END IF
+
+    PRINT PipeCol$("  " + _TRIM$(STR$(TRIG_N)) + " trigger(s)")
+    PRINT
+
+    ' CellKind% samples the collision layer through _SOURCE. FULL_COLLIDE, not
+    ' COLLIDE_BOARD: the latter is built by InitFog, which a dev mode does not
+    ' run, so it would be handle 0 and every cell would read as solid. This is
+    ' the documented split -- detection scans use FULL_COLLIDE, runtime samples
+    ' use COLLIDE_BOARD.
+    ' pin it, or the answer comes from whatever image was last selected.
+    oldsrc = _SOURCE
+    _SOURCE FULL_COLLIDE
+
+    FOR i = 1 TO TRIG_N
+        nm = _TRIM$(TRIG_SCENE(i))
+        note = ""
+
+        pth = CutscenePath$(nm)
+        IF LEN(pth) = 0 THEN note = note + " |12no such scene|07"
+
+        k = CellKind%(TRIG_COL(i), TRIG_ROW(i))
+        IF k = 0 THEN
+            '--- Do not just say no. A chamber's RECTANGLE includes its walls,
+            '    so "inside the armory" and "somewhere you can stand" are
+            '    different questions, and the author has no way to tell them
+            '    apart by eye. Name the nearest cell that would work. ---
+            note = note + " |12not walkable|07" + NearestWalkable$(TRIG_COL(i), TRIG_ROW(i))
+        END IF
+
+        lv = TRIG_LVL(i)
+        IF lv < 0 OR lv > 9 THEN note = note + " |14level out of range|07"
+
+        IF LEN(note) = 0 THEN
+            PRINT PipeCol$("  |10ok |07 lvl " + _TRIM$(STR$(lv)) + " @ " + _TRIM$(STR$(TRIG_COL(i))) + "," + _TRIM$(STR$(TRIG_ROW(i))) + "  -> " + nm)
+        ELSE
+            bad = bad + 1
+            PRINT PipeCol$("  |12BAD|07 lvl " + _TRIM$(STR$(lv)) + " @ " + _TRIM$(STR$(TRIG_COL(i))) + "," + _TRIM$(STR$(TRIG_ROW(i))) + "  -> " + nm + note)
+        END IF
+    NEXT i
+
+    _SOURCE oldsrc
+
+    PRINT
+    IF bad = 0 THEN
+        PRINT PipeCol$("  |10ok|07  -- every trigger names a real scene on a cell you can stand on")
+    ELSE
+        PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " trigger(s) can never fire|07")
+    END IF
+END SUB

@@ -3,7 +3,7 @@
 > **Two tools, two references.** This file is the **CUT language** — what you
 > write in a `.cut` file. For the **CUT player** (`cutplay.run`: its modes,
 > keys, the reload loop, and how to check a scene without watching it) see
-> [scratchpads/cutscene/CUTPLAY.md](../../scratchpads/cutscene/CUTPLAY.md).
+> [engine/cutplay/CUTPLAY.md](../../engine/cutplay/CUTPLAY.md).
 
 A cut-scene is a plain-text script. It is compiled once when it loads and then
 run one frame at a time, so what you write is what plays — there is no hidden
@@ -639,7 +639,7 @@ cutplay.run selftest                     headless assertions (182)
 real time, so the same command lands on the same frame every run — which is
 what makes it usable as a regression check.
 
-`scratchpads/cutscene/run-tests.sh` is the gate: build, selftest, `lint all`,
+`engine/cutplay/run-tests.sh` is the gate: build, selftest, `lint all`,
 and then **render** every scene at three fixed times, requiring a non-black
 frame. A scene can lint perfectly and draw nothing — wrong layer order, a
 camera parked off the art, a transition that never clears — and "nothing" is
