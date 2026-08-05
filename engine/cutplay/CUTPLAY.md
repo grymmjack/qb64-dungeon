@@ -237,7 +237,38 @@ is valid" and "you can see it" are different claims.
 
 ---
 
-## 8. Where things are
+## 8. Checking the wiring
+
+```bash
+dungeon.run cutwire
+```
+
+Every scene name the **game** can ask for, and whether this pack answers it:
+the four set pieces (`intro`, `descend`, `win`, `lose`), one per chamber
+(`chamber-` + the chamber's slug), and every board trigger.
+
+Each of those hooks falls through gracefully when a scene is absent — the
+chamber plays its text crawl, the ending shows its scorecard, the intro runs
+the old crawl. That is deliberate: a pack shipping two scenes should get two
+cut-scenes, not ten broken halls.
+
+But it means a **renamed or mistyped** scene is indistinguishable from one that
+was never written. Nothing errors, nothing warns, and the beat simply never
+happens. `cutwire` prints the map so the difference is visible.
+
+The related dev modes:
+
+| | |
+|---|---|
+| `dungeon.run cutwire` | scene names the game asks for |
+| `dungeon.run triggerlint` | board triggers: missing scene, unwalkable cell |
+| `dungeon.run overlaylint` | board art: resolves, animates, changes the board |
+| `dungeon.run storyshot` | the Storybook at nothing/mixed/everything seen |
+| `dungeon.run gifsprite [f]` | does a `.gif` animate through the ordinary sprite path |
+
+---
+
+## 9. Where things are
 
 ```
 cutplay.run                        the tool (built to the repo root)

@@ -1815,3 +1815,61 @@ SUB DumpOverlayLint
         PRINT PipeCol$("  |12" + _TRIM$(STR$(bad)) + " overlay(s) will draw nothing|07")
     END IF
 END SUB
+
+' ----------------------------------------------------------------------------
+'  dev: `dungeon.run cutwire` -- every scene name the GAME can ask for, and
+'  whether the current pack answers it.
+'
+'  Every one of these hooks falls through gracefully when the scene is absent:
+'  the chamber plays its text crawl, the ending shows its scorecard, the intro
+'  runs the old ScrollTextVO. That is deliberate -- a pack shipping two scenes
+'  should get two cut-scenes and not ten broken halls.
+'
+'  But it means a RENAMED or MISTYPED scene is indistinguishable from one that
+'  was never written. Nothing errors, nothing warns, and the beat simply never
+'  happens. This prints the map so the difference is visible.
+' ----------------------------------------------------------------------------
+SUB DumpCutWire
+    DIM i AS INTEGER, have AS INTEGER, miss AS INTEGER, nm AS STRING
+
+    _DEST _CONSOLE
+    PRINT PipeCol$("|15cutwire|07 -- scenes the game asks for, in pack |14" + _TRIM$(opt_datapack) + "|07")
+    PRINT
+
+    PRINT PipeCol$("|11set pieces|07")
+    CutWireRow "intro", "game start (else the ScrollTextVO crawl)", have, miss
+    CutWireRow "descend", "first arrival on each level 2-9", have, miss
+    CutWireRow "win", "victory, before the scorecard", have, miss
+    CutWireRow "lose", "defeat, before the epitaph", have, miss
+
+    PRINT
+    PRINT PipeCol$("|11chambers|07  (name -> " + CHR$(34) + "chamber-" + CHR$(34) + " + NarrSlug$)")
+    FOR i = 1 TO NCHAMBER
+        nm = "chamber-" + NarrSlug$(_TRIM$(CHM_NAME(i)))
+        CutWireRow nm, _TRIM$(CHM_NAME(i)), have, miss
+    NEXT i
+
+    PRINT
+    PRINT PipeCol$("|11board triggers|07  (assets/data/<pack>/triggers.txt)")
+    IF TRIG_N = 0 THEN
+        PRINT PipeCol$("  |08(none)|07")
+    ELSE
+        FOR i = 1 TO TRIG_N
+            CutWireRow _TRIM$(TRIG_SCENE(i)), "cell " + _TRIM$(STR$(TRIG_COL(i))) + "," + _TRIM$(STR$(TRIG_ROW(i))), have, miss
+        NEXT i
+    END IF
+
+    PRINT
+    PRINT PipeCol$("  |10" + _TRIM$(STR$(have)) + "|07 answered, |14" + _TRIM$(STR$(miss)) + "|07 fall back")
+    PRINT PipeCol$("  |08a fallback is not an error -- but a scene you MEANT to write looks identical|07")
+END SUB
+
+SUB CutWireRow (nm AS STRING, note AS STRING, have AS INTEGER, miss AS INTEGER)
+    IF LEN(CutscenePath$(nm)) > 0 THEN
+        have = have + 1
+        PRINT PipeCol$("  |10ok  |07 " + PadR$(nm, 26) + "|08" + note + "|07")
+    ELSE
+        miss = miss + 1
+        PRINT PipeCol$("  |14--  |07 " + PadR$(nm, 26) + "|08" + note + " (falls back)|07")
+    END IF
+END SUB

@@ -48,6 +48,11 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10placeholders|07 write a labelled stand-in for every MISSING art asset;  |10placeholders clean|07 removes them again")
     PRINT PipeCol$("  |10panelshot|07 |14[class]|07  render the D&D combat panel (portrait + weapon) -> panelshot.png")
     PRINT PipeCol$("  |10charsheet|07     render the [C] character sheet with a fully-kitted hero -> |14charsheet.png|07")
+    PRINT PipeCol$("  |10storyshot|07     render the [M] Storybook at its three extremes -> |14storyshot-*.png|07")
+    PRINT PipeCol$("  |10cutwire|07       every cut-scene the game can ask for, and whether this pack answers it")
+    PRINT PipeCol$("  |10triggerlint|07   board-position cut-scene triggers: missing scene / unwalkable cell")
+    PRINT PipeCol$("  |10overlaylint|07   board art: resolves, animates, and actually changes the board -> |14overlayshot.png|07")
+    PRINT PipeCol$("  |10gifsprite|07 |14[f]|07 does an animated .gif animate through the ordinary sprite path?")
     PRINT PipeCol$("  |10gaugeshot|07 |14[depth] [hp]|07  render the action-gesture gauge, timed AND real-dice -> |14gaugeshot*.png|07")
     PRINT PipeCol$("  |10summaryshot|07   render the run scorecard: Game Summary panel + the [TAB] overlay")
     PRINT PipeCol$("  |10deathshot|07    run the animated death screen and capture it -> |14deathshot.png|07")
@@ -506,6 +511,16 @@ IF INSTR(UCASE$(COMMAND$), "OVERLAYLINT") > 0 THEN
     DetectDoors
     Game_PopulateBoard
     DumpOverlayLint
+    SYSTEM
+END IF
+
+'--- dev: `dungeon.run cutwire` -- every scene the game can ask for ---
+IF INSTR(UCASE$(COMMAND$), "CUTWIRE") > 0 THEN
+    BuildBoardImages
+    DetectSecretDoors
+    Game_PopulateBoard
+    LoadCutTriggers
+    DumpCutWire
     SYSTEM
 END IF
 
