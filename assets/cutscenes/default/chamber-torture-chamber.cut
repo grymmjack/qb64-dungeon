@@ -19,7 +19,7 @@ flash blood 0.25
 say "There is a fresh mark on the floor. Fresh is the wrong word. Recent."
 
 async pan to 0.5,0.72 over 6.0 ease inoutcubic
-show body "markers/player-body.png" fit scale 0.3 at 0.5,0.72 fade 2.0
+show body "markers/player-body.png" scale 3 at 0.5,0.72 fade 2.0
 
 if deaths >= 1
     say "You recognise the posture. You have been in it."

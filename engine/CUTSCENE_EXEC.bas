@@ -14,6 +14,8 @@
 ' ----------------------------------------------------------------------------
 FUNCTION CutClock# ()
     DIM t AS DOUBLE
+    '--- the host is driving time; do not let the wall clock leak in ---
+    IF CUT_CLKFIXED THEN CutClock# = CUT_NOW: EXIT FUNCTION
     t = TIMER(0.001)
     IF t < CUT_CLKLAST THEN CUT_CLKWRAP = CUT_CLKWRAP + 86400#
     CUT_CLKLAST = t

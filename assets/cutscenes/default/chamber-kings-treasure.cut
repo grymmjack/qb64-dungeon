@@ -15,7 +15,7 @@ caption "THE KING'S TREASURE" at 66,3 anchor c color gold fade 1.2
 async pan  to 0.5,0.35 over 7.0 ease back
 async zoom to 1.1      over 7.0 ease outcubic
 
-show hoard "treasures/dragon-hoard.png" fit scale 0.45 at 0.5,0.55 fade 2.0
+show hoard "treasures/dragon-hoard.png" scale 3 at 0.5,0.55 fade 2.0
 
 say "This is the one they tell you about upstairs."
 say "They never mention that it is guarded by how much of it there is."

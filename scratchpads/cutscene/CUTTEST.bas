@@ -458,6 +458,59 @@ SUB DoSelftest
     CutOk "  ...and the result still strips clean", CutPipeStrip$(CutFillTokens$("|10{class} |12hits")) = "wizard hits"
 
     ' ------------------------------------------------------------------
+    CutSect "the simulated clock (what `shot` runs on)"
+
+    '--- `shot` claims to render at a FIXED simulated time. It used to advance
+    '    the scene by nudging every tween origin back one frame -- which looks
+    '    equivalent but is not: real time kept running underneath, so the scene
+    '    aged by (one frame + however long that frame took to RENDER). A
+    '    20-second pan finished by a requested t of about 14, and every
+    '    screenshot was of a slightly later moment than asked for.
+    '
+    '    With CUT_CLKFIXED the host owns the clock outright. ---
+    CUT_CLKFIXED = TRUE
+    CUT_NOW = 500
+    CutOk "a fixed clock returns exactly what the host set", CutClock# = 500
+    CUT_NOW = 512.5
+    CutOk "  ...and follows it, without drifting", CutClock# = 512.5
+    CUT_CLKFIXED = FALSE
+    CutOk "unfixed, it reads the real clock again", CutClock# <> 512.5
+
+    ' ------------------------------------------------------------------
+    CutSect "parallax: near layers travel further than far ones"
+
+    '--- The whole illusion is that distance moves LESS. parallax 1 is pinned
+    '    to the world and sweeps past fastest; parallax 0 is pinned to the
+    '    camera and never appears to move at all. Get the sense of that
+    '    subtraction backwards and the forest reads inside-out, with the
+    '    horizon tearing past the trunks. ---
+    ok = CutCompileText%("stage 3168x816" + CHR$(10) + _
+         "show sky " + CHR$(34) + "bg/cut-forest-sky.png" + CHR$(34) + " fill parallax 0.1" + CHR$(10) + _
+         "show near " + CHR$(34) + "bg/cut-forest-near.png" + CHR$(34) + " fill parallax 1.0" + CHR$(10) + _
+         "cam 0.5,0.5" + CHR$(10))
+    CutOk "a parallax scene compiles", ok
+    CutRunHeadless 1
+
+    DIM skyL AS INTEGER, nearL AS INTEGER
+    DIM skyA AS SINGLE, nearA AS SINGLE, skyB AS SINGLE, nearB AS SINGLE
+    skyL = CutLayerFind%("sky")
+    nearL = CutLayerFind%("near")
+    CutOk "  both layers exist", skyL > 0 _ANDALSO nearL > 0
+
+    IF skyL > 0 _ANDALSO nearL > 0 THEN
+        CUT_CAMX = 0
+        skyA = CUT_LAY(skyL).x + (CUT_CAMX - 0.5) * (1 - CUT_LAY(skyL).parallax)
+        nearA = CUT_LAY(nearL).x + (CUT_CAMX - 0.5) * (1 - CUT_LAY(nearL).parallax)
+        CUT_CAMX = 1
+        skyB = CUT_LAY(skyL).x + (CUT_CAMX - 0.5) * (1 - CUT_LAY(skyL).parallax)
+        nearB = CUT_LAY(nearL).x + (CUT_CAMX - 0.5) * (1 - CUT_LAY(nearL).parallax)
+
+        CutOk "  the NEAR layer stays put in world space", ABS(nearB - nearA) < 0.001
+        CutOk "  the FAR layer drifts with the camera", ABS(skyB - skyA) > 0.5
+        CutOk "  so the far one travels less across the screen", ABS(skyB - skyA) > ABS(nearB - nearA)
+    END IF
+
+    ' ------------------------------------------------------------------
     CutSect "frame sequences: any format, optional count"
 
     CutOk "png is the default extension", CutFramePathEx$("fx/fog", 3, "") = "fx/fog-03.png"

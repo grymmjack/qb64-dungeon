@@ -9,7 +9,7 @@ iris out at 0.5,0.5 over 1.4
 music "everdark" fadein 1.5
 caption "THE WIZARD'S HOARD" at 66,3 anchor c color cyan fade 1.0
 
-show orb "items/crystal-ball.png" fit scale 0.22 at 0.30,0.70 fade 1.0
+show orb "items/crystal-ball.png" scale 3 at 0.30,0.70 fade 1.0
 
 ' Move and grow a layer as separate async tweens, joined at the end -- the orb
 ' drifts up into the middle of frame while the dialogue runs underneath it.

@@ -18,8 +18,8 @@ say "Nine shelves. One for each level, and the ninth is empty."
 
 ' z 0 puts the lectern BEHIND a book shown afterwards -- explicit depth, since
 ' new layers otherwise always land in front.
-show lectern "events/shrine.png" fit scale 0.3 at 0.5,0.62 z 0 fade 1.5
-show tome    "items/secret-door-card.png" fit scale 0.16 at 0.5,0.58 fade 2.0
+show lectern "events/shrine.png" scale 3 at 0.5,0.62 z 0 fade 1.5
+show tome    "items/secret-door-card.png" scale 3 at 0.5,0.58 fade 2.0
 
 say "The book on the lectern is open, and the ink is not dry."
 

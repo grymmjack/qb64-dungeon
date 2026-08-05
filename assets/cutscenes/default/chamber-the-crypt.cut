@@ -13,7 +13,7 @@ caption "THE CRYPT" at 66,3 anchor c color gold fade 1.0
 say "Three doors, and the one you came through has already closed."
 say "Something in here counts to three."
 
-show lid "markers/gravestone.png" fit scale 0.30 at 0.5,0.66 fade 1.2
+show lid "markers/gravestone.png" scale 3 at 0.5,0.66 fade 1.2
 shake 4 for 0.6
 sfx "door"
 

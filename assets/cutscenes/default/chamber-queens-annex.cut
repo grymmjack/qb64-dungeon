@@ -11,7 +11,7 @@ caption "THE QUEEN'S ANNEX" at 66,3 anchor c color magenta fade 1.0
 
 say "Someone hung silk over the stone. The stone won."
 
-show mirror "items/crystal-ball.png" fit scale 0.24 at 0.63,0.55 fade 1.5
+show mirror "items/crystal-ball.png" scale 3 at 0.63,0.55 fade 1.5
 say "The mirror is still here, and still honest, which is the problem."
 
 ' `stopfx` cancels the pan mid-move and LANDS it, so the camera stops dead on

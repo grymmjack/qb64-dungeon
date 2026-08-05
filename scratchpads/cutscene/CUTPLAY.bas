@@ -499,17 +499,30 @@ SUB DoShot (target AS STRING, atT AS SINGLE, outp AS STRING)
         EXIT SUB
     END IF
 
+    '--- DRIVE the clock rather than nudging it. Shifting every tween origin
+    '    back by dt each frame looked equivalent, but real time kept advancing
+    '    underneath, so the scene aged by (dt + however long that frame took to
+    '    render). A 20-second pan finished by a requested t of about 14, and a
+    '    "fixed simulated time" screenshot was nothing of the sort. ---
+    CUT_CLKFIXED = TRUE
+    CUT_NOW = 0
+    CutBegin
+    CUT_NOW = 0
+    CUT_T0 = 0
+    CUT_LASTFRAME = 0
+
     dt = 1# / 60#
     steps = atT / dt
     IF steps < 1 THEN steps = 1
     IF steps > 60000 THEN steps = 60000
 
     FOR i = 1 TO steps
+        CUT_NOW = CUT_NOW + dt          ' one frame of simulated time, exactly
         r = CutTick%
         IF r <> CUT_RUNNING THEN EXIT FOR
-        '--- advance simulated time by one frame without waiting for it ---
-        CutShiftClocks -dt
     NEXT i
+
+    CUT_CLKFIXED = FALSE
 
     _SAVEIMAGE o, scr
 

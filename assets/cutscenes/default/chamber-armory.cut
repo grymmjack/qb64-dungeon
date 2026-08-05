@@ -13,7 +13,7 @@ caption "THE ARMORY" at 66,3 anchor c color bone fade 0.8
 say "Every rack is full. Nobody came back for any of it."
 
 ' A sprite on its own layer, in FRONT of the backdrop (new layers stack up).
-show blade "items/elven-blade.png" fit scale 0.35 at 0.32,0.62 fade 1.0
+show blade "items/elven-blade.png" scale 3 at 0.32,0.62 fade 1.0
 grow blade to 0.45 over 2.5 ease back
 
 portrait "monsters/humanoids/evil-hero.png" right

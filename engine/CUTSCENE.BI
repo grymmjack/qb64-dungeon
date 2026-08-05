@@ -477,6 +477,12 @@ DIM SHARED CUT_LASTFRAME AS DOUBLE  ' previous frame, for the pause clock-shift
 DIM SHARED CUT_CLKLAST AS DOUBLE
 DIM SHARED CUT_CLKWRAP AS DOUBLE
 
+'--- SIMULATED CLOCK. With this set, CutClock# stops reading TIMER and hands
+'    back whatever the host put in CUT_NOW, so a headless run advances time in
+'    exact steps instead of "the step I asked for, PLUS however long rendering
+'    took". Without it a screenshot at t=14 could show t=20. ---
+DIM SHARED CUT_CLKFIXED AS INTEGER
+
 '--- text presentation ---
 DIM SHARED CUT_TXMODE AS INTEGER
 DIM SHARED CUT_TXBODY AS STRING

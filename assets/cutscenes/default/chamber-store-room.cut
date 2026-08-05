@@ -10,7 +10,7 @@ music "everdark" fadein 2.0
 caption "THE STORE ROOM" at 66,3 anchor c color bone fade 0.8
 
 ' `fit` rather than `fill`: this sprite must be seen WHOLE, not cropped.
-show crate "events/curio-chest.png" fit scale 0.28 at 0.5,0.62 fade 1.0
+show crate "events/curio-chest.png" scale 3 at 0.5,0.62 fade 1.0
 
 say "Stacked to the ceiling, and a draught coming from behind the stack."
 

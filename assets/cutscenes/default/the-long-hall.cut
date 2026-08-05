@@ -1,0 +1,109 @@
+' ============================================================================
+'  the-long-hall.cut -- a wide forest, a slow pan, and something in the trees.
+'
+'  The shape of the beat:
+'      pan slowly left -> right across a three-screen-wide forest
+'      four layers at four DEPTHS, so the woods move against themselves
+'      hold                       (the pause is what makes the reveal land)
+'      reveal what is waiting on the right
+'      shake                      (its weight)
+'      flash white                (the moment it notices you)
+'      fade to black              (out)
+'
+'  This is the reference scene for PARALLAX.
+'
+'  Watch it:  cutplay.run assets/cutscenes/default/the-long-hall.cut
+'  Faster:    cutplay.run assets/cutscenes/default/the-long-hall.cut auto
+' ============================================================================
+
+scene the-long-hall
+storybook "Into the Woods" "A slow walk east through four depths of forest, and what is standing at the end of it."
+
+var display$ = "alagard.ttf"
+var body$    = "dungeon-mode.ttf"
+
+' --------------------------------------------------------------- THE STAGE
+' THREE SCREENS WIDE, one tall. The stage is the world; the camera only ever
+' shows a screen-shaped window onto it, so all that width is somewhere to go.
+stage 3168x816
+
+' ------------------------------------------------------------ FOUR DEPTHS
+' PARALLAX is the whole trick. The value is how much a layer moves WITH the
+' stage as the camera travels:
+'
+'     1.0  pinned to the world  -- sweeps past fastest   (nearest)
+'     0.0  pinned to the camera -- never appears to move (infinitely far)
+'
+' So distance runs DOWNWARD through these numbers, and because each layer is
+' shown in turn, each one also stacks in front of the last.
+'
+' `fill` sizes every layer against the stage rather than a number worked out
+' from the art, so the layers cannot drift out of register if the art is
+' regenerated at a different size.
+show sky  "bg/cut-forest-sky.png"  fill parallax 0.10   ' barely moves: the far distance
+show far  "bg/cut-forest-far.png"  fill parallax 0.32   ' small trees on the horizon
+show mid  "bg/cut-forest-mid.png"  fill parallax 0.62   ' the wood proper
+show near "bg/cut-forest-near.png" fill parallax 1.00   ' big trunks, tearing past
+
+' --------------------------------------------------------- START AT THE LEFT
+' zoom 1 on a stage this shape shows exactly one screen, and x = 0 is the far
+' left edge (the camera clamps itself inside the stage, so it can never show
+' the void past the end of the art).
+cam 0.0,0.5 zoom 1
+
+fade to black over 0
+music "everdark" fadein 4.0
+fade from black over 2.0
+
+font  title display$ 40
+color title #cfd8c0
+title "INTO THE WOODS" "east, and east, and east" for 2.5
+
+font  body$ 20
+color #e8e2d0
+
+' ------------------------------------------------------------- THE SLOW PAN
+' `async` is the point: the pan is launched and returns immediately, so the
+' dialogue types WHILE the camera crosses the forest. Without it this would be
+' a pan, then a pause, then some text.
+'
+' 24 seconds for three screens is deliberately slow -- the length IS the
+' effect, and a slow pan is what gives the four depths time to separate. `ease
+' inout` starts and ends gently, so it reads as walking rather than as a
+' machine sliding to a stop.
+async pan to 1.0,0.5 over 24.0 ease inout
+
+say "The trunks go past close enough to touch. The hills behind barely move at all."
+say "That is how you know how far the far ones are."
+say "Somewhere ahead, the birds have stopped."
+
+' Join the pan: everything after this happens with the camera at rest, at the
+' eastern end of the wood.
+waitall
+
+' ------------------------------------------------------------- THE PAUSE
+' The reveal needs the wood to go quiet first. A beat of nothing is what makes
+' the next moment land -- take this `wait` out and the thing merely appears.
+wait 1.6
+
+' ---------------------------------------------------------------- THE REVEAL
+' Placed near the right of the STAGE, which is where the camera is now looking,
+' and at parallax 1 so it sits in the same plane as the near trunks. It fades
+' up rather than cutting in, so it resolves out of the trees instead of being
+' switched on.
+show wyrm "bg/cut-wolf.png" scale 3.0 at 0.90,0.62 parallax 1.0 fade 2.4
+sfx "monster-appear"
+
+say "It has been keeping pace with you the whole way."
+
+' ------------------------------------------------------------------ IMPACT
+' The order matters. The shake is its weight coming forward; the flash is the
+' moment it looks at you; the fade is you not being there any more.
+shake 13 for 1.1
+wait 0.5
+
+flash white 0.6
+wait 0.4
+
+musicstop fade 2.0
+fade to black over 2.5

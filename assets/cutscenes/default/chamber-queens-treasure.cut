@@ -9,8 +9,8 @@ async zoom to 1.2 over 10.0 ease outcubic
 music "victory" fadein 1.5 once
 caption "THE QUEEN'S TREASURE" at 66,3 anchor c color gold fade 1.0
 
-show pearls "treasures/silver-necklace.png" fit scale 0.26 at 0.42,0.6 fade 1.2
-show crown  "treasures/crown-of-gems.png"  fit scale 0.26 at 0.60,0.6 fade 1.8
+show pearls "treasures/silver-necklace.png" scale 3 at 0.42,0.6 fade 1.2
+show crown  "treasures/crown-of-gems.png"  scale 3 at 0.60,0.6 fade 1.8
 
 say "It is all still here, which tells you what happened to her."
 
