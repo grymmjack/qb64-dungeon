@@ -14,6 +14,7 @@
 ' ============================================================================
 
 scene gifdemo
+dev                      ' a showcase, not a story beat: kept out of the Storybook
 storybook "Animated GIFs" "Drop a .gif on a layer and it plays itself."
 
 var body$ = "dungeon-mode.ttf"

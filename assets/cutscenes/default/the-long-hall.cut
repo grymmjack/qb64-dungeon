@@ -17,6 +17,7 @@
 ' ============================================================================
 
 scene the-long-hall
+dev                      ' a showcase, not a story beat: kept out of the Storybook
 storybook "Into the Woods" "A slow walk east through four depths of forest, and what is standing at the end of it."
 
 var display$ = "alagard.ttf"

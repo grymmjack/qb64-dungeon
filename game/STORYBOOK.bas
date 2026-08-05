@@ -94,6 +94,12 @@ SUB StorybookScanDir (dirpath AS STRING)
         STORY_NAME(STORY_N) = nm
 
         IF CutCompile%(dirpath + names(i)) THEN
+            '--- a `dev` scene is a showcase; it belongs in the repo and in the
+            '    gate, not in a record of what happened to the player ---
+            IF CUT_DEV THEN
+                STORY_N = STORY_N - 1
+                _CONTINUE
+            END IF
             IF LEN(CUT_SBTITLE) > 0 THEN
                 STORY_TITLE(STORY_N) = CUT_SBTITLE
             ELSE

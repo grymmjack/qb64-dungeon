@@ -16,6 +16,7 @@
 ' ============================================================================
 
 scene deathtext
+dev                      ' a showcase, not a story beat: kept out of the Storybook
 storybook "You Died" "Animated text: falling, landing, and the shake."
 
 var display$ = "alagard.ttf"

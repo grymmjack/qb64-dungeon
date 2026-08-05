@@ -162,6 +162,13 @@ FUNCTION CutCompile% (path AS STRING)
             CASE "noskip"
                 CUT_NOSKIP = TRUE
 
+            CASE "dev"
+                '--- A SHOWCASE, not a story beat. It still compiles, still
+                '    lints, still renders in the gate -- it simply does not
+                '    appear in the player's Storybook, which is a record of
+                '    what happened to them and not a list of demos. ---
+                CUT_DEV = TRUE
+
             CASE "var"
                 '--- `var name = value` / `var name value` ---
                 nm = CutTok$(2)
@@ -868,6 +875,7 @@ SUB CutResetProgram
     CUT_CHOP = 0
     CUT_CHN = 0
     CUT_NOSKIP = FALSE
+    CUT_DEV = FALSE
     CUT_SBTITLE = ""
     CUT_SBBLURB = ""
     CUT_STAGEW = CUT_PXW

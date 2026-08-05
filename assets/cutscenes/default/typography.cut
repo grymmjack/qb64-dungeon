@@ -9,6 +9,7 @@
 ' ============================================================================
 
 scene typography
+dev                      ' a showcase, not a story beat: kept out of the Storybook
 storybook "Typography" "Every text feature the engine has, in one scene."
 
 ' ---------------------------------------------------------------- VARIABLES

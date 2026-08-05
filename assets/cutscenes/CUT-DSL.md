@@ -495,8 +495,18 @@ parking the scene there forever.
 
 ```
 scene <name>       ' names the scene (defaults to the filename)
-noskip             ' ESC will not skip this one
+noskip             ' ESC will not skip this one (in the GAME; see §8)
+dev                ' a showcase, not a story beat
 include "<file>"   ' splice another .cut in place (shared macros, etc.)
+```
+
+**`dev`** keeps a scene out of the player's **Storybook**. It still compiles,
+still lints, still renders in the gate — it simply does not appear in a record
+of what happened to the player, because a demo did not happen to them. The
+reference scenes (`typography`, `gifdemo`, `deathtext`, `demo`,
+`the-long-hall`) all carry it.
+
+```
 ```
 
 ---

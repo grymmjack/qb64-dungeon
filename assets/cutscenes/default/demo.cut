@@ -7,6 +7,7 @@
 ' ============================================================================
 
 scene demo
+dev                      ' a showcase, not a story beat: kept out of the Storybook
 storybook "Engine Demo" "Every feature the cut-scene engine has, once."
 
 ' A stage BIGGER than the screen is what there is to pan around in. The screen
