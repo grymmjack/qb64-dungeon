@@ -1632,7 +1632,7 @@ SUB ShowKeys
     ky(17) = "R": ds(17) = "Rest: +1 HP, but something may find you"
     ky(18) = "L": ds(18) = "Locate me -- flashes a ring around you"
     ky(19) = "Z": ds(19) = "Auto-move (SETTINGS: Auto-Move); any key stops"
-    ky(20) = "Q": ds(20) = "First person: W/S walk, A/D turn, ,/. strafe, mouse looks"
+    ky(20) = "Q": ds(20) = "First person (WIP): W/S walk, A/D turn, ,/. strafe, mouse looks"
     n = 20
     _DEST CANVAS
     LINE (22 * CW, 7 * CH)-(110 * CW, 46 * CH), BOXBG, BF

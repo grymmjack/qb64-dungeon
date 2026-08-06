@@ -416,7 +416,9 @@ Environment specifics that dictate this approach:
   `BeginTrack` and `DrawSpriteFit%` each log one line, so a feature added later is covered without
   anyone remembering. It is a separate dependency-free module because `TEST-ARTPACK` compiles
   `ARTPACK.bas` in isolation and a one-line log call would otherwise drag the whole console in.
-- **LOOK AROUND -- the first-person view** (`engine/FPS.bas`) -- `[Q]` in game, or
+- **LOOK AROUND -- the first-person view `(WIP)`** (`engine/FPS.bas`) -- **work in progress**:
+  playable and in the gate, but not finished. Open items are listed under "First-person view" in
+  [PLANS.todo](plans/PLANS.todo). -- `[Q]` in game, or
   `dungeon.run fpsshot <col> <row> <deg> <out.png>` for one headless frame. A DDA raycaster
   over the **same collision layer movement reads** (`CellKind%` / `COLLIDE_BOARD`), so it cannot
   disagree with the board: the art has been a 3D level all along and nobody had looked at it from

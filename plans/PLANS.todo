@@ -116,7 +116,7 @@ Secret-door wind (26-08-05):
     x   WIND_CELLS / WIND_VOL in tuning.txt, either at 0 = off @done(26-08-05)
     x   `dungeon.run windlint` in the gate -- checks a sound without listening to it @done(26-08-05)
 
-First-person view (26-08-05):
+First-person view -- WIP (26-08-05):
     x Raycast LOOK AROUND from the player's cell -- [Q] in game, fpsshot headless @done(26-08-05)
     x   over the SAME collision layer movement reads, so it cannot disagree with the board @done(26-08-05)
     x   doors are gaps and unfound secret doors are stone, both for free @done(26-08-05)

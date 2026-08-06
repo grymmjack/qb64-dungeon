@@ -633,7 +633,7 @@ END SUB
 '--- a compass, the cell, and the level. The point of this view is to be lost
 '    in it; the point of the chrome is that you can still say where you are. ---
 SUB FpsChrome (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
-    DIM s AS STRING, lvl AS INTEGER, cx AS INTEGER, cy AS INTEGER
+    DIM s AS STRING, lvl AS INTEGER, cx AS INTEGER, cy AS INTEGER, wip AS STRING
 
     cx = INT(px): cy = INT(py)
     lvl = 0
@@ -644,6 +644,15 @@ SUB FpsChrome (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
     s = "cell " + LTRIM$(STR$(cx)) + "," + LTRIM$(STR$(cy)) + "   level " + LTRIM$(STR$(lvl)) + _
         "   facing " + FpsCompass$(ang)
     _PRINTSTRING (2 * CW, (SH - 2) * CH), s
+    '--- say it ON THE SCREEN, not only in the docs: this is the one place a
+    '    player finds out, and "why is this rough" has a better answer than
+    '    silence ---
+    COLOR _RGB32(255, 190, 90), _RGBA32(0, 0, 0, 0)
+    '--- right-aligned FROM ITS OWN LENGTH, not from a hardcoded column: the
+    '    first version was placed at SW-26 for a 32-character string and ran
+    '    off the edge as "WORK IN PR" ---
+    wip = "FIRST PERSON (WIP)"
+    _PRINTSTRING ((SW - LEN(wip) - 1) * CW, (SH - 2) * CH), wip
     COLOR _RGB32(140, 150, 170), _RGBA32(0, 0, 0, 0)
     _PRINTSTRING (2 * CW, (SH - 1) * CH), "[W/S] walk   [A/D or mouse] turn   [,/.] strafe   [mouse up/down] look   [Q] back to the board"
 END SUB
