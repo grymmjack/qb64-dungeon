@@ -39,8 +39,13 @@
 '  standalone player supplies mock hooks; the game will supply real ones.
 ' ============================================================================
 
-'--- BASIC truth ---
-CONST TRUE = -1, FALSE = NOT TRUE
+'--- BASIC truth comes from engine/ansi/Types.bi (CONST FALSE%% = 0, TRUE%% =
+'    NOT FALSE), which every program that includes this one already pulls in.
+'    Defining them here as well is not an error -- QB64 accepts the second
+'    definition -- but it warns once per compiler pass, four times a build, and
+'    a build that always prints warnings is a build nobody reads the warnings
+'    of. So the rule is ONE definition site, and it is the one that came first.
+'    Hosts must include ansi/ANSIPrint.bi BEFORE this file.
 
 '--- the screen every scene is composed for: the game's own grid ---
 '    132x51 cells at 8x16 px = 1056x816.

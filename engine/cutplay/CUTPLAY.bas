@@ -19,9 +19,11 @@
 '      [1..4] pick a choice    [ESC] skip / quit
 ' ============================================================================
 $CONSOLE
+' ansi FIRST: it is where TRUE/FALSE are defined, and CUTSCENE.BI now expects
+' them to exist rather than defining its own (which warned on every build).
+'$INCLUDE:'../ansi/ANSIPrint.bi'
 '$INCLUDE:'../CUTSCENE.BI'
 '$INCLUDE:'CUTMOCK.bi'
-'$INCLUDE:'../ansi/ANSIPrint.bi'
 
 '--- A RUNTIME ERROR MUST NEVER OPEN A DIALOG.
 '    An unhandled QB64 error pops a modal box and waits for a CLICK; under

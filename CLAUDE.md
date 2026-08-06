@@ -1138,7 +1138,14 @@ character `Q` printed in the d20 font:
 - `'$INCLUDE:'path'` (note: `.bi`/`.bas` split — types/declares in `.bi`, bodies in
   `.bas`, included at top and bottom of the file respectively).
 - `DIM SHARED` for globals; metacommands like `$RESIZE:ON`, `$Debug`, `$RESIZE:STRETCH`.
-- `CONST TRUE = -1, FALSE = NOT TRUE` (BASIC true is -1).
+- **`_TRUE` / `_FALSE` are BUILT IN** to QB64PE (verified: `-1` / `0`) -- new code needs no
+  constant at all. The bare `TRUE`/`FALSE` this codebase uses everywhere come from **one**
+  place, `engine/ansi/Types.bi` (`CONST FALSE%% = 0, TRUE%% = NOT FALSE`), and nothing else may
+  define them: `engine/CUTSCENE.BI` used to declare its own pair, which is legal but warns
+  **once per compiler pass**, so every single build printed four `Duplicate constant definition`
+  warnings -- and a build that always warns is a build whose warnings nobody reads. Any host
+  including `CUTSCENE.BI` must include `ansi/ANSIPrint.bi` **first** (`engine/_ALL.BI` and
+  `engine/cutplay/CUTPLAY.bas` both do).
 - Image handles from `_NEWIMAGE` must be `_FREEIMAGE`'d; sounds `_SNDCLOSE`'d.
 - `SUB`/`FUNCTION` names use dotted pseudo-namespaces (`CURSOR.move`, `SECTOR.get_by_xy`).
   **Gotcha:** a *dotted* SUB name written as a statement immediately before a colon is

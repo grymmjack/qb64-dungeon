@@ -170,7 +170,7 @@ END FUNCTION
 '  looking along ang radians, into FPS_BUF.
 ' ----------------------------------------------------------------------------
 SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
-    DIM x AS INTEGER, y AS INTEGER
+    DIM x AS INTEGER                     ' one ray per screen COLUMN; there is no y loop here
     DIM camx AS SINGLE, rdx AS SINGLE, rdy AS SINGLE
     DIM dirx AS SINGLE, diry AS SINGLE, planex AS SINGLE, planey AS SINGLE
     DIM mapx AS INTEGER, mapy AS INTEGER, stepx AS INTEGER, stepy AS INTEGER
@@ -233,7 +233,7 @@ SUB FpsRender (px AS SINGLE, py AS SINGLE, ang AS SINGLE)
             '    through. Standing it at the midline is also what puts you IN
             '    the doorway for a step, with the frame either side of you. ---
             IF hit = 0 _ANDALSO FpsDoorAt%(mapx, mapy) THEN
-                IF FpsThinHit%(px, py, rdx, rdy, mapx, mapy, side, ddx, ddy, sidex, sidey, dist, wallx) THEN
+                IF FpsThinHit%(px, py, rdx, rdy, mapx, mapy, dist, wallx) THEN
                     hit = -1: isdoor = -1
                 END IF
             END IF
@@ -783,7 +783,10 @@ END SUB
 '    is still strictly grid-based (the collision map is a grid and re-deriving
 '    it in floating point would be a second, disagreeing map) -- this only
 '    smooths what the eye does between two legal cells. ---
-SUB FpsFollow (moving AS INTEGER)
+'--- takes no argument: whether the eye is moving is something it can SEE (the
+'    distance still to travel), and a caller passing a flag that disagreed with
+'    the position would be a second, wrong answer. ---
+SUB FpsFollow
     DIM tx AS SINGLE, ty AS SINGLE, d AS SINGLE
 
     tx = (c.x \ CW) + 0.5
@@ -809,7 +812,7 @@ END SUB
 '--- one frame from where the player is standing ---
 SUB FpsPresentPlayer
     FpsInit
-    FpsFollow 0
+    FpsFollow
     FpsClearSprites
     Game_FpsPopulate
     FpsCompose FPS_EYEX, FPS_EYEY, FPS_ANG
@@ -1052,9 +1055,11 @@ END FUNCTION
 '
 '    dist and wallx come back updated, because a thin wall is nearer than the
 '    cell boundary the DDA measured to. ---
+'    It takes no DDA state (side / ddx / ddy / sidex / sidey): the midline is
+'    solved for directly from the ray, so passing the stepper's working values
+'    in would only invite someone to trust them here.
 FUNCTION FpsThinHit% (px AS SINGLE, py AS SINGLE, rdx AS SINGLE, rdy AS SINGLE, _
-                      mapx AS INTEGER, mapy AS INTEGER, side AS INTEGER, _
-                      ddx AS SINGLE, ddy AS SINGLE, sidex AS SINGLE, sidey AS SINGLE, _
+                      mapx AS INTEGER, mapy AS INTEGER, _
                       dist AS SINGLE, wallx AS SINGLE)
     DIM t AS SINGLE, hx AS SINGLE, hy AS SINGLE, vert AS INTEGER
 
@@ -1189,7 +1194,7 @@ END FUNCTION
 FUNCTION FpsCutout& (path AS STRING, src AS LONG)
     DIM i AS INTEGER, so AS LONG, d AS LONG, w AS INTEGER, ht AS INTEGER
     DIM x AS INTEGER, y AS INTEGER, cp AS LONG, k AS _UNSIGNED LONG
-    DIM cr AS INTEGER, cg AS INTEGER, cb AS INTEGER, n AS INTEGER
+    DIM cr AS INTEGER, cg AS INTEGER, cb AS INTEGER
 
     FOR i = 1 TO FPS_CUT_N
         IF FPS_CUT_KEY(i) = path THEN FpsCutout& = FPS_CUT_IMG(i): EXIT FUNCTION
