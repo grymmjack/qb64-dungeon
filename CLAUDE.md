@@ -915,6 +915,9 @@ Environment specifics that dictate this approach:
   a one-state parser ends the sequence on it and then counts the parameters (`0m`) as drawn
   glyphs, so a file holding nothing but `ESC[0m` and CRLFs reads as full of art.
 
+[TOOLS.md](TOOLS.md) is the map of the editors, the in-game keys and what each lint catches --
+keep it in sync when a mode is added, along with the `--help` block in `dungeon.bas`.
+
 [assets/README.md](assets/README.md) is the player/modder-facing map of every editable
 asset (data tables, flavor prose, music playlist, sound effects) with formats and the
 token list — keep it in sync when the asset formats change.

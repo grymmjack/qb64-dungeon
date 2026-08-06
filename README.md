@@ -53,3 +53,13 @@ assets for anything it's missing.
 - **[assets/README.md](assets/README.md)** — the player/modder map of every editable asset.
 - **[DUNGEON-RULES.md](assets/reference/DUNGEON-RULES.md)** — the _Dungeon!_ rules this reproduces.
 - **[PLANS.todo](plans/PLANS.todo)** — roadmap and the source of truth for intended rules.
+
+## Tools
+
+The editors, debuggers and lints all live **inside `dungeon.run`** — a mode is an argument on
+the command line or a key in a running game. See **[TOOLS.md](TOOLS.md)**, or
+`./dungeon.run --help`.
+
+    ./dungeon.run mapdebug        every derived board layer, and fire events at a cell
+    ./dungeon.run dataedit        the 35 content tables as a grid
+    ./dungeon.run packbrowse      every content pack, with real previews

@@ -76,9 +76,29 @@ IF wanthelp THEN
     PRINT PipeCol$("  |10boardsplit|07   split the board art into |14layer-0-board-collisions.ans|07 + |14layer-1-board-decoration.ans|07")
     PRINT PipeCol$("  |10eventsaudit|07  sensory coverage of the flavor text (sight/sound/touch/smell/taste)")
     PRINT PipeCol$("  |10boardfix|07     re-spell half-block cells so the collision colour is the FOREGROUND (same pixels, verified); backs up to .bak")
+    PRINT
+    PRINT PipeCol$("|15EDITORS|07 (interactive -- see |11TOOLS.md|07)")
+    PRINT PipeCol$("  |10mapdebug|07     every derived board layer toggleable, + |14[E]|07 fire a real event at a cell,")
+    PRINT PipeCol$("                |14[O]|07 place a board overlay, |14[C]|07 drag a chamber rect   |08(in game: [~] then [9])")
+    PRINT PipeCol$("  |10dataedit|07     the pack's 35 pipe-delimited tables as a grid (data + theme + flavor prose)")
+    PRINT PipeCol$("  |10packbrowse|07   all six pack kinds with real previews; |14[P]|07 auditions   |08(in game: SETTINGS [B])")
+    PRINT PipeCol$("                |08the cut-scene editor is its own binary: |15engine/cutplay/cutplay.run <scene.cut> edit|07")
+    PRINT
+    PRINT PipeCol$("|15MORE LINTS + SHOTS|07")
+    PRINT PipeCol$("  |10dataedittest|07 prove load -> save is a no-op across every table")
+    PRINT PipeCol$("  |10triggerlint|07  cut-scene triggers: unwalkable cells, missing scenes")
+    PRINT PipeCol$("  |10overlaylint|07  board overlays: art that does not resolve, or draws nothing")
+    PRINT PipeCol$("  |10windlint|07     the secret-door draught: falloff shape + which packs ship a sample")
+    PRINT PipeCol$("  |10spritealpha|07  sprites drawn on an opaque field (a floating box in first person)")
+    PRINT PipeCol$("  |10fpsshot|07 |14<col> <row> <deg> out.png|07  one frame of the first-person view |08(WIP)|07")
+    PRINT PipeCol$("                |08also takes aim / aimmon / aimdoor, hurt, hand")
+    PRINT PipeCol$("  |10mapdebugshot|07 |14<digits> [event] out.png|07   |10dataeditshot|07 |14<file> out.png|07")
+    PRINT PipeCol$("  |10packbrowseshot|07 |14<kind> <n> out.png|07")
+    PRINT
     PRINT PipeCol$("  |10--help|07, |10-h|07    show this help    |08(append |15nocolor|08 to any mode to disable colour)")
     PRINT
     PRINT PipeCol$("Everything is data: edit |11assets/data/*.txt|07 and |11assets/ansi-art/default/*-mask.ans|07, then rebuild (F5).")
+    PRINT PipeCol$("The editors, the in-game keys and what each lint catches: |11TOOLS.md|07")
     SYSTEM
 END IF
 _CONSOLE OFF                            ' normal run: hide the console, go graphics
