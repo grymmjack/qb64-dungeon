@@ -145,6 +145,7 @@ CONST OP_GRANT = 61       ' s1 what, n1 amount
 CONST OP_CHOICE = 62      ' s1 prompt, n1 count, n2 first option op
 CONST OP_OPTION = 63      ' s1 text, n1 resolved jump target
 CONST OP_ENDCHOICE = 64
+CONST OP_EFFECT = 65      ' n1 blur, n2 desaturate, n3 colorize amount, s1 colour
 
 ' ----------------------------------------------------------------------------
 '  TEXT STYLES
@@ -267,6 +268,12 @@ CONST TR_POISON = 22      ' sickly blotches spreading from many seeds
 CONST TR_DECAY = 23       ' holes eaten outward, crusted at the edge
 CONST TR_HOLY = 24        ' a white bloom from the centre, with rays
 CONST TR_ARCANE = 25      ' violet rings and sparks
+
+'--- EFFECTS: a filter over the picture, held until changed (see CutApplyEffects) ---
+DIM SHARED CUT_FX_BLUR AS INTEGER     ' 0/1 = none; 2..12 = reduction factor, and the softness
+DIM SHARED CUT_FX_DESAT AS SINGLE     ' 0..1 toward luminance
+DIM SHARED CUT_FX_COLOR AS _UNSIGNED LONG
+DIM SHARED CUT_FX_COLAMT AS SINGLE    ' 0..1 toward that colour
 CONST TR_STATIC = 10      ' glyph noise
 CONST TR_CRTOFF = 11      ' collapse to a line, then a dot
 CONST TR_FLASH = 12

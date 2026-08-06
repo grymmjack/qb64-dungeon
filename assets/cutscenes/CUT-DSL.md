@@ -283,6 +283,40 @@ something growing.
 
 See `assets/cutscenes/default/_transitions-demo.cut` for all six back to back.
 
+### Effects
+
+A filter held over the picture until it is changed. Several can be on at once —
+each line sets **one** of them and leaves the rest alone.
+
+```
+effect blur <n>                  ' 2..12; bigger is softer AND faster
+effect desaturate <0..1>         ' toward luminance ("desat" also works)
+effect colorize <colour> <0..1>  ' toward that colour ("tint" also works)
+effect none                      ' clear all of them
+```
+
+```
+effect desaturate 0.7
+effect colorize #ff7020 0.35     ' a warm, faded memory
+```
+
+All three run on a **reduced-resolution copy** of the frame, and that is the
+whole reason they exist: a per-pixel pass over 1056×816 is 862,000 iterations of
+BASIC per frame and simply cannot be done. At quarter scale it is 54,000 — and
+the same downscale-then-upscale that buys the speed **is** the blur, so one
+pipeline gives all three and the cheapest is free. `blur` chooses the reduction,
+which is why a bigger blur also runs faster.
+
+Effects apply to the **picture only**, before text and menus: a blurred caption
+is an unreadable caption, and a desaturated one stops being the colour the scene
+asked for.
+
+`desaturate` is luminance-weighted (0.299/0.587/0.114), not a flat average — a
+flat average turns a red and a blue of the same value into the same grey, and
+the eye knows they were not.
+
+See `assets/cutscenes/default/_effects-demo.cut`.
+
 Most transitions **photograph the outgoing frame** and reveal the new picture
 from under it. That is why the optional `to "<path>"` exists: the swap has to
 happen *inside* the transition, after the photograph. Writing the swap as a

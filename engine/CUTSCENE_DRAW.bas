@@ -1308,7 +1308,105 @@ SUB CutRender
     CutComposite
     CLS , _RGB32(0, 0, 0)
     CutCameraBlit
+    '--- Effects run on the PICTURE, before text and menus. A blurred caption is
+    '    an unreadable caption, and a desaturated one stops matching the colour
+    '    the scene asked for -- so the filter goes here, between the camera and
+    '    everything that has to stay legible. ---
+    CutApplyEffects
     CutDrawText
     CutDrawChoice
     CutTransDraw
+END SUB
+
+
+' ============================================================================
+'  EFFECTS -- blur, desaturate, colorize.
+'
+'  All three run on a REDUCED-RESOLUTION COPY of the frame, and that is what
+'  makes them affordable: a per-pixel pass over 1056x816 is 862,000 iterations
+'  of BASIC per frame and simply cannot be done. At 1/4 scale it is 54,000, and
+'  the same downscale-then-upscale that buys the speed IS the blur -- so one
+'  pipeline gives all three effects and the cheapest one is free.
+'
+'  Reduction is chosen by the BLUR setting, so `blur 1` (no blur) still filters
+'  at a modest reduction rather than at full resolution. A desaturate that ran
+'  per pixel at full size would be correct and unusable.
+'
+'  Nothing here is a tween: an effect is set and stays set until changed or
+'  cleared with `effect none`. Ramping one is a scene's business, not the
+'  filter's.
+' ============================================================================
+SUB CutApplyEffects
+    DIM w AS LONG, h AS LONG, sw2 AS LONG, sh2 AS LONG
+    DIM x AS LONG, y AS LONG, k AS _UNSIGNED LONG
+    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER, lum AS INTEGER
+    DIM d AS LONG, so AS LONG, small AS LONG
+    DIM da AS SINGLE, ca AS SINGLE
+    DIM cr AS INTEGER, cg AS INTEGER, cb AS INTEGER
+
+    IF CUT_FX_BLUR <= 1 _ANDALSO CUT_FX_DESAT <= 0 _ANDALSO CUT_FX_COLAMT <= 0 THEN EXIT SUB
+
+    w = CUT_PXW: h = CUT_PXH
+    IF w < 4 _ORELSE h < 4 THEN EXIT SUB
+
+    '--- how far down we go. Bigger blur = smaller copy = softer AND faster. ---
+    sw2 = w \ CutFxScale%
+    sh2 = h \ CutFxScale%
+    IF sw2 < 2 THEN sw2 = 2
+    IF sh2 < 2 THEN sh2 = 2
+
+    d = _DEST: so = _SOURCE
+    small = _NEWIMAGE(sw2, sh2, 32)
+    _PUTIMAGE (0, 0)-(sw2 - 1, sh2 - 1), d, small       ' the downscale -- and the blur
+
+    IF CUT_FX_DESAT > 0 _ORELSE CUT_FX_COLAMT > 0 THEN
+        da = CUT_FX_DESAT
+        ca = CUT_FX_COLAMT
+        cr = _RED32(CUT_FX_COLOR): cg = _GREEN32(CUT_FX_COLOR): cb = _BLUE32(CUT_FX_COLOR)
+        _SOURCE small
+        _DEST small
+        FOR y = 0 TO sh2 - 1
+            FOR x = 0 TO sw2 - 1
+                k = POINT(x, y)
+                r = _RED32(k): g = _GREEN32(k): b = _BLUE32(k)
+                IF da > 0 THEN
+                    '--- luminance weights, not a flat average: a flat average
+                    '    turns a red and a blue of the same value into the same
+                    '    grey, and the eye knows they were not ---
+                    lum = 0.299 * r + 0.587 * g + 0.114 * b
+                    r = r + (lum - r) * da
+                    g = g + (lum - g) * da
+                    b = b + (lum - b) * da
+                END IF
+                IF ca > 0 THEN
+                    r = r + (cr - r) * ca
+                    g = g + (cg - g) * ca
+                    b = b + (cb - b) * ca
+                END IF
+                PSET (x, y), _RGB32(r, g, b)
+            NEXT x
+        NEXT y
+    END IF
+
+    _DEST d
+    _PUTIMAGE (0, 0)-(w - 1, h - 1), small, d           ' back up, softened
+    _FREEIMAGE small
+    _SOURCE so
+END SUB
+
+'--- the reduction factor. Never 1: filtering at full resolution is correct and
+'    unusable, so even "no blur" works on a modestly reduced copy. ---
+FUNCTION CutFxScale%
+    DIM n AS INTEGER
+    n = CUT_FX_BLUR
+    IF n < 2 THEN n = 2
+    IF n > 12 THEN n = 12
+    CutFxScale% = n
+END FUNCTION
+
+'--- clear every effect. `effect none`. ---
+SUB CutFxClear
+    CUT_FX_BLUR = 0
+    CUT_FX_DESAT = 0
+    CUT_FX_COLAMT = 0
 END SUB

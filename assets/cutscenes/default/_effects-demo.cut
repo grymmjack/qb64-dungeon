@@ -1,0 +1,55 @@
+' ============================================================================
+'  _effects-demo.cut -- blur, desaturate and colorize, on and off.
+'
+'  All three run on a reduced-resolution copy of the frame, which is what makes
+'  them affordable at all -- and the reduction IS the blur, so the cheapest of
+'  the three is free. See CutApplyEffects.
+'
+'  Watch it:  cutplay.run assets/cutscenes/default/_effects-demo.cut
+' ============================================================================
+
+scene effects-demo
+dev
+storybook "Through A Glass" "blur, desaturate and colorize -- a filter over the picture, held until it is changed."
+
+var body$ = "dungeon-mode.ttf"
+
+stage 1056x816
+show bg "bg/cham-armory.png" fill
+cam 0.5,0.5 zoom 1
+
+font body$ 22
+color #f0e8d8
+
+fade from black over 0.5
+
+title "NO EFFECT" "the picture as composed" for 1.6
+
+' BLUR. The number is the reduction factor: bigger is softer AND faster, because
+' the whole filter runs on the smaller copy.
+effect blur 3
+title "BLUR 3" "softened by the downscale itself" for 1.6
+effect blur 8
+title "BLUR 8" "further down, softer still" for 1.6
+
+' DESATURATE. Luminance-weighted, not a flat average -- a flat average turns a
+' red and a blue of the same value into the same grey.
+effect none
+effect desaturate 1
+title "DESATURATE 1" "all the colour gone, none of the detail" for 1.6
+
+' COLORIZE. Pulls every pixel toward one colour, which is how you say
+' "remembered", "poisoned" or "underwater" without new art.
+effect none
+effect colorize #3050ff 0.55
+title "COLORIZE blue" "a memory, or deep water" for 1.6
+
+effect none
+effect desaturate 0.7
+effect colorize #ff7020 0.35
+effect blur 2
+title "ALL THREE" "stacked -- each line sets one and leaves the rest" for 2.0
+
+effect none
+title "OFF AGAIN" "effect none clears the lot" for 1.4
+fade to black over 0.8

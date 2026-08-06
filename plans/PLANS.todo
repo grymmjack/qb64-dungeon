@@ -61,7 +61,11 @@ Huge UI Efforts:
       ✔ Animations -- PNG frame sequences, animated GIFs, and multi-file ANSI @done(26-08-04)
       ✔ Timeline events -- the VM is a step machine, so async ops run against a timeline @done(26-08-03)
       ✔ Dialog -- say / choice menus with branching @done(26-08-03)
-      ☐ Effects: blur / desaturate / colorize   [NOT built -- fade, flash and shake are]
+      ✔ Effects: blur / desaturate / colorize @done(26-08-06)
+        ✔ all three on a REDUCED-RESOLUTION copy -- 862k per-pixel iterations a frame is
+          impossible in BASIC, 54k is not, and the downscale IS the blur @done(26-08-06)
+        ✔ applied to the picture only, before text: a blurred caption is unreadable @done(26-08-06)
+        ✔ desaturate is luminance-weighted, not a flat average @done(26-08-06)
       ✔ Themed transitions: blood / fire / poison / decay / holy / arcane @done(26-08-06)
         ✔ each its own SHAPE and colour, drawn from primitives so every pack has them @done(26-08-06)
         ✔ poison/decay spread in a fixed per-cell order, seeded once -- a per-frame
@@ -112,6 +116,7 @@ Auto-care, torch + reconciliation (26-08-06):
     x overlaylint stands the player on each overlay's cell before testing it @done(26-08-06)
     x   it skipped every LEVEL-SCOPED overlay, because DrawBoardOverlays quite correctly draws
     x   only the current level's -- 3 good torches were reported as drawing nothing @done(26-08-06)
+    x Cut-scene EFFECTS: blur / desaturate / colorize @done(26-08-06)
     x Six THEMED cut-scene transitions (blood/fire/poison/decay/holy/arcane) @done(26-08-06)
     x RECONCILED the list: luck re-rolls, the cut-scene engine, the damage/gold totals and
     x   three of the six ability mechanics were all shipped and never ticked here @done(26-08-06)

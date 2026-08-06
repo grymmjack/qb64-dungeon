@@ -520,6 +520,19 @@ SUB CutExec (p AS INTEGER)
             slot = CutTweenStart%(TWN_SHAKE, 0, CUT_OPS(p).n1, 0, CUT_OPS(p).n2, EASE_OUT)
 
         ' ---------------- transitions ----------------
+        CASE OP_EFFECT
+            '--- each line sets ONE filter and leaves the others alone, so a
+            '    scene can stack "blur 4" and "desaturate 0.8" on separate
+            '    lines and read the way it looks ---
+            SELECT CASE CINT(CUT_OPS(p).n1)
+                CASE -1: CutFxClear
+                CASE 1: CUT_FX_BLUR = CINT(CUT_OPS(p).n2)
+                CASE 2: CUT_FX_DESAT = CUT_OPS(p).n2
+                CASE 3
+                    CUT_FX_COLOR = CutColor~&(CutStrGet$(CUT_OPS(p).s1), _RGB32(255, 255, 255))
+                    CUT_FX_COLAMT = CUT_OPS(p).n2
+            END SELECT
+
         CASE OP_TRANS
             CutTransStart CINT(CUT_OPS(p).n1), CUT_OPS(p).n2, CUT_OPS(p).n3, CUT_OPS(p).n4, CutStrGet$(CUT_OPS(p).s1)
             '--- the swap happens AFTER the snapshot, which is the whole

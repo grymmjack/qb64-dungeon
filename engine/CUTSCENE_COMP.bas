@@ -400,6 +400,24 @@ FUNCTION CutCompile% (path AS STRING)
             '    Kept as separate command words rather than `theme <name>` so a
             '    misspelling is a compile error naming the line, which is how
             '    every other command in this language fails. ---
+            '--- EFFECT: a filter held over the picture until changed. Several
+            '    can be on at once, so each `effect` line sets ONE of them and
+            '    leaves the others alone; `effect none` clears the lot. ---
+            CASE "effect"
+                t = CutTokL$(2)
+                SELECT CASE t
+                    CASE "none"
+                        op = CutEmit%(OP_EFFECT, CUT_NOSTR, CUT_NOSTR, -1, 0, 0, 0, ln, isasync)
+                    CASE "blur"
+                        op = CutEmit%(OP_EFFECT, CUT_NOSTR, CUT_NOSTR, 1, CutNum!(CutTok$(3)), 0, 0, ln, isasync)
+                    CASE "desaturate", "desat"
+                        op = CutEmit%(OP_EFFECT, CUT_NOSTR, CUT_NOSTR, 2, CutNum!(CutTok$(3)), 0, 0, ln, isasync)
+                    CASE "colorize", "colourize", "tint"
+                        op = CutEmit%(OP_EFFECT, CutStr&(CutTok$(3)), CUT_NOSTR, 3, CutNum!(CutTok$(4)), 0, 0, ln, isasync)
+                    CASE ELSE
+                        CutErrAdd 2, ln, "effect needs: none | blur <n> | desaturate <0..1> | colorize <colour> <0..1>"
+                END SELECT
+
             CASE "blood", "fire", "poison", "decay", "holy", "arcane"
                 SELECT CASE cmd
                     CASE "blood": k = TR_BLOOD
