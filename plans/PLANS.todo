@@ -56,58 +56,61 @@ Huge UI Efforts:
     ☐ Hub worlds -> maps
     ☐ Traversible towns/villages
     ☐ Add frame based animations (like Bards Tale, Wasteland, etc.) for portraits and events
-    ☐ Add cut-scenes engine
-      ☐ Pan and zoom
-        ☐ Horizontal
-        ☐ Vertical
-      ☐ Effects
-        ☐ Blur
-        ☐ Desaturate
-        ☐ Colorize
-      ☐ Transitions:
-        ☐ Blood
-        ☐ Fire
-        ☐ Poison
-        ☐ Decay
-        ☐ Holy Light
-        ☐ Magic Light
-      ☐ Animations
-      ☐ Timeline events
-      ☐ Dialog
-      ☐ Modify character
-        ☐ Attribute change
-        ☐ HP change
-        ☐ Inventory change
+    ✔ Add cut-scenes engine -- built 26-08-03..05, see the Cut-scenes section below @done(26-08-05)
+      ✔ Pan and zoom (horizontal AND vertical, over a stage bigger than the screen) @done(26-08-03)
+      ✔ Animations -- PNG frame sequences, animated GIFs, and multi-file ANSI @done(26-08-04)
+      ✔ Timeline events -- the VM is a step machine, so async ops run against a timeline @done(26-08-03)
+      ✔ Dialog -- say / choice menus with branching @done(26-08-03)
+      ☐ Effects: blur / desaturate / colorize   [NOT built -- fade, flash and shake are]
+      ☐ Themed transitions: blood / fire / poison / decay / holy light / magic light
+        ☐ [the transition MACHINERY is there (fade, iris, flash); these are the six named looks]
+      ☐ Modify character from a scene (attribute / HP / inventory change)
+        ☐ [scenes can READ game state through the host hooks; they cannot yet WRITE it]
 
 Game Tweaks:
-      ☐ STILL (soon): STR heavier gear; DEX flourishes + missile; CON resistances + endure;
-        ☐ INT recall + magic flourishes; WIS spell resistance; CHA fate skew + reaction saves
+      ☐ ABILITIES, re-checked 26-08-06 -- three of six are in, three are not:
+        ✔ DEX flourishes (FIGHTPLAY) . INT recall (SpellRecallBonus%) . CHA fate skew +
+          reaction saves (luck re-rolls + ReactionSave%) @done(26-08-06)
+        ☐ STILL OPEN: STR heavier gear . CON resistances + endure . WIS spell resistance
 
             - hits to die - average monster DMG, vs. player AC, vs. Player HP = avg number of hits to kill player
               - e.g. Level 1 monsters HP average is 10, ToHitbonus is 0, DMG range is 5, and player ac at same level is 11, and HP is 12 = 12/5 = 2 hits to die at level 1
             - hits to kill - average monster HP vs Player DMG range average + ToHitBonus average = avg number of hits to kill
-        ☐ Total Damage done under: big number
-        ☐ Total Gold found: Big number
+        ✔ Total Damage done: big number (g_dmg_dealt, Game Summary) @done(26-08-04)
+        ✔ Total Gold found: big number (g_gold_found, Game Summary) @done(26-08-04)
         ☐ Snapshot death screen for fallen lords, and their stats like legendary lords, but those who failed
           ☐ None      
-        ☐ Add setting: Attempt to flee?
-          ☐ At <50% HP
-          ☐ At <25% HP
-          ☐ Off
-        ☐ Add setting: Auto-heal?
-          ☐ At <50% HP
-          ☐ At <25% HP
-          ☐ Off
-      ☐ Add this to the RULES for D&D if it's a setting that's enabled
-      ☐ Toggle in settings for game options on / off
-      ☐ Re-roll is permanent no matter the outcome
-      ☐ Cannot re-roll re-rolls
-      ☐ Number of re-rolls available is the CHA bonus 
-        ☐ Replenished every time character levels up
-      ☐ Luck re-rolls: ON/OFF in settings
-      ☐ Add this to the RULES for D&D if it's a setting that's enabled
-      ☐ TORCH item: exempt any class while carried; add to random items found - 10% chance
-        ☐ (needs a new item code + a drop-table entry; the exemption hook is already there)
+        ✔ Add setting: Attempt to flee?  (SETTINGS id 71) @done(26-08-06)
+          ✔ At <50% HP / At <25% HP / Off @done(26-08-06)
+        ✔ Add setting: Auto-heal?  (SETTINGS id 70) @done(26-08-06)
+          ✔ At <50% HP / At <25% HP / Off @done(26-08-06)
+          ✔ Both SYNTHESISE THE KEY the player would have pressed (the trick auto-combat
+            already uses), so healing goes through UsePotion and running through the flee
+            branch -- FleeFails, ambush block and all. No second copy of either rule. @done(26-08-06)
+      ✔ Add this to the RULES for D&D if it's a setting that's enabled @done(26-08-06)
+        ✔ RulesConfigBlock$ lists auto-heal, attempt-flee, luck and a carried torch, and ONLY
+          when they are on -- a player who forgot they armed one reads it as a bug otherwise @done(26-08-06)
+      ✔ Luck re-rolls -- ALREADY SHIPPED, never ticked here (opt_luck / luck_left / LuckyRoll%) @done(26-08-02)
+        ✔ Re-roll is permanent no matter the outcome @done(26-08-02)
+        ✔ Cannot re-roll re-rolls @done(26-08-02)
+        ✔ Count is the CHA bonus, refilled on level-up @done(26-08-02)
+        ✔ ON/OFF in settings, plus a prompt-fuse length (0 = untimed) @done(26-08-02)
+      ✔ TORCH item: exempts any class from THE CRYPT's forced line-of-sight while carried @done(26-08-06)
+        ✔ item code 14, drops on levels 2 and 4, per-seat kit, save v11, spare sells for 120 @done(26-08-06)
+        ✔ datalint taught the new code -- it caught the unhandled one immediately @done(26-08-06)
+
+Auto-care, torch + reconciliation (26-08-06):
+    x Auto-Heal and Attempt-Flee settings, both by synthesising the key, not by re-implementing @done(26-08-06)
+    x TORCH item (code 14) -- the CRYPT light exemption any class can carry @done(26-08-06)
+    x Those, luck and the torch surfaced in the RULES screen, only when they are on @done(26-08-06)
+    x Data editor now preserves each line's ORIGINAL ending @done(26-08-06)
+    x   overlays.txt had three CRLF rows in an LF file; normalising them on save would have
+    x   rewritten somebody's whole file as a side effect of opening it @done(26-08-06)
+    x overlaylint stands the player on each overlay's cell before testing it @done(26-08-06)
+    x   it skipped every LEVEL-SCOPED overlay, because DrawBoardOverlays quite correctly draws
+    x   only the current level's -- 3 good torches were reported as drawing nothing @done(26-08-06)
+    x RECONCILED the list: luck re-rolls, the cut-scene engine, the damage/gold totals and
+    x   three of the six ability mechanics were all shipped and never ticked here @done(26-08-06)
 
 Secret-door wind (26-08-05):
     x A draught you can hear near an UNFOUND secret door -- squared falloff, stops when found @done(26-08-05)

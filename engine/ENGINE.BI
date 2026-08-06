@@ -787,6 +787,7 @@ DIM SHARED GSPR_TOTAL(1 TO GSPR_MAX) AS SINGLE
 '--- DATA EDITOR state (engine/DATAEDIT.bas). The file is held as its RAW
 '    LINES; the grid is only a view of them, so comments survive a save. ---
 DIM SHARED DE_RAW(1 TO 4000) AS STRING     ' every physical line, verbatim
+DIM SHARED DE_CRLF(1 TO 4000) AS INTEGER   ' did THIS line end CRLF? kept so a save cannot renormalise a file
 DIM SHARED DE_NRAW AS INTEGER
 DIM SHARED DE_ROWMAP(1 TO 4000) AS INTEGER ' grid row -> raw line index
 DIM SHARED DE_NROW AS INTEGER

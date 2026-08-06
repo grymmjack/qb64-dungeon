@@ -1795,7 +1795,22 @@ SUB DumpOverlayLint
         before(i) = POINT(OVL_COL(i) * CW + CW \ 2, OVL_ROW(i) * CH + CH \ 2)
     NEXT i
 
-    DrawBoardOverlays
+    '--- DRAW ONCE PER OVERLAY, standing on its own cell.
+    '
+    '    DrawBoardOverlays skips any row whose level is not the level the PLAYER
+    '    is on -- which is correct, and meant this check could only ever pass a
+    '    `level 0` (any-level) row. Three perfectly good level-1 torches were
+    '    reported as drawing nothing, and the failure was here rather than in
+    '    the data. So put the player on each overlay's cell in turn: the same
+    '    thing the map debugger does before firing an event, and for the same
+    '    reason -- these routines read position, so a test that does not set it
+    '    is testing something else. ---
+    FOR i = 1 TO OVL_N
+        c.x = OVL_COL(i) * CW
+        c.y = OVL_ROW(i) * CH
+        SeedPlayerLevel c.x, c.y
+        DrawBoardOverlays
+    NEXT i
 
     drew = 0
     FOR i = 1 TO OVL_N

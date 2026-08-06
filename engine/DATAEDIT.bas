@@ -86,8 +86,20 @@ SUB DeLoad (path AS STRING)
         i = INSTR(p, whole, CHR$(10))
         IF i = 0 THEN i = LEN(whole) + 1
         ln = MID$(whole, p, i - p)
-        IF RIGHT$(ln, 1) = CHR$(13) THEN ln = LEFT$(ln, LEN(ln) - 1)
-        IF DE_NRAW < DE_MAXRAW THEN DE_NRAW = DE_NRAW + 1: DE_RAW(DE_NRAW) = ln
+        '--- remember the ending PER LINE. A file with mixed endings is
+        '    pathological, but normalising one on save would rewrite every line
+        '    of somebody's file as a side effect of opening it -- which is
+        '    exactly what this editor exists not to do. ---
+        IF DE_NRAW < DE_MAXRAW THEN
+            DE_NRAW = DE_NRAW + 1
+            IF RIGHT$(ln, 1) = CHR$(13) THEN
+                DE_CRLF(DE_NRAW) = -1
+                ln = LEFT$(ln, LEN(ln) - 1)
+            ELSE
+                DE_CRLF(DE_NRAW) = 0
+            END IF
+            DE_RAW(DE_NRAW) = ln
+        END IF
         p = i + 1
     LOOP
 
@@ -288,7 +300,7 @@ SUB DeSave
 
     whole = ""
     FOR i = 1 TO DE_NRAW
-        whole = whole + DE_RAW(i) + CHR$(10)
+        IF DE_CRLF(i) THEN whole = whole + DE_RAW(i) + CHR$(13) + CHR$(10) ELSE whole = whole + DE_RAW(i) + CHR$(10)
     NEXT i
     f = FREEFILE
     OPEN DE_PATH FOR OUTPUT AS #f
@@ -500,8 +512,10 @@ SUB DeInsertRow
 
     FOR i = DE_NRAW TO at STEP -1
         DE_RAW(i + 1) = DE_RAW(i)
+        DE_CRLF(i + 1) = DE_CRLF(i)
     NEXT i
     DE_RAW(at) = blank
+    IF at > 1 THEN DE_CRLF(at) = DE_CRLF(at - 1) ELSE DE_CRLF(at) = 0
     DE_NRAW = DE_NRAW + 1
     DeRemap
     DE_CUR = DeRowAtRaw%(at)
@@ -515,6 +529,7 @@ SUB DeDeleteRow
     at = DE_ROWMAP(DE_CUR)
     FOR i = at TO DE_NRAW - 1
         DE_RAW(i) = DE_RAW(i + 1)
+        DE_CRLF(i) = DE_CRLF(i + 1)
     NEXT i
     DE_NRAW = DE_NRAW - 1
     DeRemap
@@ -674,7 +689,7 @@ FUNCTION DataEditSelfTest% (dir AS STRING)
         '--- (1) an untouched save must reproduce the file exactly ---
         after = ""
         FOR r = 1 TO DE_NRAW
-            after = after + DE_RAW(r) + CHR$(10)
+            IF DE_CRLF(r) THEN after = after + DE_RAW(r) + CHR$(13) + CHR$(10) ELSE after = after + DE_RAW(r) + CHR$(10)
         NEXT r
         bad = 0
         IF after <> before THEN

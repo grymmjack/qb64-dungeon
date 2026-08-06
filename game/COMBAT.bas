@@ -726,6 +726,10 @@ SUB DoCombatDnD (rm AS INTEGER)
         IF autocombat_run AND LEN(k) = 0 THEN
             IF TIMER - auto_t0 >= AutoDelaySecs! OR TIMER - auto_t0 < 0 THEN k = " ": auto_t0 = TIMER
         END IF
+        ' AUTO-CARE, after the real key and after auto-combat: heal first, then run.
+        ' Healing before fleeing on purpose -- a potion keeps you in the fight, and
+        ' running is what you do when it can no longer be won.
+        IF LEN(k) = 0 THEN k = AutoCareKey$
         acted = 0: did_attack = 0
         IF init_free THEN acted = -1: init_free = 0   ' it got the jump on you -- it swings, unanswered
         IF k = CHR$(27) THEN                     ' attempt to flee
@@ -1388,6 +1392,16 @@ SUB ClaimTreasure (rm AS INTEGER, sm AS INTEGER)
                 LogTreasure _TRIM$(tname) + " (sold)", 500
                 line2 = "The " + tname + " is written in arcane runes only a Wizard can read -- you sell it for 500 gold."
             END IF
+        CASE 14                                    ' TORCH -- carried light (see Game_OnEnterCell)
+            IF item_torch = 0 THEN
+                item_torch = TRUE
+                LogTreasure "Torch", 0
+                line2 = "You take up a TORCH -- its light holds back the dark of THE CRYPT, deep below."
+            ELSE
+                gold = gold + SellPrice&(120)
+                LogTreasure "Torch (spare)", 120
+                line2 = "You already carry a lit " + tname + " -- the spare goes in your pack to sell in town (+120 gold)."
+            END IF
         CASE ELSE                                 ' plain gold treasure
             gold = gold + ROOMS(rm).treasure
             LogTreasure tname, ROOMS(rm).treasure
@@ -1866,3 +1880,45 @@ SUB CloseCallReward (rounds AS INTEGER)
     END IF
     WaitKey
 END SUB
+
+
+' ----------------------------------------------------------------------------
+'  AUTO-CARE -- the key the player would have pressed.
+'
+'  Returns "H" to quaff or CHR$(27) to run, or "" to leave the turn alone. It
+'  decides nothing else: the caller's own branches do the healing and the
+'  fleeing, so both obey every rule they already obey (no potion left, already
+'  at full HP, ambushed and unable to run, FleeFails by depth).
+'
+'  Deliberately re-offers every round while the threshold is crossed. That is
+'  what "auto" means here -- one attempt and then silence would be a setting
+'  that stops working exactly when it matters.
+' ----------------------------------------------------------------------------
+FUNCTION AutoCareKey$
+    IF player_maxhp <= 0 THEN EXIT FUNCTION
+
+    IF CareTriggered%(opt_autoheal) THEN
+        IF item_potion_small + item_potion_large > 0 THEN
+            IF player_hp < player_maxhp THEN AutoCareKey$ = "H": EXIT FUNCTION
+        END IF
+    END IF
+
+    IF CareTriggered%(opt_autoflee) THEN AutoCareKey$ = CHR$(27)
+END FUNCTION
+
+'--- has HP fallen through this setting's threshold? ---
+FUNCTION CareTriggered% (mode AS INTEGER)
+    SELECT CASE mode
+        CASE CARE_HALF: CareTriggered% = (player_hp * 2 < player_maxhp)
+        CASE CARE_QUARTER: CareTriggered% = (player_hp * 4 < player_maxhp)
+    END SELECT
+END FUNCTION
+
+'--- for SETTINGS and the rules screen ---
+FUNCTION CareLabel$ (mode AS INTEGER)
+    SELECT CASE mode
+        CASE CARE_HALF: CareLabel$ = "Below half HP"
+        CASE CARE_QUARTER: CareLabel$ = "Below quarter HP"
+        CASE ELSE: CareLabel$ = "Off"
+    END SELECT
+END FUNCTION

@@ -74,10 +74,16 @@ FUNCTION Game_OnEnterCell% (cx AS INTEGER, cy AS INTEGER)
     ' THE CRYPT (level 9) forces line of sight. Its darkness is a property of the place, not a
     ' display preference, so it overrides the setting -- but through fov_forced, never by writing
     ' opt_fov, which is the player's saved config and must come back unchanged when they leave.
-    ' A WIZARD is exempt: light is the one thing they can always make.
+    ' A WIZARD is exempt: light is the one thing they can always make. A TORCH
+    ' buys any other class the same exemption -- which is the entire point of
+    ' carrying one, and the reason it is worth a drop slot.
     DIM wantfov AS INTEGER
     wantfov = 0
-    IF PlayerLevel% = 9 THEN IF NOT IsWizard% THEN wantfov = -1   ' nested: QB64's AND never short-circuits
+    IF PlayerLevel% = 9 THEN                          ' nested: QB64's AND never short-circuits
+        IF NOT IsWizard% THEN
+            IF item_torch = 0 THEN wantfov = -1
+        END IF
+    END IF
     IF wantfov <> fov_forced THEN
         fov_forced = wantfov
         ' Switching sight on mid-run needs the masks built, or the first frame blacks the board

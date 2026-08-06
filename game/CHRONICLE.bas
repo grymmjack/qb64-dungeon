@@ -705,6 +705,13 @@ FUNCTION RulesConfigBlock$ ()
     IF opt_hardcore THEN s = s + "| Idle danger | hardcore -- time passes while idle |" + nl ELSE s = s + "| Idle danger | casual -- idling is safe |" + nl
     IF opt_realdice THEN s = s + "| Dice | you roll real dice and type the result |" + nl ELSE s = s + "| Dice | the computer rolls |" + nl
     IF num_players > 1 THEN s = s + "| Players | " + _TRIM$(STR$(num_players)) + " (hot-seat) |" + nl ELSE s = s + "| Players | 1 (solo) |" + nl
+    ' AUTO-CARE. Listed only when ON, because these are the two settings that act
+    ' FOR you in a fight -- a player who has forgotten they armed one will read
+    ' their potion emptying itself as a bug. Off is the default and needs no row.
+    IF opt_autoheal <> CARE_OFF THEN s = s + "| Auto-heal | quaffs a potion " + LCASE$(CareLabel$(opt_autoheal)) + " |" + nl
+    IF opt_autoflee <> CARE_OFF THEN s = s + "| Attempt flee | tries to run " + LCASE$(CareLabel$(opt_autoflee)) + " |" + nl
+    IF opt_luck THEN s = s + "| Luck re-rolls | on -- CHA funds " + _TRIM$(STR$(luck_max)) + ", spent on combat rolls and saves |" + nl
+    IF item_torch THEN s = s + "| Torch | carried -- THE CRYPT does not force line-of-sight on you |" + nl
     s = s + nl + "---" + nl + nl
     RulesConfigBlock$ = s
 END FUNCTION

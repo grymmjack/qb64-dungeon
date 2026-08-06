@@ -423,6 +423,8 @@ SUB SaveSettings
     PRINT #f, "duckamt " + _TRIM$(STR$(opt_duckamt))
     PRINT #f, "cutscenes " + _TRIM$(STR$(opt_cutscenes))
     PRINT #f, "fpslight " + _TRIM$(STR$(opt_fpslight))
+    PRINT #f, "autoheal " + _TRIM$(STR$(opt_autoheal))
+    PRINT #f, "autoflee " + _TRIM$(STR$(opt_autoflee))
     PRINT #f, "realdice " + _TRIM$(STR$(opt_realdice))
     PRINT #f, "dicemath " + _TRIM$(STR$(opt_dicemath))
     PRINT #f, "oldschool " + _TRIM$(STR$(opt_oldschool))
@@ -569,6 +571,8 @@ SUB LoadSettings
                 CASE "musicpack": opt_musicpack = vs
                 CASE "cutscenes": opt_cutscenes = v
                 CASE "fpslight": opt_fpslight = v
+                CASE "autoheal": opt_autoheal = v
+                CASE "autoflee": opt_autoflee = v
                 CASE "narration": opt_narration = v
                 CASE "narrationpack": opt_narrationpack = vs
                 CASE "narrfreq": opt_narrfreq = v

@@ -194,6 +194,7 @@ TYPE PLAYER
     bow      AS INTEGER         ' Magic Bow: +2 to-hit
     boots    AS INTEGER         ' Elf Boots: +2 movement roll
     teleport AS INTEGER         ' Teleport scrolls / spell charges
+    torch    AS INTEGER         ' carrying a lit torch (THE CRYPT exemption)
     pot_sm   AS INTEGER         ' small healing potions held
     pot_lg   AS INTEGER         ' large healing potions held
     sp_fire  AS INTEGER         ' WIZARD Fire Ball charges
@@ -395,6 +396,24 @@ DIM SHARED opt_luckfuse AS INTEGER        ' SETTINGS: seconds on the luck prompt
 DIM SHARED luck_left AS INTEGER, luck_max AS INTEGER
 DIM SHARED opt_luck AS INTEGER            ' SETTINGS toggle: luck re-rolls on/off
 DIM SHARED opt_startheal AS INTEGER       ' SETTINGS: does returning to the entrance heal you?
+
+' --- AUTO-CARE: the two things a player does by reflex when a fight turns ------
+' Both are expressed as a THRESHOLD, not a boolean, because "when" is the whole
+' decision: 0 = off, 1 = below half, 2 = below a quarter.
+'
+' Neither reimplements anything. They SYNTHESISE THE KEY the player would have
+' pressed -- the same trick auto-combat already uses -- so a potion drunk
+' automatically goes through UsePotion and an automatic escape goes through the
+' flee branch, rolls FleeFails and all. A second copy of either would be a
+' second set of rules to keep in step.
+'
+' A real keypress is read first and always wins, so you can always take the
+' fight back.
+CONST CARE_OFF = 0
+CONST CARE_HALF = 1
+CONST CARE_QUARTER = 2
+DIM SHARED opt_autoheal AS INTEGER        ' SETTINGS: quaff a potion at this threshold
+DIM SHARED opt_autoflee AS INTEGER        ' SETTINGS: try to run at this threshold
 
 ' --- FLOURISHES: DEX-funded follow-throughs -------------------------------------
 ' A pool the DEX modifier funds, refilled on every level-up. A flourish gesture spends one; a
@@ -653,7 +672,7 @@ CONST SETOPT_MAX = 128
 ' How many settings options exist. Lives here rather than inside RunSettings so the layout check
 ' (SettingsLayoutCheck, run by `dungeon.run settingsshot`) can see it: an option counted here but
 ' never given a SetLayRow draws nowhere, silently. Raise it when adding a row.
-CONST NSET = 69                                   ' 69 = Torch Light (first-person lighting)
+CONST NSET = 71                                   ' 69 Torch Light, 70 Auto-Heal, 71 Attempt Flee
 DIM SHARED SL_COL(1 TO SETOPT_MAX) AS INTEGER    ' per option id: which column (1..NSCOL)
 DIM SHARED SL_ROW(1 TO SETOPT_MAX) AS INTEGER    ' per option id: screen row
 DIM SHARED SLH_N AS INTEGER                      ' category header count
@@ -760,6 +779,10 @@ DIM SHARED CUTSEEN_N AS INTEGER
 '    which is what an attract loop needs) / Off. It is a SETTING and not a
 '    script property on purpose -- scripts stay agnostic about pacing. ---
 DIM SHARED opt_cutscenes AS INTEGER
+'--- TORCH: a carried light. Level 9 forces line-of-sight because THE CRYPT is
+'    dark; a Wizard was exempt because light is the one thing they can always
+'    make. A torch is how every other class buys the same exemption. ---
+DIM SHARED item_torch AS INTEGER
 
 '--- the Storybook roster, built by scanning the pack's .cut files once when
 '    the screen opens. Kept separate from CUTSEEN because that list is what the

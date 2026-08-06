@@ -23,6 +23,7 @@
 #             5=CrystalBall   7=Shield(+2 AC) 8=MagicArmor(+3 AC) 9=MagicBow(+2 hit)
 #             10=ElfBoots(+2 move) 11=TeleportScroll   (6=LevelKey is placed dynamically)
 #             12=FireBallScroll  13=LightningBoltScroll  (Wizard scribes 2 charges; others sell)
+#             14=Torch (carried light: exempts any class from THE CRYPT's forced line-of-sight)
 #
 # Re-read at launch (F5).
 #
@@ -42,3 +43,8 @@
 8     | SHIELD           | 800  | 7    | 12
 9     | LIGHTNING SCROLL | 500  | 13   | 9
 9     | MAGIC ARMOR      | 1500 | 8    | 6
+# A TORCH on the shallow levels, so it can be FOUND before level 9 needs it.
+# Weight 10 against level 2's other pool member is roughly the 1-in-10 the plan
+# asked for once ITEM_PCT_2 decides how often level 2 yields an item at all.
+2     | TORCH            | 120  | 14   | 10
+4     | TORCH            | 120  | 14   | 8

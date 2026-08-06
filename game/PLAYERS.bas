@@ -41,6 +41,7 @@ SUB LoadActivePlayer (p AS INTEGER)
     item_armor = PLAYERS(p).armor: item_shield = PLAYERS(p).shield
     item_bow = PLAYERS(p).bow: item_boots = PLAYERS(p).boots
     item_teleport = PLAYERS(p).teleport
+    item_torch = PLAYERS(p).torch
     item_potion_small = PLAYERS(p).pot_sm: item_potion_large = PLAYERS(p).pot_lg
     spell_fire = PLAYERS(p).sp_fire: spell_bolt = PLAYERS(p).sp_bolt
     char_level = PLAYERS(p).clevel: char_xp = PLAYERS(p).cxp
@@ -72,6 +73,7 @@ SUB SaveActivePlayer (p AS INTEGER)
     PLAYERS(p).armor = item_armor: PLAYERS(p).shield = item_shield
     PLAYERS(p).bow = item_bow: PLAYERS(p).boots = item_boots
     PLAYERS(p).teleport = item_teleport
+    PLAYERS(p).torch = item_torch
     PLAYERS(p).pot_sm = item_potion_small: PLAYERS(p).pot_lg = item_potion_large
     PLAYERS(p).sp_fire = spell_fire: PLAYERS(p).sp_bolt = spell_bolt
     PLAYERS(p).clevel = char_level: PLAYERS(p).cxp = char_xp

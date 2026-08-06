@@ -1165,8 +1165,8 @@ SUB DataLint
                 warns = warns + 1
             END IF
             code = ITM_CODE(lvl, slot)
-            ' 1..5, 7..13 are handled by ClaimTreasure; 6 (Level Key) is placed dynamically
-            IF code < 1 OR code > 13 OR code = 6 THEN
+            ' 1..5, 7..14 are handled by ClaimTreasure; 6 (Level Key) is placed dynamically
+            IF code < 1 OR code > 14 OR code = 6 THEN
                 PRINT PipeCol$("  |12!!|07 " + _TRIM$(ITM_NAME(lvl, slot)) + " (level " + LTRIM$(STR$(lvl)) + ") has unhandled type code " + LTRIM$(STR$(code)))
                 errs = errs + 1
             END IF

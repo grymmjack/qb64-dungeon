@@ -679,6 +679,7 @@ SUB BuildSetLayout
     SetLayRow 3, 59, prow()                          ' Stats Overlay -- a DISPLAY choice, not a rule
     SetLayRow 3, 68, prow()                          ' Cut-scenes: pacing is a PLAYER choice, not a script property
     SetLayRow 3, 69, prow()                          ' Torch Light: how dark first person is
+    SetLayRow 3, 70, prow(): SetLayRow 3, 71, prow()  ' Auto-Heal / Attempt Flee -- reflexes, not rules
     SetLayRow 3, 46, prow(): SetLayRow 3, 49, prow(): SetLayRow 3, 51, prow(): SetLayRow 3, 37, prow(): SetLayRow 3, 40, prow(): SetLayRow 3, 21, prow()
     prow(3) = prow(3) + 1
     SetLayRow 3, 50, prow()                         ' << Back at the foot of the last column
@@ -876,6 +877,16 @@ SUB RunSettings
                     ' preference appears to do nothing until the next launch.
                     ReloadSfxPack
                     music_curfile = ""        ' force PlayLevelMusic to re-resolve the track
+                CASE 70
+                    opt_autoheal = opt_autoheal + delta
+                    IF opt_autoheal < 0 THEN opt_autoheal = CARE_QUARTER
+                    IF opt_autoheal > CARE_QUARTER THEN opt_autoheal = CARE_OFF
+                    Sfx "select"
+                CASE 71
+                    opt_autoflee = opt_autoflee + delta
+                    IF opt_autoflee < 0 THEN opt_autoflee = CARE_QUARTER
+                    IF opt_autoflee > CARE_QUARTER THEN opt_autoflee = CARE_OFF
+                    Sfx "select"
                 CASE 69
                     opt_fpslight = opt_fpslight + delta
                     IF opt_fpslight < 0 THEN opt_fpslight = 3
@@ -1016,6 +1027,12 @@ SUB RunSettings
                     opt_solomins = opt_solomins - 5: IF opt_solomins < 15 THEN opt_solomins = 30
                 CASE 43: CycleSfxPack 1
                 CASE 44: CycleMusicPack 1
+                CASE 70
+                    opt_autoheal = opt_autoheal + 1: IF opt_autoheal > CARE_QUARTER THEN opt_autoheal = CARE_OFF
+                    Sfx "select"
+                CASE 71
+                    opt_autoflee = opt_autoflee + 1: IF opt_autoflee > CARE_QUARTER THEN opt_autoflee = CARE_OFF
+                    Sfx "select"
                 CASE 69
                     opt_fpslight = opt_fpslight + 1: IF opt_fpslight > 3 THEN opt_fpslight = 0
                     Sfx "select"
@@ -1280,6 +1297,12 @@ SUB RunSettings
                     lbl = "Music Pack": slider = TRUE
                     vtxt = PackLabel$(opt_musicpack)
                     ' (counter dropped -- see SFX Pack)
+                CASE 70
+                    lbl = "Auto-Heal": slider = TRUE
+                    vtxt = CareLabel$(opt_autoheal)
+                CASE 71
+                    lbl = "Attempt Flee": slider = TRUE
+                    vtxt = CareLabel$(opt_autoflee)
                 CASE 69
                     lbl = "Torch Light": slider = TRUE
                     vtxt = TorchLabel$
