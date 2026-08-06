@@ -474,6 +474,7 @@ IF INSTR(UCASE$(COMMAND$), "PACKBROWSESHOT") > 0 THEN
     SYSTEM
 END IF
 IF INSTR(UCASE$(COMMAND$), "PACKBROWSE") > 0 THEN
+    DevShowWindow
     PackBrowse
     SYSTEM
 END IF
@@ -566,6 +567,23 @@ IF INSTR(UCASE$(COMMAND$), "FPSSHOT") > 0 THEN
     SYSTEM
 END IF
 
+'--- INTERACTIVE dev modes must REVEAL THE WINDOW.
+'
+'    The window is created with $SCREENHIDE and stays hidden until _SCREENSHOW,
+'    which normal play does at the bottom of this file -- long after these modes
+'    have run and SYSTEMed. A mode that draws and polls INKEY$ without calling
+'    this therefore does everything correctly into a window nobody can see: no
+'    error, no output, the process just sits there. That is exactly what
+'    mapdebug, dataedit and packbrowse did when they shipped.
+'
+'    Shot and lint modes must NOT call it -- they write a file and exit, and
+'    flashing a window up under xvfb for a gate run is noise. ---
+SUB DevShowWindow
+    _SCREENSHOW
+    screen_shown = TRUE
+    ApplyDisplay
+END SUB
+
 '--- dev: `dungeon.run dataedit` -- the content tables as a grid. The files
 '    stay hand-editable text; this only spares you counting columns by eye. ---
 IF INSTR(UCASE$(COMMAND$), "DATAEDITTEST") > 0 THEN
@@ -582,6 +600,7 @@ IF INSTR(UCASE$(COMMAND$), "DATAEDITSHOT") > 0 THEN
     SYSTEM
 END IF
 IF INSTR(UCASE$(COMMAND$), "DATAEDIT") > 0 THEN
+    DevShowWindow
     DataEditor "assets/data/" + opt_datapack + "/"
     SYSTEM
 END IF
@@ -601,6 +620,7 @@ IF INSTR(UCASE$(COMMAND$), "MAPDEBUGSHOT") > 0 THEN
     LoadCutTriggers
     LoadBoardOverlays
     InitFog
+    DevShowWindow
     DumpMapDebugShot MdArgMask$, MdArgOut$
     SYSTEM
 END IF
@@ -613,6 +633,7 @@ IF INSTR(UCASE$(COMMAND$), "MAPDEBUG") > 0 THEN
     LoadCutTriggers
     LoadBoardOverlays
     InitFog
+    DevShowWindow
     DumpMapDebug
     SYSTEM
 END IF

@@ -6,6 +6,10 @@ install: a mode is chosen by an argument on the command line, or by a key in a r
 Run them from the **repo root**. QB64PE chdirs to the executable at startup, so `assets/...`
 only resolves if `dungeon.run` sits beside `assets/`.
 
+If an interactive mode ever seems to *sit there doing nothing*, it forgot to call
+`DevShowWindow`: the window is created with `$SCREENHIDE` and stays invisible until
+`_SCREENSHOW`. Check with `scratchpads/shots/window-check.sh <mode> out.png`.
+
     ./dungeon.run <mode> [args]
 
 ---

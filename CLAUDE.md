@@ -1184,6 +1184,15 @@ character `Q` printed in the d20 font:
   — QB64PE chdirs to the binary at startup (`_CWD$` = the exe's dir, `_STARTDIR$` = where it was
   launched). That is *why* `dungeon.run` must sit at the repo root for `assets/...` to resolve;
   a test binary built into `scratchpads/` silently fails every `_FILEEXISTS`/`_LOADFONT`.
+- **An INTERACTIVE dev mode must call `DevShowWindow`.** The window is created with
+  `$SCREENHIDE` and only `_SCREENSHOW` reveals it -- which normal play reaches at the BOTTOM of
+  `dungeon.bas`, long after a dev mode has run and `SYSTEM`ed. A mode that omits it draws and
+  polls keys perfectly into a window nobody can see: no error, no output, **the process just
+  sits there**. `mapdebug` / `dataedit` / `packbrowse` all shipped that way, and nothing caught
+  it -- every headless `*shot` mode writes its PNG correctly with the window still hidden, so
+  the shots all passed. Shot and lint modes must NOT call it. Verify with
+  `scratchpads/shots/window-check.sh <mode> out.png`, which photographs the X root of a PRIVATE
+  Xvfb (never the user's session) and reports what percentage is lit.
 - **A runtime error must NEVER open a dialog.** An unhandled QB64 error pops a modal message box
   (`Line: 165 ... File not found / Continue? [Yes] [No]`) and waits for a **click** — under
   `xvfb` (every dev mode, every gate run, every capture) nobody can click it, so the process
