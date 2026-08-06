@@ -259,6 +259,30 @@ static <t>                            ' glyph noise
 crtoff <t>                            ' collapse to a line, then a dot
 ```
 
+**Themed transitions** — six named looks, each with its own shape and colour, so
+they read as something *happening to* the picture rather than as a tinted fade:
+
+```
+blood   [to "<path>"] over <t>     ' runs down from the top, ragged front, pools
+fire    [to "<path>"] over <t>     ' climbs from the bottom, hottest at the edge
+poison  [to "<path>"] over <t>     ' sickly blotches spreading from many seeds
+decay   [to "<path>"] over <t>     ' eaten outward in holes, crusted at the rim
+holy    [to "<path>"] over <t>     ' a white bloom from the centre, with rays
+arcane  [to "<path>"] over <t>     ' violet rings from three points, and sparks
+```
+
+All six are **drawn from primitives, never from art** — a transition that needed
+a sprite could not be used by a pack that did not ship one, and these are meant
+to work everywhere. They default to `over 1.4`, which is slower than the plain
+ones on purpose: the whole point is that you watch it arrive.
+
+`poison` and `decay` spread in a fixed per-cell order (the same one `scatter`
+uses), seeded once when the transition starts. Re-rolling it per frame would
+redraw different blotches every frame, which reads as static rather than as
+something growing.
+
+See `assets/cutscenes/default/_transitions-demo.cut` for all six back to back.
+
 Most transitions **photograph the outgoing frame** and reveal the new picture
 from under it. That is why the optional `to "<path>"` exists: the swap has to
 happen *inside* the transition, after the photograph. Writing the swap as a

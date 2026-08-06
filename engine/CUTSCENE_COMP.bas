@@ -396,6 +396,22 @@ FUNCTION CutCompile% (path AS STRING)
                 op = CutEmit%(OP_TRANS, CUT_NOSTR, CUT_NOSTR, k, CutKwNum!("over", 2, 1), px, py, ln, isasync)
                 CutTransTarget op, 2, ln
 
+            '--- THEMED transitions: one keyword each, all `over <t>` like the rest.
+            '    Kept as separate command words rather than `theme <name>` so a
+            '    misspelling is a compile error naming the line, which is how
+            '    every other command in this language fails. ---
+            CASE "blood", "fire", "poison", "decay", "holy", "arcane"
+                SELECT CASE cmd
+                    CASE "blood": k = TR_BLOOD
+                    CASE "fire": k = TR_FIRE
+                    CASE "poison": k = TR_POISON
+                    CASE "decay": k = TR_DECAY
+                    CASE "holy": k = TR_HOLY
+                    CASE ELSE: k = TR_ARCANE
+                END SELECT
+                op = CutEmit%(OP_TRANS, CUT_NOSTR, CUT_NOSTR, k, CutKwNum!("over", 2, 1.4), 0, 0, ln, isasync)
+                CutTransTarget op, 2, ln
+
             CASE "scatter"
                 op = CutEmit%(OP_TRANS, CUT_NOSTR, CUT_NOSTR, TR_SCATTER, CutKwNum!("over", 2, 1), 0, 0, ln, isasync)
                 CutTransTarget op, 2, ln

@@ -1,0 +1,50 @@
+' ============================================================================
+'  _transitions-demo.cut -- the six THEMED transitions, back to back.
+'
+'  Leading underscore: this is a FRAGMENT/showcase, so the Storybook scan, the
+'  linter's roster and the render gate all skip it -- the same rule `include`
+'  fragments follow.
+'
+'  Watch it:  cutplay.run assets/cutscenes/default/_transitions-demo.cut
+'  One frame: cutplay.run assets/cutscenes/default/_transitions-demo.cut shot at 3.2 out.png
+' ============================================================================
+
+scene transitions-demo
+dev
+storybook "Six Ways To End A Scene" "blood, fire, poison, decay, holy light and the arcane, drawn from primitives so every pack has them."
+
+var body$ = "dungeon-mode.ttf"
+
+stage 1056x816
+show bg "bg/cham-armory.png" fill
+cam 0.5,0.5 zoom 1
+
+font body$ 22
+color #f0e8d8
+
+fade from black over 0.6
+
+' Each one paints over the frame in its own SHAPE. The picture comes back
+' between them so you can see what each is doing TO something.
+title "BLOOD" "runs down, and pools" for 1.2
+blood over 1.4
+fade from black over 0.5
+
+title "FIRE" "climbs, hottest at the edge" for 1.2
+fire over 1.4
+fade from black over 0.5
+
+title "POISON" "blotches, from many seeds" for 1.2
+poison over 1.4
+fade from black over 0.5
+
+title "DECAY" "eaten outward, crusted" for 1.2
+decay over 1.4
+fade from black over 0.5
+
+title "HOLY LIGHT" "a bloom, with rays" for 1.2
+holy over 1.4
+fade from black over 0.5
+
+title "THE ARCANE" "rings, and sparks" for 1.2
+arcane over 1.6

@@ -62,8 +62,11 @@ Huge UI Efforts:
       ✔ Timeline events -- the VM is a step machine, so async ops run against a timeline @done(26-08-03)
       ✔ Dialog -- say / choice menus with branching @done(26-08-03)
       ☐ Effects: blur / desaturate / colorize   [NOT built -- fade, flash and shake are]
-      ☐ Themed transitions: blood / fire / poison / decay / holy light / magic light
-        ☐ [the transition MACHINERY is there (fade, iris, flash); these are the six named looks]
+      ✔ Themed transitions: blood / fire / poison / decay / holy / arcane @done(26-08-06)
+        ✔ each its own SHAPE and colour, drawn from primitives so every pack has them @done(26-08-06)
+        ✔ poison/decay spread in a fixed per-cell order, seeded once -- a per-frame
+          re-roll redraws different blotches every frame and reads as static @done(26-08-06)
+        ✔ _transitions-demo.cut shows all six; documented in CUT-DSL.md @done(26-08-06)
       ☐ Modify character from a scene (attribute / HP / inventory change)
         ☐ [scenes can READ game state through the host hooks; they cannot yet WRITE it]
 
@@ -109,6 +112,7 @@ Auto-care, torch + reconciliation (26-08-06):
     x overlaylint stands the player on each overlay's cell before testing it @done(26-08-06)
     x   it skipped every LEVEL-SCOPED overlay, because DrawBoardOverlays quite correctly draws
     x   only the current level's -- 3 good torches were reported as drawing nothing @done(26-08-06)
+    x Six THEMED cut-scene transitions (blood/fire/poison/decay/holy/arcane) @done(26-08-06)
     x RECONCILED the list: luck re-rolls, the cut-scene engine, the damage/gold totals and
     x   three of the six ability mechanics were all shipped and never ticked here @done(26-08-06)
 

@@ -257,6 +257,16 @@ CONST TR_IRISIN = 6
 CONST TR_IRISOUT = 7
 CONST TR_SCATTER = 8      ' cell-by-cell in random order
 CONST TR_SCAN = 9         ' scanline sweep
+'--- THEMED transitions. Each one covers the outgoing frame with its own SHAPE
+'    and its own colour, so they read as a thing happening to the picture rather
+'    than as a tinted fade. All six are drawn, not art -- a transition that
+'    needed a sprite could not be used by a pack that did not ship one. ---
+CONST TR_BLOOD = 20       ' runs down from the top and pools
+CONST TR_FIRE = 21        ' a jagged line of flame climbing from the bottom
+CONST TR_POISON = 22      ' sickly blotches spreading from many seeds
+CONST TR_DECAY = 23       ' holes eaten outward, crusted at the edge
+CONST TR_HOLY = 24        ' a white bloom from the centre, with rays
+CONST TR_ARCANE = 25      ' violet rings and sparks
 CONST TR_STATIC = 10      ' glyph noise
 CONST TR_CRTOFF = 11      ' collapse to a line, then a dot
 CONST TR_FLASH = 12

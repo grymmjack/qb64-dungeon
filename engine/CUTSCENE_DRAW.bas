@@ -984,7 +984,11 @@ SUB CutTransStart (kind AS INTEGER, secs AS SINGLE, n3 AS SINGLE, n4 AS SINGLE, 
         CUT_SCRSTEP = -1
     END IF
 
-    IF kind = TR_SCATTER THEN
+    '--- The per-cell order POISON and DECAY spread in is the same one SCATTER
+    '    uses, so it is seeded for all three. Reading it unseeded was silent:
+    '    every entry is 0, every cell is "already due", and the whole screen
+    '    filled on the first frame -- a transition with no transition in it. ---
+    IF kind = TR_SCATTER _ORELSE kind = TR_POISON _ORELSE kind = TR_DECAY THEN
         ncell = CLNG(CUT_SW) * CLNG(CUT_SH)
         REDIM CUT_SCAT(0 TO ncell) AS SINGLE
         FOR i = 0 TO ncell
@@ -1107,6 +1111,125 @@ SUB CutTransDraw
                     END IF
                 NEXT i
             NEXT j
+
+        '--- THEMED transitions.
+        '
+        '    Each one PAINTS OVER the frame in its own shape as t runs 0->1, so
+        '    by the end the screen is that colour and the next scene can be
+        '    composed underneath. They are deliberately drawn from primitives:
+        '    an effect that needed a sprite could not be used by a pack that did
+        '    not ship one, and these want to work in every pack.
+        '
+        '    All of them are seeded from the CELL GRID rather than from a random
+        '    number per frame -- a per-frame random redraws different blotches
+        '    every frame, which reads as static rather than as something
+        '    spreading. ---
+        CASE TR_BLOOD
+            '--- runs down from the top: every column has its own speed and its
+            '    own head, so the front is ragged the way a liquid front is ---
+            FOR i = 0 TO CUT_SW - 1
+                j = ((i * 37) MOD 23)                     ' fixed per column, so it does not shimmer
+                hh = (t * (1.35 + j / 40)) * CUT_PXH
+                IF hh > 0 THEN
+                    LINE (i * CUT_CW, 0)-((i + 1) * CUT_CW - 1, hh), _RGBA32(120, 6, 10, 235), BF
+                    '--- a brighter head on the running edge; blood is not flat ---
+                    LINE (i * CUT_CW, hh - CUT_CH)-((i + 1) * CUT_CW - 1, hh), _RGBA32(190, 20, 24, 200), BF
+                END IF
+            NEXT i
+
+        CASE TR_FIRE
+            '--- climbs from the bottom, hottest at the advancing edge ---
+            FOR i = 0 TO CUT_SW - 1
+                j = ((i * 53) MOD 17)
+                hh = (t * (1.3 + j / 30)) * CUT_PXH
+                IF hh > 0 THEN
+                    LINE (i * CUT_CW, CUT_PXH - hh)-((i + 1) * CUT_CW - 1, CUT_PXH - 1), _RGBA32(150, 30, 8, 225), BF
+                    '--- the hot head only exists while the front is still ON
+                    '    screen. Unclamped, a column that had already climbed
+                    '    past the top drew its flame head at a NEGATIVE y --
+                    '    which QB64 clips to row 0, so the fire appeared to be
+                    '    burning along the ceiling. ---
+                    IF CUT_PXH - hh >= 0 THEN
+                        LINE (i * CUT_CW, CUT_PXH - hh)-((i + 1) * CUT_CW - 1, CUT_PXH - hh + CUT_CH * 2), _RGBA32(255, 150, 30, 190), BF
+                        LINE (i * CUT_CW, CUT_PXH - hh)-((i + 1) * CUT_CW - 1, CUT_PXH - hh + CUT_CH), _RGBA32(255, 235, 140, 170), BF
+                    END IF
+                END IF
+            NEXT i
+
+        CASE TR_POISON
+            '--- many seeds, each growing at its own rate. The seeds are the
+            '    scatter order already computed for TR_SCATTER, so they are
+            '    stable for the whole transition and evenly spread. ---
+            FOR j = 0 TO CUT_SH - 1
+                FOR i = 0 TO CUT_SW - 1
+                    idx = CLNG(j) * CUT_SW + i
+                    IF idx <= UBOUND(CUT_SCAT) THEN
+                        IF CUT_SCAT(idx) < t THEN
+                            LINE (i * CUT_CW, j * CUT_CH)-((i + 1) * CUT_CW - 1, (j + 1) * CUT_CH - 1), _RGBA32(40, 130, 30, 230), BF
+                            IF CUT_SCAT(idx) > t - 0.12 THEN
+                                LINE (i * CUT_CW, j * CUT_CH)-((i + 1) * CUT_CW - 1, (j + 1) * CUT_CH - 1), _RGBA32(150, 230, 60, 160), BF
+                            END IF
+                        END IF
+                    END IF
+                NEXT i
+            NEXT j
+
+        CASE TR_DECAY
+            '--- eaten away: the same seeds, but each hole is drawn dark with a
+            '    crusted rim, and the rim is what makes it read as rot rather
+            '    than as a green wash ---
+            FOR j = 0 TO CUT_SH - 1
+                FOR i = 0 TO CUT_SW - 1
+                    idx = CLNG(j) * CUT_SW + i
+                    IF idx <= UBOUND(CUT_SCAT) THEN
+                        IF CUT_SCAT(idx) < t THEN
+                            LINE (i * CUT_CW, j * CUT_CH)-((i + 1) * CUT_CW - 1, (j + 1) * CUT_CH - 1), _RGBA32(14, 11, 8, 240), BF
+                            IF CUT_SCAT(idx) > t - 0.16 THEN
+                                LINE (i * CUT_CW, j * CUT_CH)-((i + 1) * CUT_CW - 1, (j + 1) * CUT_CH - 1), _RGBA32(96, 74, 40, 170), BF
+                            END IF
+                        END IF
+                    END IF
+                NEXT i
+            NEXT j
+
+        CASE TR_HOLY
+            '--- a bloom from the centre with rays. Drawn as expanding rings so
+            '    the light has structure; a flat white circle is just an iris. ---
+            hw = CUT_PXW \ 2: hh = CUT_PXH \ 2
+            FOR i = 1 TO 26
+                dy = (t * 1.25 - i / 90) * CutIrisMax&(hw, hh)
+                IF dy > 0 THEN CIRCLE (hw, hh), dy, _RGBA32(255, 250, 220, 26)
+            NEXT i
+            IF t > 0.35 THEN
+                FOR i = 0 TO 15
+                    dx = hw + COS(i * 0.3927) * CUT_PXW
+                    dy = hh + SIN(i * 0.3927) * CUT_PXW
+                    LINE (hw, hh)-(dx, dy), _RGBA32(255, 255, 235, (t - 0.35) * 90)
+                NEXT i
+            END IF
+            LINE (0, 0)-(CUT_PXW - 1, CUT_PXH - 1), _RGBA32(255, 253, 240, CutEase!(t, EASE_IN) * 255), BF
+
+        CASE TR_ARCANE
+            '--- violet rings running OUTWARD from several points, plus sparks.
+            '    Three centres rather than one, so it reads as a working rather
+            '    than as a single explosion. ---
+            FOR i = 0 TO 2
+                dx = CUT_PXW * (0.25 + i * 0.25)
+                dy = CUT_PXH * (0.35 + (i MOD 2) * 0.3)
+                FOR j = 0 TO 5
+                    hh = (t * 1.3 - j * 0.09) * (CUT_PXW * 0.6)
+                    IF hh > 0 THEN CIRCLE (dx, dy), hh, _RGBA32(170, 90, 255, 60)
+                NEXT j
+            NEXT i
+            FOR i = 0 TO CUT_SW - 1
+                IF ((i * 29) MOD 7) < 3 THEN
+                    j = ((i * 61) MOD CUT_SH)
+                    hh = t * 255
+                    IF hh > 255 THEN hh = 255
+                    LINE (i * CUT_CW, j * CUT_CH)-(i * CUT_CW + 2, j * CUT_CH + 2), _RGBA32(220, 190, 255, hh), BF
+                END IF
+            NEXT i
+            LINE (0, 0)-(CUT_PXW - 1, CUT_PXH - 1), _RGBA32(60, 20, 110, CutEase!(t, EASE_IN) * 245), BF
 
         CASE TR_CRTOFF
             IF CUT_SNAP >= -1 THEN EXIT SUB
