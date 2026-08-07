@@ -3,8 +3,16 @@
 This repo was refactored from *"a game with a lot of reusable machinery"* into a
 **reusable engine** (`engine/`) + a **swappable game** (`game/`), per
 [PLANS.todo](../plans/PLANS.todo). The goal was a *separable* engine — one that could be lifted
-into its own repo/submodule so the next game starts from it. **That goal is met**: this file is
-the map of the boundary, the hook contract, and the record of how each leak was closed.
+into its own repo/submodule so the next game starts from it. This file is the map of the
+boundary, the hook contract, and the record of how each leak was closed.
+
+> **The bar moved on 26-08-06** and the ledger in the back half of this file was written against
+> the old one. "Separable" used to mean *`engine/` names no `game/` symbol, and a second game in
+> this repo compiles on it* — which is true and audited. It now means **a stranger can copy
+> `engine/` into their own project, point it at their own assets, and get the tools**. By that
+> measure the engine is NOT done: it hardcodes ~50 paths into this game's asset tree, and its
+> tools carry this game's tables and layers baked in. See *What "reusable" has to mean* below;
+> the older sections remain accurate about what they cover.
 
 > **QB64 reality.** The whole program compiles as **one translation unit**: `dungeon.bas`
 > `'$INCLUDE`s every module, and QB64 resolves all SUBs/FUNCTIONs and `DIM SHARED` globals
@@ -45,6 +53,130 @@ tests/audit-boundary.sh -v      # just the boundary; -v lists offending symbols 
 > returned 0, and the reinforced-door feature never once fired in play. The demo's independent
 > recount found 192 doors where `DetectDoors` found 0. Fixed, and `tests/audit-shadow.sh` now
 > fails the build if any local shadows a high-risk global (screen metrics, cursor, palette).
+
+## What "reusable" has to mean (26-08-06)
+
+The bar moved, and the ledger below was written against the old one. **The engine is not
+"reusable" because `examples/minimal` compiles inside this repo. It is reusable when the
+directory can be lifted into somebody else's project, pointed at their own assets, and hand
+them the tools.**
+
+Rick's framing, which is the one to build to:
+
+> **the game is simply the assembly of the parts of the engine, driven by the gas of the assets.**
+
+So there are three things, and each owns something different:
+
+| | owns |
+|---|---|
+| **`engine/`** | the parts, the FORMATS, the registries, and **all the tooling** |
+| **assets** | the content — the fuel |
+| **`game/`** | the assembly: which parts, wired how, plus the rules that ARE this game |
+
+Three consequences follow, and only the first is currently true.
+
+### 1. The engine may name no game SYMBOL — done, audited
+
+`tests/audit-boundary.sh`, described below. Clean.
+
+### 2. The engine may name no game PATH — NOT done
+
+`engine/` currently hardcodes **~50 literal `assets/...` paths**: `assets/data/`,
+`assets/pixel-art/`, `assets/music/default/playlist.txt`, `assets/data/theme/colors.txt`,
+`assets/fonts/dpoly/`. Every one is the engine depending on something only DUNGEON! has, and
+the boundary audit passes anyway — because it checks *symbols*, and a hardcoded path is the
+same violation wearing different clothes.
+
+The fix is a **path registry**: the assembly declares its tree once, and the engine asks for
+KINDS, never paths.
+
+```basic
+AssetRoot "assets/"                  ' wherever this game keeps its fuel
+AssetKind "data",     "data/"
+AssetKind "pixelart", "pixel-art/"
+AssetKind "music",    "music/"
+' ...engine code then only ever writes:
+'     AssetPath$("data", "strings.txt")
+```
+
+A new game declares a different tree and **not one line of `engine/` changes**.
+
+### 3. The engine owns the FORMATS; the game declares its TABLES — NOT done
+
+The engine already owns the *reader* (`ReadDataFile` / `DField$`) and the pack model
+(pack → `default`, per file). What it does not own is the knowledge of what a table IS — and
+that knowledge currently exists in **three places that can disagree**:
+
+| where | what it thinks it knows |
+|---|---|
+| the file's own header comment | `# lvl \| slot \| name \| HERO \| ELF \| SUP \| WIZ` |
+| `DeMaxCols%` (the data editor) | an `IF` chain naming `strings.txt`, `*_events.txt` by name |
+| each loader | `DField$(ln, 4)` — the column meanings again, implicitly |
+
+**They did disagree.** The editor capped `monster_events.txt` at its three *visible* columns
+while `LoadEventText` reads four — so editing the text column would have swallowed the
+narration key into the line the player reads. Three copies, two of them wrong.
+
+The fix is a **schema registry**, declared by the game:
+
+```basic
+DataTable "monsters.txt", "lvl|slot|name|HERO|ELF|SUP|WIZ"
+DataTable "strings.txt",  "key|text"   split_first   ' values legitimately contain pipes
+DataTable "triggers.txt", "level|col|row|scene|once"
+```
+
+One declaration and **four tools stop guessing**: the editor gets its columns and its split
+rule, `datalint` checks arity generically instead of per-table by hand, the manifests know what
+exists, and a new game inherits the whole toolchain by declaring its own tables.
+
+## The tools are ENGINE, not game
+
+A debugger that only debugs DUNGEON! is a feature, not tooling. Everything below belongs in
+`engine/`, and the ones still in `game/` are debt:
+
+| tool | now | note |
+|---|---|---|
+| dev console + dump registry | `engine/` | **the pattern to copy** — see below |
+| cut-scene engine + player | `engine/` | |
+| data editor | `engine/` | but hardcodes `assets/data/<pack>/` and table names |
+| map debugger | `game/` | layers + events want REGISTRIES |
+| pack browser | `game/` | needs `Game_PackSampleArt$` |
+| storybook | `game/` | a cut-scene-engine feature; needs `ListPanel%` / `MysteryBox` promoted |
+| board overlays | `game/` | zero new hooks needed |
+| region/chamber detection | `game/` | the rect→cell-map half only |
+
+### Registries, not accessors
+
+The instinct to price a move by "how many hooks would it need" is wrong twice: hooks ARE the
+interface, and a fixed set of accessors is the worse design anyway. With eight accessors the
+engine enumerates what layers exist and every new layer is an engine edit. With a **registry**
+the game adds a layer and the engine never changes — and so can a *pack*.
+
+`engine/CONSOLE.bas` already does exactly this for dumps: `RegisterDump` + `Game_RegisterDumps`
++ `Game_DevDump%`, with `tests/audit-dumps.sh` enforcing four-way consistency between topic,
+SUB, registration and dispatch. **Every registry below wants that same shape and that same
+audit**: map layers, debug events, data tables, asset kinds, pack kinds, the sfx roster.
+
+## The test that means it
+
+`examples/minimal` compiling is too weak — it sits inside this repo and eats this repo's
+assets, so it cannot detect the engine assuming DUNGEON!'s tree.
+
+**The honest test: give `examples/minimal` its own asset tree** (`examples/minimal/assets/`) —
+its own data files, one art pack, its own scenes. Then "the engine does not assume DUNGEON!'s
+layout" is enforced by minimal *having no such layout*, and it must still get a working map
+debugger, pack browser, data editor and storybook showing **its** layers and **its** packs.
+
+Then add the last step as a gate: copy `engine/` + the template into a scratch directory, build
+it there, and run its tools. That is the `cp -r` a stranger would do.
+
+## New audits this implies
+
+| audit | fails when |
+|---|---|
+| `audit-paths.sh` | any `engine/` file contains a literal `assets/` path |
+| `audit-schema.sh` | a table is read by a loader but never declared; or a declaration's arity disagrees with the loader's highest `DField$` index |
+| extend `audit-dumps.sh` | the same four-way check for map layers and debug events |
 
 ## Auditing the boundary (do this before trusting any claim here)
 
