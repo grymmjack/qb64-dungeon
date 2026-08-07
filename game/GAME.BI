@@ -840,8 +840,4 @@ DIM SHARED DEV_FAIL AS INTEGER
 
 
 
-'--- PACK BROWSER (game/PACKBROWSE.bas) ---
-DIM SHARED PB_TYPE AS INTEGER             ' which kind of pack is being browsed
-DIM SHARED PB_SEL AS INTEGER              ' which pack in that kind
-DIM SHARED PB_MSG AS STRING
-DIM SHARED PB_SND AS LONG                 ' the audition handle (retired, never closed)
+

@@ -21,11 +21,11 @@ SUB DeclareAssetTree
     AssetKindPacked "data", "data/"          ' the content tables
     AssetKindPacked "flavor", "flavor/"      ' the prose that goes with them
 
-    AssetKind "pixelart", "pixel-art/"
-    AssetKind "ansiart", "ansi-art/"
-    AssetKind "sfx", "sfx/"
-    AssetKind "music", "music/"
-    AssetKind "narration", "narration/"
-    AssetKind "cutscenes", "cutscenes/"
+    AssetKindPacked "pixelart", "pixel-art/"
+    AssetKindPacked "ansiart", "ansi-art/"
+    AssetKindPacked "sfx", "sfx/"
+    AssetKindPacked "music", "music/"
+    AssetKindPacked "narration", "narration/"
+    AssetKindPacked "cutscenes", "cutscenes/"
     AssetKind "fonts", "fonts/"
 END SUB

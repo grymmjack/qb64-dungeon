@@ -179,6 +179,51 @@ FUNCTION AssetMissing$
     AssetMissing$ = s
 END FUNCTION
 
+'--- how many kinds are PACK-STRUCTURED, and which. The pack browser walks these
+'    rather than carrying its own list of six: a host that declares a seventh
+'    content tree gets it browsable for free. ---
+FUNCTION AssetPackedCount%
+    DIM i AS INTEGER, n AS INTEGER
+    FOR i = 1 TO AK_N
+        IF AK_PACKED(i) THEN n = n + 1
+    NEXT i
+    AssetPackedCount% = n
+END FUNCTION
+
+FUNCTION AssetPackedName$ (nth AS INTEGER)
+    DIM i AS INTEGER, n AS INTEGER
+    FOR i = 1 TO AK_N
+        IF AK_PACKED(i) THEN
+            n = n + 1
+            IF n = nth THEN AssetPackedName$ = AK_NAME(i): EXIT FUNCTION
+        END IF
+    NEXT i
+END FUNCTION
+
+'--- every pack folder of a kind, as a space-separated list. `qb64-dungeon.ignore`
+'    opts a folder out, which is how a DAW project sitting in assets/music/ stays
+'    out of the player's pack list. ---
+FUNCTION AssetPackList$ (kind AS STRING)
+    DIM d AS STRING, e AS STRING, nm AS STRING, s AS STRING
+    d = AssetDir$(kind)
+    IF LEN(d) = 0 THEN EXIT FUNCTION
+    IF _DIREXISTS(d) = 0 THEN EXIT FUNCTION
+    e = _FILES$(d)
+    DO WHILE LEN(e) > 0
+        IF RIGHT$(e, 1) = "/" THEN
+            nm = LEFT$(e, LEN(e) - 1)
+            IF nm <> "." _ANDALSO nm <> ".." THEN
+                IF PackIgnored%(d + nm) = 0 THEN
+                    IF LEN(s) > 0 THEN s = s + " "
+                    s = s + nm
+                END IF
+            END IF
+        END IF
+        e = _FILES$
+    LOOP
+    AssetPackList$ = s
+END FUNCTION
+
 '--- the declared tree, for `assetlint` and `dump assets` ---
 FUNCTION AssetKindList$
     DIM i AS INTEGER, s AS STRING

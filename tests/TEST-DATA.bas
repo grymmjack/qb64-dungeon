@@ -86,7 +86,14 @@ DeclareAssetTree
 opt_datapack = "default"
 T_EqS "data path -> default pack", DataPath$("assets/data/monsters.txt"), "assets/data/default/monsters.txt"
 T_EqS "flavor path -> default pack", DataPath$("assets/flavor/maxhit.txt"), "assets/flavor/default/maxhit.txt"
-T_EqS "non-data path untouched", DataPath$("assets/music/theme.rad"), "assets/music/theme.rad"
+'--- Routing follows the DECLARED packed kinds, not a hardcoded pair of them.
+'    This used to assert that a music path passed through untouched, which was
+'    true only because DataPath$ matched the literal prefixes "assets/data/" and
+'    "assets/flavor/". Music IS pack-structured -- assets/music/<pack>/ -- and
+'    now that the tree says so, it routes. The old expectation was encoding the
+'    engine's ignorance as a requirement. ---
+T_EqS "any PACKED kind routes", DataPath$("assets/music/theme.rad"), "assets/music/default/theme.rad"
+T_EqS "an UNPACKED kind is untouched", DataPath$("assets/fonts/alagard.ttf"), "assets/fonts/alagard.ttf"
 T_EqS "unrelated path untouched", DataPath$("dungeon.bas"), "dungeon.bas"
 opt_datapack = ""
 T_EqS "empty pack behaves as default", DataPath$("assets/data/monsters.txt"), "assets/data/default/monsters.txt"

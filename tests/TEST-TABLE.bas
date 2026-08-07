@@ -122,6 +122,7 @@ T_False "only the weighted in-band entry wins", bad
 T_Done
 
 '$INCLUDE:'TESTLIB.bas'
+'$INCLUDE:'../engine/TEXT.bas'     ' ASSETS asks it whether a folder opted out of being a pack
 '$INCLUDE:'../engine/ASSETS.bas'   ' the path registry -- DATA/ARTPACK/UI all ask it for kinds
 '$INCLUDE:'../engine/TABLE.bas'
 

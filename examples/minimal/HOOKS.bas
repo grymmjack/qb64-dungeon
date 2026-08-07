@@ -229,3 +229,23 @@ END SUB
 SUB Game_MapScenePick
     MD_MSG = "this game ships no cut-scenes"
 END SUB
+
+
+'--- The PACK BROWSER, for a game with one pack of each kind. It still browses:
+'    the kinds come from this game's own asset declaration. ---
+FUNCTION Game_PackSelected$ (kind AS STRING)
+    Game_PackSelected$ = "default"
+END FUNCTION
+
+SUB Game_PackSelect (kind AS STRING, nm AS STRING)
+    PB_MSG = "this game ships one pack of each kind"
+END SUB
+
+FUNCTION Game_PackSample$ (kind AS STRING, slot AS INTEGER)
+END FUNCTION
+
+FUNCTION Game_PackSampleName$ (kind AS STRING, slot AS INTEGER)
+END FUNCTION
+
+FUNCTION Game_PackRoster$ (kind AS STRING)
+END FUNCTION

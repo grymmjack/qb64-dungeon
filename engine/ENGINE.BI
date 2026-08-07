@@ -923,3 +923,20 @@ DECLARE FUNCTION Game_MapReadout$ (cx AS INTEGER, cy AS INTEGER)
 DECLARE FUNCTION Game_MapZone% (cx AS INTEGER, cy AS INTEGER)   ' which zone a cell is in, for a written row
 DECLARE SUB Game_MapReload (what AS INTEGER)     ' 1 = overlays, 2 = regions: re-read what was just written
 DECLARE SUB Game_MapScenePick ()                 ' the host's cut-scene roster
+
+'--- PACK BROWSER (engine/PACKBROWSE.bas). The KINDS come from the asset
+'    registry; these four are the things only the host can answer. ---
+DECLARE FUNCTION Game_PackSelected$ (kind AS STRING)
+DECLARE SUB Game_PackSelect (kind AS STRING, nm AS STRING)
+DECLARE FUNCTION Game_PackSample$ (kind AS STRING, slot AS INTEGER)
+DECLARE FUNCTION Game_PackSampleName$ (kind AS STRING, slot AS INTEGER)
+DECLARE FUNCTION Game_PackRoster$ (kind AS STRING)
+
+'--- PACK BROWSER (engine/PACKBROWSE.bas) ---
+DIM SHARED PB_TYPE AS INTEGER             ' which kind of pack is being browsed
+DIM SHARED PB_SEL AS INTEGER              ' which pack in that kind
+DIM SHARED PB_MSG AS STRING
+DIM SHARED PB_SND AS LONG                 ' the audition handle (retired, never closed)
+DIM SHARED PB_PACK(1 TO 64) AS STRING     ' the packs of the kind being browsed
+DIM SHARED PB_N AS INTEGER
+DIM SHARED PB_SCANNED AS INTEGER          ' which kind PB_PACK currently holds
