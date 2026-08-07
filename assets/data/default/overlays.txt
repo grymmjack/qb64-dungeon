@@ -30,3 +30,6 @@
 0 | 13 |  9 | torch-flame.gif | 0.5 | 1
 0 | 20 |  9 | torch-flame.gif | 0.5 | 1
 0 | 48 |  8 | torch-flame.gif | 0.5 | 1
+1 | 65 | 22 | torch-flame.gif | .5 | 0
+1 | 59 | 22 | torch-flame.gif | .5 | 1
+1 | 67 | 22 | torch-flame.gif | 4 | 1

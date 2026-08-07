@@ -305,5 +305,9 @@ END SUB
 '--- DUNGEON!'s overlay table. The engine owns the format and the drawing; this
 '    is the one line that says where this game keeps the file. ---
 SUB LoadOverlays
-    LoadBoardOverlays DataPath$(AssetPath$("data", "overlays.txt"))
+    '--- the LOGICAL path. ReadDataFile routes it through the data pack itself,
+    '    so routing it here too would look for <pack>/<pack>/overlays.txt and
+    '    find nothing -- silently, with no error and no overlays. The cut-scene
+    '    trigger table was lost to exactly this once already. ---
+    LoadBoardOverlays AssetPath$("data", "overlays.txt")
 END SUB
