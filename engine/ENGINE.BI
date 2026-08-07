@@ -869,3 +869,57 @@ DIM SHARED WIND_NEAR AS SINGLE            ' distance to the nearest unfound door
 '$INCLUDE:'ASSETS.BI'
 '--- DATA TABLE REGISTRY -- likewise its own header ---
 '$INCLUDE:'SCHEMA.BI'
+
+' ============================================================================
+'  MAP DEBUGGER registries (engine/MAPDEBUG.bas).
+'
+'  Same shape as the dump registry in CONSOLE.bas, and for the same reason: with
+'  a fixed set of accessors the engine would enumerate what layers exist and
+'  every new layer would be an engine edit. With a registry the GAME adds a
+'  layer -- and so could a pack -- and the engine never changes.
+'
+'  A layer is filled ONCE PER FRAME into an array rather than answered per cell.
+'  Per-cell dispatch is 6,732 calls per layer per frame; filling is one.
+' ============================================================================
+'--- MAP DEBUGGER state (engine/MAPDEBUG.bas) ---
+DIM SHARED MD_ART AS INTEGER              ' draw the board art underneath
+DIM SHARED MD_ALPHA AS INTEGER            ' tint strength, so layers stay readable together
+DIM SHARED MD_LIVE AS INTEGER             ' opened over a run in progress? (events need one)
+DIM SHARED MD_SX AS INTEGER, MD_SY AS INTEGER   ' the selected cell -- what events fire AT
+DIM SHARED MD_CLICK AS INTEGER            ' click debounce, so one press is one pick
+DIM SHARED MD_MSG AS STRING               ' last action, shown in the readout line
+'--- PLACEMENT modes: the overlay and chamber editors live inside the map
+'    debugger because it already owns cell picking and the layer view, and
+'    seeing the thing you just placed against the layers IS the check. ---
+DIM SHARED MD_PL_ART(1 TO 128) AS STRING  ' art the overlay picker offers
+DIM SHARED MD_PL_N AS INTEGER
+DIM SHARED MD_PL_SEL AS INTEGER
+DIM SHARED MD_PL_SCALE AS SINGLE
+DIM SHARED MD_PL_LIT AS INTEGER
+DIM SHARED MD_RC1X AS INTEGER, MD_RC1Y AS INTEGER   ' chamber rect: first corner
+DIM SHARED MD_RC_SET AS INTEGER                     ' is that corner placed yet
+
+CONST ML_MAX = 16
+CONST ML_CELL = 0                         ' tints cells: the game fills a colour per cell
+CONST ML_MARK = 1                         ' draws points: the game outlines them itself
+DIM SHARED ML_NAME(1 TO ML_MAX) AS STRING
+DIM SHARED ML_KIND(1 TO ML_MAX) AS INTEGER
+DIM SHARED ML_ON(1 TO ML_MAX) AS INTEGER
+DIM SHARED ML_N AS INTEGER
+
+CONST MEV_MAX = 24
+DIM SHARED MEV_LABEL(1 TO MEV_MAX) AS STRING
+DIM SHARED MEV_LIVE(1 TO MEV_MAX) AS INTEGER   ' needs a run in progress
+DIM SHARED MEV_N AS INTEGER
+
+'--- the tint buffer a layer fills; one frame's worth, reused ---
+DIM SHARED ML_BUF(0 TO 199, 0 TO 99) AS _UNSIGNED LONG
+
+DECLARE SUB Game_MapRegister ()                  ' declare layers + events
+DECLARE SUB Game_MapLayerFill (idx AS INTEGER)   ' fill ML_BUF for a CELL layer
+DECLARE SUB Game_MapLayerMarks (idx AS INTEGER)  ' draw a MARK layer
+DECLARE FUNCTION Game_MapEvent% (idx AS INTEGER, cx AS INTEGER, cy AS INTEGER)
+DECLARE FUNCTION Game_MapReadout$ (cx AS INTEGER, cy AS INTEGER)
+DECLARE FUNCTION Game_MapZone% (cx AS INTEGER, cy AS INTEGER)   ' which zone a cell is in, for a written row
+DECLARE SUB Game_MapReload (what AS INTEGER)     ' 1 = overlays, 2 = regions: re-read what was just written
+DECLARE SUB Game_MapScenePick ()                 ' the host's cut-scene roster

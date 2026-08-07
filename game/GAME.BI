@@ -838,24 +838,7 @@ DIM SHARED OVL_N AS INTEGER
 '    nothing. ---
 DIM SHARED DEV_FAIL AS INTEGER
 
-'--- MAP DEBUGGER state (game/MAPDEBUG.bas) ---
-DIM SHARED MD_ON(1 TO 16) AS INTEGER      ' which layers are toggled on
-DIM SHARED MD_ART AS INTEGER              ' draw the board art underneath
-DIM SHARED MD_ALPHA AS INTEGER            ' tint strength, so layers stay readable together
-DIM SHARED MD_LIVE AS INTEGER             ' opened over a run in progress? (events need one)
-DIM SHARED MD_SX AS INTEGER, MD_SY AS INTEGER   ' the selected cell -- what events fire AT
-DIM SHARED MD_CLICK AS INTEGER            ' click debounce, so one press is one pick
-DIM SHARED MD_MSG AS STRING               ' last action, shown in the readout line
-'--- PLACEMENT modes: the overlay and chamber editors live inside the map
-'    debugger because it already owns cell picking and the layer view, and
-'    seeing the thing you just placed against the layers IS the check. ---
-DIM SHARED MD_PL_ART(1 TO 128) AS STRING  ' art the overlay picker offers
-DIM SHARED MD_PL_N AS INTEGER
-DIM SHARED MD_PL_SEL AS INTEGER
-DIM SHARED MD_PL_SCALE AS SINGLE
-DIM SHARED MD_PL_LIT AS INTEGER
-DIM SHARED MD_RC1X AS INTEGER, MD_RC1Y AS INTEGER   ' chamber rect: first corner
-DIM SHARED MD_RC_SET AS INTEGER                     ' is that corner placed yet
+
 
 '--- PACK BROWSER (game/PACKBROWSE.bas) ---
 DIM SHARED PB_TYPE AS INTEGER             ' which kind of pack is being browsed

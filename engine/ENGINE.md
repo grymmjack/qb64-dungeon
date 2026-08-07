@@ -159,7 +159,7 @@ A debugger that only debugs DUNGEON! is a feature, not tooling. Everything below
 | dev console + dump registry | `engine/` | **the pattern to copy** — see below |
 | cut-scene engine + player | `engine/` | |
 | data editor | `engine/` | but hardcodes `assets/data/<pack>/` and table names |
-| map debugger | `game/` | layers + events want REGISTRIES |
+| map debugger | **`engine/`** | **moved 26-08-06** — layer + event registries; `game/MAPREG.bas` registers |
 | pack browser | `game/` | needs `Game_PackSampleArt$` |
 | storybook | `game/` | a cut-scene-engine feature; needs `ListPanel%` / `MysteryBox` promoted |
 | board overlays | `game/` | zero new hooks needed |

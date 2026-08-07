@@ -18,6 +18,10 @@ If an interactive mode ever seems to *sit there doing nothing*, it forgot to cal
 
 ### MAP DEBUGGER — `./dungeon.run mapdebug`, or `[~]` then `[9]` in game
 
+*Engine tool.* The layers and events below are what **this game** registers
+([game/MAPREG.bas](game/MAPREG.bas)); another game on this engine registers its own and gets the
+same debugger with its own names.
+
 Every layer the game *derives* from the board art, on one screen, over the board.
 
 | key | layer |

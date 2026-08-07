@@ -168,3 +168,64 @@ END FUNCTION
 '--- empty-handed ---
 FUNCTION Game_FpsHandArt$
 END FUNCTION
+
+' ============================================================================
+'  THE MAP DEBUGGER, for a game that is not DUNGEON!
+'
+'  The point of the registry: this game has no rooms, no chambers and no
+'  curios, so it registers TWO layers and ONE event -- and gets the same
+'  debugger, with its own names in the legend and its own facts in the readout.
+'  Nothing in engine/MAPDEBUG.bas changed to allow it.
+' ============================================================================
+SUB Game_MapRegister
+    MapLayer "walkable", ML_CELL
+    MapLayer "doors", ML_MARK
+    MapEvent "Teleport the player here", -1
+END SUB
+
+SUB Game_MapLayerFill (idx AS INTEGER)
+    DIM cx AS INTEGER, cy AS INTEGER
+    IF idx <> 1 THEN EXIT SUB
+    FOR cy = 0 TO SH - 1
+        FOR cx = 0 TO SW - 1
+            IF CellKind%(cx, cy) <> 0 THEN MapPut cx, cy, _RGB32(40, 220, 90)
+        NEXT cx
+    NEXT cy
+END SUB
+
+SUB Game_MapLayerMarks (idx AS INTEGER)
+    DIM i AS INTEGER
+    IF idx <> 2 THEN EXIT SUB
+    FOR i = 1 TO DOOR_N
+        MapMark DOOR_X(i), DOOR_Y(i), _RGB32(190, 120, 60)
+    NEXT i
+END SUB
+
+FUNCTION Game_MapReadout$ (cx AS INTEGER, cy AS INTEGER)
+    IF CellKind%(cx, cy) = 0 THEN
+        Game_MapReadout$ = "SOLID"
+    ELSE
+        Game_MapReadout$ = "walkable"
+    END IF
+END FUNCTION
+
+FUNCTION Game_MapEvent% (idx AS INTEGER, cx AS INTEGER, cy AS INTEGER)
+    IF idx = 1 THEN
+        c.x = cx * CW: c.y = cy * CH
+        Game_MapEvent% = -1
+    END IF
+END FUNCTION
+
+
+'--- ...and the placement tools. A game with no overlays and no regions still
+'    gets the debugger; it simply has nothing to reload and no scenes to play. ---
+FUNCTION Game_MapZone% (cx AS INTEGER, cy AS INTEGER)
+    Game_MapZone% = 1
+END FUNCTION
+
+SUB Game_MapReload (what AS INTEGER)
+END SUB
+
+SUB Game_MapScenePick
+    MD_MSG = "this game ships no cut-scenes"
+END SUB
