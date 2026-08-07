@@ -249,3 +249,11 @@ END FUNCTION
 
 FUNCTION Game_PackRoster$ (kind AS STRING)
 END FUNCTION
+
+
+'--- a game with no scenes still gets the Storybook; it is simply empty ---
+FUNCTION Game_SceneSeen% (nm AS STRING)
+END FUNCTION
+
+FUNCTION Game_ScenePlay% (nm AS STRING)
+END FUNCTION

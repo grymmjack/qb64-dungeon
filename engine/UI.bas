@@ -1934,3 +1934,159 @@ SUB ApplyDisplay
         END IF
     END IF
 END SUB
+
+
+' ============================================================================
+'  9-GRID UI FRAMES -- promoted from game/LOADERS.bas 26-08-06.
+'
+'  A named 9-grid frame tiled to any size is UI machinery, not a fact about a
+'  dungeon: the corners stay put, the edges repeat, the middle fills. The host
+'  names the table it loads them from; everything else about them is here.
+'
+'  It moved because ListPanel% depends on it, and ListPanel% moved because the
+'  Storybook does -- which is how a boundary gets found. You do not discover
+'  where the seam is by looking at it; you discover it by pulling.
+' ============================================================================
+
+
+
+' ============================================================================
+'  UI FRAMES -- the 9-grid panel frames, from assets/data/<pack>/ui-frames.txt.
+'
+'  The registry is GAME-side on purpose: engine/NINEGRID.bas does the drawing and knows nothing
+'  about where frames are listed or what they are called. A different game on this engine ships
+'  its own table and its own art, and the slicing code is untouched.
+' ============================================================================
+SUB LoadUIFrames (path AS STRING)
+    DIM i AS INTEGER, nm AS STRING
+    UIFRAME_N = 0
+    '--- the HOST names the table; the engine owns the 9-grid format ---
+    ReadDataFile path
+    FOR i = 1 TO DLINE_N
+        nm = DField$(DLINE(i), 1)
+        IF LCASE$(nm) <> "name" AND LEN(nm) > 0 THEN     ' skip the header row
+            IF UIFRAME_N < UBOUND(UIFRAME_NAME) THEN
+                UIFRAME_N = UIFRAME_N + 1
+                UIFRAME_NAME(UIFRAME_N) = nm
+                UIFRAME_FILE(UIFRAME_N) = DField$(DLINE(i), 2)
+                UIFRAME_TW(UIFRAME_N) = VAL(DField$(DLINE(i), 3))
+                UIFRAME_TH(UIFRAME_N) = VAL(DField$(DLINE(i), 4))
+                IF UIFRAME_TW(UIFRAME_N) < 1 THEN UIFRAME_TW(UIFRAME_N) = 1
+                IF UIFRAME_TH(UIFRAME_N) < 1 THEN UIFRAME_TH(UIFRAME_N) = 1
+                UIFRAME_FILL(UIFRAME_N) = FillMode%(DField$(DLINE(i), 5))
+            END IF
+        END IF
+    NEXT i
+    ' Hand the engine one frame per PURPOSE. Each is a separate entry in ui-frames.txt, so they
+    ' can diverge artistically -- a heavy iron combat panel, a lighter scroll for the banner --
+    ' without any of them needing code.
+    PublishUIFrame UIF_PANEL, "panel"
+    PublishUIFrame UIF_BANNER, "banner"
+    PublishUIFrame UIF_ROLL, "roll"
+    PublishUIFrame UIF_GAUGE, "gauge"
+    PublishUIFrame UIF_PROMPT, "prompt"
+END SUB
+
+
+FUNCTION FrameIdx% (nm AS STRING)
+    DIM i AS INTEGER
+    FOR i = 1 TO UIFRAME_N
+        IF LCASE$(_TRIM$(UIFRAME_NAME(i))) = LCASE$(_TRIM$(nm)) THEN FrameIdx% = i: EXIT FUNCTION
+    NEXT i
+END FUNCTION
+
+
+FUNCTION FrameBox% (nm AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER)
+    DIM i AS INTEGER, p AS STRING
+    i = FrameIdx%(nm): IF i = 0 THEN EXIT FUNCTION
+    p = FrameArt$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT FUNCTION
+    FrameBox% = NineGridBox%(p, UIFRAME_TW(i), UIFRAME_TH(i), col, row, cols, rows, UIFRAME_FILL(i))
+END FUNCTION
+
+
+
+
+' `fill` column -> NGF_*. Defaults to BOXBG, which is what makes a frame safe to use straight
+' from an artist's mock-up: whatever colour sits in the middle of the art stays out of the game.
+FUNCTION FillMode% (s AS STRING)
+    SELECT CASE LCASE$(_TRIM$(s))
+        CASE "tile", "art": FillMode% = NGF_TILE
+        CASE "none", "clear": FillMode% = NGF_NONE
+        CASE ELSE: FillMode% = NGF_BOXBG
+    END SELECT
+END FUNCTION
+' Draw a registered frame. FALSE if the name is unknown or its art is missing, so every caller
+' can fall back to a plain LINE box and the game never depends on the art existing.
+' Resolve a frame's art, STYLE-AWARE. The registry names a file with no extension, so a frame
+' is picked exactly like every other sprite: pixel art when the player has chosen Pixel, ANSI
+' when they have chosen ANSI, and whichever exists in Hybrid. That is what lets frames be drawn
+' as pixel art later without touching a line of drawing code.
+FUNCTION FrameArt$ (basepath AS STRING)
+    FrameArt$ = ArtFile$(_TRIM$(basepath) + ".png")   ' ArtFile$ swaps the extension per art style
+END FUNCTION
+
+' Publish the default panel frame to the ENGINE, so engine-drawn panels (Banner and friends)
+' can use it without the engine knowing this table exists.
+SUB PublishUIFrame (slot AS INTEGER, nm AS STRING)
+    DIM i AS INTEGER, p AS STRING
+    IF slot < 0 OR slot >= UIF_SLOTS THEN EXIT SUB
+    UI_FRAME_PATH(slot) = ""
+    i = FrameIdx%(nm): IF i = 0 THEN EXIT SUB
+    p = FrameArt$(_TRIM$(UIFRAME_FILE(i))): IF LEN(p) = 0 THEN EXIT SUB
+    UI_FRAME_PATH(slot) = p: UI_FRAME_TW(slot) = UIFRAME_TW(i): UI_FRAME_TH(slot) = UIFRAME_TH(i)
+    UI_FRAME_FILL(slot) = UIFRAME_FILL(i)
+END SUB
+
+' ============================================================================
+'  COLLECTION-SCREEN PRIMITIVES -- promoted from game/CHRONICLE.bas 26-08-06.
+'
+'  Neither of these knows anything about a dungeon. A framed list panel and a
+'  "you have not found this yet" box are what every collection screen is made
+'  of -- a bestiary, a storybook, an achievement list -- and the next game
+'  should not have to write them again.
+'
+'  MysteryBox is the more interesting one: it shows the right NUMBER of question
+'  marks for a hidden entry, so the shape of the thing is visible without its
+'  name leaking. That is a real design rule about collection screens, not a fact
+'  about this game.
+' ============================================================================
+
+
+' A full-screen list panel: frame it by growing outward, and leave the caller's own layout
+' untouched. Returns FALSE when there is no art or no room, so the caller keeps its LINE box.
+'
+' These are redrawn EVERY keypress as the lightbar moves, so the frame is redrawn with them --
+' cheap, because NineGridLoad& caches the rendered art and the tiling is _PUTIMAGE calls.
+FUNCTION ListPanel% (frame AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, edge AS _UNSIGNED LONG)
+    DIM i AS INTEGER, fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER
+    i = FrameIdx%(frame): IF i = 0 THEN EXIT FUNCTION
+    fx = col + 1 - UIFRAME_TW(i): fy = row + 1 - UIFRAME_TH(i)
+    fw = cols - 2 + 2 * UIFRAME_TW(i): fh = rows - 2 + 2 * UIFRAME_TH(i)
+    IF fx < 0 OR fy < 0 OR fx + fw > SW OR fy + fh > SH THEN EXIT FUNCTION
+    DIM ok AS INTEGER
+    ok = FrameBox%(frame, fx, fy, fw, fh)        ' a local, not the return slot: QB64 reads a bare
+    ListPanel% = ok                              ' `ListPanel%` in an expression as a recursive CALL
+    IF ok THEN chron_framed = -1: _PRINTMODE _KEEPBACKGROUND
+END FUNCTION
+
+
+
+
+' The framed "?" that stands in for a creature you have not met. Same box CombatArtBox draws,
+' so a discovered and an undiscovered row occupy exactly the same space and the list does not
+' jump as you scroll.
+SUB MysteryBox (col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER)
+    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER, cap AS STRING, capx AS INTEGER
+    bx = col * CW: by = row * CH: bw = cols * CW: bh = rows * CH
+    _DEST CANVAS
+    capx = by - 4 - CH
+    LINE (bx - 4, capx - 2)-(bx + bw + 4, by - 4), BOXBG, BF
+    LINE (bx - 4, capx - 2)-(bx + bw + 4, by - 4), GREY, B
+    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
+    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), GREY, B
+    cap = "-= ? ? ? =-"
+    COLOR GREY, BOXBG
+    _PRINTSTRING (bx + (bw - LEN(cap) * CW) \ 2, capx), cap
+    _PRINTSTRING (bx + (bw - CW) \ 2, by + (bh - CH) \ 2), "?"
+END SUB
+

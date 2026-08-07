@@ -316,24 +316,6 @@ SUB ChroniclePanel (x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER, 
     IF framed THEN _PRINTMODE _KEEPBACKGROUND
     COLOR YELLOWU, BOXBG: PrintCentered y1 + 1, "-=  " + title + "  =-"
 END SUB
-
-' A full-screen list panel: frame it by growing outward, and leave the caller's own layout
-' untouched. Returns FALSE when there is no art or no room, so the caller keeps its LINE box.
-'
-' These are redrawn EVERY keypress as the lightbar moves, so the frame is redrawn with them --
-' cheap, because NineGridLoad& caches the rendered art and the tiling is _PUTIMAGE calls.
-FUNCTION ListPanel% (frame AS STRING, col AS INTEGER, row AS INTEGER, cols AS INTEGER, rows AS INTEGER, edge AS _UNSIGNED LONG)
-    DIM i AS INTEGER, fx AS INTEGER, fy AS INTEGER, fw AS INTEGER, fh AS INTEGER
-    i = FrameIdx%(frame): IF i = 0 THEN EXIT FUNCTION
-    fx = col + 1 - UIFRAME_TW(i): fy = row + 1 - UIFRAME_TH(i)
-    fw = cols - 2 + 2 * UIFRAME_TW(i): fh = rows - 2 + 2 * UIFRAME_TH(i)
-    IF fx < 0 OR fy < 0 OR fx + fw > SW OR fy + fh > SH THEN EXIT FUNCTION
-    DIM ok AS INTEGER
-    ok = FrameBox%(frame, fx, fy, fw, fh)        ' a local, not the return slot: QB64 reads a bare
-    ListPanel% = ok                              ' `ListPanel%` in an expression as a recursive CALL
-    IF ok THEN chron_framed = -1: _PRINTMODE _KEEPBACKGROUND
-END FUNCTION
-
 SUB ChronicleClose
     _PRINTMODE _FILLBACKGROUND                   ' paired with ChroniclePanel -- see the note there
     chron_framed = 0
@@ -943,23 +925,4 @@ SUB GameMenu
             END SELECT
         END IF
     LOOP
-END SUB
-
-
-' The framed "?" that stands in for a creature you have not met. Same box CombatArtBox draws,
-' so a discovered and an undiscovered row occupy exactly the same space and the list does not
-' jump as you scroll.
-SUB MysteryBox (col AS INTEGER, cols AS INTEGER, row AS INTEGER, rows AS INTEGER)
-    DIM bx AS INTEGER, by AS INTEGER, bw AS INTEGER, bh AS INTEGER, cap AS STRING, capx AS INTEGER
-    bx = col * CW: by = row * CH: bw = cols * CW: bh = rows * CH
-    _DEST CANVAS
-    capx = by - 4 - CH
-    LINE (bx - 4, capx - 2)-(bx + bw + 4, by - 4), BOXBG, BF
-    LINE (bx - 4, capx - 2)-(bx + bw + 4, by - 4), GREY, B
-    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), BOXBG, BF
-    LINE (bx - 4, by - 4)-(bx + bw + 4, by + bh + 4), GREY, B
-    cap = "-= ? ? ? =-"
-    COLOR GREY, BOXBG
-    _PRINTSTRING (bx + (bw - LEN(cap) * CW) \ 2, capx), cap
-    _PRINTSTRING (bx + (bw - CW) \ 2, by + (bh - CH) \ 2), "?"
 END SUB

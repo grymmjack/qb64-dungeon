@@ -349,3 +349,15 @@ FUNCTION CheckCutTrigger% (cx AS INTEGER, cy AS INTEGER)
         END IF
     NEXT i
 END FUNCTION
+
+
+'--- The STORYBOOK's two questions. What "seen" means and whether replaying
+'    records anything are this game's cut-scene layer, not the collection
+'    screen's -- a replay deliberately does NOT re-record. ---
+FUNCTION Game_SceneSeen% (nm AS STRING)
+    Game_SceneSeen% = CutsceneSeen%(nm)
+END FUNCTION
+
+FUNCTION Game_ScenePlay% (nm AS STRING)
+    Game_ScenePlay% = PlayCutsceneEx%(nm, FALSE)
+END FUNCTION

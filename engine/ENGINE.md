@@ -161,7 +161,7 @@ A debugger that only debugs DUNGEON! is a feature, not tooling. Everything below
 | data editor | `engine/` | but hardcodes `assets/data/<pack>/` and table names |
 | map debugger | **`engine/`** | **moved 26-08-06** — layer + event registries; `game/MAPREG.bas` registers |
 | pack browser | **`engine/`** | **moved 26-08-06** — kinds come from the asset registry; 5 hooks |
-| storybook | `game/` | a cut-scene-engine feature; needs `ListPanel%` / `MysteryBox` promoted |
+| storybook | **`engine/`** | **moved 26-08-06** — pulled `ListPanel%`, `MysteryBox` and the whole 9-grid frame system in with it |
 | board overlays | **`engine/`** | **moved 26-08-06** — the host names the file, nothing else |
 | region/chamber detection | `game/` | the rect→cell-map half only |
 

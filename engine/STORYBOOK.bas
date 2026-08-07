@@ -1,4 +1,22 @@
 ' ============================================================================
+'  engine/STORYBOOK.bas -- replay any scene the player has finished.
+'
+'  A collection screen over the CUT-SCENE ENGINE's own roster, which makes it a
+'  feature of that engine rather than of any one game. The roster is built by
+'  SCANNING the pack's .cut files, so a pack that ships its own scenes gets its
+'  own Storybook with no code anywhere.
+'
+'  An unseen row still takes a slot but shows only the right NUMBER of question
+'  marks, so a title cannot leak. Files starting `_` are include FRAGMENTS and
+'  are skipped, exactly as the linter and the render gate skip them.
+'
+'  Three things the host answers, because they are its cut-scene layer:
+'    Game_SceneSeen%   has the player finished this one
+'    Game_ScenePlay%   play it (and record it, or not, as the host decides)
+'    Game_PackSelected$("cutscenes")   which pack to scan
+' ============================================================================
+
+' ============================================================================
 '  game/STORYBOOK.bas -- replay any cut-scene you have already seen.
 '
 '  Built on the Bestiary's pattern deliberately: a lightbar list on the left, a
@@ -28,11 +46,11 @@ SUB StorybookScan
     '--- the selected pack first, then default. Scanning default SECOND and
     '    skipping duplicates is what makes a pack OVERRIDE a base scene rather
     '    than list alongside it. ---
-    pk = _TRIM$(opt_datapack)
+    pk = _TRIM$(Game_PackSelected$("cutscenes"))
     IF LEN(pk) > 0 THEN
-        IF LCASE$(pk) <> "default" THEN StorybookScanDir "assets/cutscenes/" + pk + "/"
+        IF LCASE$(pk) <> "default" THEN StorybookScanDir AssetPackDir$("cutscenes", pk)
     END IF
-    StorybookScanDir "assets/cutscenes/default/"
+    StorybookScanDir AssetPackDir$("cutscenes", "")
     StorybookSort
 END SUB
 
@@ -170,7 +188,7 @@ SUB ShowStorybook
         IF k = CHR$(27) THEN EndCue: EXIT SUB
         IF k = " " _ORELSE k = CHR$(13) THEN
             IF sel >= 1 _ANDALSO sel <= STORY_N THEN
-                IF CutsceneSeen%(_TRIM$(STORY_NAME(sel))) THEN
+                IF Game_SceneSeen%(_TRIM$(STORY_NAME(sel))) THEN
                     StorybookReplay _TRIM$(STORY_NAME(sel))
                     sel = StoryIndexOf%(_TRIM$(STORY_NAME(sel)))
                     IF sel < 1 THEN sel = 1
@@ -199,13 +217,13 @@ SUB StorybookPaint (sel AS INTEGER)
     IF STORY_N = 0 THEN
         COLOR GREY, BOXBG
         PrintCentered 22, "This pack ships no cut-scenes."
-        PrintCentered 24, "Drop a .cut file in assets/cutscenes/ and it will appear here."
+        PrintCentered 24, "Drop a .cut file in " + AssetDir$("cutscenes") + " and it will appear here."
         COLOR YELLOWU, BOXBG: PrintCentered 45, "[ESC] back"
         EXIT SUB
     END IF
 
     FOR i = 1 TO STORY_N
-        IF CutsceneSeen%(_TRIM$(STORY_NAME(i))) THEN nseen = nseen + 1
+        IF Game_SceneSeen%(_TRIM$(STORY_NAME(i))) THEN nseen = nseen + 1
     NEXT i
 
     '--- scroll so the selection stays visible once the roster outgrows the
@@ -216,7 +234,7 @@ SUB StorybookPaint (sel AS INTEGER)
     FOR i = top TO STORY_N
         y = 7 + (i - top)
         IF y > 6 + rows THEN EXIT FOR
-        seen = CutsceneSeen%(_TRIM$(STORY_NAME(i)))
+        seen = Game_SceneSeen%(_TRIM$(STORY_NAME(i)))
         IF i = sel THEN
             COLOR WHITE, REDU
         ELSEIF seen THEN
@@ -233,7 +251,7 @@ SUB StorybookPaint (sel AS INTEGER)
     NEXT i
 
     IF sel >= 1 AND sel <= STORY_N THEN
-        seen = CutsceneSeen%(_TRIM$(STORY_NAME(sel)))
+        seen = Game_SceneSeen%(_TRIM$(STORY_NAME(sel)))
         IF seen THEN
             sp = _TRIM$(STORY_ART(sel))
             IF LEN(sp) > 0 THEN
@@ -273,7 +291,7 @@ END SUB
 SUB StorybookReplay (nm AS STRING)
     DIM ok AS INTEGER
     EndCue
-    ok = PlayCutsceneEx%(nm, FALSE)
+    ok = Game_ScenePlay%(nm)
     StorybookScan
     PlayCue "bestiary", -1
 END SUB

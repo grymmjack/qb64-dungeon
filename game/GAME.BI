@@ -599,12 +599,7 @@ CONST AUTOMOVE_STEP_SEC = 0.14         ' one auto step per this many seconds -- 
 DIM SHARED PANEL_BUF AS LONG           ' scratch for the near-death panel tremor (PanelShudder)
 DIM SHARED combat_lunge_x AS INTEGER, combat_lunge_y AS INTEGER
 ' --- 9-grid UI frame registry (assets/data/<pack>/ui-frames.txt, see LoadUIFrames) ---
-CONST UIFRAME_MAX = 16
-DIM SHARED UIFRAME_NAME(1 TO UIFRAME_MAX) AS STRING, UIFRAME_FILE(1 TO UIFRAME_MAX) AS STRING
-DIM SHARED UIFRAME_TW(1 TO UIFRAME_MAX) AS INTEGER, UIFRAME_TH(1 TO UIFRAME_MAX) AS INTEGER
-DIM SHARED UIFRAME_FILL(1 TO UIFRAME_MAX) AS INTEGER
-DIM SHARED UIFRAME_N AS INTEGER
-DIM SHARED chron_framed AS INTEGER     ' a Chronicle panel is currently drawn from frame ART
+
 DIM SHARED opt_automove AS INTEGER
 DIM SHARED automove_run AS INTEGER
 DIM SHARED automove_t0 AS SINGLE
@@ -787,12 +782,7 @@ DIM SHARED item_torch AS INTEGER
 '--- the Storybook roster, built by scanning the pack's .cut files once when
 '    the screen opens. Kept separate from CUTSEEN because that list is what the
 '    player HAS seen, while this is what EXISTS to be seen.
-CONST STORY_MAX = 64
-DIM SHARED STORY_NAME(1 TO STORY_MAX) AS STRING * 40
-DIM SHARED STORY_TITLE(1 TO STORY_MAX) AS STRING * 40
-DIM SHARED STORY_BLURB(1 TO STORY_MAX) AS STRING * 72
-DIM SHARED STORY_ART(1 TO STORY_MAX) AS STRING * 72
-DIM SHARED STORY_N AS INTEGER
+
 
 '--- dedup key for the cut-scene manifest scan (a scene may name the same asset
 '    many times, and 17 scenes share a handful of backdrops) ---
