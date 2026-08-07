@@ -43,9 +43,18 @@ IF _FILEEXISTS("dungeon.bas") = 0 THEN CHDIR "../.."
 '    MOST SPECIFIC FIRST. A bare "assets/" is checked last and on purpose: from
 '    a game's repo root it matches THAT GAME'S tree, and this demo would
 '    silently load somebody else's board and report it as its own.
+'    ALL THREE ARE _STARTDIR$-BASED. A bare relative candidate ("assets/")
+'    resolves against something this program cannot predict -- not its own
+'    directory, not the shell's -- so it matched in one layout and silently
+'    missed in another. _STARTDIR$ is the one thing that behaves.
+'
+'    The three places this demo genuinely gets run from:
+'      engine/ inside a game   -> <root>/engine/examples/minimal/assets/
+'      the engine's own repo   -> <root>/examples/minimal/assets/
+'      its own directory       -> <root>/assets/
 IF AssetRootFind%("ansi-art/default/board-132x50-no-labels.ans", _
                   _STARTDIR$ + "engine/examples/minimal/assets/", _
-                  "assets/", _
+                  _STARTDIR$ + "examples/minimal/assets/", _
                   _STARTDIR$ + "assets/") = 0 THEN
     PRINT "minimal: cannot find my assets/ tree from here"
     SYSTEM 2
