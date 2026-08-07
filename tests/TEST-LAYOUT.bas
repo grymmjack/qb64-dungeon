@@ -105,6 +105,11 @@ T_EqI "  so every lookup misses cleanly", LayFind%("hero.art"), 0
 ' ============================================================================
 '  The real shipped fight layout. These are the assertions that protect the ART.
 ' ============================================================================
+'--- The REAL layout, resolved exactly as the game resolves it. DeclareAssetTree
+'    has to run first: the engine keeps no built-in idea of where assets live, so
+'    with nothing declared DataPath$ correctly passes the path straight through
+'    and the file is looked for one directory above where packs actually put it. ---
+DeclareAssetTree
 T_Group "assets/data/ui-fight-layout.txt -- the real layout loads (via DataPath$)"
 opt_datapack = "default"
 n = LoadLayout%("assets/data/ui-fight-layout.txt", 8, 8)
@@ -221,6 +226,8 @@ SUB Sfx (kind AS STRING)
 END SUB
 
 '$INCLUDE:'TESTLIB.bas'
+'$INCLUDE:'../engine/ASSETS.bas'
+'$INCLUDE:'../game/ASSETTREE.bas'   ' the game's own tree, so the suite resolves paths as the game does   ' the path registry -- DATA/ARTPACK/UI all ask it for kinds
 '$INCLUDE:'../engine/TEXT.bas'
 '$INCLUDE:'../engine/DATA.bas'
 '$INCLUDE:'../engine/LAYOUT.bas'

@@ -99,5 +99,6 @@ T_Done
 ' token reader; that dialog now lives in engine/UI.bas where it belongs.)
 
 '$INCLUDE:'TESTLIB.bas'
+'$INCLUDE:'../engine/ASSETS.bas'   ' the path registry -- DATA/ARTPACK/UI all ask it for kinds
 '$INCLUDE:'../engine/TEXT.bas'
 '$INCLUDE:'../engine/SAVEIO.bas'

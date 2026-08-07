@@ -122,6 +122,7 @@ T_False "only the weighted in-band entry wins", bad
 T_Done
 
 '$INCLUDE:'TESTLIB.bas'
+'$INCLUDE:'../engine/ASSETS.bas'   ' the path registry -- DATA/ARTPACK/UI all ask it for kinds
 '$INCLUDE:'../engine/TABLE.bas'
 
 ' RollDie lives in engine/UI.bas, which would drag the whole dice/audio stack into a

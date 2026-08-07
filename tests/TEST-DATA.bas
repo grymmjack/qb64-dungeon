@@ -74,8 +74,15 @@ T_EqI "cols round-trip (TInfo1)", CVI(MID$(SauceRecord$("t", 132, 50, 0), 97, 2)
 T_EqI "rows round-trip (TInfo2)", CVI(MID$(SauceRecord$("t", 132, 50, 0), 99, 2)), 50
 T_EqI "datalen round-trip (FileSize)", CVL(MID$(SauceRecord$("t", 132, 50, 4321), 91, 4)), 4321
 
-'--- pack resolution: per-file fallback to default/ is what makes a PARTIAL pack work ---
+'--- pack resolution: per-file fallback to default/ is what makes a PARTIAL pack work.
+'
+'    The tree has to be DECLARED first, exactly as a host declares it -- the engine
+'    keeps no built-in idea of where assets live, so with nothing declared DataPath$
+'    correctly passes every path through untouched. Declaring it here is not test
+'    scaffolding, it is the test: it proves the routing is driven by the declaration
+'    and not by knowledge baked into the engine. ---
 T_Group "DataPath$"
+DeclareAssetTree
 opt_datapack = "default"
 T_EqS "data path -> default pack", DataPath$("assets/data/monsters.txt"), "assets/data/default/monsters.txt"
 T_EqS "flavor path -> default pack", DataPath$("assets/flavor/maxhit.txt"), "assets/flavor/default/maxhit.txt"
@@ -99,4 +106,6 @@ END SUB
 
 '$INCLUDE:'TESTLIB.bas'
 '$INCLUDE:'../engine/TEXT.bas'
+'$INCLUDE:'../engine/ASSETS.bas'
+'$INCLUDE:'../game/ASSETTREE.bas'   ' the game's own tree, so the suite resolves paths as the game does
 '$INCLUDE:'../engine/DATA.bas'

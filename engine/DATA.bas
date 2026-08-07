@@ -17,7 +17,7 @@
 SUB LoadStrings
     DIM i AS INTEGER, ln AS STRING, p AS INTEGER
     STR_N = 0
-    ReadDataFile "assets/data/strings.txt"
+    ReadDataFile AssetPath$("data", "strings.txt")
     FOR i = 1 TO DLINE_N
         ln = DLINE(i): p = INSTR(ln, "|")
         IF p > 0 AND STR_N < UBOUND(STR_KEY) THEN
@@ -322,7 +322,7 @@ SUB LoadTheme
     DIM i AS INTEGER, k AS STRING, v AS STRING
     THM_N = 0
     theme_loaded = TRUE
-    ReadDataFile "assets/data/theme/colors.txt"
+    ReadDataFile AssetPath$("data", "theme/colors.txt")
     FOR i = 1 TO DLINE_N
         k = LCASE$(DField$(DLINE(i), 1))
         v = DField$(DLINE(i), 2)
@@ -370,21 +370,7 @@ END FUNCTION
 ' swap monsters/treasures/tuning/classes/strings/flavor and you have a different DUNGEON!.
 ' Non-data paths pass through untouched. Applies on next launch (data loads once at startup).
 FUNCTION DataPath$ (p AS STRING)
-    DIM pfx AS STRING, rest AS STRING, pk AS STRING, cand AS STRING
-    IF LEFT$(p, 12) = "assets/data/" THEN
-        pfx = "assets/data/": rest = MID$(p, 13)
-    ELSEIF LEFT$(p, 14) = "assets/flavor/" THEN
-        pfx = "assets/flavor/": rest = MID$(p, 15)
-    ELSE
-        DataPath$ = p: EXIT FUNCTION
-    END IF
-    pk = _TRIM$(opt_datapack)
-    IF pk = "" THEN pk = "default"
-    IF pk <> "default" THEN
-        cand = pfx + pk + "/" + rest
-        IF _FILEEXISTS(cand) THEN DataPath$ = cand: EXIT FUNCTION
-    END IF
-    DataPath$ = pfx + "default/" + rest
+    DataPath$ = AssetRoute$(p, opt_datapack)
 END FUNCTION
 
 ' Fill DATAPACKS() with every subfolder of assets/data/ (each is a data pack, incl "default").
@@ -394,13 +380,13 @@ END FUNCTION
 SUB ScanDataPacks
     DIM e AS STRING, nm AS STRING
     DATAPACK_N = 0
-    IF _DIREXISTS("assets/data/") THEN
-        e = _FILES$("assets/data/")
+    IF _DIREXISTS(AssetDir$("data")) THEN
+        e = _FILES$(AssetDir$("data"))
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
                 IF nm <> "." AND nm <> ".." AND DATAPACK_N < UBOUND(DATAPACKS) THEN
-                    IF PackIgnored%("assets/data/" + nm) = 0 THEN DATAPACK_N = DATAPACK_N + 1: DATAPACKS(DATAPACK_N) = nm
+                    IF PackIgnored%(AssetDir$("data") + nm) = 0 THEN DATAPACK_N = DATAPACK_N + 1: DATAPACKS(DATAPACK_N) = nm
                 END IF
             END IF
             e = _FILES$

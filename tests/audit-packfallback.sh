@@ -29,7 +29,7 @@ CHECKS=(
   "engine/MUSIC.bas|ResolveMusic\$|music|assets/music/default/"
   "engine/MUSIC.bas|NarratePath\$|narration|assets/narration/default/"
   "engine/MUSIC.bas|LoadNarrConf|narration pack.conf|assets/narration/default/"
-  "engine/DATA.bas|DataPath\$|data + flavor tables|default/"
+  "engine/ASSETS.bas|AssetRoute\$|data + flavor tables|ASSET_DEFPACK"
 )
 
 # Print the body of SUB/FUNCTION <name> from <file>.
@@ -65,11 +65,21 @@ for spec in "${CHECKS[@]}"; do
         continue
     fi
     # (a) does it consult the selected pack at all?
-    if ! grep -qiE 'opt_(artpack|ansipack|sfxpack|musicpack|narrationpack|datapack)' <<<"$body"; then
+    #
+    # A resolver may take the pack as an ARGUMENT rather than reading the option
+    # directly -- AssetRoute$ does, because the engine's path registry must not
+    # know that this game's data pack is called opt_datapack. Either counts: what
+    # is being checked is that the choice reaches the resolver at all.
+    if ! grep -qiE 'opt_(artpack|ansipack|sfxpack|musicpack|narrationpack|datapack)|\bpack\b' <<<"$body"; then
         printf '  !! %-22s (%s) never consults the selected pack\n' "$routine" "$kind"
         fail=$((fail + 1))
     fi
     # (b) does it name the default pack as a fallback?
+    #
+    # `want` is a literal path for the resolvers that still build one, and the
+    # registry's ASSET_DEFPACK for the one that no longer can: the default pack's
+    # NAME is declarable now, so hardcoding "default/" in the engine would be the
+    # very thing the path registry exists to remove.
     if ! grep -qF "$want" <<<"$body"; then
         printf '  !! %-22s (%s) has NO fallback to %s\n' "$routine" "$kind" "$want"
         printf '     a partial %s pack would come up EMPTY instead of using the default pack.\n' "$kind"
