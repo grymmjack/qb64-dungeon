@@ -163,7 +163,23 @@ A debugger that only debugs DUNGEON! is a feature, not tooling. Everything below
 | pack browser | **`engine/`** | **moved 26-08-06** — kinds come from the asset registry; 5 hooks |
 | storybook | **`engine/`** | **moved 26-08-06** — pulled `ListPanel%`, `MysteryBox` and the whole 9-grid frame system in with it |
 | board overlays | **`engine/`** | **moved 26-08-06** — the host names the file, nothing else |
-| region/chamber detection | `game/` | the rect→cell-map half only |
+| region/chamber detection | **stays in `game/`** | **assessed 26-08-06 — deliberately deferred**, see below |
+
+### The one that is NOT worth moving yet
+
+Named-region detection (`game/CHAMBERS.bas`) looked like a candidate: "a named rectangle becomes
+a cell map" is generic. Measured, it is **109 references across 13 game files**, and the reason
+is that the region MAP and the chamber GAMEPLAY share the same arrays — `CHM_NAME`/`CHM_CELLS`/
+`CHAMBERAT` sit beside `CHM_DEAD`/`CHM_EVDONE`/`CHM_SEEN` and the three-monsters rule.
+
+Extracting the map half means first splitting those arrays, which is a refactor **of the game**,
+not a move to the engine. And the payoff today is zero: `examples/minimal` has no named halls,
+so nothing would exercise it.
+
+That is the shape of a real deferral, as opposed to the one I got wrong with the map debugger:
+there the cost was *an interface I did not want to write* (and the interface was the point).
+Here the cost is *untangling somebody else's data model first*, and the second customer does not
+want the feature yet. Revisit when a game on this engine actually wants named regions.
 
 ### Registries, not accessors
 
