@@ -28,9 +28,16 @@ IF _FILEEXISTS("dungeon.bas") = 0 THEN CHDIR "../.."
 ' idea of DUNGEON!'s layout: a second game writes its own eleven lines and the
 ' engine is unchanged.
 '
-' It points at the same assets/ for now because minimal borrows this repo's board
-' art; give it its own assets/ directory and only these lines change.
-AssetRoot "assets/"
+' ITS OWN TREE. Not the repo's -- examples/minimal/assets/ holds a board this
+' game drew for itself, and nothing else. That is what makes the separability
+' proof mean something: the engine cannot be assuming DUNGEON!'s layout, because
+' this program has no access to one.
+'
+' The root is written relative to the REPO ROOT rather than to this file: a QB64
+' binary here resolves relative paths against neither its own directory nor the
+' shell's. Declaring the root explicitly is exactly how a host stops having to
+' care what the answer is.
+AssetRoot "examples/minimal/assets/"
 AssetDefaultPack "default"
 AssetKindPacked "data", "data/"
 AssetKindPacked "flavor", "flavor/"
@@ -87,6 +94,7 @@ IF INSTR(UCASE$(COMMAND$), "SELFTEST") > 0 THEN
     _DEST _CONSOLE
     PRINT "minimal: engine booted under a non-DUNGEON! game"
     PRINT "  board bytes : " + _TRIM$(STR$(LEN(BOARD_ANSI)))
+    PRINT "  board path  : " + AnsiFile$("board-132x50-no-labels.ans")
     PRINT "  secret doors: " + _TRIM$(STR$(SD_N)) + "   regular doors: " + _TRIM$(STR$(DOOR_N))
     PRINT "  cursor cell : " + _TRIM$(STR$(c.x \ CW)) + "," + _TRIM$(STR$(c.y \ CH))
     PRINT "  zones       : " + _TRIM$(STR$(Game_ZoneCount%)) + " (" + Game_ZoneName$(1) + ")"

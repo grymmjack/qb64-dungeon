@@ -701,6 +701,12 @@ Environment specifics that dictate this approach:
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
   TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
+- **`examples/minimal/`** — a second game on `engine/` alone, with **its own asset tree**
+  (`examples/minimal/assets/`): its own board art, drawn for it, with its own doors and secret
+  doors. That is what makes the separability proof mean something — the engine cannot be
+  assuming DUNGEON!'s layout, because this program has no access to one. It declares
+  `AssetRoot "examples/minimal/assets/"` and registers its own map-debugger layers, pack kinds
+  and hooks.
 - **`engine/` / `game/` / `include/`** — the module bodies `'$INCLUDE`'d by `dungeon.bas`, sorted
   into a reusable **`engine/`** (`ENGINE.BI` header + `BOARD` / `CURSOR` / `MUSIC` / `JUICE` /
   `GESTURE` / `STATS` / `DATA` (game-free reader) / `PLAYERS` / `UI` (fades + UI primitives + sound +
@@ -1180,10 +1186,14 @@ character `Q` printed in the d20 font:
   there is no need to churn them.
 - **Gotcha:** single-line `IF` does not support `ELSEIF` / `ELSE IF` chains, and `LINE`, `SEG`,
   `VAL`, `CLS` are reserved words that can't be used as variable names.
-- **Gotcha:** relative paths resolve against the **executable's** directory, not the shell's cwd
-  — QB64PE chdirs to the binary at startup (`_CWD$` = the exe's dir, `_STARTDIR$` = where it was
-  launched). That is *why* `dungeon.run` must sit at the repo root for `assets/...` to resolve;
-  a test binary built into `scratchpads/` silently fails every `_FILEEXISTS`/`_LOADFONT`.
+- **Gotcha: relative paths do NOT resolve against the shell's cwd**, and *measured 26-08-06*
+  they do not reliably resolve against the executable's directory either. `examples/minimal.run`
+  reports `_CWD$` = the **repo root** whether it is launched from its own directory or from
+  `/tmp`, and whether it was compiled from the repo root or from its own directory —
+  while `_STARTDIR$` correctly tracks where it was launched. Nothing in this codebase calls
+  `CHDIR`. So: `dungeon.run` sits at the repo root because that is where `assets/...` resolves,
+  and **a host should DECLARE its asset root** (`AssetRoot`, engine/ASSETS.bas) rather than rely
+  on any of this — which is exactly what `examples/minimal` does to reach its own tree.
 - **An INTERACTIVE dev mode must call `DevShowWindow`.** The window is created with
   `$SCREENHIDE` and only `_SCREENSHOW` reveals it -- which normal play reaches at the BOTTOM of
   `dungeon.bas`, long after a dev mode has run and `SYSTEM`ed. A mode that omits it draws and
