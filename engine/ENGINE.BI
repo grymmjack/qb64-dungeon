@@ -867,3 +867,5 @@ DIM SHARED WIND_NEAR AS SINGLE            ' distance to the nearest unfound door
 '--- ASSET PATH REGISTRY -- its own header, because standalone hosts
 '    (engine/cutplay) use it without including this file. ---
 '$INCLUDE:'ASSETS.BI'
+'--- DATA TABLE REGISTRY -- likewise its own header ---
+'$INCLUDE:'SCHEMA.BI'

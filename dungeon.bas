@@ -134,6 +134,7 @@ BRIGHT_BLUE = _RGB32(&H55, &H55, &HFF)
 ' itself is declared in game/ASSETTREE.bas -- one place, shared with the unit
 ' suites so there is no second copy to drift.
 DeclareAssetTree
+DeclareDataTables                             ' ...and what its tables are (game/DATATABLES.bas)
 
 LoadTheme                                     ' fill the theme table BEFORE anything asks Thm~& for a colour
 ' UI INK -- themeable (assets/data/theme/colors.txt). The four board colours above are NOT:
@@ -592,6 +593,10 @@ END SUB
 
 '--- dev: `dungeon.run dataedit` -- the content tables as a grid. The files
 '    stay hand-editable text; this only spares you counting columns by eye. ---
+IF INSTR(UCASE$(COMMAND$), "SCHEMALINT") > 0 THEN
+    DEV_FAIL = SchemaLint%("assets/data/" + opt_datapack + "/")
+    SYSTEM DEV_FAIL
+END IF
 IF INSTR(UCASE$(COMMAND$), "DATAEDITTEST") > 0 THEN
     DEV_FAIL = DataEditSelfTest%("assets/data/" + opt_datapack + "/")
     IF DEV_FAIL > 0 THEN

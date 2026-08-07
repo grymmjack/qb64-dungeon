@@ -145,6 +145,21 @@ devrun() {
         echo "  SKIP -- no dungeon.run built"
     fi
 
+    # The three copies of "what a table is" -- the declaration, the file's rows,
+    # and the comment a modder reads -- must still agree. They did not: the
+    # *_events tables document three columns and their loader reads four.
+    echo "-- data schema (dungeon.run schemalint) --"
+    if [[ -x ./dungeon.run ]]; then
+        if devrun 60 "no declared table" ./dungeon.run schemalint nocolor; then
+            grep -E 'declared [0-9]+ table|no declared table' <<<"$DEVRUN_OUT" | sed 's/^/  /'
+        else
+            grep -E 'BAD|warn' <<<"$DEVRUN_OUT" | head -6 | sed 's/^/    /'
+            (( fail++ )); failed+=("schemalint")
+        fi
+    else
+        echo "  SKIP -- no dungeon.run built"
+    fi
+
     # The data EDITOR writes to the same tables the game reads at launch, so the
     # claim that matters is not how it looks -- it is that load->save is a no-op
     # and that rewriting one field cannot shred the rest of the row. Proven by

@@ -1,6 +1,14 @@
 # monster_events.txt -- what each MONSTER does in combat, so its text fits its biology
 # (a slime dissolves, a dragon breathes fire -- neither one "claws").
-# Format:  MONSTER | event | text     (fields trimmed; '#' = comment; blanks skipped)
+# Format:  MONSTER | event | text | narrkey     (fields trimmed; '#' = comment; blanks skipped)
+#
+#   narrkey  OPTIONAL 4th column -- the narration key this line is spoken under.
+#            Most rows stop at three and are shown but never voiced. It was left
+#            out of this comment for a long time while LoadEventText read it, and
+#            the data editor believed the comment: editing the text column would
+#            have swallowed the key into the line the player reads.
+#            `dungeon.run schemalint` compares this comment against the declared
+#            schema in game/DATATABLES.bas precisely so that cannot recur.
 # events:  attack (it hits you)   miss (it misses)   crit (a devastating hit)
 #          fumble (it botches its attack)   death (it is slain)
 # key "*" = the default for any monster with no line of its own for that event, so you

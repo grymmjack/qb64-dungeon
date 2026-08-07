@@ -112,7 +112,7 @@ layout and *nothing would break*, so nobody would find out. An undeclared kind i
 unit suites all call. A hand-copied declaration per suite would be three more copies to drift,
 the exact failure the registry exists to end.
 
-### 3. The engine owns the FORMATS; the game declares its TABLES — NOT done
+### 3. The engine owns the FORMATS; the game declares its TABLES — **DONE 26-08-06**, gated
 
 The engine already owns the *reader* (`ReadDataFile` / `DField$`) and the pack model
 (pack → `default`, per file). What it does not own is the knowledge of what a table IS — and
@@ -128,7 +128,8 @@ that knowledge currently exists in **three places that can disagree**:
 while `LoadEventText` reads four — so editing the text column would have swallowed the
 narration key into the line the player reads. Three copies, two of them wrong.
 
-The fix is a **schema registry**, declared by the game:
+Fixed by a **schema registry** (`engine/SCHEMA.BI` + `SCHEMA.bas`), declared by the game in
+`game/DATATABLES.bas` — 35 tables, and `dungeon.run schemalint` is in the gate:
 
 ```basic
 DataTable "monsters.txt", "lvl|slot|name|HERO|ELF|SUP|WIZ"
@@ -139,6 +140,14 @@ DataTable "triggers.txt", "level|col|row|scene|once"
 One declaration and **four tools stop guessing**: the editor gets its columns and its split
 rule, `datalint` checks arity generically instead of per-table by hand, the manifests know what
 exists, and a new game inherits the whole toolchain by declaring its own tables.
+
+`schemalint` compares all three sources — the declaration (authoritative, it is what the loader
+reads), the file's own rows, and the comment a modder reads. It found the two `*_events.txt`
+files documenting three columns while their loader read four; those comments are fixed.
+
+An **undeclared** table is not an error: every tool falls back to what it did before and the
+lint says so out loud. A registry that broke a host for not being filled in yet would simply
+not get filled in.
 
 ## The tools are ENGINE, not game
 

@@ -39,27 +39,13 @@ CONST DE_MAXCOL = 24
 '    loader that splits on the first pipe only is the loader whose values are
 '    allowed to contain pipes. 0 = split on every pipe. ---
 FUNCTION DeMaxCols% (path AS STRING)
-    DIM b AS STRING
-    b = LCASE$(path)
-
-    '--- FLAVOR files are prose with a key in front, and prose is exactly what
-    '    contains stray pipes. Checked by DIRECTORY, because flavor/chambers.txt
-    '    (level | line) and data/chambers.txt (name | c1 | r1 | c2 | r2) share a
-    '    filename and disagree about every column. ---
-    IF INSTR(b, "flavor") > 0 THEN
-        IF INSTR(b, "maxhit.txt") > 0 _ORELSE INSTR(b, "forfeit.txt") > 0 THEN DeMaxCols% = 1: EXIT FUNCTION
-        '--- the *_events files are the exception among flavor: LoadEventText
-        '    reads them with DField$, which splits on EVERY pipe, and there is
-        '    a FOURTH optional column (the narration key). Capping them at the
-        '    three visible columns would have swallowed that key into the line
-        '    the player reads. ---
-        IF INSTR(b, "_events.txt") > 0 THEN DeMaxCols% = 0: EXIT FUNCTION
-        DeMaxCols% = 2
-        EXIT FUNCTION
-    END IF
-
-    IF INSTR(b, "strings.txt") > 0 THEN DeMaxCols% = 2: EXIT FUNCTION
-    DeMaxCols% = 0
+    '--- The DECLARED split rule (engine/SCHEMA.bas). This used to be an IF
+    '    chain naming files -- strings.txt, *_events.txt -- which is the editor
+    '    keeping its own third copy of what a table is, and it disagreed with
+    '    the loader about monster_events.txt. An undeclared table answers 0,
+    '    "split on every pipe", which is what this did before any of them were
+    '    named. ---
+    DeMaxCols% = TableSplit%(path)
 END FUNCTION
 
 ' ----------------------------------------------------------------------------
@@ -110,7 +96,12 @@ SUB DeLoad (path AS STRING)
         IF LEN(ln) = 0 THEN
             ' blank: skipped by every loader here
         ELSEIF LEFT$(ln, 1) = "#" THEN
-            lastcom = i
+            '--- remember the last PIPE-SHAPED comment, not merely the last one.
+            '    These files carry section banners ("# --- the monster HITS you")
+            '    right above the rows, so "the comment just before the data" is
+            '    usually prose. The column header is the last comment that looks
+            '    like a row -- which is also what makes the headings useful. ---
+            IF DeCount%(ln, path) >= 2 THEN lastcom = i
         ELSE
             DE_NROW = DE_NROW + 1
             DE_ROWMAP(DE_NROW) = i
@@ -140,7 +131,11 @@ SUB DeLoad (path AS STRING)
             NEXT col
         END IF
     END IF
+    '--- DECLARED names win over the file's own header comment: the comment is
+    '    documentation and can go stale, the declaration is what the loader
+    '    actually reads. Where a table is undeclared the comment still serves. ---
     FOR col = 1 TO DE_NCOL
+        IF LEN(TableColName$(DE_PATH, col)) > 0 THEN DE_HEAD(col) = TableColName$(DE_PATH, col)
         IF LEN(DE_HEAD(col)) = 0 THEN DE_HEAD(col) = "f" + LTRIM$(STR$(col))
         IF LEN(DE_HEAD(col)) > DE_W(col) THEN DE_W(col) = LEN(DE_HEAD(col))
         IF DE_W(col) > 28 THEN DE_W(col) = 28
@@ -739,4 +734,87 @@ FUNCTION DataEditSelfTest% (dir AS STRING)
     NEXT fi
 
     DataEditSelfTest% = fail
+END FUNCTION
+
+
+' ============================================================================
+'  `dungeon.run schemalint` -- do the three copies still agree?
+'
+'  A table's shape is written down in three places and only one of them is
+'  authoritative:
+'
+'    the DECLARATION   what the loader actually reads   -- authoritative
+'    the FILE          how many columns its rows have   -- the data itself
+'    the COMMENT       what a modder reads              -- documentation
+'
+'  This compares all three. A declaration narrower than the widest row means a
+'  tool will drop a column; a stale comment means the person editing the file is
+'  being told the wrong thing, which is how monster_events.txt lost its
+'  narration key in the first place. Neither shows up as a crash.
+' ============================================================================
+FUNCTION SchemaLint% (dir AS STRING)
+    DIM fi AS INTEGER, r AS INTEGER, wid AS INTEGER, n AS INTEGER
+    DIM dec AS INTEGER, bad AS INTEGER, warn AS INTEGER, undecl AS INTEGER
+    DIM hdr AS STRING, hn AS INTEGER, lbl AS STRING, d AS LONG
+
+    d = _DEST: _DEST _CONSOLE
+    PRINT PipeCol$("|15schemalint|07 -- declared columns vs the file vs its own comment")
+    PRINT
+
+    DeScanFiles dir
+    FOR fi = 1 TO DE_NFILE
+        DeLoad DE_FILE(fi)
+        lbl = DeLabel$(DE_FILE(fi))
+        dec = TableCols%(DE_FILE(fi))
+
+        '--- the widest row the file actually has, under the DECLARED split rule ---
+        wid = 0
+        FOR r = 1 TO DE_NROW
+            n = DeCount%(DE_RAW(DE_ROWMAP(r)), DE_FILE(fi))
+            IF n > wid THEN wid = n
+        NEXT r
+
+        _DEST _CONSOLE
+        IF dec = 0 THEN
+            undecl = undecl + 1
+            PRINT PipeCol$("  |14--  |07" + lbl + "  |08undeclared (tools fall back to splitting on every pipe)")
+        ELSEIF wid > dec THEN
+            bad = bad + 1
+            PRINT PipeCol$("  |12BAD |07" + lbl + "  declared " + LTRIM$(STR$(dec)) + " columns, the file has rows with " + LTRIM$(STR$(wid)))
+        ELSE
+            '--- Does the file DOCUMENT its shape anywhere? Not "is the last
+            '    pipe-shaped comment right" -- these files carry value lists
+            '    ("kind  poison | blight | curse | acid") and section banners
+            '    that are pipe-shaped and are not headers, so that question has
+            '    false answers in both directions. The useful one is whether
+            '    ANY comment states the real arity; if none does, a modder
+            '    reading the file is being told the wrong thing. ---
+            hn = 0
+            FOR r = 1 TO DE_NRAW
+                hdr = _TRIM$(DE_RAW(r))
+                IF LEFT$(hdr, 1) <> "#" THEN _CONTINUE
+                hdr = _TRIM$(MID$(hdr, 2))
+                IF INSTR(hdr, "|") = 0 THEN _CONTINUE
+                n = DeCount%(hdr, DE_FILE(fi))
+                IF n = dec THEN hn = dec: EXIT FOR
+                IF n > hn THEN hn = n
+            NEXT r
+            IF hn > 0 _ANDALSO hn <> dec THEN
+                warn = warn + 1
+                PRINT PipeCol$("  |14warn|07 " + lbl + "  declared " + LTRIM$(STR$(dec)) + ", but no comment in the file documents more than " + LTRIM$(STR$(hn)) + " -- the docs are stale")
+            ELSE
+                PRINT PipeCol$("  |10ok  |07" + lbl + "  " + LTRIM$(STR$(dec)) + " columns")
+            END IF
+        END IF
+    NEXT fi
+
+    PRINT
+    PRINT PipeCol$("|07  declared |14" + LTRIM$(STR$(DT_N)) + "|07 table(s); |14" + LTRIM$(STR$(undecl)) + "|07 file(s) undeclared, |14" + LTRIM$(STR$(warn)) + "|07 stale comment(s)")
+    IF bad > 0 THEN
+        PRINT PipeCol$("|12" + LTRIM$(STR$(bad)) + " table(s) would LOSE a column -- a tool reading them drops data")
+    ELSE
+        PRINT PipeCol$("|10no declared table is narrower than its own data")
+    END IF
+    _DEST d
+    SchemaLint% = bad
 END FUNCTION
