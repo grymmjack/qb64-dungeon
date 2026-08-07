@@ -120,6 +120,12 @@ devrun() {
     echo "-- headless mute (tests/audit-mute.sh) --"
     if tests/audit-mute.sh | tail -1; then :; else (( fail++ )); failed+=("audit-mute"); fi
 
+    # The engine may name no game PATH. audit-boundary checks SYMBOLS and passed
+    # cleanly on ~50 hardcoded assets/... paths -- the same violation in different
+    # clothes. Declarations are exempt: naming a path is what a host is FOR.
+    echo "-- asset-path audit (the engine asks for KINDS, never paths) --"
+    if tests/audit-paths.sh | tail -1; then :; else (( fail++ )); failed+=("audit-paths"); fi
+
     echo "-- pack-fallback audit (a partial pack must degrade to default/) --"
     if tests/audit-packfallback.sh | tail -3; then :; else (( fail++ )); failed+=("audit-packfallback"); fi
 

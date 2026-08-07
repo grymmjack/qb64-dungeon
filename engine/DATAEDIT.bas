@@ -330,8 +330,10 @@ END SUB
 FUNCTION DeFlavorDir$ (dir AS STRING)
     DIM d AS STRING
     d = dir
-    IF INSTR(d, "assets/data/") = 1 THEN
-        DeFlavorDir$ = "assets/flavor/" + MID$(d, LEN("assets/data/") + 1)
+    '--- both trees come from the registry: the editor covers whichever
+    '    directories the host declared, and knows the name of neither ---
+    IF INSTR(d, AssetDir$("data")) = 1 THEN
+        DeFlavorDir$ = AssetDir$("flavor") + MID$(d, LEN(AssetDir$("data")) + 1)
     ELSE
         DeFlavorDir$ = ""
     END IF
@@ -355,7 +357,7 @@ END SUB
 FUNCTION DeLabel$ (path AS STRING)
     DIM p AS STRING
     p = path
-    IF INSTR(p, "assets/flavor/") = 1 THEN
+    IF INSTR(p, AssetDir$("flavor")) = 1 THEN
         DeLabel$ = "flavor/" + MID$(p, _INSTRREV(p, "/") + 1)
     ELSEIF INSTR(p, "/theme/") > 0 THEN
         DeLabel$ = "theme/" + MID$(p, _INSTRREV(p, "/") + 1)

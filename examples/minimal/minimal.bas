@@ -22,6 +22,26 @@ $CONSOLE:ONLY
 ' tests/TESTLIB.bas T_RepoRoot).
 IF _FILEEXISTS("dungeon.bas") = 0 THEN CHDIR "../.."
 
+' ---------------------------------------------------------------- WHERE THE FUEL IS
+' The engine asks for KINDS and never for paths (engine/ASSETS.bas), so every
+' host declares its own tree. THIS is the part that proves the engine carries no
+' idea of DUNGEON!'s layout: a second game writes its own eleven lines and the
+' engine is unchanged.
+'
+' It points at the same assets/ for now because minimal borrows this repo's board
+' art; give it its own assets/ directory and only these lines change.
+AssetRoot "assets/"
+AssetDefaultPack "default"
+AssetKindPacked "data", "data/"
+AssetKindPacked "flavor", "flavor/"
+AssetKind "pixelart", "pixel-art/"
+AssetKind "ansiart", "ansi-art/"
+AssetKind "sfx", "sfx/"
+AssetKind "music", "music/"
+AssetKind "narration", "narration/"
+AssetKind "cutscenes", "cutscenes/"
+AssetKind "fonts", "fonts/"
+
 SW = 132: SH = 51: CW = 8: CH = 16
 CLI_COLOR = 0
 

@@ -864,15 +864,6 @@ DIM SHARED WIND_VOL AS INTEGER            ' loudest it ever gets, 0-10 (0 = off)
 DIM SHARED WIND_H AS LONG                 ' the looping handle, 0 = not running
 DIM SHARED WIND_NEAR AS SINGLE            ' distance to the nearest unfound door, for the dumps
 
-'--- ASSET PATH REGISTRY (engine/ASSETS.bas). The assembly declares its tree;
-'    the engine asks for KINDS and never for paths. See ENGINE.md. ---
-CONST AK_MAX = 24
-DIM SHARED ASSET_ROOT AS STRING           ' where this game keeps its fuel
-DIM SHARED ASSET_DEFPACK AS STRING        ' the fallback pack folder name ("default")
-DIM SHARED AK_NAME(1 TO AK_MAX) AS STRING
-DIM SHARED AK_DIR(1 TO AK_MAX) AS STRING
-DIM SHARED AK_PACKED(1 TO AK_MAX) AS INTEGER   ' pack-structured: <kind>/<pack>/<file>, falling back to default
-DIM SHARED AK_N AS INTEGER
-'--- kinds the engine asked for that nobody declared: recorded, not guessed ---
-DIM SHARED AK_MISS(1 TO AK_MAX) AS STRING
-DIM SHARED AK_MISS_N AS INTEGER
+'--- ASSET PATH REGISTRY -- its own header, because standalone hosts
+'    (engine/cutplay) use it without including this file. ---
+'$INCLUDE:'ASSETS.BI'

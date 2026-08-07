@@ -14,7 +14,7 @@ $INCLUDEONCE
 SUB LoadDiceFonts
     DIM i AS INTEGER, fn AS STRING, px AS INTEGER
     DICEFONT_N = 0
-    ReadDataFile "assets/fonts/dicefonts.txt"
+    ReadDataFile AssetPath$("fonts", "dicefonts.txt")
     FOR i = 1 TO DLINE_N
         IF DICEFONT_N < UBOUND(DICEFONT_NAME) THEN
             DICEFONT_N = DICEFONT_N + 1
@@ -23,7 +23,7 @@ SUB LoadDiceFonts
             DICEFONT_PX(DICEFONT_N) = px
             DICEFONT_H(DICEFONT_N) = 0
             IF fn <> "-" AND px > 0 THEN
-                IF _FILEEXISTS("assets/fonts/" + fn) THEN DICEFONT_H(DICEFONT_N) = _LOADFONT("assets/fonts/" + fn, px)
+                IF _FILEEXISTS(AssetPath$("fonts", fn)) THEN DICEFONT_H(DICEFONT_N) = _LOADFONT(AssetPath$("fonts", fn), px)
             END IF
         END IF
     NEXT i
@@ -57,7 +57,7 @@ END SUB
 SUB LoadDiceManifest
     DIM i AS INTEGER
     DSET_COUNT = 0
-    ReadDataFile "assets/data/dicesets.txt"
+    ReadDataFile AssetPath$("data", "dicesets.txt")
     FOR i = 1 TO DLINE_N
         IF DSET_COUNT < UBOUND(DSET_NAME) THEN
             DSET_COUNT = DSET_COUNT + 1
@@ -75,15 +75,15 @@ SUB LoadDiceSets
     LoadDiceManifest
     dice3d_ready = FALSE
     IF DSET_COUNT <= 0 THEN
-        ok = dice3d_set_load%(DSET3D(), DataPath$("assets/data/diceset.txt"))
-        IF ok THEN dice3d_ready = -1: ok = dice3d_set_load%(MSET3D(), DataPath$("assets/data/diceset.txt"))
+        ok = dice3d_set_load%(DSET3D(), DataPath$(AssetPath$("data", "diceset.txt")))
+        IF ok THEN dice3d_ready = -1: ok = dice3d_set_load%(MSET3D(), DataPath$(AssetPath$("data", "diceset.txt")))
         EXIT SUB
     END IF
     IF opt_dice3d_set < 1 OR opt_dice3d_set > DSET_COUNT THEN opt_dice3d_set = 1
     IF opt_mon_dice3d_set < 1 OR opt_mon_dice3d_set > DSET_COUNT THEN opt_mon_dice3d_set = 1
-    ok = dice3d_set_load%(DSET3D(), DataPath$("assets/data/dicesets/" + _TRIM$(DSET_FILE(opt_dice3d_set))))
+    ok = dice3d_set_load%(DSET3D(), DataPath$(AssetPath$("data", "dicesets/") + _TRIM$(DSET_FILE(opt_dice3d_set))))
     IF ok THEN dice3d_ready = -1
-    ok = dice3d_set_load%(MSET3D(), DataPath$("assets/data/dicesets/" + _TRIM$(DSET_FILE(opt_mon_dice3d_set))))
+    ok = dice3d_set_load%(MSET3D(), DataPath$(AssetPath$("data", "dicesets/") + _TRIM$(DSET_FILE(opt_mon_dice3d_set))))
 END SUB
 
 ' Roll n dice of `sides` sides as animated 3D dice and return the raw sum (no bonus --

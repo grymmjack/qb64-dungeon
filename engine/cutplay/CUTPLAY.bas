@@ -22,6 +22,7 @@ $CONSOLE
 ' ansi FIRST: it is where TRUE/FALSE are defined, and CUTSCENE.BI now expects
 ' them to exist rather than defining its own (which warned on every build).
 '$INCLUDE:'../ansi/ANSIPrint.bi'
+'$INCLUDE:'../ASSETS.BI'
 '$INCLUDE:'../CUTSCENE.BI'
 '$INCLUDE:'CUTMOCK.bi'
 
@@ -40,7 +41,20 @@ CONST ERR_MAX = 24
 DIM SHARED PLAY_LOOP AS INTEGER
 DIM SHARED SHOT_PATH AS STRING
 
-CUT_ASSETROOT = "assets/"
+'--- CUTPLAY is a HOST in its own right, so it declares its tree like any other
+'    assembly does. It happens to point at this repo's assets because that is
+'    what it is here to author; a copy of the engine elsewhere edits its own. ---
+AssetRoot "assets/"
+AssetDefaultPack "default"
+AssetKindPacked "data", "data/"
+AssetKind "cutscenes", "cutscenes/"
+AssetKind "pixelart", "pixel-art/"
+AssetKind "ansiart", "ansi-art/"
+AssetKind "sfx", "sfx/"
+AssetKind "music", "music/"
+AssetKind "narration", "narration/"
+AssetKind "fonts", "fonts/"
+CUT_ASSETROOT = ASSET_ROOT
 CUT_GRIDFONT = 16                  ' QB64's built-in 8x16
 CUT_TEXTSPEED = 45
 CUT_MODE = CUT_MANUAL
@@ -584,6 +598,7 @@ END SUB
 '  body file declares anything at file scope. Assembling a program is these
 '  few lines plus the two headers at the top.
 ' ============================================================================
+'$INCLUDE:'../ASSETS.bas'
 '$INCLUDE:'../CUTSCENE_PARSE.bas'
 '$INCLUDE:'../CUTSCENE_COMP.bas'
 '$INCLUDE:'../CUTSCENE_VM.bas'

@@ -372,7 +372,7 @@ END SUB
 SUB LoadFogHide
     DIM fcx AS INTEGER, fcy AS INTEGER
     FOR fcy = 0 TO 60: FOR fcx = 0 TO 131: FOGHIDE(fcx, fcy) = 0: NEXT: NEXT   ' fresh each build (for the [~] overlay)
-    DIM ff AS STRING: ff = DataPath$("assets/data/fog-hide.txt")   ' data-pack aware
+    DIM ff AS STRING: ff = DataPath$(AssetPath$("data", "fog-hide.txt"))   ' data-pack aware
     IF NOT _FILEEXISTS(ff) THEN EXIT SUB
     DIM whole AS STRING, p AS LONG, nl AS LONG, ln AS STRING, hp AS INTEGER
     DIM hx AS INTEGER, hy AS INTEGER

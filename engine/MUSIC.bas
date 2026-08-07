@@ -22,9 +22,9 @@ SUB LoadPlaylist
     music_level = 0: music_curfile = ""
     ' a selected MUSIC PACK may ship its OWN playlist.txt (its own per-level track names);
     ' otherwise use the flat assets/music/playlist.txt.
-    pl = "assets/music/default/playlist.txt"             ' the DEFAULT pack's playlist is the base
+    pl = AssetPackDir$("music", "") + "playlist.txt"             ' the DEFAULT pack's playlist is the base
     IF LEN(opt_musicpack) > 0 THEN
-        IF _FILEEXISTS("assets/music/" + opt_musicpack + "/playlist.txt") THEN pl = "assets/music/" + opt_musicpack + "/playlist.txt"
+        IF _FILEEXISTS(AssetPackDir$("music", opt_musicpack) + "playlist.txt") THEN pl = AssetPackDir$("music", opt_musicpack) + "playlist.txt"
     END IF
     ReadDataFile pl
     FOR i = 1 TO DLINE_N
@@ -60,8 +60,8 @@ FUNCTION ResolveMusic$ (nm AS STRING)
     b = MusicBaseName$(nm)                          ' strip any trailing known extension
     ' selected MUSIC PACK wins; if it has no file for this name, fall back to the flat main dir
     chosen = ""
-    IF LEN(opt_musicpack) > 0 THEN chosen = ResolveMusicIn$("assets/music/" + opt_musicpack + "/", b)
-    IF LEN(chosen) = 0 THEN chosen = ResolveMusicIn$("assets/music/default/", b)   ' fall back to the DEFAULT pack
+    IF LEN(opt_musicpack) > 0 THEN chosen = ResolveMusicIn$(AssetPackDir$("music", opt_musicpack), b)
+    IF LEN(chosen) = 0 THEN chosen = ResolveMusicIn$(AssetPackDir$("music", ""), b)   ' fall back to the DEFAULT pack
     ResolveMusic$ = chosen
 END FUNCTION
 
@@ -352,10 +352,10 @@ SUB LoadNarrConf
     ' tuning.txt -- a pack overrides only what it actually ships.
     cf = ""
     IF LEN(opt_narrationpack) > 0 THEN
-        cf = "assets/narration/" + opt_narrationpack + "/pack.conf"
+        cf = AssetPackDir$("narration", opt_narrationpack) + "pack.conf"
         IF NOT _FILEEXISTS(cf) THEN cf = ""
     END IF
-    IF LEN(cf) = 0 THEN cf = "assets/narration/default/pack.conf"
+    IF LEN(cf) = 0 THEN cf = AssetPackDir$("narration", "") + "pack.conf"
     IF NOT _FILEEXISTS(cf) THEN EXIT SUB
     raw = UCASE$(_READFILE$(cf))
     narr_fadein = ConfNum(raw, "FADEIN", NARR_FADE_IN_DEF)
@@ -412,8 +412,8 @@ END SUB
 SUB RegisterSfx (nm AS STRING)
     DIM h AS LONG, p AS STRING
     h = 0
-    IF LEN(opt_sfxpack) > 0 THEN h = OpenSfxP&("assets/sfx/" + opt_sfxpack + "/" + nm, p)
-    IF h <= 0 THEN h = OpenSfxP&("assets/sfx/default/" + nm, p)   ' fall back to the DEFAULT pack (was the flat dir)
+    IF LEN(opt_sfxpack) > 0 THEN h = OpenSfxP&(AssetPackDir$("sfx", opt_sfxpack) + nm, p)
+    IF h <= 0 THEN h = OpenSfxP&(AssetPackDir$("sfx", "") + nm, p)   ' fall back to the DEFAULT pack (was the flat dir)
     IF h > 0 THEN
         IF SFX_N < UBOUND(SFX_NAME) THEN
             SFX_N = SFX_N + 1: SFX_NAME(SFX_N) = nm: SFX_HND(SFX_N) = h: SFX_PATH(SFX_N) = p
@@ -685,9 +685,9 @@ END SUB
 ' (Re)scan both pack lists into the SFXPACKS/MUSICPACKS globals. Called at startup and each
 ' time SETTINGS opens, so packs added on disk show up without a rebuild.
 SUB ScanAllPacks
-    ScanAudioPacks "assets/sfx/", SFXPACKS(), SFXPACK_N
-    ScanAudioPacks "assets/music/", MUSICPACKS(), MUSICPACK_N
-    ScanAudioPacks "assets/narration/", NARRPACKS(), NARRPACK_N
+    ScanAudioPacks AssetDir$("sfx"), SFXPACKS(), SFXPACK_N
+    ScanAudioPacks AssetDir$("music"), MUSICPACKS(), MUSICPACK_N
+    ScanAudioPacks AssetDir$("narration"), NARRPACKS(), NARRPACK_N
     ScanArtPacks                                          ' pixel-art theme packs (subdirs of assets/pixel-art/)
     ScanAnsiPacks                                         ' ANSI-art packs (subdirs of assets/ansi-art/): board + masks + menu art
     ScanDataPacks                                         ' DATA packs (subdirs of assets/data/): monsters/treasures/tuning/classes/strings + flavor -- a whole game
@@ -770,10 +770,10 @@ FUNCTION NarratePath$ (nkey AS STRING)
     DIM p AS STRING
     NarratePath$ = ""
     IF LEN(opt_narrationpack) > 0 THEN
-        p = FirstAudioFile$("assets/narration/" + opt_narrationpack + "/" + nkey)
+        p = FirstAudioFile$(AssetPackDir$("narration", opt_narrationpack) + nkey)
         IF LEN(p) > 0 THEN NarratePath$ = p: EXIT FUNCTION
     END IF
-    NarratePath$ = FirstAudioFile$("assets/narration/default/" + nkey)   ' fall back to the DEFAULT pack
+    NarratePath$ = FirstAudioFile$(AssetPackDir$("narration", "") + nkey)   ' fall back to the DEFAULT pack
 END FUNCTION
 
 ' Stop and release the current narration line.

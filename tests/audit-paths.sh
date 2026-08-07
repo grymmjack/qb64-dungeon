@@ -25,7 +25,12 @@ hits=0
 for f in engine/*.bas engine/*.BI engine/*/*.bas engine/*/*.bi; do
     [[ -e "$f" ]] || continue
     # strip comments, then look for a quoted literal starting with the root name
+    # A DECLARATION is exactly what a host is supposed to write -- AssetRoot /
+    # AssetKind / AssetKindPacked name a path because that is their whole job.
+    # engine/cutplay is a host that happens to live in engine/. What the rule
+    # forbids is a part CONSUMING a literal path.
     while IFS=: read -r ln text; do
+        [[ "$text" =~ AssetRoot|AssetKindPacked|AssetKind|AssetDefaultPack ]] && continue
         [[ -z "${ln:-}" ]] && continue
         printf '  !! %s:%s\n' "$f" "$ln"
         printf '     %s\n' "$(printf '%s' "$text" | sed 's/^[[:space:]]*//' | cut -c1-100)"

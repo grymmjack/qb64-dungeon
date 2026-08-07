@@ -21,6 +21,12 @@ $CONSOLE:ONLY
 
 T_Begin "engine/ARTPACK.bas"
 
+'--- These groups resolve against the REPO'S REAL art, so they declare the real
+'    tree. That is a fixture, not a dependency: the engine has no built-in idea
+'    of where art lives, and a suite that did not declare one would be asserting
+'    about paths nobody had defined. ---
+DeclareAssetTree
+
 T_Group "InStrAny% (keyword fallback matcher)"
 T_True "single word present", InStrAny%("a ruby gem", "gem")
 T_True "one of several present", InStrAny%("a ruby gem", "coin cup gem")
@@ -95,6 +101,7 @@ END SUB
 '$INCLUDE:'TESTLIB.bas'
 '$INCLUDE:'../engine/TEXT.bas'
 '$INCLUDE:'../engine/ASSETS.bas'
+'$INCLUDE:'../game/ASSETTREE.bas'   ' the repo's real tree -- these groups assert against real files
 '$INCLUDE:'../engine/ansi/ANSIPrint.bas'
 '$INCLUDE:'../engine/NINEGRID.bas'   ' CombatArtBox draws its box through the 9-grid frame slots
 '$INCLUDE:'../engine/TELEMETRY.bas'   ' DrawSpriteFit% logs every blit through LogImageDrawn

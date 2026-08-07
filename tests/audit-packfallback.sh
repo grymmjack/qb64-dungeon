@@ -80,7 +80,12 @@ for spec in "${CHECKS[@]}"; do
     # registry's ASSET_DEFPACK for the one that no longer can: the default pack's
     # NAME is declarable now, so hardcoding "default/" in the engine would be the
     # very thing the path registry exists to remove.
-    if ! grep -qF "$want" <<<"$body"; then
+    # ...or does it delegate to the registry, which implements exactly this?
+    # AssetPackDir$/AssetPackFile$ ARE the per-file pack->default model, so a
+    # resolver built on them has the fallback by construction. Requiring the
+    # literal string would be requiring the engine to hardcode the path the
+    # registry exists to remove.
+    if ! grep -qF "$want" <<<"$body" && ! grep -qE 'AssetPack(Dir|File)\$|ASSET_DEFPACK' <<<"$body"; then
         printf '  !! %-22s (%s) has NO fallback to %s\n' "$routine" "$kind" "$want"
         printf '     a partial %s pack would come up EMPTY instead of using the default pack.\n' "$kind"
         fail=$((fail + 1))

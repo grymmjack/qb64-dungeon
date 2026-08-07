@@ -262,10 +262,10 @@ FUNCTION PixelArtFile$ (subpath AS STRING)
     sp = subpath
     IF INSTR(_INSTRREV(sp, "/") + 1, sp, ".") = 0 THEN sp = sp + ".png"
     IF LEN(opt_artpack) > 0 THEN
-        p = "assets/pixel-art/" + opt_artpack + "/" + sp
+        p = AssetPackDir$("pixelart", opt_artpack) + sp
         IF _FILEEXISTS(p) THEN PixelArtFile$ = p: EXIT FUNCTION
     END IF
-    p = "assets/pixel-art/default/" + sp       ' fall back to the DEFAULT pack (every pack is a named subfolder)
+    p = AssetPackDir$("pixelart", "") + sp     ' fall back to the DEFAULT pack (every pack is a named subfolder)
     IF _FILEEXISTS(p) THEN PixelArtFile$ = p ELSE PixelArtFile$ = ""
 END FUNCTION
 
@@ -279,10 +279,10 @@ FUNCTION AnsiArtFile$ (subpath AS STRING)
     IF dot > 0 THEN sp = LEFT$(sp, dot - 1)
     sp = sp + ".ans"
     IF LEN(opt_ansipack) > 0 THEN
-        p = "assets/ansi-art/" + opt_ansipack + "/" + sp
+        p = AssetPackDir$("ansiart", opt_ansipack) + sp
         IF _FILEEXISTS(p) THEN AnsiArtFile$ = p: EXIT FUNCTION
     END IF
-    p = "assets/ansi-art/default/" + sp
+    p = AssetPackDir$("ansiart", "") + sp
     IF _FILEEXISTS(p) THEN AnsiArtFile$ = p ELSE AnsiArtFile$ = ""
 END FUNCTION
 
@@ -356,13 +356,13 @@ END SUB
 SUB ScanArtPacks
     DIM e AS STRING, nm AS STRING
     ARTPACK_N = 0
-    IF _DIREXISTS("assets/pixel-art/") THEN
-        e = _FILES$("assets/pixel-art/")
+    IF _DIREXISTS(AssetDir$("pixelart")) THEN
+        e = _FILES$(AssetDir$("pixelart"))
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
                 IF nm <> "." AND nm <> ".." AND ARTPACK_N < UBOUND(ARTPACKS) THEN
-                    IF PackIgnored%("assets/pixel-art/" + nm) = 0 THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
+                    IF PackIgnored%(AssetDir$("pixelart") + nm) = 0 THEN ARTPACK_N = ARTPACK_N + 1: ARTPACKS(ARTPACK_N) = nm
                 END IF
             END IF
             e = _FILES$
@@ -389,10 +389,10 @@ END SUB
 FUNCTION AnsiFile$ (subpath AS STRING)
     DIM p AS STRING
     IF LEN(opt_ansipack) > 0 THEN
-        p = "assets/ansi-art/" + opt_ansipack + "/" + subpath
+        p = AssetPackDir$("ansiart", opt_ansipack) + subpath
         IF _FILEEXISTS(p) THEN AnsiFile$ = p: EXIT FUNCTION
     END IF
-    p = "assets/ansi-art/default/" + subpath
+    p = AssetPackDir$("ansiart", "") + subpath
     IF _FILEEXISTS(p) THEN AnsiFile$ = p ELSE AnsiFile$ = ""
 END FUNCTION
 
@@ -402,9 +402,9 @@ END FUNCTION
 ' gets its own generated layers rather than writing them into default/.
 FUNCTION AnsiOutPath$ (subpath AS STRING)
     IF LEN(opt_ansipack) > 0 THEN
-        AnsiOutPath$ = "assets/ansi-art/" + opt_ansipack + "/" + subpath
+        AnsiOutPath$ = AssetPackDir$("ansiart", opt_ansipack) + subpath
     ELSE
-        AnsiOutPath$ = "assets/ansi-art/default/" + subpath
+        AnsiOutPath$ = AssetPackDir$("ansiart", "") + subpath
     END IF
 END FUNCTION
 
@@ -413,13 +413,13 @@ END FUNCTION
 SUB ScanAnsiPacks
     DIM e AS STRING, nm AS STRING
     ANSIPACK_N = 0
-    IF _DIREXISTS("assets/ansi-art/") THEN
-        e = _FILES$("assets/ansi-art/")
+    IF _DIREXISTS(AssetDir$("ansiart")) THEN
+        e = _FILES$(AssetDir$("ansiart"))
         DO WHILE LEN(e) > 0
             IF RIGHT$(e, 1) = "/" THEN
                 nm = LEFT$(e, LEN(e) - 1)
                 IF nm <> "." AND nm <> ".." AND ANSIPACK_N < UBOUND(ANSIPACKS) THEN
-                    IF PackIgnored%("assets/ansi-art/" + nm) = 0 THEN ANSIPACK_N = ANSIPACK_N + 1: ANSIPACKS(ANSIPACK_N) = nm
+                    IF PackIgnored%(AssetDir$("ansiart") + nm) = 0 THEN ANSIPACK_N = ANSIPACK_N + 1: ANSIPACKS(ANSIPACK_N) = nm
                 END IF
             END IF
             e = _FILES$

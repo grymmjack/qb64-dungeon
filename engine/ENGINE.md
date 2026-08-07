@@ -79,16 +79,17 @@ Three consequences follow, and only the first is currently true.
 
 `tests/audit-boundary.sh`, described below. Clean.
 
-### 2. The engine may name no game PATH — NOT done
+### 2. The engine may name no game PATH — **DONE 26-08-06**, audited
 
-`engine/` currently hardcodes **~50 literal `assets/...` paths**: `assets/data/`,
+`engine/` hardcoded **51 literal `assets/...` paths**: `assets/data/`,
 `assets/pixel-art/`, `assets/music/default/playlist.txt`, `assets/data/theme/colors.txt`,
 `assets/fonts/dpoly/`. Every one is the engine depending on something only DUNGEON! has, and
 the boundary audit passes anyway — because it checks *symbols*, and a hardcoded path is the
 same violation wearing different clothes.
 
-The fix is a **path registry**: the assembly declares its tree once, and the engine asks for
-KINDS, never paths.
+Fixed by a **path registry** (`engine/ASSETS.BI` + `ASSETS.bas`): the assembly declares its
+tree once, and the engine asks for KINDS, never paths. `tests/audit-paths.sh` is in the gate;
+declaration calls are exempt, because naming a path is what a host is *for*.
 
 ```basic
 AssetRoot "assets/"                  ' wherever this game keeps its fuel
@@ -99,7 +100,17 @@ AssetKind "music",    "music/"
 '     AssetPath$("data", "strings.txt")
 ```
 
-A new game declares a different tree and **not one line of `engine/` changes**.
+A new game declares a different tree and **not one line of `engine/` changes** —
+`examples/minimal` now proves it by declaring its own.
+
+**No defaults, deliberately.** Falling back to `assets/` and the names this game happens to use
+would keep everything working, which is the problem: the engine would still know this game's
+layout and *nothing would break*, so nobody would find out. An undeclared kind is **recorded**
+(`AssetMissing$`) rather than guessed.
+
+**The tree is declared in ONE place** — `game/ASSETTREE.bas` — which `dungeon.bas` and three
+unit suites all call. A hand-copied declaration per suite would be three more copies to drift,
+the exact failure the registry exists to end.
 
 ### 3. The engine owns the FORMATS; the game declares its TABLES — NOT done
 

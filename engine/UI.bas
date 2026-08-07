@@ -329,7 +329,7 @@ END FUNCTION
 SUB LoadUIFonts
     DIM f AS INTEGER, ln AS STRING, p1 AS INTEGER, p2 AS INTEGER
     DIM region AS STRING, file AS STRING, sz AS INTEGER, h AS LONG, path AS STRING
-    DIM uf AS STRING: uf = DataPath$("assets/data/ui-fonts.txt")   ' data-pack aware
+    DIM uf AS STRING: uf = DataPath$(AssetPath$("data", "ui-fonts.txt"))   ' data-pack aware
     IF _FILEEXISTS(uf) = 0 THEN EXIT SUB
     f = FREEFILE
     OPEN uf FOR INPUT AS #f
@@ -344,7 +344,7 @@ SUB LoadUIFonts
                 sz = VAL(_TRIM$(MID$(ln, p2 + 1)))
                 h = 0
                 IF LEN(file) > 0 AND sz > 0 THEN
-                    path = "assets/fonts/ui/" + file
+                    path = AssetPath$("fonts", "ui/") + file
                     '--- combat/hud carry bars + aligned columns, so force MONOSPACE (even cells);
                     '    prose regions (label/message/menu) stay proportional for a natural flow ---
                     DIM style AS STRING
@@ -1258,8 +1258,12 @@ END FUNCTION
 ' left and right points off the polyhedra. Proportional loading keeps each die
 ' whole; DieWidth measures the real advance with _PRINTWIDTH.
 SUB InitDice
-    CONST FP = "assets/fonts/dpoly/"
+    
     CONST PT = 56
+    '--- resolved from the declared tree, not a CONST: a CONST cannot call a
+    '    function, and the whole point is that the engine does not know where a
+    '    host keeps its fonts ---
+    DIM FP AS STRING: FP = AssetPath$("fonts", "dpoly/")
     DFONT(4) = _LOADFONT(FP + "DPoly Four-Sider.otf", PT)
     DFONT(6) = _LOADFONT(FP + "DPoly Six-Sider.otf", PT)
     DFONT(8) = _LOADFONT(FP + "DPoly Eight-Sider.otf", PT)
@@ -1396,7 +1400,7 @@ END SUB
 
 SUB LoadDiceColors
     DIM i AS INTEGER, id AS INTEGER
-    ReadDataFile "assets/data/dice-colors.txt"
+    ReadDataFile AssetPath$("data", "dice-colors.txt")
     FOR i = 1 TO DLINE_N
         id = VAL(DField$(DLINE(i), 1))
         IF id >= 0 AND id <= 5 THEN

@@ -1,0 +1,33 @@
+# ============================================================================
+#  overlays.txt -- animated (or still) art drawn ON THE BOARD.
+#
+#  Format:  level | col | row | art | scale | lit
+#
+#    level  1-9, or 0 for "any level"
+#    col,row  0-BASED cell coordinates, like every other cell coordinate here
+#    art    a path resolved the same way a cut-scene resolves art: a .gif
+#           animates, anything else is a still
+#    scale  1 = one source pixel per screen pixel. A 32x32 torch at scale 1
+#           covers four cells; at 0.5 it covers one.
+#    lit    1 = only drawn once the player has SEEN that cell (respects
+#             fog-of-war and line-of-sight, like everything else on the board)
+#           0 = always drawn
+#
+#  A .gif here animates because the ordinary sprite path animates -- there is
+#  no separate machinery for board animation.
+#
+#  Check them with `dungeon.run overlaylint`: an overlay on a cell nobody can
+#  see, or naming art that does not resolve, fails silently and looks exactly
+#  like nothing being there.
+#
+#  Find coordinates with the [~] debug overlay.
+# ============================================================================
+#
+# level | col | row | art | scale | lit
+# Two torches flanking the Armory, and one in the Crypt. `lit 1` so they only
+# appear once you have seen the cell -- a torch visible through a wall would
+# give the map away.
+0 | 13 |  9 | torch-flame.gif | 0.5 | 1
+0 | 20 |  9 | torch-flame.gif | 0.5 | 1
+0 | 48 |  8 | torch-flame.gif | 0.5 | 1
+1 | 59 | 22 | torch-flame.gif | .5 | 1
