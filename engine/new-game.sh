@@ -20,9 +20,12 @@
 # ============================================================================
 set -euo pipefail
 
-here="$(cd "$(dirname "$0")" && pwd)"        # engine/
-root="$(cd "$here/.." && pwd)"              # the project engine/ lives in
-src="$root/examples/minimal"
+here="$(cd "$(dirname "$0")" && pwd)"        # wherever the engine lives
+# The engine ships its own examples/, so this works whether the engine is a
+# subdirectory of a game (engine/examples/minimal) or the repo root itself
+# (./examples/minimal). The demo belongs to the ENGINE -- it is the proof that
+# the boundary holds, and the template this scaffolder generates from.
+src="$here/examples/minimal"
 
 dest="${1:-}"
 title="${2:-NEW GAME}"

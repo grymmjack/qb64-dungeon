@@ -9,7 +9,7 @@
 # named `brown`, so `IF POINT(...) = BROWN` compared each pixel against the
 # COUNTER instead of AA5500. It found zero doors, forever. MarkStrongDoors marked
 # nothing, StrongDoorAhead always returned 0, and the game's reinforced-door
-# feature never once fired. Found by examples/minimal, fixed 2026-07-29.
+# feature never once fired. Found by engine/examples/minimal, fixed 2026-07-29.
 #
 # Only the genuinely dangerous globals are flagged -- the screen metrics, the
 # cursor, and the collision palette. Those are the ones used for coordinate math

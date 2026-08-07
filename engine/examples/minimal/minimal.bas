@@ -14,7 +14,7 @@
 ' ============================================================================
 $CONSOLE:ONLY
 
-'$INCLUDE:'../../engine/_ALL.BI'   ' ALL engine headers, one line -- if this roll-up ever
+'$INCLUDE:'../../_ALL.BI'   ' ALL engine headers, one line -- if this roll-up ever
 '                                   pulls in game/, this demo stops building.
 
 ' QB64 chdirs to the EXECUTABLE's dir at startup, so "assets/..." would resolve
@@ -37,7 +37,19 @@ IF _FILEEXISTS("dungeon.bas") = 0 THEN CHDIR "../.."
 ' binary here resolves relative paths against neither its own directory nor the
 ' shell's. Declaring the root explicitly is exactly how a host stops having to
 ' care what the answer is.
-AssetRoot "examples/minimal/assets/"
+'--- LOOK for the tree rather than assuming where it is. This demo gets run
+'    from its own directory by a person and from the repo root by the test
+'    gate, and no single relative root is correct for both. ---
+'    MOST SPECIFIC FIRST. A bare "assets/" is checked last and on purpose: from
+'    a game's repo root it matches THAT GAME'S tree, and this demo would
+'    silently load somebody else's board and report it as its own.
+IF AssetRootFind%("ansi-art/default/board-132x50-no-labels.ans", _
+                  _STARTDIR$ + "engine/examples/minimal/assets/", _
+                  "assets/", _
+                  _STARTDIR$ + "assets/") = 0 THEN
+    PRINT "minimal: cannot find my assets/ tree from here"
+    SYSTEM 2
+END IF
 AssetDefaultPack "default"
 AssetKindPacked "data", "data/"
 AssetKindPacked "flavor", "flavor/"
@@ -140,4 +152,4 @@ LOOP
 SYSTEM
 
 '$INCLUDE:'HOOKS.bas'             ' this game's 11 Game_* hooks -- the whole contract
-'$INCLUDE:'../../engine/_ALL.BM'  ' ALL engine bodies, one line
+'$INCLUDE:'../../_ALL.BM'  ' ALL engine bodies, one line

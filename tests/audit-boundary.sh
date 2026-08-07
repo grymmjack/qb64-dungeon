@@ -76,12 +76,12 @@ print(f"{bad} engine file(s) still name game symbols." if bad else "ENGINE IS CL
 
 # ---- hook-contract completeness -------------------------------------------
 # Every Game_* hook the engine CALLS must be implemented by BOTH game/ and the
-# reference game in examples/minimal.
+# reference game in engine/examples/minimal.
 #
 # Do not rely on "the demo stops compiling" to catch a missing hook: a bare
 # `Game_Foo` statement whose SUB is undefined parses as a LABEL, not a call --
 # it compiles clean and silently does nothing. That is how Game_RenderHUD was
-# added and examples/minimal kept building without it. This check is the alarm.
+# added and engine/examples/minimal kept building without it. This check is the alarm.
 called = set()
 for f in glob.glob("engine/*.bas") + ["engine/DICE3D_GAME.bas"]:
     if not os.path.exists(f): continue
@@ -100,11 +100,11 @@ def implemented(paths):
     return have
 
 game_have = implemented(glob.glob("game/*.bas"))
-mini_have = implemented(glob.glob("examples/minimal/*.bas"))
+mini_have = implemented(glob.glob("engine/examples/minimal/*.bas"))
 
 print()
 print(f"hook contract: engine calls {len(called)} Game_* hook(s)")
-for label, have in (("game/", game_have), ("examples/minimal/", mini_have)):
+for label, have in (("game/", game_have), ("engine/examples/minimal/", mini_have)):
     missing = sorted(called - have)
     if missing:
         bad += 1

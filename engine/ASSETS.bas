@@ -44,6 +44,34 @@ SUB AssetRoot (p AS STRING)
     ASSET_ROOT = AssetSlash$(p)
 END SUB
 
+'--- Set the root to the first CANDIDATE that actually contains `probe`.
+'
+'    A program does not reliably know where it is. A QB64 binary here reports
+'    _CWD$ as neither its own directory nor the shell's, and _STARTDIR$ is only
+'    right if the user launched it from where its assets are -- which is true
+'    for a released game, and false for a demo run from a repo root by a test
+'    script. Rather than guess, LOOK: name a file you know you ship, list the
+'    places the tree might be, and take the first that has it.
+'
+'    Returns FALSE if none matched, so a host can say so plainly instead of
+'    failing later with an empty path. ---
+'    Candidate names are a1/a2/a3, NOT a/b/c: a local `c` shadows the shared
+'    cursor (audit-shadow lists it for exactly this reason).
+FUNCTION AssetRootFind% (probe AS STRING, a1 AS STRING, a2 AS STRING, a3 AS STRING)
+    IF AssetTryRoot%(a1, probe) THEN AssetRootFind% = -1: EXIT FUNCTION
+    IF AssetTryRoot%(a2, probe) THEN AssetRootFind% = -1: EXIT FUNCTION
+    IF AssetTryRoot%(a3, probe) THEN AssetRootFind% = -1: EXIT FUNCTION
+END FUNCTION
+
+FUNCTION AssetTryRoot% (r AS STRING, probe AS STRING)
+    DIM p AS STRING
+    IF LEN(_TRIM$(r)) = 0 THEN EXIT FUNCTION
+    p = AssetSlash$(r) + probe
+    IF _FILEEXISTS(p) = 0 THEN EXIT FUNCTION
+    ASSET_ROOT = AssetSlash$(r)
+    AssetTryRoot% = -1
+END FUNCTION
+
 '--- Declare a kind of asset and the directory it lives in, relative to the
 '    root. Re-declaring a kind REPLACES it, so a host can override one line of
 '    a template without editing the template. ---

@@ -415,13 +415,13 @@ devrun() {
     # Separability proof: a game that is NOT DUNGEON!, built on engine/ alone.
     # If engine/ ever grows a hidden game dependency, this stops compiling.
     echo "-- separability (examples/minimal on engine/ alone) --"
-    rm -f examples/minimal/minimal.run
-    mout=$("$QB" -w -x examples/minimal/minimal.bas -o examples/minimal/minimal.run 2>&1)
-    if ! grep -q '^Output:' <<<"$mout" || [[ ! -x examples/minimal/minimal.run ]]; then
+    rm -f engine/examples/minimal/minimal.run
+    mout=$("$QB" -w -x engine/examples/minimal/minimal.bas -o engine/examples/minimal/minimal.run 2>&1)
+    if ! grep -q '^Output:' <<<"$mout" || [[ ! -x engine/examples/minimal/minimal.run ]]; then
         echo "  COMPILE FAIL -- engine/ no longer builds without game/"
         grep -vE '^\[|%\[A$|^$' <<<"$mout" | tail -6 | sed 's/^/    /'
         (( fail++ )); failed+=("minimal (compile)")
-    elif devrun 60 "OK" ./examples/minimal/minimal.run selftest; then sout="$DEVRUN_OUT"
+    elif devrun 60 "OK" ./engine/examples/minimal/minimal.run selftest; then sout="$DEVRUN_OUT"
         echo "  $(grep -E 'secret doors|brown doors' <<<"$sout" | tr -s ' ' | paste -sd'|' -)"
         echo "  OK -- the engine drives a non-DUNGEON! game"
     else

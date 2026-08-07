@@ -24,7 +24,7 @@ With no arguments `run-tests.sh` also runs:
   that is a silent out-of-bounds read, not a crash. The audit flags the precise shape:
   an operand guarding a variable's *bounds* combined with a later operand subscripting
   by it. The codebase is currently clean; the audit is verified against planted hazards.
-- **`../examples/minimal`** — builds and selftests a second game on `engine/` alone. If
+- **`../engine/examples/minimal`** — builds and selftests a second game on `engine/` alone. If
   the engine grows a hidden DUNGEON! dependency, this stops compiling.
 
 Also wired as the VS Code tasks **TEST: Run engine tests** and **TEST: Run engine tests

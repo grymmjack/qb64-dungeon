@@ -91,7 +91,7 @@ tests/*.run
 tests/*.exe
 tests/tmp/
 
-# separability-proof binary (examples/minimal)
+# separability-proof binary (engine/examples/minimal)
 examples/*/*.run
 examples/*/*.exe
 bannershot.png

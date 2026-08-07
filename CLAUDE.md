@@ -59,7 +59,7 @@ after any structural change. It runs, in order:
 - the headless assert suites in `tests/TEST-*.bas` — `engine/TEXT.bas`, `STATS`, `MARKDOWN`,
   `SAVEIO`, `ARTPACK`, `TABLE`, `GAUGE`, and the pure half of `DATA` (**285 assertions, 8 suites**).
 - **`audit-boundary.sh`** — no `engine/` file may name a `game/` symbol; every `Game_*` hook the
-  engine CALLS must be DEFINED by both `game/` and `examples/minimal/`; and no ENGINE.BI global
+  engine CALLS must be DEFINED by both `game/` and `engine/examples/minimal/`; and no ENGINE.BI global
   may be unused by all of `engine/` (that last one is the sharper question — a *one-directional*
   name check can never see something misfiled INTO the engine header).
 - **`audit-shadow.sh`** — no local named after a high-risk shared global. QB64 identifiers are
@@ -101,7 +101,7 @@ after any structural change. It runs, in order:
 - **`dungeon.run savetest`** — save/load round-trip of the positional token stream (hot-seat seat
   isolation, 4-seat round-trip incl. names with spaces, chamber progress), plus a read-only load
   of a COPY of the player's real save to prove a format bump has not orphaned it.
-- **`examples/minimal`** — builds + selftests a second game on `engine/` alone, proving the engine
+- **`engine/examples/minimal`** — builds + selftests a second game on `engine/` alone, proving the engine
   carries no hidden DUNGEON! dependency.
 
 Also useful, not in the gate:
@@ -442,7 +442,7 @@ Environment specifics that dictate this approach:
   level you are on by colour. A missing texture falls back to a procedural one derived from the
   same palette, so the geometry can be developed before any art exists.
   **Which zone a cell is in is the one thing the engine cannot know**, so it asks:
-  `Game_FpsZone%` / `Game_FpsZoneColor~&` (hooks 15-16). `examples/minimal` answers "one zone,
+  `Game_FpsZone%` / `Game_FpsZoneColor~&` (hooks 15-16). `engine/examples/minimal` answers "one zone,
   one colour" and still gets a 3D view.
   **WALKING -- it is a RENDER MODE of the play loop, not a loop of its own.** `[Q]` sets
   `FPS_ON`; the play loop draws this instead of the board and remaps the movement keys to the
@@ -670,7 +670,7 @@ Environment specifics that dictate this approach:
   walking the compiled program (so both arms of a conditional, and every frame of an `anim`);
   `shot` renders at a fixed simulated time for regression checks. The engine reaches its host
   through **eleven `Game_Cut*` hooks and nothing else** — `engine/cutplay/CUTMOCK.bas`
-  is a second, dungeon-free host that proves it, the same argument `examples/minimal` makes
+  is a second, dungeon-free host that proves it, the same argument `engine/examples/minimal` makes
   for `engine/`. The engine sits directly in `engine/` rather than a subdirectory **on
   purpose**: `tests/audit-boundary.sh` globs `engine/*.bas`, so that placement is what
   subjects it to the audit.
@@ -701,11 +701,11 @@ Environment specifics that dictate this approach:
   live here (`TEST-MOVEMENT-MAP.bas` = movement/collision; `TEST-MENU.bas` = animated ANSI
   menu; `wip.bas` = intro→board flow). `const.bas` / `types.bas` hold shared CONSTs and
   TYPEs pulled in via `'$INCLUDE`. `scratchpads/shots/` holds the capture harness.
-- **`examples/minimal/`** — a second game on `engine/` alone, with **its own asset tree**
-  (`examples/minimal/assets/`): its own board art, drawn for it, with its own doors and secret
+- **`engine/examples/minimal/`** — a second game on `engine/` alone, with **its own asset tree**
+  (`engine/examples/minimal/assets/`): its own board art, drawn for it, with its own doors and secret
   doors. That is what makes the separability proof mean something — the engine cannot be
   assuming DUNGEON!'s layout, because this program has no access to one. It declares
-  `AssetRoot "examples/minimal/assets/"` and registers its own map-debugger layers, pack kinds
+  `AssetRoot "engine/examples/minimal/assets/"` and registers its own map-debugger layers, pack kinds
   and hooks.
 - **`engine/` / `game/` / `include/`** — the module bodies `'$INCLUDE`'d by `dungeon.bas`, sorted
   into a reusable **`engine/`** (`ENGINE.BI` header + `BOARD` / `CURSOR` / `MUSIC` / `JUICE` /
@@ -726,7 +726,7 @@ Environment specifics that dictate this approach:
   directory is self-contained on disk; `include/` holds only the `Toolbox64` / `QB64_GJ_LIB`
   reference submodules, **not** compiled.
   **`engine/` names no `game/` symbol** — every engine→game call goes through one of 14 `Game_*`
-  hooks, enforced by `tests/audit-boundary.sh`, and `examples/minimal` is a second game on
+  hooks, enforced by `tests/audit-boundary.sh`, and `engine/examples/minimal` is a second game on
   `engine/` alone that proves it.
   **[engine/ENGINE.md](engine/ENGINE.md) is the authority** (layout, the `Game_*` hook contract, and
   the record of how each boundary leak was closed).
@@ -975,7 +975,7 @@ to collision, so painting a decoration onto a corridor cell no longer makes it a
 the layers with **`dungeon.run boardsplit`**, which refuses to write unless layer-0 + layer-1
 composites back to the source board pixel for pixel. **Fallback is per-file and lives in
 `BuildBoardImages`, not in game startup** — a missing layer-0 means both images are the combined
-board (the old behaviour), which is what keeps `examples/minimal` working.
+board (the old behaviour), which is what keeps `engine/examples/minimal` working.
 
 Colors are exact `_RGB32` matches, so **art must use the exact palette values** the code checks.
 
@@ -1187,13 +1187,13 @@ character `Q` printed in the d20 font:
 - **Gotcha:** single-line `IF` does not support `ELSEIF` / `ELSE IF` chains, and `LINE`, `SEG`,
   `VAL`, `CLS` are reserved words that can't be used as variable names.
 - **Gotcha: relative paths do NOT resolve against the shell's cwd**, and *measured 26-08-06*
-  they do not reliably resolve against the executable's directory either. `examples/minimal.run`
+  they do not reliably resolve against the executable's directory either. `engine/examples/minimal.run`
   reports `_CWD$` = the **repo root** whether it is launched from its own directory or from
   `/tmp`, and whether it was compiled from the repo root or from its own directory —
   while `_STARTDIR$` correctly tracks where it was launched. Nothing in this codebase calls
   `CHDIR`. So: `dungeon.run` sits at the repo root because that is where `assets/...` resolves,
   and **a host should DECLARE its asset root** (`AssetRoot`, engine/ASSETS.bas) rather than rely
-  on any of this — which is exactly what `examples/minimal` does to reach its own tree.
+  on any of this — which is exactly what `engine/examples/minimal` does to reach its own tree.
 - **An INTERACTIVE dev mode must call `DevShowWindow`.** The window is created with
   `$SCREENHIDE` and only `_SCREENSHOW` reveals it -- which normal play reaches at the BOTTOM of
   `dungeon.bas`, long after a dev mode has run and `SYSTEM`ed. A mode that omits it draws and
