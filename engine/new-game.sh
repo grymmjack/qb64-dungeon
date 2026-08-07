@@ -52,6 +52,10 @@ mkdir -p "$dest"
 # one. Point it at a submodule later if you would rather track the engine.
 cp -R "$here" "$dest/engine"
 rm -rf "$dest/engine/.git" 2>/dev/null || true
+# The demo is the ENGINE's proof, not your game's baggage -- and leaving it in
+# would shadow you: it ships a board of its own, and the asset probe would find
+# THAT one first, so edits to your assets/ would appear to do nothing.
+rm -rf "$dest/engine/examples" 2>/dev/null || true
 
 # --- the hooks: minimal's, verbatim ------------------------------------------
 # These ARE the contract. Every one is a stub that answers "nothing here yet",
@@ -64,9 +68,13 @@ cp "$src/HOOKS.bas" "$dest/HOOKS.bas"
 # LAUNCHED from. A bare "assets/" does not resolve reliably here: a QB64 binary
 # reports _CWD$ as neither its own directory nor the shell's, while _STARTDIR$
 # tracks the launch directory correctly. See CLAUDE.md.
-sed -e "s|\\.\\./\\.\\./engine/|engine/|g" \
-    -e "s|AssetRoot \"examples/minimal/assets/\"|AssetRoot _STARTDIR\$ + \"assets/\"|g" \
-    -e "s|examples/minimal/assets/|assets/|g" \
+# minimal sits at engine/examples/minimal/, so it reaches the engine as ../../ .
+# A scaffolded game sits BESIDE engine/, so it reaches it as engine/ .
+#
+# The asset ROOT needs no rewriting: minimal already probes for its tree
+# (AssetRootFind%), and one of its candidates is _STARTDIR$ + "assets/" -- which
+# is exactly where a scaffolded game keeps its own.
+sed -e "s|\\.\\./\\.\\./_ALL\\.|engine/_ALL.|g" \
     -e "s|minimal: engine booted under a non-DUNGEON! game|$title: booted|g" \
     "$src/minimal.bas" > "$dest/$slug.bas"
 
