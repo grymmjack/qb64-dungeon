@@ -272,7 +272,7 @@ END FUNCTION
 
 SUB Game_MapReload (what AS INTEGER)
     SELECT CASE what
-        CASE 1: LoadBoardOverlays
+        CASE 1: LoadOverlays
         CASE 2: DetectChambers
     END SELECT
 END SUB

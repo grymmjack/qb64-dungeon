@@ -899,6 +899,16 @@ DIM SHARED MD_PL_LIT AS INTEGER
 DIM SHARED MD_RC1X AS INTEGER, MD_RC1Y AS INTEGER   ' chamber rect: first corner
 DIM SHARED MD_RC_SET AS INTEGER                     ' is that corner placed yet
 
+'--- BOARD OVERLAYS (engine/OVERLAYS.bas) ---
+CONST OVL_MAX = 128
+DIM SHARED OVL_LVL(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_COL(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_ROW(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_ART(1 TO OVL_MAX) AS STRING * 64
+DIM SHARED OVL_SCALE(1 TO OVL_MAX) AS SINGLE
+DIM SHARED OVL_LIT(1 TO OVL_MAX) AS INTEGER
+DIM SHARED OVL_N AS INTEGER
+
 CONST ML_MAX = 16
 CONST ML_CELL = 0                         ' tints cells: the game fills a colour per cell
 CONST ML_MARK = 1                         ' draws points: the game outlines them itself

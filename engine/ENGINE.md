@@ -162,7 +162,7 @@ A debugger that only debugs DUNGEON! is a feature, not tooling. Everything below
 | map debugger | **`engine/`** | **moved 26-08-06** — layer + event registries; `game/MAPREG.bas` registers |
 | pack browser | **`engine/`** | **moved 26-08-06** — kinds come from the asset registry; 5 hooks |
 | storybook | `game/` | a cut-scene-engine feature; needs `ListPanel%` / `MysteryBox` promoted |
-| board overlays | `game/` | zero new hooks needed |
+| board overlays | **`engine/`** | **moved 26-08-06** — the host names the file, nothing else |
 | region/chamber detection | `game/` | the rect→cell-map half only |
 
 ### Registries, not accessors

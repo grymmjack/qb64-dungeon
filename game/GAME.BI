@@ -824,14 +824,7 @@ DIM SHARED TRIG_N AS INTEGER
 '  for every portrait and panel in the game, so board animation needed no
 '  machinery of its own.
 ' ============================================================================
-CONST OVL_MAX = 128
-DIM SHARED OVL_LVL(1 TO OVL_MAX) AS INTEGER
-DIM SHARED OVL_COL(1 TO OVL_MAX) AS INTEGER
-DIM SHARED OVL_ROW(1 TO OVL_MAX) AS INTEGER
-DIM SHARED OVL_ART(1 TO OVL_MAX) AS STRING * 64
-DIM SHARED OVL_SCALE(1 TO OVL_MAX) AS SINGLE
-DIM SHARED OVL_LIT(1 TO OVL_MAX) AS INTEGER
-DIM SHARED OVL_N AS INTEGER
+
 
 '--- a dev mode's verdict, so it can exit NON-ZERO. A lint that prints BAD and
 '    exits 0 is a lint the gate cannot act on -- it looks wired in and enforces

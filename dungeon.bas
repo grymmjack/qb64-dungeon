@@ -259,7 +259,7 @@ LoadTuning                       ' gameplay balance knobs (assets/data/tuning.tx
 LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
 LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
 LoadCutTriggers                  ' board-position cut-scene triggers (assets/data/triggers.txt)
-LoadBoardOverlays                ' animated/still art placed on the board (assets/data/overlays.txt)
+LoadOverlays                ' animated/still art placed on the board (assets/data/overlays.txt)
 InitSectors
 InitClasses
 InitMonsterTables
@@ -566,7 +566,7 @@ IF INSTR(UCASE$(COMMAND$), "FPSSHOT") > 0 THEN
     DetectDoors
     Game_PopulateBoard
     RandomizeRooms
-    LoadBoardOverlays
+    LoadOverlays
     InitFog
     FpsSeeAll                      ' a shot has no run behind it, so nothing would be `seen`
     IF INSTR(LCASE$(COMMAND$), "hand") > 0 THEN player_class = 1
@@ -629,7 +629,7 @@ IF INSTR(UCASE$(COMMAND$), "MAPDEBUGSHOT") > 0 THEN
     Game_PopulateBoard
     RandomizeRooms
     LoadCutTriggers
-    LoadBoardOverlays
+    LoadOverlays
     InitFog
     DevShowWindow
     DumpMapDebugShot MdArgMask$, MdArgOut$
@@ -642,7 +642,7 @@ IF INSTR(UCASE$(COMMAND$), "MAPDEBUG") > 0 THEN
     Game_PopulateBoard
     RandomizeRooms
     LoadCutTriggers
-    LoadBoardOverlays
+    LoadOverlays
     InitFog
     DevShowWindow
     DumpMapDebug

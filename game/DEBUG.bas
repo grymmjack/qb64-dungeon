@@ -1712,7 +1712,7 @@ SUB DumpOverlayLint
     _DEST _CONSOLE
     PRINT PipeCol$("|15overlaylint|07 -- art placed on the board")
     DevPackOverride
-    LoadBoardOverlays
+    LoadOverlays
 
     IF OVL_N = 0 THEN
         PRINT PipeCol$("  no overlays defined (assets/data/" + _TRIM$(opt_datapack) + "/overlays.txt)")
