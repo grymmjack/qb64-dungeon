@@ -55,11 +55,17 @@ PACK="SDXL-1"          # which pack subdir under assets/pixel-art/ to write into
 STYLE_PREFIX=""        # style(s) to prepend to every asset's manifest style (themed packs)
 SERVER_LIST=""         # explicit node list (comma alias list); empty = auto-detect the farm
 FILTER=""              # folder substring filter
+BASE=""                # override SDXL checkpoint (--base FILE); empty = pixelmon default (sd_xl_base_1.0)
+STEER=""               # IPAdapter reference folder/image (--steer DIR|IMG); empty = off
+STEER_STRENGTH=""      # IPAdapter weight (--steer-strength N); empty = pixelmon default (0.7)
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --pack)          PACK="${2:?--pack needs a name}"; shift 2 ;;
-    --style-prefix)  STYLE_PREFIX="${2:?--style-prefix needs a style}"; shift 2 ;;
-    --server)        SERVER_LIST="${2:?--server needs a list}"; shift 2 ;;
+    --pack)            PACK="${2:?--pack needs a name}"; shift 2 ;;
+    --style-prefix)    STYLE_PREFIX="${2:?--style-prefix needs a style}"; shift 2 ;;
+    --server)          SERVER_LIST="${2:?--server needs a list}"; shift 2 ;;
+    --base)            BASE="${2:?--base needs a checkpoint filename}"; shift 2 ;;
+    --steer)           STEER="${2:?--steer needs a folder or image}"; shift 2 ;;
+    --steer-strength)  STEER_STRENGTH="${2:?--steer-strength needs a number}"; shift 2 ;;
     -h|--help)       grep '^#' "$0" | sed 's/^# \?//'; exit 0 ;;
     --*)             echo "unknown option: $1" >&2; exit 2 ;;
     *)               FILTER="$1"; shift ;;
@@ -124,13 +130,18 @@ while IFS='|' read -r pth style size prompt; do
   [ -z "$name" ] && continue
   style="$(trim "$style")"; size="$(trim "$size")"
   prompt="$(trim "$prompt")"
+  # Art mode never wants the sprite-authored tokens (they drag SDXL back toward pixels /
+  # force a flat background). Remove them, then drop any now-empty comma fields.
+  prompt="$(printf '%s' "$prompt" \
+    | sed -E 's/(pixel art|crisp pixels|transparent background)//Ig' \
+    | awk -F', *' '{o=""; for(i=1;i<=NF;i++){gsub(/^ +| +$/,"",$i); if($i!="") o=(o==""?$i:o", "$i)} print o}')"
   [ -n "$FILTER" ] && [[ "$folder" != *"$FILTER"* ]] && continue
   folders+=("$folder"); names+=("$name"); styles+=("$style"); sizes+=("$size"); prompts+=("$prompt")
 done < "$MANIFEST"
 
 total=${#names[@]}
 [ "$total" -eq 0 ] && { echo "Nothing to generate (filter: '${FILTER:-none}')."; exit 0; }
-echo "-> pack '$PACK' [ART / SDXL ~1024px, aspect-preserved]: $total asset(s) across ${#UP[@]} node(s): ${UP[*]}${STYLE_PREFIX:+  [style-prefix: $STYLE_PREFIX]}"
+echo "-> pack '$PACK' [ART / ${BASE:-sd_xl_base_1.0} / ~1024px, aspect-preserved]: $total asset(s) across ${#UP[@]} node(s): ${UP[*]}${STYLE_PREFIX:+  [style-prefix: $STYLE_PREFIX]}"
 
 # Reproducibility log: the seed pixelmon actually used for each render (art files are named
 # ..._s<SEED>_art_...), so any image can be regenerated -- `pixelmon "<prompt>" --art --seed N`.
@@ -138,13 +149,29 @@ SEEDS="$ROOT/$PACK/SEEDS.tsv"
 mkdir -p "$ROOT/$PACK"
 [ -f "$SEEDS" ] || printf '# path\tseed\tstyle\tsize\n' > "$SEEDS"
 
-# prepend STYLE_PREFIX to a row's style, dropping duplicate comma tokens (order preserved)
-combine_style() {
-  [ -z "$STYLE_PREFIX" ] && { printf '%s' "$1"; return; }
-  printf '%s,%s' "$STYLE_PREFIX" "$1" | awk -F',' '{
+# prepend a prefix to a row's style, dropping duplicate comma tokens (order preserved)
+combine_style() {  # $1 = prefix, $2 = the asset's own manifest style
+  [ -z "$1" ] && { printf '%s' "$2"; return; }
+  printf '%s,%s' "$1" "$2" | awk -F',' '{
     out=""; for (i=1;i<=NF;i++) if (!seen[$i]++) out=(out==""?$i:out","$i); print out
   }'
 }
+
+# Is this a CHARACTER folder (classes/, monsters/, and their strategic-combat twins)?
+# Everything else (rooms/items/treasures/markers/events/screens) is an environment/item.
+is_char() { case "$1" in classes|classes/*|monsters|monsters/*|*/classes|*/classes/*|*/monsters|*/monsters/*) return 0 ;; *) return 1 ;; esac; }
+
+# Split a "CHAR:ENV" colon overload by folder role; a plain value (no colon) applies to
+# everything. Used by both --style-prefix and --steer so characters and environments can
+# take different styles AND different reference-image sets in a single pass.
+role_split() {  # $1 = value, $2 = folder
+  case "$1" in
+    *:*) if is_char "$2"; then printf '%s' "${1%%:*}"; else printf '%s' "${1#*:}"; fi ;;
+    *)   printf '%s' "$1" ;;
+  esac
+}
+prefix_for() { role_split "$STYLE_PREFIX" "$1"; }   # effective style prefix for a folder
+steer_for()  { role_split "$STEER" "$1"; }          # effective --steer path for a folder
 
 gen_one() {  # $1 = manifest index, $2 = node name
   local i="$1" node="$2" dir="$ROOT/$PACK/${folders[$i]}" nm="${names[$i]}"
@@ -152,7 +179,7 @@ gen_one() {  # $1 = manifest index, $2 = node name
   # resume off the CLEAN file (the raw pixelmon temp is deleted after each render)
   if [ -f "$dir/${nm}.png" ]; then echo "  skip $PACK/${folders[$i]}/${nm}"; return; fi
   local style asz
-  style="$(combine_style "${styles[$i]}")"
+  style="$(combine_style "$(prefix_for "${folders[$i]}")" "${styles[$i]}")"
   asz="$(art_size "${sizes[$i]}")"   # aspect preserved, long side ~1024
   echo "  [$node] $PACK/${folders[$i]}/${nm}  ($style, $asz)  <- ${prompts[$i]:0:42}..."
   # --art  : full-res SDXL illustration (no pixel LoRA / palette / downscale)
@@ -160,7 +187,10 @@ gen_one() {  # $1 = manifest index, $2 = node name
   # NO --transparent (a no-op in art mode). --no-open is REQUIRED for batch use
   # (otherwise pixelmon xdg-opens each raw temp we then rename).
   local style_arg=(); [ -n "$style" ] && style_arg=(--style "$style")
-  if "$PIXELMON" "${prompts[$i]}" "${style_arg[@]}" --art --size "$asz" --no-open \
+  local base_arg=(); [ -n "$BASE" ] && base_arg=(--base "$BASE")
+  local steer_arg=() steer_path; steer_path="$(steer_for "${folders[$i]}")"
+  if [ -n "$steer_path" ]; then steer_arg=(--steer "$steer_path"); [ -n "$STEER_STRENGTH" ] && steer_arg+=(--steer-strength "$STEER_STRENGTH"); fi
+  if "$PIXELMON" "${prompts[$i]}" "${style_arg[@]}" "${base_arg[@]}" "${steer_arg[@]}" --art --size "$asz" --no-open \
         --server "$node" --output-to "$dir" --name "$nm" --create-dirs >/dev/null 2>&1; then
     local produced; produced="$(ls -t "$dir/${nm}"_*.png 2>/dev/null | head -1)"
     if [ -n "$produced" ]; then
