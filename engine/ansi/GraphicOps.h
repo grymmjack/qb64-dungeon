@@ -71,10 +71,10 @@ struct img_struct;
 // These are QB64-PE internal structures
 extern img_struct *write_page;
 extern img_struct *img;
-extern const int32_t *page;
-extern const int32_t nextimg;
-extern const uint8_t charset8x8[256][8][8];
-extern const uint8_t charset8x16[256][16][8];
+extern int32_t *page;
+extern int32_t nextimg;
+extern uint8_t charset8x8[256][8][8];
+extern uint8_t charset8x16[256][16][8];
 
 // These are QB64-PE internal functions
 extern void pset_and_clip(int32_t x, int32_t y, uint32_t color);

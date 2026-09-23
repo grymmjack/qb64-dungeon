@@ -134,7 +134,7 @@ FUNCTION HunterAdvance%
     LOOP
 
     ' step to the 8-neighbour with the smallest distance (diagonals need both orthogonals open)
-    bd = HDIST(hunt_cx, hunt_cy): IF bd < 0 THEN bd = 999999
+    bd = HDIST(hunt_cx, hunt_cy): IF bd < 0 THEN bd = 32767
     bx = hunt_cx: by = hunt_cy
     FOR k = 0 TO 7
         nx = hunt_cx + dx8(k): ny = hunt_cy + dy8(k)
