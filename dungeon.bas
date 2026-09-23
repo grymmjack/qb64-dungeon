@@ -9,7 +9,7 @@
 $CONSOLE
 '$INCLUDE:'engine/_ALL.BI'      ' ALL engine headers (globals/types/consts + vendored ansi/DICE3D) -- must load FIRST
 '$INCLUDE:'game/_ALL.BI'        ' ALL game headers (the swappable DUNGEON! layer) -- engine before game
-SW = 132: SH = 51: CW = 8: CH = 16
+SW = 132 : SH = 51 : CW = 8 : CH = 16
 
 ' --- CLI: `dungeon.run --help` (or -h) lists the command-line modes, then exits ---
 ' console colour on by default; off if NO_COLOR is set (standard) or a `nocolor` arg is passed
@@ -101,7 +101,7 @@ IF wanthelp THEN
     PRINT PipeCol$("The editors, the in-game keys and what each lint catches: |11TOOLS.md|07")
     SYSTEM
 END IF
-_CONSOLE OFF                            ' normal run: hide the console, go graphics
+_CONSOLE OFF                                                      ' normal RUN : HIDE the console, go graphics
 ' SILENCE EVERY CLI RUN.
 '
 ' Dev modes and tests still play through the real audio device -- xvfb hides the window, not the
@@ -120,13 +120,13 @@ devmode = (INSTR(UCASE$(COMMAND$), "MANIFEST") > 0) OR (INSTR(UCASE$(COMMAND$), 
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "MASKGEN") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "ANSILINT") > 0) OR (INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0)
 devmode = devmode OR (INSTR(UCASE$(COMMAND$), "SAVETEST") > 0) OR (INSTR(UCASE$(COMMAND$), "DATALINT") > 0)
-devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0)   ' writes a PNG, never a window
-devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0)     ' ditto -- renders the fight screen
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0) ' writes a PNG, never a window
+devmode = devmode OR (INSTR(UCASE$(COMMAND$), "FIGHTSHOT") > 0)   ' ditto -- renders the fight screen
 
 ' collision palette (must match the board ANSI art exactly)
-YELLOW = _RGB32(&HFF, &HFF, &H55)
-BLACK = _RGB32(&H00, &H00, &H00)
-BROWN = _RGB32(&HAA, &H55, &H00)
+YELLOW      = _RGB32(&HFF, &HFF, &H55)
+BLACK       = _RGB32(&H00, &H00, &H00)
+BROWN       = _RGB32(&HAA, &H55, &H00)
 BRIGHT_BLUE = _RGB32(&H55, &H55, &HFF)
 ' UI palette
 ' ---------------------------------------------------------------- WHERE THE FUEL IS
@@ -134,18 +134,18 @@ BRIGHT_BLUE = _RGB32(&H55, &H55, &HFF)
 ' itself is declared in game/ASSETTREE.bas -- one place, shared with the unit
 ' suites so there is no second copy to drift.
 DeclareAssetTree
-DeclareDataTables                             ' ...and what its tables are (game/DATATABLES.bas)
+DeclareDataTables                                                 '...and what its tables are(game / DATATABLES.bas)
 
-LoadTheme                                     ' fill the theme table BEFORE anything asks Thm~& for a colour
+LoadTheme                                                         ' fill the theme table BEFORE anything asks Thm~& FOR a colour
 ' UI INK -- themeable (assets/data/theme/colors.txt). The four board colours above are NOT:
 ' they are collision values the art has to match. See the note on THM_KEY in ENGINE.BI.
-WHITE = Thm~&("ui.white", _RGB32(&HFF, &HFF, &HFF))
-GREY = Thm~&("ui.grey", _RGB32(&HAA, &HAA, &HAA))
-REDU = Thm~&("ui.red", _RGB32(&HFF, &H55, &H55))
-GREENU = Thm~&("ui.green", _RGB32(&H55, &HFF, &H55))
+WHITE   = Thm~&("ui.white", _RGB32(&HFF, &HFF, &HFF))
+GREY    = Thm~&("ui.grey", _RGB32(&HAA, &HAA, &HAA))
+REDU    = Thm~&("ui.red", _RGB32(&HFF, &H55, &H55))
+GREENU  = Thm~&("ui.green", _RGB32(&H55, &HFF, &H55))
 YELLOWU = Thm~&("ui.yellow", _RGB32(&HFF, &HFF, &H55))
-CYANU = Thm~&("ui.cyan", _RGB32(&H55, &HFF, &HFF))
-BOXBG = Thm~&("ui.panel.bg", _RGB32(&H20, &H00, &H00))
+CYANU   = Thm~&("ui.cyan", _RGB32(&H55, &HFF, &HFF))
+BOXBG   = Thm~&("ui.panel.bg", _RGB32(&H20, &H00, &H00))
 
 RANDOMIZE TIMER
 
@@ -155,7 +155,7 @@ $RESIZE:ON
 ' Arm the fatal handler BEFORE anything can fail: the first thing that errors is usually a
 ' missing asset, and that happens during startup.
 ON ERROR GOTO DungeonFatal
-CONST ERR_MAX = 20                            ' runtime errors tolerated in PLAY before giving up
+CONST ERR_MAX = 20                                                ' runtime errors tolerated in PLAY BEFORE giving up
 DIM SHARED err_seen AS INTEGER
 ' TRUE once the window is actually on screen. The error handler asks THIS rather than the
 ' curated `devmode` list: "is a human looking at a window" is the real question, and a list of
@@ -165,18 +165,18 @@ DIM SHARED err_seen AS INTEGER
 ' offscreen 132x51 character grid and screen 0 is a real window-sized image that Present blits
 ' into at an INTEGER scale. Letting the metacommand stretch a character grid by a fractional
 ' ratio is what made a resized window drop parts of the UI -- the same failure DRAW had.
-CANVAS = _NEWIMAGE(SW * CW, SH * CH, 32)
+CANVAS      = _NEWIMAGE(SW * CW, SH * CH, 32)
 CANVAS_COPY = _NEWIMAGE(SW * CW, SH * CH, 32)
-FULL_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
+FULL_BOARD  = _NEWIMAGE(SW * CW, SH * CH, 32)
 ' The board is BOTH the picture and the collision map, so it is kept as two images: what the
 ' player sees (above) and what movement samples (below). See BuildBoardImages in engine/BOARD.bas.
-FULL_COLLIDE = _NEWIMAGE(SW * CW, SH * CH, 32)
+FULL_COLLIDE  = _NEWIMAGE(SW * CW, SH * CH, 32)
 COLLIDE_BOARD = _NEWIMAGE(SW * CW, SH * CH, 32)
 _TITLE "DUNGEON"
-SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)   ' the WINDOW -- starts at 1:1 with the canvas
-_DISPLAYORDER _SOFTWARE , _HARDWARE      ' Present's smooth path draws on the HARDWARE layer,
+SCREEN _NEWIMAGE(SW * CW, SH * CH, 32)                            ' the WINDOW - - starts at 1 : 1 with the CANVAS
+_DISPLAYORDER _SOFTWARE, _HARDWARE                                ' Present's SMOOTH path draws ON the HARDWARE layer,
 '                                          which must composite OVER the software letterbox bars
-_DEST CANVAS                             ' ...but everything draws to the canvas
+_DEST CANVAS                                                      '...but everything draws TO the CANVAS
 _FONT CH
 ' NOTHING decides fullscreen here. This used to force `_FULLSCREEN _SQUAREPIXELS, _SMOOTH`
 ' unconditionally, BEFORE LoadSettings had even run -- so the game always came up fullscreen
@@ -185,61 +185,61 @@ _FONT CH
 ' against because $SCREENHIDE keeps the window hidden until _SCREENSHOW much later.
 
 IF _DIREXISTS("gameplay-data-saves") = 0 THEN MKDIR "gameplay-data-saves"   ' all runtime saves/prefs/stats/maps live here (keeps the repo root clean); must exist before any load/save
-SAVE_FILE = "gameplay-data-saves/dungeon-save.dat"   ' the save slot (engine reads this; `savetest` swaps it)
+SAVE_FILE = "gameplay-data-saves/dungeon-save.dat"                ' the save slot (engine reads this; `savetest` swaps it)
 
-opt_music = TRUE: opt_sfx = TRUE: opt_showdice = TRUE: opt_fullscreen = TRUE
-opt_voice = TRUE                              ' typewriter text speaks in blips
-opt_musicvol = 4: opt_sfxvol = 4: opt_voicevol = 10  ' 0..10 volume sliders (maintainer's mix)
-opt_duckamt = 6                                      ' music ducks to 40% under narration (0 off .. 10 silent)
-opt_sfxpack = "found-on-disk-dnd-from-claude"        ' default SFX pack (assets/sfx/); falls back to the default pack
-opt_musicpack = "soundmon-orchestral"                ' default music pack (assets/music/); falls back to the default pack
-opt_narration = TRUE: opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
-opt_narrfreq = NARR_COMBAT                           ' default: narrate everything (flavor + events + combat)
-opt_artpack = "default"                              ' default pixel-art pack (assets/pixel-art/default/); every pack is a named subfolder
-opt_ansipack = "default"                             ' default ANSI-art pack (assets/ansi-art/default/); board + masks + menu art
-opt_datapack = "default"                             ' default DATA pack (assets/data/default/ + assets/flavor/default/); a pack = a whole game's content
-opt_realdice = FALSE: opt_dicemath = FALSE   ' default: the computer rolls + does the math
-opt_oldschool = FALSE                         ' default: D&D d20/HP combat (on = classic Dungeon! 2d6)
-opt_tactical = FALSE                          ' default off: the TACTICAL fight screen (1-vs-4, fuses + gestures)
-opt_audiopref = AUDIOPREF_AUTO                ' which container wins when an asset ships in several (SETTINGS)
-opt_statmethod = STAT_4D6DL                   ' default ability-roll method (see RollAbility%)
-InitStatMethods                               ' the order the SETTINGS Stat Roll row presents them in
-opt_luckfuse = 2                              ' default luck-prompt fuse, seconds (0 = untimed)
-opt_flexstats = 2                             ' character build: 0 OFF (rolled) / 1 Assign roll / 2 Point distribution
-opt_boardgame = FALSE                         ' default: free movement (single player); >1 player forces it ON
-opt_movedice = TRUE                           ' default boardgame move: roll 1d6 (FALSE = DUNGEON! "up to 5, your choice")
-opt_fov = FALSE                               ' default off: whole map visible (on = line-of-sight exploration)
-opt_fpslight = 2                              ' first-person: you carry a torch (0 = flat fog, see FpsLight!)
-num_players = 1                               ' hot-seat players (1..4); >1 forces Boardgame Mode
-opt_dicecolor = 3                             ' dice palette: 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
-opt_dicesolid = TRUE                          ' filled die body with a contrasting number (off = hollow outline)
-opt_d6pips = TRUE                             ' d6 rolls: TRUE = hand-drawn pips (default), FALSE = the font's numbered die
-opt_dicespeed = 2                             ' dice tumble pacing: 0 Slow, 1 Normal, 2 Fast, 3 Instant
-opt_dicelight = 3                             ' 3D dice top-light: 0 Off, 1 Soft, 2 Normal, 3 Strong
-opt_diceround = 5                             ' 3D dice edge roundness 0 (sharp) .. 10 (very round)
-opt_bloodstrength = 10                        ' near-death blood-grime intensity 0 (none) .. 10 (max)
-opt_smoothamt = 2                             ' Smoothing: 0 off (crisp/integer) .. 3 full (softest)
-opt_artstyle = 2                              ' default: Hybrid -- ANSI board + pixel-art portraits where they exist
-opt_combatspeed = 1                           ' (legacy) superseded by opt_msgdelay
-opt_msgdelay = 3                              ' message auto-advance hold: 1-5 seconds, or 0 = wait for a key
-opt_hardcore = TRUE                           ' default on: time passes while idle (off = idling is safe)
-opt_gestures = TRUE                           ' default on: Action Gestures (timing-bar second-wind + crit flourish, D&D mode)
-opt_juice = TRUE                              ' default on: Screen Effects (hit-shake, blood/poison splatter, near-death vignette)
-opt_critfumble = TRUE                         ' default on: the crit/fumble effects engine adds cinematics + swings
-opt_mon_dicecolor = 1                         ' monster dice default to a menacing Blood red
-opt_mon_dicesolid = TRUE: opt_mon_d6pips = TRUE: opt_mon_dicespeed = 1
-opt_dice3d = TRUE: opt_mon_dice3d = TRUE      ' dice render: TRUE = 3D dice (default), FALSE = font/pip dice
-opt_dice3d_set = 6: opt_mon_dice3d_set = 8    ' default 3D dice sets (overridden by save)
-opt_dicefont = 4                              ' default dice numeral font index (overridden by save)
-IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2   ' 0 OFF (lost), 1 NORMAL (always reclaim), 2 SOULS-LIKE (one chance)
-opt_maxdeaths = 3                             ' lives before permadeath: reach 3 deaths and the run is forfeited (1..9)
-opt_luck = TRUE                               ' CHA-funded re-rolls on combat rolls + saves (SETTINGS)
-opt_startheal = TRUE                          ' returning to the entrance rests + heals you (SETTINGS)
-opt_rest = TRUE                               ' [R] rests 1 HP at a time, at the risk of company
-opt_solomode = 0: opt_solomins = 25           ' solo challenge: 0 off / 1 Time / 2 Item / 3 Prey; Time-Limit budget 25 min
-LoadSettings                                  ' restore the player's saved preferences (overrides defaults)
-IF NOT devmode THEN ApplyDisplay              ' fullscreen + smoothing per settings (skipped for CLI dev modes)
-BOARD_ANSI = _READFILE$(AnsiFile$("board-132x50-no-labels.ans"))   ' same map, with secret doors (ANSI-pack aware)
+opt_music      = TRUE : opt_sfx = TRUE : opt_showdice = TRUE : opt_fullscreen = TRUE
+opt_voice      = TRUE                                             ' typewriter text speaks in blips
+opt_musicvol   = 4 : opt_sfxvol = 4 : opt_voicevol = 10           ' 0..10 volume sliders(maintainer's mix)
+opt_duckamt    = 6                                                ' music ducks TO 40% under narration(0 OFF..10 silent)
+opt_sfxpack    = "found-on-disk-dnd-from-claude"                  ' default SFX pack (assets/sfx/); falls back to the default pack
+opt_musicpack  = "soundmon-orchestral"                            ' default music pack (assets/music/); falls back to the default pack
+opt_narration  = TRUE : opt_narrationpack = "grymmjack"           ' default: narration ON, the maintainer's recorded voice pack
+opt_narrfreq   = NARR_COMBAT                                      ' default : narrate everything(flavor + events + combat)
+opt_artpack    = "default"                                        ' default pixel-art pack (assets/pixel-art/default/); every pack is a named subfolder
+opt_ansipack   = "default"                                        ' default ANSI-art pack (assets/ansi-art/default/); board + masks + menu art
+opt_datapack   = "default"                                        ' default DATA pack (assets/data/default/ + assets/flavor/default/); a pack = a whole game's content
+opt_realdice   = FALSE : opt_dicemath = FALSE                     ' default : the computer rolls + does the math
+opt_oldschool  = FALSE                                            ' default : D&D d20 / HP combat(ON = classic Dungeon! 2d6)
+opt_tactical   = FALSE                                            ' default OFF : the TACTICAL fight SCREEN(1 - vs - 4, fuses + gestures)
+opt_audiopref  = AUDIOPREF_AUTO                                   ' which container wins when an asset ships in several(SETTINGS)
+opt_statmethod = STAT_4D6DL                                       ' default ability - roll method(see RollAbility%)
+InitStatMethods                                                   ' the order the SETTINGS Stat roll row presents them in
+opt_luckfuse      = 2                                             ' default luck - prompt fuse, seconds(0 = untimed)
+opt_flexstats     = 2                                             ' character build : 0 OFF(rolled) / 1 Assign roll / 2 POINT distribution
+opt_boardgame     = FALSE                                         ' default : FREE movement(SINGLE player) ;> 1 player forces it ON
+opt_movedice      = TRUE                                          ' default boardgame move : roll 1d6(FALSE = Dungeon! "up to 5, your choice")
+opt_fov           = FALSE                                         ' default OFF : whole map visible(ON = LINE - of - sight exploration)
+opt_fpslight      = 2                                             ' first - person : you carry a torch(0 = flat fog, see FpsLight!)
+num_players       = 1                                             ' hot - seat players(1..4) ;> 1 forces boardgame Mode
+opt_dicecolor     = 3                                             ' dice PALETTE : 0 Bone 1 Blood 2 Emerald 3 Sapphire 4 Gold 5 Amethyst
+opt_dicesolid     = TRUE                                          ' filled die body with a contrasting number(OFF = hollow outline)
+opt_d6pips        = TRUE                                          ' d6 rolls : TRUE = hand - drawn pips(default), FALSE = the font's numbered die
+opt_dicespeed     = 2                                             ' dice tumble pacing : 0 Slow, 1 Normal, 2 Fast, 3 Instant
+opt_dicelight     = 3                                             ' 3D dice top - light : 0 Off, 1 Soft, 2 Normal, 3 Strong
+opt_diceround     = 5                                             ' 3D dice edge roundness 0(sharp)..10(very ROUND)
+opt_bloodstrength = 10                                            ' near - death Blood - grime intensity 0(NONE)..10(max)
+opt_smoothamt     = 2                                             ' Smoothing : 0 OFF(crisp / INTEGER)..3 full(softest)
+opt_artstyle      = 2                                             ' default : Hybrid - - ANSI board + pixel-art portraits where they exist
+opt_combatspeed   = 1                                             '(legacy) superseded by opt_msgdelay
+opt_msgdelay      = 3                                             ' message auto - advance hold : 1 - 5 seconds, OR 0 = WAIT FOR a KEY
+opt_hardcore      = TRUE                                          ' default ON : time passes WHILE idle(OFF = idling IS safe)
+opt_gestures      = TRUE                                          ' default ON : Action gestures(timing - bar second - wind + crit flourish, D&D Mode)
+opt_juice         = TRUE                                          ' default ON : SCREEN Effects(hit - shake, Blood / poison splatter, near - death vignette)
+opt_critfumble    = TRUE                                          ' default ON : the crit / fumble Effects engine adds cinematics + swings
+opt_mon_dicecolor = 1                                             ' monster dice default TO a menacing Blood RED
+opt_mon_dicesolid = TRUE : opt_mon_d6pips = TRUE : opt_mon_dicespeed = 1
+opt_dice3d        = TRUE : opt_mon_dice3d = TRUE                  ' dice render : TRUE = 3D dice(default), FALSE = font / pip dice
+opt_dice3d_set    = 6    : opt_mon_dice3d_set = 8                 ' default 3D dice sets(overridden by save)
+opt_dicefont      = 4                                             ' default dice numeral font index(overridden by save)
+IF opt_oldschool THEN opt_lootrecovery = 0 ELSE opt_lootrecovery = 2 ' 0 OFF(lost), 1 normal(always reclaim), 2 SOULS - LIKE(one chance)
+opt_maxdeaths = 3                                                 ' lives BEFORE permadeath : reach 3 deaths AND the RUN IS forfeited(1..9)
+opt_luck      = TRUE                                              ' CHA - funded re - rolls ON combat rolls + saves(SETTINGS)
+opt_startheal = TRUE                                              ' returning TO the entrance rests + heals you(SETTINGS)
+opt_rest      = TRUE                                              ' [ R ] rests 1 HP at a time, at the risk of company
+opt_solomode  = 0 : opt_solomins = 25                             ' solo challenge : 0 OFF / 1 time / 2 Item / 3 Prey;time - LIMIT budget 25 min
+LoadSettings                                                      ' RESTORE the player's saved preferences(overrides defaults)
+IF NOT devmode THEN ApplyDisplay ' FULLSCREEN + Smoothing per SETTINGS(skipped FOR cli dev modes)
+BOARD_ANSI = _READFILE$(AnsiFile$("board-132x50-no-labels.ans"))  ' same map, with secret doors (ANSI-pack aware)
 ' The collision + decoration LAYERS (`dungeon.run boardsplit` generates them from the board art).
 ' Fallback is per-file and deliberate: an art pack that ships only a combined board still plays,
 ' it just has no walk-over decoration. layer-1 alone is meaningless -- it would double-draw over
@@ -255,31 +255,31 @@ IF LEN(lay1) > 0 THEN
 END IF
 IF LEN(COLLIDE_ANSI) = 0 THEN DECOR_ANSI = ""   ' no layer-0 -> layer-1 alone would double-draw
 '                                                  (BuildBoardImages falls back to BOARD_ANSI)
-LoadTuning                       ' gameplay balance knobs (assets/data/tuning.txt) -- before any play
-LoadDiceColors                   ' the 6 dice palettes (assets/data/dice-colors.txt)
-LoadStrings                      ' UI text lookup (assets/data/strings.txt) -- Say$("key")
-LoadCutTriggers                  ' board-position cut-scene triggers (assets/data/triggers.txt)
-LoadOverlays                ' animated/still art placed on the board (assets/data/overlays.txt)
+LoadTuning                                                        ' gameplay balance knobs(assets / DATA / tuning.txt) - - BEFORE ANY PLAY
+LoadDiceColors                                                    ' the 6 dice palettes(assets / DATA / dice - colors.txt)
+LoadStrings                                                       ' UI text lookup(assets / DATA / strings.txt) - - Say$("key")
+LoadCutTriggers                                                   ' board - position cut - scene triggers(assets / DATA / triggers.txt)
+LoadOverlays                                                      ' animated / still art placed ON the board(assets / DATA / overlays.txt)
 InitSectors
 InitClasses
 InitMonsterTables
-LoadArtPrompts                   ' authored art direction merged into imagemanifest
+LoadArtPrompts                                                    ' authored art direction merged into imagemanifest
 InitDice
-InitJuice                        ' build the screen-shake buffer + the near-death blood-grime pattern
-LoadUIFonts                      ' per-region TTF UI fonts (assets/data/ui-fonts.txt)
-LoadUIFrames AssetPath$("data", "ui-frames.txt")   ' 9-grid panel frames (engine owns the format)
-InitLabels                       ' build the room-label table + the label-cell mask (keeps monsters off labels)
-InitEffects                      ' load the crit/fumble effect tables (assets/data/effects.txt)
-LoadTraps                        ' load the curio-chest traps (assets/data/traps.txt)
-LoadCurios                        ' load the curio event deck (assets/data/curios.txt)
-LoadAmbience                      ' load the per-level ambient noise table (assets/data/ambience.txt)
-LoadStatHelp                      ' what each ability DOES, for the character-creator panel
-LoadMonsterEffects                ' poison/blight/curse/acid per monster (assets/data/monster-effects.txt)
-LoadChamberEvents                 ' load the chamber event table (assets/data/chamber-events.txt)
-InitFlavor                       ' load the room + combat flavor text (assets/flavor/*.txt)
-InitCombatText                   ' load per-monster + per-class combat event text (assets/flavor/*_events.txt)
-ScanAllPacks                     ' find sfx/music PACK subdirs (themes); validate the saved pick
-LoadPlaylist                     ' load the per-level music map (assets/music/playlist.txt)
+InitJuice                                                         ' build the SCREEN - shake buffer + the near - death Blood-grime pattern
+LoadUIFonts                                                       ' per - region TTF UI fonts(assets / DATA / UI - fonts.txt)
+LoadUIFrames AssetPath$("data", "ui-frames.txt")                  ' 9-grid panel frames (engine owns the format)
+InitLabels                                                        ' build the room - label table + the label - cell mask(keeps monsters OFF labels)
+InitEffects                                                       ' load the crit / fumble effect tables(assets / DATA / effects.txt)
+LoadTraps                                                         ' load the curio - chest traps(assets / DATA / traps.txt)
+LoadCurios                                                        ' load the curio event deck(assets / DATA / curios.txt)
+LoadAmbience                                                      ' load the per - level ambient noise table(assets / DATA / ambience.txt)
+LoadStatHelp                                                      ' what each ability DOES, FOR the character - creator panel
+LoadMonsterEffects                                                ' poison / blight / curse / acid per monster(assets / DATA / monster - effects.txt)
+LoadChamberEvents                                                 ' load the chamber event table(assets / DATA / chamber - events.txt)
+InitFlavor                                                        ' load the room + combat flavor text(assets / flavor / *.txt)
+InitCombatText                                                    ' load per - monster + per - class combat event text(assets / flavor / * _EVENTS.TXT)
+ScanAllPacks                                                      ' find sfx / music PACK subdirs(themes) ;validate the saved pick
+LoadPlaylist                                                      ' load the per - level music map(assets / music / playlist.txt)
 
 ' text-only manifests exit HERE -- after the data they need, before the heavy graphics init
 ' (dice atlases / fonts / vignette). Window stays hidden ($SCREENHIDE), so no black flash.
@@ -293,13 +293,13 @@ FOR mac = 1 TO _COMMANDCOUNT
     IF UCASE$(LEFT$(_TRIM$(COMMAND$(mac)), 5)) = "PACK=" THEN man_pack = MID$(_TRIM$(COMMAND$(mac)), 6)
 NEXT mac
 
-IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest: SYSTEM
-IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "AUDIOMANIFEST") > 0 THEN DumpAudioManifest : SYSTEM
+IF INSTR(UCASE$(COMMAND$), "IMAGEMANIFEST") > 0 THEN DumpImageManifest : SYSTEM
 IF INSTR(UCASE$(COMMAND$), "CREATORSHOT") > 0 THEN
     DIM csArg AS INTEGER, csSel AS INTEGER
     csSel = 6
     FOR csArg = 1 TO _COMMANDCOUNT
-        IF VAL(COMMAND$(csArg)) >= 1 AND VAL(COMMAND$(csArg)) <= 6 THEN csSel = VAL(COMMAND$(csArg)): EXIT FOR
+        IF VAL(COMMAND$(csArg)) >= 1 AND VAL(COMMAND$(csArg)) <= 6 THEN csSel = VAL(COMMAND$(csArg)) : EXIT FOR
     NEXT csArg
     DumpCreatorShot csSel
     SYSTEM
@@ -332,16 +332,16 @@ IF INSTR(UCASE$(COMMAND$), "PLACEHOLDERS") > 0 THEN
     IF phClean THEN CleanPlaceholders ELSE MakePlaceholders
     SYSTEM
 END IF
-IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest: SYSTEM
-IF INSTR(UCASE$(COMMAND$), "FIGHTMANIFEST") > 0 THEN DumpFightManifest: SYSTEM
-IF INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0 THEN DumpFightLayout: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "UIMANIFEST") > 0 THEN DumpUiManifest       : SYSTEM
+IF INSTR(UCASE$(COMMAND$), "FIGHTMANIFEST") > 0 THEN DumpFightManifest : SYSTEM
+IF INSTR(UCASE$(COMMAND$), "FIGHTLAYOUT") > 0 THEN DumpFightLayout     : SYSTEM
 
-InitSfxFiles                     ' preload any real sound-effect files (assets/sfx/[pack]/*); beeper covers the rest
-MixerInit                        ' unity channel gains + music duck open (before any AudioTick)
-LoadDiceSets                     ' load the 3D dice sets (assets/data/diceset.txt); font dice if it fails
-LoadDiceFonts                    ' load the selectable 3D-dice numeral fonts (assets/fonts/dicefonts.txt)
-player_class = 1                 ' default HERO until the player creates a character
-InitDefaultChar 1                ' baseline stats so D&D combat works even without CREATE A CHARACTER
+InitSfxFiles                                                      ' preload ANY real SOUND - effect FILES(assets / sfx / [ PACK ] / * ) ;beeper covers the rest
+MixerInit                                                         ' unity channel gains + music duck OPEN(BEFORE ANY AudioTick)
+LoadDiceSets                                                      ' load the 3D dice sets(assets / DATA / diceset.txt) ;font dice IF it fails
+LoadDiceFonts                                                     ' load the selectable 3D - dice numeral fonts(assets / fonts / dicefonts.txt)
+player_class = 1                                                  ' default HERO UNTIL the player creates a character
+InitDefaultChar 1                                                 ' baseline stats so D&D combat works even without CREATE a character
 
 '--- dev: `dungeon.run settingsshot` renders the SETTINGS screen to a PNG and exits (layout check) ---
 ' `settingsshot [w] [h]` -- optional WINDOW size, so the canvas->window scaling Present does
@@ -356,8 +356,8 @@ IF INSTR(UCASE$(COMMAND$), "SETTINGSSHOT") > 0 THEN
             IF ssSeen = 2 THEN ssH = VAL(COMMAND$(ssArg))
         END IF
     NEXT ssArg
-    IF ssW > 0 AND ssH > 0 THEN TakeWindowSize ssW, ssH: _DEST CANVAS: _FONT CH
-    settingsshot_on = -1: RunSettings: SYSTEM
+    IF ssW > 0 AND ssH > 0 THEN TakeWindowSize ssW, ssH : _DEST CANVAS : _FONT CH
+    settingsshot_on = -1                                : RunSettings  : SYSTEM
 END IF
 
 '--- dev: `dungeon.run fightshot` renders the TACTICAL COMBAT screen to a PNG and exits ---
@@ -387,10 +387,10 @@ IF INSTR(UCASE$(COMMAND$), "SUMMARYSHOT") > 0 THEN DumpSummaryShot: SYSTEM
 IF INSTR(UCASE$(COMMAND$), "DEATHSHOT") > 0 THEN DumpDeathShot: SYSTEM
 
 '--- dev: `dungeon.run automovetest` walks the real board and asserts progress ---
-IF INSTR(UCASE$(COMMAND$), "FRAMEGEN") > 0 THEN DumpFrameGen: SYSTEM
-IF INSTR(UCASE$(COMMAND$), "FRAMESHOT") > 0 THEN DumpFrameShot: SYSTEM
-IF INSTR(UCASE$(COMMAND$), "BANNERSHOT") > 0 THEN DumpBannerShot: SYSTEM
-IF INSTR(UCASE$(COMMAND$), "DICEOBJ") > 0 THEN DumpDiceObj: SYSTEM
+IF INSTR(UCASE$(COMMAND$), "FRAMEGEN") > 0 THEN DumpFrameGen     : SYSTEM
+IF INSTR(UCASE$(COMMAND$), "FRAMESHOT") > 0 THEN DumpFrameShot   : SYSTEM
+IF INSTR(UCASE$(COMMAND$), "BANNERSHOT") > 0 THEN DumpBannerShot : SYSTEM
+IF INSTR(UCASE$(COMMAND$), "DICEOBJ") > 0 THEN DumpDiceObj       : SYSTEM
 
 IF INSTR(UCASE$(COMMAND$), "AUTOMOVETEST") > 0 THEN
     ' Same board a real run gets. Without this the cursor is at 0,0 on an unbuilt board and
@@ -401,8 +401,8 @@ IF INSTR(UCASE$(COMMAND$), "AUTOMOVETEST") > 0 THEN
     Game_PopulateBoard
     RandomizeRooms
     InitFog
-    c.x = START_CX * CW: c.y = START_CY * CH
-    c.prev_x = c.x: c.prev_y = c.y
+    c.x      = START_CX * CW : c.y = START_CY * CH
+    c.prev_x = c.x           : c.prev_y = c.y
     DumpAutoMoveTest
     SYSTEM
 END IF
@@ -423,7 +423,7 @@ IF INSTR(UCASE$(COMMAND$), "PANELSHOT") > 0 THEN
     DIM psArg AS INTEGER, psPc AS INTEGER
     psPc = 1
     FOR psArg = 1 TO _COMMANDCOUNT
-        IF VAL(COMMAND$(psArg)) >= 1 AND VAL(COMMAND$(psArg)) <= 4 THEN psPc = VAL(COMMAND$(psArg)): EXIT FOR
+        IF VAL(COMMAND$(psArg)) >= 1 AND VAL(COMMAND$(psArg)) <= 4 THEN psPc = VAL(COMMAND$(psArg)) : EXIT FOR
     NEXT psArg
     BuildBoardImages
     DetectSecretDoors
@@ -442,7 +442,7 @@ END IF
 '   dungeon.run fight 9 2    level 9, 2 foes
 IF INSTR(UCASE$(COMMAND$), "FIGHT ") > 0 OR UCASE$(_TRIM$(COMMAND$)) = "FIGHT" THEN
     DIM AS INTEGER fgLvl, fgFoes, fgArg, fgSeen
-    fgLvl = 5: fgFoes = 4: fgSeen = 0
+    fgLvl = 5 : fgFoes = 4 : fgSeen = 0
     FOR fgArg = 1 TO _COMMANDCOUNT
         IF VAL(COMMAND$(fgArg)) > 0 THEN
             fgSeen = fgSeen + 1
@@ -459,11 +459,11 @@ IF INSTR(UCASE$(COMMAND$), "FIGHT ") > 0 OR UCASE$(_TRIM$(COMMAND$)) = "FIGHT" T
     IF LEN(_TRIM$(player_name)) = 0 THEN player_name = "TESTER"
     IF player_maxhp < 1 THEN InitDefaultChar player_class
     player_hp = player_maxhp
-    DevPackOverride                                       ' `fight 5 4 ansimon-1` previews a pack
-    _SCREENSHOW: screen_shown = TRUE
+    DevPackOverride                  ' ` fight 5 4 ansimon - 1 ` previews a PACK
+    _SCREENSHOW : screen_shown = TRUE
     ApplyDisplay
     DIM AS INTEGER fgRes
-    fgRes = RunFight%(fgLvl, fgFoes)                      ' QB64 needs a FUNCTION result consumed
+    fgRes = RunFight%(fgLvl, fgFoes) ' QB64 needs a FUNCTION result consumed
     SYSTEM
 END IF
 
@@ -519,7 +519,7 @@ IF INSTR(UCASE$(COMMAND$), "BOARDFIX") > 0 THEN BoardFix
 '--- dev: `dungeon.run sectorauto` derives each level's rect from the art and checks overlaps ---
 IF INSTR(UCASE$(COMMAND$), "SECTORAUTO") > 0 THEN
     BuildBoardImages
-    DeriveSectors                        ' geometry from the art -- measure what the GAME actually uses
+    DeriveSectors                    ' geometry from the art - - measure what the game actually uses
     SectorAutoDerive
 END IF
 
@@ -528,9 +528,9 @@ END IF
 IF INSTR(UCASE$(COMMAND$), "ROOMLINT") > 0 THEN
     BuildBoardImages
     DetectSecretDoors
-    DetectDoors                     ' WalkLint tests every detected door by name -- without this DOOR_N is 0
+    DetectDoors                      ' WalkLint tests every detected door by NAME - - without this DOOR_N IS 0
     Game_PopulateBoard
-    RandomizeRooms                  ' so the monster/treasure placement it reports is the real thing
+    RandomizeRooms                   ' so the monster / treasure placement it reports IS the real thing
     RoomLint
 END IF
 
@@ -568,7 +568,7 @@ IF INSTR(UCASE$(COMMAND$), "FPSSHOT") > 0 THEN
     RandomizeRooms
     LoadOverlays
     InitFog
-    FpsSeeAll                      ' a shot has no run behind it, so nothing would be `seen`
+    FpsSeeAll                        ' a shot has no RUN behind it, so nothing would be ` seen `
     IF INSTR(LCASE$(COMMAND$), "hand") > 0 THEN player_class = 1
     FpsShot VAL(COMMAND$(2)), VAL(COMMAND$(3)), VAL(COMMAND$(4)), DeArg$("fpsshot.png", ".png")
     SYSTEM
@@ -674,26 +674,26 @@ IF INSTR(UCASE$(COMMAND$), "CHAMBERDUMP") > 0 THEN
     DIM AS INTEGER ddx, ddy, ddc
     BuildBoardImages
     DetectSecretDoors
-    Game_PopulateBoard                   ' rooms + chambers (game hook #8)
-    _DEST CANVAS: _PUTIMAGE (0, 0), FULL_BOARD, CANVAS
+    Game_PopulateBoard    ' rooms + chambers(game hook #8)
+    _DEST CANVAS : _PUTIMAGE(0, 0), FULL_BOARD, CANVAS
     FOR ddy = 0 TO 60
         FOR ddx = 0 TO 131
-            IF CHAMBERAT(ddx, ddy) > 0 THEN LINE (ddx * CW, ddy * CH)-(ddx * CW + CW - 1, ddy * CH + CH - 1), _RGB32(255, 0, 255, 120), BF
+            IF CHAMBERAT(ddx, ddy) > 0 THEN LINE(ddx * CW, ddy * CH) -(ddx * CW + CW - 1, ddy * CH + CH - 1), _RGB32(255, 0, 255, 120), BF
         NEXT
     NEXT
     FOR ddc = 1 TO NCHAMBER
-        COLOR _RGB32(&HFF, &HFF, &H00), _RGB32(0, 0, 0): _PRINTSTRING (CHM_CX(ddc) * CW, CHM_CY(ddc) * CH), _TRIM$(STR$(ddc)) + " " + _TRIM$(CHM_NAME(ddc)) + " (" + _TRIM$(STR$(CHM_CELLS(ddc))) + ")"
+        COLOR _RGB32(&HFF, &HFF, &H00), _RGB32(0, 0, 0) : _PRINTSTRING(CHM_CX(ddc) * CW, CHM_CY(ddc) * CH), _TRIM$(STR$(ddc)) + " " + _TRIM$(CHM_NAME(ddc)) + " (" + _TRIM$(STR$(CHM_CELLS(ddc))) + ")"
     NEXT
     _SAVEIMAGE "chamberdump.png", CANVAS
     '--- also dump each chamber's bounding box (cells) as text, for seeding chambers.txt ---
-    DIM ddf AS INTEGER, ddi AS INTEGER, ddminx AS INTEGER, ddminy AS INTEGER, ddmaxx AS INTEGER, ddmaxy AS INTEGER
-    DIM ddfree AS INTEGER, ddshadow AS INTEGER
-    ddf = FREEFILE: OPEN "chamberdump.txt" FOR OUTPUT AS #ddf
+    DIM ddf                                            AS INTEGER, ddi AS INTEGER, ddminx AS INTEGER, ddminy AS INTEGER, ddmaxx AS INTEGER, ddmaxy AS INTEGER
+    DIM ddfree                                         AS INTEGER, ddshadow AS INTEGER
+    ddf = FREEFILE : OPEN "chamberdump.txt" FOR OUTPUT AS #ddf
     PRINT #ddf, "# secret doors detected: " + _TRIM$(STR$(SD_N)) + " | rooms: " + _TRIM$(STR$(ROOM_N)) + " | chambers: " + _TRIM$(STR$(NCHAMBER))
     PRINT #ddf, "# 'free' = chamber cells with NO room over them. Game_OnEnterCell suppresses the"
     PRINT #ddf, "# chamber trigger wherever ROOMAT<>0, so free = 0 means that hall can NEVER fire."
     FOR ddi = 1 TO NCHAMBER
-        ddminx = 999: ddminy = 999: ddmaxx = -1: ddmaxy = -1: ddfree = 0: ddshadow = 0
+        ddminx = 999 : ddminy = 999 : ddmaxx = -1 : ddmaxy = -1 : ddfree = 0 : ddshadow = 0
         FOR ddy = 0 TO 60
             FOR ddx = 0 TO 131
                 IF CHAMBERAT(ddx, ddy) = ddi THEN
@@ -717,18 +717,18 @@ IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
     InitFog
     _SAVEIMAGE "fogdump.png", CANVAS
     '--- region-overlay render (mimics the [~] mask view: per-region tint + level-coloured doors) ---
-    DIM rvx AS INTEGER, rvy AS INTEGER
+    DIM rvx                                        AS INTEGER, rvy AS INTEGER
     _DEST CANVAS
     FOR rvy = 0 TO SH - 1
         FOR rvx = 0 TO SW - 1
-            IF MASKREG(rvx, rvy) > 0 THEN LINE (rvx * CW, rvy * CH)-(rvx * CW + CW - 1, rvy * CH + CH - 1), MaskRegionColor~&(MASKREG(rvx, rvy), 150), BF
+            IF MASKREG(rvx, rvy) > 0 THEN LINE(rvx * CW, rvy * CH) -(rvx * CW + CW - 1, rvy * CH + CH - 1), MaskRegionColor~&(MASKREG(rvx, rvy), 150), BF
         NEXT
     NEXT
     IF MASK_ON THEN DrawMaskDoors
     _SAVEIMAGE "fogdump-regions.png", CANVAS
     '--- mask stats: secret cells, regions, and door->region mapping (0 = UNMAPPED = can't reveal) ---
-    DIM fdx AS INTEGER, fdy AS INTEGER, fdsec AS LONG, fdreg AS INTEGER, fdunmap AS INTEGER, fdf AS INTEGER
-    fdsec = 0: fdreg = 0
+    DIM fdx                                        AS INTEGER, fdy AS INTEGER, fdsec AS LONG, fdreg AS INTEGER, fdunmap AS INTEGER, fdf AS INTEGER
+    fdsec = 0 : fdreg = 0
     FOR fdy = 0 TO SH - 1
         FOR fdx = 0 TO SW - 1
             IF SECRET(fdx, fdy) THEN fdsec = fdsec + 1
@@ -736,22 +736,22 @@ IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
         NEXT
     NEXT
     fdunmap = 0
-    FOR fdx = 1 TO SD_N: IF DOOR_REGION(fdx) <= 0 THEN fdunmap = fdunmap + 1
+    FOR fdx = 1 TO SD_N : IF DOOR_REGION(fdx) <= 0 THEN fdunmap = fdunmap + 1
     NEXT
-    DIM fdsat AS LONG
+    DIM fdsat                                      AS LONG
     fdsat = 0
-    FOR fdy = 0 TO SH - 1: FOR fdx = 0 TO SW - 1: IF SECTORAT(fdx, fdy) > 0 THEN fdsat = fdsat + 1
-    NEXT: NEXT
-    fdf = FREEFILE: OPEN "fogdump.txt" FOR OUTPUT AS #fdf
+    FOR fdy = 0 TO SH - 1 : FOR fdx = 0 TO SW-1 : IF SECTORAT(fdx, fdy) > 0 THEN fdsat = fdsat + 1
+    NEXT                  : NEXT
+    fdf = FREEFILE        : OPEN "fogdump.txt" FOR OUTPUT AS #fdf
     PRINT #fdf, "SECTORMASK_ON= " + _TRIM$(STR$(SECTORMASK_ON)) + "   sector cells = " + _TRIM$(STR$(fdsat))
     PRINT #fdf, "MASK_ON      = " + _TRIM$(STR$(MASK_ON))
     PRINT #fdf, "secret cells = " + _TRIM$(STR$(fdsec))
     PRINT #fdf, "regions      = " + _TRIM$(STR$(fdreg))
     PRINT #fdf, "secret doors = " + _TRIM$(STR$(SD_N)) + "   (UNMAPPED to a region = " + _TRIM$(STR$(fdunmap)) + ")"
     PRINT #fdf, "region levels (id:lvl):"
-    DIM fdl AS STRING, fdi AS INTEGER
+    DIM fdl                                        AS STRING, fdi AS INTEGER
     fdl = ""
-    FOR fdi = 1 TO fdreg: fdl = fdl + " " + _TRIM$(STR$(fdi)) + ":" + _TRIM$(STR$(MASKLVL(fdi))): NEXT
+    FOR fdi = 1 TO fdreg : fdl = fdl + " " + _TRIM$(STR$(fdi)) + ":" + _TRIM$(STR$(MASKLVL(fdi))): NEXT
     PRINT #fdf, fdl
     FOR fdx = 1 TO SD_N
         PRINT #fdf, "  door " + _TRIM$(STR$(fdx)) + " @ (" + _TRIM$(STR$(SD_X(fdx))) + "," + _TRIM$(STR$(SD_Y(fdx))) + ") -> region " + _TRIM$(STR$(DOOR_REGION(fdx))) + " lvl " + _TRIM$(STR$(MASKLVL(DOOR_REGION(fdx))))
@@ -764,9 +764,9 @@ IF INSTR(UCASE$(COMMAND$), "FOGDUMP") > 0 THEN
     ' now refuses to place the key in an unreachable room (RoomReachable%), but the region is
     ' still dead board -- its rooms, monsters and treasure can never be reached.
     DIM fdorph AS INTEGER, fdlist AS STRING, fdrooms AS INTEGER
-    fdorph = 0: fdlist = ""
+    fdorph = 0 : fdlist = ""
     FOR fdi = 1 TO fdreg
-        IF NOT RegionHasDoor%(fdi) THEN fdorph = fdorph + 1: fdlist = fdlist + " " + _TRIM$(STR$(fdi))
+        IF NOT RegionHasDoor%(fdi) THEN fdorph = fdorph + 1 : fdlist = fdlist + " " + _TRIM$(STR$(fdi))
     NEXT fdi
     fdrooms = 0
     FOR fdx = 1 TO ROOM_N
@@ -802,13 +802,13 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
         SYSTEM
     END IF
     BuildBoardImages
-    InitFog                                   ' floods SECRET() (mask file not present yet)
+    InitFog               ' floods SECRET() (mask file NOT present yet)
     DIM mgf AS INTEGER, mgy AS INTEGER, mgx AS INTEGER, mgs AS STRING, sauce AS STRING, eofc AS STRING, mglast AS INTEGER
     mgs = "": mglast = -999
-    FOR mgy = 0 TO SH - 2                      ' 50 board rows (row 50 = HUD line, never secret)
+    FOR mgy = 0 TO SH - 2 ' 50 board rows(row 50 = HUD line, never SECRET)
         FOR mgx = 0 TO SW - 1
             DIM mgsec AS INTEGER
-            mgsec = (SECRET(mgx, mgy) <> 0)    ' magenta BACKGROUND for secret, black for public (bg+space fills the cell)
+            mgsec = (SECRET(mgx, mgy) <> 0) ' magenta BACKGROUND FOR secret, BLACK FOR public(bg + space fills the cell)
             IF mgsec <> mglast THEN
                 IF mgsec THEN mgs = mgs + CHR$(27) + "[45m" ELSE mgs = mgs + CHR$(27) + "[0m"
                 mglast = mgsec
@@ -823,15 +823,15 @@ IF INSTR(UCASE$(COMMAND$), "MASKGEN") > 0 THEN
     sauce = sauce + PadR$("DUNGEON! secret-door mask", 35)
     sauce = sauce + PadR$("grymmjack", 20)
     sauce = sauce + PadR$("", 20)
-    sauce = sauce + MID$(DATE$, 7, 4) + MID$(DATE$, 1, 2) + MID$(DATE$, 4, 2)   ' Date CCYYMMDD
-    sauce = sauce + MKL$(LEN(mgs))             ' FileSize = data length before the EOF marker
-    sauce = sauce + CHR$(1) + CHR$(1)          ' DataType = Character, FileType = ANSi
-    sauce = sauce + MKI$(SW) + MKI$(SH - 1)    ' TInfo1 = 132 cols, TInfo2 = 50 lines
-    sauce = sauce + MKI$(0) + MKI$(0)          ' TInfo3 / TInfo4
-    sauce = sauce + CHR$(0) + CHR$(0)          ' Comments = 0, TFlags = 0
-    sauce = sauce + "IBM VGA" + STRING$(15, 0) ' TInfoS = font name, null-padded to 22
-    eofc = CHR$(26)                            ' SAUCE sits after a 0x1A EOF marker
-    mgf = FREEFILE
+    sauce = sauce + MID$(DATE$, 7, 4) + MID$(DATE$, 1, 2) + MID$(DATE$, 4, 2) ' Date CCYYMMDD
+    sauce = sauce + MKL$(LEN(mgs))                                            ' FileSize = DATA length BEFORE the EOF marker
+    sauce = sauce + CHR$(1) + CHR$(1)                                         ' DataType = Character, FileType = ANSI
+    sauce = sauce + MKI$(SW) + MKI$(SH - 1)                                   ' TInfo1 = 132 cols, TInfo2 = 50 lines
+    sauce = sauce + MKI$(0) + MKI$(0)                                         ' TInfo3 / TInfo4
+    sauce = sauce + CHR$(0) + CHR$(0)                                         ' Comments = 0, TFlags = 0
+    sauce = sauce + "IBM VGA" + STRING$(15, 0)                                ' TInfoS = font name, null-padded to 22
+    eofc = CHR$(26)                                                           ' sauce sits after a 0x1A EOF marker
+    mgf  = FREEFILE
     OPEN "assets/ansi-art/default/board-132x50-secret-mask.ans" FOR BINARY AS #mgf
     PUT #mgf, 1, mgs
     PUT #mgf, , eofc
@@ -852,7 +852,7 @@ IF INSTR(UCASE$(COMMAND$), "ANSILINT") > 0 THEN
     FOR alc = 1 TO _COMMANDCOUNT
         IF UCASE$(COMMAND$(alc)) <> "ANSILINT" AND UCASE$(COMMAND$(alc)) <> "NOCOLOR" THEN alpath = COMMAND$(alc)
     NEXT alc
-    _DEST _CONSOLE: PRINT
+    _DEST _CONSOLE : PRINT
     IF LEN(alpath) > 0 THEN
         ' a collision LAYER is a different artefact from a mask -- it is checked for stray
         ' colours movement cannot read, not for colour->zone mapping
@@ -872,7 +872,7 @@ IF INSTR(UCASE$(COMMAND$), "ANSIFIX") > 0 THEN
     FOR afc = 1 TO _COMMANDCOUNT
         IF UCASE$(COMMAND$(afc)) <> "ANSIFIX" AND UCASE$(COMMAND$(afc)) <> "NOCOLOR" THEN afpath = COMMAND$(afc)
     NEXT afc
-    _DEST _CONSOLE: PRINT
+    _DEST _CONSOLE : PRINT
     IF LEN(afpath) = 0 THEN
         PRINT PipeCol$("|14usage:|07 dungeon.run ansifix <file.ans>   (rewrites it clean; backs up to <file>.bak)")
     ELSE
@@ -886,8 +886,8 @@ END IF
 ' (audio/image/ui manifests already handled earlier -- they exit before the heavy init)
 
 ' ---------------------------------------------------------------- state machine
-_SCREENSHOW: screen_shown = TRUE       ' normal play only (dev modes SYSTEM'd already): reveal the window
-DIM game_state AS INTEGER, r AS INTEGER, o AS INTEGER
+_SCREENSHOW : screen_shown = TRUE ' normal PLAY ONLY(dev modes SYSTEM'd already) : reveal the WINDOW
+DIM game_state AS INTEGER, R AS INTEGER, o AS INTEGER
 game_state = ST_INTRO
 DO
     SELECT CASE game_state
@@ -895,17 +895,17 @@ DO
             ShowIntro
             game_state = ST_MENU
         CASE ST_MENU
-            r = RunMenu
-            IF r = MENU_ENTER THEN game_state = ST_PLAY ELSE game_state = ST_QUIT
+            R = RunMenu
+            IF R = MENU_ENTER THEN game_state = ST_PLAY ELSE game_state = ST_QUIT
         CASE ST_PLAY
-            hud_live = TRUE                      ' the board is the screen -> DrawHUD may paint
-            o = PlayGame
-            hud_live = FALSE                     ' ...and is not, once we are back in the menus
-            StopLevelMusic                       ' silence the in-game track before the menu music resumes
+            hud_live = TRUE  ' the board IS the SCREEN - > DrawHUD may PAINT
+            o        = PlayGame
+            hud_live = FALSE '...and IS not, once we are back in the menus
+            StopLevelMusic   ' silence the in - game track BEFORE the menu music resumes
             SELECT CASE o
-                CASE OUT_WIN: game_state = ST_WIN
-                CASE OUT_LOSE: game_state = ST_LOSE
-                CASE ELSE: game_state = ST_MENU
+                CASE OUT_WIN  : game_state = ST_WIN
+                CASE OUT_LOSE : game_state = ST_LOSE
+                CASE ELSE     : game_state = ST_MENU
             END SELECT
         CASE ST_WIN
             ShowEnd TRUE
@@ -919,7 +919,7 @@ DO
 LOOP
 
 _FULLSCREEN _OFF
-SCREEN 0: _DEST 0
+SCREEN 0 : _DEST 0
 _DELAY 0.5
 _FREEIMAGE CANVAS
 _FREEIMAGE CANVAS_COPY
@@ -943,37 +943,37 @@ SYSTEM
 '  clear failure into a confusing cascade.
 ' ============================================================================
 DungeonFatal:
-    err_seen = err_seen + 1
-    _DEST _CONSOLE
-    PRINT ""
-    PRINT "!! QB64 RUNTIME ERROR " + LTRIM$(STR$(ERR)) + " at line " + LTRIM$(STR$(_ERRORLINE))
-    PRINT "!! " + _ERRORMESSAGE$
-    ' _ERRORLINE alone is nearly useless here: dungeon.bas is a thin assembly of ~40 included
-    ' modules, so a line number with no file could be in any of them. _INCLERRORFILE$ names the
-    ' include the error actually happened in (empty when it was dungeon.bas itself).
-    IF LEN(_INCLERRORFILE$) > 0 THEN PRINT "!! in " + _INCLERRORFILE$ + ":" + LTRIM$(STR$(_INCLERRORLINE))
-    ' What happens next depends on WHO is watching, and the two answers are opposites:
-    '
-    '   a DEV MODE / headless run has no player -- a script wants a clean, greppable failure and
-    '   a non-zero exit, and limping on would turn one clear error into a confusing cascade.
-    '
-    '   a PLAYER mid-run does not want their expedition ended because one optional asset was
-    '   missing. RESUME NEXT skips the broken statement and carries on, which for a missing
-    '   sprite or sound is exactly right.
-    '
-    ' The cap is the safety net: an error inside the 60fps loop would otherwise print forever
-    ' and never recover, so after ERR_MAX we stop pretending it is survivable.
-    IF NOT screen_shown THEN
-        PRINT "!! no window is up -- nobody can see or click anything, so aborting"
-        PRINT "!! (a dialog here would hang a headless run forever; see ON ERROR in dungeon.bas)"
-        SYSTEM 1
-    END IF
-    IF err_seen > ERR_MAX THEN
-        PRINT "!! " + LTRIM$(STR$(err_seen)) + " runtime errors -- this is not survivable, aborting"
-        SYSTEM 1
-    END IF
-    PRINT "!! continuing (RESUME NEXT) -- " + LTRIM$(STR$(ERR_MAX - err_seen)) + " more before abort"
-    RESUME NEXT
+err_seen = err_seen + 1
+_DEST _CONSOLE
+PRINT ""
+PRINT "!! QB64 RUNTIME ERROR " + LTRIM$(STR$(ERR)) + " at line " + LTRIM$(STR$(_ERRORLINE))
+PRINT "!! " + _ERRORMESSAGE$
+' _ERRORLINE alone is nearly useless here: dungeon.bas is a thin assembly of ~40 included
+' modules, so a line number with no file could be in any of them. _INCLERRORFILE$ names the
+' include the error actually happened in (empty when it was dungeon.bas itself).
+IF LEN(_INCLERRORFILE$) > 0 THEN PRINT "!! in " + _INCLERRORFILE$ + ":" + LTRIM$(STR$(_INCLERRORLINE))
+' What happens next depends on WHO is watching, and the two answers are opposites:
+'
+'   a DEV MODE / headless run has no player -- a script wants a clean, greppable failure and
+'   a non-zero exit, and limping on would turn one clear error into a confusing cascade.
+'
+'   a PLAYER mid-run does not want their expedition ended because one optional asset was
+'   missing. RESUME NEXT skips the broken statement and carries on, which for a missing
+'   sprite or sound is exactly right.
+'
+' The cap is the safety net: an error inside the 60fps loop would otherwise print forever
+' and never recover, so after ERR_MAX we stop pretending it is survivable.
+IF NOT screen_shown THEN
+    PRINT "!! no window is up -- nobody can see or click anything, so aborting"
+    PRINT "!! (a dialog here would hang a headless run forever; see ON ERROR in dungeon.bas)"
+    SYSTEM 1
+END IF
+IF err_seen > ERR_MAX THEN
+    PRINT "!! " + LTRIM$(STR$(err_seen)) + " runtime errors -- this is not survivable, aborting"
+    SYSTEM 1
+END IF
+PRINT "!! continuing (RESUME NEXT) -- " + LTRIM$(STR$(ERR_MAX - err_seen)) + " more before abort"
+RESUME NEXT
 
 ' ============================================================================
 '  CORE GAME LOOP
@@ -983,41 +983,41 @@ FUNCTION PlayGame%
     DIM k AS STRING
     DIM AS INTEGER sec, res, idle_ticks, sd, mvb, curlvl, heart_tick, hbeat
 
-    DIM i AS INTEGER
-    DIM hint AS STRING
+    DIM i       AS INTEGER
+    DIM hint    AS STRING
     DIM didload AS INTEGER
     didload = FALSE
-    SoloReset                        ' solo state off until a fresh run activates it (loaded games play normal)
-    IF HasSave THEN                  ' a saved delve exists -- offer to continue it
-        IF AskContinue THEN LoadGameApply: didload = TRUE
+    SoloReset ' solo state OFF UNTIL a fresh RUN activates it(loaded games PLAY normal)
+    IF HasSave THEN ' a saved delve exists - - offer TO CONTINUE it
+        IF AskContinue THEN LoadGameApply : didload = TRUE
     END IF
 
     IF NOT didload THEN
-        SetupPlayers                     ' build every player (multiplayer: class + 3d6 roll-up + name each)
-        game_start = TIMER               ' start the run timer
-        ChronicleReset                   ' fresh event log + per-run stats for the Game Menu screens
-        moves_made = 0: turn_num = 0: steps_left = 0
+        SetupPlayers                                                                                                   ' build every player(multiplayer : class + 3d6 roll - up + NAME each)
+        game_start = TIMER                                                                                             ' start the RUN TIMER
+        ChronicleReset                                                                                                 ' fresh event LOG + per - RUN stats FOR the game menu screens
+        moves_made = 0 : turn_num = 0 : steps_left = 0
         cur_player = 1
-        run_seed = INT(RND * 2000000000) + 1   ' seed this dungeon so save/load can reproduce it exactly
+        run_seed   = INT(RND * 2000000000) + 1                                                                         ' seed this dungeon so save / load can reproduce it exactly
         RANDOMIZE run_seed
-        StartBoard                       ' build the board + fog + DetectRooms (resets the cursor to START)
-        RandomizeRooms                   ' give every detected room its own monster + treasure (+ the key room)
+        StartBoard                                                                                                     ' build the board + fog + DetectRooms(resets the cursor TO start)
+        RandomizeRooms                                                                                                 ' give every detected room its own monster + treasure( + the KEY room)
         ' Per-SEAT run state (inventory, potions, spell charges, level/XP, status timers) is
         ' initialised inside SetupPlayers -- including a spellbook for EVERY Wizard seat -- and
         ' arrives in the working globals via LoadActivePlayer. It used to be reset HERE instead,
         ' i.e. once, after the active player was already loaded: so those values were shared by
         ' all hot-seat players and only seat 1 could ever be handed a spellbook.
-        LoadActivePlayer cur_player      ' player 1 becomes the active player (kit / pos / colour / stats)
-        StartTurnMove                    ' set turn 1's move budget (roll 1d6 / up-to-5 / free)
+        LoadActivePlayer cur_player                                                                                    ' player 1 becomes the active player(kit / POS / colour / stats)
+        StartTurnMove                                                                                                  ' set turn 1's move budget(roll 1d6 / up - TO - 5 / FREE)
         ' --- genuinely run-wide state (NOT per seat) ---
-        loiter = 0                       ' fresh danger meter for lingering
-        curio_cool = 0                   ' path curios may start turning up right away
-        FOR i = 1 TO 9: lvl_kills(i) = 0: lvl_gold(i) = 0: lvl_reached(i) = FALSE: lvl_cleared(i) = FALSE: NEXT i   ' fresh chronicle
-        lvl_reached(1) = TRUE            ' you start on the 1st level
-        deaths(1) = 0: deaths(2) = 0: deaths(3) = 0: deaths(4) = 0           ' fresh skull tally (already per-player)
-        player_out = FALSE                                                  ' nobody has forfeited yet
+        loiter     = 0                                                                                                 ' fresh danger meter FOR lingering
+        curio_cool = 0                                                                                                 ' path curios may start turning up right away
+        FOR i = 1 TO 9 : lvl_kills(i) = 0 : lvl_gold(i) = 0 : lvl_reached(i) = FALSE : lvl_cleared(i) = FALSE : NEXT i ' fresh chronicle
+        lvl_reached(1) = TRUE                                                                                          ' you start ON the 1st level
+        deaths(1)      = 0 : deaths(2) = 0 : deaths(3) = 0 : deaths(4) = 0                                             ' fresh skull tally(already per - player)
+        player_out     = FALSE                                                                                         ' nobody has forfeited yet
 
-        DIM ident AS STRING                                                 ' "Grognard the Fast, a HERO" (or "the HERO" if unnamed)
+        DIM ident AS STRING                                                                                            ' "Grognard the Fast, a HERO" (or "the HERO" if unnamed)
         IF _TRIM$(player_name) <> "" THEN ident = _TRIM$(player_name) + ", a " + class_name ELSE ident = "the " + class_name
 
         ' A CUT-SCENE takes precedence over the crawl, when the pack ships one.
@@ -1025,15 +1025,15 @@ FUNCTION PlayGame%
         ' voices intro.descent voices the cut-scene too, unchanged -- and a pack
         ' with no intro.cut still gets the crawl it always had.
         IF PlayCutscene%("intro") = 0 THEN
-        IF num_players > 1 THEN
-            ScrollTextVO "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin.", "intro.descent"
-        ELSE
-            ScrollTextVO "THE DESCENT", "Torchlight gutters as you, " + ident + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is rumoured to lie on the " + Ordinal$(key_level) + " level -- take it, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. A Crystal Ball would reveal exactly which room hides it. Few ever escape.", "intro.descent"
-        END IF
+            IF num_players > 1 THEN
+                ScrollTextVO "THE DESCENT", "Torchlight gutters as " + _TRIM$(STR$(num_players)) + " rivals cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is said to lie on the " + Ordinal$(key_level) + " level. Whoever is first to claim its key, a fortune in gold, and return alive to this entrance wins eternal glory. Let the delving begin.", "intro.descent"
+            ELSE
+                ScrollTextVO "THE DESCENT", "Torchlight gutters as you, " + ident + ", cross the threshold into the ancient dungeon. Nine levels coil below, each darker and deadlier than the last. The Level Key is rumoured to lie on the " + Ordinal$(key_level) + " level -- take it, gather " + _TRIM$(STR$(target_gold)) + " gold, and return alive to this entrance. A Crystal Ball would reveal exactly which room hides it. Few ever escape.", "intro.descent"
+            END IF
         END IF
     END IF
 
-    cursor_erase: cursor_draw        ' clear the narration, reveal the board
+    cursor_erase : cursor_draw ' CLEAR the narration, reveal the board
     IF opt_boardgame THEN
         hint = "[SPACE] end turn  "
     ELSE
@@ -1045,41 +1045,41 @@ FUNCTION PlayGame%
         Banner "Gather " + _TRIM$(STR$(target_gold)) + " gold AND the Level Key, then return to START.", hint + "move  [F] search  [G] save  [?] keys  fight  ESC flee"
     END IF
     WaitKey
-    IF NOT didload THEN AnnounceTurn cur_player   ' multiplayer: announce whose turn it is
-    IF NOT didload THEN SoloBegin                 ' single-player: arm the chosen solo challenge
-    cursor_erase: cursor_draw
-    DrawHUD: Present
+    IF NOT didload THEN AnnounceTurn cur_player ' multiplayer : announce whose turn it IS
+    IF NOT didload THEN SoloBegin ' SINGLE - player : arm the chosen solo challenge
+    cursor_erase : cursor_draw
+    DrawHUD      : present
 
-    DIM startlvl AS INTEGER                        ' start this level's music before the first step
-    StopLevelMusic                                 ' kill any leftover track (last run/menu) so it can't linger if the start sector has none
+    DIM startlvl AS INTEGER    ' start this level's music BEFORE the first STEP
+    StopLevelMusic             ' KILL ANY leftover track(last RUN / menu) so it can't linger IF the start sector has NONE
     startlvl = PlayerLevel%
     ' SEED the deepest-level stat from where you are STANDING, not from the first step you take.
     ' RecordDepth was written but never called by anything, so `deepest level` sat at 0 for a whole
     ' run; and even once the play loop bumps it per move, a player who has not moved yet is still
     ' honestly ON level 1, not on level 0.
     RecordDepth startlvl
-    IF LEN(_TRIM$(MUSIC_FILE(startlvl))) = 0 THEN startlvl = 1   ' start sector has no track -> fall back to level 1's
+    IF LEN(_TRIM$(MUSIC_FILE(startlvl))) = 0 THEN startlvl = 1 ' start sector has no track - > fall back TO level 1's
     PlayLevelMusic startlvl
 
     DO
         _LIMIT 60
-        AudioTick                                 ' advance music crossfade + narration fade each frame
-        AmbienceTick                              ' a distant noise now and then, chosen by the level you are on
+        AudioTick       ' advance music crossfade + narration fade each frame
+        AmbienceTick    ' a distant noise now AND then, chosen by the level you are ON
         ' A DRAUGHT out of a hidden door: a loop whose volume tracks the distance to
         ' the nearest UNFOUND secret door. Ticked here rather than in AudioTick because
         ' AudioTick also runs under menus, where there is no player standing anywhere.
         SecretWindTick c.x \ CW, c.y \ CH
-        IF display_dirty THEN                     ' ...and repaint the whole board once it has settled
+        IF display_dirty THEN '...and repaint the whole board once it has settled
             display_dirty = 0
-            cursor_erase: cursor_draw: DrawHUD: Present
+            cursor_erase : cursor_draw : DrawHUD : present
         END IF
-        IF player_out THEN                        ' the active player has spent their last life
+        IF player_out THEN ' the active player has spent their last life
             ' solo (or last one standing) -> the run is over for good. Delete the save so a
             ' permadeath run can never be "continued" back to life.
-            IF HandleForfeit THEN DeleteSave: PlayGame = OUT_LOSE: EXIT FUNCTION
+            IF HandleForfeit THEN DeleteSave : PlayGame = OUT_LOSE : EXIT FUNCTION
         END IF
         k = UCASE$(INKEY$)
-        k = NormKey$(k)              ' fold arrow keys + numpad into WASD + diagonals
+        k = NormKey$(k) ' fold arrow keys + numpad into WASD + diagonals
 
         ' AUTO-MOVE steers by synthesising a DIRECTION key, so the step goes through exactly
         ' the same TryMove a player drives -- door hops, room/chamber triggers, curio rolls and
@@ -1117,39 +1117,39 @@ FUNCTION PlayGame%
             idle_ticks = idle_ticks + 1
             IF idle_ticks >= 600 THEN
                 idle_ticks = 0
-                IF NOT InRoomNow THEN LoiterTick   ' danger gathers only out in the open halls
+                IF NOT InRoomNow THEN LoiterTick ' danger gathers ONLY OUT in the OPEN halls
             END IF
         END IF
 
         ' near-death heartbeat (D&D mode): a low thud that races as your HP runs out
         IF NOT opt_oldschool AND player_maxhp > 0 AND player_hp > 0 AND player_hp <= player_maxhp \ 4 THEN
             heart_tick = heart_tick + 1
-            hbeat = 50: IF player_hp <= player_maxhp \ 10 THEN hbeat = 30   ' racing when critical
-            IF heart_tick >= hbeat THEN heart_tick = 0: Sfx "heartbeat"
+            hbeat = 50                                 : IF player_hp <= player_maxhp \ 10 THEN hbeat = 30 ' racing when critical
+            IF heart_tick >= hbeat THEN heart_tick = 0 : sfx "heartbeat"
         ELSE
             heart_tick = 0
         END IF
 
-        IF k = CHR$(27) THEN PlayGame = OUT_FLEE: EXIT FUNCTION
+        IF k = CHR$(27) THEN PlayGame = OUT_FLEE : EXIT FUNCTION
         IF k = "F" THEN DoSearch
         IF k = "C" THEN ShowCharSheet
         IF k = "V" THEN ScryView
-        IF k = "H" THEN UsePotion FALSE: cursor_erase: cursor_draw: DrawHUD: Present
-        IF k = "P" THEN PauseGame: idle_ticks = 0
-        IF k = "G" THEN SaveAndToast: idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
+        IF k = "H" THEN UsePotion FALSE : cursor_erase : cursor_draw : DrawHUD : Present
+        IF k = "P" THEN PauseGame       : idle_ticks = 0
+        IF k = "G" THEN SaveAndToast    : idle_ticks = 0   ' hot-seat saves too as of save v5 (PLRS block)
         IF k = "?" OR k = "/" THEN ShowKeys
-        IF k = CHR$(9) THEN                                   ' [TAB] -- the scoreboard, as in any shooter
+        IF k = CHR$(9) THEN ' [ TAB ]- - the scoreboard, AS in ANY shooter
             opt_statsoverlay = NOT opt_statsoverlay
-            Sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
+            sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
             idle_ticks = 0
         END IF
         ' [Shift-TAB] -- swap that same box between RUN STATS and BEARINGS (what is playing, what
         ' art is on screen, which sector/cell you are standing on). It SHOWS the box as well as
         ' swapping it, because pressing it while the box is hidden otherwise looks like a dead key.
         IF k = CHR$(0) + CHR$(15) THEN
-            overlay_mode = 1 - overlay_mode
+            overlay_mode     = 1 - overlay_mode
             opt_statsoverlay = TRUE
-            Sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
+            sfx "select": cursor_erase: cursor_draw: DrawHUD: Present
             idle_ticks = 0
         END IF
         IF k = "L" THEN FindPlayerFlash: idle_ticks = 0        ' [L] -- locate me (was TAB)
@@ -1157,16 +1157,16 @@ FUNCTION PlayGame%
             AutoMoveBegin
             Banner "AUTO-MOVE", "Walking the dungeon, shallowest level first. Any key stops it.   [ press any key ]"
             WaitKey
-            cursor_erase: cursor_draw: DrawHUD: Present
+            cursor_erase : cursor_draw : DrawHUD : present
             idle_ticks = 0
         END IF
-        IF k = "R" THEN DoRest: idle_ticks = 0                ' [R] -- rest a point, and roll for company
-        IF k = "M" THEN GameMenu: cursor_erase: cursor_draw: DrawHUD: Present
+        IF k = "R" THEN DoRest   : idle_ticks = 0                ' [R] -- rest a point, and roll for company
+        IF k = "M" THEN GameMenu : cursor_erase : cursor_draw : DrawHUD : Present
         ' [~] only -- BACKTICK is the dev console now, and it is handled in Present so it opens
         ' from every screen, not just this loop.
         IF k = "~" THEN
             dbg_on = NOT dbg_on
-            IF NOT dbg_on THEN cursor_erase: cursor_draw: DrawHUD: Present   ' wipe the frozen debug overlay off the board
+            IF NOT dbg_on THEN cursor_erase : cursor_draw : DrawHUD : present ' wipe the frozen debug overlay OFF the board
         END IF
         IF dbg_on AND k = "0" THEN DebugTestMenu   ' [~] on -> [0] opens the cheat/test panel
         ' [~] on -> [9] opens the MAP DEBUGGER over the live run: every derived layer
@@ -1190,7 +1190,7 @@ FUNCTION PlayGame%
             ELSE
                 FpsEnter ""
             END IF
-            cursor_erase: cursor_draw: DrawHUD: Present
+            cursor_erase : cursor_draw : DrawHUD : present
         END IF
         IF FPS_ON THEN
             FpsMouseLook
@@ -1198,49 +1198,49 @@ FUNCTION PlayGame%
             IF k = "," THEN k = "SL"
             IF k = "." THEN k = "SR"
             IF IsMoveKey(k) OR k = "SL" OR k = "SR" THEN
-                k = FpsMapKey$(k)                 ' "" = the key was a TURN, not a step
+                k = FpsMapKey$(k) ' "" = the key was a TURN, not a step
             END IF
         END IF
 
         IF k = "T" AND item_teleport > 0 THEN     ' Teleport Scroll -- whisk back to START
             item_teleport = item_teleport - 1
             RecordItemUsed "teleport scroll"
-            Sfx "teleport"
-            PopArt "Teleport Scroll", "TELEPORT SCROLL"       ' show the scroll art as you use it
+            sfx "teleport"
+            PopArt "Teleport Scroll", "TELEPORT SCROLL" ' show the scroll art as you use it
             Banner "You read a TELEPORT SCROLL -- reality folds around you!", "You reappear at the entrance.   [ press any key ]"
             WaitKey
-            c.x = START_CX * CW: c.y = START_CY * CH: c.prev_x = c.x: c.prev_y = c.y
+            c.x = START_CX * CW : c.y = START_CY * CH : c.prev_x = c.x : c.prev_y = c.y
             ' NO free heal: a scroll is an ESCAPE, not a rest. It used to set player_hp =
             ' player_maxhp outright, which made [T] a full heal you could stock up on -- and
             ' the entrance heal would then hand it to you again on the next step anyway.
             start_heal_locked = TRUE
-            loiter = 0
-            StartTurnMove                    ' fresh move budget after the jump
-            cursor_erase: cursor_draw: FadeInCurrent: DrawHUD: Present
+            loiter            = 0
+            StartTurnMove                               ' fresh move budget after the jump
+            cursor_erase : cursor_draw : FadeInCurrent : DrawHUD : present
         END IF
 
         IF need_roll THEN
             IF k = " " THEN
                 turn_num = turn_num + 1
-                mvb = 0: IF item_boots THEN mvb = 2       ' Elf Boots add to the movement roll
+                mvb        = 0 : IF item_boots THEN mvb = 2 ' Elf Boots add TO the movement roll
                 steps_left = DoRoll(1, mvb, "your MOVEMENT roll")
-                need_roll = FALSE
-                cursor_erase             ' wipe the dice box, restore the board
+                need_roll  = FALSE
+                cursor_erase ' wipe the dice box, RESTORE the board
                 cursor_draw
             END IF
         ELSE
             ' Up-to-5 movement (Boardgame): SPACE ends your turn early -- you choose how far to
             ' go this turn (up to 5 spaces), no die.
             IF k = " " AND opt_boardgame THEN
-                EndPlayerTurn: cursor_erase: cursor_draw
-            ' frozen by a frost bomb? each move attempt just melts a turn off the ice
+                EndPlayerTurn : cursor_erase : cursor_draw
+                ' frozen by a frost bomb? each move attempt just melts a turn off the ice
             ELSEIF IsMoveKey(k) AND frost_turns > 0 THEN
                 frost_turns = frost_turns - 1
-                Sfx "bump"
+                sfx "bump"
                 Banner "You are frozen fast!", "The rime locks your limbs (" + _TRIM$(STR$(frost_turns)) + " turns of frost remain)."
                 _DELAY 0.7
-                cursor_erase: cursor_draw: DrawHUD: Present
-            ' board-game mode gates movement on the dice roll + steps; free mode walks anytime
+                cursor_erase : cursor_draw : DrawHUD : present
+                ' board-game mode gates movement on the dice roll + steps; free mode walks anytime
             ELSEIF IsMoveKey(k) AND (NOT opt_boardgame OR steps_left > 0) THEN
                 sd = StrongDoorAhead(k)
                 IF sd > 0 THEN
@@ -1250,7 +1250,7 @@ FUNCTION PlayGame%
                         IF TryMove(k) THEN
                             moves_made = moves_made + 1
                             IF OnDoorNow THEN
-                                DOOROPEN(c.x \ CW, c.y \ CH) = TRUE   ' broken door is now open (FOV)
+                                DOOROPEN(c.x \ CW, c.y \ CH) = TRUE ' broken door IS now OPEN(FOV)
                                 IF TryMove(k) THEN moves_made = moves_made + 1
                             END IF
                         END IF
@@ -1259,20 +1259,20 @@ FUNCTION PlayGame%
                 ELSEIF TryMove(k) THEN
                     IF opt_boardgame THEN steps_left = steps_left - 1
                     moves_made = moves_made + 1
-                    loiter = 0                     ' moving on resets the lingering danger meter
+                    loiter = 0            ' moving ON resets the lingering danger meter
                     ' out on the paths, a curio rarely turns up (D&D mode, corridors only, cooldown-gated)
                     IF curio_cool > 0 THEN curio_cool = curio_cool - 1
                     IF NOT opt_oldschool AND curio_cool <= 0 THEN
-                        IF ROOMAT(c.x \ CW, c.y \ CH) = 0 THEN     ' on a corridor, not inside a room
-                            IF RollDie(100) <= CURIO_PATH_PCT THEN curio_cool = CURIO_COOLDOWN: DoCurio 0
+                        IF ROOMAT(c.x \ CW, c.y \ CH) = 0 THEN ' ON a corridor, NOT inside a room
+                            IF RollDie(100) <= CURIO_PATH_PCT THEN curio_cool = CURIO_COOLDOWN : DoCurio 0
                         END IF
                     END IF
-                    TickStatus                     ' poison/fire bite, siren winds down as a turn passes
-                    IF siren_turns > 0 THEN         ' a wailing siren drags monsters to you as you move
+                    TickStatus            ' poison / fire bite, siren winds down AS a turn passes
+                    IF siren_turns > 0 THEN ' a wailing siren drags monsters TO you AS you move
                         IF RollDie(100) <= SIREN_MOVE_PCT THEN WanderEncounter
                     END IF
-                    curlvl = PlayerLevel%                 ' chronicle the levels you tread (sticky in unclaimed corridors)
-                    RecordDepth curlvl                    ' "deepest level reached" in the run stats
+                    curlvl = PlayerLevel% ' chronicle the levels you tread(sticky in unclaimed corridors)
+                    RecordDepth curlvl    ' "deepest level reached" in the run stats
                     IF curlvl >= 1 AND curlvl <= 9 THEN
                         IF NOT lvl_reached(curlvl) THEN
                             lvl_reached(curlvl) = TRUE
@@ -1282,11 +1282,11 @@ FUNCTION PlayGame%
                             IF curlvl >= 2 THEN
                                 IF PlayCutscene%("descend") THEN cursor_erase: cursor_draw
                             END IF
-                            IF player_class = 4 THEN                    ' a WIZARD's power grows as they descend
+                            IF player_class = 4 THEN ' a WIZARD's power grows AS they descend
                                 DIM rcl AS INTEGER
-                                rcl = 1 + SpellRecallBonus%                 ' INT: a sharp Wizard recalls more
-                                spell_fire = spell_fire + rcl: spell_bolt = spell_bolt + rcl
-                                Sfx "levelup"
+                                rcl = 1 + SpellRecallBonus% ' INT : a sharp Wizard recalls more
+                                spell_fire = spell_fire + rcl : spell_bolt = spell_bolt + rcl
+                                sfx "levelup"
                                 IF rcl > 1 THEN
                                     Banner "The deeper magic answers you.", "Your INTELLECT recalls " + _TRIM$(STR$(rcl)) + " of each spell.   [ press any key ]"
                                 ELSE
@@ -1296,40 +1296,40 @@ FUNCTION PlayGame%
                             END IF
                         END IF
                     END IF
-                    PlayLevelMusic curlvl                 ' switch to this level's track (no-op if unchanged)
+                    PlayLevelMusic curlvl ' switch TO this level's track(no - op IF unchanged)
                     ' step THROUGH a door, don't stop on it: auto-advance one more cell
                     ' the same direction (a free hop -- costs no movement point)
                     IF OnDoorNow THEN
-                        DOOROPEN(c.x \ CW, c.y \ CH) = TRUE   ' opening the door lets you see through it (FOV)
+                        DOOROPEN(c.x \ CW, c.y \ CH) = TRUE ' opening the door lets you see through it(FOV)
                         IF TryMove(k) THEN moves_made = moves_made + 1
                     END IF
                     ' hand off to the GAME: every consequence of arriving on this cell
                     ' (entrance heal, room/chamber encounter, loot pickup, the win check).
                     ' The engine owns "where the player is"; the game owns "what it means".
                     res = Game_OnEnterCell%(c.x \ CW, c.y \ CH)
-                    IF res = OUT_WIN THEN PlayGame = OUT_WIN: EXIT FUNCTION
+                    IF res = OUT_WIN THEN PlayGame = OUT_WIN : EXIT FUNCTION
                     IF opt_boardgame AND steps_left <= 0 THEN EndPlayerTurn
                 END IF
             END IF
         END IF
 
-        IF solo_on THEN SoloTick                   ' solo challenge: timer / two-deaths / the hunter's step
-        IF dbg_on OR solo_on THEN cursor_erase: cursor_draw   ' redraw each frame so the crosshair / hunter token can't ghost
+        IF solo_on THEN SoloTick ' solo challenge : TIMER / two - deaths / the hunter's STEP
+        IF dbg_on OR solo_on THEN cursor_erase : cursor_draw ' redraw each frame so the crosshair / hunter token can't ghost
         ' The first-person view is drawn OVER the board every frame -- it has to be
         ' every frame because turning changes the picture while nothing else does.
         ' The board underneath is still maintained and still correct; this simply
         ' covers it, and cursor_erase restores it the moment [Q] turns this off.
         IF FPS_ON THEN FpsPresentPlayer
         DrawHUD
-        IF solo_on THEN DrawSoloHUD                 ' the solo status ribbon (timer / quest / hunter distance)
+        IF solo_on THEN DrawSoloHUD ' the solo status ribbon(TIMER / quest / hunter distance)
         IF dbg_on THEN DrawDebug
-        Present
+        present
         IF solo_result = OUT_LOSE THEN
             Banner "SOLO CHALLENGE LOST", solo_msg + "   [ press any key ]"
             WaitKey
-            DeleteSave: PlayGame = OUT_LOSE: EXIT FUNCTION
+            DeleteSave : PlayGame = OUT_LOSE : EXIT FUNCTION
         ELSEIF solo_result = OUT_WIN THEN
-            DeleteSave: PlayGame = OUT_WIN: EXIT FUNCTION
+            DeleteSave : PlayGame = OUT_WIN : EXIT FUNCTION
         END IF
     LOOP
 END FUNCTION
